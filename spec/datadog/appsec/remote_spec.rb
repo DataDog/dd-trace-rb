@@ -20,7 +20,7 @@ RSpec.describe Datadog::AppSec::Remote do
       end
 
       it 'returns capabilities' do
-        expect(described_class.capabilities).to eq([4, 128, 16, 32, 64, 8, 256, 512, 1024])
+        expect(described_class.capabilities).to eq([4, 128, 16, 32, 64, 8, 256, 512, 1024, 8_388_608, 2_097_152])
       end
     end
   end
@@ -173,6 +173,12 @@ RSpec.describe Datadog::AppSec::Remote do
           receiver.call(repository, changes)
         end
 
+        it 'sets apply_state to ACKNOWLEDGED on content' do
+          receiver.call(repository, transaction)
+
+          expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+        end
+
         context 'content product' do
           before do
             # Stub the reconfigure method, so we do not trigger background reconfiguration
@@ -290,6 +296,47 @@ RSpec.describe Datadog::AppSec::Remote do
 
           context 'ASM' do
             let(:path) { 'datadog/603646/ASM/whatevername/config' }
+            let(:data) { {} }
+
+            it 'sets apply_state to ACKNOWLEDGED on content' do
+              receiver.call(repository, transaction)
+
+              expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+            end
+
+            context 'actions' do
+              let(:actions) do
+                [
+                  {
+                    'id' => 'block',
+                    'parameters' => {
+                      'location' => 'https://datadoghq.com',
+                      'status_code' => 302
+                    },
+                    'type' => 'redirect_request'
+                  }
+                ]
+              end
+
+              let(:data) do
+                { 'actions' => actions }
+              end
+
+              it 'pass the right values to RuleMerger' do
+                expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
+                  rules: default_ruleset,
+                  data: [],
+                  actions: actions,
+                  overrides: [],
+                  exclusions: [],
+                  custom_rules: [],
+                  telemetry: telemetry
+                )
+
+                changes = transaction
+                receiver.call(repository, changes)
+              end
+            end
 
             context 'overrides' do
               let(:data) do
@@ -302,6 +349,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
                   rules: default_ruleset,
                   data: [],
+                  actions: [],
                   overrides: [rules_override],
                   exclusions: [],
                   custom_rules: [],
@@ -324,6 +372,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
                   rules: default_ruleset,
                   data: [],
+                  actions: [],
                   overrides: [],
                   exclusions: [exclusions],
                   custom_rules: [],
@@ -346,6 +395,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
                   rules: default_ruleset,
                   data: [],
+                  actions: [],
                   overrides: [],
                   exclusions: [],
                   custom_rules: [custom_rules],
@@ -369,6 +419,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
                   rules: default_ruleset,
                   data: [],
+                  actions: [],
                   overrides: [rules_override],
                   exclusions: [exclusions],
                   custom_rules: [],
@@ -391,6 +442,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
                   rules: default_ruleset,
                   data: [],
+                  actions: [],
                   overrides: [],
                   exclusions: [],
                   custom_rules: [],
@@ -405,6 +457,13 @@ RSpec.describe Datadog::AppSec::Remote do
 
           context 'ASM_DATA' do
             let(:path) { 'datadog/603646/ASM_DATA/whatevername/config' }
+            let(:data) { {} }
+
+            it 'sets apply_state to ACKNOWLEDGED on content' do
+              receiver.call(repository, transaction)
+
+              expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+            end
 
             context 'with rules_data information' do
               let(:data) do
@@ -417,6 +476,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
                   rules: default_ruleset,
                   data: [rules_data],
+                  actions: [],
                   overrides: [],
                   exclusions: [],
                   custom_rules: [],
@@ -439,6 +499,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
                   rules: default_ruleset,
                   data: [],
+                  actions: [],
                   overrides: [],
                   exclusions: [],
                   custom_rules: [],

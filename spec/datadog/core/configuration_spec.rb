@@ -9,6 +9,7 @@ require 'datadog/tracing/tracer'
 RSpec.describe Datadog::Core::Configuration do
   let(:default_log_level) { ::Logger::INFO }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
   before do
     allow(telemetry).to receive(:stop!)
@@ -269,8 +270,8 @@ RSpec.describe Datadog::Core::Configuration do
 
       context 'when the tracer' do
         context 'is replaced' do
-          let(:old_tracer) { Datadog::Tracing::Tracer.new }
-          let(:new_tracer) { Datadog::Tracing::Tracer.new }
+          let(:old_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
+          let(:new_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
             expect(old_tracer).to receive(:shutdown!)
@@ -285,7 +286,7 @@ RSpec.describe Datadog::Core::Configuration do
         end
 
         context 'is reused' do
-          let(:tracer) { Datadog::Tracing::Tracer.new }
+          let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
             expect(tracer).to_not receive(:shutdown!)
@@ -300,7 +301,7 @@ RSpec.describe Datadog::Core::Configuration do
         end
 
         context 'is not changed' do
-          let(:tracer) { Datadog::Tracing::Tracer.new }
+          let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
             expect(tracer).to_not receive(:shutdown!)

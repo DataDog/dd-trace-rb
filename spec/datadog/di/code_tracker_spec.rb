@@ -1,12 +1,9 @@
+require 'datadog/di'
 require "datadog/di/spec_helper"
-require "datadog/di/code_tracker"
 
 RSpec.describe Datadog::DI::CodeTracker do
   di_test
-
-  before(:all) do
-    Datadog::DI.deactivate_tracking!
-  end
+  deactivate_code_tracking
 
   let(:tracker) do
     described_class.new
@@ -98,6 +95,43 @@ RSpec.describe Datadog::DI::CodeTracker do
         eval "1 + 2", nil, __FILE__, __LINE__
         # Should still be empty here.
         expect(tracker.send(:registry)).to be_empty
+      end
+    end
+
+    context 'when process forks' do
+      it 'continues tracking in the fork' do
+        # Load rspec assertion code
+        expect(1).to eq(1)
+        expect(1).to equal(1)
+
+        expect(tracker.send(:registry)).to be_empty
+        tracker.start
+
+        require_relative 'code_tracker_test_class_4'
+        expect(tracker.send(:registry).length).to eq(1)
+        path = tracker.send(:registry).to_a.dig(0, 0)
+        expect(File.basename(path)).to eq("code_tracker_test_class_4.rb")
+
+        expect_in_fork do
+          expect(tracker.send(:registry).length).to eq(1)
+          path = tracker.send(:registry).to_a.dig(0, 0)
+          expect(File.basename(path)).to eq("code_tracker_test_class_4.rb")
+
+          require_relative 'code_tracker_test_class_5'
+          expect(tracker.send(:registry).length).to eq(2)
+          path = tracker.send(:registry).to_a.dig(1, 0)
+          expect(File.basename(path)).to eq("code_tracker_test_class_5.rb")
+        end
+
+        begin
+          Process.waitpid
+        rescue Errno::ECHILD
+        end
+
+        # Verify parent did not change
+        expect(tracker.send(:registry).length).to eq(1)
+        path = tracker.send(:registry).to_a.dig(0, 0)
+        expect(File.basename(path)).to eq("code_tracker_test_class_4.rb")
       end
     end
   end

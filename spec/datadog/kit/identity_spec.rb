@@ -5,7 +5,7 @@ require 'time'
 require 'datadog/tracing/trace_operation'
 require 'datadog/kit/identity'
 
-require 'datadog/appsec/scope'
+require 'datadog/appsec/context'
 
 RSpec.describe Datadog::Kit::Identity do
   subject(:trace_op) { Datadog::Tracing::TraceOperation.new }
@@ -212,24 +212,26 @@ RSpec.describe Datadog::Kit::Identity do
     end
 
     context 'appsec' do
-      let(:appsec_active_scope) { nil }
-      before { allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_active_scope) }
+      before do
+        allow(processor).to receive(:new_runner).and_return(instance_double(Datadog::AppSec::SecurityEngine::Runner))
+        allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
+      end
+
+      let(:processor) { instance_double(Datadog::AppSec::Processor) }
+      let(:appsec_active_context) { nil }
 
       context 'when is enabled' do
-        let(:appsec_active_scope) do
-          processor = instance_double('Datadog::Appsec::Processor')
-          trace = trace_op
-          span = trace.build_span('root')
+        before { Datadog.configuration.appsec.enabled = true }
+        after { Datadog.configuration.reset! }
 
-          Datadog::AppSec::Scope.new(trace, span, processor)
-        end
+        let(:span_op) { trace_op.build_span('root') }
+        let(:appsec_active_context) { Datadog::AppSec::Context.new(trace_op, span_op, processor) }
 
-        before do
-          Datadog.configuration.appsec.enabled = true
-        end
-
-        after do
-          Datadog.configuration.reset!
+        it 'sets collection mode to SDK' do
+          trace_op.measure('root') do |_span, _trace|
+            described_class.set_user(trace_op, id: '42')
+            expect(span_op.tags).to include('_dd.appsec.user.collection_mode' => 'sdk')
+          end
         end
 
         it 'instruments the user information to appsec' do

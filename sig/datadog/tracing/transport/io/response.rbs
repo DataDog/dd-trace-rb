@@ -1,17 +1,19 @@
 module Datadog
   module Tracing
-  module Transport
-    module IO
-      class Response
-        include Datadog::Core::Transport::Response
+    module Transport
+      module IO
+        class Response
+          @result: untyped
 
-        attr_reader result: untyped
+          include Datadog::Core::Transport::Response
 
-        def initialize: (untyped result) -> void
+          attr_reader result: untyped
 
-        def ok?: () -> true
+          def initialize: (untyped result) -> void
+
+          def ok?: () -> true
+        end
       end
     end
   end
-end
 end

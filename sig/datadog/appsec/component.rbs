@@ -1,26 +1,31 @@
 module Datadog
   module AppSec
     class Component
-      def self.build_appsec_component: (Datadog::Core::Configuration::Settings settings) -> Datadog::AppSec::Component?
+      @processor: Processor?
+
+      @telemetry: Core::Telemetry::Component
+
+      @mutex: ::Mutex
+
+      def self.build_appsec_component: (Core::Configuration::Settings settings, Core::Telemetry::Component telemetry) -> Component?
 
       private
 
-      def self.create_processor: () -> Datadog::AppSec::Processor?
+      def self.create_processor: (Core::Configuration::Settings settings, Core::Telemetry::Component telemetry) -> Processor?
 
-      attr_reader processor: Datadog::AppSec::Processor?
-      attr_reader mutex: Thread::Mutex
+      public
 
-      def initialize: (processor: Datadog::AppSec::Processor?) -> void
+      attr_reader processor: Processor?
 
-      def self.reconfigure: (
-        ruleset: ::Hash[untyped, untyped],
-        actions: Array[Hash[String, untyped]],
-        telemetry: Datadog::Core::Telemetry::Component
-      ) -> void
+      attr_reader telemetry: Core::Telemetry::Component
 
-      def self.reconfigure_lock: () { () -> void } -> void
+      def initialize: (Processor processor, Core::Telemetry::Component telemetry) -> void
 
-      def shutdown!: () -> untyped
+      def reconfigure: (ruleset: Processor::RuleMerger::rules, telemetry: Core::Telemetry::Component) -> void
+
+      def reconfigure_lock: () { (?) -> void } -> void
+
+      def shutdown!: () -> void
     end
   end
 end

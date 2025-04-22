@@ -10,7 +10,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       emitter: emitter,
       metrics_manager: metrics_manager,
-      dependency_collection: dependency_collection
+      dependency_collection: dependency_collection,
+      logger: logger,
     )
   end
 
@@ -20,6 +21,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   let(:metrics_manager) { instance_double(Datadog::Core::Telemetry::MetricsManager, flush!: [], disable!: nil) }
   let(:emitter) { instance_double(Datadog::Core::Telemetry::Emitter) }
   let(:dependency_collection) { false }
+  let(:logger) { instance_double(Datadog::Core::Logger) }
 
   let(:backend_supports_telemetry?) { true }
   let(:response) do
@@ -31,9 +33,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   before do
-    logger = double(Datadog::Core::Logger)
     allow(logger).to receive(:debug).with(any_args)
-    allow(Datadog).to receive(:logger).and_return(logger)
 
     @received_started = false
     @received_heartbeat = false
@@ -80,7 +80,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
           try_wait_until { !worker.enabled? }
 
-          expect(Datadog.logger).to have_received(:debug).with(
+          expect(logger).to have_received(:debug).with(
             'Agent does not support telemetry; disabling future telemetry events.'
           )
           expect(@received_started).to be(true)
@@ -233,6 +233,34 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             try_wait_until { received_metrics }
           end
         end
+
+        context 'when logs are flushed' do
+          it 'deduplicates repeated log entries' do
+            events_received = []
+            expect(emitter).to receive(:request).with(
+              an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+            ) do |event|
+              events_received += event.events
+              response
+            end
+
+            worker.enqueue(Datadog::Core::Telemetry::Event::AppHeartbeat.new)
+            worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn))
+            worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn))
+            worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :error))
+            worker.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
+
+            worker.start
+            try_wait_until { !events_received.empty? }
+
+            expect(events_received).to contain_exactly(
+              Datadog::Core::Telemetry::Event::AppHeartbeat.new,
+              Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn, count: 2),
+              Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :error),
+              Datadog::Core::Telemetry::Event::AppClosing.new
+            )
+          end
+        end
       end
 
       context 'when internal error returned by emitter' do
@@ -273,7 +301,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               emitter: emitter,
               metrics_manager: metrics_manager,
-              dependency_collection: dependency_collection
+              dependency_collection: dependency_collection,
+              logger: logger,
             )
           end
           workers.each(&:start)

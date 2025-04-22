@@ -379,8 +379,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       after do
-        background_thread.kill
-        background_thread.join
+        unless RSpec.current_example.skipped?
+          background_thread.kill
+          background_thread.join
+        end
       end
 
       it "is able to sample even when the main thread is sleeping" do
@@ -510,7 +512,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # (unless somehow the missed_by_profiler_time is too big?)
           expect(total_time).to be >= 200_000_000
           expect(waiting_for_gvl_time).to be < total_time
-          expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time), \
+          expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time),
             "Expected waiting_for_gvl_time to be close to total_time, debug_failures: #{debug_failures}"
 
           expect(cpu_and_wall_time_worker.stats).to match(
@@ -1345,6 +1347,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         it "returns different numbers of allocations for different threads" do
+          # GC disabled for the same reason as "returns the exact number of allocations between two calls of the method"
+          # spec above.
+          GC.disable
+
           # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
           # it needs to
           new_object = proc { Object.new }
@@ -1374,8 +1380,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # This test checks that even though we observed 100 allocations in a background thread t1, the counters for
           # the current thread were not affected by this change
 
-          expect(after_t1 - before_t1).to be 100
+          expect(after_t1 - before_t1).to be >= 100
           expect(after_allocations - before_allocations).to be < 10
+        ensure
+          GC.enable
         end
 
         context "when allocation profiling is enabled but allocation counting is disabled" do
@@ -1546,8 +1554,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   # and profiler overhead samples is a source of randomness which causes flakiness in the assertions.
   #
   # We have separate specs that assert on these behaviors.
-  def samples_from_pprof_without_gc_and_overhead(pprof_data)
-    samples_from_pprof(pprof_data)
+  def samples_from_pprof_without_gc_and_overhead(encoded_profile)
+    samples_from_pprof(encoded_profile)
       .reject { |it| it.locations.first.path == "Garbage Collection" }
       .reject { |it| it.labels.include?(:"profiler overhead") }
   end

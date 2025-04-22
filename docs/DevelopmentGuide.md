@@ -44,34 +44,6 @@ New tests should be written as RSpec tests in the `spec/datadog` folder. Test fi
 
 All changes should be covered by a corresponding RSpec tests. Unit tests are preferred, and integration tests are accepted where appropriate (e.g. acceptance tests, verifying compatibility with datastores, etc) but should be kept to a minimum.
 
-**Considerations for CI**
-
-All tests should run in CI. When adding new `_spec.rb` files, you may need to add rake task to ensure your test file is run in CI.
-
- - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file. For example
-
- ```ruby
-   namespace :spec do
-     RSpec::Core::RakeTask.new(:foo) do |t, args|
-       t.pattern = "spec/datadog/tracing/contrib/foo/**/*_spec.rb"
-       t.rspec_opts = args.to_a.join(' ')
-     end
-   end
- ```
-
- - Ensure the Rake task is configured to run for the appropriate Ruby runtimes, by adding it to our `Matrixfile`. You should find the task with `bundle exec rake -T test:foo` after adding it.
-
-```ruby
-  {
-    'foo' => {
-      # With default dependencies for each Ruby runtime
-      ''    => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
-      # or with dependency group definition `foo-on-rails`, that includes additional gems
-      'foo-on-rails' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
-    },
-  }
-```
-
 ### Running tests
 
 `bundle exec rake ci` will run the entire test suite with any given Ruby runtime, just as CI does. However, this is not recommended because it is going take a long time.
@@ -98,9 +70,9 @@ Take `bundle exec rake test:redis` as example, multiple versions of `redis` from
 ```ruby
 {
   'redis' => {
-    'redis-3' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
-    'redis-4' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
-    'redis-5' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+    'redis-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
+    'redis-4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
+    'redis-5' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby'
   }
 }
 ```
@@ -147,6 +119,92 @@ Both `dependency:lock` and `dependency:install` can be provided with a specific 
 bundle exec rake dependency:lock['/app/gemfiles/ruby_3.3_stripe_*.gemfile']
 # or only generate lockfile for `stripe_latest` group
 bundle exec rake dependency:lock['/app/gemfiles/ruby_3.3_stripe_latest.gemfile']
+```
+
+**How to add new dependency group**
+
+> [!IMPORTANT]
+> Add a new group only if the existing groups do not meet your requirements, or if adding a new dependency to an existing group is impractical.
+> Remember, each new group increases maintenance and CI costs.
+
+1. Choose the Ruby runtime and group name for your tests. When defining a new group, follow the format `scope:group`.
+For example, if you want tests to run only on Ruby 3.3 for tracing, you can define this in the [`Matrixfile`](../Matrixfile).
+
+```ruby
+{
+  'tracing:ruby_on_rails' => {
+    # With default dependencies for each Ruby runtime
+    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    # or with dependency group definition `ruby-on-rails`, that includes additional gems or specific versions
+    'rails-1' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    # ...
+    'rails-edge' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+  }
+}
+```
+
+2. Define the required gems in the corresponding Appraisal file. For this example, we are going to use [`Appraisal/ruby-3.3.rb`](../Appraisal/ruby-3.3.rb). Let's define what `rails-edge` group needs.
+
+```ruby
+appraise 'rails-edge' do
+  gem 'rails', '>= 8'
+end
+```
+
+3. Now let's generate that dependency Gemfile with `rake`, simply run
+
+> [!IMPORTANT]
+> Ensure you are using Ruby 3.3 as the current Ruby version (`ruby -v`) or run commands within a Docker container.
+
+```console
+$ bundle exec rake dependency:generate
+...
+ruby-3.3_rails-edge
+```
+
+Verify that the new dependency appears in the list.
+
+```console
+$ bundle exec rake dependency:list
+Ahoy! Here is a list of gemfiles you are looking for:
+
+========================================
+...
+/Users/DataDog/dd-trace-rb/gemfiles/ruby_3.3_rails_edge.gemfile
+```
+
+4. Use the following command to lock the gem versions.
+
+```console
+$ bundle exec rake dependency:lock[]
+BUNDLE_GEMFILE=/Users/DataDog/dd-trace-rb/gemfiles/ruby_3.3_rails_edge.gemfile bundle lock --add-platform x86_64-linux aarch64-linux
+Fetching gem metadata from https://rubygems.org/...........
+Resolving dependencies...
+Writing lockfile to /Users/DataDog/dd-trace-rb/gemfiles/ruby_3.3_rails_edge.gemfile.lock
+```
+
+5. The last step is to associate the newly generated group with some tests. It can be done in the [`Rakefile`](../Rakefile).
+
+> [!IMPORTANT]
+> Ensure the `scope:group` format matches the rake task name.
+> In our case, we should define it as `tracing:ruby_on_rails` under `spec` namespace.
+
+```ruby
+namespace :spec do
+  namespace :tracing do
+    RSpec::Core::RakeTask.new(:ruby_on_rails) do |t, args|
+      t.pattern = "spec/datadog/tracing/contrib/ruby_on_rails/**/*_spec.rb"
+      t.rspec_opts = args.to_a.join(' ')
+    end
+  end
+end
+```
+
+and now you should be able to find it by running
+
+```console
+$ bundle exec rake -T test:tracing
+rake test:tracing:ruby_on_rails[task_args]  # Run spec:tracing:ruby_on_rails tests
 ```
 
 **Passing arguments to tests**
@@ -223,10 +281,46 @@ https://github.com/datadog/dd-apm-test-agent#readme
 
 **Linting**
 
-The trace library uses Rubocop to enforce [code style](https://github.com/bbatsov/ruby-style-guide) and quality. To check, run:
+Most of the library uses Rubocop to enforce [code style](https://github.com/bbatsov/ruby-style-guide) and quality. To check, run:
 
 ```
 $ bundle exec rake rubocop
+```
+
+To change your code to the version that rubocop wants, run:
+
+```
+$ bundle exec rake rubocop -A
+```
+
+Profiling and Dynamic Instrumentation use [standard](https://github.com/standardrb/standard)
+instead of Rubocop. To check files with standard, run:
+
+```
+$ bundle exec rake standard
+```
+
+To change your code to the version that standard wants, run:
+
+```
+$ bundle exec rake standard:fix
+```
+
+For non-Ruby code, follow the instructions below to debug locally, if CI failed with respective linter.
+
+- For `yamllint`, run:
+```bash
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb cytopia/yamllint .
+```
+
+- For `actionlint`, run:
+```bash
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
+```
+
+- For `zizmor`, run:
+```bash
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
 ```
 
 ## Appendix

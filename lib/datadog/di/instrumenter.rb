@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# rubocop:disable Lint/AssignmentInCondition
+require_relative '../core/utils/time'
 
-require 'benchmark'
+# rubocop:disable Lint/AssignmentInCondition
 
 module Datadog
   module DI
@@ -115,21 +115,21 @@ module Datadog
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
-              rv = nil
+              start_time = Core::Utils::Time.get_time
               # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
-              duration = Benchmark.realtime do # steep:ignore
-                rv = if args.any?
-                  if kwargs.any?
-                    super(*args, **kwargs, &target_block)
-                  else
-                    super(*args, &target_block)
-                  end
-                elsif kwargs.any?
-                  super(**kwargs, &target_block)
+              # for methods defined via method_missing.
+              rv = if args.any?
+                if kwargs.any?
+                  super(*args, **kwargs, &target_block)
                 else
-                  super(&target_block)
+                  super(*args, &target_block)
                 end
+              elsif kwargs.any?
+                super(**kwargs, &target_block)
+              else
+                super(&target_block)
               end
+              duration = Core::Utils::Time.get_time - start_time
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
@@ -152,7 +152,28 @@ module Datadog
                 serialized_entry_args: entry_args)
               rv
             else
-              super(*args, **kwargs)
+              # stop standard from trying to mess up my code
+              _ = 42
+
+              # The necessity to invoke super in each of these specific
+              # ways is very difficult to test.
+              # Existing tests, even though I wrote many, still don't
+              # cause a failure if I replace all of the below with a
+              # simple super(*args, **kwargs, &target_block).
+              # But, let's be safe and go through the motions in case
+              # there is actually a legitimate need for the breakdown.
+              # TODO figure out how to test this properly.
+              if args.any?
+                if kwargs.any?
+                  super(*args, **kwargs, &target_block)
+                else
+                  super(*args, &target_block)
+                end
+              elsif kwargs.any?
+                super(**kwargs, &target_block)
+              else
+                super(&target_block)
+              end
             end
           end
         end
@@ -224,11 +245,12 @@ module Datadog
               #
               # If the requested file is not in code tracker's registry,
               # or the code tracker does not exist at all,
-              # do not attempt to instrumnet now.
+              # do not attempt to instrument now.
               # The caller should add the line to the list of pending lines
               # to instrument and install the hook when the file in
               # question is loaded (and hopefully, by then code tracking
               # is active, otherwise the line will never be instrumented.)
+              raise_if_probe_in_loaded_features(probe)
               raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
             end
           end
@@ -236,6 +258,7 @@ module Datadog
           # Same as previous comment, if untargeted trace points are not
           # explicitly defined, and we do not have code tracking, do not
           # instrument the method.
+          raise_if_probe_in_loaded_features(probe)
           raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
         end
 
@@ -281,13 +304,13 @@ module Datadog
             end
           rescue => exc
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-            logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
+            logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
             telemetry&.report(exc, description: "Unhandled exception in line trace point")
             # TODO test this path
           end
         rescue => exc
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
+          logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
           telemetry&.report(exc, description: "Unhandled exception in line trace point")
           # TODO test this path
         end
@@ -333,7 +356,7 @@ module Datadog
           hook_line(probe, &block)
         else
           # TODO add test coverage for this path
-          logger.warn("Unknown probe type to hook: #{probe}")
+          logger.debug { "di: unknown probe type to hook: #{probe}" }
         end
       end
 
@@ -344,13 +367,33 @@ module Datadog
           unhook_line(probe)
         else
           # TODO add test coverage for this path
-          logger.warn("Unknown probe type to unhook: #{probe}")
+          logger.debug { "di: unknown probe type to unhook: #{probe}" }
         end
       end
 
       private
 
       attr_reader :lock
+
+      def raise_if_probe_in_loaded_features(probe)
+        return unless probe.file
+
+        # If the probe file is in the list of loaded files
+        # (as per $LOADED_FEATURES, using either exact or suffix match),
+        # raise an error indicating that
+        # code tracker is missing the loaded file because the file
+        # won't be loaded again (DI only works in production environments
+        # that do not normally reload code).
+        if $LOADED_FEATURES.include?(probe.file)
+          raise Error::DITargetNotInRegistry, "File loaded but is not in code tracker registry: #{probe.file}"
+        end
+        # Ths is an expensive check
+        $LOADED_FEATURES.each do |path|
+          if Utils.path_matches_suffix?(path, probe.file)
+            raise Error::DITargetNotInRegistry, "File matching probe path (#{probe.file}) was loaded and is not in code tracker registry: #{path}"
+          end
+        end
+      end
 
       # TODO test that this resolves qualified names e.g. A::B
       def symbolize_class_name(cls_name)

@@ -3,7 +3,8 @@
 require_relative '../../../core/encoding'
 
 require_relative '../../../core/transport/http/api/map'
-require_relative 'api/spec'
+require_relative '../../../core/transport/http/api/instance'
+require_relative '../../../core/transport/http/api/spec'
 
 require_relative 'traces'
 
@@ -20,15 +21,15 @@ module Datadog
           module_function
 
           def defaults
-            Datadog::Core::Transport::HTTP::API::Map[
-              V4 => Spec.new do |s|
+            Core::Transport::HTTP::API::Map[
+              V4 => Traces::API::Spec.new do |s|
                 s.traces = Traces::API::Endpoint.new(
                   '/v0.4/traces',
                   Core::Encoding::MsgpackEncoder,
                   service_rates: true
                 )
               end,
-              V3 => Spec.new do |s|
+              V3 => Traces::API::Spec.new do |s|
                 s.traces = Traces::API::Endpoint.new(
                   '/v0.3/traces',
                   Core::Encoding::MsgpackEncoder

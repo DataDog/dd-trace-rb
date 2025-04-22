@@ -1,0 +1,23 @@
+module MessagePack
+  alias self.dump self.pack
+
+  def self.load: (untyped src, ?untyped param) -> untyped
+
+  def self.pack: (untyped v, ?untyped io, ?untyped options) -> untyped
+
+  alias self.unpack self.load
+
+  private
+
+  alias dump pack
+
+  def load: (untyped src, ?untyped param) -> untyped
+
+  def pack: (untyped v, ?untyped io, ?untyped options) -> untyped
+
+  alias unpack load
+
+  DefaultFactory: ::MessagePack::Factory
+
+  VERSION: ::String
+end

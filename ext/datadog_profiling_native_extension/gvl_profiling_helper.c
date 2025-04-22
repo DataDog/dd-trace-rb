@@ -1,5 +1,7 @@
 #include <ruby.h>
 #include <ruby/thread.h>
+
+#include "datadog_ruby_common.h"
 #include "gvl_profiling_helper.h"
 
 #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS) // Ruby 3.3+

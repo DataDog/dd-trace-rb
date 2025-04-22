@@ -131,6 +131,16 @@ appraise 'rails61-semantic-logger' do
   gem 'rails_semantic_logger', '~> 4.0'
 end
 
+appraise 'rails-old-redis' do
+  # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
+  gem 'redis', '< 4'
+  gem 'rails', '~> 6.1.0'
+  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '~> 3.0'
   gem 'resque', '>= 2.0'
@@ -154,17 +164,22 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'excon'
-  gem 'faraday'
   gem 'http', '~> 4' # TODO: Fix test breakage and flakiness for 5+
   gem 'httpclient'
-  gem 'rest-client'
   gem 'typhoeus'
 end
 
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
-build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
-build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', [7])
+build_coverage_matrix('faraday', min: '0.14.0')
+build_coverage_matrix('excon')
+build_coverage_matrix('rest-client')
+build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('dalli', [2])
+# NOTE: JRuby bundler failed to install some dependencies https://github.com/ruby/psych/issues/700
+#       and it could be re-enabled when upstream fix the issue
+# build_coverage_matrix('devise', min: '3.2.1')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.0.0'
@@ -191,8 +206,7 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'dalli', '>= 3.0.0'
-  gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
+
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'redis', '~> 4'
@@ -217,7 +231,8 @@ end
   end
 end
 
-build_coverage_matrix('rack', 1..3, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
+build_coverage_matrix('redis', [3, 4])
+build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2, 3].each do |n|
   appraise "sinatra-#{n}" do
@@ -227,19 +242,8 @@ build_coverage_matrix('rack', 1..3, meta: { 'rack-contrib' => nil, 'rack-test' =
   end
 end
 
-[3, 4, 5].each do |n|
-  appraise "redis-#{n}" do
-    gem 'redis', "~> #{n}"
-  end
-end
-
 appraise 'contrib-old' do
-  gem 'dalli', '< 3.0.0'
-  gem 'faraday', '0.17'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
-
-  gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
-  gem 'redis', '< 4' # Missing redis version cap for `qless`
 end
 
 appraise 'core-old' do

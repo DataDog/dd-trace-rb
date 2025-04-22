@@ -1,0 +1,35 @@
+module Datadog
+  module AppSec
+    module Metrics
+      class Collector
+        class Store < ::Struct[untyped]
+          attr_accessor evals: ::Integer
+
+          attr_accessor timeouts: ::Integer
+
+          attr_accessor duration_ns: ::Integer
+
+          attr_accessor duration_ext_ns: ::Integer
+
+          def self.new: (evals: ::Integer, timeouts: ::Integer, duration_ns: ::Integer, duration_ext_ns: ::Integer) -> void
+        end
+
+        @mutex: Mutex
+
+        @waf: Store
+
+        @rasp: Store
+
+        attr_reader waf: Store
+
+        attr_reader rasp: Store
+
+        def initialize: () -> void
+
+        def record_waf: (SecurityEngine::result result) -> void
+
+        def record_rasp: (SecurityEngine::result result) -> void
+      end
+    end
+  end
+end

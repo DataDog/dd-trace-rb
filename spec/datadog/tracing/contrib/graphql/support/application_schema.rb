@@ -1,5 +1,6 @@
 require 'graphql'
 require 'json'
+require 'ostruct'
 
 module TestGraphQL
   class Case < GraphQL::Schema::Directive
@@ -60,6 +61,12 @@ module TestGraphQL
       return OpenStruct.new(id: 10, name: name) if name == 'Caniche'
 
       OpenStruct.new(id: 1, name: name)
+    end
+
+    field :unexpected_error, UserType, description: 'Raises error'
+
+    def unexpected_error
+      raise 'Unexpected error'
     end
 
     field :mutationUserByName, UserType, null: false, description: 'Find an user by name' do

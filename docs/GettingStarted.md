@@ -108,7 +108,7 @@ OR
 
 #### Other Ruby applications
 
-If your application does not use the supported gems (Rails or Hanami) above, you can set it up as follows:
+If your application does not use the above mentioned gems (Rails or Hanami), you can set it up as follows:
 
 1. Add the `datadog` gem to your Gemfile:
 
@@ -166,6 +166,24 @@ If your Agent runs on a different host or container than your application, or yo
 ### Final steps for installation
 
 After setting up, your services will appear on the [APM services page](https://app.datadoghq.com/apm/services) within a few minutes. Learn more about [using the APM UI][visualization docs].
+
+### Disabling during testing/specs and test optimization for Ruby
+
+Tracing is enabled by default; this includes:
+
+* When loading using `datadog/auto_instrument`
+* When activating integrations using `tracing.instrument` in the `Datadog.configure` block
+* When calling the `Datadog::Tracing.trace` method
+
+If you'd like to disable tracing when running your tests/specs, you can set the `DD_TRACE_ENABLED` environment variable to `false` or via code:
+
+```ruby
+Datadog.configure do |c|
+  c.tracing.enabled = false
+end
+```
+
+Furthermore, if you're trying to get more visibility into your tests or you're struggling with slow or flaky test suites, consider looking at Datadog's [Test optimization](https://docs.datadoghq.com/tests/) via the [`datadog-ci`](https://github.com/DataDog/datadog-ci-rb?tab=readme-ov-file#datadog-test-optimization-for-ruby) gem.
 
 ## Manual Instrumentation
 
@@ -294,10 +312,6 @@ end
 For a list of available integrations and their supported versions, see [Ruby Integration Compatibility][2].
 
 For a list of configuration options for the available integrations, refer to the following:
-
-#### CI Visibility
-
-Checkout [Datadog's Ruby Library for instrumenting your test and continuous integration pipeline](https://github.com/DataDog/datadog-ci-rb)
 
 ### Action Cable
 
@@ -866,9 +880,11 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | ------------------------ | -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | `enabled`                | `DD_TRACE_GRAPHQL_ENABLED` | `Bool`   | Whether the integration should create spans.                                                                                                                                                                    | `true`           |
 | `schemas`                |                            | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas.                                                    | `[]`             |
-| `with_unified_tracer`    |                            | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for API Catalog**. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
-| `with_deprecated_tracer` |                            | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
+| `with_unified_tracer`    | `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER` | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for Endpoints list** in the Service Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead. This option is disabled by default to maintain backwards compatibility, but **will become the default in `datadog` 3.0.0**. | `false` |
+| `with_deprecated_tracer` |                            | `Bool`   | (Not recommended) Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
 | `service_name`           |                            | `String` | Service name used for graphql instrumentation                                                                                                                                                                   | `'ruby-graphql'` |
+| `error_extensions` | `DD_TRACE_GRAPHQL_ERROR_EXTENSIONS` | `Array` | List of extension keys to include in the span event reported for GraphQL queries with errors. | `[]` |
+
 
 Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy in the same Ruby process.
 This is especially important for [auto instrumented applications](#rails-or-hanami-applications) because an automatic initial instrumentation is always applied at startup, thus such applications will always instrument GraphQL with the default strategy (`GraphQL::Tracing::DataDogTrace`).
@@ -1098,6 +1114,27 @@ end
 | --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
 | `enabled` | `DD_TRACE_KAFKA_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
+### Karafka
+
+The karafka integration provides tracing of the `karafka` gem.
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'karafka'
+require 'datadog'
+
+Datadog.configure do |c|
+  c.tracing.instrument :karafka, **options
+end
+
+```
+`options` are the following keyword arguments:
+
+| Key                   | Env Var                  | Type   | Description                                         | Default |
+| --------------------- | ------------------------ | ------ | --------------------------------------------------- | ------- |
+| `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.        | `true`  |
+| `distributed_tracing` |                          | `Bool` | Enables [distributed tracing](#distributed-tracing). | `false` |
+
 ### MongoDB
 
 The integration traces any `Command` that is sent from the [MongoDB Ruby Driver](https://github.com/mongodb/mongo-ruby-driver) to a MongoDB cluster. By extension, Object Document Mappers (ODM) such as Mongoid are automatically instrumented if they use the official Ruby driver. To activate the integration, simply:
@@ -1256,9 +1293,10 @@ client.cluster.health
 | Key            | Env Var                            | Type     | Description                                                                                                                                                                                    | Default      |
 | -------------- | ---------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | `enabled` | `DD_TRACE_OPENSEARCH_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name` | `DD_TRACE_OPENSEARCH_SERVICE_NAME` | `String` | Name of application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `opensearch` |
-| `peer_service` | `DD_TRACE_OPENSEARCH_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                           | `nil`        |
-| `quantize`     |                                    | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.    | `{}`         |
+| `service_name` | `DD_TRACE_OPENSEARCH_SERVICE_NAME` | `String` | Name of the application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details.](#additional-configuration) | `opensearch` |
+| `peer_service` | `DD_TRACE_OPENSEARCH_PEER_SERVICE` | `String` | Name of the external service that the application connects to. | `nil` |
+| `resource_pattern` | `DD_TRACE_OPENSEARCH_RESOURCE_PATTERN` | `String` | `absolute` or `relative` depending on whether the resource name should be set to the full or relative URL path. | `absolute` |
+| `quantize` |  | `Hash` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize, `:all` to skip quantization, or `:exclude` with an Array of keys to exclude entirely. | `{}` |
 
 ### Postgres
 
@@ -1533,11 +1571,10 @@ Rake::Task['my_task'].invoke
 
 | Key            | Env Var| Type     | Description                                                                                              | Default  |
 | -------------- | - | ------- | -------------------------------------------------------------------------------------------------------- | -------- |
-| `enabled`      | | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
+| `enabled`      | `DD_TRACE_RAKE_ENABLED` | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
 | `quantize`     | | `Hash`   | Hash containing options for quantization of task arguments. See below for more details and examples.     | `{}`     |
 | `service_name` | | `String` | Service name used for `rake` instrumentation                                                             | `'rake'` |
 | `tasks`        | | `Array`  | Names of the Rake tasks to instrument                                                                    | `[]`     |
-| `enabled` | `DD_TRACE_RAKE_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 **Configuring task quantization behavior**
 
@@ -2021,7 +2058,6 @@ To change the default behavior of `datadog`, you can use, in order of priority, 
      c.env = ENV['RACK_ENV']
 
      c.tracing.report_hostname = true
-     c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
    end
    ```
 
@@ -2058,6 +2094,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.header_tags`                                  | `DD_TRACE_HEADER_TAGS`                                  | `Array`                               | `nil`                        | Record HTTP headers as span tags. See [Applying header tags to root spans][header tags] for more information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `tracing.instrument(<integration-name>, <options...>)` |                                                         |                                       |                              | Activates instrumentation for a specific library. See [Integration instrumentation](#integration-instrumentation) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `tracing.log_injection`                                | `DD_LOGS_INJECTION`                                     | `Bool`                                | `true`                       | Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `tracing.native_span_events`                           | `DD_TRACE_NATIVE_SPAN_EVENTS`                           | `Bool`                                | `false`                      | Forces the tracer to always send span events with the native span events format, regardless of whether the Agent supports it. This is useful when you want to change the serialization format in Agent-less setups.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `tracing.partial_flush.enabled`                        |                                                         | `Bool`                                | `false`                      | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans.                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `tracing.partial_flush.min_spans_threshold`            |                                                         | `Integer`                             | `500`                        | The number of spans that must be completed in a trace before partial flushing submits those completed spans.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `tracing.sampler`                                      |                                                         | `Datadog::Tracing::Sampling::Sampler` | `nil`                        | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Custom sampling](#custom-sampling) for details.                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -2067,8 +2104,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.sampling.span_rules`                          | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `String`                              | `nil`                        | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `tracing.trace_id_128_bit_generation_enabled`          | `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED`           | `Bool`                                | `true`                       | `true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `tracing.report_hostname`                              | `DD_TRACE_REPORT_HOSTNAME`                              | `Bool`                                | `false`                      | Adds hostname tag to traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `tracing.test_mode.enabled`                            | `DD_TRACE_TEST_MODE_ENABLED`                            | `Bool`                                | `false`                      | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `tracing.test_mode.trace_flush`                        |                                                         | `Datadog::Tracing::TraceFlush`        | `nil`                        | Object that determines trace flushing behavior.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `apm.tracing.enabled`                                      | `DD_APM_TRACING_ENABLED`                                      | `Bool`                                | `true`                       | Enables or disables APM traces. If set to `false`, instrumentation will still run, but only one APM trace per minute will be sent to the Agent. The service will be considered alive by Datadog, allowing usage of other products in standalone mode. For now, only Application Security is supported.
 
 #### Custom logging
 
@@ -2635,18 +2671,6 @@ DD_TRACE_AGENT_URL=unix:///tmp/ddagent/trace.sock
 Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, you must not set `c.agent.host`
 or `c.agent.port`.
 
-#### Transporting in Test Mode
-
-When test mode is enabled, the tracer uses a `Test` adapter for no-op transport that can optionally buffer requests in
-test suites or other non-production environments. It is configured by setting `c.tracing.test_mode.enabled` to true.
-This mode only works for tracing.
-
-```ruby
-Datadog.configure do |c|
-  c.tracing.test_mode.enabled = true
-end
-```
-
 ### Setting the time provider
 
 By default, tracing uses a monotonic clock to measure the duration of spans, and timestamps (`->{ Time.now }`) for the start and end time.
@@ -2688,6 +2712,11 @@ Datadog.configure do |c|
   # To enable runtime metrics collection, set `true`. Defaults to `false`
   # You can also set DD_RUNTIME_METRICS_ENABLED=true to configure this.
   c.runtime_metrics.enabled = true
+
+  # Optionally, you can configure runtime metrics to generate an additional `runtime-id` tag
+  # on the generated metrics, which allows you to filter metrics at the individual process level.
+  # You can also set DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED=true to configure this.
+  c.runtime_metrics.experimental_runtime_id_enabled = true
 
   # Optionally, you can configure the Statsd instance used for sending runtime metrics.
   # Statsd is automatically configured with default settings if `dogstatsd-ruby` is available.

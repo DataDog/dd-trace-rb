@@ -16,7 +16,19 @@ class HookTestClass
   end
 
   def yielding(arg)
-    yield arg
+    yield [[arg], {}]
+  end
+
+  def yielding_kw(arg:)
+    yield [[], arg: arg]
+  end
+
+  def yielding_both(pos, kw:)
+    yield [[pos], kw: kw]
+  end
+
+  def yielding_squashed(pos, options)
+    yield [[pos], options]
   end
 
   def recursive(depth)
@@ -37,5 +49,17 @@ class HookTestClass
 
   def positional_and_squashed(arg, options)
     [arg, options]
+  end
+end
+
+class YieldingMethodMissingHookTestClass
+  # only here to stop standard complaints
+  def respond_to_missing?(name)
+    true
+  end
+
+  def method_missing(name, *args, **kwargs)
+    yield [args, kwargs]
+    [args, kwargs]
   end
 end

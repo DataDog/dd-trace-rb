@@ -12,10 +12,12 @@ module Datadog
         ENV_OTEL_TRACES_EXPORTER = 'OTEL_TRACES_EXPORTER'
         ENV_HEADER_TAGS = 'DD_TRACE_HEADER_TAGS'
         ENV_TRACE_ID_128_BIT_GENERATION_ENABLED = 'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED'
+        ENV_NATIVE_SPAN_EVENTS = 'DD_TRACE_NATIVE_SPAN_EVENTS'
 
         # @public_api
         module SpanAttributeSchema
           ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED = 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED'
+          ENV_PEER_SERVICE_DEFAULTS_ENABLED = 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED'
           ENV_PEER_SERVICE_MAPPING = 'DD_TRACE_PEER_SERVICE_MAPPING'
         end
 
@@ -40,8 +42,13 @@ module Datadog
           # W3C Trace Context
           PROPAGATION_STYLE_TRACE_CONTEXT = 'tracecontext'
 
+          # W3C Baggage
+          # @see https://www.w3.org/TR/baggage/
+          PROPAGATION_STYLE_BAGGAGE = 'baggage'
+
           PROPAGATION_STYLE_SUPPORTED = [PROPAGATION_STYLE_DATADOG, PROPAGATION_STYLE_B3_MULTI_HEADER,
-                                         PROPAGATION_STYLE_B3_SINGLE_HEADER, PROPAGATION_STYLE_TRACE_CONTEXT].freeze
+                                         PROPAGATION_STYLE_B3_SINGLE_HEADER, PROPAGATION_STYLE_TRACE_CONTEXT,
+                                         PROPAGATION_STYLE_BAGGAGE].freeze
 
           # Sets both extract and inject propagation style tho the provided value.
           # Has lower precedence than `DD_TRACE_PROPAGATION_STYLE_INJECT` or

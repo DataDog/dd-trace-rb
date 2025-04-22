@@ -1,0 +1,27 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        module API
+          class Spec
+            class EndpointNotDefinedError < StandardError
+              @spec: untyped
+
+              @endpoint_name: untyped
+
+              attr_reader spec: untyped
+
+              attr_reader endpoint_name: untyped
+
+              def initialize: (untyped endpoint_name, untyped spec) -> void
+
+              def message: () -> ::String
+            end
+
+            def initialize: () ?{ (untyped) -> untyped } -> void
+          end
+        end
+      end
+    end
+  end
+end

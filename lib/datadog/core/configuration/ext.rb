@@ -18,6 +18,10 @@ module Datadog
           ENV_DEFAULT_PORT = 'DD_METRIC_AGENT_PORT'
         end
 
+        module APM
+          ENV_TRACING_ENABLED = 'DD_APM_TRACING_ENABLED'
+        end
+
         module Agent
           ENV_DEFAULT_HOST = 'DD_AGENT_HOST'
           # Some env vars have "trace" in them, but they apply to all products
@@ -37,7 +41,7 @@ module Datadog
           module UnixSocket
             ADAPTER = :unix
             DEFAULT_PATH = '/var/run/datadog/apm.socket'
-            DEFAULT_TIMEOUT_SECONDS = 1
+            DEFAULT_TIMEOUT_SECONDS = 30
           end
         end
       end

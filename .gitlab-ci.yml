@@ -15,6 +15,7 @@ variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
   REPO_LANG: ruby # ruby is used rather that "rb"
   BUILD_JOB_NAME: save_versions
+  REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby"
 
 default:
   tags: ["runner:main", "size:large"]
@@ -24,8 +25,8 @@ default:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
       changes:
-        - .gitlab/Dockerfile-*
-      when: manual
+        - .gitlab/Dockerfile-*   # these are direct dependencies
+        - .gitlab-ci.yml         # list of images is here so it is a dependency too
       allow_failure: true
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
@@ -54,7 +55,13 @@ build-image-arm64:
 
 promote-image:
   stage: manual-images
-  when: manual
+  rules:                         # same as build-image
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - .gitlab/Dockerfile-*   # these are direct dependencies
+        - .gitlab-ci.yml         # list of images is here so it is a dependency too
+      when: manual               # this one is manual, but it means that install-dependencies may be hitting the wrong <base>:current til this is run
+      allow_failure: true
   tags: ["runner:docker"]
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
@@ -71,16 +78,22 @@ build-gem:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   stage: package
   script:
+    - mkdir -p pkg tmp
     - |
-      if [ -z "$CI_COMMIT_TAG" ]; then
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        .gitlab/check_gem_presence.sh
+        VERSION=${CI_COMMIT_TAG#v}
+        gem fetch datadog --version $VERSION
+        mv datadog-*.gem pkg/
+        echo $VERSION > tmp/version
+      else
         echo CI_JOB_ID=$CI_JOB_ID
         echo CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME
         echo CI_COMMIT_SHA=$CI_COMMIT_SHA
-
         .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
+        bundle install && chmod go-w -R . && bundle exec rake build
+        ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
       fi
-    - bundle install && chmod go-w -R . && bundle exec rake build
-    - mkdir -p tmp && ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
   artifacts:
     paths:
       - pkg
@@ -89,12 +102,12 @@ build-gem:
 
 install-dependencies:
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCH:current
-  tags: [ "arch:$ARCH" ]
+  tags: ["arch:$ARCH"]
   parallel:
     matrix:
       # Promote again when adding 3.4 support
       - RUBY_VERSION: ["3.3", "3.2", "3.1", "3.0", "2.7"]
-        ARCH: [ "amd64", "arm64" ]
+        ARCH: ["amd64", "arm64"]
   stage: package
   needs:
     - build-gem
@@ -123,15 +136,9 @@ requirements_json_test:
     REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
     REQUIREMENTS_ALLOW_JSON_PATH: "lib-injection/test_allow.json"
 
-onboarding_tests_installer:
-  parallel:
-    matrix:
-      - ONBOARDING_FILTER_WEBLOG: [test-app-ruby, test-app-ruby-container]
-
-onboarding_tests_k8s_injection:
-  parallel:
-    matrix:
-      - WEBLOG_VARIANT: [dd-lib-ruby-init-test-rails, dd-lib-ruby-init-test-rails-explicit,dd-lib-ruby-init-test-rails-gemsrb]
+configure_system_tests:
+  variables:
+    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
 
 save_versions:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
@@ -149,16 +156,16 @@ deploy_to_reliability_env:
   needs:
     - save_versions
 
+# Currently, the job is implemented with polling mechanism.
+#
+# Due to the constraints of Github workflow dispatch endpoint, it does not return the workflow run id.
+# https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
+#
+# We fetch the latest workflow runs from vaccine then match against the run name, polling until we find it.
 vaccine:
   image: $DOCKER_REGISTRY/docker:20.10.13
-  tags: [ "arch:amd64" ]
+  tags: ["arch:amd64"]
   stage: vaccine
   needs: [create-multiarch-lib-injection-image]
   script: |
-    GH_VACCINE_PAT=$(vault kv get -field=vaccine-token kv/k8s/gitlab-runner/dd-trace-rb/github-token)
-
-    curl -X POST \
-      -H "Accept: application/vnd.github.v3+json" \
-      -H "Authorization: token $GH_VACCINE_PAT" \
-      https://api.github.com/repos/TonyCTHsu/vaccine/actions/workflows/vaccine.yml/dispatches \
-      -d '{"ref":"master", "inputs": {"commit_sha": "'$CI_COMMIT_SHA'"}}'
+    .gitlab/scripts/vaccine.sh master "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"

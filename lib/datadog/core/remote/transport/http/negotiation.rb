@@ -7,22 +7,6 @@ require_relative 'client'
 require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
 
-# TODO: Decouple standard transport/http/api/instance
-#
-# Separate classes are needed because transport/http/trace includes
-# Trace::API::Instance which closes over and uses a single spec, which is
-# negotiated as either /v3 or /v4 for the whole API at the spec level, but we
-# need an independent toplevel path at the endpoint level.
-#
-# Separate classes are needed because of `include Trace::API::Instance`.
-#
-# Below should be:
-# require_relative '../../../../datadog/core/transport/http/api/instance'
-require_relative 'api/instance'
-# Below should be:
-# require_relative '../../../../datadog/core/transport/http/api/spec'
-require_relative 'api/spec'
-
 module Datadog
   module Core
     module Remote
@@ -43,6 +27,7 @@ module Datadog
                 @version = options[:version]
                 @endpoints = options[:endpoints]
                 @config = options[:config]
+                @span_events = options[:span_events]
               end
             end
 
@@ -65,49 +50,23 @@ module Datadog
                 end
 
                 def send_info(env, &block)
-                  raise NoNegotiationEndpointDefinedError, self if info.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('info', self) if info.nil?
 
                   info.call(env, &block)
-                end
-
-                # Raised when traces sent but no traces endpoint is defined
-                class NoNegotiationEndpointDefinedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'No info endpoint is defined for API specification!'
-                  end
                 end
               end
 
               # Extensions for HTTP API Instance
               module Instance
                 def send_info(env)
-                  raise NegotiationNotSupportedError, spec unless spec.is_a?(Negotiation::API::Spec)
+                  unless spec.is_a?(Negotiation::API::Spec)
+                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
+                      'info', self
+                    )
+                  end
 
                   spec.send_info(env) do |request_env|
                     call(request_env)
-                  end
-                end
-
-                # Raised when traces sent to API that does not support traces
-                class NegotiationNotSupportedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'Info not supported for this API!'
                   end
                 end
               end
@@ -136,8 +95,6 @@ module Datadog
 
             # Add negotiation behavior to transport components
             HTTP::Client.include(Negotiation::Client)
-            HTTP::API::Spec.include(Negotiation::API::Spec)
-            HTTP::API::Instance.include(Negotiation::API::Instance)
           end
         end
       end

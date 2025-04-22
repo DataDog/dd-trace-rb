@@ -1,5 +1,7 @@
 require "datadog/di/spec_helper"
 require 'datadog/di/probe_manager'
+require 'datadog/di/instrumenter'
+require 'logger'
 
 class ProbeManagerSpecTestClass; end
 
@@ -23,9 +25,7 @@ RSpec.describe Datadog::DI::ProbeManager do
     instance_double(Datadog::DI::ProbeNotifierWorker)
   end
 
-  let(:logger) do
-    instance_double(Logger)
-  end
+  di_logger_double
 
   let(:manager) do
     described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger)
@@ -95,9 +95,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
       context 'when there is an exception during instrumentation' do
         it 'logs warning, drops probe and reraises the exception' do
-          expect(logger).to receive(:warn) do |msg|
-            expect(msg).to match(/Error processing probe configuration.*Instrumentation error/)
-          end
+          expect_lazy_log(logger, :debug, /error processing probe configuration.*Instrumentation error/)
 
           expect(instrumenter).to receive(:hook) do |probe_|
             expect(probe_).to be(probe)
@@ -178,9 +176,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         it 'logs warning and keeps probe in installed list' do
           expect(instrumenter).to receive(:unhook).with(probe).and_raise("Deinstrumentation error")
 
-          expect(logger).to receive(:warn) do |msg|
-            expect(msg).to match(/Error removing probe.*Deinstrumentation error/)
-          end
+          expect_lazy_log(logger, :debug, /error removing log probe.*Deinstrumentation error/)
 
           manager.remove_other_probes(['123'])
 
@@ -205,9 +201,7 @@ RSpec.describe Datadog::DI::ProbeManager do
             expect(instrumenter).to receive(:unhook).with(probe).and_raise("Deinstrumentation error")
             expect(instrumenter).to receive(:unhook).with(probe2)
 
-            expect(logger).to receive(:warn) do |msg|
-              expect(msg).to match(/Error removing probe.*Deinstrumentation error/)
-            end
+            expect_lazy_log(logger, :debug, /error removing log probe.*Deinstrumentation error/)
 
             manager.remove_other_probes(['123'])
 

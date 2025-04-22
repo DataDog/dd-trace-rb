@@ -2,8 +2,6 @@
 
 require 'json'
 require_relative '../../../instrumentation/gateway'
-require_relative '../reactive/multiplex'
-require_relative '../../../reactive/operation'
 
 module Datadog
   module AppSec
@@ -19,43 +17,33 @@ module Datadog
                 watch_multiplex(gateway)
               end
 
-              # This time we don't throw but use next
               def watch_multiplex(gateway = Instrumentation.gateway)
                 gateway.watch('graphql.multiplex', :appsec) do |stack, gateway_multiplex|
-                  block = false
-                  event = nil
+                  context = AppSec::Context.active
 
-                  scope = AppSec::Scope.active_scope
+                  if context
+                    persistent_data = {
+                      'graphql.server.all_resolvers' => gateway_multiplex.arguments
+                    }
 
-                  if scope
-                    AppSec::Reactive::Operation.new('graphql.multiplex') do |op|
-                      GraphQL::Reactive::Multiplex.subscribe(op, scope.processor_context) do |result|
-                        event = {
-                          waf_result: result,
-                          trace: scope.trace,
-                          span: scope.service_entry_span,
-                          multiplex: gateway_multiplex,
-                          actions: result.actions
-                        }
+                    result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                        Datadog::AppSec::Event.tag_and_keep!(scope, result)
-                        scope.processor_context.events << event
-                      end
+                    if result.match?
+                      Datadog::AppSec::Event.tag_and_keep!(context, result)
 
-                      block = GraphQL::Reactive::Multiplex.publish(op, gateway_multiplex)
+                      context.events << {
+                        waf_result: result,
+                        trace: context.trace,
+                        span: context.span,
+                        multiplex: gateway_multiplex,
+                        actions: result.actions
+                      }
+
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
-                  next [nil, [[:block, event]]] if block
-
-                  ret, res = stack.call(gateway_multiplex.arguments)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_multiplex.arguments)
                 end
               end
             end

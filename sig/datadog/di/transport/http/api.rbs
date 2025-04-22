@@ -1,0 +1,15 @@
+module Datadog
+  module DI
+    module Transport
+      module HTTP
+        module API
+          DIAGNOSTICS: "diagnostics"
+
+          INPUT: "input"
+
+          def self?.defaults: () -> untyped
+        end
+      end
+    end
+  end
+end

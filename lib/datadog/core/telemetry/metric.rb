@@ -41,6 +41,18 @@ module Datadog
             }
           end
 
+          def ==(other)
+            other.is_a?(self.class) &&
+              name == other.name &&
+              values == other.values && tags == other.tags && common == other.common && type == other.type
+          end
+
+          alias eql? ==
+
+          def hash
+            [self.class, name, values, tags, common, type].hash
+          end
+
           private
 
           def tags_to_array(tags)
@@ -71,6 +83,16 @@ module Datadog
             res[:interval] = interval
             res
           end
+
+          def ==(other)
+            super && interval == other.interval
+          end
+
+          alias eql? ==
+
+          def hash
+            [super, interval].hash
+          end
         end
 
         # Count metric adds up all the submitted values in a time interval. This would be suitable for a
@@ -86,9 +108,9 @@ module Datadog
             value = value.to_i
 
             if values.empty?
-              values << [Time.now.to_i, value]
+              values << [Core::Utils::Time.now.to_i, value]
             else
-              values[0][0] = Time.now.to_i
+              values[0][0] = Core::Utils::Time.now.to_i
               values[0][1] += value
             end
             nil
@@ -107,9 +129,9 @@ module Datadog
 
           def track(value)
             if values.empty?
-              values << [Time.now.to_i, value]
+              values << [Core::Utils::Time.now.to_i, value]
             else
-              values[0][0] = Time.now.to_i
+              values[0][0] = Core::Utils::Time.now.to_i
               values[0][1] = value
             end
             nil
@@ -133,7 +155,7 @@ module Datadog
 
           def track(value = 1.0)
             @value += value
-            @values = [[Time.now.to_i, @value / interval]]
+            @values = [[Core::Utils::Time.now.to_i, @value / interval]]
             nil
           end
         end

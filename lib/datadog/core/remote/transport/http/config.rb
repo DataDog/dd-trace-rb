@@ -8,22 +8,6 @@ require_relative '../../../utils/base64'
 require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
 
-# TODO: Decouple standard transport/http/api/instance
-#
-# Separate classes are needed because transport/http/trace includes
-# Trace::API::Instance which closes over and uses a single spec, which is
-# negotiated as either /v3 or /v4 for the whole API at the spec level, but we
-# need an independent toplevel path at the endpoint level.
-#
-# Separate classes are needed because of `include Trace::API::Instance`.
-#
-# Below should be:
-# require_relative '../../../core/transport/http/api/instance'
-require_relative 'api/instance'
-# Below should be:
-# require_relative '../../../core/transport/http/api/spec'
-require_relative 'api/spec'
-
 module Datadog
   module Core
     module Remote
@@ -193,49 +177,23 @@ module Datadog
                 end
 
                 def send_config(env, &block)
-                  raise NoConfigEndpointDefinedError, self if config.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('config', self) if config.nil?
 
                   config.call(env, &block)
-                end
-
-                # Raised when traces sent but no traces endpoint is defined
-                class NoConfigEndpointDefinedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'No config endpoint is defined for API specification!'
-                  end
                 end
               end
 
               # Extensions for HTTP API Instance
               module Instance
                 def send_config(env)
-                  raise ConfigNotSupportedError, spec unless spec.is_a?(Config::API::Spec)
+                  unless spec.is_a?(Config::API::Spec)
+                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
+                      'config', self
+                    )
+                  end
 
                   spec.send_config(env) do |request_env|
                     call(request_env)
-                  end
-                end
-
-                # Raised when traces sent to API that does not support traces
-                class ConfigNotSupportedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'Config not supported for this API!'
                   end
                 end
               end
@@ -270,8 +228,6 @@ module Datadog
             # Add remote configuration behavior to transport components
             ###### overrides send_payload! which calls send_<endpoint>! kills any other possible endpoint!
             HTTP::Client.include(Config::Client)
-            HTTP::API::Spec.include(Config::API::Spec)
-            HTTP::API::Instance.include(Config::API::Instance)
           end
         end
       end

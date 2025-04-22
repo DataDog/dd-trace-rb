@@ -1,59 +1,33 @@
-name: Lock Dependency
+name: Lock Dependencies
 
 # TODO: Make this job mandatory
 # TODO: Make this on workflow_dispatch
 
-on:
-  # Limitation about `paths` types:
-  # > https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#git-diff-comparisons
-  push:
-    branches-ignore:
-      - master
-      - release
-      - '*-stable'
+on: # yamllint disable-line rule:truthy
   pull_request:
-    # Run this job when a PR is opened, covering the scenario where branch is ready and pushed before PR is opened.
-    types:
-      - opened
+    branches:
+      - master
 
-
-# TODO: Improve concurrency between push event and pull_request event
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  pr:
-    name: Pull Request attached
-    runs-on: ubuntu-22.04
-    outputs:
-      pr_found: ${{ steps.pr.outputs.pr_found }}
-      pr_base_ref: ${{ steps.pr.outputs.pr.base.ref }}
-    steps:
-      # Limitation with pull_request trigger: https://github.com/8BitJonny/gh-get-current-pr/tree/3.0.0/?tab=readme-ov-file#limitations
-      - uses: 8BitJonny/gh-get-current-pr@3.0.0
-        id: pr
-        with:
-          filterOutClosed: true # Don't trigger on commits with closed PRs, including merges into `master`.
+# Default permissions for all jobs
+permissions: {}
 
+jobs:
   dependency:
-    name: Depenedency changes
-    needs: pr
-    if: ${{ needs.pr.outputs.pr_found == 'true' }}
+    name: Dependency changes
     runs-on: ubuntu-22.04
     outputs:
       changes: ${{ steps.changes.outputs.dependencies }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes
         with:
-          # This is the best effort to get the diff comparison.
-          # The result remains time-sensitive since the `base` is constantly changing and
-          # the PR cannot be guaranteed to be up-to-date.
-          #
-          # Unless enable `Require branches to be up to date before merging` in the repository rule settings
-          base: ${{ needs.pr.outputs.pr_base_ref }}
           filters: .github/dependency_filters.yml
 
   lock:
@@ -92,7 +66,9 @@ jobs:
       env:
         BUNDLE_WITHOUT: check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - run: |
           ruby -v
           gem -v
@@ -100,7 +76,7 @@ jobs:
       - run: bundle install
       - run: bundle exec rake dependency:generate
       - run: bundle exec rake dependency:lock
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: lock-dependency-${{ github.run_id }}-${{ matrix.engine.name }}-${{ matrix.engine.version }}
           path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
@@ -113,15 +89,24 @@ jobs:
     needs: lock
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: true # required for `git` operations (commit & push) at later steps
           token: ${{ secrets.GHA_PAT }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           path: gemfiles
           pattern: lock-dependency-${{ github.run_id }}-*
           merge-multiple: true
-      - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5.2.0
         with:
           file_pattern: 'gemfiles/*'
           commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  complete:
+    name: Lock Dependencies (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - commit
+    steps:
+      - run: echo "DONE!"

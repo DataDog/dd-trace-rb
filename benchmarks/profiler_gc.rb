@@ -14,7 +14,7 @@ class ProfilerGcBenchmark
 
     # We take a dummy sample so that the context for the main thread is created, as otherwise the GC profiling methods do
     # not create it (because we don't want to do memory allocations in the middle of GC)
-    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, Thread.current)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, Thread.current, false)
   end
 
   def run_benchmark

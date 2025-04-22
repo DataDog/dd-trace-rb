@@ -2,7 +2,7 @@
 
 require_relative 'appsec/configuration'
 require_relative 'appsec/extensions'
-require_relative 'appsec/scope'
+require_relative 'appsec/context'
 require_relative 'appsec/ext'
 require_relative 'appsec/utils'
 
@@ -14,19 +14,24 @@ module Datadog
         Datadog.configuration.appsec.enabled
       end
 
-      def active_scope
-        Datadog::AppSec::Scope.active_scope
+      def rasp_enabled?
+        Datadog.configuration.appsec.rasp_enabled
+      end
+
+      def active_context
+        Datadog::AppSec::Context.active
+      end
+
+      def telemetry
+        components.appsec&.telemetry
       end
 
       def processor
-        appsec_component = components.appsec
-
-        appsec_component.processor if appsec_component
+        components.appsec&.processor
       end
 
       def reconfigure(ruleset:, telemetry:)
         appsec_component = components.appsec
-
         return unless appsec_component
 
         appsec_component.reconfigure(ruleset: ruleset, telemetry: telemetry)
@@ -34,10 +39,14 @@ module Datadog
 
       def reconfigure_lock(&block)
         appsec_component = components.appsec
-
         return unless appsec_component
 
         appsec_component.reconfigure_lock(&block)
+      end
+
+      def api_security_enabled?
+        Datadog.configuration.appsec.api_security.enabled &&
+          Datadog.configuration.appsec.api_security.sample_rate.sample?
       end
 
       private
@@ -59,5 +68,8 @@ require_relative 'appsec/contrib/rails/integration'
 require_relative 'appsec/contrib/active_record/integration'
 require_relative 'appsec/contrib/devise/integration'
 require_relative 'appsec/contrib/graphql/integration'
+require_relative 'appsec/contrib/faraday/integration'
+require_relative 'appsec/contrib/excon/integration'
+require_relative 'appsec/contrib/rest_client/integration'
 
 require_relative 'appsec/autoload'

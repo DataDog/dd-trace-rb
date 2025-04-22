@@ -22,7 +22,7 @@ module Datadog
 
       def finalize: () -> void
 
-      def new_context: () -> Context
+      def new_runner: () -> SecurityEngine::Runner
 
       private
 

@@ -1,12 +1,29 @@
 module Datadog
   module AppSec
     module Ext
-      INTERRUPT: Symbol
-      SCOPE_KEY: String
+      type rasp_rule_type = ::String
 
-      TAG_APPSEC_ENABLED: String
-      TAG_APM_ENABLED: String
-      TAG_DISTRIBUTED_APPSEC_EVENT: String
+      RASP_SQLI: ::String
+
+      RASP_LFI: ::String
+
+      RASP_SSRF: ::String
+
+      PRODUCT_BIT: ::Integer
+
+      INTERRUPT: ::Symbol
+
+      CONTEXT_KEY: ::String
+
+      ACTIVE_CONTEXT_KEY: ::Symbol
+
+      EXPLOIT_PREVENTION_EVENT_CATEGORY: ::String
+
+      TAG_APPSEC_ENABLED: ::String
+
+      TAG_METASTRUCT_STACK_TRACE: ::String
+
+      TELEMETRY_METRICS_NAMESPACE: ::String
     end
   end
 end

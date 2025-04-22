@@ -42,7 +42,7 @@ module Datadog
               #
               # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
               # The first format to have valid data present will be used.
-              #
+              # Baggage style is a special case, as it will always be extracted in addition if present.
               # @default `DD_TRACE_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
               #   otherwise `['datadog','b3multi','b3']`.
               # @return [Array<String>]
@@ -53,6 +53,7 @@ module Datadog
                   [
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
                   ]
                 )
                 o.after_set do |styles|
@@ -74,6 +75,7 @@ module Datadog
                 o.default [
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
                 ]
                 o.after_set do |styles|
                   # Make values case-insensitive
@@ -186,7 +188,7 @@ module Datadog
               # It is not supported by our backend yet. Do not enable it.
               option :trace_id_128_bit_logging_enabled do |o|
                 o.env Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED
-                o.default false
+                o.default true
                 o.type :bool
               end
 
@@ -247,6 +249,20 @@ module Datadog
                 o.env Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME
                 o.default false
                 o.type :bool
+              end
+
+              # Forces the tracer to always send span events with the native span events format
+              # regardless of the agent support. This is useful in agent-less setups.
+              #
+              # When set to `nil`, the default, the agent will be queried for
+              # native span events support.
+              #
+              # @default `DD_TRACE_NATIVE_SPAN_EVENTS` environment variable, otherwise `false`
+              # @return [Boolean,nil]
+              option :native_span_events do |o|
+                o.env Tracing::Configuration::Ext::ENV_NATIVE_SPAN_EVENTS
+                o.default nil
+                o.type :bool, nilable: true
               end
 
               # A custom sampler instance.
@@ -368,22 +384,18 @@ module Datadog
                 end
               end
 
-              # [Continuous Integration Visibility](https://docs.datadoghq.com/continuous_integration/) configuration.
+              # This is only for internal Datadog use via https://github.com/DataDog/datadog-ci-rb . It should not be
+              # used directly.
+              #
+              # DEV-3.0: Make this a non-public API in the next release.
               # @public_api
               settings :test_mode do
-                # Enable test mode. This allows the tracer to collect spans from test runs.
-                #
-                # It also prevents the tracer from collecting spans in a production environment. Only use in a test environment.
-                #
-                # @default `DD_TRACE_TEST_MODE_ENABLED` environment variable, otherwise `false`
-                # @return [Boolean]
                 option :enabled do |o|
                   o.type :bool
                   o.default false
                   o.env Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED
                 end
 
-                # Use async writer in test mode
                 option :async do |o|
                   o.type :bool
                   o.default false

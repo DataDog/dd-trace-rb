@@ -11,6 +11,7 @@
 #include "ruby_helpers.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "unsafe_api_calls_check.h"
 
 // Each class/module here is implemented in their separate file
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module);
@@ -19,6 +20,7 @@ void collectors_dynamic_sampling_rate_init(VALUE profiling_module);
 void collectors_idle_sampling_helper_init(VALUE profiling_module);
 void collectors_stack_init(VALUE profiling_module);
 void collectors_thread_context_init(VALUE profiling_module);
+void encoded_profile_init(VALUE profiling_module);
 void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
 
@@ -40,6 +42,12 @@ static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj);
 
 void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
+  // The profiler still has a lot of limitations around being used in Ractors BUT for now we're choosing to take care of those
+  // on our side, rather than asking Ruby to block calling our APIs from Ractors.
+  #ifdef HAVE_RB_EXT_RACTOR_SAFE
+    rb_ext_ractor_safe(true);
+  #endif
+
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE native_extension_module = rb_define_module_under(profiling_module, "NativeExtension");
@@ -54,8 +62,10 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   collectors_idle_sampling_helper_init(profiling_module);
   collectors_stack_init(profiling_module);
   collectors_thread_context_init(profiling_module);
+  encoded_profile_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
+  unsafe_api_calls_check_init();
 
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(native_extension_module, "Testing");
@@ -78,21 +88,22 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
   self_test_clock_id();
+  self_test_current_fiber_for();
   self_test_mn_enabled();
 
   return Qtrue;
 }
 
-struct trigger_grab_gvl_and_raise_arguments {
+typedef struct {
   VALUE exception_class;
   char *test_message;
   int test_message_arg;
-};
+} trigger_grab_gvl_and_raise_arguments;
 
 static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
   ENFORCE_TYPE(test_message, T_STRING);
 
-  struct trigger_grab_gvl_and_raise_arguments args;
+  trigger_grab_gvl_and_raise_arguments args;
 
   args.exception_class = exception_class;
   args.test_message = StringValueCStr(test_message);
@@ -108,7 +119,7 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
 }
 
 static void *trigger_grab_gvl_and_raise(void *trigger_args) {
-  struct trigger_grab_gvl_and_raise_arguments *args = (struct trigger_grab_gvl_and_raise_arguments *) trigger_args;
+  trigger_grab_gvl_and_raise_arguments *args = (trigger_grab_gvl_and_raise_arguments *) trigger_args;
 
   if (args->test_message_arg >= 0) {
     grab_gvl_and_raise(args->exception_class, "%s%d", args->test_message, args->test_message_arg);
@@ -119,16 +130,16 @@ static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   return NULL;
 }
 
-struct trigger_grab_gvl_and_raise_syserr_arguments {
+typedef struct {
   int syserr_errno;
   char *test_message;
   int test_message_arg;
-};
+} trigger_grab_gvl_and_raise_syserr_arguments;
 
 static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
   ENFORCE_TYPE(test_message, T_STRING);
 
-  struct trigger_grab_gvl_and_raise_syserr_arguments args;
+  trigger_grab_gvl_and_raise_syserr_arguments args;
 
   args.syserr_errno = NUM2INT(syserr_errno);
   args.test_message = StringValueCStr(test_message);
@@ -144,7 +155,7 @@ static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE
 }
 
 static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
-  struct trigger_grab_gvl_and_raise_syserr_arguments *args = (struct trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
+  trigger_grab_gvl_and_raise_syserr_arguments *args = (trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
 
   if (args->test_message_arg >= 0) {
     grab_gvl_and_raise_syserr(args->syserr_errno, "%s%d", args->test_message, args->test_message_arg);

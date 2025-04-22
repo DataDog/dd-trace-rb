@@ -5,7 +5,7 @@ module Datadog
     module Remote
       # Worker executes a block every interval on a separate Thread
       class Worker
-        def initialize(interval:, &block)
+        def initialize(interval:, logger:, &block)
           @mutex = Mutex.new
           @thr = nil
 
@@ -14,18 +14,21 @@ module Datadog
           @stopped = false
 
           @interval = interval
+          @logger = logger
           raise ArgumentError, 'can not initialize a worker without a block' unless block
 
           @block = block
         end
 
+        attr_reader :logger
+
         def start
-          Datadog.logger.debug { 'remote worker starting' }
+          logger.debug { 'remote worker starting' }
 
           acquire_lock
 
           if @stopped
-            Datadog.logger.debug('remote worker: refusing to restart after previous stop')
+            logger.debug('remote worker: refusing to restart after previous stop')
             return
           end
 
@@ -41,13 +44,13 @@ module Datadog
           @started = true
           @starting = false
 
-          Datadog.logger.debug { 'remote worker started' }
+          logger.debug { 'remote worker started' }
         ensure
           release_lock
         end
 
         def stop
-          Datadog.logger.debug { 'remote worker stopping' }
+          logger.debug { 'remote worker stopping' }
 
           acquire_lock
 
@@ -62,7 +65,7 @@ module Datadog
           @thr = nil
           @stopped = true
 
-          Datadog.logger.debug { 'remote worker stopped' }
+          logger.debug { 'remote worker stopped' }
         ensure
           release_lock
         end
@@ -92,7 +95,7 @@ module Datadog
         end
 
         def call
-          Datadog.logger.debug { 'remote worker perform' }
+          logger.debug { 'remote worker perform' }
 
           @block.call
         end

@@ -1,17 +1,21 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'patcher/authenticatable_patch'
-require_relative 'patcher/rememberable_patch'
-require_relative 'patcher/registration_controller_patch'
+require_relative '../../../core/utils/only_once'
+
+require_relative 'tracking_middleware'
+require_relative 'patches/signup_tracking_patch'
+require_relative 'patches/signin_tracking_patch'
+require_relative 'patches/skip_signin_tracking_patch'
 
 module Datadog
   module AppSec
     module Contrib
       module Devise
-        # Patcher for AppSec on Devise
+        # Devise patcher
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
+          GUARD_ONCE_PER_APP = Hash.new do |hash, key|
+            hash[key] = Datadog::Core::Utils::OnlyOnce.new
+          end
 
           module_function
 
@@ -24,29 +28,35 @@ module Datadog
           end
 
           def patch
-            patch_authenticatable_strategy
-            patch_rememberable_strategy
-            patch_registration_controller
+            ::ActiveSupport.on_load(:before_initialize) do |app|
+              GUARD_ONCE_PER_APP[app].run do
+                begin
+                  app.middleware.insert_after(Warden::Manager, TrackingMiddleware)
+                rescue RuntimeError
+                  AppSec.telemetry.error('AppSec: unable to insert Devise TrackingMiddleware')
+                end
+              end
+            end
+
+            ::ActiveSupport.on_load(:after_initialize) do
+              if ::Devise::RegistrationsController.descendants.empty?
+                ::Devise::RegistrationsController.prepend(Patches::SignupTrackingPatch)
+              else
+                ::Devise::RegistrationsController.descendants.each do |controller|
+                  controller.prepend(Patches::SignupTrackingPatch)
+                end
+              end
+            end
+
+            ::Devise::Strategies::Authenticatable.prepend(Patches::SigninTrackingPatch)
+
+            if ::Devise::STRATEGIES.include?(:rememberable)
+              # Rememberable strategy is required in autoloaded Rememberable model
+              require 'devise/models/rememberable'
+              ::Devise::Strategies::Rememberable.prepend(Patches::SkipSigninTrackingPatch)
+            end
 
             Patcher.instance_variable_set(:@patched, true)
-          end
-
-          def patch_authenticatable_strategy
-            ::Devise::Strategies::Authenticatable.prepend(AuthenticatablePatch)
-          end
-
-          def patch_rememberable_strategy
-            return unless ::Devise::STRATEGIES.include?(:rememberable)
-
-            # Rememberable strategy is required in autoloaded Rememberable model
-            ::Devise::Models::Rememberable # rubocop:disable Lint/Void
-            ::Devise::Strategies::Rememberable.prepend(RememberablePatch)
-          end
-
-          def patch_registration_controller
-            ::ActiveSupport.on_load(:after_initialize) do
-              ::Devise::RegistrationsController.prepend(RegistrationControllerPatch)
-            end
           end
         end
       end

@@ -4,6 +4,7 @@
 #include "helpers.h"
 #include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
+#include "encoded_profile.h"
 
 // Used to report profiling data to Datadog.
 // This file implements the native bits of the Datadog::Profiling::HttpTransport class
@@ -13,13 +14,13 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 
 static VALUE library_version_string = Qnil;
 
-struct call_exporter_without_gvl_arguments {
+typedef struct {
   ddog_prof_Exporter *exporter;
   ddog_prof_Exporter_Request_BuildResult *build_result;
   ddog_CancellationToken *cancel_token;
   ddog_prof_Exporter_SendResult result;
   bool send_ran;
-};
+} call_exporter_without_gvl_arguments;
 
 static inline ddog_ByteSlice byte_slice_from_ruby_string(VALUE string);
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration);
@@ -29,17 +30,11 @@ static VALUE _native_do_export(
   VALUE self,
   VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
+  VALUE flush,
   VALUE start_timespec_seconds,
   VALUE start_timespec_nanoseconds,
   VALUE finish_timespec_seconds,
-  VALUE finish_timespec_nanoseconds,
-  VALUE pprof_file_name,
-  VALUE pprof_data,
-  VALUE code_provenance_file_name,
-  VALUE code_provenance_data,
-  VALUE tags_as_array,
-  VALUE internal_metadata_json,
-  VALUE info_json
+  VALUE finish_timespec_nanoseconds
 );
 static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
@@ -48,7 +43,7 @@ void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
-  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 13);
+  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 7);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -84,22 +79,17 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_working_mode, T_SYMBOL);
   ID working_mode = SYM2ID(exporter_working_mode);
 
-  ID agentless_id = rb_intern("agentless");
-  ID agent_id = rb_intern("agent");
-
-  if (working_mode != agentless_id && working_mode != agent_id) {
-    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
-  }
-
-  if (working_mode == agentless_id) {
+  if (working_mode == rb_intern("agentless")) {
     VALUE site = rb_ary_entry(exporter_configuration, 1);
     VALUE api_key = rb_ary_entry(exporter_configuration, 2);
 
     return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
-  } else { // agent_id
+  } else if (working_mode == rb_intern("agent")) {
     VALUE base_url = rb_ary_entry(exporter_configuration, 1);
 
     return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
+  } else {
+    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
   }
 }
 
@@ -139,7 +129,6 @@ static VALUE perform_export(
   ddog_Timespec finish,
   ddog_prof_Exporter_Slice_File files_to_compress_and_export,
   ddog_prof_Exporter_Slice_File files_to_export_unmodified,
-  ddog_Vec_Tag *additional_tags,
   ddog_CharSlice internal_metadata,
   ddog_CharSlice info
 ) {
@@ -150,7 +139,7 @@ static VALUE perform_export(
     finish,
     files_to_compress_and_export,
     files_to_export_unmodified,
-    additional_tags,
+    /* optional_additional_tags: */ NULL,
     endpoints_stats,
     &internal_metadata,
     &info
@@ -165,7 +154,7 @@ static VALUE perform_export(
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
-  struct call_exporter_without_gvl_arguments args =
+  call_exporter_without_gvl_arguments args =
     {.exporter = exporter, .build_result = &build_result, .cancel_token = cancel_token, .send_ran = false};
 
   // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the gvl2 variant never raises any
@@ -214,26 +203,27 @@ static VALUE _native_do_export(
   DDTRACE_UNUSED VALUE _self,
   VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
+  VALUE flush,
   VALUE start_timespec_seconds,
   VALUE start_timespec_nanoseconds,
   VALUE finish_timespec_seconds,
-  VALUE finish_timespec_nanoseconds,
-  VALUE pprof_file_name,
-  VALUE pprof_data,
-  VALUE code_provenance_file_name,
-  VALUE code_provenance_data,
-  VALUE tags_as_array,
-  VALUE internal_metadata_json,
-  VALUE info_json
+  VALUE finish_timespec_nanoseconds
 ) {
+  VALUE encoded_profile = rb_funcall(flush, rb_intern("encoded_profile"), 0);
+  VALUE code_provenance_file_name = rb_funcall(flush, rb_intern("code_provenance_file_name"), 0);
+  VALUE code_provenance_data = rb_funcall(flush, rb_intern("code_provenance_data"), 0);
+  VALUE tags_as_array = rb_funcall(flush, rb_intern("tags_as_array"), 0);
+  VALUE internal_metadata_json = rb_funcall(flush, rb_intern("internal_metadata_json"), 0);
+  VALUE info_json = rb_funcall(flush, rb_intern("info_json"), 0);
+
   ENFORCE_TYPE(upload_timeout_milliseconds, T_FIXNUM);
   ENFORCE_TYPE(start_timespec_seconds, T_FIXNUM);
   ENFORCE_TYPE(start_timespec_nanoseconds, T_FIXNUM);
   ENFORCE_TYPE(finish_timespec_seconds, T_FIXNUM);
   ENFORCE_TYPE(finish_timespec_nanoseconds, T_FIXNUM);
-  ENFORCE_TYPE(pprof_file_name, T_STRING);
-  ENFORCE_TYPE(pprof_data, T_STRING);
+  enforce_encoded_profile_instance(encoded_profile);
   ENFORCE_TYPE(code_provenance_file_name, T_STRING);
+  ENFORCE_TYPE(tags_as_array, T_ARRAY);
   ENFORCE_TYPE(internal_metadata_json, T_STRING);
   ENFORCE_TYPE(info_json, T_STRING);
 
@@ -256,6 +246,11 @@ static VALUE _native_do_export(
   ddog_prof_Exporter_Slice_File files_to_compress_and_export = {.ptr = to_compress, .len = to_compress_length};
   ddog_prof_Exporter_Slice_File files_to_export_unmodified = {.ptr = already_compressed, .len = already_compressed_length};
 
+  // TODO: Hardcoding the file name will go away with libdatadog 17
+  VALUE pprof_file_name = rb_str_new_cstr("rubyprofile.pprof");
+  VALUE pprof_data = rb_funcall(encoded_profile, rb_intern("_native_bytes"), 0);
+  ENFORCE_TYPE(pprof_data, T_STRING);
+
   already_compressed[0] = (ddog_prof_Exporter_File) {
     .name = char_slice_from_ruby_string(pprof_file_name),
     .file = byte_slice_from_ruby_string(pprof_data),
@@ -268,7 +263,6 @@ static VALUE _native_do_export(
     };
   }
 
-  ddog_Vec_Tag *null_additional_tags = NULL;
   ddog_CharSlice internal_metadata = char_slice_from_ruby_string(internal_metadata_json);
   ddog_CharSlice info = char_slice_from_ruby_string(info_json);
 
@@ -293,14 +287,13 @@ static VALUE _native_do_export(
     finish,
     files_to_compress_and_export,
     files_to_export_unmodified,
-    null_additional_tags,
     internal_metadata,
     info
   );
 }
 
 static void *call_exporter_without_gvl(void *call_args) {
-  struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) call_args;
+  call_exporter_without_gvl_arguments *args = (call_exporter_without_gvl_arguments*) call_args;
 
   args->result = ddog_prof_Exporter_send(args->exporter, &args->build_result->ok, args->cancel_token);
   args->send_ran = true;

@@ -59,10 +59,11 @@ RSpec.describe Datadog::Core::Environment::Execution do
       context 'when in an IRB session' do
         it 'returns true' do
           # Ruby 2.6 does not have irb by default in a bundle, but has it outside of it.
-          _, err, = Bundler.with_unbundled_env do
+          _, err, status = Bundler.with_unbundled_env do
             Open3.capture3('irb', '--noprompt', '--noverbose', '--noecho', stdin_data: repl_script)
           end
           expect(err).to end_with('ACTUAL:true')
+          expect(status.exitstatus).to eq(0)
         end
       end
 
@@ -169,26 +170,12 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
         let(:script) do
           <<-'RUBY'
-            # Under Ruby 3.0 through 3.2 there is a weird error that occurs
-            # in CI where two copies of psych get loaded in the same process,
-            # and even more strangely the first version is a newer one from
-            # gem and the second one is the older one from Ruby standard
-            # library. Try to work around this situation by forcing psych
-            # to be loaded from (some) gem.
-            # We still don't know exactly what is causing the original issue.
-            gem 'psych'
-
             require 'bundler/inline'
 
             gemfile(true) do
               source 'https://rubygems.org'
-              if RUBY_VERSION >= '3.4'
-                # Cucumber is broken on Ruby 3.4, requires the fix in
-                # https://github.com/cucumber/cucumber-ruby/pull/1757
-                gem 'cucumber', '>= 3', git: 'https://github.com/cucumber/cucumber-ruby'
-              else
-                gem 'cucumber', '>= 3'
-              end
+
+              gem 'cucumber', '>= 3', '<= 9.2.1'
             end
 
             load Gem.bin_path('cucumber', 'cucumber')
@@ -203,11 +190,12 @@ RSpec.describe Datadog::Core::Environment::Execution do
               # Add our script to `env.rb`, which is always run before any feature is executed.
               File.write('features/support/env.rb', repl_script)
 
-              _, err, = Bundler.with_unbundled_env do
+              _, err, status = Bundler.with_unbundled_env do
                 Open3.capture3('ruby', stdin_data: script)
               end
 
               expect(err).to include('ACTUAL:true')
+              expect(status.exitstatus).to eq(0)
             end
           end
         end
@@ -270,7 +258,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
     context 'when given WebMock', skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new('2') do
       it do
-        out, = Bundler.with_unbundled_env do
+        out, _err, status = Bundler.with_unbundled_env do
           Open3.capture3('ruby', stdin_data: <<-RUBY
             require 'bundler/inline'
 
@@ -292,6 +280,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
 
         expect(out).to end_with('ACTUAL:true')
+        expect(status.exitstatus).to eq(0)
       end
     end
   end

@@ -14,6 +14,7 @@
 /log/
 TODO
 ext/**/skipped_reason.txt
+.cursor/
 
 # Used by dotenv library to load environment variables.
 # .env
@@ -44,7 +45,7 @@ ext/**/skipped_reason.txt
 # lock files
 Gemfile.lock
 Gemfile-*.lock
-*.gemfile.lock
+/*.gemfile.lock
 
 # bundle config
 gemfiles/.bundle

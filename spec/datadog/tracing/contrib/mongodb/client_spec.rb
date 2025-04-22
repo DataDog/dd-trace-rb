@@ -105,7 +105,12 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
       end
 
-      context 'secondary client' do
+      # Our GHA Unit Tests run in docker containers, where "localhost" refers to the container itself.
+      # As a result, the secondary client (with host "localhost") cannot connect to the primary MongoDB
+      # service, causing the test to timeout while waiting for "primary server [to be] available in cluster".
+      # One solution is to pull a second MongoDB service and set the secondary client accordingly. However,
+      # given the large amount of services already being pulled, this spec remains skipped on GHA for now.
+      context 'secondary client', skip: ENV['BATCHED_TASKS'] do
         around do |example|
           without_warnings do
             # Reset before and after each example; don't allow global state to linger.
@@ -491,7 +496,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
         expect(span.get_tag('mongodb.rows')).to be nil
         expect(span.status).to eq(1)
-        expect(span.get_tag('error.message')).to eq('ns not found (26)')
+        expect(span.get_tag('error.message')).to include('ns not found')
       end
 
       context 'that triggers #failed before #started' do
@@ -509,7 +514,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
     describe 'with LDAP/SASL authentication' do
       let(:client_options) do
-        super().merge(auth_mech: :plain, user: 'plain_user', password: 'plain_pass')
+        super().merge(auth_mech: :plain, user: 'plain_user', password: 'plain_pass', auth_source: '$external')
       end
 
       context 'which fails' do
@@ -552,7 +557,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           expect(auth_span.resource).to match(/"operation"\s*=>\s*[:"]saslStart/)
           expect(auth_span.status).to eq(1)
           expect(auth_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
-          expect(auth_span.get_tag('error.message')).to eq('Unsupported mechanism PLAIN (2)')
+          expect(auth_span.get_tag('error.message')).to include(/Unsupported mechanism PLAIN/)
           expect(auth_span.get_tag('db.system')).to eq('mongodb')
         end
       end

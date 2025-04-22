@@ -80,4 +80,36 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
   end
+
+  describe 'error_extensions' do
+    context 'when default' do
+      it do
+        settings = described_class.new
+
+        expect(settings.error_extensions).to eq([])
+      end
+    end
+
+    context 'when given an array' do
+      it do
+        error_extension = double
+
+        settings = described_class.new(error_extensions: [error_extension])
+
+        expect(settings.error_extensions).to eq([error_extension])
+      end
+
+      context 'via the environment variable' do
+        it do
+          error_extension = 'foo,bar'
+
+          ClimateControl.modify('DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => error_extension) do
+            settings = described_class.new
+
+            expect(settings.error_extensions).to eq(['foo', 'bar'])
+          end
+        end
+      end
+    end
+  end
 end

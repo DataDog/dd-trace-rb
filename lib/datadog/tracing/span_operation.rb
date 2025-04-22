@@ -11,6 +11,8 @@ require_relative 'event'
 require_relative 'metadata'
 require_relative 'metadata/ext'
 require_relative 'span'
+require_relative 'span_event'
+require_relative 'span_link'
 require_relative 'utils'
 
 module Datadog
@@ -197,6 +199,9 @@ module Datadog
       end
 
       # Mark the span stopped at the current time
+      #
+      # steep:ignore:start
+      # Steep issue fixed in https://github.com/soutaro/steep/pull/1467
       def stop(stop_time = nil)
         # A span should not be stopped twice. Note that this is not thread-safe,
         # stop is called from multiple threads, a given span might be stopped
@@ -219,6 +224,7 @@ module Datadog
 
         self
       end
+      # steep:ignore:end
 
       # Return whether the duration is started or not
       def started?
@@ -263,7 +269,8 @@ module Datadog
 
       def duration
         return @duration_end - @duration_start if @duration_start && @duration_end
-        return @end_time - @start_time if @start_time && @end_time
+
+        @end_time - @start_time if @start_time && @end_time
       end
 
       def set_error(e)
@@ -283,6 +290,7 @@ module Datadog
           id: @id,
           meta: meta,
           metrics: metrics,
+          metastruct: metastruct,
           name: @name,
           parent_id: @parent_id,
           resource: @resource,
@@ -322,11 +330,14 @@ module Datadog
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', ']') do
+          q.group(2, 'Metrics: [', "]\n") do
             q.breakable
             q.seplist metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
+          end
+          q.group(2, 'Metastruct: [', ']') do
+            metastruct.pretty_print(q)
           end
         end
       end
@@ -450,6 +461,7 @@ module Datadog
           id: @id,
           meta: Core::Utils::SafeDup.frozen_or_dup(meta),
           metrics: Core::Utils::SafeDup.frozen_or_dup(metrics),
+          metastruct: Core::Utils::SafeDup.frozen_or_dup(metastruct),
           parent_id: @parent_id,
           resource: @resource,
           service: @service,

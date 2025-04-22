@@ -1,7 +1,7 @@
 {
   "version": "2.2",
   "metadata": {
-    "rules_version": "1.13.1"
+    "rules_version": "1.13.3"
   },
   "rules": [
     {
@@ -9,7 +9,8 @@
       "name": "Block IP Addresses",
       "tags": {
         "type": "block_ip",
-        "category": "security_response"
+        "category": "security_response",
+        "module": "network-acl"
       },
       "conditions": [
         {
@@ -34,7 +35,8 @@
       "name": "Block User Addresses",
       "tags": {
         "type": "block_user",
-        "category": "security_response"
+        "category": "security_response",
+        "module": "authentication-acl"
       },
       "conditions": [
         {
@@ -64,7 +66,8 @@
         "tool_name": "Acunetix",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -98,7 +101,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -162,7 +166,8 @@
         "category": "attack_attempt",
         "cwe": "176",
         "capec": "1000/255/153/267/71",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -191,7 +196,8 @@
         "crs_id": "921110",
         "category": "attack_attempt",
         "cwe": "444",
-        "capec": "1000/210/272/220/33"
+        "capec": "1000/210/272/220/33",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -228,7 +234,8 @@
         "crs_id": "921160",
         "category": "attack_attempt",
         "cwe": "113",
-        "capec": "1000/210/272/220/105"
+        "capec": "1000/210/272/220/105",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -263,7 +270,8 @@
         "category": "attack_attempt",
         "cwe": "22",
         "capec": "1000/255/153/126",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -297,7 +305,8 @@
         "category": "attack_attempt",
         "cwe": "22",
         "capec": "1000/255/153/126",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1803,7 +1812,8 @@
         "category": "attack_attempt",
         "cwe": "98",
         "capec": "1000/152/175/253/193",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1831,7 +1841,8 @@
         "crs_id": "931120",
         "category": "attack_attempt",
         "cwe": "98",
-        "capec": "1000/152/175/253/193"
+        "capec": "1000/152/175/253/193",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1876,7 +1887,8 @@
         "category": "attack_attempt",
         "cwe": "77",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2388,7 +2400,8 @@
         "category": "attack_attempt",
         "cwe": "77",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2436,7 +2449,8 @@
         "category": "attack_attempt",
         "cwe": "706",
         "capec": "1000/225/122/17/177",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2500,7 +2514,8 @@
         "category": "attack_attempt",
         "cwe": "434",
         "capec": "1000/225/122/17/650",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2553,7 +2568,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/225/122/17/650",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2620,7 +2636,8 @@
         "crs_id": "933131",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/225/122/17/650"
+        "capec": "1000/225/122/17/650",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2665,7 +2682,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/225/122/17/650",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2709,7 +2727,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/225/122/17/650",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2799,7 +2818,8 @@
         "crs_id": "933160",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/225/122/17/650"
+        "capec": "1000/225/122/17/650",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2824,7 +2844,7 @@
                 "address": "graphql.server.resolver"
               }
             ],
-            "regex": "\\b(?:s(?:e(?:t(?:_(?:e(?:xception|rror)_handler|magic_quotes_runtime|include_path)|defaultstub)|ssion_s(?:et_save_handler|tart))|qlite_(?:(?:(?:unbuffered|single|array)_)?query|create_(?:aggregate|function)|p?open|exec)|tr(?:eam_(?:context_create|socket_client)|ipc?slashes|rev)|implexml_load_(?:string|file)|ocket_c(?:onnect|reate)|h(?:ow_sourc|a1_fil)e|pl_autoload_register|ystem)|p(?:r(?:eg_(?:replace(?:_callback(?:_array)?)?|match(?:_all)?|split)|oc_(?:(?:terminat|clos|nic)e|get_status|open)|int_r)|o(?:six_(?:get(?:(?:e[gu]|g)id|login|pwnam)|mk(?:fifo|nod)|ttyname|kill)|pen)|hp(?:_(?:strip_whitespac|unam)e|version|info)|g_(?:(?:execut|prepar)e|connect|query)|a(?:rse_(?:ini_file|str)|ssthru)|utenv)|r(?:unkit_(?:function_(?:re(?:defin|nam)e|copy|add)|method_(?:re(?:defin|nam)e|copy|add)|constant_(?:redefine|add))|e(?:(?:gister_(?:shutdown|tick)|name)_function|ad(?:(?:gz)?file|_exif_data|dir))|awurl(?:de|en)code)|i(?:mage(?:createfrom(?:(?:jpe|pn)g|x[bp]m|wbmp|gif)|(?:jpe|pn)g|g(?:d2?|if)|2?wbmp|xbm)|s_(?:(?:(?:execut|write?|read)ab|fi)le|dir)|ni_(?:get(?:_all)?|set)|terator_apply|ptcembed)|g(?:et(?:_(?:c(?:urrent_use|fg_va)r|meta_tags)|my(?:[gpu]id|inode)|(?:lastmo|cw)d|imagesize|env)|z(?:(?:(?:defla|wri)t|encod|fil)e|compress|open|read)|lob)|a(?:rray_(?:u(?:intersect(?:_u?assoc)?|diff(?:_u?assoc)?)|intersect_u(?:assoc|key)|diff_u(?:assoc|key)|filter|reduce|map)|ssert(?:_options)?|tob)|h(?:tml(?:specialchars(?:_decode)?|_entity_decode|entities)|(?:ash(?:_(?:update|hmac))?|ighlight)_file|e(?:ader_register_callback|x2bin))|f(?:i(?:le(?:(?:[acm]tim|inod)e|(?:_exist|perm)s|group)?|nfo_open)|tp_(?:nb_(?:ge|pu)|connec|ge|pu)t|(?:unction_exis|pu)ts|write|open)|o(?:b_(?:get_(?:c(?:ontents|lean)|flush)|end_(?:clean|flush)|clean|flush|start)|dbc_(?:result(?:_all)?|exec(?:ute)?|connect)|pendir)|m(?:b_(?:ereg(?:_(?:replace(?:_callback)?|match)|i(?:_replace)?)?|parse_str)|(?:ove_uploaded|d5)_file|ethod_exists|ysql_query|kdir)|e(?:x(?:if_(?:t(?:humbnail|agname)|imagetype|read_data)|ec)|scapeshell(?:arg|cmd)|rror_reporting|val)|c(?:url_(?:file_create|exec|init)|onvert_uuencode|reate_function|hr)|u(?:n(?:serialize|pack)|rl(?:de|en)code|[ak]?sort)|b(?:(?:son_(?:de|en)|ase64_en)code|zopen|toa)|(?:json_(?:de|en)cod|debug_backtrac|tmpfil)e|var_dump)(?:\\s|/\\*.*\\*/|//.*|#.*|\\\"|')*\\((?:(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:\\$\\w+|[A-Z\\d]\\w*|\\w+\\(.*\\)|\\\\?\"(?:[^\"]|\\\\\"|\"\"|\"\\+\")*\\\\?\"|\\\\?'(?:[^']|''|'\\+')*\\\\?')(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:(?:::|\\.|->)(?:\\s|/\\*.*\\*/|//.*|#.*)*\\w+(?:\\(.*\\))?)?,)*(?:(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:\\$\\w+|[A-Z\\d]\\w*|\\w+\\(.*\\)|\\\\?\"(?:[^\"]|\\\\\"|\"\"|\"\\+\")*\\\\?\"|\\\\?'(?:[^']|''|'\\+')*\\\\?')(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:(?:::|\\.|->)(?:\\s|/\\*.*\\*/|//.*|#.*)*\\w+(?:\\(.*\\))?)?)?\\)",
+            "regex": "\\b(?:s(?:e(?:t(?:_(?:e(?:xception|rror)_handler|magic_quotes_runtime|include_path)|defaultstub)|ssion_s(?:et_save_handler|tart))|qlite_(?:(?:(?:unbuffered|single|array)_)?query|create_(?:aggregate|function)|p?open|exec)|tr(?:eam_(?:context_create|socket_client)|ipc?slashes|rev)|implexml_load_(?:string|file)|ocket_c(?:onnect|reate)|h(?:ow_sourc|a1_fil)e|pl_autoload_register|ystem)|p(?:r(?:eg_(?:replace(?:_callback(?:_array)?)?|match(?:_all)?|split)|oc_(?:(?:terminat|clos|nic)e|get_status|open)|int_r)|o(?:six_(?:get(?:(?:e[gu]|g)id|login|pwnam)|mk(?:fifo|nod)|ttyname|kill)|pen)|hp(?:_(?:strip_whitespac|unam)e|version|info)|g_(?:(?:execut|prepar)e|connect|query)|a(?:rse_(?:ini_file|str)|ssthru)|utenv)|r(?:unkit_(?:function_(?:re(?:defin|nam)e|copy|add)|method_(?:re(?:defin|nam)e|copy|add)|constant_(?:redefine|add))|e(?:(?:gister_(?:shutdown|tick)|name)_function|ad(?:(?:gz)?file|_exif_data|dir))|awurl(?:de|en)code)|i(?:mage(?:createfrom(?:(?:jpe|pn)g|x[bp]m|wbmp|gif)|(?:jpe|pn)g|g(?:d2?|if)|2?wbmp|xbm)|s_(?:(?:(?:execut|write?|read)ab|fi)le|dir)|ni_(?:get(?:_all)?|set)|terator_apply|ptcembed)|g(?:et(?:_(?:c(?:urrent_use|fg_va)r|meta_tags)|my(?:[gpu]id|inode)|(?:lastmo|cw)d|imagesize|env)|z(?:(?:(?:defla|wri)t|encod|fil)e|compress|open|read)|lob)|a(?:rray_(?:u(?:intersect(?:_u?assoc)?|diff(?:_u?assoc)?)|intersect_u(?:assoc|key)|diff_u(?:assoc|key)|filter|reduce|map)|ssert(?:_options)?|tob)|h(?:tml(?:specialchars(?:_decode)?|_entity_decode|entities)|(?:ash(?:_(?:update|hmac))?|ighlight)_file|e(?:ader_register_callback|x2bin))|f(?:i(?:le(?:(?:[acm]tim|inod)e|(?:_exist|perm)s|group)?|nfo_open)|tp_(?:nb_(?:ge|pu)|connec|ge|pu)t|(?:unction_exis|pu)ts|write|open)|o(?:b_(?:get_(?:c(?:ontents|lean)|flush)|end_(?:clean|flush)|clean|flush|start)|dbc_(?:result(?:_all)?|exec(?:ute)?|connect)|pendir)|m(?:b_(?:ereg(?:_(?:replace(?:_callback)?|match)|i(?:_replace)?)?|parse_str)|(?:ove_uploaded|d5)_file|ethod_exists|ysql_query|kdir)|e(?:x(?:if_(?:t(?:humbnail|agname)|imagetype|read_data)|ec)|scapeshell(?:arg|cmd)|rror_reporting|val)|c(?:url_(?:file_create|exec|init)|onvert_uuencode|reate_function|hr)|u(?:n(?:serialize|pack)|rl(?:de|en)code|[ak]?sort)|b(?:(?:son_(?:de|en)|ase64_en)code|zopen|toa)|(?:json_(?:de|en)cod|debug_backtrac|tmpfil)e|var_dump)(?:\\s|/\\*.*\\*/|//.*|#.*|\\\"|')*\\((?:(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:\\$\\w+|[A-Z\\d]\\w*|\\w+\\(.*\\)|\\\\?\"(?:[^\"]|\\\\\"|\"\"|\"\\+\")*\\\\?\"|\\\\?'(?:[^']|''|'\\+')*\\\\?')(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:(?:::|\\.|->)(?:\\s|/\\*.*\\*/|//.*|#.*)*\\w+(?:\\(.*\\))?)?,)*(?:(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:\\$\\w+|[A-Z\\d]\\w*|\\w+\\(.*\\)|\\\\?\"(?:[^\"]|\\\\\"|\"\"|\"\\+\")*\\\\?\"|\\\\?'(?:[^']|''|'\\+')*\\\\?')(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:(?:::|\\.|->)(?:\\s|/\\*.*\\*/|//.*|#.*)*\\w+(?:\\(.*\\))?)?)?\\)\\s*(?:[;\\.)}\\]|\\\\]|\\?>|%>|$)",
             "options": {
               "case_sensitive": true,
               "min_length": 5
@@ -2844,7 +2864,8 @@
         "category": "attack_attempt",
         "cwe": "502",
         "capec": "1000/152/586",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2891,7 +2912,8 @@
         "crs_id": "933200",
         "category": "attack_attempt",
         "cwe": "502",
-        "capec": "1000/152/586"
+        "capec": "1000/152/586",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2937,7 +2959,8 @@
         "crs_id": "934100",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2982,7 +3005,8 @@
         "category": "attack_attempt",
         "confidence": "1",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3024,7 +3048,8 @@
         "category": "attack_attempt",
         "cwe": "80",
         "capec": "1000/152/242/63/591",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3081,7 +3106,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3140,7 +3166,8 @@
         "category": "attack_attempt",
         "cwe": "84",
         "capec": "1000/152/242/63/591/244",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3199,7 +3226,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3257,7 +3285,8 @@
         "crs_id": "941180",
         "category": "attack_attempt",
         "cwe": "79",
-        "capec": "1000/152/242/63/591"
+        "capec": "1000/152/242/63/591",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3311,7 +3340,8 @@
         "category": "attack_attempt",
         "cwe": "80",
         "capec": "1000/152/242/63/591",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3358,7 +3388,8 @@
         "category": "attack_attempt",
         "cwe": "80",
         "capec": "1000/152/242/63/591",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3405,7 +3436,8 @@
         "category": "attack_attempt",
         "cwe": "80",
         "capec": "1000/152/242/63/591",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3452,7 +3484,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3498,7 +3531,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3545,7 +3579,8 @@
         "crs_id": "941270",
         "category": "attack_attempt",
         "cwe": "83",
-        "capec": "1000/152/242/63/591/243"
+        "capec": "1000/152/242/63/591/243",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3588,7 +3623,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3634,7 +3670,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3680,7 +3717,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3726,7 +3764,8 @@
         "category": "attack_attempt",
         "cwe": "87",
         "capec": "1000/152/242/63/591/199",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3770,7 +3809,8 @@
         "crs_id": "941360",
         "category": "attack_attempt",
         "cwe": "87",
-        "capec": "1000/152/242/63/591/199"
+        "capec": "1000/152/242/63/591/199",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3815,7 +3855,8 @@
         "category": "attack_attempt",
         "confidence": "1",
         "cwe": "79",
-        "capec": "1000/152/242/63/591"
+        "capec": "1000/152/242/63/591",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3859,7 +3900,8 @@
         "crs_id": "942100",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66"
+        "capec": "1000/152/248/66",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3898,7 +3940,8 @@
         "category": "attack_attempt",
         "cwe": "89",
         "capec": "1000/152/248/66/7",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3943,7 +3986,8 @@
         "category": "attack_attempt",
         "cwe": "89",
         "capec": "1000/152/248/66/7",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3986,7 +4030,8 @@
         "crs_id": "942250",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66"
+        "capec": "1000/152/248/66",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4030,7 +4075,8 @@
         "crs_id": "942270",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66"
+        "capec": "1000/152/248/66",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4074,7 +4120,8 @@
         "category": "attack_attempt",
         "cwe": "89",
         "capec": "1000/152/248/66/7",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4117,7 +4164,8 @@
         "crs_id": "942290",
         "category": "attack_attempt",
         "cwe": "943",
-        "capec": "1000/152/248/676"
+        "capec": "1000/152/248/676",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4163,7 +4211,8 @@
         "crs_id": "942360",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66/470"
+        "capec": "1000/152/248/66/470",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4206,7 +4255,8 @@
         "crs_id": "942500",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66"
+        "capec": "1000/152/248/66",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4251,7 +4301,8 @@
         "category": "attack_attempt",
         "cwe": "384",
         "capec": "1000/225/21/593/61",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4296,7 +4347,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4344,7 +4396,8 @@
         "type": "java_code_injection",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4391,7 +4444,8 @@
         "crs_id": "944130",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4529,7 +4583,8 @@
         "type": "nosql_injection",
         "category": "attack_attempt",
         "cwe": "943",
-        "capec": "1000/152/248/676"
+        "capec": "1000/152/248/676",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4573,7 +4628,8 @@
         "type": "java_code_injection",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4619,7 +4675,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4695,7 +4752,8 @@
         "category": "attack_attempt",
         "cwe": "1321",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4725,7 +4783,8 @@
         "category": "attack_attempt",
         "cwe": "1321",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4769,7 +4828,8 @@
         "category": "attack_attempt",
         "cwe": "1336",
         "capec": "1000/152/242/19",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4813,7 +4873,8 @@
         "tool_name": "BurpCollaborator",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4857,7 +4918,8 @@
         "tool_name": "Qualys",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4901,7 +4963,8 @@
         "tool_name": "Probely",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4944,7 +5007,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4987,7 +5051,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5031,7 +5096,8 @@
         "tool_name": "Rapid7",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5075,7 +5141,8 @@
         "tool_name": "interact.sh",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5119,7 +5186,8 @@
         "tool_name": "Netsparker",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5167,7 +5235,8 @@
         "tool_name": "WhiteHatSecurity",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5215,7 +5284,8 @@
         "tool_name": "Nessus",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5263,7 +5333,8 @@
         "tool_name": "Watchtowr",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5311,7 +5382,8 @@
         "tool_name": "AppCheckNG",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5358,7 +5430,8 @@
         "category": "attack_attempt",
         "cwe": "287",
         "capec": "1000/225/115",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5392,7 +5465,8 @@
         "category": "attack_attempt",
         "cwe": "98",
         "capec": "1000/152/175/253/193",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5436,7 +5510,8 @@
         "category": "attack_attempt",
         "cwe": "77",
         "capec": "1000/152/248/88",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5483,7 +5558,8 @@
         "category": "attack_attempt",
         "cwe": "91",
         "capec": "1000/152/248/250",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5521,7 +5597,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5579,7 +5656,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5866,7 +5944,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5908,7 +5987,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5950,7 +6030,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5992,7 +6073,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6034,7 +6116,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6059,7 +6142,7 @@
                 "address": "server.request.uri.raw"
               }
             ],
-            "regex": "\\.(cgi|bat|dll|exe|key|cert|crt|pem|der|pkcs|pkcs|pkcs[0-9]*|nsf|jsa|war|java|class|vb|vba|so|git|svn|hg|cvs)([^a-zA-Z0-9_]|$)",
+            "regex": "\\.(cgi|bat|dll|exe|key|cert|crt|pem|der|pkcs|pkcs|pkcs[0-9]*|nsf|jsa|war|java|class|vb|vba|so|git|svn|hg|cvs)([?#&/]|$)",
             "options": {
               "case_sensitive": false
             }
@@ -6076,7 +6159,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6118,7 +6202,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6160,7 +6245,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6202,7 +6288,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6276,7 +6363,7 @@
               }
             ]
           },
-          "operator": "lfi_detector"
+          "operator": "lfi_detector@v2"
         }
       ],
       "transformers": [],
@@ -6286,7 +6373,7 @@
     },
     {
       "id": "rasp-932-100",
-      "name": "Shell injection exploit",
+      "name": "Shell command injection exploit",
       "tags": {
         "type": "command_injection",
         "category": "vulnerability_trigger",
@@ -6325,6 +6412,54 @@
             ]
           },
           "operator": "shi_detector"
+        }
+      ],
+      "transformers": [],
+      "on_match": [
+        "stack_trace"
+      ]
+    },
+    {
+      "id": "rasp-932-110",
+      "name": "OS command injection exploit",
+      "tags": {
+        "type": "command_injection",
+        "category": "vulnerability_trigger",
+        "cwe": "77",
+        "capec": "1000/152/248/88",
+        "confidence": "0",
+        "module": "rasp"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "resource": [
+              {
+                "address": "server.sys.exec.cmd"
+              }
+            ],
+            "params": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ]
+          },
+          "operator": "cmdi_detector"
         }
       ],
       "transformers": [],
@@ -6422,7 +6557,7 @@
               }
             ]
           },
-          "operator": "sqli_detector"
+          "operator": "sqli_detector@v2"
         }
       ],
       "transformers": [],
@@ -6438,7 +6573,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6482,7 +6618,8 @@
         "type": "js_code_injection",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6527,7 +6664,8 @@
         "category": "attack_attempt",
         "cwe": "78",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6570,7 +6708,8 @@
         "category": "attack_attempt",
         "cwe": "78",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6615,7 +6754,8 @@
         "category": "attack_attempt",
         "cwe": "78",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6658,7 +6798,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6701,7 +6842,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6743,7 +6885,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6785,7 +6928,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6828,7 +6972,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6870,7 +7015,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6916,7 +7062,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Joomla exploitation tool",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6945,7 +7092,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nessus",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6974,7 +7122,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Arachni",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7003,7 +7152,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Jorgee",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7032,7 +7182,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Probely",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7061,7 +7212,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Metis",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7090,7 +7242,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "SQLPowerInjector",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7119,7 +7272,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "N-Stealth",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7148,7 +7302,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Brutus",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7176,7 +7331,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7205,7 +7361,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Netsparker",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7234,7 +7391,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "JAASCois",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7263,7 +7421,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nsauditor",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7292,7 +7451,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Paros",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7321,7 +7481,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "DirBuster",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7350,7 +7511,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Pangolin",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7379,7 +7541,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Qualys",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7408,7 +7571,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "SQLNinja",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7437,7 +7601,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nikto",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7466,7 +7631,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "BlackWidow",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7495,7 +7661,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Grendel-Scan",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7524,7 +7691,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Havij",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7553,7 +7721,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "w3af",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7582,7 +7751,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nmap",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7611,7 +7781,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nessus",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7640,7 +7811,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "EvilScanner",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7669,7 +7841,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "WebFuck",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7698,7 +7871,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "OpenVAS",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7727,7 +7901,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Spider-Pig",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7756,7 +7931,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Zgrab",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7785,7 +7961,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Zmeu",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7814,7 +7991,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "GoogleSecurityScanner",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7843,7 +8021,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Commix",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7872,7 +8051,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Gobuster",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7901,7 +8081,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "CGIchk",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7930,7 +8111,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "FFUF",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7959,7 +8141,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nuclei",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7988,7 +8171,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Tsunami",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8017,7 +8201,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nimbostratus",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8046,7 +8231,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Datadog Canary Test",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8081,7 +8267,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Datadog Canary Test",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8119,7 +8306,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "AlertLogic",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8148,7 +8336,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "wfuzz",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8177,7 +8366,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Detectify",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8206,7 +8396,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "BSQLBF",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8235,7 +8426,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "masscan",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8264,7 +8456,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "WPScan",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8293,7 +8486,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Aon",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8322,7 +8516,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "feroxbuster",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8350,7 +8545,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8382,7 +8578,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "SQLmap",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8411,7 +8608,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Skipfish",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -8430,1350 +8628,6 @@
         }
       ],
       "transformers": []
-    }
-  ],
-  "processors": [
-    {
-      "id": "http-endpoint-fingerprint",
-      "generator": "http_endpoint_fingerprint",
-      "conditions": [
-        {
-          "operator": "exists",
-          "parameters": {
-            "inputs": [
-              {
-                "address": "waf.context.event"
-              },
-              {
-                "address": "server.business_logic.users.login.failure"
-              },
-              {
-                "address": "server.business_logic.users.login.success"
-              }
-            ]
-          }
-        }
-      ],
-      "parameters": {
-        "mappings": [
-          {
-            "method": [
-              {
-                "address": "server.request.method"
-              }
-            ],
-            "uri_raw": [
-              {
-                "address": "server.request.uri.raw"
-              }
-            ],
-            "body": [
-              {
-                "address": "server.request.body"
-              }
-            ],
-            "query": [
-              {
-                "address": "server.request.query"
-              }
-            ],
-            "output": "_dd.appsec.fp.http.endpoint"
-          }
-        ]
-      },
-      "evaluate": false,
-      "output": true
-    },
-    {
-      "id": "extract-content",
-      "generator": "extract_schema",
-      "conditions": [
-        {
-          "operator": "equals",
-          "parameters": {
-            "inputs": [
-              {
-                "address": "waf.context.processor",
-                "key_path": [
-                  "extract-schema"
-                ]
-              }
-            ],
-            "type": "boolean",
-            "value": true
-          }
-        }
-      ],
-      "parameters": {
-        "mappings": [
-          {
-            "inputs": [
-              {
-                "address": "server.request.body"
-              }
-            ],
-            "output": "_dd.appsec.s.req.body"
-          },
-          {
-            "inputs": [
-              {
-                "address": "server.request.cookies"
-              }
-            ],
-            "output": "_dd.appsec.s.req.cookies"
-          },
-          {
-            "inputs": [
-              {
-                "address": "server.request.query"
-              }
-            ],
-            "output": "_dd.appsec.s.req.query"
-          },
-          {
-            "inputs": [
-              {
-                "address": "server.request.path_params"
-              }
-            ],
-            "output": "_dd.appsec.s.req.params"
-          },
-          {
-            "inputs": [
-              {
-                "address": "server.response.body"
-              }
-            ],
-            "output": "_dd.appsec.s.res.body"
-          },
-          {
-            "inputs": [
-              {
-                "address": "graphql.server.all_resolvers"
-              }
-            ],
-            "output": "_dd.appsec.s.graphql.all_resolvers"
-          },
-          {
-            "inputs": [
-              {
-                "address": "graphql.server.resolver"
-              }
-            ],
-            "output": "_dd.appsec.s.graphql.resolver"
-          }
-        ],
-        "scanners": [
-          {
-            "tags": {
-              "category": "payment"
-            }
-          },
-          {
-            "tags": {
-              "category": "pii"
-            }
-          }
-        ]
-      },
-      "evaluate": false,
-      "output": true
-    },
-    {
-      "id": "extract-headers",
-      "generator": "extract_schema",
-      "conditions": [
-        {
-          "operator": "equals",
-          "parameters": {
-            "inputs": [
-              {
-                "address": "waf.context.processor",
-                "key_path": [
-                  "extract-schema"
-                ]
-              }
-            ],
-            "type": "boolean",
-            "value": true
-          }
-        }
-      ],
-      "parameters": {
-        "mappings": [
-          {
-            "inputs": [
-              {
-                "address": "server.request.headers.no_cookies"
-              }
-            ],
-            "output": "_dd.appsec.s.req.headers"
-          },
-          {
-            "inputs": [
-              {
-                "address": "server.response.headers.no_cookies"
-              }
-            ],
-            "output": "_dd.appsec.s.res.headers"
-          }
-        ],
-        "scanners": [
-          {
-            "tags": {
-              "category": "credentials"
-            }
-          },
-          {
-            "tags": {
-              "category": "pii"
-            }
-          }
-        ]
-      },
-      "evaluate": false,
-      "output": true
-    },
-    {
-      "id": "http-header-fingerprint",
-      "generator": "http_header_fingerprint",
-      "conditions": [
-        {
-          "operator": "exists",
-          "parameters": {
-            "inputs": [
-              {
-                "address": "waf.context.event"
-              },
-              {
-                "address": "server.business_logic.users.login.failure"
-              },
-              {
-                "address": "server.business_logic.users.login.success"
-              }
-            ]
-          }
-        }
-      ],
-      "parameters": {
-        "mappings": [
-          {
-            "headers": [
-              {
-                "address": "server.request.headers.no_cookies"
-              }
-            ],
-            "output": "_dd.appsec.fp.http.header"
-          }
-        ]
-      },
-      "evaluate": false,
-      "output": true
-    },
-    {
-      "id": "http-network-fingerprint",
-      "generator": "http_network_fingerprint",
-      "conditions": [
-        {
-          "operator": "exists",
-          "parameters": {
-            "inputs": [
-              {
-                "address": "waf.context.event"
-              },
-              {
-                "address": "server.business_logic.users.login.failure"
-              },
-              {
-                "address": "server.business_logic.users.login.success"
-              }
-            ]
-          }
-        }
-      ],
-      "parameters": {
-        "mappings": [
-          {
-            "headers": [
-              {
-                "address": "server.request.headers.no_cookies"
-              }
-            ],
-            "output": "_dd.appsec.fp.http.network"
-          }
-        ]
-      },
-      "evaluate": false,
-      "output": true
-    },
-    {
-      "id": "session-fingerprint",
-      "generator": "session_fingerprint",
-      "conditions": [
-        {
-          "operator": "exists",
-          "parameters": {
-            "inputs": [
-              {
-                "address": "waf.context.event"
-              },
-              {
-                "address": "server.business_logic.users.login.failure"
-              },
-              {
-                "address": "server.business_logic.users.login.success"
-              }
-            ]
-          }
-        }
-      ],
-      "parameters": {
-        "mappings": [
-          {
-            "cookies": [
-              {
-                "address": "server.request.cookies"
-              }
-            ],
-            "session_id": [
-              {
-                "address": "usr.session_id"
-              }
-            ],
-            "user_id": [
-              {
-                "address": "usr.id"
-              }
-            ],
-            "output": "_dd.appsec.fp.session"
-          }
-        ]
-      },
-      "evaluate": false,
-      "output": true
-    }
-  ],
-  "scanners": [
-    {
-      "id": "406f8606-52c4-4663-8db9-df70f9e8766c",
-      "name": "ZIP Code",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:zip|postal)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "^[0-9]{5}(?:-[0-9]{4})?$",
-          "options": {
-            "case_sensitive": true,
-            "min_length": 5
-          }
-        }
-      },
-      "tags": {
-        "type": "zipcode",
-        "category": "address"
-      }
-    },
-    {
-      "id": "JU1sRk3mSzqSUJn6GrVn7g",
-      "name": "American Express Card Scanner (4+4+4+3 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b3[47]\\d{2}(?:(?:\\s\\d{4}\\s\\d{4}\\s\\d{3})|(?:\\,\\d{4}\\,\\d{4}\\,\\d{3})|(?:-\\d{4}-\\d{4}-\\d{3})|(?:\\.\\d{4}\\.\\d{4}\\.\\d{3}))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "amex",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "edmH513UTQWcRiQ9UnzHlw-mod",
-      "name": "American Express Card Scanner (4+6|5+5|6 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b3[47]\\d{2}(?:(?:\\s\\d{5,6}\\s\\d{5,6})|(?:\\.\\d{5,6}\\.\\d{5,6})|(?:-\\d{5,6}-\\d{5,6})|(?:,\\d{5,6},\\d{5,6}))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 17
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "amex",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "e6K4h_7qTLaMiAbaNXoSZA",
-      "name": "American Express Card Scanner (8+7 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b3[47]\\d{6}(?:(?:\\s\\d{7})|(?:\\,\\d{7})|(?:-\\d{7})|(?:\\.\\d{7}))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "amex",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "K2rZflWzRhGM9HiTc6whyQ",
-      "name": "American Express Card Scanner (1x15 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b3[47]\\d{13}\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 15
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "amex",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "9d7756e343cefa22a5c098e1092590f806eb5446",
-      "name": "Basic Authentication Scanner",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\bauthorization\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 13
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "^basic\\s+[A-Za-z0-9+/=]+",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 7
-          }
-        }
-      },
-      "tags": {
-        "type": "basic_auth",
-        "category": "credentials"
-      }
-    },
-    {
-      "id": "mZy8XjZLReC9smpERXWnnw",
-      "name": "Bearer Authentication Scanner",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\bauthorization\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 13
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "^bearer\\s+[-a-z0-9._~+/]{4,}",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 11
-          }
-        }
-      },
-      "tags": {
-        "type": "bearer_token",
-        "category": "credentials"
-      }
-    },
-    {
-      "id": "450239afc250a19799b6c03dc0e16fd6a4b2a1af",
-      "name": "Canadian Social Insurance Number Scanner",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:social[\\s_]?(?:insurance(?:\\s+number)?)?|SIN|Canadian[\\s_]?(?:social[\\s_]?(?:insurance)?|insurance[\\s_]?number)?)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b\\d{3}-\\d{3}-\\d{3}\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 11
-          }
-        }
-      },
-      "tags": {
-        "type": "canadian_sin",
-        "category": "pii"
-      }
-    },
-    {
-      "id": "87a879ff33693b46c8a614d8211f5a2c289beca0",
-      "name": "Digest Authentication Scanner",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\bauthorization\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 13
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "^digest\\s+",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 7
-          }
-        }
-      },
-      "tags": {
-        "type": "digest_auth",
-        "category": "credentials"
-      }
-    },
-    {
-      "id": "qWumeP1GQUa_E4ffAnT-Yg",
-      "name": "American Express Card Scanner (1x14 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "(?:30[0-59]\\d|3[689]\\d{2})(?:\\d{10})",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 14
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "diners",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "NlTWWM5LS6W0GSqBLuvtRw",
-      "name": "Diners Card Scanner (4+4+4+2 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:30[0-59]\\d|3[689]\\d{2})(?:(?:\\s\\d{4}\\s\\d{4}\\s\\d{2})|(?:\\,\\d{4}\\,\\d{4}\\,\\d{2})|(?:-\\d{4}-\\d{4}-\\d{2})|(?:\\.\\d{4}\\.\\d{4}\\.\\d{2}))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 17
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "diners",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "Xr5VdbQSTXitYGGiTfxBpw",
-      "name": "Diners Card Scanner (4+6+4 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:30[0-59]\\d|3[689]\\d{2})(?:(?:\\s\\d{6}\\s\\d{4})|(?:\\.\\d{6}\\.\\d{4})|(?:-\\d{6}-\\d{4})|(?:,\\d{6},\\d{4}))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "diners",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "gAbunN_WQNytxu54DjcbAA-mod",
-      "name": "Diners Card Scanner (8+6 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:30[0-59]\\d{5}|3[689]\\d{6})\\s?(?:(?:\\s\\d{6})|(?:\\,\\d{6})|(?:-\\d{6})|(?:\\.\\d{6}))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 14
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "diners",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "9cs4qCfEQBeX17U7AepOvQ",
-      "name": "MasterCard Scanner (2x8 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:6221(?:2[6-9]|[3-9][0-9])\\d{2}(?:,\\d{8}|\\s\\d{8}|-\\d{8}|\\.\\d{8})|6229(?:[01][0-9]|2[0-5])\\d{2}(?:,\\d{8}|\\s\\d{8}|-\\d{8}|\\.\\d{8})|(?:6011|65\\d{2}|64[4-9]\\d|622[2-8])\\d{4}(?:,\\d{8}|\\s\\d{8}|-\\d{8}|\\.\\d{8}))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "discover",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "YBIDWJIvQWW_TFOyU0CGJg",
-      "name": "Discover Card Scanner (4x4 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:(?:(?:6221(?:2[6-9]|[3-9][0-9])\\d{2}(?:,\\d{4}){2})|(?:6221\\s(?:2[6-9]|[3-9][0-9])\\d{2}(?:\\s\\d{4}){2})|(?:6221\\.(?:2[6-9]|[3-9][0-9])\\d{2}(?:\\.\\d{4}){2})|(?:6221-(?:2[6-9]|[3-9][0-9])\\d{2}(?:-\\d{4}){2}))|(?:(?:6229(?:[01][0-9]|2[0-5])\\d{2}(?:,\\d{4}){2})|(?:6229\\s(?:[01][0-9]|2[0-5])\\d{2}(?:\\s\\d{4}){2})|(?:6229\\.(?:[01][0-9]|2[0-5])\\d{2}(?:\\.\\d{4}){2})|(?:6229-(?:[01][0-9]|2[0-5])\\d{2}(?:-\\d{4}){2}))|(?:(?:6011|65\\d{2}|64[4-9]\\d|622[2-8])(?:(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3}|(?:,\\d{4}){3})))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "discover",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "12cpbjtVTMaMutFhh9sojQ",
-      "name": "Discover Card Scanner (1x16 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:6221(?:2[6-9]|[3-9][0-9])\\d{10}|6229(?:[01][0-9]|2[0-5])\\d{10}|(?:6011|65\\d{2}|64[4-9]\\d|622[2-8])\\d{12})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "discover",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "PuXiVTCkTHOtj0Yad1ppsw",
-      "name": "Standard E-mail Address",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:(?:e[-\\s]?)?mail|address|sender|\\bto\\b|from|recipient)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 2
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b[\\w!#$%&'*+/=?`{|}~^-]+(?:\\.[\\w!#$%&'*+/=?`{|}~^-]+)*(%40|@)(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,6}\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 5
-          }
-        }
-      },
-      "tags": {
-        "type": "email",
-        "category": "pii"
-      }
-    },
-    {
-      "id": "8VS2RKxzR8a_95L5fuwaXQ",
-      "name": "IBAN",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:iban|account|sender|receiver)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:NO\\d{2}(?:[ \\-]?\\d{4}){2}[ \\-]?\\d{3}|BE\\d{2}(?:[ \\-]?\\d{4}){3}|(?:DK|FO|FI|GL|SD)\\d{2}(?:[ \\-]?\\d{4}){3}[ \\-]?\\d{2}|NL\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){2}[ \\-]?\\d{2}|MK\\d{2}[ \\-]?\\d{3}[A-Z0-9](?:[ \\-]?[A-Z0-9]{4}){2}[ \\-]?[A-Z0-9]\\d{2}|SI\\d{17}|(?:AT|BA|EE|LT|XK)\\d{18}|(?:LU|KZ|EE|LT)\\d{5}[A-Z0-9]{13}|LV\\d{2}[A-Z]{4}[A-Z0-9]{13}|(?:LI|CH)\\d{2}[ \\-]?\\d{4}[ \\-]?\\d[A-Z0-9]{3}(?:[ \\-]?[A-Z0-9]{4}){2}[ \\-]?[A-Z0-9]|HR\\d{2}(?:[ \\-]?\\d{4}){4}[ \\-]?\\d|GE\\d{2}[ \\-]?[A-Z0-9]{2}\\d{2}\\d{14}|VA\\d{20}|BG\\d{2}[A-Z]{4}\\d{6}[A-Z0-9]{8}|BH\\d{2}[A-Z]{4}[A-Z0-9]{14}|GB\\d{2}[A-Z]{4}(?:[ \\-]?\\d{4}){3}[ \\-]?\\d{2}|IE\\d{2}[ \\-]?[A-Z0-9]{4}(?:[ \\-]?\\d{4}){3}[ \\-]?\\d{2}|(?:CR|DE|ME|RS)\\d{2}(?:[ \\-]?\\d{4}){4}[ \\-]?\\d{2}|(?:AE|TL|IL)\\d{2}(?:[ \\-]?\\d{4}){4}[ \\-]?\\d{3}|GI\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){3}[ \\-]?[A-Z0-9]{3}|IQ\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){3}[ \\-]?\\d{3}|MD\\d{2}(?:[ \\-]?[A-Z0-9]{4}){5}|SA\\d{2}[ \\-]?\\d{2}[A-Z0-9]{2}(?:[ \\-]?[A-Z0-9]{4}){4}|RO\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){4}|(?:PK|VG)\\d{2}[ \\-]?[A-Z0-9]{4}(?:[ \\-]?\\d{4}){4}|AD\\d{2}(?:[ \\-]?\\d{4}){2}(?:[ \\-]?[A-Z0-9]{4}){3}|(?:CZ|SK|ES|SE|TN)\\d{2}(?:[ \\-]?\\d{4}){5}|(?:LY|PT|ST)\\d{2}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d|TR\\d{2}[ \\-]?\\d{4}[ \\-]?\\d[A-Z0-9]{3}(?:[ \\-]?[A-Z0-9]{4}){3}[ \\-]?[A-Z0-9]{2}|IS\\d{2}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d{2}|(?:IT|SM)\\d{2}[ \\-]?[A-Z]\\d{3}[ \\-]?\\d{4}[ \\-]?\\d{3}[A-Z0-9](?:[ \\-]?[A-Z0-9]{4}){2}[ \\-]?[A-Z0-9]{3}|GR\\d{2}[ \\-]?\\d{4}[ \\-]?\\d{3}[A-Z0-9](?:[ \\-]?[A-Z0-9]{4}){3}[A-Z0-9]{3}|(?:FR|MC)\\d{2}(?:[ \\-]?\\d{4}){2}[ \\-]?\\d{2}[A-Z0-9]{2}(?:[ \\-]?[A-Z0-9]{4}){2}[ \\-]?[A-Z0-9]\\d{2}|MR\\d{2}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d{3}|(?:SV|DO)\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){5}|BY\\d{2}[ \\-]?[A-Z]{4}[ \\-]?\\d{4}(?:[ \\-]?[A-Z0-9]{4}){4}|GT\\d{2}(?:[ \\-]?[A-Z0-9]{4}){6}|AZ\\d{2}[ \\-]?[A-Z0-9]{4}(?:[ \\-]?\\d{5}){4}|LB\\d{2}[ \\-]?\\d{4}(?:[ \\-]?[A-Z0-9]{5}){4}|(?:AL|CY)\\d{2}(?:[ \\-]?\\d{4}){2}(?:[ \\-]?[A-Z0-9]{4}){4}|(?:HU|PL)\\d{2}(?:[ \\-]?\\d{4}){6}|QA\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){5}[ \\-]?[A-Z0-9]|PS\\d{2}[ \\-]?[A-Z0-9]{4}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d|UA\\d{2}[ \\-]?\\d{4}[ \\-]?\\d{2}[A-Z0-9]{2}(?:[ \\-]?[A-Z0-9]{4}){4}[ \\-]?[A-Z0-9]|BR\\d{2}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d{3}[A-Z0-9][ \\-]?[A-Z0-9]|EG\\d{2}(?:[ \\-]?\\d{4}){6}\\d|MU\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){4}\\d{3}[A-Z][ \\-]?[A-Z]{2}|(?:KW|JO)\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){5}[ \\-]?[A-Z0-9]{2}|MT\\d{2}[ \\-]?[A-Z]{4}[ \\-]?\\d{4}[ \\-]?\\d[A-Z0-9]{3}(?:[ \\-]?[A-Z0-9]{3}){4}[ \\-]?[A-Z0-9]{3}|SC\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){5}[ \\-]?[A-Z]{3}|LC\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){6})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 15
-          }
-        }
-      },
-      "tags": {
-        "type": "iban",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "h6WJcecQTwqvN9KeEtwDvg",
-      "name": "JCB Card Scanner (1x16 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b35(?:2[89]|[3-9][0-9])(?:\\d{12})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "jcb",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "gcEaMu_VSJ2-bGCEkgyC0w",
-      "name": "JCB Card Scanner (2x8 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b35(?:2[89]|[3-9][0-9])\\d{4}(?:(?:,\\d{8})|(?:-\\d{8})|(?:\\s\\d{8})|(?:\\.\\d{8}))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 17
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "jcb",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "imTliuhXT5GAeRNhqChXQQ",
-      "name": "JCB Card Scanner (4x4 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b35(?:2[89]|[3-9][0-9])(?:(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3}|(?:,\\d{4}){3})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "jcb",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "9osY3xc9Q7ONAV0zw9Uz4A",
-      "name": "JSON Web Token",
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\bey[I-L][\\w=-]+\\.ey[I-L][\\w=-]+(\\.[\\w.+\\/=-]+)?\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 20
-          }
-        }
-      },
-      "tags": {
-        "type": "json_web_token",
-        "category": "credentials"
-      }
-    },
-    {
-      "id": "d1Q9D3YMRxuVKf6CZInJPw",
-      "name": "Maestro Card Scanner (1x16 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:5[06-9]\\d{2}|6\\d{3})(?:\\d{12})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "maestro",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "M3YIQKKjRVmoeQuM3pjzrw",
-      "name": "Maestro Card Scanner (2x8 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:5[06-9]\\d{6}|6\\d{7})(?:\\s\\d{8}|\\.\\d{8}|-\\d{8}|,\\d{8})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 17
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "maestro",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "hRxiQBlSSVKcjh5U7LZYLA",
-      "name": "Maestro Card Scanner (4x4 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:5[06-9]\\d{2}|6\\d{3})(?:(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3}|(?:,\\d{4}){3})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "maestro",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "NwhIYNS4STqZys37WlaIKA",
-      "name": "MasterCard Scanner (2x8 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:(?:5[1-5]\\d{2})|(?:222[1-9])|(?:22[3-9]\\d)|(?:2[3-6]\\d{2})|(?:27[0-1]\\d)|(?:2720))(?:(?:\\d{4}(?:(?:,\\d{8})|(?:-\\d{8})|(?:\\s\\d{8})|(?:\\.\\d{8}))))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "mastercard",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "axxJkyjhRTOuhjwlsA35Vw",
-      "name": "MasterCard Scanner (4x4 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:(?:5[1-5]\\d{2})|(?:222[1-9])|(?:22[3-9]\\d)|(?:2[3-6]\\d{2})|(?:27[0-1]\\d)|(?:2720))(?:(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3}|(?:,\\d{4}){3})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "mastercard",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "76EhmoK3TPqJcpM-fK0pLw",
-      "name": "MasterCard Scanner (1x16 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:(?:5[1-5]\\d{2})|(?:222[1-9])|(?:22[3-9]\\d)|(?:2[3-6]\\d{2})|(?:27[0-1]\\d)|(?:2720))(?:\\d{12})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "mastercard",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "18b608bd7a764bff5b2344c0",
-      "name": "Phone number",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\bphone|number|mobile\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "^(?:\\(\\+\\d{1,3}\\)|\\+\\d{1,3}|00\\d{1,3})?[-\\s\\.]?(?:\\(\\d{3}\\)[-\\s\\.]?)?(?:\\d[-\\s\\.]?){6,10}$",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 6
-          }
-        }
-      },
-      "tags": {
-        "type": "phone",
-        "category": "pii"
-      }
-    },
-    {
-      "id": "de0899e0cbaaa812bb624cf04c912071012f616d-mod",
-      "name": "UK National Insurance Number Scanner",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "^nin$|\\binsurance\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b[A-Z]{2}[\\s-]?\\d{6}[\\s-]?[A-Z]?\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 8
-          }
-        }
-      },
-      "tags": {
-        "type": "uk_nin",
-        "category": "pii"
-      }
-    },
-    {
-      "id": "d962f7ddb3f55041e39195a60ff79d4814a7c331",
-      "name": "US Passport Scanner",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\bpassport\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 8
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b[0-9A-Z]{9}\\b|\\b[0-9]{6}[A-Z][0-9]{2}\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 8
-          }
-        }
-      },
-      "tags": {
-        "type": "passport_number",
-        "category": "pii"
-      }
-    },
-    {
-      "id": "7771fc3b-b205-4b93-bcef-28608c5c1b54",
-      "name": "United States Social Security Number Scanner",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:SSN|(?:(?:social)?[\\s_]?(?:security)?[\\s_]?(?:number)?)?)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b\\d{3}[-\\s\\.]{1}\\d{2}[-\\s\\.]{1}\\d{4}\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 11
-          }
-        }
-      },
-      "tags": {
-        "type": "us_ssn",
-        "category": "pii"
-      }
-    },
-    {
-      "id": "ac6d683cbac77f6e399a14990793dd8fd0fca333",
-      "name": "US Vehicle Identification Number Scanner",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:vehicle[_\\s-]*identification[_\\s-]*number|vin)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b[A-HJ-NPR-Z0-9]{17}\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 17
-          }
-        }
-      },
-      "tags": {
-        "type": "vin",
-        "category": "pii"
-      }
-    },
-    {
-      "id": "wJIgOygRQhKkR69b_9XbRQ",
-      "name": "Visa Card Scanner (2x8 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b4\\d{3}(?:(?:\\d{4}(?:(?:,\\d{8})|(?:-\\d{8})|(?:\\s\\d{8})|(?:\\.\\d{8}))))\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "visa",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "0o71SJxXQNK7Q6gMbBesFQ",
-      "name": "Visa Card Scanner (4x4 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b4\\d{3}(?:(?:,\\d{4}){3}|(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3})\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 16
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "visa",
-        "category": "payment"
-      }
-    },
-    {
-      "id": "QrHD6AfgQm6z-j0wStxTvA",
-      "name": "Visa Card Scanner (1x15 & 1x16 & 1x19 digits)",
-      "key": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 3
-          }
-        }
-      },
-      "value": {
-        "operator": "match_regex",
-        "parameters": {
-          "regex": "4[0-9]{12}(?:[0-9]{3})?",
-          "options": {
-            "case_sensitive": false,
-            "min_length": 13
-          }
-        }
-      },
-      "tags": {
-        "type": "card",
-        "card_type": "visa",
-        "category": "payment"
-      }
     }
   ]
 }

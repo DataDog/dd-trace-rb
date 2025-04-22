@@ -39,7 +39,7 @@ RSpec.describe 'transport with integrations' do
 
       # Requests may produce an error (because the transport cannot connect)
       # but ignore this... we just need requests, not a successful response.
-      allow(Datadog.logger).to receive(:error)
+      allow(logger).to receive(:error)
     end
 
     shared_examples_for 'an uninstrumented transport' do
@@ -59,15 +59,17 @@ RSpec.describe 'transport with integrations' do
       end
     end
 
+    let(:logger) { logger_allowing_debug }
+
     context 'given the default transport' do
-      let(:transport) { Datadog::Tracing::Transport::HTTP.default }
+      let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) }
 
       it_behaves_like 'an uninstrumented transport'
     end
 
     context 'given an Unix socket transport' do
       let(:transport) do
-        Datadog::Tracing::Transport::HTTP.default do |t|
+        Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
           t.adapter :unix, '/tmp/ddagent/trace.sock'
         end
       end

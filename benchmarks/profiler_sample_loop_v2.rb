@@ -37,7 +37,7 @@ class ProfilerSampleLoopBenchmark
       )
 
       x.report("stack collector #{ENV['CONFIG']}") do
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD, false)
       end
 
       x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE

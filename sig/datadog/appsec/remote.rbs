@@ -29,6 +29,10 @@ module Datadog
 
       CAP_ASM_TRUSTED_IPS: Integer
 
+      CAP_ASM_RASP_SSRF: Integer
+
+      CAP_ASM_RASP_SQLI: Integer
+
       ASM_CAPABILITIES: Array[Integer]
 
       ASM_PRODUCTS: ::Array[String]

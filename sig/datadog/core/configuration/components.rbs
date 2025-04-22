@@ -6,9 +6,9 @@ module Datadog
 
         def self.build_logger: (untyped settings) -> untyped
 
-        def self.build_runtime_metrics: (untyped settings) -> untyped
+        def self.build_runtime_metrics: (untyped settings, Core::Logger logger) -> untyped
 
-        def self.build_runtime_metrics_worker: (untyped settings) -> untyped
+        def self.build_runtime_metrics_worker: (untyped settings, Core::Logger logger) -> untyped
 
         def self.build_tracer: (untyped settings, untyped agent_settings) -> untyped
 
@@ -35,6 +35,8 @@ module Datadog
         attr_reader tracer: untyped
 
         attr_reader remote: Datadog::Core::Remote::Component
+
+        attr_reader agent_info: Datadog::Core::Environment::AgentInfo
 
         def initialize: (untyped settings) -> untyped
 

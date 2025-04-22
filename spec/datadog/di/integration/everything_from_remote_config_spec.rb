@@ -23,6 +23,8 @@ RSpec.describe 'DI integration from remote config' do
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
+  let(:logger) { instance_double(Logger) }
+
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
   let(:transaction) do
@@ -59,7 +61,7 @@ RSpec.describe 'DI integration from remote config' do
   let(:receiver) { remote.receivers(telemetry)[0] }
 
   let(:component) do
-    Datadog::DI::Component.build!(settings, agent_settings)
+    Datadog::DI::Component.build!(settings, agent_settings, logger)
   end
 
   let(:propagate_all_exceptions) { true }
@@ -90,7 +92,7 @@ RSpec.describe 'DI integration from remote config' do
   end
 
   let(:agent_settings) do
-    double('agent settings').tap do |agent_settings|
+    instance_double_agent_settings.tap do |agent_settings|
       allow(agent_settings).to receive(:hostname)
       allow(agent_settings).to receive(:port)
       allow(agent_settings).to receive(:timeout_seconds).and_return(1)
@@ -169,6 +171,25 @@ RSpec.describe 'DI integration from remote config' do
     }
   end
 
+  let(:expected_errored_payload) do
+    {
+      path: '/debugger/v1/diagnostics',
+      ddsource: 'dd_debugger',
+      debugger: {
+        diagnostics: {
+          parentId: nil,
+          probeId: '11',
+          probeVersion: 0,
+          runtimeId: LOWERCASE_UUID_REGEXP,
+          status: 'ERROR',
+        },
+      },
+      message: /Instrumentation for probe 11 failed: File matching probe path \(instrumentation_integration_test_class.rb\) was loaded and is not in code tracker registry:/,
+      service: 'rspec',
+      timestamp: Integer,
+    }
+  end
+
   let(:expected_snapshot_payload) do
     {
       path: '/debugger/v1/input',
@@ -209,23 +230,35 @@ RSpec.describe 'DI integration from remote config' do
 
   let(:payloads) { [] }
 
-  def do_rc
+  let(:diagnostics_transport) do
+    double(Datadog::DI::Transport::Diagnostics::Transport)
+  end
+
+  let(:input_transport) do
+    double(Datadog::DI::Transport::Input::Transport)
+  end
+
+  def do_rc(expect_hook: :hook_method)
     expect(probe_manager).to receive(:add_probe).and_call_original
-    expect(instrumenter).to receive(:hook_method).and_call_original
-    # Events can be batched, meaning +post+ could be called once or twice
-    # depending on how threads are scheduled by the VM.
-    expect(component.transport.send(:client)).to receive(:post).at_least(:once) do |env|
-      expect(env).to be_a(OpenStruct)
-      notify_payload = if env.path == '/debugger/v1/diagnostics'
-        JSON.parse(env.form.fetch('event').io.read, symbolize_names: true)
-      else
-        JSON.parse(env.body)
-      end
+    if expect_hook
+      expect(instrumenter).to receive(expect_hook).and_call_original
+    end
+
+    expect(Datadog::DI::Transport::HTTP).to receive(:diagnostics).and_return(diagnostics_transport)
+    allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
+    expect(diagnostics_transport).to receive(:send_diagnostics).at_least(:once) do |notify_payload|
       expect(notify_payload).to be_a(Array)
       notify_payload.each do |payload|
-        payloads << payload.merge(path: env.path)
+        payloads << payload.merge(path: '/debugger/v1/diagnostics')
       end
-      mock_response
+    end
+    allow(input_transport).to receive(:send_input) do |notify_payload|
+      expect(notify_payload).to be_a(Array)
+      notify_payload.each do |payload|
+        # Quick hack to deep stringify keys
+        payload = JSON.parse(payload.to_json)
+        payloads << payload.merge(path: '/debugger/v1/input')
+      end
     end
 
     receiver.call(repository, transaction)
@@ -239,6 +272,8 @@ RSpec.describe 'DI integration from remote config' do
     end
 
     it 'adds a probe to pending list' do
+      expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
+
       do_rc
 
       expect(payloads).to be_a(Array)
@@ -251,23 +286,36 @@ RSpec.describe 'DI integration from remote config' do
     end
   end
 
+  def assert_received_and_installed
+    expect(payloads).to be_a(Array)
+    expect(payloads.length).to eq 2
+
+    received_payload = payloads.shift
+    expect(received_payload).to match(expected_received_payload)
+
+    installed_payload = payloads.shift
+    expect(installed_payload).to match(expected_installed_payload)
+  end
+
+  def assert_received_and_errored
+    expect(payloads).to be_a(Array)
+    expect(payloads.length).to eq 2
+
+    received_payload = payloads.shift
+    expect(received_payload).to match(expected_received_payload)
+
+    installed_payload = payloads.shift
+    expect(installed_payload).to match(expected_errored_payload)
+  end
+
   context 'method probe received matching a loaded class' do
-    def assert_received_and_installed
-      expect(payloads).to be_a(Array)
-      expect(payloads.length).to eq 2
-
-      received_payload = payloads.shift
-      expect(received_payload).to match(expected_received_payload)
-
-      installed_payload = payloads.shift
-      expect(installed_payload).to match(expected_installed_payload)
-    end
-
     let(:probe_spec) do
       {id: '11', name: 'bar', type: 'LOG_PROBE', where: {typeName: 'EverythingFromRemoteConfigSpecTestClass', methodName: 'target_method'}}
     end
 
     it 'instruments code and adds probe to installed list' do
+      expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
+
       do_rc
       assert_received_and_installed
 
@@ -276,6 +324,8 @@ RSpec.describe 'DI integration from remote config' do
 
     context 'and target method is invoked' do
       it 'notifies about execution' do
+        expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
+
         do_rc
         assert_received_and_installed
 
@@ -317,10 +367,98 @@ RSpec.describe 'DI integration from remote config' do
       end
 
       it 'installs the second, known, probe' do
+        expect_lazy_log(logger, :debug, /Unrecognized probe type:/)
+        expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
+
         do_rc
         assert_received_and_installed
 
         expect(probe_manager.installed_probes.length).to eq 1
+      end
+    end
+  end
+
+  context 'line probe' do
+    with_code_tracking
+
+    shared_context 'targeting integration test class via load' do
+      before do
+        begin
+          Object.send(:remove_const, :InstrumentationIntegrationTestClass)
+        rescue
+          nil
+        end
+        load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
+
+        # We want the probe status to be reported, therefore need to
+        # disable exception propagation.
+        settings.dynamic_instrumentation.internal.propagate_all_exceptions = false
+      end
+    end
+
+    shared_context 'targeting integration test class via require' do
+      before do
+        begin
+          Object.send(:remove_const, :InstrumentationIntegrationTestClass)
+        rescue
+          nil
+        end
+        # Files loaded via 'load' do not get added to $LOADED_FEATURES,
+        # use 'require'.
+        # Note that the other tests use 'load' because they want the
+        # code to always be loaded.
+        require_relative 'instrumentation_integration_test_class'
+        expect($LOADED_FEATURES.detect do |path|
+          File.basename(path) == 'instrumentation_integration_test_class.rb'
+        end).to be_truthy
+
+        # We want the probe status to be reported, therefore need to
+        # disable exception propagation.
+        settings.dynamic_instrumentation.internal.propagate_all_exceptions = false
+      end
+    end
+
+    context 'line probe with path containing extra prefix directories' do
+      let(:probe_spec) do
+        {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
+          sourceFile: 'junk/prefix/instrumentation_integration_test_class.rb', lines: [22]
+        }}
+      end
+
+      include_context 'targeting integration test class via load'
+
+      it 'instruments code and adds probe to installed list' do
+        expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
+
+        do_rc(expect_hook: :hook_line)
+        assert_received_and_installed
+
+        expect(probe_manager.installed_probes.length).to eq 1
+      end
+    end
+
+    context 'line probe received targeting loaded code not in code tracker' do
+      let(:probe_spec) do
+        {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
+          sourceFile: 'instrumentation_integration_test_class.rb', lines: [22]
+        }}
+      end
+
+      include_context 'targeting integration test class via require'
+
+      before do
+        component.code_tracker.clear
+      end
+
+      it 'marks RC payload as errored' do
+        expect_lazy_log_many(logger, :debug,
+          /received log probe at .+ via RC/,
+          /error processing probe configuration:.*File matching probe path.*was loaded and is not in code tracker registry/,)
+
+        do_rc(expect_hook: false)
+        assert_received_and_errored
+
+        expect(probe_manager.installed_probes.length).to eq 0
       end
     end
   end

@@ -23,18 +23,18 @@ void ruby_helpers_init(void) {
 
 #define MAX_RAISE_MESSAGE_SIZE 256
 
-struct raise_arguments {
+typedef struct {
   VALUE exception_class;
   char exception_message[MAX_RAISE_MESSAGE_SIZE];
-};
+} raise_args;
 
 static void *trigger_raise(void *raise_arguments) {
-  struct raise_arguments *args = (struct raise_arguments *) raise_arguments;
+  raise_args *args = (raise_args *) raise_arguments;
   rb_raise(args->exception_class, "%s", args->exception_message);
 }
 
 void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
-  struct raise_arguments args;
+  raise_args args;
 
   args.exception_class = exception_class;
 
@@ -55,18 +55,18 @@ void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
   rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
 }
 
-struct syserr_raise_arguments {
+typedef struct {
   int syserr_errno;
   char exception_message[MAX_RAISE_MESSAGE_SIZE];
-};
+} syserr_raise_args;
 
 static void *trigger_syserr_raise(void *syserr_raise_arguments) {
-  struct syserr_raise_arguments *args = (struct syserr_raise_arguments *) syserr_raise_arguments;
+  syserr_raise_args *args = (syserr_raise_args *) syserr_raise_arguments;
   rb_syserr_fail(args->syserr_errno, args->exception_message);
 }
 
 void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...) {
-  struct syserr_raise_arguments args;
+  syserr_raise_args args;
 
   args.syserr_errno = syserr_errno;
 

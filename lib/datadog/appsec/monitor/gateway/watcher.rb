@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../instrumentation/gateway'
-require_relative '../../reactive/operation'
-require_relative '../reactive/set_user'
 
 module Datadog
   module AppSec
@@ -19,42 +17,34 @@ module Datadog
 
             def watch_user_id(gateway = Instrumentation.gateway)
               gateway.watch('identity.set_user', :appsec) do |stack, user|
-                block = false
-                event = nil
-                scope = Datadog::AppSec.active_scope
+                context = Datadog::AppSec.active_context
 
-                AppSec::Reactive::Operation.new('identity.set_user') do |op|
-                  Monitor::Reactive::SetUser.subscribe(op, scope.processor_context) do |result|
-                    if result.status == :match
-                      # TODO: should this hash be an Event instance instead?
-                      event = {
-                        waf_result: result,
-                        trace: scope.trace,
-                        span: scope.service_entry_span,
-                        user: user,
-                        actions: result.actions
-                      }
-
-                      # We want to keep the trace in case of security event
-                      scope.trace.keep! if scope.trace
-                      Datadog::AppSec::Event.tag_and_keep!(scope, result)
-                      scope.processor_context.events << event
-                    end
-                  end
-
-                  block = Monitor::Reactive::SetUser.publish(op, user)
+                if user.id.nil? && user.login.nil?
+                  Datadog.logger.debug { 'AppSec: skipping WAF check because no user information was provided' }
+                  next stack.call(user)
                 end
 
-                throw(Datadog::AppSec::Ext::INTERRUPT, [nil, [[:block, event]]]) if block
+                persistent_data = {}
+                persistent_data['usr.id'] = user.id if user.id
+                persistent_data['usr.login'] = user.login if user.login
 
-                ret, res = stack.call(user)
+                result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                if event
-                  res ||= []
-                  res << [:monitor, event]
+                if result.match?
+                  Datadog::AppSec::Event.tag_and_keep!(context, result)
+
+                  context.events << {
+                    waf_result: result,
+                    trace: context.trace,
+                    span: context.span,
+                    user: user,
+                    actions: result.actions
+                  }
+
+                  Datadog::AppSec::ActionsHandler.handle(result.actions)
                 end
 
-                [ret, res]
+                stack.call(user)
               end
             end
           end

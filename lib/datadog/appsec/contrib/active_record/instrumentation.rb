@@ -9,8 +9,10 @@ module Datadog
           module_function
 
           def detect_sql_injection(sql, adapter_name)
-            scope = AppSec.active_scope
-            return unless scope
+            return unless AppSec.rasp_enabled?
+
+            context = AppSec.active_context
+            return unless context
 
             # libddwaf expects db system to be lowercase,
             # in case of sqlite adapter, libddwaf expects 'sqlite' as db system
@@ -23,23 +25,25 @@ module Datadog
             }
 
             waf_timeout = Datadog.configuration.appsec.waf_timeout
-            result = scope.processor_context.run({}, ephemeral_data, waf_timeout)
+            result = context.run_rasp(Ext::RASP_SQLI, {}, ephemeral_data, waf_timeout)
 
-            if result.status == :match
-              Datadog::AppSec::Event.tag_and_keep!(scope, result)
+            if result.match?
+              Datadog::AppSec::Event.tag_and_keep!(context, result)
 
               event = {
                 waf_result: result,
-                trace: scope.trace,
-                span: scope.service_entry_span,
+                trace: context.trace,
+                span: context.span,
                 sql: sql,
                 actions: result.actions
               }
-              scope.processor_context.events << event
+              context.events << event
+
+              ActionsHandler.handle(result.actions)
             end
           end
 
-          # patch for all adapters in ActiveRecord >= 7.1
+          # patch for mysql2, sqlite3, and postgres+jdbc adapters in ActiveRecord >= 7.1
           module InternalExecQueryAdapterPatch
             def internal_exec_query(sql, *args, **rest)
               Instrumentation.detect_sql_injection(sql, adapter_name)
@@ -48,7 +52,25 @@ module Datadog
             end
           end
 
-          # patch for postgres adapter in ActiveRecord < 7.1
+          # patch for mysql2, sqlite3, and postgres+jdbc adapters in ActiveRecord < 7.1
+          module ExecQueryAdapterPatch
+            def exec_query(sql, *args, **rest)
+              Instrumentation.detect_sql_injection(sql, adapter_name)
+
+              super
+            end
+          end
+
+          # patch for mysql2, sqlite3, and postgres+jdbc db adapters in ActiveRecord 4
+          module Rails4ExecQueryAdapterPatch
+            def exec_query(sql, *args)
+              Instrumentation.detect_sql_injection(sql, adapter_name)
+
+              super
+            end
+          end
+
+          # patch for non-jdbc postgres adapter in ActiveRecord > 4
           module ExecuteAndClearAdapterPatch
             def execute_and_clear(sql, *args, **rest)
               Instrumentation.detect_sql_injection(sql, adapter_name)
@@ -57,10 +79,9 @@ module Datadog
             end
           end
 
-          # patch for mysql2 and sqlite3 adapters in ActiveRecord < 7.1
-          # this patch is also used when using JDBC adapter
-          module ExecQueryAdapterPatch
-            def exec_query(sql, *args, **rest)
+          # patch for non-jdbc postgres adapter in ActiveRecord 4
+          module Rails4ExecuteAndClearAdapterPatch
+            def execute_and_clear(sql, name, binds)
               Instrumentation.detect_sql_injection(sql, adapter_name)
 
               super

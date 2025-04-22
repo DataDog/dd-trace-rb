@@ -1,0 +1,10 @@
+module Datadog
+  module DI
+    module Transport
+      module HTTP
+        def self?.diagnostics: (agent_settings: untyped, logger: untyped, ?api_version: untyped?, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
+        def self?.input: (agent_settings: untyped, logger: untyped, ?api_version: untyped?, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
+      end
+    end
+  end
+end

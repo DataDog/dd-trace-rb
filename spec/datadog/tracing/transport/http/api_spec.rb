@@ -10,8 +10,8 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API do
 
     it do
       is_expected.to include(
-        described_class::V4 => kind_of(Datadog::Tracing::Transport::HTTP::API::Spec),
-        described_class::V3 => kind_of(Datadog::Tracing::Transport::HTTP::API::Spec),
+        described_class::V4 => kind_of(Datadog::Tracing::Transport::HTTP::Traces::API::Spec),
+        described_class::V3 => kind_of(Datadog::Tracing::Transport::HTTP::Traces::API::Spec),
       )
 
       defaults[described_class::V4].tap do |v4|

@@ -17,16 +17,19 @@ module Datadog
       # Writes traces to transport synchronously
       class TraceWriter < Core::Worker
         attr_reader \
-          :transport
+          :logger,
+          :transport,
+          :agent_settings
 
         # rubocop:disable Lint/MissingSuper
         def initialize(options = {})
-          transport_options = options.fetch(:transport_options, {})
+          @logger = options[:logger] || Datadog.logger
 
-          transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
+          transport_options = options.fetch(:transport_options, {})
+          @agent_settings = options[:agent_settings]
 
           @transport = options.fetch(:transport) do
-            Datadog::Tracing::Transport::HTTP.default(**transport_options)
+            Datadog::Tracing::Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
           end
         end
         # rubocop:enable Lint/MissingSuper
@@ -43,7 +46,7 @@ module Datadog
           traces = process_traces(traces)
           flush_traces(traces)
         rescue StandardError => e
-          Datadog.logger.warn(
+          logger.warn(
             "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end

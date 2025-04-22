@@ -28,7 +28,8 @@ module Datadog
         :provider,
         :sampler,
         :span_sampler,
-        :tags
+        :tags,
+        :logger
 
       attr_accessor \
         :default_service,
@@ -48,21 +49,28 @@ module Datadog
       # @param tags [Hash] default tags added to all spans
       # @param writer [Datadog::Tracing::Writer] consumes traces returned by the provided +trace_flush+
       def initialize(
+        # rubocop:disable Style/KeywordParametersOrder
+        # https://github.com/rubocop/rubocop/issues/13933
         trace_flush: Flush::Finished.new,
         context_provider: DefaultContextProvider.new,
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
         enabled: true,
+        logger: Datadog.logger,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
           post_sampler: Sampling::RuleSampler.new
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
-        writer: Writer.new
+        # writer is not defaulted because creating it requires agent_settings,
+        # which we do not have here and otherwise do not need.
+        writer:
+        # rubocop:enable Style/KeywordParametersOrder
       )
         @trace_flush = trace_flush
         @default_service = default_service
         @enabled = enabled
+        @logger = logger
         @provider = context_provider
         @sampler = sampler
         @span_sampler = span_sampler
@@ -146,7 +154,7 @@ module Datadog
                     active_trace
                   end
         rescue StandardError => e
-          Datadog.logger.debug { "Failed to trace: #{e}" }
+          logger.debug { "Failed to trace: #{e}" }
 
           # Tracing failed: fallback and run code without tracing.
           return skip_trace(name, &block)
@@ -268,7 +276,7 @@ module Datadog
           @sampler.sample!(trace_op) if trace_op.sampling_priority.nil?
         rescue StandardError => e
           SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+            logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
           end
         end
       end
@@ -330,24 +338,30 @@ module Datadog
         hostname = hostname && !hostname.empty? ? hostname : nil
 
         if digest
+          sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
+                                digest.trace_sampling_priority
+                              end
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
+            apm_tracing_enabled: apm_tracing_enabled,
             id: digest.trace_id,
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
-            sampling_priority: digest.trace_sampling_priority,
+            sampling_priority: sampling_priority,
             # Distributed tags are just regular trace tags with special meaning to Datadog
             tags: digest.trace_distributed_tags,
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
             remote_parent: digest.span_remote,
-            tracer: self
+            tracer: self,
+            baggage: digest.baggage
           )
         else
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
+            apm_tracing_enabled: apm_tracing_enabled,
             remote_parent: false,
             tracer: self
           )
@@ -493,7 +507,7 @@ module Datadog
           @span_sampler.sample!(trace_op, span)
         rescue StandardError => e
           SAMPLE_SPAN_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+            logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
           end
         end
       end
@@ -508,7 +522,7 @@ module Datadog
           write(trace) if trace && !trace.empty?
         rescue StandardError => e
           FLUSH_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+            logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
           end
         end
       end
@@ -522,7 +536,7 @@ module Datadog
         return unless trace && @writer
 
         if Datadog.configuration.diagnostics.debug
-          Datadog.logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})\n#{trace.spans.pretty_inspect}" }
+          logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})\n#{trace.spans.pretty_inspect}" }
         end
 
         @writer.write(trace)
@@ -541,9 +555,39 @@ module Datadog
         end
       end
 
+      # Decide whether upstream sampling priority should be propagated, by taking into account
+      # the upstream tags and the configuration.
+      # We should always propagate if APM is enabled.
+      #
+      # e.g.: upstream tags containing dd.p.ts: 02, and appsec is enabled, return true.
+      def propagate_sampling_priority?(upstream_tags:)
+        return true if apm_tracing_enabled
+
+        if upstream_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE)
+          appsec_bit = upstream_tags[Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE].to_i(16) &
+            Datadog::AppSec::Ext::PRODUCT_BIT
+          return appsec_enabled if appsec_bit != 0
+        end
+
+        false
+      end
+
       def profiling_enabled
         @profiling_enabled ||=
           !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
+      end
+
+      def appsec_enabled
+        @appsec_enabled ||= Datadog.configuration.appsec.enabled
+      end
+
+      # Due to APM Tracing (the product) and Tracing (the transport) being intertwined, we cannot completely disabled APM
+      # without also disabling the tracer. When setting `@apm_tracing_enabled` to `false`, it does not disable the tracer,
+      # but rather only sends heartbeat traces (1 per minutes), so that the service is considered alive in the backend.
+      # Other products (like ASM) can then set the sampling priority of their traces to `MANUAL_KEEP`,
+      # effectively allowing standalone products to work without APM.
+      def apm_tracing_enabled
+        @apm_tracing_enabled ||= Datadog.configuration.apm.tracing.enabled
       end
     end
   end

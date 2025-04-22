@@ -36,7 +36,7 @@ module Datadog
             @rack_headers = {}
           end
 
-          # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
+          # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
@@ -45,19 +45,22 @@ module Datadog
 
             processor = nil
             ready = false
-            scope = nil
+            ctx = nil
 
             # For a given request, keep using the first Rack stack scope for
             # nested apps. Don't set `context` local variable so that on popping
             # out of this nested stack we don't finalize the parent's context
-            return @app.call(env) if active_scope(env)
+            return @app.call(env) if active_context(env)
 
             Datadog::AppSec.reconfigure_lock do
               processor = Datadog::AppSec.processor
 
               if !processor.nil? && processor.ready?
-                scope = Datadog::AppSec::Scope.activate_scope(active_trace, active_span, processor)
-                env[Datadog::AppSec::Ext::SCOPE_KEY] = scope
+                ctx = Datadog::AppSec::Context.activate(
+                  Datadog::AppSec::Context.new(active_trace, active_span, processor)
+                )
+
+                env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
                 ready = true
               end
             end
@@ -66,66 +69,62 @@ module Datadog
 
             return @app.call(env) unless ready
 
+            add_appsec_tags(processor, ctx)
+            add_request_tags(ctx, env)
+
+            http_response = nil
             gateway_request = Gateway::Request.new(env)
+            gateway_response = nil
 
-            add_appsec_tags(processor, scope)
-            add_request_tags(scope, env)
-
-            request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              Instrumentation.gateway.push('rack.request', gateway_request) do
+            interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+              # TODO: This event should be renamed into `rack.request.start` to
+              #       reflect that it's the beginning of the request-cycle
+              http_response, _gateway_request = Instrumentation.gateway.push('rack.request', gateway_request) do
                 @app.call(env)
               end
+
+              gateway_response = Gateway::Response.new(
+                http_response[2], http_response[0], http_response[1], context: ctx
+              )
+
+              Instrumentation.gateway.push('rack.request.finish', gateway_request)
+              Instrumentation.gateway.push('rack.response', gateway_response)
+
+              nil
             end
 
-            if request_response
-              blocked_event = request_response.find { |action, _options| action == :block }
-              request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
+            if interrupt_params
+              http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
             end
 
-            gateway_response = Gateway::Response.new(
-              request_return[2],
-              request_return[0],
-              request_return[1],
-              scope: scope,
-            )
-
-            _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
-
-            result = scope.processor_context.extract_schema
-
-            if result
-              scope.processor_context.events << {
-                trace: scope.trace,
-                span: scope.service_entry_span,
-                waf_result: result,
+            if AppSec.api_security_enabled?
+              ctx.events << {
+                trace: ctx.trace,
+                span: ctx.span,
+                waf_result: ctx.extract_schema,
               }
             end
 
-            scope.processor_context.events.each do |e|
+            ctx.events.each do |e|
               e[:response] ||= gateway_response
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(scope.service_entry_span, *scope.processor_context.events)
+            AppSec::Event.record(ctx.span, *ctx.events)
 
-            if response_response
-              blocked_event = response_response.find { |action, _options| action == :block }
-              request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
-            end
-
-            request_return
+            http_response
           ensure
-            if scope
-              add_waf_runtime_tags(scope)
-              Datadog::AppSec::Scope.deactivate_scope
+            if ctx
+              ctx.export_metrics
+              Datadog::AppSec::Context.deactivate
             end
           end
-          # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
+          # rubocop:enable Metrics/AbcSize,Metrics/MethodLength
 
           private
 
-          def active_scope(env)
-            env[Datadog::AppSec::Ext::SCOPE_KEY]
+          def active_context(env)
+            env[Datadog::AppSec::Ext::CONTEXT_KEY]
           end
 
           def active_trace
@@ -144,15 +143,13 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
-          def add_appsec_tags(processor, scope)
-            span = scope.service_entry_span
-            trace = scope.trace
+          def add_appsec_tags(processor, context)
+            span = context.span
+            trace = context.trace
 
             return unless trace && span
 
             span.set_metric(Datadog::AppSec::Ext::TAG_APPSEC_ENABLED, 1)
-            # We add this tag when ASM standalone is enabled to make sure we don't bill APM
-            span.set_metric(Datadog::AppSec::Ext::TAG_APM_ENABLED, 0) if Datadog.configuration.appsec.standalone.enabled
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
@@ -181,8 +178,8 @@ module Datadog
             end
           end
 
-          def add_request_tags(scope, env)
-            span = scope.service_entry_span
+          def add_request_tags(context, env)
+            span = context.span
 
             return unless span
 
@@ -202,19 +199,6 @@ module Datadog
                 remote_ip: env['REMOTE_ADDR']
               )
             end
-          end
-
-          def add_waf_runtime_tags(scope)
-            span = scope.service_entry_span
-            context = scope.processor_context
-
-            return unless span && context
-
-            span.set_tag('_dd.appsec.waf.timeouts', context.timeouts)
-
-            # these tags expect time in us
-            span.set_tag('_dd.appsec.waf.duration', context.time_ns / 1000.0)
-            span.set_tag('_dd.appsec.waf.duration_ext', context.time_ext_ns / 1000.0)
           end
 
           def to_rack_header(header)

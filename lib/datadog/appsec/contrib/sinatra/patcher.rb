@@ -2,11 +2,9 @@
 
 require_relative '../../../tracing/contrib'
 
-require_relative '../patcher'
 require_relative '../../response'
 require_relative '../rack/request_middleware'
 require_relative 'framework'
-require_relative 'ext'
 require_relative 'gateway/watcher'
 require_relative 'gateway/route_params'
 require_relative 'gateway/request'
@@ -54,7 +52,7 @@ module Datadog
           def dispatch!
             env = @request.env
 
-            context = env[Datadog::AppSec::Ext::SCOPE_KEY]
+            context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
             return super unless context
 
@@ -62,17 +60,8 @@ module Datadog
 
             gateway_request = Gateway::Request.new(env)
 
-            request_return, request_response = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
-              # handle process_route interruption
-              catch(Datadog::AppSec::Contrib::Sinatra::Ext::ROUTE_INTERRUPT) { super }
-            end
-
-            if request_response
-              blocked_event = request_response.find { |action, _options| action == :block }
-              if blocked_event
-                self.response = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_sinatra_response
-                request_return = nil
-              end
+            request_return, _gateway_request = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
+              super
             end
 
             request_return
@@ -86,7 +75,7 @@ module Datadog
           def process_route(*)
             env = @request.env
 
-            context = env[Datadog::AppSec::Ext::SCOPE_KEY]
+            context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
             return super unless context
 
@@ -103,20 +92,7 @@ module Datadog
               gateway_request = Gateway::Request.new(env)
               gateway_route_params = Gateway::RouteParams.new(route_params)
 
-              _, request_response = Instrumentation.gateway.push(
-                'sinatra.request.routed',
-                [gateway_request, gateway_route_params]
-              )
-
-              if request_response
-                blocked_event = request_response.find { |action, _options| action == :block }
-                if blocked_event
-                  self.response = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_sinatra_response
-
-                  # interrupt request and return response to dispatch! for consistency
-                  throw(Datadog::AppSec::Contrib::Sinatra::Ext::ROUTE_INTERRUPT, response)
-                end
-              end
+              Instrumentation.gateway.push('sinatra.request.routed', [gateway_request, gateway_route_params])
 
               yield(*args)
             end
@@ -125,8 +101,6 @@ module Datadog
 
         # Patcher for AppSec on Sinatra
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           module_function
 
           def patched?

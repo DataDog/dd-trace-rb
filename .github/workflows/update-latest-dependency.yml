@@ -1,6 +1,6 @@
 name: "Update Latest Dependency"
 
-on:
+on: # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 0 * * 0' # Every Sunday at midnight
   workflow_dispatch:
@@ -9,55 +9,54 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
 
+# Default permissions for all jobs
+permissions: {}
+
 jobs:
   build:
     runs-on: ubuntu-22.04
     permissions:
       contents: read
     strategy:
-        fail-fast: false
-        matrix:
-            engine:
-              # ADD NEW RUBIES HERE
-              - name: ruby
-                version: '3.4'
-              - name: ruby
-                version: '3.3'
-              - name: ruby
-                version: '3.2'
-              - name: ruby
-                version: '3.1'
-              - name: ruby
-                version: '3.0'
-              - name: ruby
-                version: '2.7'
-              - name: ruby
-                version: '2.6'
-              - name: ruby
-                version: '2.5'
-              - name: jruby
-                version: '9.4'
-              - name: jruby
-                version: '9.3'
-              - name: jruby
-                version: '9.2'
+      fail-fast: false
+      matrix:
+        engine:
+          # ADD NEW RUBIES HERE
+          - name: ruby
+            version: '3.4'
+          - name: ruby
+            version: '3.3'
+          - name: ruby
+            version: '3.2'
+          - name: ruby
+            version: '3.1'
+          - name: ruby
+            version: '3.0'
+          - name: ruby
+            version: '2.7'
+          - name: ruby
+            version: '2.6'
+          - name: ruby
+            version: '2.5'
+          - name: jruby
+            version: '9.4'
+          - name: jruby
+            version: '9.3'
+          - name: jruby
+            version: '9.2'
     container:
       image: "ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Output Ruby version
-        run: ruby -v
-
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Bundle
         run: bundle install
-
       - name: Update latest
         run: bundle exec rake edge:gemspec edge:update
-
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: 'gha${{ github.run_id }}-datadog-gem-${{ matrix.engine.name }}-${{ matrix.engine.version }}'
           path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
@@ -68,20 +67,20 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true # required for `git` operations (commit & push) at later steps
 
       - name: Download artifacts for all runtimes
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           path: gemfiles
           pattern: gha${{ github.run_id }}-datadog-gem-*
           merge-multiple: true
 
-      - run: git diff
-
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
           token: ${{ secrets.GHA_PAT }}
           branch: auto-generate/update-latest-dependencies
@@ -94,10 +93,3 @@ jobs:
             _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
 
             The PR updates latest versions of defined dependencies. Please review the changes and merge when ready.
-
-      - name: Enable Pull Request Automerge
-        if: steps.cpr.outputs.pull-request-operation == 'created'
-        uses: peter-evans/enable-pull-request-automerge@v3
-        with:
-          token: ${{ secrets.GHA_PAT }}
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}

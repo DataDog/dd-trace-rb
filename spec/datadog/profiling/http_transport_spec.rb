@@ -7,6 +7,9 @@ require "json"
 require "socket"
 require "webrick"
 
+# https://github.com/rubocop/rubocop-rspec/issues/2078
+# rubocop:disable RSpec/ScatteredLet
+
 # Design note for this class's specs: from the Ruby code side, we're treating the `_native_` methods as an API
 # between the Ruby code and the native methods, and thus in this class we have a bunch of tests to make sure the
 # native methods are invoked correctly.
@@ -48,8 +51,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     Datadog::Profiling::Flush.new(
       start: start,
       finish: finish,
-      pprof_file_name: pprof_file_name,
-      pprof_data: pprof_data,
+      encoded_profile: encoded_profile,
       code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
@@ -61,8 +63,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:end_timestamp) { "2023-11-11T16:00:00.123456789Z" }
   let(:start) { Time.iso8601(start_timestamp) }
   let(:finish) { Time.iso8601(end_timestamp) }
-  let(:pprof_file_name) { "the_pprof_file_name.pprof" }
-  let(:pprof_data) { "the_pprof_data" }
+  let(:encoded_profile) { Datadog::Profiling::StackRecorder.for_testing.serialize! }
+  let(:pprof_file_name) { "rubyprofile.pprof" }
   let(:code_provenance_file_name) { "the_code_provenance_file_name.json" }
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
@@ -127,6 +129,19 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           http_transport
         end
       end
+
+      context "when hostname is an ipv6 address" do
+        let(:hostname) { "1234:1234::1" }
+
+        it "provides the correct ipv6 address-safe url to the exporter" do
+          expect(described_class)
+            .to receive(:_native_validate_exporter)
+            .with([:agent, "http://[1234:1234::1]:12345/"])
+            .and_return([:ok, nil])
+
+          http_transport
+        end
+      end
     end
 
     context "when additionally site and api_key are provided" do
@@ -180,24 +195,14 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       finish_timespec_seconds = 1699718400
       finish_timespec_nanoseconds = 123456789
 
-      internal_metadata_json = '{"no_signals_workaround_enabled":true}'
-
-      info_json = '{"application":{"start_time":"2024-01-24T11:17:22Z"},"runtime":{"engine":"ruby"}}'
-
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
         upload_timeout_milliseconds,
+        flush,
         start_timespec_seconds,
         start_timespec_nanoseconds,
         finish_timespec_seconds,
         finish_timespec_nanoseconds,
-        pprof_file_name,
-        pprof_data,
-        code_provenance_file_name,
-        code_provenance_data,
-        tags_as_array,
-        internal_metadata_json,
-        info_json,
       ).and_return([:ok, 200])
 
       export
@@ -280,43 +285,18 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
   context "integration testing" do
     shared_context "HTTP server" do
-      let(:server) do
-        WEBrick::HTTPServer.new(
-          Port: 0,
-          Logger: log,
-          AccessLog: access_log,
-          StartCallback: -> { init_signal.push(1) }
-        )
+      http_server do |http_server|
+        http_server.mount_proc('/', &server_proc)
       end
       let(:hostname) { "127.0.0.1" }
-      let(:log) { WEBrick::Log.new($stderr, WEBrick::Log::WARN) }
-      let(:access_log_buffer) { StringIO.new }
-      let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
       let(:server_proc) do
         proc do |req, res|
           messages << req.tap { req.body } # Read body, store message before socket closes.
           res.body = "{}"
         end
       end
-      let(:init_signal) { Queue.new }
 
       let(:messages) { [] }
-
-      before do
-        server.mount_proc("/", &server_proc)
-        @server_thread = Thread.new { server.start }
-        init_signal.pop
-      end
-
-      after do
-        unless RSpec.current_example.skipped?
-          # When the test is skipped, server has not been initialized and @server_thread would be nil; thus we only
-          # want to touch them when the test actually run, otherwise we would cause the server to start (incorrectly)
-          # and join to be called on a nil @server_thread
-          server.shutdown
-          @server_thread.join
-        end
-      end
     end
 
     include_context "HTTP server"
@@ -324,7 +304,9 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     let(:request) { messages.first }
 
     let(:hostname) { "127.0.0.1" }
-    let(:port) { server[:Port] }
+    let(:port) { http_server_port }
+
+    let!(:encoded_profile_bytes) { encoded_profile._native_bytes }
 
     shared_examples "correctly reports profiling data" do
       it "correctly reports profiling data" do
@@ -365,7 +347,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
         # The pprof data is compressed in the datadog serializer, nothing to do
-        expect(body.fetch(pprof_file_name)).to eq pprof_data
+        expect(body.fetch(pprof_file_name)).to eq encoded_profile_bytes
         # This one needs to be compressed
         expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
       end
@@ -412,15 +394,14 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:temporary_directory) { Dir.mktmpdir }
       let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
       let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
-      let(:server) do
-        server = WEBrick::HTTPServer.new(
+      define_http_server do |http_server|
+        http_server.listeners << unix_domain_socket
+        http_server.mount_proc('/', &server_proc)
+      end
+      let(:http_server_options) do
+        {
           DoNotListen: true,
-          Logger: log,
-          AccessLog: access_log,
-          StartCallback: -> { init_signal.push(1) }
-        )
-        server.listeners << unix_domain_socket
-        server
+        }
       end
       let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
       let(:uds_path) { socket_path }
@@ -436,7 +417,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
     context "when agent is down" do
       before do
-        server.shutdown
+        http_server.shutdown
         @server_thread.join
       end
 
@@ -545,3 +526,5 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
   end
 end
+
+# rubocop:enable RSpec/ScatteredLet

@@ -166,8 +166,18 @@ module Datadog
                 # being sent out by the probe notifier worker) and creates a
                 # possibility of dropping payloads if the queue gets too long.
                 option :min_send_interval do |o|
-                  o.type :int
+                  o.type :float
                   o.default 3
+                end
+
+                # Number of snapshots that can be stored in the probe
+                # notifier worker queue. Larger capacity runs the risk of
+                # creating snapshots that exceed the agent's request size
+                # limit. Smaller capacity increases the risk of dropping
+                # snapshots.
+                option :snapshot_queue_capacity do |o|
+                  o.type :int
+                  o.default 100
                 end
 
                 # Enable dynamic instrumentation in development environments.
@@ -177,6 +187,20 @@ module Datadog
                 option :development do |o|
                   o.type :bool
                   o.default false
+                end
+
+                # Enable logging of dynamic instrumentation activity.
+                # This is quite verbose.
+                option :trace_logging do |o|
+                  o.type :bool
+                  o.default false
+
+                  # Use the same environment variable as the rest of
+                  # dd-trace-rb logging for now. Could change to a
+                  # dedicated environment variable in the future but
+                  # will likely need a way to turn on remote config
+                  # debugging (since DI uses RC for configuration).
+                  o.env 'DD_TRACE_DEBUG'
                 end
               end
             end

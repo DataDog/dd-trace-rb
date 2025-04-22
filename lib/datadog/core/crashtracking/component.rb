@@ -3,7 +3,6 @@
 require 'libdatadog'
 
 require_relative 'tag_builder'
-require_relative 'agent_base_url'
 require_relative '../utils/only_once'
 require_relative '../utils/at_fork_monkey_patch'
 
@@ -31,8 +30,7 @@ module Datadog
 
         def self.build(settings, agent_settings, logger:)
           tags = TagBuilder.call(settings)
-          agent_base_url = AgentBaseUrl.resolve(agent_settings)
-          logger.warn('Missing agent base URL; cannot enable crash tracking') unless agent_base_url
+          agent_base_url = agent_settings.url
 
           ld_library_path = ::Libdatadog.ld_library_path
           logger.warn('Missing ld_library_path; cannot enable crash tracking') unless ld_library_path

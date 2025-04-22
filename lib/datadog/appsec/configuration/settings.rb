@@ -12,14 +12,29 @@ module Datadog
         DEFAULT_OBFUSCATOR_KEY_REGEX = '(?i)pass|pw(?:or)?d|secret|(?:api|private|public|access)[_-]?key|token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)|bearer|authorization|jsessionid|phpsessid|asp\.net[_-]sessionid|sid|jwt'
         DEFAULT_OBFUSCATOR_VALUE_REGEX = '(?i)(?:p(?:ass)?w(?:or)?d|pass(?:[_-]?phrase)?|secret(?:[_-]?key)?|(?:(?:api|private|public|access)[_-]?)key(?:[_-]?id)?|(?:(?:auth|access|id|refresh)[_-]?)?token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?|jsessionid|phpsessid|asp\.net(?:[_-]|-)sessionid|sid|jwt)(?:\s*=[^;]|"\s*:\s*"[^"]+")|bearer\s+[a-z0-9\._\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\w=-]+\.ey[I-L][\w=-]+(?:\.[\w.+\/=-]+)?|[\-]{5}BEGIN[a-z\s]+PRIVATE\sKEY[\-]{5}[^\-]+[\-]{5}END[a-z\s]+PRIVATE\sKEY|ssh-rsa\s*[a-z0-9\/\.+]{100,}'
         # rubocop:enable Layout/LineLength
-        APPSEC_VALID_TRACK_USER_EVENTS_MODE = [
-          'safe',
-          'extended'
+
+        DISABLED_AUTO_USER_INSTRUMENTATION_MODE = 'disabled'
+        ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE = 'anonymization'
+        IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE = 'identification'
+        AUTO_USER_INSTRUMENTATION_MODES = [
+          DISABLED_AUTO_USER_INSTRUMENTATION_MODE,
+          ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE,
+          IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
         ].freeze
-        APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES = [
-          '1',
-          'true'
-        ].concat(APPSEC_VALID_TRACK_USER_EVENTS_MODE).freeze
+        AUTO_USER_INSTRUMENTATION_MODES_ALIASES = {
+          'ident' => IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE,
+          'anon' => ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE,
+        }.freeze
+
+        # NOTE: These two constants are deprecated
+        SAFE_TRACK_USER_EVENTS_MODE = 'safe'
+        EXTENDED_TRACK_USER_EVENTS_MODE = 'extended'
+        APPSEC_VALID_TRACK_USER_EVENTS_MODE = [
+          SAFE_TRACK_USER_EVENTS_MODE, EXTENDED_TRACK_USER_EVENTS_MODE
+        ].freeze
+        APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES = ['1', 'true'].concat(
+          APPSEC_VALID_TRACK_USER_EVENTS_MODE
+        ).freeze
 
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)
@@ -47,6 +62,15 @@ module Datadog
                     end
                   end
                 end
+              end
+
+              # RASP or Runtime Application Self-Protection
+              # is a collection of techniques and heuristics aimed at detecting malicious inputs and preventing
+              # any potential side-effects on the application resulting from the use of said malicious inputs.
+              option :rasp_enabled do |o|
+                o.type :bool, nilable: true
+                o.env 'DD_APPSEC_RASP_ENABLED'
+                o.default true
               end
 
               option :ruleset do |o|
@@ -140,6 +164,89 @@ module Datadog
                 end
               end
 
+              settings :stack_trace do
+                option :enabled do |o|
+                  o.type :bool
+                  o.env 'DD_APPSEC_STACK_TRACE_ENABLED'
+                  o.default true
+                end
+
+                # The maximum number of stack trace frames to collect for each stack trace.
+                #
+                # If the stack trace exceeds this limit, the frames are dropped from the middle of the stack trace:
+                # 75% of the frames are kept from the top of the stack trace and 25% from the bottom
+                # (this percentage is also configurable).
+                #
+                # Minimum value is 10.
+                # Set to zero if you don't want any frames to be dropped.
+                #
+                # Default value is 32
+                option :max_depth do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH'
+                  o.default 32
+
+                  o.setter do |value|
+                    value = 0 if value < 0
+                    value
+                  end
+                end
+
+                # The percentage of frames to keep from the top of the stack trace.
+                #
+                # Default value is 75
+                option :top_percentage do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT'
+                  o.default 75
+
+                  o.setter do |value|
+                    value = 100 if value > 100
+                    value = 0 if value.negative?
+                    value
+                  end
+                end
+
+                # Maximum number of stack traces to collect per span.
+                #
+                # Set to zero if you want to collect all stack traces.
+                #
+                # Default value is 2
+                option :max_stack_traces do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACES'
+                  o.default 2
+
+                  o.setter do |value|
+                    value = 0 if value < 0
+                    value
+                  end
+                end
+              end
+
+              settings :auto_user_instrumentation do
+                define_method(:enabled?) { get_option(:mode) != DISABLED_AUTO_USER_INSTRUMENTATION_MODE }
+
+                option :mode do |o|
+                  o.type :string
+                  o.env 'DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE'
+                  o.default IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
+                  o.setter do |value|
+                    mode = AUTO_USER_INSTRUMENTATION_MODES_ALIASES.fetch(value, value)
+                    next mode if AUTO_USER_INSTRUMENTATION_MODES.include?(mode)
+
+                    Datadog.logger.warn(
+                      'The appsec.auto_user_instrumentation.mode value provided is not supported. ' \
+                      "Supported values are: #{AUTO_USER_INSTRUMENTATION_MODES.join(' | ')}. " \
+                      "Using value: #{DISABLED_AUTO_USER_INSTRUMENTATION_MODE}."
+                    )
+
+                    DISABLED_AUTO_USER_INSTRUMENTATION_MODE
+                  end
+                end
+              end
+
+              # DEV-3.0: Remove `track_user_events.enabled` and `track_user_events.mode` options
               settings :track_user_events do
                 option :enabled do |o|
                   o.default true
@@ -152,24 +259,39 @@ module Datadog
                       APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES.include?(env_value.strip.downcase)
                     end
                   end
+                  o.after_set do
+                    Core.log_deprecation(key: :appsec_track_user_events_enabled) do
+                      'The appsec.track_user_events.enabled setting has been deprecated for removal. ' \
+                      'Please remove it from your Datadog.configure block and use ' \
+                      'appsec.auto_user_instrumentation.mode instead.'
+                    end
+                  end
                 end
 
                 option :mode do |o|
                   o.type :string
                   o.env 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
-                  o.default 'safe'
+                  o.default SAFE_TRACK_USER_EVENTS_MODE
                   o.setter do |v|
                     if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(v)
                       v
                     elsif v == 'disabled'
-                      'safe'
+                      SAFE_TRACK_USER_EVENTS_MODE
                     else
                       Datadog.logger.warn(
                         'The appsec.track_user_events.mode value provided is not supported.' \
-                        'Supported values are: safe | extended.' \
-                        'Using default value `safe`'
+                        "Supported values are: #{APPSEC_VALID_TRACK_USER_EVENTS_MODE.join(' | ')}." \
+                        "Using default value: #{SAFE_TRACK_USER_EVENTS_MODE}."
                       )
-                      'safe'
+
+                      SAFE_TRACK_USER_EVENTS_MODE
+                    end
+                  end
+                  o.after_set do
+                    Core.log_deprecation(key: :appsec_track_user_events_mode) do
+                      'The appsec.track_user_events.mode setting has been deprecated for removal. ' \
+                      'Please remove it from your Datadog.configure block and use ' \
+                      'appsec.auto_user_instrumentation.mode instead.'
                     end
                   end
                 end
@@ -196,14 +318,6 @@ module Datadog
               option :sca_enabled do |o|
                 o.type :bool, nilable: true
                 o.env 'DD_APPSEC_SCA_ENABLED'
-              end
-
-              settings :standalone do
-                option :enabled do |o|
-                  o.type :bool
-                  o.env 'DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED'
-                  o.default false
-                end
               end
             end
           end

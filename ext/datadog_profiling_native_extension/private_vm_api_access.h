@@ -18,7 +18,7 @@ typedef struct {
   rb_nativethread_id_t owner;
 } current_gvl_owner;
 
-typedef struct frame_info {
+typedef struct {
   union {
     struct {
       VALUE iseq;
@@ -44,6 +44,7 @@ bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
+
 // Returns true if the current thread belongs to the main Ractor or if Ruby has no Ractor support
 bool ddtrace_rb_ractor_main_p(void);
 
@@ -68,3 +69,11 @@ const char *imemo_kind(VALUE imemo);
 
 #define ENFORCE_THREAD(value) \
   { if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, RTYPEDDATA_TYPE(rb_thread_current())))) raise_unexpected_type(value, ADD_QUOTES(value), "Thread", __FILE__, __LINE__, __func__); }
+
+bool is_raised_flag_set(VALUE thread);
+
+// Can be nil if `rb_fiber_current()` or similar has not been called (gets allocated lazily)
+// Only implemented for Ruby 3.1+
+VALUE current_fiber_for(VALUE thread);
+
+void self_test_current_fiber_for(void);

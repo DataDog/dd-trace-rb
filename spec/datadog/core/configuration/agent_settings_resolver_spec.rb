@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       let(:uds_path) { '/var/run/datadog/apm.socket' }
       let(:hostname) { nil }
       let(:port) { nil }
-      let(:timeout_seconds) { 1 }
+      let(:timeout_seconds) { 30 }
 
       it 'configures the agent to connect to unix:///var/run/datadog/apm.socket' do
         expect(resolver).to have_attributes(
@@ -192,7 +192,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'logs a warning including the uds path' do
               expect(logger).to receive(:warn)
-                .with(%r{Configuration mismatch.*Using "unix:[\/]{1,3}some/path"}) # rubocop:disable Style/edundantRegexpCharacterClass
+                .with(%r{Configuration mismatch.*Using "unix:[\/]{1,3}some/path"})
 
               resolver
             end
@@ -207,7 +207,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'logs a warning including the uds configuration' do
               expect(logger).to receive(:warn)
-                .with(%r{Configuration mismatch.*Using "unix:[\/]{1,3}some/path"}) # rubocop:disable Style/edundantRegexpCharacterClass
+                .with(%r{Configuration mismatch.*Using "unix:[\/]{1,3}some/path"})
 
               resolver
             end
@@ -239,7 +239,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'logs a warning including the uds configuration' do
               expect(logger).to receive(:warn)
-                .with(%r{Configuration mismatch.*Using "unix:[\/]{1,3}some/path"}) # rubocop:disable Style/edundantRegexpCharacterClass
+                .with(%r{Configuration mismatch.*Using "unix:[\/]{1,3}some/path"})
 
               resolver
             end
@@ -254,7 +254,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'logs a warning including the uds configuration' do
               expect(logger).to receive(:warn)
-                .with(%r{Configuration mismatch.*Using "unix:[\/]{1,3}some/path"}) # rubocop:disable Style/edundantRegexpCharacterClass
+                .with(%r{Configuration mismatch.*Using "unix:[\/]{1,3}some/path"})
 
               resolver
             end
@@ -677,7 +677,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
     context 'when the uri scheme is unix' do
       let(:environment) { { 'DD_TRACE_AGENT_URL' => 'unix:///path/to/apm.socket' } }
-      let(:timeout_seconds) { 1 }
+      let(:timeout_seconds) { 30 }
 
       it 'contacts the agent via a unix domain socket' do
         expect(resolver).to have_attributes(
@@ -712,7 +712,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   describe 'uds_path' do
     let(:hostname) { nil }
     let(:port) { nil }
-    let(:timeout_seconds) { 1 }
+    let(:timeout_seconds) { 30 }
     let(:adapter) { :unix }
 
     context 'when a custom path is specified via code using "agent.uds_path ="' do
@@ -800,6 +800,63 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       it 'does not log anything' do
         log_warning
+      end
+    end
+  end
+
+  describe 'url' do
+    context 'when using HTTP adapter' do
+      before do
+        datadog_settings.agent.host = 'example.com'
+        datadog_settings.agent.port = 8080
+      end
+
+      context 'when SSL is enabled' do
+        before { datadog_settings.agent.use_ssl = true }
+
+        it 'returns the correct base URL' do
+          expect(resolver.url).to eq('https://example.com:8080/')
+        end
+      end
+
+      context 'when SSL is disabled' do
+        before { datadog_settings.agent.use_ssl = false }
+
+        it 'returns the correct base URL' do
+          expect(resolver.url).to eq('http://example.com:8080/')
+        end
+      end
+
+      context 'when hostname is an IPv4 address' do
+        before { datadog_settings.agent.host = '1.2.3.4' }
+
+        it 'returns the correct base URL' do
+          expect(resolver.url).to eq('http://1.2.3.4:8080/')
+        end
+      end
+
+      context 'when hostname is an IPv6 address' do
+        before { datadog_settings.agent.host = '1234:1234::1' }
+
+        it 'returns the correct base URL' do
+          expect(resolver.url).to eq('http://[1234:1234::1]:8080/')
+        end
+      end
+    end
+
+    context 'when using UnixSocket adapter' do
+      before { datadog_settings.agent.uds_path = '/var/run/datadog.sock' }
+
+      it 'returns the correct base URL' do
+        expect(resolver.url).to eq('unix:///var/run/datadog.sock')
+      end
+    end
+
+    context 'when using an unknown adapter' do
+      it 'raises an exception' do
+        agent_settings = Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(adapter: :unknown)
+
+        expect { agent_settings.url }.to raise_error(ArgumentError, /Unexpected adapter/)
       end
     end
   end

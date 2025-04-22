@@ -33,6 +33,7 @@ module Datadog
         # @param others [Hash<Symbol, String>] Additional free-form
         #   user information to attach to the trace.
         #
+        # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/CyclomaticComplexity
         # rubocop:disable Metrics/PerceivedComplexity
         def set_user(
@@ -66,21 +67,24 @@ module Datadog
               active_span.set_tag("usr.#{k}", v) unless v.nil?
             end
 
-            if Datadog::AppSec.active_scope
-              user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id)
+            if Datadog::AppSec.active_context
+              active_span.set_tag('_dd.appsec.user.collection_mode', 'sdk')
+
+              user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id, others[:login])
               ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
             end
           end
         end
+        # rubocop:enable Metrics/AbcSize
         # rubocop:enable Metrics/PerceivedComplexity
         # rubocop:enable Metrics/CyclomaticComplexity
 
         private
 
         def set_trace_and_span_context(method, trace = nil, span = nil)
-          if (appsec_scope = Datadog::AppSec.active_scope)
-            trace = appsec_scope.trace
-            span = appsec_scope.service_entry_span
+          if (appsec_context = Datadog::AppSec.active_context)
+            trace = appsec_context.trace
+            span = appsec_context.span
           end
 
           trace ||= Datadog::Tracing.active_trace

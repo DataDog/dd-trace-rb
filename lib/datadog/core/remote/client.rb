@@ -13,10 +13,11 @@ module Datadog
         class TransportError < StandardError; end
         class SyncError < StandardError; end
 
-        attr_reader :transport, :repository, :id, :dispatcher
+        attr_reader :transport, :repository, :id, :dispatcher, :logger
 
-        def initialize(transport, capabilities, repository: Configuration::Repository.new)
+        def initialize(transport, capabilities, logger: Datadog.logger, repository: Configuration::Repository.new)
           @transport = transport
+          @logger = logger
 
           @repository = repository
           @id = SecureRandom.uuid
@@ -40,7 +41,7 @@ module Datadog
         def process_response(response)
           # when response is completely empty, do nothing as in: leave as is
           if response.empty?
-            Datadog.logger.debug { 'remote: empty response => NOOP' }
+            logger.debug { 'remote: empty response => NOOP' }
 
             return
           end
@@ -112,7 +113,7 @@ module Datadog
           end
 
           if changes.empty?
-            Datadog.logger.debug { 'remote: no changes' }
+            logger.debug { 'remote: no changes' }
           else
             dispatcher.dispatch(changes, repository)
           end

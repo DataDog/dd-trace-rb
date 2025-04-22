@@ -228,7 +228,9 @@ RSpec.describe 'net/http requests' do
     end
 
     describe 'integration' do
-      let(:transport) { Datadog::Tracing::Transport::HTTP.default }
+      let(:logger) { logger_allowing_debug }
+
+      let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) }
 
       it 'does not create a span for the transport request' do
         expect(Datadog::Tracing).to_not receive(:trace)
