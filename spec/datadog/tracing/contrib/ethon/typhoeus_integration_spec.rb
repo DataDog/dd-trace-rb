@@ -42,8 +42,8 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon do
   context 'with concurrent Hydra requests' do
     include_context 'integration context'
 
-    let(:url_1) { "http://#{host}:#{@port}#{path}?status=200&simulate_timeout=true" }
-    let(:url_2) { "http://#{host}:#{@port}#{path}" }
+    let(:url_1) { "http://#{host}:#{http_server_port}#{path}?status=200&simulate_timeout=true" }
+    let(:url_2) { "http://#{host}:#{http_server_port}#{path}" }
     let(:request_1) { Typhoeus::Request.new(url_1, timeout: 0.001) }
     let(:request_2) { Typhoeus::Request.new(url_2, method: :post, timeout: timeout, body: { status: 404 }) }
 

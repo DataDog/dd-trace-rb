@@ -57,7 +57,7 @@ module Datadog
         serialization_result = pprof_recorder.serialize
         return if serialization_result.nil?
 
-        start, finish, compressed_pprof, profile_stats = serialization_result
+        start, finish, encoded_profile, profile_stats = serialization_result
         @last_flush_finish_at = finish
 
         if duration_below_threshold?(start, finish)
@@ -70,8 +70,7 @@ module Datadog
         Flush.new(
           start: start,
           finish: finish,
-          pprof_file_name: Datadog::Profiling::Ext::Transport::HTTP::PPROF_DEFAULT_FILENAME,
-          pprof_data: compressed_pprof.to_s,
+          encoded_profile: encoded_profile,
           code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,

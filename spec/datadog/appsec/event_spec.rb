@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/event'
 
@@ -209,7 +211,7 @@ RSpec.describe Datadog::AppSec::Event do
 
         context 'JSON payload' do
           it 'uses JSON string when do not exceeds MIN_SCHEMA_SIZE_FOR_COMPRESSION' do
-            stub_const('Datadog::AppSec::Event::MIN_SCHEMA_SIZE_FOR_COMPRESSION', 3000)
+            stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 3000)
             meta = top_level_span.meta
 
             expect(meta['_dd.appsec.s.req.headers']).to eq('[{"host":[8],"version":[8]}]')
@@ -218,13 +220,10 @@ RSpec.describe Datadog::AppSec::Event do
 
         context 'Compressed payload' do
           it 'uses compressed value when JSON string is bigger than MIN_SCHEMA_SIZE_FOR_COMPRESSION' do
-            result = 'H4sIAOYoHGUAA4aphwAAAA='
-            stub_const('Datadog::AppSec::Event::MIN_SCHEMA_SIZE_FOR_COMPRESSION', 1)
-            expect(described_class).to receive(:compressed_and_base64_encoded).and_return(result)
+            stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 1)
+            allow(Datadog::AppSec::CompressedJson).to receive(:dump).and_return('H4sIAOYoHGUAA4aphwAAAA=')
 
-            meta = top_level_span.meta
-
-            expect(meta['_dd.appsec.s.req.headers']).to eq(result)
+            expect(top_level_span.meta['_dd.appsec.s.req.headers']).to eq('H4sIAOYoHGUAA4aphwAAAA=')
           end
 
           context 'with big derivatives' do
@@ -267,16 +266,14 @@ RSpec.describe Datadog::AppSec::Event do
             end
 
             it 'has no newlines when encoded' do
-              meta = top_level_span.meta
-
-              expect(meta['_dd.appsec.s.req.headers']).to_not match(/\n/)
+              expect(top_level_span.meta['_dd.appsec.s.req.headers']).to_not match(/\n/)
             end
           end
         end
 
-        context 'derivative values exceed Event::MAX_ENCODED_SCHEMA_SIZE value' do
+        context 'derivative values exceed Event::DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE value' do
           it 'do not add derivative key to meta' do
-            stub_const('Datadog::AppSec::Event::MAX_ENCODED_SCHEMA_SIZE', 1)
+            stub_const('Datadog::AppSec::Event::DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE', 1)
             meta = top_level_span.meta
 
             expect(meta['_dd.appsec.s.req.headers']).to be_nil
@@ -409,9 +406,9 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
-    context 'with block action' do
+    context 'with block_request action' do
       let(:waf_actions) do
-        { 'block_request' => { 'grpc_status_code' => '10', 'status_core' => '403', 'type' => 'auto' } }
+        { 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }
       end
 
       it 'adds appsec.blocked tag to span' do
@@ -419,6 +416,17 @@ RSpec.describe Datadog::AppSec::Event do
         expect(context.span.send(:meta)['appsec.event']).to eq('true')
         expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
         expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
+      end
+    end
+
+    context 'with redirect_request action' do
+      let(:waf_actions) do
+        { 'redirect_request' => { 'status_code' => '302', 'location' => 'https://datadoghq.com' } }
+      end
+
+      it 'adds appsec.blocked tag to span' do
+        expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
+        expect(context.span.send(:meta)['appsec.event']).to eq('true')
       end
     end
 

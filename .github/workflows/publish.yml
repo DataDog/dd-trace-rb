@@ -1,7 +1,14 @@
 name: Publish gem
 
 # TODO: Implement a dry-run mode to verify the checks without publishing
-on: workflow_dispatch # yamllint disable-line rule:truthy
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force release bypassing verification checks'
+        type: boolean
+        default: false
+        required: false
 
 concurrency: "rubygems" # Only one publish job at a time
 
@@ -14,13 +21,14 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       checks: read
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@354a1ad156761f5ee2b7b13fa8e09943a5e8d252 # v1.229.0
+      - uses: ruby/setup-ruby@e5ac7b085f6e63d49c8973eb0c6e04d876b881f1 # v1.230.0
         with:
           ruby-version: '3.3.7'
 
@@ -29,6 +37,7 @@ jobs:
 
       # Check if the gem version is already published
       - name: Verify gem version
+        if: ${{ !inputs.force }}
         env:
           GEM_VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -39,12 +48,67 @@ jobs:
             echo "Version $GEM_VERSION is not published yet"
           fi
 
-      # TODO: Verify draft release
-      # TODO: Verify milestone
+      # Check if there is a draft release for this version
+      # API: https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#list-releases
+      - name: Verify draft release
+        if: ${{ !inputs.force }}
+        continue-on-error: true # TODO: Remove when figuring out why draft release are not returned from API
+        env:
+          GEM_VERSION: ${{ steps.version.outputs.version }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            console.log(releases);
+
+            const versionTag = `v${process.env.GEM_VERSION}`;
+            const draftRelease = releases.find(
+              release => release.tag_name === versionTag && release.draft === true
+            );
+
+            if (!draftRelease) {
+              core.setFailed(`No draft release found with tag ${versionTag}. Please create a draft release first.`);
+              return;
+            }
+
+            console.log(`Found draft release with tag ${versionTag} (ID: ${draftRelease.id})`);
+
+      # Check if there is an open milestone for this version
+      # API: https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28#list-milestones
+      - name: Verify milestone
+        if: ${{ !inputs.force }}
+        env:
+          GEM_VERSION: ${{ steps.version.outputs.version }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { data: milestones } = await github.rest.issues.listMilestones({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+
+            console.log(milestones);
+
+            const versionMilestone = milestones.find(
+              milestone => milestone.title === process.env.GEM_VERSION
+            );
+
+            if (!versionMilestone) {
+              core.setFailed(`No open milestone found with title ${process.env.GEM_VERSION}. Please create a milestone first.`);
+              return;
+            }
+
+            console.log(`Found open milestone ${process.env.GEM_VERSION} (ID: ${versionMilestone.number})`);
 
       # Check if the commit has passed all Github checks
       # API: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-for-a-git-reference
       - name: Verify check runs
+        if: ${{ !inputs.force }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
@@ -69,6 +133,7 @@ jobs:
       # Check if the commit has passed external CI checks
       # API: https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
       - name: Verify commit status
+        if: ${{ !inputs.force }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
@@ -84,6 +149,7 @@ jobs:
 
       # Check if the commit has all the checks passed
       - name: Verify deferred commit data
+        if: ${{ !inputs.force }}
         # NOTE:
         #
         # This step uses Github's internal API (for rendering the status of the checks in UI),
@@ -100,7 +166,10 @@ jobs:
             echo "::error::Status check state is '$STATUS'. See: $COMMIT_URL"
             exit 1
           fi
-
+      - name: Warning for bypassing checks
+        if: ${{ inputs.force }}
+        run: |
+          echo "::warning::Bypassing verification checks"
 
   rubygems-release:
     name: Build and push gem to RubyGems.org
@@ -117,7 +186,7 @@ jobs:
         with:
           persist-credentials: false # `rubygems/release-gem` action handles credentials itself
       - name: Set up Ruby
-        uses: ruby/setup-ruby@354a1ad156761f5ee2b7b13fa8e09943a5e8d252 # v1.229.0
+        uses: ruby/setup-ruby@e5ac7b085f6e63d49c8973eb0c6e04d876b881f1 # v1.230.0
         with:
           ruby-version: '3.3.7'
       - run: bundle install
@@ -161,7 +230,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@354a1ad156761f5ee2b7b13fa8e09943a5e8d252 # v1.229.0
+        uses: ruby/setup-ruby@e5ac7b085f6e63d49c8973eb0c6e04d876b881f1 # v1.230.0
         with:
           ruby-version: '3.3.7'
       - run: bundle install
