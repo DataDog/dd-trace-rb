@@ -35,10 +35,10 @@ GEM
     elastic-transport (8.4.0)
       faraday (< 3)
       multi_json
-    elasticsearch (8.17.2)
+    elasticsearch (9.0.0)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 8.17.2)
-    elasticsearch-api (8.17.2)
+      elasticsearch-api (= 9.0.0)
+    elasticsearch-api (9.0.0)
       multi_json
     extlz4 (0.3.4)
     faraday (2.13.0)
@@ -47,8 +47,8 @@ GEM
       logger
     faraday-net_http (3.4.0)
       net-http (>= 0.5.0)
-    ffi (1.17.1-aarch64-linux-gnu)
-    ffi (1.17.1-x86_64-linux-gnu)
+    ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-x86_64-linux-gnu)
     google-protobuf (3.25.4-aarch64-linux)
     google-protobuf (3.25.4-x86_64-linux)
     hashdiff (1.1.1)

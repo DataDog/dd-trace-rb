@@ -34,8 +34,8 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.6.2)
     extlz4 (0.3.4)
-    ffi (1.17.1-aarch64-linux-gnu)
-    ffi (1.17.1-x86_64-linux-gnu)
+    ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-x86_64-linux-gnu)
     google-protobuf (3.25.5)
     hashdiff (1.1.1)
     io-console (0.8.0)
@@ -68,7 +68,7 @@ GEM
       date
       stringio
     public_suffix (6.0.1)
-    rack (3.1.12)
+    rack (3.1.13)
     rack-contrib (2.5.0)
       rack (< 4)
     rack-test (2.1.0)
