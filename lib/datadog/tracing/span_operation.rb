@@ -390,18 +390,19 @@ module Datadog
         class OnError < Tracing::Event
           def initialize(default)
             super(:on_error)
+            @default = default
             subscribe(&default)
           end
 
           # Call custom error handler but fallback to default behavior on failure.
           def wrap_default
-            original = @subscriptions[0].dup
-            @subscriptions[0] = proc do |op, error|
+            original = @default
+            @default = proc do |op, error|
               begin
                 yield(op, error)
               rescue StandardError => e
                 Datadog.logger.debug do
-                  "Custom on_error handler #{@subscriptions[0]} failed, using fallback behavior. \
+                  "Custom on_error handler #{@default} failed, using fallback behavior. \
                   Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 end
 
