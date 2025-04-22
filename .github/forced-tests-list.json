@@ -1,6 +1,3 @@
 {
-    "DEFAULT": [
-        "tests/appsec/test_fingerprinting.py::Test_Fingerprinting_Endpoint",
-        "tests/appsec/test_fingerprinting.py::Test_Fingerprinting_Header_And_Network"
-    ]
+  
 }
