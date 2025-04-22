@@ -23,8 +23,9 @@ module Datadog
 
           unless @storage.has_key?(span_id)
             @storage[span_id] = {}
-            active_span.events.after_stop.subscribe(&@after_stop_block)
-            active_span.events.on_error.subscribe(&@on_error_block) if RUBY_VERSION < '3.3'
+            events = active_span.send(:events)
+            events.after_stop.subscribe(&@after_stop_block)
+            events.on_error.subscribe(&@on_error_block) if RUBY_VERSION < '3.3'
           end
 
           @storage[span_id][error] = span_event

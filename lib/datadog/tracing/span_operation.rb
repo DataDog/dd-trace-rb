@@ -36,8 +36,7 @@ module Datadog
         :service,
         :start_time,
         :trace_id,
-        :type,
-        :events
+        :type
       attr_accessor :links, :status, :span_events
 
       def initialize(
@@ -430,6 +429,7 @@ module Datadog
       # modifying the finalized span from the operation after
       # it has been finished.
       attr_reader \
+        :events,
         :span
 
       # Stored only for `service_entry` calculation.
