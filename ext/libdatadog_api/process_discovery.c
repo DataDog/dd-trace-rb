@@ -93,11 +93,6 @@ static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd) {
 static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd) {
   int *fd;
   TypedData_Get_Struct(tracer_memfd, int, &tracer_memfd_type, fd);
-  if (fd == NULL) {
-    log_error(rb_sprintf("Failed to get the tracer configuration memory file descriptor: %s", strerror(errno)));
-    return Qnil;
-  }
-
   if (*fd == -1) {
     log_error(rb_sprintf("The tracer configuration memory file descriptor has already been closed"));
     return Qnil;
