@@ -41,11 +41,11 @@ static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   return char_slice;
 }
 
-static inline VALUE log_warning(VALUE error) {
+static inline VALUE log_warning(VALUE warning) {
   VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
   VALUE logger = rb_funcall(datadog_module, rb_intern("logger"), 0);
 
-  return rb_funcall(logger, rb_intern("warn"), 1, error);
+  return rb_funcall(logger, rb_intern("warn"), 1, warning);
 }
 
 __attribute__((warn_unused_result))
