@@ -981,6 +981,20 @@ module Datadog
           end
         end
 
+        settings :errortracking do
+          option :to_instrument do |o|
+            o.type :string, nilable: true
+            o.default ''
+            o.env 'DD_ERROR_TRACKING_HANDLED_ERRORS'
+          end
+
+          option :to_instrument_modules do |o|
+            o.type :array
+            o.default []
+            o.env 'DD_ERROR_TRACKING_HANDLED_ERRORS_MODULES'
+          end
+        end
+
         # TODO: Tracing should manage its own settings.
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings
