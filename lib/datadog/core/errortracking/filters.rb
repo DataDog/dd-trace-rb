@@ -35,24 +35,25 @@ module Datadog
           def generate_filter(to_instrument, instrumented_files = nil)
             case to_instrument
             when "all"
-              proc { |file_path| !_is_datadog(file_path) }
+              return proc { |file_path| !_is_datadog(file_path) }
             when "user"
               if instrumented_files
-                proc { |file_path| _is_user_code(file_path) || _is_instrumented_modules(file_path, instrumented_files) }
+                return proc { |file_path| _is_user_code(file_path) || _is_instrumented_modules(file_path, instrumented_files) }
               else
-                proc { |file_path| _is_user_code(file_path) }
+                return proc { |file_path| _is_user_code(file_path) }
               end
             when "third_party"
               if instrumented_files
-                proc { |file_path| _is_third_party(file_path) || _is_instrumented_modules(file_path, instrumented_files) }
+                return proc { |file_path| _is_third_party(file_path) || _is_instrumented_modules(file_path, instrumented_files) }
               else
-                proc { |file_path| _is_third_party(file_path) }
-              end
-            when nil
-              if instrumented_files
-                proc { |file_path| _is_instrumented_modules(file_path, instrumented_files) }
+                return proc { |file_path| _is_third_party(file_path) }
               end
             end
+
+            if instrumented_files
+              proc { |file_path| _is_instrumented_modules(file_path, instrumented_files) }
+            end
+
             #   else
             #     # Replace by log
             #     # raise ArgumentError, "ErrorTracker: must provide either 'to_instrument' or 'instrumented_files'"

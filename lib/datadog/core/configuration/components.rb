@@ -15,7 +15,7 @@ require_relative '../../profiling/component'
 require_relative '../../appsec/component'
 require_relative '../../di/component'
 require_relative '../crashtracking/component'
-require_relative '../../errortracking/component'
+require_relative '../errortracking/component'
 
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
