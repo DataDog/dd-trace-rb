@@ -7,7 +7,7 @@ RSpec.describe Datadog::AppSec::Event do
   describe '.record' do
     before { Datadog::AppSec::RateLimiter.reset! }
 
-    context 'when multiple spans present and a single security event is recorded' do
+    context 'when multiple spans present and a single security event with attack is recorded' do
       before { stub_const('Datadog::AppSec::Event::ALLOWED_REQUEST_HEADERS', ['user-agent']) }
 
       let(:top_level_span) { trace.spans.find { |span| span.metrics['_dd.top_level'].to_f > 0.0 } }
@@ -61,7 +61,7 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      it 'keeps allowed headers and discards the rest' do
+      it 'keeps allowed HTTP headers and discards the rest' do
         expect(top_level_span.meta).to include(
           'http.request.headers.user-agent' => 'Ruby/0.0',
           'http.response.headers.content-type' => 'text/html'

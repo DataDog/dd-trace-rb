@@ -43,6 +43,21 @@ module Datadog
       # This is expected to be called only once per trace for the rate limiter
       # to properly apply
       class << self
+        def tag_and_keep!(context, waf_result)
+          # We want to keep the trace in case of security event
+          context.trace.keep! if context.trace
+
+          if context.span
+            if waf_result.actions.key?('block_request') || waf_result.actions.key?('redirect_request')
+              context.span.set_tag('appsec.blocked', 'true')
+            end
+
+            context.span.set_tag('appsec.event', 'true')
+          end
+
+          add_distributed_tags(context.trace)
+        end
+
         def record(span, *events)
           # ensure rate limiter is called only when there are events to record
           return if events.empty? || span.nil?
@@ -51,6 +66,8 @@ module Datadog
             record_via_span(span, *events)
           end
         end
+
+        private
 
         def record_via_span(span, *events)
           events.group_by { |e| e[:trace] }.each do |trace, event_group|
@@ -120,23 +137,6 @@ module Datadog
           entry_tags['_dd.appsec.json'] = appsec_events if appsec_events
           entry_tags
         end
-
-        def tag_and_keep!(context, waf_result)
-          # We want to keep the trace in case of security event
-          context.trace.keep! if context.trace
-
-          if context.span
-            if waf_result.actions.key?('block_request') || waf_result.actions.key?('redirect_request')
-              context.span.set_tag('appsec.blocked', 'true')
-            end
-
-            context.span.set_tag('appsec.event', 'true')
-          end
-
-          add_distributed_tags(context.trace)
-        end
-
-        private
 
         # NOTE: Handling of Encoding::UndefinedConversionError is added as a quick fix to
         #       the issue between Ruby encoded strings and libddwaf produced events and now
