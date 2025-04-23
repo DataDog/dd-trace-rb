@@ -391,13 +391,12 @@ module Datadog
           def initialize(default)
             super(:on_error)
             @default = default
-            subscribe(&default)
+            subscribe(&@default)
           end
 
           # Call custom error handler but fallback to default behavior on failure.
           def wrap_default
-            original = @default
-            @default = proc do |op, error|
+            @subscriptions[0] = proc do |op, error|
               begin
                 yield(op, error)
               rescue StandardError => e
@@ -406,7 +405,7 @@ module Datadog
                   Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 end
 
-                original.call(op, error) if original
+                @default.call(op, error) if @default
               end
             end
           end
