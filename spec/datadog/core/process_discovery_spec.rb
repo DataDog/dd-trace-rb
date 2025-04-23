@@ -6,13 +6,20 @@ require 'spec_helper'
 require 'datadog/core/process_discovery'
 
 RSpec.describe Datadog::Core::ProcessDiscovery do
-  describe '.get_and_store_metadata', skip: !LibdatadogHelpers.supported? do
+  describe '.get_and_store_metadata' do
+    context 'when libdatadog API is not available' do
+      it 'returns nil' do
+        stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', LoadError.new('test'))
+        expect(described_class.get_and_store_metadata(nil, Datadog::Core::Logger.new($stdout))).to be_nil
+      end
+    end
+
     context 'when libdatadog API is available' do
       let(:settings) do
         instance_double(
           'Datadog::Core::Configuration::Setting',
           service: 'test-service',
-          env: 'TEST_ENV=true',
+          env: 'test-env',
           version: '1.0.0'
         )
       end
@@ -35,7 +42,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
             'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
             'hostname' => Datadog::Core::Environment::Socket.hostname,
             'service_name' => 'test-service',
-            'service_env' => 'TEST_ENV=true',
+            'service_env' => 'test-env',
             'service_version' => '1.0.0'
           }
         )
@@ -49,7 +56,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         instance_double(
           'Datadog::Core::Configuration::Setting',
           service: 'test-service',
-          env: 'TEST_ENV=true',
+          env: 'test-env',
           version: '1.0.0'
         )
       end
@@ -63,7 +70,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
             tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
             hostname: Datadog::Core::Environment::Socket.hostname,
             service_name: 'test-service',
-            service_env: 'TEST_ENV=true',
+            service_env: 'test-env',
             service_version: '1.0.0'
           }
         )
