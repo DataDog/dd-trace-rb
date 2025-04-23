@@ -30,11 +30,11 @@ module Datadog
 
               transport.api API::AGENTLESS_TELEMETRY, apis[API::AGENTLESS_TELEMETRY]
 
-              transport.api_key = api_key
-
               # Call block to apply any customization, if provided
               yield(transport) if block_given?
-            end.to_transport(Telemetry::Transport::Telemetry::Transport)
+            end.to_transport(Core::Telemetry::Transport::Telemetry::Transport).tap do |transport|
+              transport.api_key = api_key
+            end
           end
 
           # Builds a new Transport::HTTP::Client with default settings
