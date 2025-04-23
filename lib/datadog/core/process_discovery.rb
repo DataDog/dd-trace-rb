@@ -6,7 +6,7 @@ module Datadog
     class ProcessDiscovery
       def self.get_and_store_metadata(settings, logger)
         if (libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE)
-          logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")
+          logger.debug("Cannot enable process discovery: #{libdatadog_api_failure}")
           return
         end
         metadata = get_metadata(settings)
