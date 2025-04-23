@@ -1,18 +1,20 @@
 module Datadog
   module Core
     module Errortracking
+      # Filters module provide the different‡
       module Filters
         class << self
           def _get_gem_name(file_path)
-            regex = /gems\/([^\/]+)-\d/
+            regex = %r{gems/([^/]+)-\d}
             regex_match = regex.match(file_path)
             return unless regex_match
+
             gem_name = regex_match[1]
 
             begin
-              return Gem::Specification::find_by_name(gem_name)
-            rescue => each
-              return nil
+              Gem::Specification.find_by_name(gem_name)
+            rescue
+              nil
             end
           end
 
@@ -29,39 +31,32 @@ module Datadog
           end
 
           def _is_instrumented_modules(file_path, instrumented_files)
-            instrumented_files.has_key?(file_path)
+            instrumented_files.key?(file_path)
           end
 
           def generate_filter(to_instrument, instrumented_files = nil)
             case to_instrument
-            when "all"
+            when 'all'
               return proc { |file_path| !_is_datadog(file_path) }
-            when "user"
+            when 'user'
               if instrumented_files
-                return proc { |file_path| _is_user_code(file_path) || _is_instrumented_modules(file_path, instrumented_files) }
+                return proc { |file_path|
+                  _is_user_code(file_path) || _is_instrumented_modules(file_path, instrumented_files)
+                }
               else
                 return proc { |file_path| _is_user_code(file_path) }
               end
-            when "third_party"
+            when 'third_party'
               if instrumented_files
-                return proc { |file_path| _is_third_party(file_path) || _is_instrumented_modules(file_path, instrumented_files) }
+                return proc { |file_path|
+                  _is_third_party(file_path) || _is_instrumented_modules(file_path, instrumented_files)
+                }
               else
                 return proc { |file_path| _is_third_party(file_path) }
               end
             end
 
-            if instrumented_files
-              proc { |file_path| _is_instrumented_modules(file_path, instrumented_files) }
-            end
-
-            #   else
-            #     # Replace by log
-            #     # raise ArgumentError, "ErrorTracker: must provide either 'to_instrument' or 'instrumented_files'"
-            #   end
-            # else
-            #   # Replace by log
-            #   # raise ArgumentError, "ErrorTracker: invalid value '#{to_instrument}' for 'to_instrument' option. Expected 'all', 'user', or 'third_party'."
-            # end
+            proc { |file_path| _is_instrumented_modules(file_path, instrumented_files) }
           end
         end
       end
