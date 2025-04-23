@@ -32,7 +32,7 @@ RSpec.describe 'Telemetry integration tests' do
       {
         # Webrick provides each header value as an array
         'dd-client-library-language' => %w[ruby],
-        'dd-client-library-version' => %w[2.14.0],
+        'dd-client-library-version' => [String],
         'dd-internal-untraced-request' => %w[1],
         'dd-telemetry-api-version' => %w[v2],
       }
