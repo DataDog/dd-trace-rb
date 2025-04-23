@@ -72,7 +72,7 @@ static VALUE _native_configurator_get(VALUE self) {
     rb_hash_aset(config_hash, ID2SYM(rb_intern("value")), rb_str_new(config.value.ptr, config.value.length));
 
     ddog_CStr source = ddog_library_config_source_to_string(config.source);
-    rb_hash_aset(config_hash, ID2SYM(rb_intern("source")), ID2SYM(rb_intern2(source.ptr, source.length)));
+    rb_hash_aset(config_hash, ID2SYM(rb_intern("source")), rb_to_symbol(rb_str_new(source.ptr, source.length)));
 
     rb_ary_push(config_array, config_hash);
   }
