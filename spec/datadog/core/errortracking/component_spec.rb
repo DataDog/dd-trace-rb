@@ -66,7 +66,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
     end
 
     shared_examples 'captures exception details' do |exception_count|
-      it "captures exception(s) with correct details" do
+      it 'captures exception(s) with correct details' do
         expect(span.events.length).to eq(expected_exceptions.length)
 
         span.events.each_with_index do |event, index|
@@ -224,8 +224,16 @@ RSpec.describe Datadog::Core::Errortracking::Component do
     end
 
     after do
-      $LOADED_FEATURES.reject! { |path| path.include?('mock_gem') }
+      $LOADED_FEATURES.reject! do |path|
+        path.include?('spec/datadog/core/errortracking/lib') ||
+          path.include?('spec/datadog/core/errortracking/sublib') ||
+          path.include?('mock_gem')
+      end
       Object.send(:remove_const, :MockGem) if defined?(MockGem)
+      Object.send(:remove_const, :Lib1) if defined?(Lib1)
+      Object.send(:remove_const, :Lib2) if defined?(Lib2)
+      Object.send(:remove_const, :SubLib1) if defined?(SubLib1)
+      Object.send(:remove_const, :SubLib2) if defined?(SubLib2)
 
       @errortracker.shutdown!
       tracer.shutdown!
