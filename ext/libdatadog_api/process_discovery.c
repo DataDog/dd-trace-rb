@@ -9,10 +9,18 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED
 static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd);
 static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd, VALUE logger);
 
+static void tracer_memfd_free(void *ptr) {
+  int *fd = (int *)ptr;
+  if (*fd != -1) {
+    close(*fd);
+  }
+  ruby_xfree(ptr);
+}
+
 static const rb_data_type_t tracer_memfd_type = {
   .wrap_struct_name = "Datadog::Core::ProcessDiscovery::TracerMemfd",
   .function = {
-    .dfree = RUBY_DEFAULT_FREE,
+    .dfree = tracer_memfd_free,
     .dsize = NULL,
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
