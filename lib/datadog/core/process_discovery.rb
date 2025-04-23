@@ -10,7 +10,7 @@ module Datadog
           return
         end
         metadata = get_metadata(settings)
-        _native_store_tracer_metadata(**metadata)
+        _native_store_tracer_metadata(logger, **metadata)
       end
 
       # According to the RFC, runtime_id, service_name, service_env, service_version are optional.

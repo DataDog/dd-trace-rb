@@ -7,14 +7,7 @@
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd);
-static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE fd);
-
-static VALUE log_error(VALUE error) {
-  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  VALUE logger = rb_funcall(datadog_module, rb_intern("logger"), 0);
-
-  return rb_funcall(logger, rb_intern("warn"), 1, error);
-}
+static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd, VALUE logger);
 
 static const rb_data_type_t tracer_memfd_type = {
   .wrap_struct_name = "Datadog::Core::ProcessDiscovery::TracerMemfd",
@@ -32,12 +25,13 @@ void process_discovery_init(VALUE core_module) {
 
   rb_define_singleton_method(process_discovery_class, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
   rb_define_singleton_method(process_discovery_class, "_native_to_rb_int", _native_to_rb_int, 1);
-  rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 1);
+  rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 2);
 }
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
+  VALUE logger;
   VALUE options;
-  rb_scan_args(argc, argv, "0:", &options);
+  rb_scan_args(argc, argv, "1:", &logger, &options);
   if (options == Qnil) options = rb_hash_new();
 
   VALUE schema_version = rb_hash_fetch(options, ID2SYM(rb_intern("schema_version")));
@@ -70,7 +64,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   );
 
   if (result.tag == DDOG_RESULT_TRACER_MEMFD_HANDLE_ERR_TRACER_MEMFD_HANDLE) {
-    log_error(rb_sprintf("Failed to store the tracer configuration in a memory file descriptor: %"PRIsVALUE, get_error_details_and_drop(&result.err)));
+    rb_funcall(logger, rb_intern("debug"), 1, rb_sprintf("Failed to store the tracer configuration in a memory file descriptor: %"PRIsVALUE, get_error_details_and_drop(&result.err)));
     return Qnil;
   }
 
@@ -90,11 +84,11 @@ static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd) {
   return INT2NUM(*fd);
 }
 
-static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd) {
+static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd, VALUE logger) {
   int *fd;
   TypedData_Get_Struct(tracer_memfd, int, &tracer_memfd_type, fd);
   if (*fd == -1) {
-    log_error(rb_sprintf("The tracer configuration memory file descriptor has already been closed"));
+    rb_funcall(logger, rb_intern("debug"), 1, rb_sprintf("The tracer configuration memory file descriptor has already been closed"));
     return Qnil;
   }
 
@@ -102,7 +96,7 @@ static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer
   *fd = -1;
 
   if (close_result == -1) {
-    log_error(rb_sprintf("Failed to close the tracer configuration memory file descriptor: %s", strerror(errno)));
+    rb_funcall(logger, rb_intern("debug"), 1, rb_sprintf("Failed to close the tracer configuration memory file descriptor: %s", strerror(errno)));
     return Qnil;
   }
 
