@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.describe 'datadog_ruby_common helpers' do
   let(:profiling_folder) { File.join(__dir__, '../../../ext/datadog_profiling_native_extension') }
   let(:libdatadog_api_folder) { File.join(__dir__, '../../../ext/libdatadog_api') }
