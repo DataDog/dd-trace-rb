@@ -15,7 +15,7 @@ module Datadog
 
       # According to the RFC, runtime_id, service_name, service_env, service_version are optional.
       # In the C method exposed by ddcommon, memfd_create replaces empty strings by None for these fields.
-      def self.get_metadata(settings)
+      private_class_method def self.get_metadata(settings)
         {
           schema_version: 1,
           runtime_id: Core::Environment::Identity.id,
