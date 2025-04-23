@@ -15,6 +15,8 @@ module Datadog
             worker.processed
           ].freeze
 
+          EMPTY_HASH = {}.freeze
+
           def instrument(event_id, payload = EMPTY_HASH, &block)
             return super unless TRACEABLE_EVENTS.include?(event_id)
 
