@@ -15,6 +15,7 @@ require_relative '../../profiling/component'
 require_relative '../../appsec/component'
 require_relative '../../di/component'
 require_relative '../crashtracking/component'
+require_relative '../../errortracking/component'
 
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
@@ -76,6 +77,12 @@ module Datadog
 
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
+
+          def build_errortracker(settings:, tracer:, logger:)
+            return if settings.errortracking.to_instrument.empty? && settings.errortracking.to_instrument_modules.empty?
+
+            Core::Errortracking::Component.build(settings, tracer)
+          end
         end
 
         include Datadog::Tracing::Component::InstanceMethods
@@ -89,6 +96,7 @@ module Datadog
           :telemetry,
           :tracer,
           :crashtracker,
+          :errortracker,
           :dynamic_instrumentation,
           :appsec,
           :agent_info
@@ -110,6 +118,7 @@ module Datadog
           @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
+          @errortracker = self.class.build_errortracker(settings: settings, tracer: @tracer, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
