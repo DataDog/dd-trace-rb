@@ -263,6 +263,8 @@ module Datadog
         # Stop timing
         stop(end_time)
 
+        events.before_finish.publish(self)
+
         # Build span
         # Memoize for performance reasons
         @span = build_span
@@ -359,7 +361,7 @@ module Datadog
         DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
 
         attr_reader \
-          :logger,
+          :before_finish,
           :after_finish,
           :after_stop,
           :before_start
@@ -375,6 +377,13 @@ module Datadog
         # are normally less common that non-error paths.
         def on_error
           @on_error ||= OnError.new(DEFAULT_ON_ERROR, logger: logger)
+        end
+
+        # Triggered when the span is finished, regardless of error.
+        class BeforeFinish < Tracing::Event
+          def initialize
+            super(:before_finish)
+          end
         end
 
         # Triggered when the span is finished, regardless of error.
@@ -408,15 +417,8 @@ module Datadog
           attr_reader :logger
 
           # Call custom error handler but fallback to default behavior on failure.
-
-          # DEV: Revisit this before full 1.0 release.
-          # It seems like OnError wants to behave like a middleware stack,
-          # where each "subscriber"'s executed is chained to the previous one.
-          # This is different from how {Tracing::Event} works, and might be incompatible.
           def wrap_default
-            original = @handler
-
-            @handler = proc do |op, error|
+            @subscriptions[0] = proc do |op, error|
               begin
                 yield(op, error)
               rescue StandardError => e
@@ -425,7 +427,7 @@ module Datadog
                   Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
                 end
 
-                original.call(op, error) if original
+                @default.call(op, error) if @default
               end
             end
           end

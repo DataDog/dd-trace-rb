@@ -62,7 +62,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
 
     after do
       tracer.shutdown!
-      @errortracker.stop
+      @errortracker.shutdown!
     end
 
     shared_examples 'captures exception details' do |exception_count|
@@ -70,8 +70,8 @@ RSpec.describe Datadog::Core::Errortracking::Component do
         expect(span.events.length).to eq(expected_exceptions.length)
 
         span.events.each_with_index do |event, index|
-          expect(event.attributes['type']).to eq(expected_exceptions[index][:type])
-          expect(event.attributes['message']).to eq(expected_exceptions[index][:message])
+          expect(event.attributes['exception.type']).to eq(expected_exceptions[index][:type])
+          expect(event.attributes['exception.message']).to eq(expected_exceptions[index][:message])
         end
       end
     end
@@ -119,32 +119,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
       include_examples 'captures exception details'
     end
 
-    context 'with nested begin-rescue blocks' do
-      let!(:span) do
-        tracer.trace('operation') do |inner_span|
-          begin
-            raise 'this is an exception'
-          rescue
-            begin
-              raise 'this is another exception'
-            rescue
-            end
-          end
-          inner_span.finish
-        end
-      end
-
-      let(:expected_exceptions) do
-        [
-          { type: 'RuntimeError', message: 'this is an exception' },
-          { type: 'RuntimeError', message: 'this is another exception' }
-        ]
-      end
-
-      include_examples 'captures exception details'
-    end
-
-    context 'when an exception is raised multiple times' do
+    context 'when an exception is handled multiple times' do
       let!(:span) do
         tracer.trace('operation') do |inner_span|
           begin
@@ -161,6 +136,55 @@ RSpec.describe Datadog::Core::Errortracking::Component do
 
       let(:expected_exceptions) do
         [{ type: 'RuntimeError', message: 'this is an exception' }]
+      end
+
+      include_examples 'captures exception details'
+    end
+
+    context 'when an exception is handled multiple times with different types' do
+      let!(:span) do
+        tracer.trace('operation') do |inner_span|
+          begin
+            begin
+              raise 'this is an exception'
+            rescue StandardError => e
+              raise KeyError, e
+            end
+          rescue
+          end
+          inner_span.finish
+        end
+      end
+
+      let(:expected_exceptions) do
+        [
+          { type: 'RuntimeError', message: 'this is an exception' },
+          { type: 'KeyError', message: 'this is an exception' }
+        ]
+      end
+
+      include_examples 'captures exception details'
+    end
+
+    context 'when an exception is handled then raised' do
+      let!(:span) do
+        @span_op = nil
+        begin
+          tracer.trace('operation') do |span|
+            begin
+              @span_op = span
+              raise 'this is an exception'
+            rescue StandardError => e
+              raise
+            end
+          end
+        rescue
+          @span_op.finish
+        end
+      end
+
+      let(:expected_exceptions) do
+        []
       end
 
       include_examples 'captures exception details'
@@ -203,7 +227,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
       $LOADED_FEATURES.reject! { |path| path.include?('mock_gem') }
       Object.send(:remove_const, :MockGem) if defined?(MockGem)
 
-      @errortracker.stop
+      @errortracker.shutdown!
       tracer.shutdown!
     end
 
@@ -227,7 +251,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
       if expected_errors.any?
         # For module-specific tests
         expect(span.events.length).to eq(expected_errors.length)
-        event_messages = span.events.map { |e| e.attributes['message'] }
+        event_messages = span.events.map { |e| e.attributes['exception.message'] }
         expected_errors.each do |error|
           expect(event_messages).to include(error)
         end
