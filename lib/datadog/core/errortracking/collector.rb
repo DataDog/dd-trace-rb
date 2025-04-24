@@ -27,7 +27,7 @@ module Datadog
             events = span_op.send(:events)
             events.after_stop.subscribe(&self.class.after_stop)
           end
-          @storage[error] = span_event if !@storage.key?(error) || @storage.size? >= SPAN_EVENTS_LIMIT
+          @storage[error] = span_event if @storage.key?(error) || @storage.length < SPAN_EVENTS_LIMIT
         end
 
         def _get_span_events

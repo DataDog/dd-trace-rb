@@ -7,6 +7,16 @@ RSpec.describe Datadog::Core::Errortracking::Component do
   let(:logger) { Logger.new($stdout) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
 
+  def validate_span_events
+    expected_exceptions.each_with_index do |events_per_span, i|
+      expect(spans[i].events.length).to eq(events_per_span.length)
+      events_per_span.each_with_index do |event, j|
+        expect(spans[i].events[j].attributes['exception.type']).to eq(event[:type])
+        expect(spans[i].events[j].attributes['exception.message']).to eq(event[:message])
+      end
+    end
+  end
+
   describe '.build_errortracking_component' do
     context 'when errortracking is deactivated' do
       it 'returns nil' do
@@ -65,38 +75,32 @@ RSpec.describe Datadog::Core::Errortracking::Component do
       @errortracker.shutdown!
     end
 
-    shared_examples 'captures exception details' do
-      it 'captures exception(s) with correct details' do
-        expect(span.events.length).to eq(expected_exceptions.length)
-
-        span.events.each_with_index do |event, index|
-          expect(event.attributes['exception.type']).to eq(expected_exceptions[index][:type])
-          expect(event.attributes['exception.message']).to eq(expected_exceptions[index][:message])
-        end
-      end
-    end
-
     context 'with a simple begin-rescue block' do
-      let!(:span) do
-        tracer.trace('operation') do |inner_span|
+      let(:expected_exceptions) do
+        [[{ type: 'RuntimeError', message: 'this is an exception' }]]
+      end
+
+      it 'captures exception details' do
+        tracer.trace('operation') do
           begin
             raise 'this is an exception'
           rescue
           end
-          inner_span.finish
         end
+        validate_span_events
       end
-
-      let(:expected_exceptions) do
-        [{ type: 'RuntimeError', message: 'this is an exception' }]
-      end
-
-      include_examples 'captures exception details'
     end
 
     context 'with multiple begin-rescue blocks' do
-      let!(:span) do
-        tracer.trace('operation') do |inner_span|
+      let(:expected_exceptions) do
+        [[
+          { type: 'RuntimeError', message: 'this is an exception' },
+          { type: 'StandardError', message: 'this is another exception' }
+        ]]
+      end
+
+      it 'captures exception details' do
+        tracer.trace('operation') do
           begin
             raise 'this is an exception'
           rescue
@@ -105,23 +109,18 @@ RSpec.describe Datadog::Core::Errortracking::Component do
             raise StandardError, 'this is another exception'
           rescue
           end
-          inner_span.finish
         end
+        validate_span_events
       end
-
-      let(:expected_exceptions) do
-        [
-          { type: 'RuntimeError', message: 'this is an exception' },
-          { type: 'StandardError', message: 'this is another exception' }
-        ]
-      end
-
-      include_examples 'captures exception details'
     end
 
     context 'when an exception is handled multiple times' do
-      let!(:span) do
-        tracer.trace('operation') do |inner_span|
+      let(:expected_exceptions) do
+        [[{ type: 'RuntimeError', message: 'this is an exception' }]]
+      end
+
+      it 'capture exception details' do
+        tracer.trace('operation') do
           begin
             begin
               raise 'this is an exception'
@@ -130,19 +129,20 @@ RSpec.describe Datadog::Core::Errortracking::Component do
             end
           rescue
           end
-          inner_span.finish
         end
+        validate_span_events
       end
-
-      let(:expected_exceptions) do
-        [{ type: 'RuntimeError', message: 'this is an exception' }]
-      end
-
-      include_examples 'captures exception details'
     end
 
     context 'when an exception is handled multiple times with different types' do
-      let!(:span) do
+      let(:expected_exceptions) do
+        [[
+          { type: 'RuntimeError', message: 'this is an exception' },
+          { type: 'KeyError', message: 'this is an exception' }
+        ]]
+      end
+
+      it 'capture exception details' do
         tracer.trace('operation') do |inner_span|
           begin
             begin
@@ -152,42 +152,80 @@ RSpec.describe Datadog::Core::Errortracking::Component do
             end
           rescue
           end
-          inner_span.finish
         end
+        validate_span_events
       end
-
-      let(:expected_exceptions) do
-        [
-          { type: 'RuntimeError', message: 'this is an exception' },
-          { type: 'KeyError', message: 'this is an exception' }
-        ]
-      end
-
-      include_examples 'captures exception details'
     end
 
     context 'when an exception is handled then raised' do
-      let!(:span) do
-        @span_op = nil
+      let(:expected_exceptions) do
+        [[]]
+      end
+
+      it 'capture exception details' do
         begin
           tracer.trace('operation') do |span|
             begin
               @span_op = span
               raise 'this is an exception'
-            rescue StandardError => e
+            rescue StandardError
               raise
             end
           end
         rescue
-          @span_op.finish
         end
+        validate_span_events
       end
+    end
 
+    context 'when number of span events is over limit' do
       let(:expected_exceptions) do
-        []
+        [Array.new(100, { type: 'RuntimeError', message: 'this is an exception' })]
       end
 
-      include_examples 'captures exception details'
+      it 'capture exception details' do
+        tracer.trace('operation') do
+          101.times do
+            begin
+              raise 'this is an exception'
+            rescue StandardError
+            end
+          end
+        end
+        validate_span_events
+      end
+    end
+
+    context 'when an exception is handled in the parent_span' do
+      let(:expected_exceptions) do
+        [[], [{ type: 'RuntimeError', message: 'this is an exception' }]]
+      end
+
+      it 'capture exception details' do
+        def parent_span
+          tracer.trace('parent_span') do
+            begin
+              child_span
+            rescue
+            end
+          end
+        end
+
+        def child_span
+          tracer.trace('child_span') do
+            begin
+              raise 'this is an exception'
+            rescue StandardError => e
+              raise e
+            end
+          end
+        end
+
+        parent_span
+        expect(spans[0].name).to eq('child_span')
+        expect(spans[1].name).to eq('parent_span')
+        validate_span_events
+      end
     end
   end
 
@@ -240,7 +278,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
     end
 
     it 'tracks errors according to settings' do
-      span = tracer.trace('operation') do |inner_span|
+      tracer.trace('operation') do
         begin
           raise 'user code error'
         rescue
@@ -252,12 +290,10 @@ RSpec.describe Datadog::Core::Errortracking::Component do
         Lib2.rescue_error
         SubLib1.rescue_error
         SubLib2.rescue_error
-
-        inner_span.finish
       end
 
       if expected_errors.any?
-        # For module-specific tests
+        span = spans[0]
         expect(span.events.length).to eq(expected_errors.length)
         event_messages = span.events.map { |e| e.attributes['exception.message'] }
         expected_errors.each do |error|
