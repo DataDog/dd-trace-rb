@@ -982,13 +982,13 @@ module Datadog
         end
 
         settings :errortracking do
-          option :to_instrument do |o|
+          option :instrumentation_scope do |o|
             o.type :string, nilable: true
             o.default ''
             o.env 'DD_ERROR_TRACKING_HANDLED_ERRORS'
           end
 
-          option :to_instrument_modules do |o|
+          option :modules_to_instrument do |o|
             o.type :array
             o.default []
             o.env 'DD_ERROR_TRACKING_HANDLED_ERRORS_MODULES'

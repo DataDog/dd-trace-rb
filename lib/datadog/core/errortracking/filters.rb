@@ -1,10 +1,11 @@
 module Datadog
   module Core
     module Errortracking
-      # Filters module provide the different‡
+      # The filters module is in charge of creating
+      # the filter function called in the handled_exc_tracker.
       module Filters
         class << self
-          def _get_gem_name(file_path)
+          def get_gem_name(file_path)
             regex = %r{gems/([^/]+)-\d}
             regex_match = regex.match(file_path)
             return unless regex_match
@@ -18,45 +19,47 @@ module Datadog
             end
           end
 
-          def _is_user_code(file_path)
-            !_get_gem_name(file_path)
+          def user_code?(file_path)
+            !get_gem_name(file_path)
           end
 
-          def _is_datadog(file_path)
+          def datadog_code?(file_path)
             file_path.include?('lib/datadog/')
           end
 
-          def _is_third_party(file_path)
-            _get_gem_name(file_path) && !_is_datadog(file_path)
+          def third_party_code?(file_path)
+            get_gem_name(file_path) && !datadog_code?(file_path)
           end
 
-          def _is_instrumented_modules(file_path, instrumented_files)
+          def instrumented_module?(file_path, instrumented_files)
             instrumented_files.key?(file_path)
           end
 
-          def generate_filter(to_instrument, instrumented_files = nil)
-            case to_instrument
+          # Generate the proc used in the tracepoint
+          def generate_filter(to_instrument_scope, modules_to_instrument = nil)
+            case to_instrument_scope
             when 'all'
-              return proc { |file_path| !_is_datadog(file_path) }
+              return proc { |file_path| !datadog_code?(file_path) }
             when 'user'
-              if instrumented_files
+              if modules_to_instrument
                 return proc { |file_path|
-                  _is_user_code(file_path) || _is_instrumented_modules(file_path, instrumented_files)
+                  user_code?(file_path) || instrumented_module?(file_path, modules_to_instrument)
                 }
               else
-                return proc { |file_path| _is_user_code(file_path) }
+                return proc { |file_path| user_code?(file_path) }
               end
             when 'third_party'
-              if instrumented_files
+              if modules_to_instrument
                 return proc { |file_path|
-                  _is_third_party(file_path) || _is_instrumented_modules(file_path, instrumented_files)
+                  third_party_code?(file_path) || instrumented_module?(file_path, modules_to_instrument)
                 }
               else
-                return proc { |file_path| _is_third_party(file_path) }
+                return proc { |file_path| third_party_code?(file_path) }
               end
             end
 
-            proc { |file_path| _is_instrumented_modules(file_path, instrumented_files) }
+            # If only modules_to_instrument is set
+            proc { |file_path| instrumented_module?(file_path, modules_to_instrument) }
           end
         end
       end
