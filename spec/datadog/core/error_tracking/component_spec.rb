@@ -1,7 +1,7 @@
 require 'spec_helper'
-require 'datadog/core/errortracking/component'
+require 'datadog/core/error_tracking/component'
 
-RSpec.describe Datadog::Core::Errortracking::Component do
+RSpec.describe Datadog::Core::ErrorTracking::Component do
   let(:tracer) { new_tracer(enabled: false) }
   let(:spans) { tracer.writer.spans(:keep) }
   let(:logger) { Logger.new($stdout) }
@@ -18,14 +18,14 @@ RSpec.describe Datadog::Core::Errortracking::Component do
   end
 
   describe '.build_errortracking_component' do
-    context 'when errortracking is deactivated' do
+    context 'when ErrorTracking is deactivated' do
       it 'returns nil' do
         expect(described_class.build(settings, tracer)).to be_nil
       end
     end
 
     context 'when a wrong argument is passed' do
-      before { settings.errortracking.instrumentation_scope = 'foo' }
+      before { settings.error_tracking.instrumentation_scope = 'foo' }
       it 'returns nil' do
         expect(described_class.build(settings, tracer)).to be_nil
       end
@@ -45,27 +45,27 @@ RSpec.describe Datadog::Core::Errortracking::Component do
     end
 
     context 'when instrumentation_scope is provided' do
-      before { settings.errortracking.instrumentation_scope = 'all' }
+      before { settings.error_tracking.instrumentation_scope = 'all' }
       include_examples 'it creates and starts a component'
     end
 
     context 'when modules_to_instrument is provided' do
-      before { settings.errortracking.modules_to_instrument = ['rails'] }
+      before { settings.error_tracking.modules_to_instrument = ['rails'] }
       include_examples 'it creates and starts a component'
     end
 
     context 'when all required parameters are provided' do
       before do
-        settings.errortracking.modules_to_instrument = ['rails']
-        settings.errortracking.instrumentation_scope = 'user'
+        settings.error_tracking.modules_to_instrument = ['rails']
+        settings.error_tracking.instrumentation_scope = 'user'
       end
       include_examples 'it creates and starts a component'
     end
   end
 
-  describe 'use errortracking component global feature' do
+  describe 'use ErrorTracking component global feature' do
     before do
-      settings.errortracking.instrumentation_scope = 'all'
+      settings.error_tracking.instrumentation_scope = 'all'
       @errortracker = described_class.build(settings, tracer)
       tracer.enabled = true
     end
@@ -250,8 +250,8 @@ RSpec.describe Datadog::Core::Errortracking::Component do
 
     before do
       # Configure settings based on test parameters
-      settings.errortracking.instrumentation_scope = instrument_setting if instrument_setting
-      settings.errortracking.modules_to_instrument = modules_to_instrument if modules_to_instrument.any?
+      settings.error_tracking.instrumentation_scope = instrument_setting if instrument_setting
+      settings.error_tracking.modules_to_instrument = modules_to_instrument if modules_to_instrument.any?
 
       @errortracker = described_class.build(settings, tracer)
 
@@ -271,8 +271,8 @@ RSpec.describe Datadog::Core::Errortracking::Component do
 
     after do
       $LOADED_FEATURES.reject! do |path|
-        path.include?('spec/datadog/core/errortracking/lib') ||
-          path.include?('spec/datadog/core/errortracking/sublib') ||
+        path.include?('spec/datadog/core/error_tracking/lib') ||
+          path.include?('spec/datadog/core/error_tracking/sublib') ||
           path.include?('mock_gem')
       end
       Object.send(:remove_const, :MockGem) if defined?(MockGem)
@@ -312,7 +312,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
     end
   end
 
-  describe 'use errortracking component with different settings' do
+  describe 'use ErrorTracking component with different settings' do
     context 'when tracking user code only' do
       include_examples 'error tracking behavior',
         'user',
@@ -333,7 +333,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
     end
   end
 
-  describe 'use errortracking component with module-specific settings' do
+  describe 'use ErrorTracking component with module-specific settings' do
     context "when instrumenting ['lib1']" do
       include_examples 'error tracking behavior', nil, ['lib1'], ['lib1 error']
     end
@@ -351,7 +351,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
     end
   end
 
-  describe 'use errortracking component with gem-specific settings' do
+  describe 'use ErrorTracking component with gem-specific settings' do
     context "when instrumenting ['mock_gem/client']" do
       include_examples 'error tracking behavior', nil, ['mock_gem/client'], ['mock_gem client error']
     end
@@ -361,7 +361,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
     end
   end
 
-  describe 'use errortracking component with combined user and module settings' do
+  describe 'use ErrorTracking component with combined user and module settings' do
     context "when tracking user code and instrumenting ['mock_gem/client']" do
       include_examples 'error tracking behavior',
         'user',

@@ -5,13 +5,13 @@ require_relative 'filters'
 
 module Datadog
   module Core
-    module Errortracking
+    module ErrorTracking
       # Component for error tracking.
       #
       # Only one instance of the Component should ever be active.
       #
       # The component instance records every handled exceptions from the configured scopes
-      # (user, third_party packages, specified modules of everything). T
+      # (user, third_party packages, specified modules of everything).
       class Component
         attr_accessor :handled_exc_tracker,
           :module_path_getter,
@@ -19,16 +19,16 @@ module Datadog
           :modules_to_instrument,
           :instrumented_files,
           def self.build(settings, tracer)
-            if settings.errortracking.instrumentation_scope.empty? && settings.errortracking.modules_to_instrument.empty?
+            if settings.error_tracking.instrumentation_scope.empty? && settings.error_tracking.modules_to_instrument.empty?
               return
             end
-            return if !settings.errortracking.instrumentation_scope.empty? &&
-              !['all', 'user', 'third_party'].include?(settings.errortracking.instrumentation_scope)
+            return if !settings.error_tracking.instrumentation_scope.empty? &&
+              !['all', 'user', 'third_party'].include?(settings.error_tracking.instrumentation_scope)
 
             new(
               tracer: tracer,
-              instrumentation_scope: settings.errortracking.instrumentation_scope,
-              modules_to_instrument: settings.errortracking.modules_to_instrument,
+              instrumentation_scope: settings.error_tracking.instrumentation_scope,
+              modules_to_instrument: settings.error_tracking.modules_to_instrument,
             ).tap(&:start)
           end
 
@@ -67,7 +67,7 @@ module Datadog
           # The only thing we know about the handled errors is in which file it was
           # rescued. Therefore, when a user specifies the modules to instrument,
           # we use this tracepoint to get their paths.
-          unless @modules_to_instrument.empty?
+          unless @instrumented_files.nil?
             @module_path_getter = TracePoint.new(:script_compiled) do |tp|
               next if tp.eval_script
 
@@ -77,7 +77,7 @@ module Datadog
               @modules_to_instrument.each do |module_to_instr|
                 # The regex is looking for the name of the module with '/' before
                 # and either '/' or '.rb' after
-                add_instrumented_file(path) if path.match?(%r{/#{Regexp.escape(module_to_instr)}(?=/|\.rb)})
+                _add_instrumented_file(path) if path.match?(%r{/#{Regexp.escape(module_to_instr)}(?=/|\.rb\z)})
               end
             end
           end
@@ -113,7 +113,9 @@ module Datadog
           Datadog::Tracing::SpanEvent.new('exception', attributes: attributes)
         end
 
-        def add_instrumented_file(file_path)
+        private
+
+        def _add_instrumented_file(file_path)
           @instrumented_files[file_path] = true
         end
       end
