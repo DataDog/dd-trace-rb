@@ -16,7 +16,7 @@ static void configurator_free(void *configurator_ptr) {
 }
 
 static const rb_data_type_t configurator_typed_data = {
-  .wrap_struct_name = "Datadog::Core::LibraryConfig::Configurator",
+  .wrap_struct_name = "Datadog::Core::StableConfig::Configurator",
   .function = {
     .dfree = configurator_free,
     .dsize = NULL,
@@ -33,7 +33,7 @@ static void config_vec_free(void *config_vec_ptr) {
 }
 
 static const rb_data_type_t config_vec_typed_data = {
-  .wrap_struct_name = "Datadog::Core::LibraryConfig::Configurator::ConfigVec",
+  .wrap_struct_name = "Datadog::Core::StableConfig::Configurator::ConfigVec",
   .function = {
     .dfree = config_vec_free,
     .dsize = NULL,
@@ -42,8 +42,8 @@ static const rb_data_type_t config_vec_typed_data = {
 };
 
 void library_config_init(VALUE core_module) {
-  VALUE library_config_class = rb_define_class_under(core_module, "LibraryConfig", rb_cObject);
-  VALUE configurator_class = rb_define_class_under(library_config_class, "Configurator", rb_cObject);
+  VALUE stable_config_module = rb_define_module_under(core_module, "StableConfig");
+  VALUE configurator_class = rb_define_class_under(stable_config_module, "Configurator", rb_cObject);
   config_vec_class = rb_define_class_under(configurator_class, "ConfigVec", rb_cObject);
 
   rb_define_alloc_func(configurator_class, _native_configurator_new);
