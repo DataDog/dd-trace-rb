@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
       @errortracker.shutdown!
     end
 
-    shared_examples 'captures exception details' do |exception_count|
+    shared_examples 'captures exception details' do
       it 'captures exception(s) with correct details' do
         expect(span.events.length).to eq(expected_exceptions.length)
 
