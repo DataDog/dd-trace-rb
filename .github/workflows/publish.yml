@@ -37,7 +37,7 @@ jobs:
 
       # Check if the gem version is already published
       - name: Verify gem version
-        if: ${{ !inputs.force }}
+        continue-on-error: ${{ inputs.force }}
         env:
           GEM_VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -51,8 +51,7 @@ jobs:
       # Check if there is a draft release for this version
       # API: https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#list-releases
       - name: Verify draft release
-        if: ${{ !inputs.force }}
-        continue-on-error: true # TODO: Remove when figuring out why draft release are not returned from API
+        continue-on-error: ${{ inputs.force }}
         env:
           GEM_VERSION: ${{ steps.version.outputs.version }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
@@ -80,7 +79,7 @@ jobs:
       # Check if there is an open milestone for this version
       # API: https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28#list-milestones
       - name: Verify milestone
-        if: ${{ !inputs.force }}
+        continue-on-error: ${{ inputs.force }}
         env:
           GEM_VERSION: ${{ steps.version.outputs.version }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
@@ -108,7 +107,7 @@ jobs:
       # Check if the commit has passed all Github checks
       # API: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-for-a-git-reference
       - name: Verify check runs
-        if: ${{ !inputs.force }}
+        continue-on-error: ${{ inputs.force }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
@@ -133,7 +132,7 @@ jobs:
       # Check if the commit has passed external CI checks
       # API: https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
       - name: Verify commit status
-        if: ${{ !inputs.force }}
+        continue-on-error: ${{ inputs.force }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
@@ -149,7 +148,7 @@ jobs:
 
       # Check if the commit has all the checks passed
       - name: Verify deferred commit data
-        if: ${{ !inputs.force }}
+        continue-on-error: ${{ inputs.force }}
         # NOTE:
         #
         # This step uses Github's internal API (for rendering the status of the checks in UI),
