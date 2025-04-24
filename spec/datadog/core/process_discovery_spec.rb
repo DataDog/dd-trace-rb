@@ -9,8 +9,8 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
   describe '.get_and_store_metadata' do
     context 'when libdatadog API is not available' do
       it 'returns nil' do
-        stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', LoadError.new('test'))
-        expect(described_class.get_and_store_metadata(nil, Datadog::Core::Logger.new($stdout))).to be_nil
+        stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', 'test')
+        expect(described_class.get_and_store_metadata(nil, Datadog::Core::Logger.new(StringIO.new))).to be_nil
       end
     end
 
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         end
 
         it 'stores metadata successfully' do
-          native_fd = described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new($stdout))
+          native_fd = described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new(StringIO.new))
 
           # Extract content from created memfd
           fd = described_class._native_to_rb_int(native_fd)
@@ -61,7 +61,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         end
 
         it 'stores metadata successfully' do
-          native_fd = described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new($stdout))
+          native_fd = described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new(StringIO.new))
 
           # Extract content from created memfd
           fd = described_class._native_to_rb_int(native_fd)
