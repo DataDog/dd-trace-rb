@@ -136,14 +136,49 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const { data: status } = await github.rest.repos.getCombinedStatusForRef({
+            const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: context.sha
             });
 
-            if (status.state !== 'success') {
-              core.setFailed(`Commit status is ${status.state}`);
+            if (combinedStatus.state !== 'success') {
+              // Fetch all statuses using pagination helper
+              const allStatuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.sha,
+                per_page: 100
+              });
+
+              // Filter failed statuses
+              const failedStatuses = allStatuses.filter(s => s.state !== 'success');
+
+              // Annotate each failed status
+              if (failedStatuses.length > 0) {
+                failedStatuses.forEach(failedStatus => {
+                  // Create a title with status and truncated context
+                  const contextShort = failedStatus.context.length > 60
+                    ? failedStatus.context.substring(0, 57) + '...'
+                    : failedStatus.context;
+
+                  const title = `Status: ${failedStatus.state} - ${contextShort}`;
+
+                  // Message contains description and debug URL
+                  let message = failedStatus.description || 'No description available';
+
+                  if (failedStatus.target_url) {
+                    message += `\nDebug URL: ${failedStatus.target_url}`;
+                  }
+
+                  core.error(message, {
+                    title: title
+                  });
+                });
+              }
+
+              // Set job failure
+              core.setFailed(`Commit status is ${combinedStatus.state} with ${failedStatuses.length} failed checks`);
             }
 
       # Check if the commit has all the checks passed
