@@ -1,0 +1,13 @@
+module Datadog
+  module Core
+    module StableConfig
+      class Configurator
+        type config_vec = Array[{name: String, value: String, source: Symbol}]
+
+        def initialize: () -> void
+
+        def get: () -> config_vec
+      end
+    end
+  end
+end
