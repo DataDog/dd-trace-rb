@@ -13,7 +13,6 @@ module Datadog
       class Component
         attr_accessor :tracepoint,
           :tracer,
-          :collector,
           :to_instrument_modules,
           :instrumented_files,
           :script_compiled_tracepoint
@@ -35,8 +34,6 @@ module Datadog
           @instrumented_files = {} unless to_instrument_modules.empty?
           @to_instrument_modules = to_instrument_modules
 
-          @collector = Collector.new
-
           # Filter function is used to filter out the exception
           # we do not want to report. For instance exception from third
           # party packages.
@@ -53,10 +50,9 @@ module Datadog
             unless active_span.nil?
               raised_exception = tp.raised_exception
               rescue_file_path = tp.path
-
               if @filter_function.call(rescue_file_path)
                 span_event = _generate_span_event(raised_exception)
-                @collector.add_span_event(active_span, raised_exception, span_event)
+                active_span.collector.add_span_event(active_span, raised_exception, span_event)
               end
             end
           end

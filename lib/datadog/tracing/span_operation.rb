@@ -6,6 +6,7 @@ require_relative '../core/environment/identity'
 require_relative '../core/utils'
 require_relative '../core/utils/time'
 require_relative '../core/utils/safe_dup'
+require_relative '../core/errortracking/collector'
 
 require_relative 'event'
 require_relative 'metadata'
@@ -37,7 +38,7 @@ module Datadog
         :start_time,
         :trace_id,
         :type
-      attr_accessor :links, :status, :span_events
+      attr_accessor :links, :status, :span_events, :collector
 
       def initialize(
         name,
@@ -73,6 +74,8 @@ module Datadog
         @links = links || []
         # stores array of span events
         @span_events = span_events || []
+
+        @collector = Datadog::Core::Errortracking::Collector.new
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -161,7 +164,7 @@ module Datadog
           # Stop the span first, so timing is a more accurate.
           # If the span failed to start, timing may be inaccurate,
           # but this is not really a serious concern.
-          stop
+          stop(nil, e)
 
           # Trigger the on_error event
           events.on_error.publish(self, e)
@@ -202,7 +205,7 @@ module Datadog
       #
       # steep:ignore:start
       # Steep issue fixed in https://github.com/soutaro/steep/pull/1467
-      def stop(stop_time = nil)
+      def stop(stop_time = nil, error = nil)
         # A span should not be stopped twice. Note that this is not thread-safe,
         # stop is called from multiple threads, a given span might be stopped
         # several times. Again, one should not do this, so this test is more a
@@ -220,7 +223,7 @@ module Datadog
         @duration_end = stop_time.nil? ? duration_marker : nil
 
         # Trigger after_stop event
-        events.after_stop.publish(self)
+        events.after_stop.publish(self, error)
 
         self
       end
@@ -252,8 +255,6 @@ module Datadog
 
         # Stop timing
         stop(end_time)
-
-        events.before_finish.publish(self)
 
         # Build span
         # Memoize for performance reasons
@@ -351,13 +352,11 @@ module Datadog
         DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
 
         attr_reader \
-          :before_finish,
           :after_finish,
           :after_stop,
           :before_start
 
         def initialize(on_error: nil)
-          @before_finish = BeforeFinish.new
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
           @before_start = BeforeStart.new
@@ -367,13 +366,6 @@ module Datadog
         # are normally less common that non-error paths.
         def on_error
           @on_error ||= OnError.new(DEFAULT_ON_ERROR)
-        end
-
-        # Triggered when the span is finished, regardless of error.
-        class BeforeFinish < Tracing::Event
-          def initialize
-            super(:before_finish)
-          end
         end
 
         # Triggered when the span is finished, regardless of error.
@@ -398,27 +390,44 @@ module Datadog
         end
 
         # Triggered when the span raises an error during measurement.
-        class OnError < Tracing::Event
+        class OnError
           def initialize(default)
-            super(:on_error)
-            @default = default
-            subscribe(&@default)
+            @handler = default
           end
 
           # Call custom error handler but fallback to default behavior on failure.
+
+          # DEV: Revisit this before full 1.0 release.
+          # It seems like OnError wants to behave like a middleware stack,
+          # where each "subscriber"'s executed is chained to the previous one.
+          # This is different from how {Tracing::Event} works, and might be incompatible.
           def wrap_default
-            @subscriptions[0] = proc do |op, error|
+            original = @handler
+
+            @handler = proc do |op, error|
               begin
                 yield(op, error)
               rescue StandardError => e
                 Datadog.logger.debug do
-                  "Custom on_error handler #{@default} failed, using fallback behavior. \
+                  "Custom on_error handler #{@handler} failed, using fallback behavior. \
                   Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 end
 
-                @default.call(op, error) if @default
+                original.call(op, error) if original
               end
             end
+          end
+
+          def publish(*args)
+            begin
+              @handler.call(*args)
+            rescue StandardError => e
+              Datadog.logger.debug do
+                "Error in on_error handler '#{@default}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+              end
+            end
+
+            true
           end
         end
       end
