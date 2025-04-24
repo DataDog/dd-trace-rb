@@ -2,7 +2,6 @@ module Datadog
   module Core
     module Crashtracking
       class Component
-        LIBDATADOG_API_FAILURE: ::String?
         ONLY_ONCE: Core::Utils::OnlyOnce
 
         def self.build: (

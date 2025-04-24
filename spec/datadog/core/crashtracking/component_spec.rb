@@ -7,7 +7,7 @@ require 'fiddle'
 # https://github.com/rubocop/rubocop-rspec/issues/2078
 # rubocop:disable RSpec/ScatteredLet
 
-RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelpers.supported? do
+RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers.supported? do
   let(:logger) { Logger.new($stdout) }
 
   describe '.build' do

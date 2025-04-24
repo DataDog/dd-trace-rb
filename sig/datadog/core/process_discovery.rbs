@@ -1,0 +1,39 @@
+module Datadog
+  module Core
+    class ProcessDiscovery
+      # defined in C. struct containing int fd.
+      class TracerMemfd
+      end
+
+      def self._native_store_tracer_metadata: (
+        Datadog::Core::Logger logger,
+        schema_version: Integer,
+        runtime_id: String,
+        tracer_language: String,
+        tracer_version: String,
+        hostname: String,
+        service_name: String,
+        service_env: String,
+        service_version: String
+      ) -> TracerMemfd?
+
+      def self._native_close_tracer_memfd: (TracerMemfd tracer_memfd, Datadog::Core::Logger logger) -> void
+
+      def self.get_and_store_metadata: (
+        Datadog::Core::Configuration::Settings settings,
+        Datadog::Core::Logger logger
+      ) -> TracerMemfd?
+
+      def self.get_metadata: (Datadog::Core::Configuration::Settings settings) -> {
+        schema_version: Integer,
+        runtime_id: String,
+        tracer_language: String,
+        tracer_version: String,
+        hostname: String,
+        service_name: String,
+        service_env: String,
+        service_version: String
+      }
+    end
+  end
+end
