@@ -35,8 +35,7 @@ module Datadog
                         waf_result: result,
                         trace: context.trace,
                         span: context.span,
-                        multiplex: gateway_multiplex,
-                        actions: result.actions
+                        multiplex: gateway_multiplex
                       }
 
                       Datadog::AppSec::ActionsHandler.handle(result.actions)

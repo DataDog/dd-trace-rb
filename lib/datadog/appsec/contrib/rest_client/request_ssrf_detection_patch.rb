@@ -21,9 +21,7 @@ module Datadog
               context.events << {
                 waf_result: result,
                 trace: context.trace,
-                span: context.span,
-                request_url: url,
-                actions: result.actions
+                span: context.span
               }
 
               ActionsHandler.handle(result.actions)

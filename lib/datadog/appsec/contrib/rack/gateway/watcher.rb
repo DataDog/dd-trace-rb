@@ -43,9 +43,7 @@ module Datadog
                     context.events << {
                       waf_result: result,
                       trace: context.trace,
-                      span: context.span,
-                      request: gateway_request,
-                      actions: result.actions
+                      span: context.span
                     }
 
                     Datadog::AppSec::ActionsHandler.handle(result.actions)
@@ -73,9 +71,7 @@ module Datadog
                     context.events << {
                       waf_result: result,
                       trace: context.trace,
-                      span: context.span,
-                      response: gateway_response,
-                      actions: result.actions
+                      span: context.span
                     }
 
                     Datadog::AppSec::ActionsHandler.handle(result.actions)
@@ -101,9 +97,7 @@ module Datadog
                     context.events << {
                       waf_result: result,
                       trace: context.trace,
-                      span: context.span,
-                      request: gateway_request,
-                      actions: result.actions
+                      span: context.span
                     }
 
                     Datadog::AppSec::ActionsHandler.handle(result.actions)

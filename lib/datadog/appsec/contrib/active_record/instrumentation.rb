@@ -33,9 +33,7 @@ module Datadog
               event = {
                 waf_result: result,
                 trace: context.trace,
-                span: context.span,
-                sql: sql,
-                actions: result.actions
+                span: context.span
               }
               context.events << event
 
