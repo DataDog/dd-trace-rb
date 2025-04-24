@@ -25,7 +25,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
     end
 
     context 'when a wrong argument is passed' do
-      before { settings.errortracking.to_instrument = 'foo' }
+      before { settings.errortracking.instrumentation_scope = 'foo' }
       it 'returns nil' do
         expect(described_class.build(settings, tracer)).to be_nil
       end
@@ -44,20 +44,20 @@ RSpec.describe Datadog::Core::Errortracking::Component do
       end
     end
 
-    context 'when to_instrument is provided' do
-      before { settings.errortracking.to_instrument = 'all' }
+    context 'when instrumentation_scope is provided' do
+      before { settings.errortracking.instrumentation_scope = 'all' }
       include_examples 'it creates and starts a component'
     end
 
-    context 'when to_instrument_modules is provided' do
-      before { settings.errortracking.to_instrument_modules = ['rails'] }
+    context 'when modules_to_instrument is provided' do
+      before { settings.errortracking.modules_to_instrument = ['rails'] }
       include_examples 'it creates and starts a component'
     end
 
     context 'when all required parameters are provided' do
       before do
-        settings.errortracking.to_instrument_modules = ['rails']
-        settings.errortracking.to_instrument = 'user'
+        settings.errortracking.modules_to_instrument = ['rails']
+        settings.errortracking.instrumentation_scope = 'user'
       end
       include_examples 'it creates and starts a component'
     end
@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
 
   describe 'use errortracking component global feature' do
     before do
-      settings.errortracking.to_instrument = 'all'
+      settings.errortracking.instrumentation_scope = 'all'
       @errortracker = described_class.build(settings, tracer)
       tracer.enabled = true
     end
@@ -242,8 +242,8 @@ RSpec.describe Datadog::Core::Errortracking::Component do
 
     before do
       # Configure settings based on test parameters
-      settings.errortracking.to_instrument = instrument_setting if instrument_setting
-      settings.errortracking.to_instrument_modules = modules_to_instrument if modules_to_instrument.any?
+      settings.errortracking.instrumentation_scope = instrument_setting if instrument_setting
+      settings.errortracking.modules_to_instrument = modules_to_instrument if modules_to_instrument.any?
 
       @errortracker = described_class.build(settings, tracer)
 

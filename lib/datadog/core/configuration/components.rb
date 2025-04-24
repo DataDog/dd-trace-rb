@@ -79,7 +79,9 @@ module Datadog
           end
 
           def build_errortracker(settings:, tracer:, logger:)
-            return if settings.errortracking.to_instrument.empty? && settings.errortracking.to_instrument_modules.empty?
+            if settings.errortracking.instrumentation_scope.empty? && settings.errortracking.modules_to_instrument.empty?
+              return
+            end
 
             Core::Errortracking::Component.build(settings, tracer)
           end

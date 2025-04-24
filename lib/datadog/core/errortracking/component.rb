@@ -11,33 +11,35 @@ module Datadog
       # The component instance records every handled exceptions from the configured scopes
       # (user, third_party packages, specified modules of everything). T
       class Component
-        attr_accessor :tracepoint,
+        attr_accessor :handled_exc_tracker,
+          :module_path_getter,
           :tracer,
-          :to_instrument_modules,
+          :modules_to_instrument,
           :instrumented_files,
-          :script_compiled_tracepoint
+          def self.build(settings, tracer)
+            if settings.errortracking.instrumentation_scope.empty? && settings.errortracking.modules_to_instrument.empty?
+              return
+            end
+            return if !settings.errortracking.instrumentation_scope.empty? &&
+              !['all', 'user', 'third_party'].include?(settings.errortracking.instrumentation_scope)
 
-        def self.build(settings, tracer)
-          return if settings.errortracking.to_instrument.empty? && settings.errortracking.to_instrument_modules.empty?
-          return if !settings.errortracking.to_instrument.empty? &&
-            !['all', 'user', 'third_party'].include?(settings.errortracking.to_instrument)
+            new(
+              tracer: tracer,
+              instrumentation_scope: settings.errortracking.instrumentation_scope,
+              modules_to_instrument: settings.errortracking.modules_to_instrument,
+            ).tap(&:start)
+          end
 
-          new(
-            tracer: tracer,
-            to_instrument: settings.errortracking.to_instrument,
-            to_instrument_modules: settings.errortracking.to_instrument_modules,
-          ).tap(&:start)
-        end
-
-        def initialize(tracer:, to_instrument:, to_instrument_modules:)
+        def initialize(tracer:, instrumentation_scope:, modules_to_instrument:)
           @tracer = tracer
-          @instrumented_files = {} unless to_instrument_modules.empty?
-          @to_instrument_modules = to_instrument_modules
+          # Hash containing the file path of the modules to instrument
+          @instrumented_files = {} unless modules_to_instrument.empty?
+          @modules_to_instrument = modules_to_instrument
 
           # Filter function is used to filter out the exception
           # we do not want to report. For instance exception from third
           # party packages.
-          @filter_function = Filters.generate_filter(to_instrument, @instrumented_files)
+          @filter_function = Filters.generate_filter(instrumentation_scope, @instrumented_files)
 
           # :raise event was added in Ruby 3.3
           #
@@ -45,7 +47,10 @@ module Datadog
           # If an error is not handled, we will delete the according
           # span event in the collector.
           event = RUBY_VERSION >= '3.3' ? :rescue : :raise
-          @tracepoint = TracePoint.new(event) do |tp|
+
+          # This tracepoint is in charge of capturing the handled exceptions
+          # and of adding the corresponding span events to the collector
+          @handled_exc_tracker = TracePoint.new(event) do |tp|
             active_span = @tracer.active_span
             unless active_span.nil?
               raised_exception = tp.raised_exception
@@ -57,35 +62,39 @@ module Datadog
             end
           end
 
-          # Initialize the script_compiled TracePoint to track loaded files
-          # This replaces the Kernel monkey patching approach
-          @script_compiled_tracepoint = TracePoint.new(:script_compiled) do |tp|
-            next if tp.eval_script
+          # The only thing we know about the handled errors is in which file it was
+          # rescued. Therefore, when a user specifies the modules to instrument,
+          # we use this tracepoint to get their paths.
+          unless @modules_to_instrument.empty?
+            @module_path_getter = TracePoint.new(:script_compiled) do |tp|
+              next if tp.eval_script
 
-            path = tp.instruction_sequence.path
-            next unless path
+              path = tp.instruction_sequence.path
+              next if path.nil?
 
-            @to_instrument_modules.each do |module_to_instr|
-              # puts "#{module_to_instr} vs #{path} vs #{path.match?(%r{/#{Regexp.escape(module_to_instr)}(?=/|\.rb)})}"
-              add_instrumented_file(path) if path.match?(%r{/#{Regexp.escape(module_to_instr)}(?=/|\.rb)})
+              @modules_to_instrument.each do |module_to_instr|
+                # The regex is looking for the name of the module with '/' before
+                # and either '/' or '.rb' after
+                add_instrumented_file(path) if path.match?(%r{/#{Regexp.escape(module_to_instr)}(?=/|\.rb)})
+              end
             end
           end
         end
 
         # Starts the tracepoints.
         #
-        # Enables the script_compiled tracepoint if to_instrument_modules is not empty.
+        # Enables the script_compiled tracepoint if modules_to_instrument is not empty.
         def start
-          @tracepoint.enable
-          @script_compiled_tracepoint.enable unless @to_instrument_modules.empty?
+          @handled_exc_tracker.enable
+          @module_path_getter&.enable
         end
 
         # Shuts down error tracker.
         #
         # Disables the tracepoints.
         def shutdown!
-          @tracepoint.disable
-          @script_compiled_tracepoint&.disable
+          @handled_exc_tracker.disable
+          @module_path_getter&.disable
         end
 
         # Generates a span event from the exception info.
