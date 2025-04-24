@@ -1,0 +1,47 @@
+name: Trial
+
+on:
+  push:
+    branches:
+      - tonycthsu/*
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  first:
+    name: First job
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Hello world
+        run: echo "Hello world"
+
+  second:
+    name: Second job
+    runs-on: ubuntu-24.04
+    needs: first
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Hello world
+        run: echo "Hello world"
+
+  complete:
+    name: Trial (complete)
+    runs-on: ubuntu-24.04
+    if: ${{ always() }}
+    needs:
+      - second
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/complete
+        with:
+          needs: ${{ toJSON(needs) }}
