@@ -5,7 +5,6 @@
 
 static void configurator_free(void *ptr);
 static VALUE _native_configurator_new(VALUE klass);
-static VALUE _native_configurator_initialize(VALUE self);
 static VALUE _native_configurator_get(VALUE self);
 
 static const rb_data_type_t configurator_typed_data = {
@@ -17,8 +16,9 @@ static const rb_data_type_t configurator_typed_data = {
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
 
-static void configurator_free(void *ptr) {
-  ddog_Configurator *configurator = (ddog_Configurator *)ptr;
+static void configurator_free(void *configurator_ptr) {
+  ddog_Configurator *configurator = (ddog_Configurator *)configurator_ptr;
+
   ddog_library_configurator_drop(configurator);
 }
 
@@ -27,23 +27,15 @@ void library_config_init(VALUE core_module) {
   VALUE configurator_class = rb_define_class_under(library_config_class, "Configurator", rb_cObject);
 
   rb_define_alloc_func(configurator_class, _native_configurator_new);
-  rb_define_method(configurator_class, "initialize", _native_configurator_initialize, 0);
   rb_define_method(configurator_class, "get", _native_configurator_get, 0);
 }
 
 static VALUE _native_configurator_new(VALUE klass) {
   ddog_Configurator *configurator = ddog_library_configurator_new(false, DDOG_CHARSLICE_C("ruby"));
 
-  return TypedData_Wrap_Struct(klass, &configurator_typed_data, configurator);
-}
-
-static VALUE _native_configurator_initialize(VALUE self) {
-  ddog_Configurator *configurator;
-  TypedData_Get_Struct(self, ddog_Configurator, &configurator_typed_data, configurator);
-
   ddog_library_configurator_with_detect_process_info(configurator);
 
-  return self;
+  return TypedData_Wrap_Struct(klass, &configurator_typed_data, configurator);
 }
 
 static VALUE _native_configurator_get(VALUE self) {
