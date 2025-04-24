@@ -49,7 +49,7 @@ module Datadog
         @internal_metadata = internal_metadata
         # NOTE: At the time of this comment collected info does not change over time so we'll hardcode
         #       it on startup to prevent serializing the same info on every flush.
-        @info_json = JSON.fast_generate(info_collector.info).freeze
+        @info_json = JSON.generate(info_collector.info).freeze
       end
 
       def flush
