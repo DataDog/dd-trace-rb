@@ -105,28 +105,72 @@ jobs:
             console.log(`Found open milestone ${process.env.GEM_VERSION} (ID: ${versionMilestone.number})`);
 
       # Check if the commit has passed all Github checks
-      # API: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-for-a-git-reference
+      # API:
+      # - https://docs.github.com/en/rest/checks/suites?apiVersion=2022-11-28#list-check-suites-for-a-git-reference
+      # - https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-in-a-check-suite
       - name: Verify check runs
         continue-on-error: ${{ inputs.force }}
+        env:
+          APP_ID: 15368 # Github Actions app ID
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const checkRuns = await github.paginate(github.rest.checks.listForRef, {
+            const checkSuites = await github.paginate(github.rest.checks.listSuitesForRef, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: context.sha,
+              app_id: parseInt(process.env.APP_ID),
               per_page: 100
             });
 
-            const failedChecks = checkRuns.filter(check =>
-              check.status === 'completed' &&
-              check.conclusion !== 'success' &&
-              check.conclusion !== 'skipped'
+            console.log(`Found ${checkSuites.length} check suites`);
+
+            // Filter for failed check suites
+            // Valid conclusions that indicate success or can be ignored:
+            // - success: everything passed
+            // - neutral: checks completed without detecting any specific issues
+            // - skipped: checks were intentionally skipped (aka not relevant)
+            const failedSuites = checkSuites.filter(suite =>
+              suite.status === 'completed' &&
+              suite.conclusion !== 'success' &&
+              suite.conclusion !== 'neutral' &&
+              suite.conclusion !== 'skipped'
             );
 
-            if (failedChecks.length > 0) {
-              const failedNames = failedChecks.map(c => c.name).join(', ');
-              core.setFailed(`Check runs failed: ${failedNames}`);
+            if (failedSuites.length > 0) {
+              console.log(`Found ${failedSuites.length} failed check suites`);
+
+              // Get failed check runs for all failed suites using Promise.all and map
+              const failedChecksPromises = failedSuites.map(async suite => {
+                const checkRuns = await github.paginate(github.rest.checks.listForSuite, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  check_suite_id: suite.id,
+                  per_page: 100
+                });
+
+                return checkRuns.filter(check =>
+                  check.status === 'completed' &&
+                  check.conclusion !== 'success' &&
+                  check.conclusion !== 'neutral' &&
+                  check.conclusion !== 'skipped'
+                );
+              });
+
+              const failedChecksArrays = await Promise.all(failedChecksPromises);
+              const allFailedChecks = failedChecksArrays.flat();
+
+              console.log(`Found a total of ${allFailedChecks.length} failed check runs`);
+
+              // Annotate each failed check run
+              allFailedChecks.forEach(check => {
+                core.error(`Debug URL: ${check.html_url || check.details_url}`, {
+                  title: `Failed Check: ${check.name}`,
+                });
+              });
+
+              // Set job failure
+              core.setFailed(`Found ${failedSuites.length} failed check suites`);
             }
 
       # Check if the commit has passed external CI checks
