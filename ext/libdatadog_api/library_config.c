@@ -3,9 +3,17 @@
 
 #include "datadog_ruby_common.h"
 
-static void configurator_free(void *ptr);
 static VALUE _native_configurator_new(VALUE klass);
 static VALUE _native_configurator_get(VALUE self);
+
+static VALUE config_vec_class = Qnil;
+
+// ddog_Configurator memory management
+static void configurator_free(void *configurator_ptr) {
+  ddog_Configurator *configurator = (ddog_Configurator *)configurator_ptr;
+
+  ddog_library_configurator_drop(configurator);
+}
 
 static const rb_data_type_t configurator_typed_data = {
   .wrap_struct_name = "Datadog::Core::LibraryConfig::Configurator",
@@ -16,18 +24,32 @@ static const rb_data_type_t configurator_typed_data = {
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
 
-static void configurator_free(void *configurator_ptr) {
-  ddog_Configurator *configurator = (ddog_Configurator *)configurator_ptr;
+// ddog_Vec_LibraryConfig memory management
+static void config_vec_free(void *config_vec_ptr) {
+  ddog_Vec_LibraryConfig *config_vec = (ddog_Vec_LibraryConfig *)config_vec_ptr;
 
-  ddog_library_configurator_drop(configurator);
+  ddog_library_config_drop(*config_vec);
+  ruby_xfree(config_vec_ptr);
 }
+
+static const rb_data_type_t config_vec_typed_data = {
+  .wrap_struct_name = "Datadog::Core::LibraryConfig::Configurator::ConfigVec",
+  .function = {
+    .dfree = config_vec_free,
+    .dsize = NULL,
+  },
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY
+};
 
 void library_config_init(VALUE core_module) {
   VALUE library_config_class = rb_define_class_under(core_module, "LibraryConfig", rb_cObject);
   VALUE configurator_class = rb_define_class_under(library_config_class, "Configurator", rb_cObject);
+  config_vec_class = rb_define_class_under(configurator_class, "ConfigVec", rb_cObject);
 
   rb_define_alloc_func(configurator_class, _native_configurator_new);
   rb_define_method(configurator_class, "get", _native_configurator_get, 0);
+
+  rb_undef_alloc_func(config_vec_class); // It cannot be created form Ruby code and only serves as an intermediate object for the Ruby GC
 }
 
 static VALUE _native_configurator_new(VALUE klass) {
@@ -42,9 +64,8 @@ static VALUE _native_configurator_get(VALUE self) {
   ddog_Configurator *configurator;
   TypedData_Get_Struct(self, ddog_Configurator, &configurator_typed_data, configurator);
 
-  VALUE config_array = rb_ary_new();
-
   ddog_Result_VecLibraryConfig configurator_result = ddog_library_configurator_get(configurator);
+
   if (configurator_result.tag == DDOG_RESULT_VEC_LIBRARY_CONFIG_ERR_VEC_LIBRARY_CONFIG) {
     ddog_Error err = configurator_result.err;
     VALUE message = get_error_details_and_drop(&err);
@@ -52,9 +73,16 @@ static VALUE _native_configurator_get(VALUE self) {
     return Qnil;
   }
 
-  ddog_Vec_LibraryConfig config_vec = configurator_result.ok;
-  for (uintptr_t i = 0; i < config_vec.len; i++) {
-    ddog_LibraryConfig config = config_vec.ptr[i];
+  // Wrapping config_vec into a Ruby object enables the Ruby GC to manage its memory
+  // We need to allocate memory for config_vec because once it is out of scope, it will be freed (at the end of this function)
+  // So we cannot reference it with &config_vec
+  ddog_Vec_LibraryConfig *config_vec = ruby_xmalloc(sizeof(ddog_Vec_LibraryConfig));
+  *config_vec = configurator_result.ok;
+  TypedData_Wrap_Struct(config_vec_class, &config_vec_typed_data, config_vec);
+
+  VALUE config_array = rb_ary_new();
+  for (uintptr_t i = 0; i < config_vec->len; i++) {
+    ddog_LibraryConfig config = config_vec->ptr[i];
     VALUE config_hash = rb_hash_new();
 
     ddog_CStr name = ddog_library_config_name_to_env(config.name);
@@ -68,7 +96,5 @@ static VALUE _native_configurator_get(VALUE self) {
 
     rb_ary_push(config_array, config_hash);
   }
-  ddog_library_config_drop(config_vec);
-
   return config_array;
 }
