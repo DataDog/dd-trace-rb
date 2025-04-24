@@ -15,9 +15,7 @@ module Datadog
             worker.processed
           ].freeze
 
-          EMPTY_HASH = {}.freeze
-
-          def instrument(event_id, payload = EMPTY_HASH, &block)
+          def instrument(event_id, payload = {}, &block)
             return super unless TRACEABLE_EVENTS.include?(event_id)
 
             Datadog::Tracing.trace(Ext::SPAN_WORKER_PROCESS) do |span|

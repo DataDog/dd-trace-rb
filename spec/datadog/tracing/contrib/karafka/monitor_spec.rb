@@ -35,8 +35,6 @@ RSpec.describe 'Karafka monitor' do
     end
 
     context 'when the event is traceable' do
-      let(:span) { instance_double('Span', set_tag: nil) }
-      let(:event_id) { 'some_event' }
       let(:payload) { { job: job } }
       let(:job) { instance_double('Job', class: job_class, executor: executor, messages: messages) }
       let(:job_class) { Class.new }
@@ -45,23 +43,23 @@ RSpec.describe 'Karafka monitor' do
       let(:messages) { [instance_double('Message', metadata: metadata)] }
       let(:metadata) { instance_double('Metadata', offset: 42) }
 
-      it 'creates a trace' do
-        allow(span).to receive(:resource=)
-        allow(Datadog::Tracing).to receive(:trace).and_yield(span)
-
+      it 'traces a consumer job' do
         Karafka.monitor.instrument(
           'worker.processed',
           payload
         )
 
-        expect(Datadog::Tracing).to have_received(:trace)
-        expect(span).to have_received(:resource=).with('Consumer#consume')
-        expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT, 1)
-        expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION, 1)
-        expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Karafka::Ext::TAG_OFFSET, 42)
-        expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Karafka::Ext::TAG_CONSUMER, 'Consumer')
-        expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Ext::Messaging::TAG_DESTINATION, 'topic_name')
-        expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Ext::Messaging::TAG_SYSTEM, Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM)
+        expect(spans).to have(1).items
+
+        span, _push = spans
+
+        expect(span.resource).to eq('Consumer#consume')
+        expect(span.get_tag(Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT)).to eq(1)
+        expect(span.get_tag(Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION)).to eq(1)
+        expect(span.get_tag(Datadog::Tracing::Contrib::Karafka::Ext::TAG_OFFSET)).to eq(42)
+        expect(span.get_tag(Datadog::Tracing::Contrib::Karafka::Ext::TAG_CONSUMER)).to eq('Consumer')
+        expect(span.get_tag('messaging.destination')).to eq('topic_name')
+        expect(span.get_tag('messaging.system')).to eq(Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM)
       end
     end
   end
