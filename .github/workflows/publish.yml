@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       checks: read
-      contents: read
+      contents: write
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
