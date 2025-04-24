@@ -3,6 +3,7 @@ module SubLib1
     begin
       raise 'sublib1 error'
     rescue
+      # do nothing
     end
   end
 end

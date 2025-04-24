@@ -3,6 +3,7 @@ module Lib2
     begin
       raise 'lib2 error'
     rescue
+      # do nothing
     end
   end
 end

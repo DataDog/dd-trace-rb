@@ -85,6 +85,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
           begin
             raise 'this is an exception'
           rescue
+            # do nothing
           end
         end
         validate_span_events
@@ -104,10 +105,12 @@ RSpec.describe Datadog::Core::Errortracking::Component do
           begin
             raise 'this is an exception'
           rescue
+            # do nothing
           end
           begin
             raise StandardError, 'this is another exception'
           rescue
+            # do nothing
           end
         end
         validate_span_events
@@ -128,6 +131,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
               raise e
             end
           rescue
+            # do nothing
           end
         end
         validate_span_events
@@ -143,7 +147,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
       end
 
       it 'capture exception details' do
-        tracer.trace('operation') do |inner_span|
+        tracer.trace('operation') do
           begin
             begin
               raise 'this is an exception'
@@ -151,6 +155,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
               raise KeyError, e
             end
           rescue
+            # do nothing
           end
         end
         validate_span_events
@@ -173,6 +178,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
             end
           end
         rescue
+          # do nothing
         end
         validate_span_events
       end
@@ -188,7 +194,8 @@ RSpec.describe Datadog::Core::Errortracking::Component do
           101.times do
             begin
               raise 'this is an exception'
-            rescue StandardError
+            rescue
+              # do nothing
             end
           end
         end
@@ -207,6 +214,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
             begin
               child_span
             rescue
+              # do nothing
             end
           end
         end
@@ -282,6 +290,7 @@ RSpec.describe Datadog::Core::Errortracking::Component do
         begin
           raise 'user code error'
         rescue
+          # do nothing
         end
 
         MockGem::Client.rescue_error
