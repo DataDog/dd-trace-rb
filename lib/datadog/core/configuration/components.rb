@@ -15,7 +15,7 @@ require_relative '../../profiling/component'
 require_relative '../../appsec/component'
 require_relative '../../di/component'
 require_relative '../crashtracking/component'
-require_relative '../errortracking/component'
+require_relative '../error_tracking/component'
 
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
@@ -79,11 +79,11 @@ module Datadog
           end
 
           def build_errortracker(settings:, tracer:, logger:)
-            if settings.errortracking.instrumentation_scope.empty? && settings.errortracking.modules_to_instrument.empty?
+            if settings.error_tracking.instrumentation_scope.empty? && settings.error_tracking.modules_to_instrument.empty?
               return
             end
 
-            Core::Errortracking::Component.build(settings, tracer)
+            Core::ErrorTracking::Component.build(settings, tracer)
           end
         end
 

@@ -1,4 +1,4 @@
-require 'datadog/core/errortracking/component'
+require 'datadog/core/error_tracking/component'
 require 'support/platform_helpers'
 
 module ErrortrackingHelpers

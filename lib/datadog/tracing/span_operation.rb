@@ -6,7 +6,7 @@ require_relative '../core/environment/identity'
 require_relative '../core/utils'
 require_relative '../core/utils/time'
 require_relative '../core/utils/safe_dup'
-require_relative '../core/errortracking/collector'
+require_relative '../core/error_tracking/collector'
 
 require_relative 'event'
 require_relative 'metadata'
@@ -79,7 +79,7 @@ module Datadog
         # stores array of span events
         @span_events = span_events || []
 
-        @collector = Datadog::Core::Errortracking::Collector.new
+        @collector = Datadog::Core::ErrorTracking::Collector.new
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock

@@ -1,0 +1,18 @@
+module Datadog
+  module Core
+    module ErrorTracking
+      module Filters
+        def self.get_gem_name: (untyped file_path) -> (nil | untyped)
+
+        def self.user_code?: (untyped file_path) -> untyped
+
+        def self.datadog_code?: (untyped file_path) -> untyped
+
+        def self.third_party_code?: (untyped file_path) -> untyped
+
+        def self.instrumented_module?: (untyped file_path, untyped instrumented_files) -> untyped
+        def self.generate_filter: (untyped to_instrument_scope, ?untyped? modules_to_instrument) -> untyped
+      end
+    end
+  end
+end

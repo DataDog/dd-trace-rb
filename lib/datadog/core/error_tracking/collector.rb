@@ -2,7 +2,7 @@
 
 module Datadog
   module Core
-    module Errortracking
+    module ErrorTracking
       # The collector is in charge of storing the span events
       # corresponding to the handled exceptions.
       #
@@ -18,10 +18,10 @@ module Datadog
             # if an error exited the scope of the span
             collector.on_error(span_op, error) unless error.nil?
 
-            span_events = collector._get_span_events
+            span_events = collector.get_span_events
             if span_events
               span_op.span_events.concat(span_events)
-              collector._clear_span_events
+              collector.clear_span_events
             end
           end
         end
@@ -64,11 +64,11 @@ module Datadog
           end
         end
 
-        def _get_span_events
+        def get_span_events
           @storage.values
         end
 
-        def _clear_span_events
+        def clear_span_events
           @storage.clear
         end
       end
