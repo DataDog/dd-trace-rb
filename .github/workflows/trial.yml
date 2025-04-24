@@ -18,7 +18,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Hello world
-        run: echo "Hello world"
+        run: exit 1
 
   second:
     name: Second job
