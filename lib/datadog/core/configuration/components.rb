@@ -14,8 +14,8 @@ require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
 require_relative '../../di/component'
+require_relative '../../error_tracking/component'
 require_relative '../crashtracking/component'
-require_relative '../error_tracking/component'
 
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
@@ -77,14 +77,6 @@ module Datadog
 
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
-
-          def build_errortracker(settings:, tracer:, logger:)
-            if settings.error_tracking.instrumentation_scope.empty? && settings.error_tracking.modules_to_instrument.empty?
-              return
-            end
-
-            Core::ErrorTracking::Component.build(settings, tracer)
-          end
         end
 
         include Datadog::Tracing::Component::InstanceMethods
@@ -98,7 +90,7 @@ module Datadog
           :telemetry,
           :tracer,
           :crashtracker,
-          :errortracker,
+          :error_tracking,
           :dynamic_instrumentation,
           :appsec,
           :agent_info
@@ -120,7 +112,6 @@ module Datadog
           @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
-          @errortracker = self.class.build_errortracker(settings: settings, tracer: @tracer, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
@@ -134,6 +125,7 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings, @logger)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+          @error_tracking = Datadog::ErrorTracking::Component.build(settings, tracer, logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
           # TODO: Re-enable this once we have updated libdatadog to 17.1
           # @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)

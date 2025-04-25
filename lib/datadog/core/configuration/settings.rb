@@ -980,34 +980,6 @@ module Datadog
             end
           end
         end
-
-        # Datadog Error Tracking-specific configurations
-        #
-        # @public_api
-        settings :error_tracking do
-          # Enable automatic reporting of handled errors and set the scope
-          # of the errors to report: all | user | third_party
-          #
-          # @default 'DD_ERROR_TRACKING_HANDLED_ERRORS' environement variable, otherwise `nil`
-          # @return [String, nil]
-          option :instrumentation_scope do |o|
-            o.type :string, nilable: true
-            o.default ''
-            o.env 'DD_ERROR_TRACKING_HANDLED_ERRORS'
-          end
-
-          # Enable automatic reporting of handled errors and set the module
-          # for which handled errors should be reported. List of comma separated modules
-          #
-          # @default 'DD_ERROR_TRACKING_HANDLED_ERRORS_MODULES' environment variable, otherwise `nil`
-          # @return [String, nil]
-          option :modules_to_instrument do |o|
-            o.type :array
-            o.default []
-            o.env 'DD_ERROR_TRACKING_HANDLED_ERRORS_MODULES'
-          end
-        end
-
         # TODO: Tracing should manage its own settings.
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings

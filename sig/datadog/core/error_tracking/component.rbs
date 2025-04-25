@@ -21,12 +21,14 @@ module Datadog
 
         attr_accessor instrumented_files: untyped
 
-        def initialize: (tracer: untyped, instrumentation_scope: untyped, modules_to_instrument: untyped) -> void
+        def initialize: (tracer: untyped, handled_errors: untyped, modules_to_instrument: untyped) -> void
         def start: () -> untyped
         def shutdown!: () -> untyped
         def _generate_span_event: (untyped exception) -> untyped
 
-        def add_instrumented_file: (untyped file_path) -> untyped
+        private
+
+        def _add_instrumented_file: (untyped file_path) -> untyped
       end
     end
   end

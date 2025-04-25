@@ -207,7 +207,7 @@ namespace :spec do
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:error_tracking) do |t, args|
-    t.pattern = 'spec/datadog/core/error_tracking/**/*_spec.rb'
+    t.pattern = 'spec/datadog/error_tracking/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 

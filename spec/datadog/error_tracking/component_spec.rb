@@ -1,7 +1,7 @@
 require 'spec_helper'
-require 'datadog/core/error_tracking/component'
+require 'datadog/error_tracking/component'
 
-RSpec.describe Datadog::Core::ErrorTracking::Component do
+RSpec.describe Datadog::ErrorTracking::Component do
   let(:tracer) { new_tracer(enabled: false) }
   let(:spans) { tracer.writer.spans(:keep) }
   let(:logger) { Logger.new($stdout) }
@@ -20,14 +20,14 @@ RSpec.describe Datadog::Core::ErrorTracking::Component do
   describe '.build_errortracking_component' do
     context 'when ErrorTracking is deactivated' do
       it 'returns nil' do
-        expect(described_class.build(settings, tracer)).to be_nil
+        expect(described_class.build(settings, tracer, logger)).to be_nil
       end
     end
 
     context 'when a wrong argument is passed' do
-      before { settings.error_tracking.instrumentation_scope = 'foo' }
+      before { settings.error_tracking.handled_errors = 'foo' }
       it 'returns nil' do
-        expect(described_class.build(settings, tracer)).to be_nil
+        expect(described_class.build(settings, tracer, logger)).to be_nil
       end
     end
 
@@ -37,27 +37,27 @@ RSpec.describe Datadog::Core::ErrorTracking::Component do
         allow(described_class).to receive(:new).and_return(component)
         allow(component).to receive(:start).and_return(nil)
 
-        result = described_class.build(settings, tracer)
+        result = described_class.build(settings, tracer, logger)
 
         expect(result).to eq(component)
         expect(component).to have_received(:start)
       end
     end
 
-    context 'when instrumentation_scope is provided' do
-      before { settings.error_tracking.instrumentation_scope = 'all' }
+    context 'when handled_errors is provided' do
+      before { settings.error_tracking.handled_errors = 'all' }
       include_examples 'it creates and starts a component'
     end
 
-    context 'when modules_to_instrument is provided' do
-      before { settings.error_tracking.modules_to_instrument = ['rails'] }
+    context 'when handled_errors_include is provided' do
+      before { settings.error_tracking.handled_errors_include = ['rails'] }
       include_examples 'it creates and starts a component'
     end
 
     context 'when all required parameters are provided' do
       before do
-        settings.error_tracking.modules_to_instrument = ['rails']
-        settings.error_tracking.instrumentation_scope = 'user'
+        settings.error_tracking.handled_errors_include = ['rails']
+        settings.error_tracking.handled_errors = 'user'
       end
       include_examples 'it creates and starts a component'
     end
@@ -65,8 +65,8 @@ RSpec.describe Datadog::Core::ErrorTracking::Component do
 
   describe 'use ErrorTracking component global feature' do
     before do
-      settings.error_tracking.instrumentation_scope = 'all'
-      @errortracker = described_class.build(settings, tracer)
+      settings.error_tracking.handled_errors = 'all'
+      @errortracker = described_class.build(settings, tracer, logger)
       tracer.enabled = true
     end
 
@@ -237,7 +237,7 @@ RSpec.describe Datadog::Core::ErrorTracking::Component do
     end
   end
 
-  shared_examples 'error tracking behavior' do |instrument_setting = nil, modules_to_instrument = [], expected_errors = []|
+  shared_examples 'error tracking behavior' do |instrument_setting = nil, handled_errors_include = [], expected_errors = []|
     before(:all) do
       @gem_root, @gem_lib_dir = ErrortrackingHelpers.generate_test_env
     end
@@ -250,19 +250,19 @@ RSpec.describe Datadog::Core::ErrorTracking::Component do
 
     before do
       # Configure settings based on test parameters
-      settings.error_tracking.instrumentation_scope = instrument_setting if instrument_setting
-      settings.error_tracking.modules_to_instrument = modules_to_instrument if modules_to_instrument.any?
+      settings.error_tracking.handled_errors = instrument_setting if instrument_setting
+      settings.error_tracking.handled_errors_include = handled_errors_include if handled_errors_include.any?
 
-      @errortracker = described_class.build(settings, tracer)
+      @errortracker = described_class.build(settings, tracer, logger)
 
       # Require the mock gem files
       require 'mock_gem'
 
       # Require all the test modules
-      require_relative 'lib1'
-      require_relative './lib2'
-      require_relative './sublib/sublib1'
-      require_relative './sublib/sublib2'
+      require_relative '../error_tracking/lib1'
+      require_relative '../error_tracking/lib2'
+      require_relative '../error_tracking/sublib/sublib1'
+      require_relative '../error_tracking/sublib/sublib2'
 
       tracer.enabled = true
 
@@ -271,8 +271,8 @@ RSpec.describe Datadog::Core::ErrorTracking::Component do
 
     after do
       $LOADED_FEATURES.reject! do |path|
-        path.include?('spec/datadog/core/error_tracking/lib') ||
-          path.include?('spec/datadog/core/error_tracking/sublib') ||
+        path.include?('spec/datadog/error_tracking/lib') ||
+          path.include?('spec/datadog/error_tracking/sublib') ||
           path.include?('mock_gem')
       end
       Object.send(:remove_const, :MockGem) if defined?(MockGem)

@@ -12,12 +12,11 @@ module Datadog
         def initialize: () -> void
 
         def add_span_event: (untyped span_op, untyped error, untyped span_event) -> untyped
-        def on_error: (untyped _span_op, untyped error) -> untyped
         def on_error: (untyped span_op, untyped error) -> (nil | untyped)
 
-        def _get_span_events: () -> untyped
+        def get_span_events: () -> untyped
 
-        def _clear_span_events: () -> untyped
+        def clear_span_events: () -> untyped
       end
     end
   end

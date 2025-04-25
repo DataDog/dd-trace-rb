@@ -6,7 +6,6 @@ require_relative '../core/environment/identity'
 require_relative '../core/utils'
 require_relative '../core/utils/time'
 require_relative '../core/utils/safe_dup'
-require_relative '../core/error_tracking/collector'
 
 require_relative 'event'
 require_relative 'metadata'
@@ -38,8 +37,10 @@ module Datadog
         :service,
         :start_time,
         :trace_id,
-        :type
-      attr_accessor :links, :status, :span_events, :collector
+        :type,
+        :collector
+
+      attr_accessor :links, :status, :span_events
 
       def initialize(
         name,
@@ -78,8 +79,6 @@ module Datadog
         @links = links || []
         # stores array of span events
         @span_events = span_events || []
-
-        @collector = Datadog::Core::ErrorTracking::Collector.new
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -141,6 +140,10 @@ module Datadog
       # @return [String
       def resource=(resource)
         @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow this to be explicitly set to nil
+      end
+
+      def create_collector
+        @collector ||= yield
       end
 
       def measure
