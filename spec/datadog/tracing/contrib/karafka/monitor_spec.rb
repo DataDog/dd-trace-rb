@@ -8,11 +8,10 @@ require 'datadog'
 
 RSpec.describe 'Karafka monitor' do
   subject(:monitor) { described_class.new }
-  let(:configuration_options) { { distributed_tracing: true } }
 
   before do
     Datadog.configure do |c|
-      c.tracing.instrument :karafka, configuration_options
+      c.tracing.instrument :karafka, { distributed_tracing: true }
     end
   end
 
