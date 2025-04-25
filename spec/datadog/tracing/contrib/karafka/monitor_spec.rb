@@ -22,11 +22,11 @@ RSpec.describe 'Karafka monitor' do
   describe '.instrument' do
     context 'when the event is not traceable' do
       it 'does not create a trace' do
-        allow(Datadog::Tracing).to receive(:trace)
-
         Karafka.monitor.instrument('worker.completed')
 
-        expect(Datadog::Tracing).not_to have_received(:trace)
+        # NOTE: This helper doesn't workt with `change` matcher well.
+        expect(traces).to have(0).items
+        expect(spans).to have(0).items
       end
     end
 
@@ -42,7 +42,8 @@ RSpec.describe 'Karafka monitor' do
       it 'traces a consumer job' do
         Karafka.monitor.instrument('worker.processed', { job: job })
 
-        expect(spans).to have(1).items
+        expect(traces).to have(1).item
+        expect(spans).to have(1).item
 
         expect(spans[0].resource).to eq('Consumer#consume')
         expect(spans[0].tags).to include(
