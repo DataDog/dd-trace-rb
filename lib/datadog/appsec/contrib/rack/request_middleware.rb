@@ -36,7 +36,7 @@ module Datadog
             @rack_headers = {}
           end
 
-          # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
+          # rubocop:disable Metrics/MethodLength
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
@@ -105,12 +105,7 @@ module Datadog
               }
             end
 
-            ctx.events.each do |e|
-              e[:response] ||= gateway_response
-              e[:request]  ||= gateway_request
-            end
-
-            AppSec::Event.record(ctx.span, *ctx.events)
+            AppSec::Event.record(ctx, request: gateway_request, response: gateway_response)
 
             http_response
           ensure
@@ -119,7 +114,7 @@ module Datadog
               Datadog::AppSec::Context.deactivate
             end
           end
-          # rubocop:enable Metrics/AbcSize,Metrics/MethodLength
+          # rubocop:enable Metrics/MethodLength
 
           private
 

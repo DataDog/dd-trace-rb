@@ -7,6 +7,13 @@ RSpec.describe Datadog::AppSec::Event do
   describe '.record' do
     before { Datadog::AppSec::RateLimiter.reset! }
 
+    let(:security_engine) do
+      instance_double(
+        Datadog::AppSec::Processor,
+        new_runner: instance_double(Datadog::AppSec::SecurityEngine::Runner)
+      )
+    end
+
     context 'when multiple spans present and a single security event with attack is recorded' do
       before { stub_const('Datadog::AppSec::Event::ALLOWED_REQUEST_HEADERS', ['user-agent']) }
 
@@ -16,17 +23,10 @@ RSpec.describe Datadog::AppSec::Event do
         trace_op.measure('request') do |span|
           2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
 
-          events = [
-            {
-              trace: trace_op,
-              span: span,
-              request: rack_request,
-              response: rack_response,
-              waf_result: waf_result,
-            }
-          ]
+          context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+          context.events.push(trace: trace_op, span: span, waf_result: waf_result)
 
-          described_class.record(span, *events)
+          described_class.record(context, request: rack_request, response: rack_response)
         end
         trace_op.flush!
       end
@@ -81,8 +81,10 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       it 'sets origin and AppSec trigger information' do
-        expect(top_level_span.meta).to include('_dd.appsec.json' => '{"triggers":[1]}')
-        expect(top_level_span.meta).to include('_dd.origin' => 'appsec')
+        expect(top_level_span.meta).to include(
+          '_dd.appsec.json' => '{"triggers":[1]}',
+          '_dd.origin' => 'appsec'
+        )
       end
 
       it 'marks the trace to be kept and sets the sampling priority to ASM' do
@@ -113,33 +115,71 @@ RSpec.describe Datadog::AppSec::Event do
       it 'does not set WAF derivatives when they exceed the max compressed size' do
         stub_const('Datadog::AppSec::Event::DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE', 1)
 
-        expect(top_level_span.meta['_dd.appsec.s.req.headers']).to be_nil
+        expect(top_level_span.meta).not_to have_key('_dd.appsec.s.req.headers')
       end
     end
 
     context 'when no security events are recorded' do
+      let(:rack_request) do
+        instance_double(
+          Datadog::AppSec::Contrib::Rack::Gateway::Request,
+          headers: { 'user-agent' => 'Ruby/0.0' },
+          host: 'example.com',
+          user_agent: 'Ruby/0.0',
+          remote_addr: '127.0.0.1'
+        )
+      end
+
+      let(:rack_response) do
+        instance_double(
+          Datadog::AppSec::Contrib::Rack::Gateway::Response,
+          headers: { 'content-type' => 'text/html' }
+        )
+      end
+
       let(:trace) do
         trace_op = Datadog::Tracing::TraceOperation.new
-        trace_op.measure('request') { |span| described_class.record(span,) }
+        trace_op.measure('request') do |span|
+          context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+          described_class.record(context, request: rack_request, response: rack_response)
+        end
         trace_op.flush!
       end
 
       it 'does not record the event and does not mark the trace to be kept' do
         expect(trace.sampling_priority).to be_nil
-        expect(described_class).to_not receive(:record_via_span)
       end
     end
 
     context 'when no span is provided' do
+      let(:rack_request) do
+        instance_double(
+          Datadog::AppSec::Contrib::Rack::Gateway::Request,
+          headers: { 'user-agent' => 'Ruby/0.0' },
+          host: 'example.com',
+          user_agent: 'Ruby/0.0',
+          remote_addr: '127.0.0.1'
+        )
+      end
+
+      let(:rack_response) do
+        instance_double(
+          Datadog::AppSec::Contrib::Rack::Gateway::Response,
+          headers: { 'content-type' => 'text/html' }
+        )
+      end
+
       let(:trace) do
         trace_op = Datadog::Tracing::TraceOperation.new
-        trace_op.measure('request') { |_span| described_class.record(nil, 'does not matter') }
+        trace_op.measure('request') do |_span|
+          context = Datadog::AppSec::Context.new(trace_op, nil, security_engine)
+          described_class.record(context, request: rack_request, response: rack_response)
+        end
         trace_op.flush!
       end
 
       it 'does not record the event and does not mark the trace to be kept' do
         expect(trace.sampling_priority).to be_nil
-        expect(described_class).to_not receive(:record_via_span)
       end
     end
 
@@ -149,17 +189,54 @@ RSpec.describe Datadog::AppSec::Event do
         allow(Datadog::AppSec::RateLimiter).to receive(:trace_rate_limit).and_return(50)
       end
 
+      let(:rack_request) do
+        instance_double(
+          Datadog::AppSec::Contrib::Rack::Gateway::Request,
+          headers: { 'user-agent' => 'Ruby/0.0' },
+          host: 'example.com',
+          user_agent: 'Ruby/0.0',
+          remote_addr: '127.0.0.1'
+        )
+      end
+
+      let(:rack_response) do
+        instance_double(
+          Datadog::AppSec::Contrib::Rack::Gateway::Response,
+          headers: { 'content-type' => 'text/html' }
+        )
+      end
+
+      let(:waf_result) do
+        Datadog::AppSec::SecurityEngine::Result::Match.new(
+          events: [1],
+          actions: {},
+          derivatives: {},
+          timeout: false,
+          duration_ns: 0,
+          duration_ext_ns: 0
+        )
+      end
+
       let(:traces) do
         Array.new(100) do
           trace_op = Datadog::Tracing::TraceOperation.new
-          trace_op.measure('request') { |span| described_class.record(span, 'does not matter') }
-          trace_op.keep!
+          trace_op.measure('request') do |span|
+            context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+            context.events.push(trace: trace_op, span: span, waf_result: waf_result)
+
+            described_class.record(context, request: rack_request, response: rack_response)
+          end
+          trace_op.flush!
         end
       end
 
       it 'performs exactly 50 recordings' do
-        expect(described_class).to receive(:record_via_span).exactly(50).times
         expect(traces.count).to eq(100)
+
+        sampled_traces = traces.select do |trace|
+          trace.sampling_priority == Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+        end
+        expect(sampled_traces.count).to eq(50)
       end
     end
 
@@ -172,17 +249,10 @@ RSpec.describe Datadog::AppSec::Event do
         trace_op.measure('request') do |span|
           2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
 
-          events = [
-            {
-              trace: trace_op,
-              span: span,
-              request: rack_request,
-              response: rack_response,
-              waf_result: waf_result,
-            }
-          ]
+          context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+          context.events.push(trace: trace_op, span: span, waf_result: waf_result)
 
-          described_class.record(span, *events)
+          described_class.record(context, request: rack_request, response: rack_response)
         end
         trace_op.flush!
       end
@@ -258,17 +328,10 @@ RSpec.describe Datadog::AppSec::Event do
           trace_op.measure('request') do |span|
             2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
 
-            events = [
-              {
-                trace: trace_op,
-                span: span,
-                request: rack_request,
-                response: rack_response,
-                waf_result: waf_result,
-              }
-            ]
+            context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+            context.events.push(trace: trace_op, span: span, waf_result: waf_result)
 
-            described_class.record(span, *events)
+            described_class.record(context, request: rack_request, response: rack_response)
           end
           trace_op.flush!
         end

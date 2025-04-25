@@ -11,32 +11,32 @@ module Datadog
       DERIVATIVE_SCHEMA_KEY_PREFIX = '_dd.appsec.s.'
       DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE = 25000
       ALLOWED_REQUEST_HEADERS = %w[
-        X-Forwarded-For
-        X-Client-IP
-        X-Real-IP
-        X-Forwarded
-        X-Cluster-Client-IP
-        Forwarded-For
-        Forwarded
-        Via
-        True-Client-IP
-        Content-Length
-        Content-Type
-        Content-Encoding
-        Content-Language
-        Host
-        User-Agent
-        Accept
-        Accept-Encoding
-        Accept-Language
-      ].map!(&:downcase).freeze
+        x-forwarded-for
+        x-client-ip
+        x-real-ip
+        x-forwarded
+        x-cluster-client-ip
+        forwarded-for
+        forwarded
+        via
+        true-client-ip
+        content-length
+        content-type
+        content-encoding
+        content-language
+        host
+        user-agent
+        accept
+        accept-encoding
+        accept-language
+      ].freeze
 
       ALLOWED_RESPONSE_HEADERS = %w[
-        Content-Length
-        Content-Type
-        Content-Encoding
-        Content-Language
-      ].map!(&:downcase).freeze
+        content-length
+        content-type
+        content-encoding
+        content-language
+      ].freeze
 
       # Record events for a trace
       #
@@ -58,60 +58,64 @@ module Datadog
           add_distributed_tags(context.trace)
         end
 
-        def record(span, *events)
+        def record(context, request: nil, response: nil)
           # ensure rate limiter is called only when there are events to record
-          return if events.empty? || span.nil?
+          return if context.events.empty? || context.span.nil?
 
           Datadog::AppSec::RateLimiter.thread_local.limit do
-            record_via_span(span, *events)
+            context.events.group_by { |e| e[:trace] }.each do |trace, event_group|
+              unless trace
+                Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
+                next
+              end
+
+              trace.keep!
+              trace.set_tag(
+                Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                Datadog::Tracing::Sampling::Ext::Decision::ASM
+              )
+
+              # prepare and gather tags to apply
+              service_entry_tags = events_tags(event_group)
+
+              # apply tags to service entry span
+              service_entry_tags.each do |key, value|
+                context.span.set_tag(key, value)
+              end
+
+              context.span.set_tags(request_tags(request)) if request
+              context.span.set_tags(response_tags(response)) if response
+            end
           end
         end
 
         private
 
-        def record_via_span(span, *events)
-          events.group_by { |e| e[:trace] }.each do |trace, event_group|
-            unless trace
-              Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
-              next
-            end
+        def request_tags(request)
+          tags = {}
 
-            trace.keep!
-            trace.set_tag(
-              Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-              Datadog::Tracing::Sampling::Ext::Decision::ASM
-            )
+          tags['http.host'] = request.host if request.host
+          tags['http.useragent'] = request.user_agent if request.user_agent
+          tags['network.client.ip'] = request.remote_addr if request.remote_addr
 
-            # prepare and gather tags to apply
-            service_entry_tags = build_service_entry_tags(event_group)
+          request.headers.each_with_object(tags) do |(name, value), memo|
+            next unless ALLOWED_REQUEST_HEADERS.include?(name)
 
-            # apply tags to service entry span
-            service_entry_tags.each do |key, value|
-              span.set_tag(key, value)
-            end
+            memo["http.request.headers.#{name}"] = value
           end
         end
 
-        def build_service_entry_tags(event_group)
+        def response_tags(response)
+          response.headers.each_with_object({}) do |(name, value), memo|
+            next unless ALLOWED_RESPONSE_HEADERS.include?(name)
+
+            memo["http.response.headers.#{name}"] = value
+          end
+        end
+
+        def events_tags(event_group)
           waf_events = []
           entry_tags = event_group.each_with_object({ '_dd.origin' => 'appsec' }) do |event, tags|
-            # TODO: assume HTTP request context for now
-            if (request = event[:request])
-              request.headers.each do |header, value|
-                tags["http.request.headers.#{header}"] = value if ALLOWED_REQUEST_HEADERS.include?(header.downcase)
-              end
-
-              tags['http.host'] = request.host
-              tags['http.useragent'] = request.user_agent
-              tags['network.client.ip'] = request.remote_addr
-            end
-
-            if (response = event[:response])
-              response.headers.each do |header, value|
-                tags["http.response.headers.#{header}"] = value if ALLOWED_RESPONSE_HEADERS.include?(header.downcase)
-              end
-            end
-
             waf_result = event[:waf_result]
             # accumulate triggers
             waf_events += waf_result.events
