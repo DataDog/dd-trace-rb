@@ -1,14 +1,11 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
 
 require 'karafka'
 require 'datadog'
 
 RSpec.describe 'Karafka monitor' do
-  subject(:monitor) { described_class.new }
-
   before do
     Datadog.configure do |c|
       c.tracing.instrument :karafka, { distributed_tracing: true }
@@ -34,31 +31,28 @@ RSpec.describe 'Karafka monitor' do
     end
 
     context 'when the event is traceable' do
-      let(:payload) { { job: job } }
-      let(:job) { instance_double('Job', class: job_class, executor: executor, messages: messages) }
-      let(:job_class) { Class.new }
-      let(:executor) { instance_double('Executor', topic: topic, partition: 1) }
-      let(:topic) { instance_double('Topic', consumer: 'Consumer', name: 'topic_name') }
-      let(:messages) { [instance_double('Message', metadata: metadata)] }
-      let(:metadata) { instance_double('Metadata', offset: 42) }
+      let(:job) do
+        instance_double(Karafka::Processing::Jobs::Consume, class: Class.new, executor: executor, messages: messages)
+      end
+      let(:executor) { instance_double(Karafka::Processing::Executor, topic: topic, partition: 1) }
+      let(:topic) { instance_double(Karafka::Routing::Topic, consumer: 'Consumer', name: 'topic_name') }
+      let(:messages) { [instance_double(Karafka::Messages::Messages, metadata: metadata)] }
+      let(:metadata) { instance_double(Karafka::Messages::Metadata, offset: 42) }
 
       it 'traces a consumer job' do
-        Karafka.monitor.instrument(
-          'worker.processed',
-          payload
-        )
+        Karafka.monitor.instrument('worker.processed', { job: job })
 
         expect(spans).to have(1).items
 
-        span, _push = spans
-
-        expect(span.resource).to eq('Consumer#consume')
-        expect(span.get_tag(Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT)).to eq(1)
-        expect(span.get_tag(Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION)).to eq(1)
-        expect(span.get_tag(Datadog::Tracing::Contrib::Karafka::Ext::TAG_OFFSET)).to eq(42)
-        expect(span.get_tag(Datadog::Tracing::Contrib::Karafka::Ext::TAG_CONSUMER)).to eq('Consumer')
-        expect(span.get_tag('messaging.destination')).to eq('topic_name')
-        expect(span.get_tag('messaging.system')).to eq(Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM)
+        expect(spans[0].resource).to eq('Consumer#consume')
+        expect(spans[0].tags).to include(
+          Datadog::Tracing::Contrib::Karafka::Ext::TAG_MESSAGE_COUNT => 1,
+          Datadog::Tracing::Contrib::Karafka::Ext::TAG_PARTITION => 1,
+          Datadog::Tracing::Contrib::Karafka::Ext::TAG_OFFSET => 42,
+          Datadog::Tracing::Contrib::Karafka::Ext::TAG_CONSUMER => 'Consumer',
+          'messaging.destination' => 'topic_name',
+          'messaging.system' => Datadog::Tracing::Contrib::Karafka::Ext::TAG_SYSTEM
+        )
       end
     end
   end
