@@ -26,7 +26,9 @@ module Datadog
         def shutdown!: () -> untyped
         def _generate_span_event: (untyped exception) -> untyped
 
-        def add_instrumented_file: (untyped file_path) -> untyped
+        private
+
+        def _add_instrumented_file: (untyped file_path) -> untyped
       end
     end
   end
