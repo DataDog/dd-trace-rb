@@ -70,6 +70,14 @@ module CoreHelpers
         end
       end
     end
+
+    def with_env(**opts)
+      around do |example|
+        ClimateControl.modify(**opts) do
+          example.run
+        end
+      end
+    end
   end
 
   def self.included(base)

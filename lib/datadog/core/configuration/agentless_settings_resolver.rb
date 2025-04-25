@@ -84,9 +84,10 @@ module Datadog
           end
         end
 
+        # Note that this method should always return true or false
         def ssl?
           if configured_hostname
-            configured_ssl
+            configured_ssl || false
           else
             # If no hostname is specified, we are communicating with the
             # default Datadog intake, which uses TLS.
@@ -94,6 +95,7 @@ module Datadog
           end
         end
 
+        # Note that this method can return nil
         def configured_ssl
           return @configured_ssl if defined?(@configured_ssl)
 

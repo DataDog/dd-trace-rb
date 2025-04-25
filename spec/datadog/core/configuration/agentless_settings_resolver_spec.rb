@@ -23,6 +23,9 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
   let(:url_override) { nil }
   let(:url_override_source) { nil }
 
+  # DD_AGENT_HOST is set in CI and alters the settings tested here
+  with_env 'DD_AGENT_HOST' => nil
+
   context 'by default' do
     it 'returns expected values' do
       expect(resolver.send(:can_use_uds?)).to be false
@@ -125,6 +128,35 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
           port: 443,
           ssl: true,
           timeout_seconds: 42,
+        )
+      )
+    end
+  end
+
+  context 'when DD_AGENT_HOST is used' do
+    with_env 'DD_AGENT_HOST' => 'test-agent-host'
+
+    it 'uses the specified host' do
+      expect(resolver.send(:can_use_uds?)).to be false
+      expect(resolver.send(:should_use_uds?)).to be false
+
+      expect(resolver.send(:parsed_url)).to be nil
+
+      expect(resolver.send(:configured_hostname)).to eq 'test-agent-host'
+      expect(resolver.send(:hostname)).to eq 'test-agent-host'
+      expect(resolver.send(:configured_port)).to be nil
+      expect(resolver.send(:port)).to be nil
+      expect(resolver.send(:configured_ssl)).to be nil
+      expect(resolver.send(:ssl?)).to be false
+      expect(resolver.send(:configured_uds_path)).to be nil
+
+      expect(resolved).to eq(
+        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+          adapter: :net_http,
+          hostname: 'test-agent-host',
+          port: nil,
+          ssl: false,
+          timeout_seconds: 30,
         )
       )
     end
