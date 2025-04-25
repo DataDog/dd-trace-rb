@@ -82,6 +82,21 @@ module Datadog
           @configured_port = if parsed_url
             parsed_url.port
           end
+
+          @configured_port = pick_from(
+            try_parsing_as_integer(
+              friendly_name: '"c.agent.port"',
+              value: settings.agent.port,
+            ),
+            DetectedConfiguration.new(
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
+              value: parsed_http_url&.port,
+            ),
+            try_parsing_as_integer(
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT} environment variable",
+              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT],
+            )
+          )
         end
 
         # Note that this method should always return true or false
@@ -105,7 +120,7 @@ module Datadog
         end
 
         def port
-          if configured_hostname
+          if configured_port
             configured_port
           else
             # If no hostname is specified, we are communicating with the
