@@ -104,7 +104,7 @@ module Datadog
         end
 
         def port
-          if configured_port
+          if configured_port # rubocop:disable Style/RedundantCondition
             configured_port
           else
             # If no hostname is specified, we are communicating with the
