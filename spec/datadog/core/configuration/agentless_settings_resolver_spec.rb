@@ -14,7 +14,6 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
   let(:url_override_source) { nil }
 
   let(:logger) { instance_double(Datadog::Core::Logger) }
-  let(:logger) { Logger.new($stderr) }
 
   subject(:resolver) do
     described_class.new(
