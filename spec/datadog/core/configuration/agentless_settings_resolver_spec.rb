@@ -7,24 +7,28 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
       settings.site = site
     end
   end
-
-  let(:logger) { instance_double(Datadog::Core::Logger) }
-  let(:logger) { Logger.new(STDERR) }
-
-  subject(:resolver) { described_class.new(settings,
-    host_prefix: host_prefix,
-    url_override: url_override, url_override_source: url_override_source,
-    logger: logger) }
-
   let(:resolved) { resolver.send(:call) }
-
   let(:site) { 'test.dog' }
   let(:host_prefix) { 'test-host-prefix' }
   let(:url_override) { nil }
   let(:url_override_source) { nil }
 
+  let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:logger) { Logger.new($stderr) }
+
+  subject(:resolver) do
+    described_class.new(
+      settings,
+      host_prefix: host_prefix,
+      url_override: url_override,
+      url_override_source: url_override_source,
+      logger: logger
+    )
+  end
+
   # DD_AGENT_HOST is set in CI and alters the settings tested here
-  with_env 'DD_AGENT_HOST' => nil, 'DD_AGENT_PORT' => nil,
+  with_env 'DD_AGENT_HOST' => nil,
+    'DD_AGENT_PORT' => nil,
     'DD_TRACE_AGENT_TIMEOUT_SECONDS' => nil
 
   shared_examples 'returns values expected by default' do
@@ -62,7 +66,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
     let(:url_override_source) { 'setting' }
 
     context 'url is https' do
-      let(:url_override) { "https://foo.bar" }
+      let(:url_override) { 'https://foo.bar' }
 
       it 'returns expected values' do
         expect(resolver.send(:can_use_uds?)).to be false
@@ -91,7 +95,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
     end
 
     context 'url is http' do
-      let(:url_override) { "http://foo.bar" }
+      let(:url_override) { 'http://foo.bar' }
 
       it 'returns expected values' do
         expect(resolver.send(:can_use_uds?)).to be false

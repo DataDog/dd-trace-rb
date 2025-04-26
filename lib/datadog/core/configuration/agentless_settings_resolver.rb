@@ -35,14 +35,19 @@ module Datadog
       # However, agentless resolver does respect the timeout specified via
       # c.agent.timeout_seconds or DD_TRACE_AGENT_TIMEOUT_SECONDS.
       class AgentlessSettingsResolver < AgentSettingsResolver
-
         # To avoid coupling this class to telemetry, the URL override is
         # taken here as a parameter instead of being read out of
         # c.telemetry.agentless_url_override. For the same reason, the
         # +url_override_source+ parameter should be set to the string
         # "c.telemetry.agentless_url_override".
         def self.call(settings, host_prefix:, url_override: nil, url_override_source: nil, logger: Datadog.logger)
-          new(settings, host_prefix: host_prefix, url_override: url_override, url_override_source: url_override_source, logger: logger).send(:call)
+          new(
+            settings,
+            host_prefix: host_prefix,
+            url_override: url_override,
+            url_override_source: url_override_source,
+            logger: logger
+          ).send(:call)
         end
 
         private
@@ -71,19 +76,13 @@ module Datadog
         def configured_hostname
           return @configured_hostname if defined?(@configured_hostname)
 
-          @configured_hostname = if parsed_url
-            parsed_url.hostname
-          else
-            nil
-          end
+          @configured_hostname = (parsed_url.hostname if parsed_url)
         end
 
         def configured_port
           return @configured_port if defined?(@configured_port)
 
-          @configured_port = if parsed_url
-            parsed_url.port
-          end
+          @configured_port = (parsed_url.port if parsed_url)
         end
 
         # Note that this method should always return true or false
@@ -101,9 +100,7 @@ module Datadog
         def configured_ssl
           return @configured_ssl if defined?(@configured_ssl)
 
-          @configured_ssl = if parsed_url
-            parsed_url_ssl?
-          end
+          @configured_ssl = (parsed_url_ssl? if parsed_url)
         end
 
         def port
@@ -139,14 +136,11 @@ module Datadog
               if http_scheme?(parsed) || unix_scheme?(parsed)
                 parsed
               else
-                # rubocop:disable Layout/LineLength
                 log_warning(
                   "Invalid URI scheme '#{parsed.scheme}' for #{url_override_source} " \
                   "environment variable ('#{unparsed_url_from_env}'). " \
                   "Ignoring the contents of #{url_override_source}."
                 )
-                # rubocop:enable Layout/LineLength
-
                 nil
               end
             end
