@@ -17,6 +17,23 @@ module Datadog
       # implements agentless mode where it sends directly to Datadog intake
       # endpoints. The agentless mode is configured using different settings,
       # and this class produces AgentSettings instances when in agentless mode.
+      #
+      # Agentless settings resolver uses the following configuration sources:
+      #
+      # 1. url_override constructor parameter, if provided
+      # 2. Built-in default host/port/TLS settings for the backend
+      #    intake endpoint
+      #
+      # The agentless resolver does NOT use agent settings (since it is
+      # for agentless operation), specifically it ignores:
+      #
+      # - c.agent.host
+      # - DD_AGENT_HOST
+      # - c.agent.port
+      # - DD_AGENT_PORT
+      #
+      # However, agentless resolver does respect the timeout specified via
+      # c.agent.timeout_seconds or DD_TRACE_AGENT_TIMEOUT_SECONDS.
       class AgentlessSettingsResolver < AgentSettingsResolver
 
         # To avoid coupling this class to telemetry, the URL override is
@@ -59,21 +76,6 @@ module Datadog
           else
             nil
           end
-
-          @configured_hostname = pick_from(
-            DetectedConfiguration.new(
-              friendly_name: "'c.agent.host'",
-              value: settings.agent.host
-            ),
-            DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_http_url&.hostname
-            ),
-            DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST} environment variable",
-              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST]
-            )
-          )
         end
 
         def configured_port
@@ -82,21 +84,6 @@ module Datadog
           @configured_port = if parsed_url
             parsed_url.port
           end
-
-          @configured_port = pick_from(
-            try_parsing_as_integer(
-              friendly_name: '"c.agent.port"',
-              value: settings.agent.port,
-            ),
-            DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_http_url&.port,
-            ),
-            try_parsing_as_integer(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT} environment variable",
-              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT],
-            )
-          )
         end
 
         # Note that this method should always return true or false
