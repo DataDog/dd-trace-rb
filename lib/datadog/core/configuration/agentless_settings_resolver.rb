@@ -137,8 +137,7 @@ module Datadog
                 parsed
               else
                 log_warning(
-                  "Invalid URI scheme '#{parsed.scheme}' for #{url_override_source} " \
-                  "environment variable ('#{unparsed_url_from_env}'). " \
+                  "Invalid URI scheme '#{parsed.scheme}' for #{url_override_source}. " \
                   "Ignoring the contents of #{url_override_source}."
                 )
                 nil
