@@ -71,9 +71,12 @@ module CoreHelpers
       end
     end
 
-    def with_env(**opts)
+    # Positional and keyword arguments are both accepted to make the method
+    # work on Ruby 2.5/2.6 and 2.7+. In practice only one type of arguments
+    # should be used in any given call.
+    def with_env(*args, **opts)
       around do |example|
-        ClimateControl.modify(**opts) do
+        ClimateControl.modify(*args, **opts) do
           example.run
         end
       end
