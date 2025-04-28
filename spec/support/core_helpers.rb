@@ -75,9 +75,19 @@ module CoreHelpers
     # work on Ruby 2.5/2.6 and 2.7+. In practice only one type of arguments
     # should be used in any given call.
     def with_env(*args, **opts)
+      if args.any? && opts.any?
+        raise ArgumentError, 'Do not pass both args and opts'
+      end
+
       around do |example|
-        ClimateControl.modify(*args, **opts) do
-          example.run
+        if args.any?
+          ClimateControl.modify(*args) do
+            example.run
+          end
+        else
+          ClimateControl.modify(**opts) do
+            example.run
+          end
         end
       end
     end
