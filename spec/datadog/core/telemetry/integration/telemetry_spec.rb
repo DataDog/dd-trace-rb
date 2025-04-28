@@ -52,9 +52,10 @@ RSpec.describe 'Telemetry integration tests' do
       it 'sends startup payloads' do
         expect(settings.telemetry.dependency_collection).to be true
 
+        # Instantiate the component
         component
 
-        sleep 1
+        component.flush
         expect(sent_payloads.length).to eq 2
 
         payload = sent_payloads[0]
@@ -108,7 +109,7 @@ RSpec.describe 'Telemetry integration tests' do
       it 'sends expected payload' do
         component.error('test error')
 
-        sleep 1
+        component.flush
         expect(sent_payloads.length).to eq 1
 
         payload = sent_payloads[0]

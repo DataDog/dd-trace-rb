@@ -79,6 +79,22 @@ module Datadog
           TELEMETRY_STARTED_ONCE.failed?
         end
 
+        # Wait for the worker to send out all events that have already
+        # been queued.
+        #
+        # Note that if events are being constantly enqueued, this method
+        # may wait indefinitely.
+        #
+        # @api private
+        def flush
+          return unless enabled? || !run_loop?
+
+          loop do
+            break if buffer.empty?
+            sleep 0.1
+          end
+        end
+
         private
 
         def perform(*events)

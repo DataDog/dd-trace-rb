@@ -129,6 +129,17 @@ module Datadog
           @worker.enqueue(event)
         end
 
+        # Wait for the worker to send out all events that have already
+        # been queued.
+        #
+        # Note that if events are being constantly enqueued, this method
+        # may wait indefinitely.
+        #
+        # @api private
+        def flush
+          @worker.flush
+        end
+
         # Report configuration changes caused by Remote Configuration.
         def client_configuration_change!(changes)
           return if !@enabled || forked?
