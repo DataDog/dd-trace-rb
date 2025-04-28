@@ -39,7 +39,7 @@ require 'support/spy_transport'
 require 'support/synchronization_helpers'
 require 'support/test_helpers'
 require 'support/tracer_helpers'
-require 'support/crashtracking_helpers'
+require 'support/libdatadog_helpers'
 require 'support/http_server_helpers'
 
 begin
