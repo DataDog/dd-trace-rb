@@ -128,7 +128,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
         let(:url_override) { 'xyz://hello.world' }
 
         before do
-          expect(logger).to receive(:warn).with("Invalid URI scheme 'xyz' for c.telemetry.agentless_url_override. Ignoring the contents of c.telemetry.agentless_url_override.")
+          expect(logger).to receive(:warn).with("Invalid URI scheme 'xyz' for c.telemetry.agentless_url_override. Ignoring the contents of c.telemetry.agentless_url_override.") # rubocop:disable Layout/LineLength
         end
 
         include_examples 'returns values expected by default'
