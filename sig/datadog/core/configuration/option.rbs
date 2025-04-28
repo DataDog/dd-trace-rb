@@ -15,7 +15,9 @@ module Datadog
         module Precedence
           REMOTE_CONFIGURATION: Value
           PROGRAMMATIC: Value
+          FLEET_STABLE: Value
           ENVIRONMENT: Value
+          LOCAL_STABLE: Value
           DEFAULT: Value
           LIST: [Value]
 
