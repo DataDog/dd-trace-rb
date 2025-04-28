@@ -32,19 +32,25 @@ module Datadog
           end
 
           # Remote configuration provided through the Datadog app.
-          REMOTE_CONFIGURATION = Value.new(3, :remote_configuration).freeze
+          REMOTE_CONFIGURATION = Value.new(5, :remote_configuration).freeze
 
           # Configuration provided in Ruby code, in this same process
-          PROGRAMMATIC = Value.new(2, :programmatic).freeze
+          PROGRAMMATIC = Value.new(4, :programmatic).freeze
+
+          # Configuration provided by fleet managed stable config
+          FLEET_STABLE = Value.new(3, :fleet_stable).freeze
 
           # Configuration provided via environment variable
-          ENVIRONMENT = Value.new(1, :environment).freeze
+          ENVIRONMENT = Value.new(2, :environment).freeze
+
+          # Configuration provided by local stable config file
+          LOCAL_STABLE = Value.new(1, :local_stable).freeze
 
           # Configuration that comes from default values
           DEFAULT = Value.new(0, :default).freeze
 
           # All precedences, sorted from highest to lowest
-          LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, ENVIRONMENT, DEFAULT].sort.reverse.freeze
+          LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, FLEET_STABLE, ENVIRONMENT, LOCAL_STABLE, DEFAULT].sort.reverse.freeze
         end
 
         def initialize(definition, context)
