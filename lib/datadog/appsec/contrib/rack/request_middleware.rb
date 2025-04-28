@@ -97,7 +97,7 @@ module Datadog
               http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
             end
 
-            if AppSec.api_security_enabled?
+            if AppSec.perform_api_security_check?
               ctx.events << {
                 trace: ctx.trace,
                 span: ctx.span,
