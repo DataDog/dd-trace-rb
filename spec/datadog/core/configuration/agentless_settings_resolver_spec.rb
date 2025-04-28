@@ -51,6 +51,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
           hostname: 'test-host-prefix.test.dog',
           port: 443,
           ssl: true,
+          uds_path: nil,
           timeout_seconds: 30,
         )
       )
@@ -87,6 +88,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             hostname: 'foo.bar',
             port: 443,
             ssl: true,
+            uds_path: nil,
             timeout_seconds: 30,
           )
         )
@@ -156,6 +158,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             hostname: 'foo.bar',
             port: 80,
             ssl: false,
+            uds_path: nil,
             timeout_seconds: 30,
           )
         )
@@ -172,6 +175,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             hostname: 'test-host-prefix.test.dog',
             port: 443,
             ssl: true,
+            uds_path: nil,
             timeout_seconds: 42,
           )
         )
