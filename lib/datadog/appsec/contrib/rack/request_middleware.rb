@@ -4,9 +4,12 @@ require 'json'
 
 require_relative 'gateway/request'
 require_relative 'gateway/response'
-require_relative '../../instrumentation/gateway'
-require_relative '../../processor'
+
+require_relative '../../event'
 require_relative '../../response'
+require_relative '../../processor'
+require_relative '../../security_event'
+require_relative '../../instrumentation/gateway'
 
 require_relative '../../../tracing/client_ip'
 require_relative '../../../tracing/contrib/rack/header_collection'
@@ -98,11 +101,9 @@ module Datadog
             end
 
             if AppSec.perform_api_security_check?
-              ctx.events << {
-                trace: ctx.trace,
-                span: ctx.span,
-                waf_result: ctx.extract_schema,
-              }
+              ctx.events.push(
+                AppSec::SecurityEvent.new(ctx.extract_schema, trace: ctx.trace, span: ctx.span)
+              )
             end
 
             AppSec::Event.record(ctx, request: gateway_request, response: gateway_response)
