@@ -62,7 +62,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
   end
 
   context 'when url_override is provided' do
-    let(:url_override_source) { 'setting' }
+    let(:url_override_source) { 'c.telemetry.agentless_url_override' }
 
     context 'url is https' do
       let(:url_override) { 'https://foo.bar' }
@@ -90,6 +90,16 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             timeout_seconds: 30,
           )
         )
+      end
+
+      context 'when url uses an unknown protocol' do
+        let(:url_override) { 'xyz://hello.world' }
+
+        before do
+          expect(logger).to receive(:warn).with("Invalid URI scheme 'xyz' for c.telemetry.agentless_url_override. Ignoring the contents of c.telemetry.agentless_url_override.")
+        end
+
+        include_examples 'returns values expected by default'
       end
     end
 
