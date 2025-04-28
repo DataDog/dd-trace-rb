@@ -1,3 +1,7 @@
+// This script runs in the context of `actions/github-script` from GitHub Action workflow.
+// It checks the commit status of a commit (SHA).
+// It fails the workflow if the combined status is not 'success'.
+
 // API:
 // - https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
 module.exports = async ({github, context, core}) => {

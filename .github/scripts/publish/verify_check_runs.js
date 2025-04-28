@@ -1,3 +1,7 @@
+// This script runs in the context of `actions/github-script` from GitHub Action workflow.
+// It checks the conclusion for check suites of a commit (SHA) from a specifc Github App.
+// It fails the workflow if any of the check suites are not 'success', 'neutral' or 'skipped'.
+
 // API:
 // - https://docs.github.com/en/rest/checks/suites?apiVersion=2022-11-28#list-check-suites-for-a-git-reference
 // - https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-in-a-check-suite
