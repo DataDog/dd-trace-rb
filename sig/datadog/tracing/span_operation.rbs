@@ -99,7 +99,7 @@ module Datadog
 
         attr_reader before_start: untyped
 
-        def initialize: (?on_error: on_error) -> void
+        def initialize: (?logger: Core::Logger, ?on_error: on_error) -> void
 
         def on_error: () -> OnError
 
@@ -116,7 +116,7 @@ module Datadog
         end
 
         class OnError
-          def initialize: (untyped default) -> void
+          def initialize: (untyped default, ?logger: Core::Logger) -> void
 	
           attr_reader logger: Core::Logger
 
