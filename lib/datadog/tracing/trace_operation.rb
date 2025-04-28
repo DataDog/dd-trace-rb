@@ -266,7 +266,7 @@ module Datadog
           parent_id = parent ? parent.id : @parent_span_id || 0
 
           # Build events
-          events ||= SpanOperation::Events.new
+          events ||= SpanOperation::Events.new(logger: logger)
 
           # Before start: activate the span, publish events.
           events.before_start.subscribe do |span_op|

@@ -94,7 +94,7 @@ module Datadog
         set_tags(tags) if tags
 
         # Some other SpanOperation-specific behavior
-        @events = events || Events.new
+        @events = events || Events.new(logger: logger)
         @span = nil
 
         if on_error.nil?
@@ -359,11 +359,13 @@ module Datadog
         DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
 
         attr_reader \
+          :logger,
           :after_finish,
           :after_stop,
           :before_start
 
-        def initialize(on_error: nil)
+        def initialize(logger: Datadog.logger, on_error: nil)
+          @logger = logger
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
           @before_start = BeforeStart.new
@@ -372,7 +374,7 @@ module Datadog
         # This event is lazily initialized as error paths
         # are normally less common that non-error paths.
         def on_error
-          @on_error ||= OnError.new(DEFAULT_ON_ERROR)
+          @on_error ||= OnError.new(DEFAULT_ON_ERROR, logger: logger)
         end
 
         # Triggered when the span is finished, regardless of error.
@@ -398,9 +400,12 @@ module Datadog
 
         # Triggered when the span raises an error during measurement.
         class OnError
-          def initialize(default)
+          def initialize(default, logger: Datadog.logger)
             @handler = default
+            @logger = logger
           end
+
+          attr_reader :logger
 
           # Call custom error handler but fallback to default behavior on failure.
 
@@ -417,7 +422,7 @@ module Datadog
               rescue StandardError => e
                 logger.debug do
                   "Custom on_error handler #{@handler} failed, using fallback behavior. \
-                  Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+                  Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
                 end
 
                 original.call(op, error) if original
@@ -430,7 +435,7 @@ module Datadog
               @handler.call(*args)
             rescue StandardError => e
               logger.debug do
-                "Error in on_error handler '#{@default}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+                "Error in on_error handler '#{@default}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
               end
             end
 

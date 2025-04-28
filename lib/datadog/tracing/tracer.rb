@@ -412,7 +412,7 @@ module Datadog
       )
         trace = _trace || start_trace(continue_from: continue_from)
 
-        events = SpanOperation::Events.new
+        events = SpanOperation::Events.new(logger: logger)
 
         if block
           # Ignore start time if a block has been given
