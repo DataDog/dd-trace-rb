@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# rubocop:disable Style/*
+
 require 'uri'
 
 require_relative 'agent_settings_resolver'
@@ -116,7 +118,7 @@ module Datadog
         end
 
         def port
-          if configured_port # rubocop:disable Style/RedundantCondition
+          if configured_port
             configured_port
           else
             if should_use_uds?
@@ -170,3 +172,5 @@ module Datadog
     end
   end
 end
+
+# rubocop:enable Style/*
