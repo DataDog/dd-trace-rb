@@ -1,0 +1,12 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Http
+        module Adapters
+          class Net
+          end
+        end
+      end
+    end
+  end
+end
