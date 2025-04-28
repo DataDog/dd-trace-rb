@@ -28,6 +28,7 @@ module Datadog
       # Span attributes
       # NOTE: In the future, we should drop the me
       attr_reader \
+        :logger,
         :end_time,
         :id,
         :name,
@@ -41,6 +42,7 @@ module Datadog
 
       def initialize(
         name,
+        logger: Datadog.logger,
         events: nil,
         on_error: nil,
         parent_id: 0,
@@ -54,6 +56,8 @@ module Datadog
         span_events: nil,
         id: nil
       )
+        @logger = logger
+
         # Ensure dynamically created strings are UTF-8 encoded.
         #
         # All strings created in Ruby land are UTF-8. The only sources of non-UTF-8 string are:
@@ -99,7 +103,7 @@ module Datadog
           # Subscribe :on_error event
           @events.on_error.wrap_default(&on_error)
         else
-          Datadog.logger.warn("on_error argument to SpanOperation ignored because is not a Proc: #{on_error}")
+          logger.warn("on_error argument to SpanOperation ignored because is not a Proc: #{on_error}")
         end
 
         # Start the span with start time, if given.
@@ -149,7 +153,7 @@ module Datadog
           begin
             start
           rescue StandardError => e
-            Datadog.logger.debug { "Failed to start span: #{e}" }
+            logger.debug { "Failed to start span: #{e}" }
           ensure
             # We should yield to the provided block when possible, as this
             # block is application code that we don't want to hinder.
@@ -411,7 +415,7 @@ module Datadog
               begin
                 yield(op, error)
               rescue StandardError => e
-                Datadog.logger.debug do
+                logger.debug do
                   "Custom on_error handler #{@handler} failed, using fallback behavior. \
                   Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 end
@@ -425,7 +429,7 @@ module Datadog
             begin
               @handler.call(*args)
             rescue StandardError => e
-              Datadog.logger.debug do
+              logger.debug do
                 "Error in on_error handler '#{@default}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
               end
             end

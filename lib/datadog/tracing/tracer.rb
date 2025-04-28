@@ -342,6 +342,7 @@ module Datadog
                                 digest.trace_sampling_priority
                               end
           TraceOperation.new(
+            logger: logger,
             hostname: hostname,
             profiling_enabled: profiling_enabled,
             apm_tracing_enabled: apm_tracing_enabled,
@@ -359,6 +360,7 @@ module Datadog
           )
         else
           TraceOperation.new(
+            logger: logger,
             hostname: hostname,
             profiling_enabled: profiling_enabled,
             apm_tracing_enabled: apm_tracing_enabled,
@@ -416,6 +418,7 @@ module Datadog
           # Ignore start time if a block has been given
           trace.measure(
             name,
+            logger: logger,
             events: events,
             on_error: on_error,
             resource: resource,
@@ -429,6 +432,7 @@ module Datadog
           # Return the new span
           span = trace.build_span(
             name,
+            logger: logger,
             events: events,
             on_error: on_error,
             resource: resource,
@@ -541,10 +545,10 @@ module Datadog
 
       # TODO: Make these dummy objects singletons to preserve memory.
       def skip_trace(name)
-        span = SpanOperation.new(name)
+        span = SpanOperation.new(name, logger: logger)
 
         if block_given?
-          trace = TraceOperation.new
+          trace = TraceOperation.new(logger: logger)
           yield(span, trace)
         else
           span
