@@ -92,6 +92,36 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
         )
       end
 
+      context 'when url uses UDS' do
+        let(:url_override) { 'unix:///var/run/test.sock' }
+
+        it 'returns expected values' do
+          expect(resolver.send(:can_use_uds?)).to be true
+          expect(resolver.send(:should_use_uds?)).to be true
+
+          expect(resolver.send(:parsed_url)).to eq URI.parse(url_override)
+
+          expect(resolver.send(:configured_hostname)).to be nil
+          expect(resolver.send(:hostname)).to be nil
+          expect(resolver.send(:configured_port)).to be nil
+          expect(resolver.send(:port)).to be nil
+          expect(resolver.send(:configured_ssl)).to be false
+          expect(resolver.send(:ssl?)).to be false
+          expect(resolver.send(:configured_uds_path)).to eq '/var/run/test.sock'
+
+          expect(resolved).to eq(
+            Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+              adapter: :unix,
+              hostname: nil,
+              port: nil,
+              ssl: false,
+              uds_path: '/var/run/test.sock',
+              timeout_seconds: 30,
+            )
+          )
+        end
+      end
+
       context 'when url uses an unknown protocol' do
         let(:url_override) { 'xyz://hello.world' }
 

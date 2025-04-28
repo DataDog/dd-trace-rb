@@ -70,13 +70,21 @@ module Datadog
         end
 
         def hostname
-          configured_hostname || "#{host_prefix}.#{settings.site}"
+          if should_use_uds?
+            nil
+          else
+            configured_hostname || "#{host_prefix}.#{settings.site}"
+          end
         end
 
         def configured_hostname
           return @configured_hostname if defined?(@configured_hostname)
 
-          @configured_hostname = (parsed_url.hostname if parsed_url)
+          if should_use_uds?
+            nil
+          else
+            @configured_hostname = (parsed_url.hostname if parsed_url)
+          end
         end
 
         def configured_port
@@ -90,9 +98,13 @@ module Datadog
           if configured_hostname
             configured_ssl || false
           else
-            # If no hostname is specified, we are communicating with the
-            # default Datadog intake, which uses TLS.
-            true
+            if should_use_uds?
+              false
+            else
+              # If no hostname is specified, we are communicating with the
+              # default Datadog intake, which uses TLS.
+              true
+            end
           end
         end
 
@@ -107,22 +119,32 @@ module Datadog
           if configured_port # rubocop:disable Style/RedundantCondition
             configured_port
           else
-            # If no hostname is specified, we are communicating with the
-            # default Datadog intake, which exists on port 443.
-            443
+            if should_use_uds?
+              nil
+            else
+              # If no hostname is specified, we are communicating with the
+              # default Datadog intake, which exists on port 443.
+              443
+            end
           end
         end
 
+        def mixed_http_and_uds
+          false
+        end
+
         def configured_uds_path
-          # We do not permit UDS, see the note under #can_use_uds?.
-          nil
+          return @configured_uds_path if defined?(@configured_uds_path)
+
+          parsed_url_uds_path
         end
 
         def can_use_uds?
           # While in theory agentless transport could communicate via UDS,
           # in practice "agentless" means we are communicating with Datadog
           # infrastructure which is always remote.
-          false
+          # Permit UDS for proxy usage?
+          !configured_uds_path.nil?
         end
 
         def parsed_url
