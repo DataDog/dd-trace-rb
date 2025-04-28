@@ -76,9 +76,11 @@ static VALUE _native_configurator_get(VALUE self) {
   // Wrapping config_vec into a Ruby object enables the Ruby GC to manage its memory
   // We need to allocate memory for config_vec because once it is out of scope, it will be freed (at the end of this function)
   // So we cannot reference it with &config_vec
+  // We are doing this in case one of the ruby API raises an exception before the end of this function,
+  // so the allocated memory will still be freed
   ddog_Vec_LibraryConfig *config_vec = ruby_xmalloc(sizeof(ddog_Vec_LibraryConfig));
   *config_vec = configurator_result.ok;
-  TypedData_Wrap_Struct(config_vec_class, &config_vec_typed_data, config_vec);
+  VALUE config_vec_rb = TypedData_Wrap_Struct(config_vec_class, &config_vec_typed_data, config_vec);
 
   VALUE config_array = rb_ary_new();
   for (uintptr_t i = 0; i < config_vec->len; i++) {
@@ -96,5 +98,6 @@ static VALUE _native_configurator_get(VALUE self) {
 
     rb_ary_push(config_array, config_hash);
   }
+  RB_GC_GUARD(config_vec_rb);
   return config_array;
 }
