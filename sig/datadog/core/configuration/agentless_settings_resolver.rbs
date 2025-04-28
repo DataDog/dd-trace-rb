@@ -27,19 +27,21 @@ module Datadog
 
         def initialize: (untyped settings, host_prefix: untyped, ?url_override: untyped?, ?url_override_source: untyped?, ?logger: untyped) -> void
 
-        def hostname: () -> untyped
+        def hostname: () -> (nil | untyped)
 
         def configured_hostname: () -> untyped
 
         def configured_port: () -> untyped
-        def ssl?: () -> (untyped | true)
+        def ssl?: () -> (untyped | false | true)
         def configured_ssl: () -> untyped
 
-        def port: () -> (untyped | 443)
+        def port: () -> (untyped | nil | 443)
 
-        def configured_uds_path: () -> nil
+        def mixed_http_and_uds: () -> false
 
-        def can_use_uds?: () -> false
+        def configured_uds_path: () -> untyped
+
+        def can_use_uds?: () -> untyped
 
         def parsed_url: () -> untyped
       end
