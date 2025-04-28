@@ -537,7 +537,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       expect(Datadog::Core::Configuration::Option::Precedence::LIST).to_not be_empty
     end
 
-    # Test all combinations of precedences to seed the Option object with all possible values set.
+    # Generate and test all combinations of precedences to seed the Option object with all possible values set.
     # For each combination, try to `unset` on every precedence.
     #
     # For example, if we have 2 precedences, `default` and `rc`,
@@ -553,30 +553,23 @@ RSpec.describe Datadog::Core::Configuration::Option do
     # | default                    | default             | Option is reset |
     # | rc, default                | rc                  | default         |
     # | rc, default                | default             | rc              |
-    {
-      no_precedence: [],
-      remote_configuration: [Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION],
-      programmatic: [Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC],
-      default: [Datadog::Core::Configuration::Option::Precedence::DEFAULT],
-      remote_and_programmatic: [
-        Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
-        Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
-      ],
-      remote_and_default: [
-        Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
-        Datadog::Core::Configuration::Option::Precedence::DEFAULT
-      ],
-      programmatic_and_default: [
-        Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
-        Datadog::Core::Configuration::Option::Precedence::DEFAULT
-      ],
-      all: [
-        Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
-        Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
-        Datadog::Core::Configuration::Option::Precedence::DEFAULT
-      ]
-    }.each do |name, precedences|
-      context "for #{name} set" do
+    #
+    # Coding in tests is not great, but the alternative is to hardcode 2^n combinations
+    # With n the number of values in the precedence list
+    # (with fleet and customer defined stable config, this will go up to 64 combinations)
+    combinations = (0..Datadog::Core::Configuration::Option::Precedence::LIST.length).flat_map do |n|
+      Datadog::Core::Configuration::Option::Precedence::LIST.combination(n).to_a
+    end
+
+    combinations.each do |precedences|
+      name = if precedences.empty?
+               'empty set'
+             elsif precedences.length == 1
+               precedences.first.name
+             else
+               "combination of #{precedences.map(&:name).join(', ')}"
+             end
+      context "for #{name}" do
         before do
           allow(context).to(receive(:instance_exec)) { |value, _| value }
 
@@ -829,9 +822,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq env_value
         end
 
-        it 'set precedence_set to programmatic' do
+        it 'set precedence_set to environment' do
           option.get
-          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
         end
 
         it_behaves_like 'env coercion'
@@ -896,9 +889,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq 'test'
         end
 
-        it 'set precedence_set to programmatic' do
+        it 'set precedence_set to environment' do
           option.get
-          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
         end
 
         it 'log deprecation warning' do
@@ -935,9 +928,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq 'test'
         end
 
-        it 'set precedence_set to programmatic' do
+        it 'set precedence_set to environment' do
           option.get
-          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
         end
 
         it 'do not log deprecation warning' do
@@ -957,9 +950,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq 'old test'
         end
 
-        it 'set precedence_set to programmatic' do
+        it 'set precedence_set to environment' do
           option.get
-          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
         end
 
         it 'log deprecation warning' do
