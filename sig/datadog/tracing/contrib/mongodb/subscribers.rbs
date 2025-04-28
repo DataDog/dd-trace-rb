@@ -13,6 +13,8 @@ module Datadog
 
           def get_span: (untyped event) -> untyped
 
+          def serialize_query: (Hash[untyped, untyped] query) -> string
+
           def set_span: (untyped event, untyped span) -> untyped
 
           def clear_span: (untyped event) -> (nil | untyped)
