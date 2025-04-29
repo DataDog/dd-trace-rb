@@ -24,7 +24,9 @@ RSpec.describe Datadog::AppSec::Event do
           2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
 
           context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
-          context.events.push(trace: trace_op, span: span, waf_result: waf_result)
+          context.events.push(
+            Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+          )
 
           described_class.record(context, request: rack_request, response: rack_response)
         end
@@ -222,7 +224,9 @@ RSpec.describe Datadog::AppSec::Event do
           trace_op = Datadog::Tracing::TraceOperation.new
           trace_op.measure('request') do |span|
             context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
-            context.events.push(trace: trace_op, span: span, waf_result: waf_result)
+            context.events.push(
+              Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+            )
 
             described_class.record(context, request: rack_request, response: rack_response)
           end
@@ -250,7 +254,9 @@ RSpec.describe Datadog::AppSec::Event do
           2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
 
           context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
-          context.events.push(trace: trace_op, span: span, waf_result: waf_result)
+          context.events.push(
+            Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+          )
 
           described_class.record(context, request: rack_request, response: rack_response)
         end

@@ -63,7 +63,7 @@ module Datadog
           return if context.events.empty? || context.span.nil?
 
           Datadog::AppSec::RateLimiter.thread_local.limit do
-            context.events.group_by { |e| e[:trace] }.each do |trace, event_group|
+            context.events.group_by(&:trace).each do |trace, event_group|
               unless trace
                 Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
                 next
@@ -114,14 +114,13 @@ module Datadog
         end
 
         def events_tags(event_group)
-          waf_events = []
-          entry_tags = event_group.each_with_object({ '_dd.origin' => 'appsec' }) do |event, tags|
-            waf_result = event[:waf_result]
-            # accumulate triggers
-            waf_events += waf_result.events
+          triggers = []
 
-            waf_result.derivatives.each do |key, value|
-              next tags[key] = value unless key.start_with?(DERIVATIVE_SCHEMA_KEY_PREFIX)
+          tags = event_group.each_with_object({ '_dd.origin' => 'appsec' }) do |event, memo|
+            triggers += event.waf_result.events
+
+            event.waf_result.derivatives.each do |key, value|
+              next memo[key] = value unless key.start_with?(DERIVATIVE_SCHEMA_KEY_PREFIX)
 
               value = CompressedJson.dump(value)
               next if value.nil?
@@ -131,15 +130,13 @@ module Datadog
                 next
               end
 
-              tags[key] = value
+              memo[key] = value
             end
-
-            tags
           end
 
-          appsec_events = json_parse({ triggers: waf_events })
-          entry_tags['_dd.appsec.json'] = appsec_events if appsec_events
-          entry_tags
+          appsec_events = json_parse({ triggers: triggers })
+          tags['_dd.appsec.json'] = appsec_events if appsec_events
+          tags
         end
 
         # NOTE: Handling of Encoding::UndefinedConversionError is added as a quick fix to
