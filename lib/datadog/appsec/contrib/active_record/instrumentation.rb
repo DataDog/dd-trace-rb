@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative '../../event'
+require_relative '../../security_event'
+
 module Datadog
   module AppSec
     module Contrib
@@ -28,18 +31,13 @@ module Datadog
             result = context.run_rasp(Ext::RASP_SQLI, {}, ephemeral_data, waf_timeout)
 
             if result.match?
-              Datadog::AppSec::Event.tag_and_keep!(context, result)
+              AppSec::Event.tag_and_keep!(context, result)
 
-              event = {
-                waf_result: result,
-                trace: context.trace,
-                span: context.span,
-                sql: sql,
-                actions: result.actions
-              }
-              context.events << event
+              context.events.push(
+                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+              )
 
-              ActionsHandler.handle(result.actions)
+              AppSec::ActionsHandler.handle(result.actions)
             end
           end
 
