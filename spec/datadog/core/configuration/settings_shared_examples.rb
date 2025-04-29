@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 RSpec.shared_examples_for 'a binary setting with' do |env_variable:, default:|
-  context "when #{env_variable}" do
+  context "when environment variable `#{env_variable}`" do
     around { |example| ClimateControl.modify(env_variable => environment) { example.run } }
 
     context 'is not defined' do
