@@ -32,17 +32,19 @@ module Datadog
           end
 
           # Remote configuration provided through the Datadog app.
-          REMOTE_CONFIGURATION = Value.new(2, :remote_configuration).freeze
+          REMOTE_CONFIGURATION = Value.new(3, :remote_configuration).freeze
 
           # Configuration provided in Ruby code, in this same process
-          # or via Environment variable
-          PROGRAMMATIC = Value.new(1, :programmatic).freeze
+          PROGRAMMATIC = Value.new(2, :programmatic).freeze
+
+          # Configuration provided via environment variable
+          ENVIRONMENT = Value.new(1, :environment).freeze
 
           # Configuration that comes from default values
           DEFAULT = Value.new(0, :default).freeze
 
           # All precedences, sorted from highest to lowest
-          LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, DEFAULT].sort.reverse.freeze
+          LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, ENVIRONMENT, DEFAULT].sort.reverse.freeze
         end
 
         def initialize(definition, context)
@@ -294,7 +296,7 @@ module Datadog
 
               resolved_env = env
               value = coerce_env_variable(ENV[env])
-              precedence = Precedence::PROGRAMMATIC
+              precedence = Precedence::ENVIRONMENT
               break
             end
           end
@@ -302,7 +304,7 @@ module Datadog
           if value.nil? && definition.deprecated_env && ENV[definition.deprecated_env]
             resolved_env = definition.deprecated_env
             value = coerce_env_variable(ENV[definition.deprecated_env])
-            precedence = Precedence::PROGRAMMATIC
+            precedence = Precedence::ENVIRONMENT
 
             Datadog::Core.log_deprecation do
               "#{definition.deprecated_env} environment variable is deprecated, use #{definition.env} instead."
