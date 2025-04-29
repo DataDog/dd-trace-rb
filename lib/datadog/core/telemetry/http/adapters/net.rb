@@ -17,7 +17,7 @@ module Datadog
     module Telemetry
       module Http
         module Adapters
-          class Net
+          class Net # rubocop:disable Lint/EmptyClass
           end
         end
       end
