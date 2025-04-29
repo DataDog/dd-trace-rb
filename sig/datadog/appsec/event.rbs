@@ -28,7 +28,7 @@ module Datadog
 
       private
 
-      def self.events_tags: (::Array[untyped]) -> tags
+      def self.waf_tags: (::Array[untyped]) -> tags
 
       def self.request_tags: (_RequestInterface request) -> tags
 

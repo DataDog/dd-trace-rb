@@ -84,8 +84,8 @@ RSpec.describe Datadog::AppSec::Event do
 
       it 'sets origin and AppSec trigger information' do
         expect(top_level_span.meta).to include(
-          '_dd.appsec.json' => '{"triggers":[1]}',
-          '_dd.origin' => 'appsec'
+          '_dd.origin' => 'appsec',
+          '_dd.appsec.json' => '{"triggers":[1]}'
         )
       end
 
@@ -244,7 +244,7 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
-    context 'when security event is not an attack and contains fingerprinting derivatives', skip: 'TODO: Not implemeted' do
+    context 'when security event is not an attack and contains fingerprinting derivatives' do
       before { stub_const('Datadog::AppSec::Event::ALLOWED_REQUEST_HEADERS', ['user-agent']) }
 
       let(:top_level_span) { trace.spans.find { |span| span.metrics['_dd.top_level'].to_f > 0.0 } }
@@ -321,86 +321,87 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
-    context 'when security event is not an attack and contains extracted schema derivatives',
-      skip: 'TODO: Not implemeted' do
-        before do
-          stub_const('Datadog::AppSec::Event::ALLOWED_REQUEST_HEADERS', ['user-agent'])
-          stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 3000)
-        end
-
-        let(:top_level_span) { trace.spans.find { |span| span.metrics['_dd.top_level'].to_f > 0.0 } }
-        let(:trace) do
-          trace_op = Datadog::Tracing::TraceOperation.new
-          trace_op.measure('request') do |span|
-            2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
-
-            context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
-            context.events.push(trace: trace_op, span: span, waf_result: waf_result)
-
-            described_class.record(context, request: rack_request, response: rack_response)
-          end
-          trace_op.flush!
-        end
-
-        let(:rack_request) do
-          instance_double(
-            Datadog::AppSec::Contrib::Rack::Gateway::Request,
-            headers: { 'user-agent' => 'Ruby/0.0' },
-            host: 'example.com',
-            user_agent: 'Ruby/0.0',
-            remote_addr: '127.0.0.1'
-          )
-        end
-
-        let(:rack_response) do
-          instance_double(
-            Datadog::AppSec::Contrib::Rack::Gateway::Response,
-            headers: { 'content-type' => 'text/html' }
-          )
-        end
-
-        let(:waf_result) do
-          Datadog::AppSec::SecurityEngine::Result::Ok.new(
-            events: [],
-            actions: {},
-            derivatives: {
-              '_dd.appsec.s.req.headers' => [{ 'host' => [8], 'version' => [8] }]
-            },
-            timeout: false,
-            duration_ns: 0,
-            duration_ext_ns: 0
-          )
-        end
-
-        it 'does not set HTTP information despite being non-attack event' do
-          expect(top_level_span.meta).not_to include(
-            'http.host',
-            'http.useragent',
-            'network.client.ip',
-            'http.request.headers.user-agent',
-            'http.response.headers.content-type'
-          )
-        end
-
-        it 'sets derivative schema data correctly' do
-          expect(top_level_span.meta).to include('_dd.appsec.s.req.headers' => '[{"host":[8],"version":[8]}]')
-        end
-
-        it 'does not set trigger information for non-attack trigger events' do
-          expect(top_level_span.meta).not_to include('_dd.appsec.json')
-        end
-
-        it 'changes the sampling priority for api security events' do
-          expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-        end
-
-        it 'does not set AppSec information on non-top-level spans' do
-          other_spans = trace.spans.reject { |span| span == top_level_span }
-
-          expect(other_spans).not_to be_empty
-          expect(other_spans).to all(have_attributes(meta: be_empty))
-        end
+    context 'when security event is not an attack and contains extracted schema derivatives' do
+      before do
+        stub_const('Datadog::AppSec::Event::ALLOWED_REQUEST_HEADERS', ['user-agent'])
+        stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 3000)
       end
+
+      let(:top_level_span) { trace.spans.find { |span| span.metrics['_dd.top_level'].to_f > 0.0 } }
+      let(:trace) do
+        trace_op = Datadog::Tracing::TraceOperation.new
+        trace_op.measure('request') do |span|
+          2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
+
+          context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+          context.events.push(
+            Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+          )
+
+          described_class.record(context, request: rack_request, response: rack_response)
+        end
+        trace_op.flush!
+      end
+
+      let(:rack_request) do
+        instance_double(
+          Datadog::AppSec::Contrib::Rack::Gateway::Request,
+          headers: { 'user-agent' => 'Ruby/0.0' },
+          host: 'example.com',
+          user_agent: 'Ruby/0.0',
+          remote_addr: '127.0.0.1'
+        )
+      end
+
+      let(:rack_response) do
+        instance_double(
+          Datadog::AppSec::Contrib::Rack::Gateway::Response,
+          headers: { 'content-type' => 'text/html' }
+        )
+      end
+
+      let(:waf_result) do
+        Datadog::AppSec::SecurityEngine::Result::Ok.new(
+          events: [],
+          actions: {},
+          derivatives: {
+            '_dd.appsec.s.req.headers' => [{ 'host' => [8], 'version' => [8] }]
+          },
+          timeout: false,
+          duration_ns: 0,
+          duration_ext_ns: 0
+        )
+      end
+
+      it 'does not set HTTP information despite being non-attack event' do
+        expect(top_level_span.meta).to include(
+          'http.host' => 'example.com',
+          'http.useragent' => 'Ruby/0.0',
+          'network.client.ip' => '127.0.0.1',
+          'http.request.headers.user-agent' => 'Ruby/0.0',
+          'http.response.headers.content-type' => 'text/html'
+        )
+      end
+
+      it 'sets derivative schema data correctly' do
+        expect(top_level_span.meta).to include('_dd.appsec.s.req.headers' => '[{"host":[8],"version":[8]}]')
+      end
+
+      it 'does not set trigger information for non-attack trigger events' do
+        expect(top_level_span.meta).not_to include('_dd.appsec.json')
+      end
+
+      it 'changes the sampling priority for api security events' do
+        expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
+      end
+
+      it 'does not set AppSec information on non-top-level spans' do
+        other_spans = trace.spans.reject { |span| span == top_level_span }
+
+        expect(other_spans).not_to be_empty
+        expect(other_spans).to all(have_attributes(meta: be_empty))
+      end
+    end
   end
 
   # NOTE: Next adjustments here require a refactor of the written tests.

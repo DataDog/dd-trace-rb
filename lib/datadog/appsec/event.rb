@@ -38,10 +38,6 @@ module Datadog
         content-language
       ].freeze
 
-      # Record events for a trace
-      #
-      # This is expected to be called only once per trace for the rate limiter
-      # to properly apply
       class << self
         def tag_and_keep!(context, waf_result)
           # We want to keep the trace in case of security event
@@ -59,32 +55,26 @@ module Datadog
         end
 
         def record(context, request: nil, response: nil)
-          # ensure rate limiter is called only when there are events to record
           return if context.events.empty? || context.span.nil?
 
           Datadog::AppSec::RateLimiter.thread_local.limit do
             context.events.group_by(&:trace).each do |trace, event_group|
               unless trace
-                Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
-                next
+                next Datadog.logger.debug do
+                  "AppSec: Cannot record event group with #{event_group.count} events because it has no trace"
+                end
               end
 
-              trace.keep!
-              trace.set_tag(
-                Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                Datadog::Tracing::Sampling::Ext::Decision::ASM
-              )
+              if event_group.any? { |event| event.attack? || event.schema? }
+                trace.keep!
+                trace[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = Tracing::Sampling::Ext::Decision::ASM
 
-              # prepare and gather tags to apply
-              service_entry_tags = events_tags(event_group)
-
-              # apply tags to service entry span
-              service_entry_tags.each do |key, value|
-                context.span.set_tag(key, value)
+                context.span['_dd.origin'] = 'appsec'
+                context.span.set_tags(request_tags(request)) if request
+                context.span.set_tags(response_tags(response)) if response
               end
 
-              context.span.set_tags(request_tags(request)) if request
-              context.span.set_tags(response_tags(response)) if response
+              context.span.set_tags(waf_tags(event_group))
             end
           end
         end
@@ -113,13 +103,13 @@ module Datadog
           end
         end
 
-        def events_tags(event_group)
+        def waf_tags(security_events)
           triggers = []
 
-          tags = event_group.each_with_object({ '_dd.origin' => 'appsec' }) do |event, memo|
-            triggers += event.waf_result.events
+          tags = security_events.each_with_object({}) do |security_event, memo|
+            triggers.concat(security_event.waf_result.events)
 
-            event.waf_result.derivatives.each do |key, value|
+            security_event.waf_result.derivatives.each do |key, value|
               next memo[key] = value unless key.start_with?(DERIVATIVE_SCHEMA_KEY_PREFIX)
 
               value = CompressedJson.dump(value)
@@ -134,8 +124,7 @@ module Datadog
             end
           end
 
-          appsec_events = json_parse({ triggers: triggers })
-          tags['_dd.appsec.json'] = appsec_events if appsec_events
+          tags['_dd.appsec.json'] = json_parse({ triggers: triggers }) unless triggers.empty?
           tags
         end
 
