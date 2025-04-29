@@ -9,7 +9,7 @@ module.exports = async ({github, context, core}) => {
   const checkSuites = await github.paginate(github.rest.checks.listSuitesForRef, {
     owner: context.repo.owner,
     repo: context.repo.repo,
-    ref: context.sha,
+    ref: context.payload.inputs.ref,
     app_id: parseInt(process.env.APP_ID),
     per_page: 100
   });

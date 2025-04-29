@@ -4,6 +4,11 @@ name: Publish gem
 on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
+      ref:
+        description: 'Git reference to publish (Commit SHA or Branch)'
+        type: string
+        default: 'master'
+        required: true
       force:
         description: 'Force release bypassing verification checks'
         type: boolean
@@ -25,8 +30,10 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - id: checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
       - uses: ruby/setup-ruby@dffc446db9ba5a0c4446edb5bca1c5c473a806c5 # v1.235.0
         with:
@@ -129,6 +136,8 @@ jobs:
       # Check if the commit has all the checks passed
       - name: Verify deferred commit data
         continue-on-error: ${{ inputs.force }}
+        env:
+          COMMIT_SHA: ${{ steps.checkout.outputs.commit }}
         # NOTE:
         #
         # This step uses Github's internal API (for rendering the status of the checks in UI),
@@ -139,7 +148,7 @@ jobs:
         #
         # However, not depending on Github's public API (REST/GraphQL) suggested that this might change in the future.
         run: |
-          COMMIT_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+          COMMIT_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$COMMIT_SHA"
           STATUS=$(curl -sS --fail --retry 3 --retry-delay 5 "$COMMIT_URL/deferred_commit_data" | jq -r ".data.statusCheckStatus.state")
           if [ "$STATUS" != "success" ]; then
             echo "::error::Status check state is '$STATUS'. See: $COMMIT_URL"
@@ -161,8 +170,10 @@ jobs:
     env:
       SKIP_SIMPLECOV: 1
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - id: checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false # `rubygems/release-gem` action handles credentials itself
       - name: Set up Ruby
         uses: ruby/setup-ruby@dffc446db9ba5a0c4446edb5bca1c5c473a806c5 # v1.235.0
@@ -193,7 +204,7 @@ jobs:
           gh release edit "v${GEM_VERSION}" --draft=false
 
   update-gem-version:
-    if: github.ref_name == 'master'
+    if: ${{ inputs.ref == 'master' }}
     name: Prepare next gem version
     runs-on: ubuntu-24.04
     needs:
@@ -219,7 +230,7 @@ jobs:
 
   # https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28
   milestone:
-    if: github.ref_name == 'master'
+    if: ${{ inputs.ref == 'master' }}
     name: Open/Close Github milestones
     runs-on: ubuntu-24.04
     needs:
@@ -306,7 +317,7 @@ jobs:
             }
 
   update-release-branch:
-    if: github.ref_name == 'master'
+    if: ${{ inputs.ref == 'master' }}
     name: Pull request to update 'release' branch
     runs-on: ubuntu-24.04
     needs:
@@ -321,6 +332,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: true # required for `git` operations (push) at later steps
           token: ${{ secrets.GHA_PAT }}
           fetch-depth: 0

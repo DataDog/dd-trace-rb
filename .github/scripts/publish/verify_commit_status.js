@@ -8,14 +8,14 @@ module.exports = async ({github, context, core}) => {
   const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
     owner: context.repo.owner,
     repo: context.repo.repo,
-    ref: context.sha
+    ref: context.payload.inputs.ref
   });
 
   if (combinedStatus.state !== 'success') {
     const allStatuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
       owner: context.repo.owner,
       repo: context.repo.repo,
-      ref: context.sha,
+      ref: context.payload.inputs.ref,
       per_page: 100
     });
 
