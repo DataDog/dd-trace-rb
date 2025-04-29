@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../ext'
@@ -30,7 +32,7 @@ module Datadog
 
             # build a quantized Query using the Parser module
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
-            serialized_query = query.to_s
+            serialized_query = serialize_query(query)
 
             if datadog_configuration[:peer_service]
               span.set_tag(
@@ -108,6 +110,21 @@ module Datadog
           end
 
           private
+
+          def serialize_query(query)
+            if datadog_configuration[:json_command]
+              query.to_json
+            else
+              # Incorrect Hash#to_s serialization. The Mongo command should only be encoded as JSON.
+              # This code path should be removed, and is only kept to avoid a breaking change.
+              Datadog::Core.log_deprecation(key: :mongo_json_command) do
+                'MongoDB integration: `json_command: false` causes invalid command serialization. '\
+                'Use `json_command: true` or `DD_TRACE_MONGO_JSON_COMMAND=1` instead.'
+              end
+
+              query.to_s
+            end
+          end
 
           def get_span(event)
             Thread.current[:datadog_mongo_span] \

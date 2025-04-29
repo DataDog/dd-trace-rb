@@ -1144,7 +1144,7 @@ require 'mongo'
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :mongo, **options
+  c.tracing.instrument :mongo, json_command: true, **options
 end
 
 # Create a MongoDB client and use it as usual
@@ -1164,6 +1164,7 @@ Datadog.configure_onto(client, **options)
 | `service_name` | `DD_TRACE_MONGO_SERVICE_NAME` | `String` | Name of application running the `mongo` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)   | `mongodb`                                        |
 | `peer_service` | `DD_TRACE_MONGO_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                        | `nil`                                            |
 | `quantize`     |                               | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
+| `json_command` | `DD_TRACE_MONGO_JSON_COMMAND` | `Bool` | (Recommended) Serialize the MongoDB command as JSON, which enables full support for introspection in the Datadog App. | `false` |
 
 **Configuring trace settings per connection**
 
