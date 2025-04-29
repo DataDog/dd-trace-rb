@@ -1,3 +1,6 @@
 {
-  
+    "APPSEC_BLOCKING": [
+        "tests/appsec/test_fingerprinting.py::Test_Fingerprinting_Endpoint_Preprocessor",
+        "tests/appsec/test_fingerprinting.py::Test_Fingerprinting_Header_And_Network_Preprocessor"
+    ]
 }

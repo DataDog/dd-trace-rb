@@ -38,13 +38,14 @@ module Datadog
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                  if result.match?
-                    AppSec::Event.tag_and_keep!(context, result)
-
+                  if result.match? || !result.derivatives.empty?
                     context.events.push(
                       AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
                     )
+                  end
 
+                  if result.match?
+                    AppSec::Event.tag_and_keep!(context, result)
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
