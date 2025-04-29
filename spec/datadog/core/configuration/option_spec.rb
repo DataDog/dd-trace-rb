@@ -561,7 +561,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'when no precedence value is set and try to unset a precedence that is not set' do
-        subject!(:unset) { option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC) }
+        before { option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC) }
 
         it 'does not modify the option' do
           expect(option.get).to eq(default)
@@ -570,7 +570,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'when no precedence value is set and try to unset DEFAULT' do
-        subject!(:unset) { option.unset(Datadog::Core::Configuration::Option::Precedence::DEFAULT) }
+        before { option.unset(Datadog::Core::Configuration::Option::Precedence::DEFAULT) }
 
         it 'does not modify the option' do
           expect(option.get).to eq(default)
@@ -585,9 +585,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
               precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
             )
-          end
 
-          subject!(:unset) { option.unset(Datadog::Core::Configuration::Option::Precedence::DEFAULT) }
+            option.unset(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+          end
 
           it 'does not modify the option' do
             expect(option.get).to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
@@ -601,9 +601,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
               precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
             )
-          end
 
-          subject!(:unset) { option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC) }
+            option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+          end
 
           it 'removes the only precedence value' do
             expect(option.get).to eq(default)
@@ -617,9 +617,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
               precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
             )
-          end
 
-          subject!(:unset) { option.unset(Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION) }
+            option.unset(Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+          end
 
           it 'does not modify the option' do
             expect(option.get).to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
@@ -639,9 +639,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
               precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
             )
-          end
 
-          subject!(:unset) { option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC) }
+            option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+          end
 
           it 'falls back to lower precedence value' do
             expect(option.get).to eq(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
@@ -659,9 +659,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
               Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
               precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
             )
-          end
 
-          subject!(:unset) { option.unset(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT) }
+            option.unset(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
+          end
 
           it 'does not modify the option' do
             expect(option.get).to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
