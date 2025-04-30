@@ -36,8 +36,8 @@ module Datadog
             # `rescue nil` is added in case customers remove the method
             # themselves to squelch the warning.
             remove_method(:now) rescue nil
-            define_method(:now, &block)
           end
+          define_singleton_method(:now, &block)
         end
 
         # Overrides the implementation of `#get_time
@@ -54,8 +54,8 @@ module Datadog
             # `rescue nil` is added in case customers remove the method
             # themselves to squelch the warning.
             remove_method(:get_time) rescue nil
-            define_method(:get_time, &block)
           end
+          define_singleton_method(:get_time, &block)
         end
 
         def measure(unit = :float_second)
