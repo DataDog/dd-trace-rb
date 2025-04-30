@@ -12,7 +12,7 @@ module Datadog
 
     def self.reconfigure_lock: () { (?) -> untyped } -> void
 
-    def self.api_security_enabled?: () -> bool
+    def self.perform_api_security_check?: () -> bool
 
     private
 
