@@ -5,6 +5,8 @@ module Datadog
         class TrackingMiddleware
           WARDEN_KEY: ::String
 
+          SESSION_ID_KEY: ::String
+
           @app: untyped
 
           def initialize: (untyped app) -> void
