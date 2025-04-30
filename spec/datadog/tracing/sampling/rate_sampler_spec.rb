@@ -135,7 +135,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
           8696342848850656916 => true,
           18444899399302180860 => false,
           18444899399302180862 => true,
-          9223372036854775808 => true, # Lands exactly on the threshold
+          9223372036854775808 => true, # Lands exactly on the sampling threshold 0.5 * MAX_UINT64
         }
       end
 
