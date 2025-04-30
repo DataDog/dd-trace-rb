@@ -11,11 +11,15 @@ module Datadog
 
           @login: String?
 
+          @session_id: String?
+
           attr_reader id: String
 
           attr_reader login: String?
 
-          def initialize: (String id, String? login) -> void
+          attr_reader session_id: String?
+
+          def initialize: (String id, String? login, String? session_id) -> void
         end
       end
     end
