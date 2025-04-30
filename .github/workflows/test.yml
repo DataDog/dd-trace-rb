@@ -115,6 +115,7 @@ jobs:
     name: dd/junit
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
+    continue-on-error: true
     container:
       image: datadog/ci
       credentials:
