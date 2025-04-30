@@ -39,7 +39,7 @@ module Datadog
         end
 
         def sample?(trace)
-          ((trace.id * KNUTH_FACTOR) % Tracing::Utils::EXTERNAL_MAX_ID) <= @sampling_id_threshold
+          ((trace.id * KNUTH_FACTOR) % (1 << 64)) <= @sampling_id_threshold
         end
 
         def sample!(trace)
