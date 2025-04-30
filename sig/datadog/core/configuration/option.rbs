@@ -15,6 +15,7 @@ module Datadog
         module Precedence
           REMOTE_CONFIGURATION: Value
           PROGRAMMATIC: Value
+          ENVIRONMENT: Value
           DEFAULT: Value
           LIST: [Value]
 
