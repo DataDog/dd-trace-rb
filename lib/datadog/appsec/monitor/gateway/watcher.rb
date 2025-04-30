@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../event'
+require_relative '../../security_event'
 require_relative '../../instrumentation/gateway'
 
 module Datadog
@@ -17,7 +19,7 @@ module Datadog
 
             def watch_user_id(gateway = Instrumentation.gateway)
               gateway.watch('identity.set_user', :appsec) do |stack, user|
-                context = Datadog::AppSec.active_context
+                context = AppSec.active_context
 
                 if user.id.nil? && user.login.nil?
                   Datadog.logger.debug { 'AppSec: skipping WAF check because no user information was provided' }
@@ -31,17 +33,13 @@ module Datadog
                 result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
                 if result.match?
-                  Datadog::AppSec::Event.tag_and_keep!(context, result)
+                  AppSec::Event.tag_and_keep!(context, result)
 
-                  context.events << {
-                    waf_result: result,
-                    trace: context.trace,
-                    span: context.span,
-                    user: user,
-                    actions: result.actions
-                  }
+                  context.events.push(
+                    AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                  )
 
-                  Datadog::AppSec::ActionsHandler.handle(result.actions)
+                  AppSec::ActionsHandler.handle(result.actions)
                 end
 
                 stack.call(user)
