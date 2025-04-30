@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
 require_relative '../ext'
 require_relative '../event'
+require_relative '../../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -12,7 +15,7 @@ module Datadog
           module Instantiation
             include ActiveRecord::Event
 
-            EVENT_NAME = 'instantiation.active_record'.freeze
+            EVENT_NAME = 'instantiation.active_record'
 
             module_function
 
@@ -29,9 +32,9 @@ module Datadog
               Ext::SPAN_INSTANTIATION
             end
 
-            def process(span, event, _id, payload)
+            def on_start(span, event, _id, payload)
               span.resource = payload.fetch(:class_name)
-              span.span_type = Ext::SPAN_TYPE_INSTANTIATION
+              span.type = Ext::SPAN_TYPE_INSTANTIATION
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_INSTANTIATION)
 
@@ -46,7 +49,8 @@ module Datadog
               span.set_tag(Ext::TAG_INSTANTIATION_CLASS_NAME, payload.fetch(:class_name))
               span.set_tag(Ext::TAG_INSTANTIATION_RECORD_COUNT, payload.fetch(:record_count))
             rescue StandardError => e
-              Datadog.logger.debug(e.message)
+              Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
           end
         end

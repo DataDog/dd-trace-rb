@@ -3,7 +3,7 @@ module Datadog
   module DemoEnv
     module_function
 
-    def gem_spec(gem_name, defaults = {})
+    def gem_spec(gem_name)
       args = if local_gem(gem_name)
                [local_gem(gem_name)]
              elsif git_gem(gem_name)
@@ -15,6 +15,18 @@ module Datadog
       yield(args) if block_given?
 
       args
+    end
+
+    def gem_datadog_auto_instrument
+      gem_spec = gem_spec('datadog')
+      req = {require: 'datadog/auto_instrument'}
+      opts = if gem_spec.last.is_a?(Hash)
+        gem_spec.pop.merge(req)
+      else
+        req
+      end
+      gem_spec << opts
+      ['datadog', *gem_spec]
     end
 
     def gem_env_name(gem_name)
@@ -59,13 +71,13 @@ module Datadog
       puts "Features:        #{features}"
       puts "Rails env:       #{ENV['RAILS_ENV']}" if ENV['RAILS_ENV']
       puts "PID:             #{Process.pid}"
-      if (ddtrace = Gem.loaded_specs['ddtrace'])
+      if (datadog = Gem.loaded_specs['datadog'])
         puts "Runtime ID:      #{Datadog::Core::Environment::Identity.id}" if defined?(Datadog::Core::Environment::Identity)
-        puts "ddtrace version: #{ddtrace.version}"
-        puts "ddtrace path:    #{ddtrace.full_gem_path}"
-        if (git_spec = git_gem('ddtrace'))
-          puts "ddtrace git:     #{git_spec[:git]}"
-          puts "ddtrace ref:     #{git_spec[:ref]}"
+        puts "datadog version: #{datadog.version}"
+        puts "datadog path:    #{datadog.full_gem_path}"
+        if (git_spec = git_gem('datadog'))
+          puts "datadog git:     #{git_spec[:git]}"
+          puts "datadog ref:     #{git_spec[:ref]}"
         end
       end
       puts "\n"

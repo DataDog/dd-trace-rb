@@ -1,0 +1,47 @@
+module Datadog
+  module Tracing
+    class SpanEvent
+      type attributes = Hash[String,attributeValue]
+      type attributeValue = String | Integer | Float | bool | Array[String] | Array[Integer] | Array[Float] | Array[bool]
+
+      MIN_INT64_SIGNED: Integer
+      MAX_INT64_SIGNED: Integer
+      STRING_TYPE: Integer
+      BOOLEAN_TYPE: Integer
+      INTEGER_TYPE: Integer
+      DOUBLE_TYPE: Integer
+      ARRAY_TYPE: Integer
+
+      attr_reader name: untyped # TODO: Typing this makes to_hash internal typecheck fail
+      attr_reader attributes: attributes
+      attr_reader time_unix_nano: untyped # TODO: Typing this also makes to_hash internal typecheck fail
+
+      def initialize: (String name, ?attributes: attributes, ?time_unix_nano: Integer) -> void
+
+      def to_hash: -> Hash[String, untyped]
+      # TODO: Steep does not track Hash keys when they are added with `hash[:key] = val`.
+      #   {
+      #   name: String,
+      #   time_unix_nano: Integer,
+      #   ?attributes: attributes,
+      # }
+
+      def to_native_format: -> Hash[String, untyped]
+      # TODO: Steep does not track Hash keys when they are added with `hash[:key] = val`.
+      # {
+      #   name: String,
+      #   time_unix_nano: Integer,
+      #   ?attributes: Hash[String, nativeAttributeValue],
+      # }
+      # type nativeAttributeValue = { type: Integer, string_value: String } | { type: Integer, int_value: Integer } | { type: Integer, double_value: Float } | { type: Integer, bool_value: bool } | { type: Integer, string_array_value: Array[String] } | { type: Integer, int_array_value: Array[Integer] } | { type: Integer, double_array_value: Array[Float] } | { type: Integer, bool_array_value: Array[bool] }
+
+      private
+
+      def serialize_native_attribute: (attributeValue value)-> ({ type: Integer, string_value: String } | { type: Integer, int_value: Integer } | { type: Integer, double_value: Float } | { type: Integer, bool_value: bool })
+
+      def validate_attributes!: (attributes attributes)-> void
+
+      def validate_scalar_attribute!: (String key, attributeValue value)-> bool
+    end
+  end
+end

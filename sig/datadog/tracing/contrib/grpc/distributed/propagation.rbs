@@ -5,7 +5,6 @@ module Datadog
         module Distributed
           class Propagation < Tracing::Distributed::Propagation
             def initialize: () -> void
-            INSTANCE: untyped
           end
         end
       end

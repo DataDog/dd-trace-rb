@@ -20,14 +20,8 @@ require 'datadog/tracing/contrib/support/http'
 require 'spec/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
-  before(:all) do
-    # TODO: Consolidate mock webserver code
-    @log_buffer = StringIO.new # set to $stderr to debug
-    log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
-    access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
-
-    server = WEBrick::HTTPServer.new(Port: 0, Logger: log, AccessLog: access_log)
-    server.mount_proc '/' do |req, res|
+  http_server do |http_server|
+    http_server.mount_proc '/' do |req, res|
       body = JSON.parse(req.body)
       res.status = body['code'].to_i
 
@@ -39,18 +33,6 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
 
       res.body = req.body
     end
-
-    ThreadHelpers.with_leaky_thread_creation(:httpclient_test_server) do
-      @thread = Thread.new { server.start }
-    end
-
-    @server = server
-    @port = server[:Port]
-  end
-
-  after(:all) do
-    @server.shutdown
-    @thread.join
   end
 
   let(:configuration_options) { {} }
@@ -73,8 +55,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
     let(:host) { 'localhost' }
     let(:message) { 'OK' }
     let(:path) { '/sample/path' }
-    let(:port) { @port }
-    let(:url) { "http://#{host}:#{@port}#{path}" }
+    let(:port) { http_server_port }
+    let(:url) { "http://#{host}:#{http_server_port}#{path}" }
     let(:body) { { 'message' => message, 'code' => code } }
     let(:headers) { { accept: 'application/json' } }
     let(:client) { HTTPClient.new }
@@ -116,7 +98,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           end
 
           it 'is http type' do
-            expect(span.span_type).to eq('http')
+            expect(span.type).to eq('http')
           end
 
           it 'is named correctly' do
@@ -227,7 +209,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           let(:http_response) { response }
 
           it 'propagates the parent id header' do
-            expect(http_response.headers['X-Datadog-Parent-Id']).to eq(span.span_id.to_s)
+            expect(http_response.headers['X-Datadog-Parent-Id']).to eq(span.id.to_s)
           end
 
           it 'propogrates the trace id header' do
@@ -240,7 +222,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           let(:http_response) { response }
 
           it 'does not propagate the parent id header' do
-            expect(http_response.headers['X-Datadog-Parent-Id']).to_not eq(span.span_id.to_s)
+            expect(http_response.headers['X-Datadog-Parent-Id']).to_not eq(span.id.to_s)
           end
 
           it 'does not propograte the trace id header' do
@@ -319,7 +301,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
       let(:code) { status_code }
       before { response }
 
-      include_examples 'with error status code configuration'
+      include_examples 'with error status code configuration', env: 'DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES'
     end
 
     it_behaves_like 'instrumented request'

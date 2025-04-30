@@ -4,10 +4,9 @@
 // is not available.
 #ifndef HAVE_PTHREAD_GETCPUCLOCKID
 
-#include <ruby.h>
-
 #include "clock_id.h"
 #include "helpers.h"
+#include "datadog_ruby_common.h"
 
 void self_test_clock_id(void) { } // Nothing to check
 

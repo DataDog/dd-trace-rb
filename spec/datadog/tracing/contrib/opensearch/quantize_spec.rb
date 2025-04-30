@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'opensearch'
 
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/opensearch/quantize'
 
 RSpec.describe Datadog::Tracing::Contrib::OpenSearch::Quantize do

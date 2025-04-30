@@ -2,7 +2,7 @@ version: '3.4'
 services:
   app:
     # Build at dd-trace-rb level to copy in current code
-    # and use it as the `ddtrace` gem.
+    # and use it as the `datadog` gem.
     build:
       context: ../../..
       dockerfile: integration/apps/rack/Dockerfile-ci
@@ -78,7 +78,7 @@ services:
   # to an app and verified the responsee and run a couple of self-owned test cases.
 
   # Build at dd-trace-rb level to copy in current code
-  # and use it as the `ddtrace` gem.
+  # and use it as the `datadog` gem.
   integration-tester:
     build:
       context: ../../..
@@ -98,10 +98,6 @@ services:
       - HEALTH_CHECK_URL=http://app/health
       - HEALTH_CHECK_INTERVAL=1
       - HEALTH_CHECK_MAX_ATTEMPTS=30
-    # volumes:
-    #   - .:/app
-    #   - ../../images/include:/vendor/dd-demo
-    #   - ../../..:/vendor/dd-trace-rb
   redis:
     image: redis:6.2-buster
     expose:

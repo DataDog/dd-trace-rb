@@ -1,5 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'sneakers'
 
 RSpec.describe Datadog::Tracing::Contrib::Sneakers::Patcher do

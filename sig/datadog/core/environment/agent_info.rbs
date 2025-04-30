@@ -1,0 +1,13 @@
+module Datadog
+  module Core
+    module Environment
+      class AgentInfo
+        attr_reader agent_settings: Configuration::AgentSettingsResolver::AgentSettings
+
+        def initialize: (Configuration::AgentSettingsResolver::AgentSettings agent_settings, logger: Core::Logger) -> void
+
+        def fetch: -> Remote::Transport::HTTP::Negotiation::Response?
+      end
+    end
+  end
+end

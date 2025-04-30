@@ -33,7 +33,7 @@ You may submit bug reports concerning the Datadog tracing library for Ruby by [o
  - Errors (with stack traces) or warnings received
  - Any details you can share about your configuration including:
     - Ruby version & platform
-    - `ddtrace` version
+    - `datadog` version
     - Versions of any other relevant gems (or a `Gemfile.lock` if available)
     - Any configuration settings for the trace library (e.g. `initializers/datadog.rb`)
 

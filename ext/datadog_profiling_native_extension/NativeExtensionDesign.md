@@ -28,7 +28,7 @@ documentation.**
 The profiling native extension is (and must always be) designed to **not cause failures** during gem installation, even
 if some features, Ruby versions, or operating systems are not supported.
 
-E.g. the extension must not break installation on Ruby 2.1 (or the oldest Ruby version we support at the time) on 64-bit ARM macOS,
+E.g. the extension must not break installation on Ruby 2.5 (or the oldest Ruby version we support at the time) on 64-bit ARM macOS,
 even if at run time it will effectively do nothing for such a setup.
 
 We have a CI setup to help validate this, but this is really important to keep in mind when adding to or changing the
@@ -68,7 +68,7 @@ internal types, structures and functions).
 Because these private header files are not included in regular Ruby installations, we have two different workarounds:
 
 1. for Ruby versions 2.6 to 3.2 we make use use the Ruby private MJIT header
-2. for Ruby versions < 2.6 and > 3.2 we make use of the `debase-ruby_core_source` gem
+2. for Ruby versions < 2.6 and > 3.2 we make use of the `datadog-ruby_core_source` gem
 
 Functions which make use of these headers are defined in the <private_vm_api_acccess.c> file.
 
@@ -91,9 +91,9 @@ version. e.g. `rb_mjit_min_header-2.7.4.h`.
 
 This header was removed in Ruby 3.3.
 
-### Approach 2: Using the `debase-ruby_core_source` gem
+### Approach 2: Using the `datadog-ruby_core_source` gem
 
-The [`debase-ruby_core_source`](https://github.com/ruby-debug/debase-ruby_core_source) contains almost no code;
+The [`datadog-ruby_core_source`](https://github.com/DataDog/datadog-ruby_core_source) contains almost no code;
 instead, it just contains per-Ruby-version folders with the private VM headers (`.h`) files for that version.
 
 Thus, even though a regular Ruby installation does not include these files, we can access the copy inside this gem.

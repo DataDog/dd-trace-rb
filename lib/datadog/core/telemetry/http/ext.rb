@@ -10,11 +10,17 @@ module Datadog
           HEADER_CONTENT_LENGTH = 'Content-Length'
           HEADER_DD_TELEMETRY_API_VERSION = 'DD-Telemetry-API-Version'
           HEADER_DD_TELEMETRY_REQUEST_TYPE = 'DD-Telemetry-Request-Type'
+          HEADER_TELEMETRY_DEBUG_ENABLED = 'DD-Telemetry-Debug-Enabled'
+          HEADER_CLIENT_LIBRARY_LANGUAGE = 'DD-Client-Library-Language'
+          HEADER_CLIENT_LIBRARY_VERSION = 'DD-Client-Library-Version'
 
           CONTENT_TYPE_APPLICATION_JSON = 'application/json'
-          API_VERSION = 'v1'
+          API_VERSION = 'v2'
+
+          AGENTLESS_HOST_PREFIX = 'instrumentation-telemetry-intake'
 
           AGENT_ENDPOINT = '/telemetry/proxy/api/v2/apmtelemetry'
+          AGENTLESS_ENDPOINT = '/api/v2/apmtelemetry'
         end
       end
     end

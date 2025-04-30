@@ -1,0 +1,9 @@
+module Datadog
+  module DI
+    module Contrib
+      def self?.load_now_or_later: () -> void
+
+      def self?.load_now: () -> void
+    end
+  end
+end

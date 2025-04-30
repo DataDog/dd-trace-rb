@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+require 'datadog/tracing/contrib/support/integration/shared_examples'
+
 RSpec.shared_examples 'normal with tracing disable' do
   let(:tracing_enabled) { false }
 
@@ -123,7 +127,7 @@ end
 RSpec.shared_examples 'a trace with AppSec api security tags' do
   context 'with api security enabled' do
     let(:api_security_enabled) { true }
-    let(:api_security_sample) { 1 }
+    let(:api_security_sample) { 1.0 }
 
     it do
       api_security_tags = service_span.send(:meta).select { |key, _value| key.include?('_dd.appsec.s') }
@@ -146,6 +150,7 @@ end
 RSpec.shared_examples 'a trace without AppSec events' do
   it do
     expect(spans.select { |s| s.get_tag('appsec.event') }).to be_empty
+    expect(trace.send(:meta)['_dd.p.ts'].to_i & 2).to eq 0
     expect(service_span.send(:meta)['_dd.appsec.triggers']).to be_nil
   end
 end
@@ -155,6 +160,7 @@ RSpec.shared_examples 'a trace with AppSec events' do |params = { blocking: fals
 
   it do
     expect(spans.select { |s| s.get_tag('appsec.event') }).to_not be_empty
+    expect(trace.send(:meta)['_dd.p.ts'].to_i & 2).to eq 2
     expect(service_span.send(:meta)['_dd.appsec.json']).to be_a String
     expect(spans.select { |s| s.get_tag('appsec.blocked') }).to_not be_empty if blocking_request
   end
@@ -163,5 +169,17 @@ RSpec.shared_examples 'a trace with AppSec events' do |params = { blocking: fals
     let(:appsec_enabled) { false }
 
     it_behaves_like 'a trace without AppSec events'
+  end
+end
+
+RSpec.shared_examples 'a trace with ASM Standalone tags' do |params = {}|
+  # Located in tracing shared examples
+  it_behaves_like 'a trace with APM disablement tags', params
+  let(:tag_appsec_enabled) { params[:tag_appsec_enabled] || 1.0 }
+  let(:appsec_bit_in_source) { params[:appsec_bit_in_source] }
+
+  it do
+    expect(span.send(:metrics)['_dd.appsec.enabled']).to eq(tag_appsec_enabled)
+    expect(span.send(:meta)['_dd.p.ts'].to_i & 2).to eq(appsec_bit_in_source ? 2 : 0)
   end
 end

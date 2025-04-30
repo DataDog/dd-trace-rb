@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GraphQL
+        module Configuration
+          class ErrorExtensionEnvParser
+            def self.call: (string values) -> Array[string]
+          end
+        end
+      end
+    end
+  end
+end

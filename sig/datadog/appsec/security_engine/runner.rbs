@@ -1,0 +1,32 @@
+module Datadog
+  module AppSec
+    module SecurityEngine
+      class Runner
+        type waf_run_result = [::Symbol, WAF::Result]
+        type input_data = ::Hash[::String, untyped]
+
+        @mutex: ::Mutex
+
+        @context: WAF::Context
+
+        @telemetry: Core::Telemetry::Component
+
+        @debug_tag: ::String
+
+        SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
+
+        def initialize: (WAF::Handle handle, telemetry: Core::Telemetry::Component) -> void
+
+        def run: (input_data persistent_data, input_data ephemeral_data, ?::Integer timeout) -> SecurityEngine::result
+
+        def finalize: () -> void
+
+        private
+
+        def try_run: (input_data persistent_data, input_data ephemeral_data, untyped timeout) -> waf_run_result
+
+        def report_execution: (WAF::Result result) -> void
+      end
+    end
+  end
+end

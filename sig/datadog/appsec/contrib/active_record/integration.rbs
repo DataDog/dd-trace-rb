@@ -1,0 +1,23 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module ActiveRecord
+        class Integration
+          include Datadog::AppSec::Contrib::Integration
+
+          MINIMUM_VERSION: Gem::Version
+
+          def self.version: () -> Gem::Version?
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+
+          def self.auto_instrument?: () -> true
+
+          def patcher: () -> class
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,32 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveSupport
+        module Cache
+          module Events
+            module Cache
+              @cache_backend: untyped
+
+              include ActiveSupport::Cache::Event
+              def self?.subscribe!: () -> untyped
+
+              def self?.event_name: () -> ::Regexp
+
+              def self?.span_name: () -> untyped
+
+              def self?.span_options: () -> { type: untyped }
+              MAPPING: ::Hash[::String, { resource: untyped } | { resource: untyped, multi_key: true }]
+
+              def self?.trace?: (untyped event, untyped _payload) -> (false | untyped)
+
+              def self?.on_start: (untyped span, untyped event, untyped _id, untyped payload) -> untyped
+
+              def self?.set_cache_key: (untyped span, untyped key, untyped multi_key) -> untyped
+              def self?.cache_backend: (untyped store) -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

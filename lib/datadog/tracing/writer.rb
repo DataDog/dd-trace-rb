@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'event'
 require_relative 'runtime/metrics'
 require_relative 'workers'
@@ -11,21 +13,24 @@ module Datadog
     # @public_api
     class Writer
       attr_reader \
+        :logger,
         :transport,
         :worker,
-        :events
+        :events,
+        :agent_settings
 
       def initialize(options = {})
+        @logger = options[:logger] || Datadog.logger
+
         # writer and transport parameters
         @buff_size = options.fetch(:buffer_size, Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE)
         @flush_interval = options.fetch(:flush_interval, Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL)
         transport_options = options.fetch(:transport_options, {})
-
-        transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
+        @agent_settings = options[:agent_settings]
 
         # transport and buffers
         @transport = options.fetch(:transport) do
-          Transport::HTTP.default(**transport_options)
+          Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
         end
 
         @shutdown_timeout = options.fetch(:shutdown_timeout, Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT)
@@ -66,21 +71,6 @@ module Datadog
         end
       end
 
-      # spawns a worker for spans; they share the same transport which is thread-safe
-      # @!visibility private
-      def start_worker
-        @trace_handler = ->(items, transport) { send_spans(items, transport) }
-        @worker = Workers::AsyncTransport.new(
-          transport: @transport,
-          buffer_size: @buff_size,
-          on_trace: @trace_handler,
-          interval: @flush_interval,
-          shutdown_timeout: @shutdown_timeout
-        )
-
-        @worker.start
-      end
-
       # Gracefully shuts down this writer.
       #
       # Once stopped methods calls won't fail, but
@@ -90,19 +80,6 @@ module Datadog
       def stop
         @mutex_after_fork.synchronize { stop_worker }
       end
-
-      def stop_worker
-        @stopped = true
-
-        return if @worker.nil?
-
-        @worker.stop
-        @worker = nil
-
-        true
-      end
-
-      private :start_worker, :stop_worker
 
       # flush spans to the trace-agent, handles spans only
       # @!visibility private
@@ -145,7 +122,7 @@ module Datadog
         if worker_local
           worker_local.enqueue_trace(trace)
         elsif !@stopped
-          Datadog.logger.debug('Writer either failed to start or was stopped before #write could complete')
+          logger.debug('Writer either failed to start or was stopped before #write could complete')
         end
       end
 
@@ -176,6 +153,33 @@ module Datadog
       end
 
       private
+
+      # spawns a worker for spans; they share the same transport which is thread-safe
+      # @!visibility private
+      def start_worker
+        @trace_handler = ->(items, transport) { send_spans(items, transport) }
+        @worker = Workers::AsyncTransport.new(
+          transport: @transport,
+          buffer_size: @buff_size,
+          on_trace: @trace_handler,
+          interval: @flush_interval,
+          shutdown_timeout: @shutdown_timeout,
+          logger: logger,
+        )
+
+        @worker.start
+      end
+
+      def stop_worker
+        @stopped = true
+
+        return if @worker.nil?
+
+        @worker.stop
+        @worker = nil
+
+        true
+      end
 
       def reset_stats!
         @traces_flushed = 0

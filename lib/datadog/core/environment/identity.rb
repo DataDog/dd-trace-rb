@@ -49,14 +49,14 @@ module Datadog
           Core::Environment::Ext::LANG_VERSION
         end
 
-        # Returns tracer version, rubygems-style
-        def tracer_version
-          Core::Environment::Ext::TRACER_VERSION
+        # Returns datadog gem version, rubygems-style
+        def gem_datadog_version
+          Core::Environment::Ext::GEM_DATADOG_VERSION
         end
 
         # Returns tracer version, comforming to https://semver.org/spec/v2.0.0.html
-        def tracer_version_semver2
-          major, minor, patch, rest = tracer_version.split('.', 4)
+        def gem_datadog_version_semver2
+          major, minor, patch, rest = gem_datadog_version.split('.', 4)
 
           semver = "#{major}.#{minor}.#{patch}"
 

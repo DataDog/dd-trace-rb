@@ -25,8 +25,10 @@ module Datadog
         def inject!(digest, env)
           return if digest.nil?
 
+          span_id = digest.span_id || 0 # Fall back to zero (invalid) if not present
+
           # DEV: We need these to be hex encoded
-          value = "#{format('%032x', digest.trace_id)}-#{format('%016x', digest.span_id)}"
+          value = "#{format('%032x', digest.trace_id)}-#{format('%016x', span_id)}"
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(
@@ -59,7 +61,8 @@ module Datadog
           TraceDigest.new(
             span_id: span_id,
             trace_id: trace_id,
-            trace_sampling_priority: sampling_priority
+            trace_sampling_priority: sampling_priority,
+            span_remote: true,
           )
         end
       end

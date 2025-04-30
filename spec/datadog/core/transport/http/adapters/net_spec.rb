@@ -1,15 +1,26 @@
 require 'spec_helper'
 
 require 'datadog/core/transport/http/adapters/net'
+require 'datadog/core/configuration/agent_settings_resolver'
 
 RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
-  subject(:adapter) { described_class.new(hostname, port, **options) }
+  subject(:adapter) { described_class.new(agent_settings) }
 
-  let(:hostname) { double('hostname') }
-  let(:port) { double('port') }
-  let(:timeout) { double('timeout') }
-  let(:options) { { timeout: timeout } }
+  let(:hostname) { 'hostname' }
+  let(:port) { 9999 }
+  let(:timeout) { 15 }
+  let(:ssl) { false }
   let(:proxy_addr) { nil } # We currently disable proxy for transport HTTP requests
+  let(:agent_settings) do
+    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+      adapter: nil,
+      ssl: ssl,
+      uds_path: nil,
+      hostname: hostname,
+      port: port,
+      timeout_seconds: timeout,
+    )
+  end
 
   shared_context 'HTTP connection stub' do
     let(:http_connection) { instance_double(::Net::HTTP) }
@@ -48,35 +59,13 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
   end
 
   describe '#initialize' do
-    context 'given no options' do
-      let(:options) { {} }
-
-      it do
-        is_expected.to have_attributes(
-          hostname: hostname,
-          port: port,
-          timeout: Datadog::Core::Transport::HTTP::Adapters::Net::DEFAULT_TIMEOUT,
-          ssl: false
-        )
-      end
-    end
-
     context 'given a :timeout option' do
-      let(:options) { { timeout: timeout } }
       let(:timeout) { double('timeout') }
 
       it { is_expected.to have_attributes(timeout: timeout) }
     end
 
     context 'given a :ssl option' do
-      let(:options) { { ssl: ssl } }
-
-      context 'with nil' do
-        let(:ssl) { nil }
-
-        it { is_expected.to have_attributes(ssl: false) }
-      end
-
       context 'with true' do
         let(:ssl) { true }
 

@@ -1,4 +1,5 @@
-require 'rails/all'
+# We may not always want to require rails/all, especially when we don't have a database.
+# Require is already always done where Rails test application is used, manually or through rails_helper.
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
@@ -19,7 +20,7 @@ RSpec.shared_context 'Rails 4 test application' do
     klass.send(:define_method, :initialize) do |*args|
       super(*args)
       redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
-      file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
+      file_cache = [:file_store, '/tmp/datadog-rb/cache/']
 
       config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
@@ -48,7 +49,7 @@ RSpec.shared_context 'Rails 4 test application' do
       # we want to disable explicit instrumentation
       # when testing auto patching
       if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
-        require 'ddtrace/auto_instrument'
+        require 'datadog/auto_instrument'
       else
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|

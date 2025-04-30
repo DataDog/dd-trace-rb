@@ -23,6 +23,8 @@ module Datadog
         CAP_ASM_CUSTOM_RULES              = 1 << 8   # accept custom rules
         CAP_ASM_CUSTOM_BLOCKING_RESPONSE  = 1 << 9   # supports custom http code or redirect sa blocking response
         CAP_ASM_TRUSTED_IPS               = 1 << 10  # supports trusted ip
+        CAP_ASM_RASP_SSRF                 = 1 << 23  # support for server-side request forgery exploit prevention rules
+        CAP_ASM_RASP_SQLI                 = 1 << 21  # support for SQL injection exploit prevention rules
 
         # TODO: we need to dynamically add CAP_ASM_ACTIVATION once we support it
         ASM_CAPABILITIES = [
@@ -35,6 +37,8 @@ module Datadog
           CAP_ASM_CUSTOM_RULES,
           CAP_ASM_CUSTOM_BLOCKING_RESPONSE,
           CAP_ASM_TRUSTED_IPS,
+          CAP_ASM_RASP_SSRF,
+          CAP_ASM_RASP_SQLI,
         ].freeze
 
         ASM_PRODUCTS = [
@@ -53,10 +57,12 @@ module Datadog
         end
 
         # rubocop:disable Metrics/MethodLength
-        def receivers
+        # rubocop:disable Metrics/CyclomaticComplexity
+        def receivers(telemetry)
           return [] unless remote_features_enabled?
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
+          # rubocop:disable Metrics/BlockLength
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
             changes.each do |change|
               Datadog.logger.debug { "remote config change: '#{change.path}'" }
@@ -86,7 +92,10 @@ module Datadog
             end
 
             if rules.empty?
-              settings_rules = AppSec::Processor::RuleLoader.load_rules(ruleset: Datadog.configuration.appsec.ruleset)
+              settings_rules = AppSec::Processor::RuleLoader.load_rules(
+                telemetry: telemetry,
+                ruleset: Datadog.configuration.appsec.ruleset
+              )
 
               raise NoRulesError, 'no default rules available' unless settings_rules
 
@@ -96,17 +105,25 @@ module Datadog
             ruleset = AppSec::Processor::RuleMerger.merge(
               rules: rules,
               data: data,
+              actions: actions,
               overrides: overrides,
               exclusions: exclusions,
               custom_rules: custom_rules,
+              telemetry: telemetry
             )
 
-            Datadog::AppSec.reconfigure(ruleset: ruleset, actions: actions)
+            Datadog::AppSec.reconfigure(ruleset: ruleset, telemetry: telemetry)
+
+            repository.contents.each do |content|
+              content.applied if ASM_PRODUCTS.include?(content.path.product)
+            end
           end
+          # rubocop:enable Metrics/BlockLength
 
           [receiver]
         end
         # rubocop:enable Metrics/MethodLength
+        # rubocop:enable Metrics/CyclomaticComplexity
 
         private
 

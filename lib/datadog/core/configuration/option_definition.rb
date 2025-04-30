@@ -79,6 +79,8 @@ module Datadog
             @deprecated_env = value
           end
 
+          # Invoked when the option is first read, and {#env} is defined.
+          # The block provided is only invoked if the environment variable is present (not-nil).
           def env_parser(&block)
             @env_parser = block
           end
@@ -93,16 +95,6 @@ module Datadog
 
           def helper(name, *_args, &block)
             @helpers[name] = block
-          end
-
-          def lazy(_value = true)
-            Datadog::Core.log_deprecation do
-              'Defining an option as lazy is deprecated for removal. Options now always behave as lazy. '\
-              "Please remove all references to the lazy setting.\n"\
-              'Non-lazy options that were previously stored as blocks are no longer supported. '\
-              'If you used this feature, please let us know by opening an issue on: '\
-              'https://github.com/datadog/dd-trace-rb/issues/new so we can better understand and support your use case.'
-            end
           end
 
           def after_set(&block)
@@ -133,7 +125,6 @@ module Datadog
             env(options[:env]) if options.key?(:env)
             deprecated_env(options[:deprecated_env]) if options.key?(:deprecated_env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
-            lazy(options[:lazy]) if options.key?(:lazy)
             after_set(&options[:after_set]) if options.key?(:after_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
             setter(&options[:setter]) if options.key?(:setter)

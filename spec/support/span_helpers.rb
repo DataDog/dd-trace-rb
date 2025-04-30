@@ -58,7 +58,7 @@ module SpanHelpers
   # span, but don't actually share the same Context with the parent.
   RSpec::Matchers.define :have_distributed_parent do |parent|
     match do |actual|
-      @matcher = have_attributes(parent_id: parent.span_id, trace_id: parent.trace_id)
+      @matcher = have_attributes(parent_id: parent.id, trace_id: parent.trace_id)
       @matcher.matches? actual
     end
 
@@ -126,6 +126,16 @@ module SpanHelpers
         expected.all? do |key, value|
           actual.__send__(key) == value
         end
+    end
+  end
+
+  RSpec::Matchers.define :a_span_event_with do |expected|
+    match do |actual|
+      values_match? Datadog::Tracing::SpanEvent, actual
+
+      expected.all? do |key, value|
+        values_match? value, actual.__send__(key)
+      end
     end
   end
 end

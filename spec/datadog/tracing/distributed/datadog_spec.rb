@@ -5,13 +5,13 @@ require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/utils'
 
 RSpec.shared_examples 'Datadog distributed format' do
-  subject(:datadog) { described_class.new(fetcher: fetcher_class) }
-  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+  let(:propagation_style_inject) { ['datadog'] }
+  let(:propagation_style_extract) { ['datadog'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '#inject!' do
-    subject(:inject!) { datadog.inject!(digest, data) }
+    subject(:inject!) { propagation.inject!(digest, data) }
     let(:data) { {} }
 
     context 'with nil digest' do
@@ -209,7 +209,7 @@ RSpec.shared_examples 'Datadog distributed format' do
       context 'when given a trace digest with 128 bit trace id' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
+            trace_id: 0x0aaaaaaaaaaaaaaaffffffffffffffff,
             span_id: 0xbbbbbbbbbbbbbbbb
           )
         end
@@ -220,7 +220,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           expect(data).to eq(
             'x-datadog-trace-id' => 0xffffffffffffffff.to_s,
             'x-datadog-parent-id' => 0xbbbbbbbbbbbbbbbb.to_s,
-            'x-datadog-tags' => '_dd.p.tid=aaaaaaaaaaaaaaaa'
+            'x-datadog-tags' => '_dd.p.tid=0aaaaaaaaaaaaaaa'
           )
         end
       end
@@ -242,11 +242,24 @@ RSpec.shared_examples 'Datadog distributed format' do
           )
         end
       end
+
+      context 'with span_id nil' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 30000
+          )
+        end
+
+        it 'does not include the x-datadog-parent-id field' do
+          inject!
+          expect(data).to eq('x-datadog-trace-id' => '30000')
+        end
+      end
     end
   end
 
   describe '#extract' do
-    subject(:extract) { datadog.extract(data) }
+    subject(:extract) { propagation.extract(data) }
     let(:digest) { extract }
 
     let(:data) { {} }
@@ -265,6 +278,7 @@ RSpec.shared_examples 'Datadog distributed format' do
       it { expect(digest.trace_id).to eq(10000) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to be nil }
+      it { expect(digest.span_remote).to be true }
 
       context 'with sampling priority' do
         let(:data) do
@@ -481,17 +495,42 @@ RSpec.shared_examples 'Datadog distributed format' do
         {
           prepare_key['x-datadog-trace-id'] => 0xffffffffffffffff.to_s,
           prepare_key['x-datadog-parent-id'] => 0xbbbbbbbbbbbbbbbb.to_s,
-          prepare_key['x-datadog-tags'] => '_dd.p.tid=aaaaaaaaaaaaaaaa'
+          prepare_key['x-datadog-tags'] => '_dd.p.tid=0aaaaaaaaaaaaaaa'
         }
       end
 
-      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.trace_id).to eq(0x0aaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
       it { expect(digest.trace_distributed_tags).not_to include('_dd.p.tid') }
+    end
+
+    context 'with a trace id and an invalid distributed tags `_dd.p.tid`' do
+      [
+        '00123456789abcdef', # too long
+        '234567890abcdef', # too short
+        'g123456789abcdef', # invalid character
+      ].each do |invalid_trace_id|
+        context "when given invalid trace_id: #{invalid_trace_id}" do
+          let(:data) do
+            {
+              prepare_key['x-datadog-trace-id'] => 0xffffffffffffffff.to_s,
+              prepare_key['x-datadog-parent-id'] => 0xbbbbbbbbbbbbbbbb.to_s,
+              prepare_key['x-datadog-tags'] => "_dd.p.tid= #{invalid_trace_id}"
+            }
+          end
+
+          it { expect(digest.trace_id).to eq(0xffffffffffffffff) }
+          it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+          it { expect(digest.trace_distributed_tags).not_to include('_dd.p.tid') }
+        end
+      end
     end
   end
 end
 
 RSpec.describe Datadog::Tracing::Distributed::Datadog do
+  subject(:propagation) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
   it_behaves_like 'Datadog distributed format'
 end

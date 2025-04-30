@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'dalli'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/dalli/quantize'
 
 RSpec.describe Datadog::Tracing::Contrib::Dalli::Quantize do

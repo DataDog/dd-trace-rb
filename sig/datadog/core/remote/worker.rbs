@@ -9,8 +9,11 @@ module Datadog
         attr_reader interval: ::Float
         attr_reader mutex: ::Thread::Mutex
         attr_reader block: (^() -> void)
+        attr_reader logger: ::Logger
 
-        def initialize: (interval: ::Float) { () -> void } -> void
+        @logger: ::Logger
+
+        def initialize: (interval: ::Float, logger: ::Logger) { () -> void } -> void
 
         def start: () -> void
 

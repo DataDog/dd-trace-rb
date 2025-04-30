@@ -7,11 +7,11 @@ require 'datadog/tracing/transport/http'
 require 'datadog/core/transport/http/adapters/unix_socket'
 
 RSpec.describe 'Adapters::UnixSocket integration tests' do
-  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+  skip_unless_integration_testing_enabled
 
   subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 
-  let(:uds_path) { '/tmp/ddtrace_unix_test.sock' }
+  let(:uds_path) { '/tmp/datadog_unix_test.sock' }
   let(:options) { { uds_path: uds_path, timeout: timeout } }
   let(:timeout) { 2 }
 
@@ -21,23 +21,15 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     let(:messages) { [] }
 
     # HTTP
-    let(:http) do
-      WEBrick::HTTPServer.new(
-        Logger: log,
-        AccessLog: access_log,
-        StartCallback: -> { http_init_signal.push(1) }
-      )
+    http_server do |http_server|
+      http_server.mount_proc('/', &server_proc)
     end
-    let(:log) { WEBrick::Log.new(log_buffer) }
-    let(:log_buffer) { StringIO.new }
-    let(:access_log) { [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
     let(:server_proc) do
       proc do |req, res|
         messages << req
         res.body = '{}'
       end
     end
-    let(:http_init_signal) { Queue.new }
 
     def cleanup_socket
       File.delete(uds_path) if File.exist?(uds_path)
@@ -46,30 +38,22 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     before do
       cleanup_socket
       server
-      http.mount_proc('/', &server_proc)
-
-      @http_server_thread = Thread.start do
-        http.start
-      end
 
       @unix_server_thread = Thread.start do
         begin
           sock = server.accept
-          http.run(sock)
+          # TODO: webrick supports UDS listener to replace this manual code
+          http_server.run(sock)
         rescue => e
           puts "UNIX server error!: #{e}"
         end
       end
-
-      http_init_signal.pop
     end
 
     after do
       unless RSpec.current_example.skipped?
-        http.shutdown
         cleanup_socket
 
-        @http_server_thread.join
         @unix_server_thread.join
       end
     end
@@ -78,8 +62,10 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
   describe 'when sending traces through Unix socket client' do
     include_context 'Unix socket server'
 
+    let(:logger) { logger_allowing_debug }
+
     let(:client) do
-      Datadog::Tracing::Transport::HTTP.default do |t|
+      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
         t.adapter adapter
       end
     end
@@ -95,7 +81,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
           'datadog-meta-lang' => [Datadog::Core::Environment::Ext::LANG],
           'datadog-meta-lang-version' => [Datadog::Core::Environment::Ext::LANG_VERSION],
           'datadog-meta-lang-interpreter' => [Datadog::Core::Environment::Ext::LANG_INTERPRETER],
-          'datadog-meta-tracer-version' => [Datadog::Core::Environment::Ext::TRACER_VERSION],
+          'datadog-meta-tracer-version' => [Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION],
           'content-type' => ['application/msgpack'],
           'x-datadog-trace-count' => [traces.length.to_s]
         )

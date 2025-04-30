@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/event'
 
@@ -45,7 +47,7 @@ RSpec.describe Datadog::AppSec::Event do
   describe '.record' do
     before do
       # prevent rate limiter to bias tests
-      Datadog::AppSec::RateLimiter.reset!(:traces)
+      Datadog::AppSec::RateLimiter.reset!
     end
 
     let(:options) { {} }
@@ -209,7 +211,7 @@ RSpec.describe Datadog::AppSec::Event do
 
         context 'JSON payload' do
           it 'uses JSON string when do not exceeds MIN_SCHEMA_SIZE_FOR_COMPRESSION' do
-            stub_const('Datadog::AppSec::Event::MIN_SCHEMA_SIZE_FOR_COMPRESSION', 3000)
+            stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 3000)
             meta = top_level_span.meta
 
             expect(meta['_dd.appsec.s.req.headers']).to eq('[{"host":[8],"version":[8]}]')
@@ -218,19 +220,60 @@ RSpec.describe Datadog::AppSec::Event do
 
         context 'Compressed payload' do
           it 'uses compressed value when JSON string is bigger than MIN_SCHEMA_SIZE_FOR_COMPRESSION' do
-            result = "H4sIAOYoHGUAA4aphwAAAA=\n"
-            stub_const('Datadog::AppSec::Event::MIN_SCHEMA_SIZE_FOR_COMPRESSION', 1)
-            expect(described_class).to receive(:compressed_and_base64_encoded).and_return(result)
+            stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 1)
+            allow(Datadog::AppSec::CompressedJson).to receive(:dump).and_return('H4sIAOYoHGUAA4aphwAAAA=')
 
-            meta = top_level_span.meta
+            expect(top_level_span.meta['_dd.appsec.s.req.headers']).to eq('H4sIAOYoHGUAA4aphwAAAA=')
+          end
 
-            expect(meta['_dd.appsec.s.req.headers']).to eq(result)
+          context 'with big derivatives' do
+            let(:derivatives) do
+              {
+                '_dd.appsec.s.req.headers' => [
+                  {
+                    'host' => [8],
+                    'version' => [8],
+                    'foo' => [8],
+                    'bar' => [8],
+                    'baz' => [8],
+                    'qux' => [8],
+                    'quux' => [8],
+                    'quuux' => [8],
+                    'quuuux' => [8],
+                    'quuuuux' => [8],
+                    'quuuuuux' => [8],
+                    'quuuuuuux' => [8],
+                    'quuuuuuuux' => [8],
+                    'quuuuuuuuux' => [8],
+                    'quuuuuuuuuux' => [8],
+                    'quuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuuuuuux' => [8],
+                  }
+                ]
+              }
+            end
+
+            it 'has no newlines when encoded' do
+              expect(top_level_span.meta['_dd.appsec.s.req.headers']).to_not match(/\n/)
+            end
           end
         end
 
-        context 'derivative values exceed Event::MAX_ENCODED_SCHEMA_SIZE value' do
+        context 'derivative values exceed Event::DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE value' do
           it 'do not add derivative key to meta' do
-            stub_const('Datadog::AppSec::Event::MAX_ENCODED_SCHEMA_SIZE', 1)
+            stub_const('Datadog::AppSec::Event::DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE', 1)
             meta = top_level_span.meta
 
             expect(meta['_dd.appsec.s.req.headers']).to be_nil
@@ -263,7 +306,7 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       it 'does not call the rate limiter' do
-        expect(Datadog::AppSec::RateLimiter).to_not receive(:limit)
+        expect_any_instance_of(Datadog::AppSec::RateLimiter).to_not receive(:limit)
 
         expect(trace).to_not be nil
       end
@@ -279,14 +322,19 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       it 'does not call the rate limiter' do
-        expect(Datadog::AppSec::RateLimiter).to_not receive(:limit)
+        expect_any_instance_of(Datadog::AppSec::RateLimiter).to_not receive(:limit)
 
         described_class.record(nil, events)
       end
     end
 
     context 'with many traces' do
-      let(:rate_limit) { 100 }
+      before do
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
+        allow(Datadog::AppSec::RateLimiter).to receive(:trace_rate_limit).and_return(rate_limit)
+      end
+
+      let(:rate_limit) { 50 }
       let(:trace_count) { rate_limit * 2 }
 
       let(:traces) do
@@ -307,6 +355,112 @@ RSpec.describe Datadog::AppSec::Event do
         expect(described_class).to receive(:record_via_span).exactly(rate_limit).times.and_call_original
 
         expect(traces).to have_attributes(count: trace_count)
+      end
+    end
+  end
+
+  describe '.tag_and_keep!' do
+    let(:with_trace) { true }
+    let(:with_span) { true }
+
+    let(:waf_actions) { {} }
+    let(:waf_result) do
+      dbl = double
+
+      allow(dbl).to receive(:actions).and_return(waf_actions)
+
+      dbl
+    end
+
+    let(:context) do
+      context_trace = nil
+      context_span = nil
+
+      trace_operation = Datadog::Tracing::TraceOperation.new
+      trace_operation.measure('root') do |span, trace|
+        context_trace = trace if with_trace
+        context_span = span if with_span
+      end
+
+      dbl = instance_double(Datadog::AppSec::Context)
+
+      allow(dbl).to receive(:trace).and_return(context_trace)
+      allow(dbl).to receive(:span).and_return(context_span)
+
+      dbl
+    end
+
+    before do
+      # prevent rate limiter to bias tests
+      Datadog::AppSec::RateLimiter.reset!
+
+      described_class.tag_and_keep!(context, waf_result)
+    end
+
+    context 'with no actions' do
+      it 'does not add appsec.blocked tag to span' do
+        expect(context.span.send(:meta)).to_not include('appsec.blocked')
+        expect(context.span.send(:meta)['appsec.event']).to eq('true')
+        expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
+        expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
+      end
+    end
+
+    context 'with block_request action' do
+      let(:waf_actions) do
+        { 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }
+      end
+
+      it 'adds appsec.blocked tag to span' do
+        expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
+        expect(context.span.send(:meta)['appsec.event']).to eq('true')
+        expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
+        expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
+      end
+    end
+
+    context 'with redirect_request action' do
+      let(:waf_actions) do
+        { 'redirect_request' => { 'status_code' => '302', 'location' => 'https://datadoghq.com' } }
+      end
+
+      it 'adds appsec.blocked tag to span' do
+        expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
+        expect(context.span.send(:meta)['appsec.event']).to eq('true')
+      end
+    end
+
+    context 'without span' do
+      let(:with_span) { false }
+
+      it 'does not add appsec span tags but still add distributed tags' do
+        expect(context.span).to be nil
+        expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
+        expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
+      end
+    end
+
+    context 'without trace' do
+      let(:with_trace) { false }
+
+      context 'with no actions' do
+        it 'does not add distributed tags but still add appsec span tags' do
+          expect(context.trace).to be nil
+          expect(context.span.send(:meta)['appsec.blocked']).to be nil
+          expect(context.span.send(:meta)['appsec.event']).to eq('true')
+        end
+      end
+
+      context 'with block action' do
+        let(:waf_actions) do
+          { 'block_request' => { 'grpc_status_code' => '10', 'status_core' => '403', 'type' => 'auto' } }
+        end
+
+        it 'does not add distributed tags but still add appsec span tags' do
+          expect(context.trace).to be nil
+          expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
+          expect(context.span.send(:meta)['appsec.event']).to eq('true')
+        end
       end
     end
   end

@@ -1,0 +1,9 @@
+module Datadog
+  module AppSec
+    module SecurityEngine
+      type result = Result::Ok
+                  | Result::Match
+                  | Result::Error
+    end
+  end
+end

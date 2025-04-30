@@ -3,7 +3,14 @@ module Datadog
     module Contrib
       module Propagation
         module SqlComment
-          Mode: untyped
+          class Mode < ::Struct[untyped]
+            def initialize: (string mode, bool append) -> void
+
+            def enabled?: -> bool
+            def service?: -> bool
+            def full?: -> bool
+            def append?: -> bool
+          end
         end
       end
     end

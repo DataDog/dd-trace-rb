@@ -32,7 +32,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket do
       it do
         is_expected.to have_attributes(
           uds_path: uds_path,
-          timeout: 1
+          timeout: 30,
         )
       end
     end

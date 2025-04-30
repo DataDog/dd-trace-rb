@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'rack'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/rack/middlewares'
 
 RSpec.describe Datadog::Tracing::Contrib::Rack::TraceMiddleware do

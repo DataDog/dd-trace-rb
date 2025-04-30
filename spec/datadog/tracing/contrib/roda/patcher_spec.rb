@@ -1,6 +1,6 @@
 # typed: ignore
 
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'rack/test'

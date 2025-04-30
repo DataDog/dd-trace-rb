@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 
 require 'ruby-kafka'
 require 'active_support'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'Kafka patcher' do
   let(:configuration_options) { {} }

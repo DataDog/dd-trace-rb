@@ -1,4 +1,4 @@
-require 'ddtrace'
+require 'datadog'
 require 'mongo'
 
 RSpec.describe 'Mongo crash regression #1235' do
@@ -33,7 +33,7 @@ RSpec.describe 'Mongo crash regression #1235' do
 
       client[:foo].insert_one(bar: 'baz')
 
-      exit(true) # Forcing an immediate Ruby VM exit causes the crash
+      exit # Forcing an immediate Ruby VM exit causes the crash
     end
 
     _, status = try_wait_until { Process.wait2(pid, Process::WNOHANG) }

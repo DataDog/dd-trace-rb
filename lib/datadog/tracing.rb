@@ -14,8 +14,30 @@ module Datadog
     class << self
       # (see Datadog::Tracing::Tracer#trace)
       # @public_api
-      def trace(name, continue_from: nil, **span_options, &block)
-        tracer.trace(name, continue_from: continue_from, **span_options, &block)
+      def trace(
+        name,
+        continue_from: nil,
+        on_error: nil,
+        resource: nil,
+        service: nil,
+        start_time: nil,
+        tags: nil,
+        type: nil,
+        id: nil,
+        &block
+      )
+        tracer.trace(
+          name,
+          continue_from: continue_from,
+          on_error: on_error,
+          resource: resource,
+          service: service,
+          start_time: start_time,
+          tags: tags,
+          type: type,
+          id: id,
+          &block
+        )
       end
 
       # (see Datadog::Tracing::Tracer#continue_trace!)
@@ -59,7 +81,7 @@ module Datadog
       # @public_api
       def keep!
         trace = active_trace
-        active_trace.keep! if trace
+        trace.keep! if trace
       end
 
       # (see Datadog::Tracing::TraceSegment#reject!)
@@ -67,14 +89,14 @@ module Datadog
       # @public_api
       def reject!
         trace = active_trace
-        active_trace.reject! if trace
+        trace.reject! if trace
       end
 
       # (see Datadog::Tracing::Tracer#active_correlation)
       # @public_api
       def correlation
         # We access this in this way as:
-        # * If the components have not been initialized, it doesn't make sense to initialize ddtrace just to say
+        # * If the components have not been initialized, it doesn't make sense to initialize datadog just to say
         #   'nil' here
         # * It prevents recursive initialization attempts, see https://github.com/DataDog/dd-trace-rb/issues/3385
         components = Datadog.send(:components, allow_initialization: false)
@@ -96,10 +118,26 @@ module Datadog
       # # dd.env=prod dd.service=auth dd.version=13.8 dd.trace_id=5458478252992251 dd.span_id=7117552347370098 My message
       # ```
       #
-      # @return [String] correlation information
+      # @return [String] correlation information; or an empty String if Tracing is disabled (`!enabled?`)
       # @public_api
       def log_correlation
+        return '' unless enabled?
+
         correlation.to_log_format
+      end
+
+      # Returns the baggage for the current trace.
+      #
+      # If there is no active trace, a new one is created.
+      #
+      # @return [Datadog::Tracing::Distributed::Baggage] The baggage for the current trace.
+      # @public_api
+      def baggage
+        # Baggage should not be dependent on there being an active trace.
+        # So we create a new TraceOperation if there isn't one.
+        active_trace = self.active_trace || tracer.continue_trace!(nil)
+        active_trace.baggage ||= {}
+        active_trace.baggage
       end
 
       # Gracefully shuts down the tracer.

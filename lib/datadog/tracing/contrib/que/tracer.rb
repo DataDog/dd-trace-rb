@@ -11,8 +11,8 @@ module Datadog
           def call(job)
             trace_options = {
               service: configuration[:service_name],
-              span_type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
-              on_error: configuration[:error_handler]
+              type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
+              on_error: configuration[:on_error]
             }
 
             Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|

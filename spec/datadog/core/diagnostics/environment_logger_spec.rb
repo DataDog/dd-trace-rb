@@ -9,7 +9,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
 
   before do
-    allow(Time).to receive(:now).and_return(Time.new(2020))
+    allow(Time).to receive(:now).and_return(Time.new(2020, 1, 1, 0, 0, 0, '+00:00'))
 
     # Resets "only-once" execution pattern of `collect_and_log!`
     env_logger.instance_variable_set(:@executed, nil)
@@ -18,6 +18,8 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   end
 
   describe '#collect_and_log!' do
+    include_context 'non-development execution environment'
+
     subject(:collect_and_log!) { env_logger.collect_and_log! }
 
     let(:logger) { instance_double(Datadog::Core::Logger) }
@@ -25,7 +27,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       {
         'date' => '2020-01-01T00:00:00Z',
         'os_name' => (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
-        'version' => DDTrace::VERSION::STRING,
+        'version' => Datadog::VERSION::STRING,
         'lang' => 'ruby',
         'lang_version' => match(/[23]\./),
         'env' => nil,
@@ -40,7 +42,6 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
     end
 
     before do
-      allow(env_logger).to receive(:rspec?).and_return(false) # Allow rspec to log for testing purposes
       allow(Datadog).to receive(:logger).and_return(logger)
       allow(logger).to receive(:debug?).and_return(true)
       allow(logger).to receive(:debug)
@@ -56,31 +57,10 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
     end
 
-    context 'with multiple invocations' do
-      it 'executes only once' do
-        env_logger.collect_and_log!
-        env_logger.collect_and_log!
-
-        expect(logger).to have_received(:info).once
-      end
-    end
-
-    context 'under a REPL' do
-      around do |example|
-        begin
-          original = $PROGRAM_NAME
-          $0 = 'irb'
-          example.run
-        ensure
-          $0 = original
-        end
-      end
+    context 'in a development execution environment' do
+      before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(true) }
 
       context 'with default settings' do
-        before do
-          allow(env_logger).to receive(:rspec?).and_return(true) # Prevent rspec from logging
-        end
-
         it { expect(logger).to_not have_received(:info) }
       end
 
@@ -144,7 +124,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
         is_expected.to match(
           date: '2020-01-01T00:00:00Z',
           os_name: (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
-          version: DDTrace::VERSION::STRING,
+          version: Datadog::VERSION::STRING,
           lang: 'ruby',
           lang_version: match(/[23]\./),
           env: nil,
@@ -175,7 +155,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with service configured' do
-        let(:service) { double('service') }
+        let(:service) { 'service' }
 
         before { allow(Datadog.configuration).to receive(:service).and_return(service) }
 
@@ -222,7 +202,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with health metrics enabled' do
-        before { expect(Datadog.configuration.diagnostics.health_metrics).to receive(:enabled).and_return(true) }
+        before { expect(Datadog.configuration.health_metrics).to receive(:enabled).and_return(true) }
 
         it { is_expected.to include health_metrics_enabled: true }
       end

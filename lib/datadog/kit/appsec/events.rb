@@ -10,6 +10,7 @@ module Datadog
         LOGIN_SUCCESS_EVENT = 'users.login.success'
         LOGIN_FAILURE_EVENT = 'users.login.failure'
         SIGNUP_EVENT = 'users.signup'
+        USER_LOGIN_KEYS = ['usr.login', :'usr.login'].freeze
 
         class << self
           # Attach login success event information to the trace
@@ -30,11 +31,15 @@ module Datadog
             set_trace_and_span_context('track_login_success', trace, span) do |active_trace, active_span|
               user_options = user.dup
               user_id = user_options.delete(:id)
+              user_login = user_options[:login] || others[:'usr.login'] || others['usr.login'] || user_id
 
               raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
 
+              others = others.reject { |key, _| USER_LOGIN_KEYS.include?(key) }
+              others[:'usr.login'] = user_login
               track(LOGIN_SUCCESS_EVENT, active_trace, active_span, **others)
 
+              user_options[:login] = user_login
               Kit::Identity.set_user(active_trace, active_span, id: user_id, **user_options)
             end
           end
@@ -53,13 +58,12 @@ module Datadog
           # @param user_exists [bool] Whether the user id that did a login attempt exists.
           # @param others [Hash<String || Symbol, String>] Additional free-form
           #   event information to attach to the trace.
-          def track_login_failure(trace = nil, span = nil, user_id:, user_exists:, **others)
+          def track_login_failure(trace = nil, span = nil, user_exists:, user_id: nil, **others)
             set_trace_and_span_context('track_login_failure', trace, span) do |active_trace, active_span|
-              raise ArgumentError, 'user_id cannot be nil' if user_id.nil?
-
+              others[:'usr.login'] = user_id if user_id && !others.key?(:'usr.login') && !others.key?('usr.login')
               track(LOGIN_FAILURE_EVENT, active_trace, active_span, **others)
 
-              active_span.set_tag('appsec.events.users.login.failure.usr.id', user_id)
+              active_span.set_tag('appsec.events.users.login.failure.usr.id', user_id) if user_id
               active_span.set_tag('appsec.events.users.login.failure.usr.exists', user_exists)
             end
           end
@@ -82,11 +86,15 @@ module Datadog
             set_trace_and_span_context('track_signup', trace, span) do |active_trace, active_span|
               user_options = user.dup
               user_id = user_options.delete(:id)
+              user_login = user_options[:login] || others[:'usr.login'] || others['usr.login'] || user_id
 
               raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
 
+              others = others.reject { |key, _| USER_LOGIN_KEYS.include?(key) }
+              others[:'usr.login'] = user_login
               track(SIGNUP_EVENT, active_trace, active_span, **others)
 
+              user_options[:login] = user_login
               Kit::Identity.set_user(trace, id: user_id, **user_options)
             end
           end
@@ -133,14 +141,16 @@ module Datadog
                 active_trace.keep!
               end
             end
+
+            ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', event)
           end
 
           private
 
           def set_trace_and_span_context(method, trace = nil, span = nil)
-            if (appsec_scope = Datadog::AppSec.active_scope)
-              trace = appsec_scope.trace
-              span = appsec_scope.service_entry_span
+            if (appsec_context = Datadog::AppSec.active_context)
+              trace = appsec_context.trace
+              span = appsec_context.span
             end
 
             trace ||= Datadog::Tracing.active_trace
@@ -160,7 +170,7 @@ module Datadog
           end
 
           def check_trace_span_integrity(trace, span)
-            raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
+            raise ArgumentError, "span #{span.id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
           end
         end
       end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Tracing
     module Contrib
@@ -7,31 +9,34 @@ module Datadog
           class Subscription
             attr_accessor \
               :span_name,
-              :options
+              :span_options
 
-            def initialize(span_name, options, &block)
-              raise ArgumentError, 'Must be given a block!' unless block
+            # @param span_name [String] the operation name for the span
+            # @param span_options [Hash] span_options to pass during span creation
+            # @param on_start [Proc] a block to run when the event is fired,
+            #   might not include all required information in the `payload` argument.
+            # @param on_finish [Proc] a block to run when the event has finished processing,
+            #   possibly including more information in the `payload` argument.
+            # @param trace [Proc] whether to trace the event. Defaults to returning `true`.
+            def initialize(span_name, span_options, on_start: nil, on_finish: nil, trace: nil)
+              raise ArgumentError, 'Must be given either on_start or on_finish' unless on_start || on_finish
 
               @span_name = span_name
-              @options = options
-              @handler = Handler.new(&block)
+              @span_options = span_options
+              @on_start = Handler.new(on_start)
+              @on_finish = Handler.new(on_finish)
+              @trace = trace
               @callbacks = Callbacks.new
             end
 
-            # ActiveSupport 3.x calls this
-            def call(name, start, finish, id, payload)
-              start_span(name, id, payload, start)
-              finish_span(name, id, payload, finish)
-            end
-
-            # ActiveSupport 4+ calls this on start
+            # Called by ActiveSupport on event start
             def start(name, id, payload)
-              start_span(name, id, payload)
+              start_span(name, id, payload) if @trace&.call(name, payload)
             end
 
-            # ActiveSupport 4+ calls this on finish
+            # Called by ActiveSupport on event finish
             def finish(name, id, payload)
-              finish_span(name, id, payload)
+              finish_span(name, id, payload) if payload[:datadog_span]
             end
 
             def before_trace(&block)
@@ -67,7 +72,8 @@ module Datadog
             protected
 
             attr_reader \
-              :handler,
+              :on_start,
+              :on_finish,
               :callbacks
 
             def start_span(name, id, payload, start = nil)
@@ -75,11 +81,15 @@ module Datadog
               callbacks.run(name, :before_trace, id, payload, start)
 
               # Start a trace
-              Tracing.trace(@span_name, **@options).tap do |span|
-                # Start span if time is provided
-                span.start(start) unless start.nil?
-                payload[:datadog_span] = span
-              end
+              span = Tracing.trace(@span_name, **@span_options)
+
+              # Start span if time is provided
+              span.start(start) unless start.nil?
+              payload[:datadog_span] = span
+
+              on_start.run(span, name, id, payload)
+
+              span
             end
 
             def finish_span(name, id, payload, finish = nil)
@@ -88,7 +98,7 @@ module Datadog
                 return nil if span.nil?
 
                 # Run handler for event
-                handler.run(span, name, id, payload)
+                on_finish.run(span, name, id, payload)
 
                 # Finish the span
                 span.finish(finish)
@@ -107,20 +117,16 @@ module Datadog
             class Handler
               attr_reader :block
 
-              def initialize(&block)
+              def initialize(block)
                 @block = block
               end
 
               def run(span, name, id, payload)
-                run!(span, name, id, payload)
+                @block.call(span, name, id, payload) if @block
               rescue StandardError => e
                 Datadog.logger.debug(
                   "ActiveSupport::Notifications handler for '#{name}' failed: #{e.class.name} #{e.message}"
                 )
-              end
-
-              def run!(*args)
-                @block.call(*args)
               end
             end
 

@@ -1,35 +1,29 @@
 # frozen_string_literal: true
 
+require_relative 'gateway/middleware'
+
 module Datadog
   module AppSec
     # Instrumentation for AppSec
     module Instrumentation
       # Instrumentation gateway implementation
       class Gateway
-        # Instrumentation gateway middleware
-        class Middleware
-          attr_reader :key, :block
-
-          def initialize(key, &block)
-            @key = key
-            @block = block
-          end
-
-          def call(stack, env)
-            @block.call(stack, env)
-          end
-        end
-
-        private_constant :Middleware
-
         def initialize
           @middlewares = Hash.new { |h, k| h[k] = [] }
+          @pushed_events = {}
         end
 
+        # NOTE: Be careful with pushed names because every pushed event name
+        #       is recorded in order to provide an ability to any subscriber
+        #       to check wether an arbitrary event had happened.
+        #
+        # WARNING: If we start pushing generated names we should consider
+        #          limiting the storage of pushed names.
         def push(name, env, &block)
-          block ||= -> {}
+          @pushed_events[name] = true
 
-          middlewares_for_name = middlewares[name]
+          block ||= -> {}
+          middlewares_for_name = @middlewares[name]
 
           return [block.call, nil] if middlewares_for_name.empty?
 
@@ -48,14 +42,15 @@ module Datadog
         end
 
         def watch(name, key, &block)
-          @middlewares[name] << Middleware.new(key, &block) unless middlewares[name].any? { |m| m.key == key }
+          @middlewares[name] << Middleware.new(key, &block) unless @middlewares[name].any? { |m| m.key == key }
         end
 
-        private
-
-        attr_reader :middlewares
+        def pushed?(name)
+          @pushed_events.key?(name)
+        end
       end
 
+      # NOTE: This left as-is and will be depricated soon.
       def self.gateway
         @gateway ||= Gateway.new # TODO: not thread safe
       end

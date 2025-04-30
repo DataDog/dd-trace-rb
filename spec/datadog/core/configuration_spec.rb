@@ -8,14 +8,15 @@ require 'datadog/tracing/tracer'
 
 RSpec.describe Datadog::Core::Configuration do
   let(:default_log_level) { ::Logger::INFO }
-  let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
   before do
-    allow(telemetry_client).to receive(:started!)
-    allow(telemetry_client).to receive(:stop!)
-    allow(telemetry_client).to receive(:emit_closing!)
-    allow(Datadog::Core::Telemetry::Client).to receive(:new).and_return(telemetry_client)
+    allow(telemetry).to receive(:stop!)
+    allow(telemetry).to receive(:emit_closing!)
+    allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
     allow(Datadog::Core::Remote::Component).to receive(:build)
+    allow(Datadog::DI::Component).to receive(:build)
   end
 
   context 'when extended by a class' do
@@ -57,7 +58,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             expect(new_components)
               .to have_received(:startup!)
-              .with(test_class.configuration)
+              .with(test_class.configuration, old_state: { remote_started: nil })
               .ordered
 
             expect(new_components).to_not have_received(:shutdown!)
@@ -80,7 +81,6 @@ RSpec.describe Datadog::Core::Configuration do
               .with(test_class.configuration)
 
             expect(new_components).to_not have_received(:shutdown!)
-            expect(telemetry_client).to have_received(:started!)
           end
         end
       end
@@ -187,12 +187,12 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = old_statsd
-              c.diagnostics.health_metrics.statsd = old_statsd
+              c.health_metrics.statsd = old_statsd
             end
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = new_statsd
-              c.diagnostics.health_metrics.statsd = new_statsd
+              c.health_metrics.statsd = new_statsd
             end
           end
 
@@ -212,7 +212,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = old_statsd
-              c.diagnostics.health_metrics.statsd = old_statsd
+              c.health_metrics.statsd = old_statsd
             end
 
             test_class.configure do |c|
@@ -234,12 +234,12 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
+              c.health_metrics.statsd = statsd
             end
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
+              c.health_metrics.statsd = statsd
             end
           end
 
@@ -256,7 +256,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
+              c.health_metrics.statsd = statsd
             end
 
             test_class.configure { |_c| }
@@ -270,8 +270,8 @@ RSpec.describe Datadog::Core::Configuration do
 
       context 'when the tracer' do
         context 'is replaced' do
-          let(:old_tracer) { Datadog::Tracing::Tracer.new }
-          let(:new_tracer) { Datadog::Tracing::Tracer.new }
+          let(:old_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
+          let(:new_tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
             expect(old_tracer).to receive(:shutdown!)
@@ -286,7 +286,7 @@ RSpec.describe Datadog::Core::Configuration do
         end
 
         context 'is reused' do
-          let(:tracer) { Datadog::Tracing::Tracer.new }
+          let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
             expect(tracer).to_not receive(:shutdown!)
@@ -301,7 +301,7 @@ RSpec.describe Datadog::Core::Configuration do
         end
 
         context 'is not changed' do
-          let(:tracer) { Datadog::Tracing::Tracer.new }
+          let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
 
           before do
             expect(tracer).to_not receive(:shutdown!)
@@ -577,9 +577,7 @@ RSpec.describe Datadog::Core::Configuration do
 
       let(:fake_thread) do
         instance_double(Thread, 'fake thread').tap do |it|
-          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
-            expect(it).to(receive(:name=).with('Datadog::Core::Configuration'))
-          end
+          expect(it).to(receive(:name=).with('Datadog::Core::Configuration'))
         end
       end
 

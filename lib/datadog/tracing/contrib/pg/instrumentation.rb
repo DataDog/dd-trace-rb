@@ -99,12 +99,12 @@ module Datadog
 
             def trace(name, sql: nil, statement_name: nil, block: nil)
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-              error_handler = datadog_configuration[:error_handler]
+              on_error = datadog_configuration[:on_error]
               resource = statement_name || sql
 
               Tracing.trace(
                 name,
-                on_error: error_handler,
+                on_error: on_error,
                 service: service,
                 resource: resource,
                 type: Tracing::Metadata::Ext::SQL::TYPE
@@ -114,7 +114,10 @@ module Datadog
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
                 if sql
-                  propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
+                  propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
+                    comment_propagation,
+                    datadog_configuration[:append_comment]
+                  )
                   Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
                   propagated_sql_statement = Contrib::Propagation::SqlComment.prepend_comment(
                     sql,

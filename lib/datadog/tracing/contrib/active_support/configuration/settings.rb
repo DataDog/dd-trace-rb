@@ -31,11 +31,22 @@ module Datadog
             end
 
             option :cache_service do |o|
+              o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   '',
                   Ext::SERVICE_CACHE
                 )
+              end
+            end
+
+            # grouped "cache_key.*" settings
+            settings :cache_key do
+              # enable or disabling the inclusion of the cache_key in the span
+              option :enabled do |o|
+                # cache_key.enabled
+                o.type :bool
+                o.default true
               end
             end
           end

@@ -1,0 +1,34 @@
+module Datadog
+  module DI
+    module Transport
+      module HTTP
+        module Diagnostics
+          module Client
+            def send_diagnostics_payload: (untyped request) -> untyped
+          end
+
+          module API
+            class Instance < Core::Transport::HTTP::API::Instance
+              def send_diagnostics: (untyped env) -> untyped
+            end
+
+            class Spec < Core::Transport::HTTP::API::Spec
+              attr_accessor diagnostics: untyped
+
+              def send_diagnostics: (untyped env) { (?) -> untyped } -> untyped
+            end
+            class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
+              @encoder: untyped
+
+              attr_reader encoder: untyped
+
+              def initialize: (untyped path, untyped encoder) -> void
+
+              def call: (untyped env) { (?) -> untyped } -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

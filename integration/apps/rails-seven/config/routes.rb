@@ -10,6 +10,8 @@ Rails.application.routes.draw do
   get 'basic/fibonacci', to: 'basic#fibonacci'
   get 'basic/boom', to: 'basic#boom'
 
+  get 'di/ar_serializer', to: 'di#ar_serializer'
+
   # Job test scenarios
   post 'jobs', to: 'jobs#create'
 end

@@ -3,6 +3,7 @@ module Datadog
     module API
       module Context
         CURRENT_SPAN_KEY: untyped
+        BAGGAGE_REMOVE_KEY: Symbol
 
         def initialize: (untyped entries, ?trace: untyped?) -> void
         def ensure_trace: () -> (nil | untyped)
@@ -10,7 +11,7 @@ module Datadog
 
         alias [] value
         def set_value: (untyped key, untyped value) -> untyped
-        def set_values: (untyped values) -> untyped
+        def set_values: (Hash[Symbol, Hash[String, String] | String]) -> untyped
         def trace: () -> untyped
         module SingletonClass
           def current: () -> untyped

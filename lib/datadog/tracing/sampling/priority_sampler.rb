@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Sampling
       # {Datadog::Tracing::Sampling::PrioritySampler}
-      # @public_api
       class PrioritySampler
         # NOTE: We do not advise using a pre-sampler. It can save resources,
         # but pre-sampling at rates < 100% may result in partial traces, unless
@@ -22,10 +21,6 @@ module Datadog
         def initialize(opts = {})
           @pre_sampler = opts[:base_sampler] || AllSampler.new
           @priority_sampler = opts[:post_sampler] || RateByServiceSampler.new(decision: Sampling::Ext::Decision::AGENT_RATE)
-        end
-
-        def sample?(trace)
-          @pre_sampler.sample?(trace)
         end
 
         # DEV-2.0:We should get rid of this complicated interaction between @pre_sampler and @priority_sampler.

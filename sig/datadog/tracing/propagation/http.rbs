@@ -1,7 +1,0 @@
-module Datadog
-  module Tracing
-    module Propagation
-      HTTP: untyped
-    end
-  end
-end

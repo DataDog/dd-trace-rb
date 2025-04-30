@@ -3,42 +3,7 @@ require 'spec_helper'
 require 'datadog/core'
 
 RSpec.describe Datadog::Core do
-  describe '.log_deprecation' do
-    subject(:log_deprecation) { described_class.log_deprecation(**options) { message } }
-    let(:options) { {} }
-    let(:message) { 'Longer allowed.' }
-
-    context 'by default' do
-      it 'warns with enforcement message' do
-        expect(Datadog.logger).to receive(:warn) do |&block|
-          expect(block.call).to eq('Longer allowed. This will be enforced in the next major release.')
-        end
-        log_deprecation
-      end
-    end
-
-    context 'with disallowed_next_major true' do
-      let(:options) { { disallowed_next_major: true } }
-
-      it 'warns with enforcement message' do
-        expect(Datadog.logger).to receive(:warn) do |&block|
-          expect(block.call).to eq('Longer allowed. This will be enforced in the next major release.')
-        end
-        log_deprecation
-      end
-    end
-
-    context 'with disallowed_next_major false' do
-      let(:options) { { disallowed_next_major: false } }
-
-      it 'warns with enforcement message' do
-        expect(Datadog.logger).to receive(:warn) do |&block|
-          expect(block.call).to eq('Longer allowed.')
-        end
-        log_deprecation
-      end
-    end
-  end
+  it { expect(described_class).to be_a_kind_of(Datadog::Core::Deprecations) }
 end
 
 RSpec.describe Datadog do

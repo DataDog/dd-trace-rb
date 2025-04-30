@@ -1,28 +1,12 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'base64'
 
 require_relative '../config'
 require_relative 'client'
+require_relative '../../../utils/base64'
 require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
-
-# TODO: Decouple standard transport/http/api/instance
-#
-# Separate classes are needed because transport/http/trace includes
-# Trace::API::Instance which closes over and uses a single spec, which is
-# negotiated as either /v3 or /v4 for the whole API at the spec level, but we
-# need an independent toplevel path at the endpoint level.
-#
-# Separate classes are needed because of `include Trace::API::Instance`.
-#
-# Below should be:
-# require_relative '../../../core/transport/http/api/instance'
-require_relative 'api/instance'
-# Below should be:
-# require_relative '../../../core/transport/http/api/spec'
-require_relative 'api/spec'
 
 module Datadog
   module Core
@@ -51,7 +35,7 @@ module Datadog
 
                 # TODO: these fallbacks should be improved
                 roots = payload[:roots] || []
-                targets = payload[:targets] || Base64.encode64('{}').chomp
+                targets = payload[:targets] || Datadog::Core::Utils::Base64.strict_encode64('{}')
                 target_files = payload[:target_files] || []
                 client_configs = payload[:client_configs] || []
 
@@ -61,7 +45,7 @@ module Datadog
                   raise TypeError.new(String, root) unless root.is_a?(String)
 
                   decoded = begin
-                    Base64.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
+                    Datadog::Core::Utils::Base64.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
                   rescue ArgumentError
                     raise DecodeError.new(:roots, root)
                   end
@@ -81,7 +65,7 @@ module Datadog
 
                 @targets = begin
                   decoded = begin
-                    Base64.strict_decode64(targets)
+                    Datadog::Core::Utils::Base64.strict_decode64(targets)
                   rescue ArgumentError
                     raise DecodeError.new(:targets, targets)
                   end
@@ -109,7 +93,7 @@ module Datadog
                   raise TypeError.new(String, raw) unless raw.is_a?(String)
 
                   content = begin
-                    Base64.strict_decode64(raw)
+                    Datadog::Core::Utils::Base64.strict_decode64(raw)
                   rescue ArgumentError
                     raise DecodeError.new(:target_files, raw)
                   end
@@ -193,49 +177,23 @@ module Datadog
                 end
 
                 def send_config(env, &block)
-                  raise NoConfigEndpointDefinedError, self if config.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('config', self) if config.nil?
 
                   config.call(env, &block)
-                end
-
-                # Raised when traces sent but no traces endpoint is defined
-                class NoConfigEndpointDefinedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'No config endpoint is defined for API specification!'
-                  end
                 end
               end
 
               # Extensions for HTTP API Instance
               module Instance
                 def send_config(env)
-                  raise ConfigNotSupportedError, spec unless spec.is_a?(Config::API::Spec)
+                  unless spec.is_a?(Config::API::Spec)
+                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
+                      'config', self
+                    )
+                  end
 
                   spec.send_config(env) do |request_env|
                     call(request_env)
-                  end
-                end
-
-                # Raised when traces sent to API that does not support traces
-                class ConfigNotSupportedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'Config not supported for this API!'
                   end
                 end
               end
@@ -270,8 +228,6 @@ module Datadog
             # Add remote configuration behavior to transport components
             ###### overrides send_payload! which calls send_<endpoint>! kills any other possible endpoint!
             HTTP::Client.include(Config::Client)
-            HTTP::API::Spec.include(Config::API::Spec)
-            HTTP::API::Instance.include(Config::API::Instance)
           end
         end
       end

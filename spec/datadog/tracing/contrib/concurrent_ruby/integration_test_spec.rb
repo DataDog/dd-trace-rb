@@ -1,7 +1,7 @@
 require 'concurrent-ruby' # concurrent-ruby is not modular
 
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'spec/support/thread_helpers'
 
 RSpec.describe 'ConcurrentRuby integration tests' do
@@ -44,7 +44,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       # global threads that are never closed.
       #
       # This allows us to separate internal concurrent-ruby threads
-      # from ddtrace threads for leak detection. We need to create the maximum
+      # from datadog threads for leak detection. We need to create the maximum
       # number of threads that will be created concurrently in a test, which in
       # this case is 2.
       ThreadHelpers.with_leaky_thread_creation(:concurrent_ruby) do
@@ -97,7 +97,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
       it 'inner span parent should be included in outer span' do
         deferred_execution
-        expect(inner_span.parent_id).to eq(outer_span.span_id)
+        expect(inner_span.parent_id).to eq(outer_span.id)
       end
 
       context 'when there are multiple futures with inner spans that have the same parent' do
@@ -131,8 +131,8 @@ RSpec.describe 'ConcurrentRuby integration tests' do
           it 'both inner span parents should be included in same outer span' do
             multiple_deferred_executions
 
-            expect(inner_span.parent_id).to eq(outer_span.span_id)
-            expect(second_inner_span.parent_id).to eq(outer_span.span_id)
+            expect(inner_span.parent_id).to eq(outer_span.id)
+            expect(second_inner_span.parent_id).to eq(outer_span.id)
           end
         end
       end
@@ -157,7 +157,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       # global threads that are never closed.
       #
       # This allows us to separate internal concurrent-ruby threads
-      # from ddtrace threads for leak detection.
+      # from datadog threads for leak detection.
       ThreadHelpers.with_leaky_thread_creation(:concurrent_ruby) do
         Concurrent::Future.execute {}.value
       end
@@ -207,7 +207,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
       it 'inner span parent should be included in outer span' do
         deferred_execution
-        expect(inner_span.parent_id).to eq(outer_span.span_id)
+        expect(inner_span.parent_id).to eq(outer_span.id)
       end
     end
   end
@@ -218,7 +218,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       # global threads that are never closed.
       #
       # This allows us to separate internal concurrent-ruby threads
-      # from ddtrace threads for leak detection. We need to create the maximum
+      # from datadog threads for leak detection. We need to create the maximum
       # number of threads that will be created concurrently in a test, which in
       # this case is 2.
       ThreadHelpers.with_leaky_thread_creation(:concurrent_ruby) do
@@ -285,7 +285,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
       it 'inner span parent should be included in outer span' do
         deferred_execution
-        expect(inner_span.parent_id).to eq(outer_span.span_id)
+        expect(inner_span.parent_id).to eq(outer_span.id)
       end
 
       context 'when there are multiple asyncs with inner spans that have the same parent' do
@@ -320,8 +320,8 @@ RSpec.describe 'ConcurrentRuby integration tests' do
           it 'both inner span parents should be included in same outer span' do
             multiple_deferred_executions
 
-            expect(inner_span.parent_id).to eq(outer_span.span_id)
-            expect(second_inner_span.parent_id).to eq(outer_span.span_id)
+            expect(inner_span.parent_id).to eq(outer_span.id)
+            expect(second_inner_span.parent_id).to eq(outer_span.id)
           end
         end
       end

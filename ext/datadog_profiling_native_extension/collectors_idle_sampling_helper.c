@@ -21,15 +21,15 @@
 typedef enum { ACTION_WAIT, ACTION_RUN, ACTION_STOP } action;
 
 // Contains state for a single CpuAndWallTimeWorker instance
-struct idle_sampling_loop_state {
+typedef struct {
   pthread_mutex_t wakeup_mutex;
   pthread_cond_t wakeup;
   action requested_action;
   void (*run_action_function)(void);
-};
+} idle_sampling_loop_state;
 
 static VALUE _native_new(VALUE klass);
-static void reset_state(struct idle_sampling_loop_state *state);
+static void reset_state(idle_sampling_loop_state *state);
 static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static void *run_idle_sampling_loop(void *state_ptr);
@@ -62,7 +62,7 @@ void collectors_idle_sampling_helper_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_idle_sampling_helper_request_action", _native_idle_sampling_helper_request_action, 1);
 }
 
-// This structure is used to define a Ruby object that stores a pointer to a struct idle_sampling_loop_state
+// This structure is used to define a Ruby object that stores a pointer to a idle_sampling_loop_state
 // See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
 static const rb_data_type_t idle_sampling_helper_typed_data = {
   .wrap_struct_name = "Datadog::Profiling::Collectors::IdleSamplingHelper",
@@ -76,17 +76,21 @@ static const rb_data_type_t idle_sampling_helper_typed_data = {
 };
 
 static VALUE _native_new(VALUE klass) {
-  struct idle_sampling_loop_state *state = ruby_xcalloc(1, sizeof(struct idle_sampling_loop_state));
+  idle_sampling_loop_state *state = ruby_xcalloc(1, sizeof(idle_sampling_loop_state));
 
   // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
   // being leaked.
 
   reset_state(state);
 
+  // Note: As of this writing, no new Ruby objects get created and stored in the state. If that ever changes, remember
+  // to keep them on the stack and mark them with RB_GC_GUARD -- otherwise it's possible for a GC to run and
+  // since the instance representing the state does not yet exist, such objects will not get marked.
+
   return TypedData_Wrap_Struct(klass, &idle_sampling_helper_typed_data, state);
 }
 
-static void reset_state(struct idle_sampling_loop_state *state) {
+static void reset_state(idle_sampling_loop_state *state) {
   state->wakeup_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
   state->wakeup = (pthread_cond_t) PTHREAD_COND_INITIALIZER;
   state->requested_action = ACTION_WAIT;
@@ -97,8 +101,8 @@ static void reset_state(struct idle_sampling_loop_state *state) {
 // a pristine state before recreating the worker thread (this includes resetting the mutex in case it was left
 // locked halfway through the VM forking)
 static VALUE _native_reset(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
-  struct idle_sampling_loop_state *state;
-  TypedData_Get_Struct(self_instance, struct idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
+  idle_sampling_loop_state *state;
+  TypedData_Get_Struct(self_instance, idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
 
   reset_state(state);
 
@@ -106,8 +110,8 @@ static VALUE _native_reset(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
 }
 
 static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
-  struct idle_sampling_loop_state *state;
-  TypedData_Get_Struct(self_instance, struct idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
+  idle_sampling_loop_state *state;
+  TypedData_Get_Struct(self_instance, idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
 
   // Release GVL and run the loop waiting for requests
   rb_thread_call_without_gvl(run_idle_sampling_loop, state, interrupt_idle_sampling_loop, state);
@@ -116,7 +120,7 @@ static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_in
 }
 
 static void *run_idle_sampling_loop(void *state_ptr) {
-  struct idle_sampling_loop_state *state = (struct idle_sampling_loop_state *) state_ptr;
+  idle_sampling_loop_state *state = (idle_sampling_loop_state *) state_ptr;
   int error = 0;
 
   while (true) {
@@ -160,7 +164,7 @@ static void *run_idle_sampling_loop(void *state_ptr) {
 }
 
 static void interrupt_idle_sampling_loop(void *state_ptr) {
-  struct idle_sampling_loop_state *state = (struct idle_sampling_loop_state *) state_ptr;
+  idle_sampling_loop_state *state = (idle_sampling_loop_state *) state_ptr;
   int error = 0;
 
   // Note about the error handling in this situation: Something bad happening at this stage is really really awkward to
@@ -185,8 +189,8 @@ static void interrupt_idle_sampling_loop(void *state_ptr) {
 }
 
 static VALUE _native_stop(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
-  struct idle_sampling_loop_state *state;
-  TypedData_Get_Struct(self_instance, struct idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
+  idle_sampling_loop_state *state;
+  TypedData_Get_Struct(self_instance, idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
 
   ENFORCE_SUCCESS_GVL(pthread_mutex_lock(&state->wakeup_mutex));
   state->requested_action = ACTION_STOP;
@@ -200,12 +204,12 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
 
 // Assumption: Function gets called without the global VM lock
 void idle_sampling_helper_request_action(VALUE self_instance, void (*run_action_function)(void)) {
-  struct idle_sampling_loop_state *state;
+  idle_sampling_loop_state *state;
   if (!rb_typeddata_is_kind_of(self_instance, &idle_sampling_helper_typed_data)) {
     grab_gvl_and_raise(rb_eTypeError, "Wrong argument for idle_sampling_helper_request_action");
   }
   // This should never fail the the above check passes
-  TypedData_Get_Struct(self_instance, struct idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
+  TypedData_Get_Struct(self_instance, idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
 
   ENFORCE_SUCCESS_NO_GVL(pthread_mutex_lock(&state->wakeup_mutex));
   if (state->requested_action == ACTION_WAIT) {

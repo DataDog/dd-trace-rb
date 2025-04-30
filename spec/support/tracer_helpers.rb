@@ -1,6 +1,8 @@
 require 'datadog/tracing/tracer'
+require 'datadog/tracing/correlation'
 require 'datadog/tracing/trace_operation'
 require 'support/faux_writer'
+require 'datadog/tracing/utils'
 
 module TracerHelpers
   # Return a test tracer instance with a faux writer.
@@ -8,9 +10,15 @@ module TracerHelpers
     @tracer ||= new_tracer
   end
 
+  def test_agent_settings
+    settings = Datadog::Core::Configuration::Settings.new
+    Datadog::Core::Configuration::AgentSettingsResolver.call(settings)
+  end
+
   def new_tracer(options = {})
+    logger = options[:logger] || Datadog.logger
     writer = FauxWriter.new(
-      transport: Datadog::Tracing::Transport::HTTP.default do |t|
+      transport: Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
         t.adapter :test
       end
     )
@@ -21,7 +29,7 @@ module TracerHelpers
 
   def get_test_writer(options = {})
     options = {
-      transport: Datadog::Tracing::Transport::HTTP.default do |t|
+      transport: Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
         t.adapter :test
       end
     }.merge(options)
@@ -118,9 +126,14 @@ module TracerHelpers
     Datadog::Tracing::Utils::TraceId.to_low_order(trace_id)
   end
 
+  ## Wraps call to Datadog::Tracing::Correlation.format_trace_id_128 for better test readability
+  def format_for_correlation(trace_id)
+    Datadog::Tracing::Correlation.format_trace_id_128(trace_id)
+  end
+
   # Wraps call to Tracing::Utils::TraceId.to_high_order and converts to hex
   # for better test readability
   def high_order_hex_trace_id(trace_id)
-    Datadog::Tracing::Utils::TraceId.to_high_order(trace_id).to_s(16)
+    format('%016x', Datadog::Tracing::Utils::TraceId.to_high_order(trace_id))
   end
 end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'sampler'
 require_relative 'rate_sampler'
 
@@ -5,7 +7,6 @@ module Datadog
   module Tracing
     module Sampling
       # Samples at different rates by key.
-      # @public_api
       class RateByKeySampler < Sampler
         attr_reader \
           :default_key
@@ -29,14 +30,6 @@ module Datadog
 
         def default_sampler
           @samplers[default_key]
-        end
-
-        def sample?(trace)
-          key = resolve(trace)
-
-          @mutex.synchronize do
-            @samplers.fetch(key, default_sampler).sample?(trace)
-          end
         end
 
         def sample!(trace)

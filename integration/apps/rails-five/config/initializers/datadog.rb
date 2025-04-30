@@ -1,5 +1,5 @@
 require 'datadog/statsd'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/appsec'
 
 Datadog.configure do |c|
@@ -27,5 +27,11 @@ Datadog.configure do |c|
       # Reconfigure transport to write pprof to file
       c.profiling.exporter.transport = Datadog::DemoEnv.profiler_file_transport
     end
+  end
+
+  if c.respond_to?(:dynamic_instrumentation)
+    c.remote.enabled = true
+    c.dynamic_instrumentation.enabled = true
+    c.dynamic_instrumentation.internal.development = true
   end
 end

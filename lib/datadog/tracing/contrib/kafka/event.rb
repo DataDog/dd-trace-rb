@@ -29,7 +29,7 @@ module Datadog
               Datadog.configuration.tracing[:kafka]
             end
 
-            def process(span, _event, _id, payload)
+            def on_start(span, _event, _id, payload)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)
 

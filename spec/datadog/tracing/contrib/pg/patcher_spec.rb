@@ -8,7 +8,7 @@ require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
-require 'ddtrace'
+require 'datadog'
 require 'pg'
 
 RSpec.describe 'PG::Connection patcher' do
@@ -109,8 +109,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -173,8 +171,7 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           context 'when there is custom error handling' do
-            let(:configuration_options) { { error_handler: error_handler } }
-            let(:error_handler) { ->(_span, _error) { false } }
+            let(:configuration_options) { { on_error: ->(_span, _error) { false } } }
 
             it 'calls the error handler' do
               expect { exec }.to raise_error(PG::Error)
@@ -245,8 +242,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -384,8 +379,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -511,8 +504,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -651,8 +642,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -770,8 +759,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -912,8 +899,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1038,8 +1023,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1186,8 +1169,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1312,8 +1293,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1452,8 +1431,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1572,8 +1549,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1720,8 +1695,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1844,8 +1817,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1984,8 +1955,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -2109,9 +2078,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
             expect(span.get_tag('db.system')).to eq('postgresql')
@@ -2247,8 +2213,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -2365,8 +2329,6 @@ RSpec.describe 'PG::Connection patcher' do
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)

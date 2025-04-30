@@ -46,7 +46,7 @@ module Datadog
           module ClassMethods
             include Contrib::ActionCable::Event::ClassMethods
 
-            def subscription(*args)
+            def subscription(*args, **kwargs)
               super.tap do |subscription|
                 subscription.before_trace { ensure_clean_context! }
               end

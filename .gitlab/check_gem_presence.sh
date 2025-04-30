@@ -10,7 +10,7 @@ interval=60 # Retry after 60 seconds
 attempt=1
 
 while [ $attempt -le $max_attempts ]; do
-  output=$(gem search ddtrace  -e -v $RUBY_PACKAGE_VERSION | { grep $RUBY_PACKAGE_VERSION || :; })
+  output=$(gem search datadog  -e -v $RUBY_PACKAGE_VERSION | { grep $RUBY_PACKAGE_VERSION || :; })
   if [ -z "$output" ]
   then
     echo "Attempt ${attempt}/${max_attempts}: Not found yet."

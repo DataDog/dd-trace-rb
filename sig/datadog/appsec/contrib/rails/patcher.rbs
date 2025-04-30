@@ -3,8 +3,6 @@ module Datadog
     module Contrib
       module Rails
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           BEFORE_INITIALIZE_ONLY_ONCE_PER_APP: untyped
 
           AFTER_INITIALIZE_ONLY_ONCE_PER_APP: untyped

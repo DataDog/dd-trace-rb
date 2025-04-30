@@ -20,7 +20,7 @@ module Datadog
       # This implementation allocates less memory and is faster
       # than {Datadog::Core::Buffer::ThreadSafe}.
       #
-      # @see spec/ddtrace/benchmark/buffer_benchmark_spec.rb Buffer benchmarks
+      # @see spec/datadog/benchmark/buffer_benchmark_spec.rb Buffer benchmarks
       # @see https://github.com/ruby-concurrency/concurrent-ruby/blob/c1114a0c6891d9634f019f1f9fe58dcae8658964/lib/concurrent-ruby/concurrent/array.rb#L23-L27
       class CRuby < Random
         # A very large number to allow us to effectively

@@ -1,0 +1,39 @@
+module Datadog
+  module Core
+    module Telemetry
+      class MetricsCollection
+        @namespace: String
+
+        @interval: Float
+
+        @mutex: Thread::Mutex
+
+        @metrics: Hash[String, Datadog::Core::Telemetry::Metric::Base]
+
+        @distributions: Hash[String, Datadog::Core::Telemetry::Metric::Distribution]
+
+        attr_reader namespace: String
+
+        def initialize: (String namespace, aggregation_interval: Float) -> void
+
+        def inc: (String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def dec: (String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def gauge: (String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def rate: (String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def distribution: (String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def flush!: () -> Array[Datadog::Core::Telemetry::Event::Base]
+
+        private
+
+        def fetch_or_add_metric: (Datadog::Core::Telemetry::Metric::Base metric, Datadog::Core::Telemetry::Metric::input_value value) -> void
+
+        def fetch_or_add_distribution: (Datadog::Core::Telemetry::Metric::Distribution metric, Datadog::Core::Telemetry::Metric::input_value value) -> void
+      end
+    end
+  end
+end

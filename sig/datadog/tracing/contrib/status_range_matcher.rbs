@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      class StatusRangeMatcher
+        @ranges: untyped
+
+        def initialize: (untyped ranges) -> void
+
+        def include?: (untyped status) -> untyped
+      end
+    end
+  end
+end

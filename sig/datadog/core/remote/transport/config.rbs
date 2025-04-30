@@ -31,6 +31,12 @@ module Datadog
 
           # Config transport
           class Transport
+            @apis: untyped
+
+            @logger: untyped
+
+            @client: untyped
+
             attr_reader client: untyped
 
             attr_reader apis: untyped
@@ -39,9 +45,9 @@ module Datadog
 
             attr_reader current_api_id: untyped
 
-            def initialize: (untyped apis, untyped default_api) -> void
+            attr_reader logger: untyped
 
-            # ### there is only one transport! it's negotiation!
+            def initialize: (untyped apis, untyped default_api, ?logger: untyped) -> void
             def send_config: (untyped payload) -> untyped
 
             def current_api: () -> untyped

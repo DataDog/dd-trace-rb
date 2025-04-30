@@ -1,0 +1,73 @@
+module Datadog
+  module DI
+    class ProbeNotifierWorker
+    
+      MIN_SEND_INTERVAL: 1
+      
+      @settings: untyped
+
+      @status_queue: Array[Hash[String, untyped]]
+
+      @snapshot_queue: Array[Hash[String, untyped]]
+
+      @agent_settings: untyped
+
+      @lock: Mutex
+
+      @wake: Core::Semaphore
+
+      @io_in_progress: bool
+
+      @thread: Thread
+
+      @stop_requested: bool
+      
+      @logger: DI::Logger
+      
+      @telemetry: Core::Telemetry::Component?
+
+      def initialize: (untyped settings, DI::Logger logger, agent_settings: untyped, ?telemetry: Core::Telemetry::Component) -> void
+
+      attr_reader settings: untyped
+      
+      attr_reader logger: DI::Logger
+      
+      attr_reader telemetry: Core::Telemetry::Component?
+
+      def start: () -> void
+      def stop: (?::Integer timeout) -> void
+      def flush: () -> void
+      
+      def add_status: (Hash[Symbol, untyped]) -> void
+      def add_snapshot: (Hash[Symbol, untyped]) -> void
+      
+      def status_transport: () -> DI::Transport::Diagnostics::Transport
+      def snapshot_transport: () -> DI::Transport::Input::Transport
+
+      private
+      
+      def last_sent: () -> Numeric
+      
+      def set_sleep_remaining: () -> Numeric
+
+      def status_queue: () -> Array[Hash[String, untyped]]
+
+      def snapshot_queue: () -> Array[Hash[String, untyped]]
+
+      attr_reader agent_settings: untyped
+
+      attr_reader wake: Core::Semaphore
+
+      attr_reader thread: Thread
+      def io_in_progress?: () -> bool
+
+      def maybe_send: () -> bool
+
+      def maybe_send_status: () -> bool
+
+      def maybe_send_snapshot: () -> bool
+      
+      def min_send_interval: () -> Float
+    end
+  end
+end

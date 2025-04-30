@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../integration'
 require_relative 'patcher'
 require_relative 'configuration/settings'
@@ -14,6 +16,9 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :concurrent_ruby
+          def self.gem_name
+            'concurrent-ruby'
+          end
 
           def self.version
             Gem.loaded_specs['concurrent-ruby'] && Gem.loaded_specs['concurrent-ruby'].version

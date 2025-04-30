@@ -2,25 +2,41 @@ module Datadog
   module Core
     module Configuration
       class Option
-        attr_reader definition: untyped
+        @context: Configuration::Settings
+
+        @is_set: bool
+        @value: untyped
+
+        @value_per_precedence: ::Hash[Precedence::Value, untyped]
+
+        attr_reader definition: Configuration::OptionDefinition
+        attr_reader precedence_set: Configuration::OptionDefinition
 
         module Precedence
-          REMOTE_CONFIGURATION: ::Array[2 | :remote_configuration]
-          PROGRAMMATIC: ::Array[1 | :programmatic]
-          DEFAULT: ::Array[0 | :default]
+          REMOTE_CONFIGURATION: Value
+          PROGRAMMATIC: Value
+          DEFAULT: Value
+          LIST: [Value]
+
+          class Value < ::Struct[[int, Symbol]]
+            attr_reader numeric: int
+            attr_reader name: Symbol
+          end
         end
 
-        def initialize: (untyped definition, untyped context) -> void
+        def initialize: (Configuration::OptionDefinition definition, Configuration::Settings context) -> void
 
-        def set: (untyped value, ?precedence: untyped) -> untyped
+        def set: (untyped value, ?precedence: Precedence::Value) -> void
 
         def get: () -> untyped
 
-        def reset: () -> untyped
+        def reset: () -> void
 
         def default_value: () -> untyped
 
-        def default_precedence?: () -> untyped
+        def default_precedence?: () -> Precedence::Value?
+
+        def unset: (Precedence::Value) -> void
 
         private
 
@@ -35,8 +51,6 @@ module Datadog
         def context_eval: () { () -> untyped } -> untyped
 
         def set_value_from_env_or_default: () -> untyped
-
-        attr_reader precedence_set: untyped
       end
     end
   end

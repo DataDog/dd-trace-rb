@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
 require_relative '../../monitor'
 require_relative 'gateway/watcher'
 
@@ -10,8 +9,6 @@ module Datadog
       module Rack
         # Patcher for Rack integration
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           module_function
 
           def patched?

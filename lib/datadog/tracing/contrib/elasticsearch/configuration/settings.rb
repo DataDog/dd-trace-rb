@@ -30,9 +30,13 @@ module Datadog
               o.default 1.0
             end
 
-            option :quantize, default: {}
+            option :quantize do |o|
+              o.type :hash
+              o.default({})
+            end
 
             option :service_name do |o|
+              o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,
@@ -44,6 +48,10 @@ module Datadog
             option :peer_service do |o|
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
+            end
+
+            option :on_error do |o|
+              o.type :proc, nilable: true
             end
           end
         end

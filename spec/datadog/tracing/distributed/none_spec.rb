@@ -4,10 +4,11 @@ require 'datadog/tracing/distributed/none'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'None distributed format' do
-  subject(:none) { described_class.new }
+  let(:propagation_style_inject) { ['none'] }
+  let(:propagation_style_extract) { ['none'] }
 
   describe '#inject!' do
-    subject!(:inject!) { none.inject!(digest, data) }
+    subject!(:inject!) { propagation.inject!(digest, data) }
     let(:digest) { Datadog::Tracing::TraceDigest.new }
     let(:data) { {} }
 
@@ -17,7 +18,7 @@ RSpec.shared_examples 'None distributed format' do
   end
 
   describe '#extract' do
-    subject(:extract) { none.extract(data) }
+    subject(:extract) { propagation.extract(data) }
     let(:data) { {} }
 
     it 'never returns a digest' do
@@ -27,5 +28,6 @@ RSpec.shared_examples 'None distributed format' do
 end
 
 RSpec.describe Datadog::Tracing::Distributed::None do
+  subject(:propagation) { described_class.new }
   it_behaves_like 'None distributed format'
 end

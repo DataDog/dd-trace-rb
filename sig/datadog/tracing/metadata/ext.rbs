@@ -8,6 +8,7 @@ module Datadog
         TAG_PEER_SERVICE: ::String
         TAG_KIND: ::String
         TAG_TOP_LEVEL: ::String
+        TAG_APM_ENABLED: ::String
 
         module Analytics
           DEFAULT_SAMPLE_RATE: ::Float
@@ -25,6 +26,7 @@ module Datadog
         end
 
         module Distributed
+          TAG_TRACE_SOURCE: ::String
           TAG_DECISION_MAKER: ::String
           TAG_ORIGIN: ::String
           TAG_SAMPLING_PRIORITY: ::String
@@ -45,6 +47,7 @@ module Datadog
           TAG_STATUS_CODE: ::String
           TAG_USER_AGENT: ::String
           TAG_URL: ::String
+          TAG_ROUTE: ::String
           TYPE_INBOUND: untyped
           TYPE_OUTBOUND: ::String
           TYPE_PROXY: ::String

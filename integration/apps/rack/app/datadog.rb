@@ -1,5 +1,5 @@
 require 'datadog/demo_env'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/appsec'
 
 Datadog.configure do |c|

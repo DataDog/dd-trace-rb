@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-TOP_LEVEL_MODULE_FILE = 'lib/ddtrace.rb'
+TOP_LEVEL_MODULE_FILE = 'lib/datadog.rb'
 
 # The top-level `Datadog` module gets its docstring overwritten by
 # on almost every file in the repo, due to comments at the top of the file
 # (e.g. '# typed: true' or from vendor files 'Copyright (c) 2001-2010 Not Datadog.')
 #
-# This module ensures that only the comment provided by 'lib/ddtrace.rb'
+# This module ensures that only the comment provided by 'lib/datadog.rb'
 # is used as documentation for the top-level `Datadog` module.
 #
 # For non-top-level documentation, this can be solved by removing duplicate module/class

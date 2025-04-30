@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative '../http_annotation_helper'
+require_relative '../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -25,16 +28,21 @@ module Datadog
               Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
-                  span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                  span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
-                  if Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
-                    Tracing::Propagation::HTTP.inject!(trace, req.header)
+                  if Tracing::Distributed::PropagationPolicy.enabled?(
+                    pin_config: client_config,
+                    global_config: Datadog.configuration.tracing[:httpclient],
+                    trace: trace
+                  )
+                    Contrib::HTTP.inject(trace, req.header)
                   end
 
                   # Add additional request specific tags to the span.
                   annotate_span_with_request!(span, req, request_options)
                 rescue StandardError => e
-                  logger.error("error preparing span for httpclient request: #{e}, Source: #{e.backtrace}")
+                  Datadog.logger.error("error preparing span for httpclient request: #{e}, Source: #{e.backtrace}")
+                  Datadog::Core::Telemetry::Logger.report(e)
                 ensure
                   res = super
                 end
@@ -98,6 +106,9 @@ module Datadog
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.response_tags(response.header)
               )
+            rescue StandardError => e
+              Datadog.logger.error("error preparing span from httpclient response: #{e}, Source: #{e.backtrace}")
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def annotate_span_with_error!(span, error)
@@ -110,16 +121,6 @@ module Datadog
 
             def analytics_enabled?(request_options)
               Contrib::Analytics.enabled?(request_options[:analytics_enabled])
-            end
-
-            def logger
-              Datadog.logger
-            end
-
-            def should_skip_distributed_tracing?(client_config)
-              return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
-
-              !Datadog.configuration.tracing[:httpclient][:distributed_tracing]
             end
 
             def set_analytics_sample_rate(span, request_options)

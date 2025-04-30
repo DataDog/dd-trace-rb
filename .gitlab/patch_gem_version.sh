@@ -30,11 +30,11 @@ BUILD="b${git_branch_hash}.${1}${2}.g${git_short_sha}"
 echo BUILD="${BUILD}"
 
 # Patch in components
-sed lib/ddtrace/version.rb -i -e  "s/^\([\t ]*PRE\) *= */\1 = \'${PRE}\' # /"
-sed lib/ddtrace/version.rb -i -e  "s/^\([\t ]*BUILD\) *= */\1 = \'${BUILD}\' # /"
+sed lib/datadog/version.rb -i -e  "s/^\([\t ]*PRE\) *= */\1 = \'${PRE}\' # /"
+sed lib/datadog/version.rb -i -e  "s/^\([\t ]*BUILD\) *= */\1 = \'${BUILD}\' # /"
 
 # Test result
-cat lib/ddtrace/version.rb | grep -e PRE -e BUILD
+cat lib/datadog/version.rb | grep -e PRE -e BUILD
 
-ruby -Ilib -rddtrace/version -e 'puts DDTrace::VERSION::STRING'
-ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s'
+ruby -Ilib -rdatadog/version -e 'puts Datadog::VERSION::STRING'
+ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s'

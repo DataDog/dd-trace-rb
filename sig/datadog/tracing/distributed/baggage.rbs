@@ -1,0 +1,26 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class Baggage
+        BAGGAGE_KEY : "baggage"
+        DD_TRACE_BAGGAGE_MAX_ITEMS : 64
+        DD_TRACE_BAGGAGE_MAX_BYTES : 8192
+        SAFE_CHARACTERS_KEY : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'*+-.^_`|~"
+        SAFE_CHARACTERS_VALUE : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'()*+-./:<>?@[]^_`{|}~"
+
+        def initialize: (fetcher: untyped, baggage_key: string) -> void
+
+        def inject!: (untyped digest, untyped data) -> (nil | untyped)
+
+        def extract: (untyped data) -> (nil | untyped)
+          
+
+        private
+
+        def encode_item: (String item, String safe_characters) -> string
+
+        def parse_baggage_header: (String baggage_header) -> hash[string, string]
+        end
+    end
+  end
+end

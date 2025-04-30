@@ -1,9 +1,7 @@
 #pragma once
 
-#include <ruby.h>
 #include <stdbool.h>
-
-#include "helpers.h"
+#include "datadog_ruby_common.h"
 
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
 // usage of ruby helpers.
@@ -15,11 +13,6 @@ static inline VALUE process_pending_interruptions(DDTRACE_UNUSED VALUE _) {
   rb_thread_check_ints();
   return Qnil;
 }
-
-// RB_UNLIKELY is not supported on Ruby 2.3
-#ifndef RB_UNLIKELY
-  #define RB_UNLIKELY(x) x
-#endif
 
 // Calls process_pending_interruptions BUT "rescues" any exceptions to be raised, returning them instead as
 // a non-zero `pending_exception`.
@@ -44,27 +37,6 @@ static inline int check_if_pending_exception(void) {
   return pending_exception;
 }
 
-#define ADD_QUOTES_HELPER(x) #x
-#define ADD_QUOTES(x) ADD_QUOTES_HELPER(x)
-
-// Ruby has a Check_Type(value, type) that is roughly equivalent to this BUT Ruby's version is rather cryptic when it fails
-// e.g. "wrong argument type nil (expected String)". This is a replacement that prints more information to help debugging.
-#define ENFORCE_TYPE(value, type) \
-  { if (RB_UNLIKELY(!RB_TYPE_P(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), ADD_QUOTES(type), __FILE__, __LINE__, __func__); }
-
-#define ENFORCE_BOOLEAN(value) \
-  { if (RB_UNLIKELY(value != Qtrue && value != Qfalse)) raise_unexpected_type(value, ADD_QUOTES(value), "true or false", __FILE__, __LINE__, __func__); }
-
-// Called by ENFORCE_TYPE; should not be used directly
-NORETURN(void raise_unexpected_type(
-  VALUE value,
-  const char *value_name,
-  const char *type_name,
-  const char *file,
-  int line,
-  const char *function_name
-));
-
 #define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
 
 NORETURN(
@@ -81,6 +53,9 @@ NORETURN(
 
 #define ENFORCE_SUCCESS_HELPER(expression, have_gvl) \
   { int result_syserr_errno = expression; if (RB_UNLIKELY(result_syserr_errno)) raise_syserr(result_syserr_errno, have_gvl, ADD_QUOTES(expression), __FILE__, __LINE__, __func__); }
+
+#define RUBY_NUM_OR_NIL(val, condition, conv) ((val condition) ? conv(val) : Qnil)
+#define RUBY_AVG_OR_NIL(total, count) ((count == 0) ? Qnil : DBL2NUM(((double) total) / count))
 
 // Called by ENFORCE_SUCCESS_HELPER; should not be used directly
 NORETURN(void raise_syserr(
@@ -116,4 +91,6 @@ size_t ruby_obj_memsize_of(VALUE obj);
 // 'to_s', return a string with the result of that call. Otherwise, return Qnil.
 VALUE ruby_safe_inspect(VALUE obj);
 
-VALUE ddtrace_version(void);
+// You probably want ruby_safe_inspect instead; this is a lower-level dependency
+// of it, that's being exposed here just to facilitate testing.
+const char* safe_object_info(VALUE obj);

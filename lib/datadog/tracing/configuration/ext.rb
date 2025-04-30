@@ -9,12 +9,15 @@ module Datadog
       # e.g. Env vars, default values, enums, etc...
       module Ext
         ENV_ENABLED = 'DD_TRACE_ENABLED'
+        ENV_OTEL_TRACES_EXPORTER = 'OTEL_TRACES_EXPORTER'
         ENV_HEADER_TAGS = 'DD_TRACE_HEADER_TAGS'
         ENV_TRACE_ID_128_BIT_GENERATION_ENABLED = 'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED'
+        ENV_NATIVE_SPAN_EVENTS = 'DD_TRACE_NATIVE_SPAN_EVENTS'
 
         # @public_api
         module SpanAttributeSchema
           ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED = 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED'
+          ENV_PEER_SERVICE_DEFAULTS_ENABLED = 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED'
           ENV_PEER_SERVICE_MAPPING = 'DD_TRACE_PEER_SERVICE_MAPPING'
         end
 
@@ -31,31 +34,31 @@ module Datadog
         # @public_api
         module Distributed
           # Custom Datadog format
-          PROPAGATION_STYLE_DATADOG = 'Datadog'
+          PROPAGATION_STYLE_DATADOG = 'datadog'
 
           PROPAGATION_STYLE_B3_MULTI_HEADER = 'b3multi'
-          # @deprecated Use `b3multi` instead.
-          PROPAGATION_STYLE_B3 = 'B3'
-
           PROPAGATION_STYLE_B3_SINGLE_HEADER = 'b3'
-          # @deprecated Use `b3` instead.
-          PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD = 'B3 single header'
 
           # W3C Trace Context
           PROPAGATION_STYLE_TRACE_CONTEXT = 'tracecontext'
+
+          # W3C Baggage
+          # @see https://www.w3.org/TR/baggage/
+          PROPAGATION_STYLE_BAGGAGE = 'baggage'
+
+          PROPAGATION_STYLE_SUPPORTED = [PROPAGATION_STYLE_DATADOG, PROPAGATION_STYLE_B3_MULTI_HEADER,
+                                         PROPAGATION_STYLE_B3_SINGLE_HEADER, PROPAGATION_STYLE_TRACE_CONTEXT,
+                                         PROPAGATION_STYLE_BAGGAGE].freeze
 
           # Sets both extract and inject propagation style tho the provided value.
           # Has lower precedence than `DD_TRACE_PROPAGATION_STYLE_INJECT` or
           # `DD_TRACE_PROPAGATION_STYLE_EXTRACT`.
           ENV_PROPAGATION_STYLE = 'DD_TRACE_PROPAGATION_STYLE'
+          ENV_OTEL_PROPAGATION_STYLE = 'OTEL_PROPAGATORS'
 
           ENV_PROPAGATION_STYLE_INJECT = 'DD_TRACE_PROPAGATION_STYLE_INJECT'
-          # @deprecated Use `DD_TRACE_PROPAGATION_STYLE_INJECT` instead.
-          ENV_PROPAGATION_STYLE_INJECT_OLD = 'DD_PROPAGATION_STYLE_INJECT'
 
           ENV_PROPAGATION_STYLE_EXTRACT = 'DD_TRACE_PROPAGATION_STYLE_EXTRACT'
-          # @deprecated Use `DD_TRACE_PROPAGATION_STYLE_EXTRACT` instead.
-          ENV_PROPAGATION_STYLE_EXTRACT_OLD = 'DD_PROPAGATION_STYLE_EXTRACT'
 
           # A no-op propagator. Compatible with OpenTelemetry's `none` propagator.
           # @see https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#get_otel__propagators
@@ -77,6 +80,8 @@ module Datadog
           ENV_SAMPLE_RATE = 'DD_TRACE_SAMPLE_RATE'
           ENV_RATE_LIMIT = 'DD_TRACE_RATE_LIMIT'
           ENV_RULES = 'DD_TRACE_SAMPLING_RULES'
+          ENV_OTEL_TRACES_SAMPLER = 'OTEL_TRACES_SAMPLER'
+          OTEL_TRACES_SAMPLER_ARG = 'OTEL_TRACES_SAMPLER_ARG'
 
           # @public_api
           module Span
@@ -99,7 +104,6 @@ module Datadog
         # @public_api
         module ClientIp
           ENV_ENABLED = 'DD_TRACE_CLIENT_IP_ENABLED'
-          ENV_DISABLED = 'DD_TRACE_CLIENT_IP_HEADER_DISABLED' # TODO: deprecated, remove later
           ENV_HEADER_NAME = 'DD_TRACE_CLIENT_IP_HEADER'
         end
       end

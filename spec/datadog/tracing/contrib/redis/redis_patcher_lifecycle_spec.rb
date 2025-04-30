@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'redis'
-require 'ddtrace'
+require 'datadog'
 
 # This must be a standalone task due to the life cycle of patcher
 RSpec.describe 'Patcher lifecycle - instrumenting a redis instance initialized before patching instrumentation' do

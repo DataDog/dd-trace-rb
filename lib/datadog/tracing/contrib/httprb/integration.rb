@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../integration'
 require_relative 'configuration/settings'
 require_relative '../configuration/resolvers/pattern_resolver'
@@ -15,6 +17,9 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :httprb
+          def self.gem_name
+            'http'
+          end
 
           def self.version
             Gem.loaded_specs['http'] && Gem.loaded_specs['http'].version

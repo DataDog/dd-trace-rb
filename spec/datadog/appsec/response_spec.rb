@@ -1,41 +1,23 @@
 require 'datadog/appsec/response'
 
 RSpec.describe Datadog::AppSec::Response do
-  describe '.negotiate' do
-    let(:env) { double }
-    let(:actions) { [] }
+  describe '.from_interrupt_params' do
+    let(:http_accept_header) { 'text/html' }
 
-    before do
-      allow(env).to receive(:key?).with('HTTP_ACCEPT').and_return(true)
-      allow(env).to receive(:[]).with('HTTP_ACCEPT').and_return('text/html')
-      Datadog::AppSec::Processor::Actions.merge(actions)
-    end
-
-    after do
-      Datadog::AppSec::Processor::Actions.send(:reset)
-    end
-
-    describe 'configured actions' do
+    describe 'configured interrupt_params' do
       describe 'block' do
-        let(:actions) do
-          [
-            {
-              'id' => 'block',
-              'type' => 'block_request',
-              'parameters' => {
-                'type' => type,
-                'status_code' => status_code,
-
-              }
-            }
-          ]
+        let(:interrupt_params) do
+          {
+            'type' => type,
+            'status_code' => status_code
+          }
         end
 
         let(:type) { 'html' }
-        let(:status_code) { 100 }
+        let(:status_code) { '100' }
 
         context 'status_code' do
-          subject(:status) { described_class.negotiate(env, ['block']).status }
+          subject(:status) { described_class.from_interrupt_params(interrupt_params, http_accept_header).status }
 
           it { is_expected.to eq 100 }
 
@@ -47,52 +29,36 @@ RSpec.describe Datadog::AppSec::Response do
         end
 
         context 'body' do
-          subject(:body) { described_class.negotiate(env, ['block']).body }
+          subject(:body) { described_class.from_interrupt_params(interrupt_params, http_accept_header).body }
 
           it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :html)] }
 
           context 'type is auto it uses the HTTP_ACCEPT to decide the result' do
             let(:type) { 'auto' }
-
-            before do
-              expect(env).to receive(:key?).with('HTTP_ACCEPT').and_return(true)
-              expect(env).to receive(:[]).with('HTTP_ACCEPT').and_return('application/json')
-            end
+            let(:http_accept_header) { 'application/json' }
 
             it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :json)] }
           end
         end
 
         context 'headers' do
-          subject(:header) { described_class.negotiate(env, ['block']).headers['Content-Type'] }
+          subject(:header) do
+            described_class.from_interrupt_params(interrupt_params, http_accept_header).headers['Content-Type']
+          end
 
           it { is_expected.to eq 'text/html' }
 
           context 'type is auto it uses the HTTP_ACCEPT to decide the result' do
             let(:type) { 'auto' }
-
-            before do
-              expect(env).to receive(:key?).with('HTTP_ACCEPT').and_return(true)
-              expect(env).to receive(:[]).with('HTTP_ACCEPT').and_return('application/json')
-            end
+            let(:http_accept_header) { 'application/json' }
 
             it { is_expected.to eq 'application/json' }
           end
         end
 
-        context 'no specify action' do
-          subject(:response) { described_class.negotiate(env, []) }
-
-          it 'uses default response' do
-            expect(response.status).to eq 403
-            expect(response.body).to eq [Datadog::AppSec::Assets.blocked(format: :html)]
-            expect(response.headers['Content-Type']).to eq 'text/html'
-          end
-        end
-
-        context 'no configured actions' do
-          let(:actions) { [] }
-          subject(:response) { described_class.negotiate(env, []) }
+        context 'empty interrupt_params' do
+          let(:interrupt_params) { {} }
+          subject(:response) { described_class.from_interrupt_params(interrupt_params, http_accept_header) }
 
           it 'uses default response' do
             expect(response.status).to eq 403
@@ -103,54 +69,36 @@ RSpec.describe Datadog::AppSec::Response do
       end
 
       describe 'redirect_request' do
-        let(:actions) do
-          [
-            {
-              'id' => 'redirect_request',
-              'type' => 'redirect_request',
-              'parameters' => {
-                'location' => location,
-                'status_code' => status_code,
-
-              }
-            }
-          ]
+        let(:interrupt_params) do
+          {
+            'location' => location,
+            'status_code' => status_code
+          }
         end
 
         let(:location) { 'foo' }
-        let(:status_code) { 303 }
+        let(:status_code) { '303' }
 
         context 'status_code' do
-          subject(:status) { described_class.negotiate(env, ['redirect_request']).status }
+          subject(:status) { described_class.from_interrupt_params(interrupt_params, http_accept_header).status }
 
           it { is_expected.to eq 303 }
 
           context 'when status code do not starts with 3' do
-            let(:status_code) { 202 }
+            let(:status_code) { '202' }
 
             it { is_expected.to eq 303 }
           end
         end
 
         context 'body' do
-          subject(:body) { described_class.negotiate(env, ['redirect_request']).body }
+          subject(:body) { described_class.from_interrupt_params(interrupt_params, http_accept_header).body }
 
           it { is_expected.to eq [] }
         end
 
         context 'headers' do
-          subject(:headers) { described_class.negotiate(env, ['redirect_request']).headers }
-
-          context 'Content-Type' do
-            before do
-              expect(env).to receive(:key?).with('HTTP_ACCEPT').and_return(true)
-              expect(env).to receive(:[]).with('HTTP_ACCEPT').and_return('application/json')
-            end
-
-            it 'uses the one from HTTP_ACCEPT header' do
-              expect(headers['Content-Type']).to eq('application/json')
-            end
-          end
+          subject(:headers) { described_class.from_interrupt_params(interrupt_params, http_accept_header).headers }
 
           context 'Location' do
             it 'uses the one from the configuration' do
@@ -158,55 +106,17 @@ RSpec.describe Datadog::AppSec::Response do
             end
           end
         end
-
-        context 'no specify action' do
-          subject(:response) { described_class.negotiate(env, []) }
-
-          it 'uses default response' do
-            expect(response.status).to eq 403
-            expect(response.body).to eq [Datadog::AppSec::Assets.blocked(format: :html)]
-            expect(response.headers['Content-Type']).to eq 'text/html'
-          end
-        end
-
-        context 'location is empty' do
-          let(:location) { '' }
-
-          subject(:response) { described_class.negotiate(env, []) }
-
-          it 'uses default response' do
-            expect(response.status).to eq 403
-            expect(response.body).to eq [Datadog::AppSec::Assets.blocked(format: :html)]
-            expect(response.headers['Content-Type']).to eq 'text/html'
-          end
-        end
-
-        context 'no configured actions' do
-          let(:actions) { [] }
-          subject(:response) { described_class.negotiate(env, []) }
-
-          it 'uses default response' do
-            expect(response.status).to eq 403
-            expect(response.body).to eq [Datadog::AppSec::Assets.blocked(format: :html)]
-            expect(response.headers['Content-Type']).to eq 'text/html'
-          end
-        end
       end
     end
 
     describe '.status' do
-      subject(:status) { described_class.negotiate(env, []).status }
+      subject(:status) { described_class.from_interrupt_params({}, http_accept_header).status }
 
       it { is_expected.to eq 403 }
     end
 
     describe '.body' do
-      subject(:body) { described_class.negotiate(env, []).body }
-
-      before do
-        expect(env).to receive(:key?).with('HTTP_ACCEPT').and_return(true)
-        expect(env).to receive(:[]).with('HTTP_ACCEPT').and_return(accept)
-      end
+      subject(:body) { described_class.from_interrupt_params({}, http_accept_header).body }
 
       shared_examples_for 'with custom response body' do |type|
         before do
@@ -223,13 +133,13 @@ RSpec.describe Datadog::AppSec::Response do
       end
 
       context 'with unsupported Accept headers' do
-        let(:accept) { 'application/xml' }
+        let(:http_accept_header) { 'application/xml' }
 
         it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :json)] }
       end
 
       context('with Accept: text/html') do
-        let(:accept) { 'text/html' }
+        let(:http_accept_header) { 'text/html' }
 
         it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :html)] }
 
@@ -237,7 +147,7 @@ RSpec.describe Datadog::AppSec::Response do
       end
 
       context('with Accept: application/json') do
-        let(:accept) { 'application/json' }
+        let(:http_accept_header) { 'application/json' }
 
         it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :json)] }
 
@@ -245,7 +155,7 @@ RSpec.describe Datadog::AppSec::Response do
       end
 
       context('with Accept: text/plain') do
-        let(:accept) { 'text/plain' }
+        let(:http_accept_header) { 'text/plain' }
 
         it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :text)] }
 
@@ -254,90 +164,82 @@ RSpec.describe Datadog::AppSec::Response do
     end
 
     describe ".headers['Content-Type']" do
-      subject(:content_type) { described_class.negotiate(env, []).headers['Content-Type'] }
-
-      before do
-        expect(env).to receive(:key?).with('HTTP_ACCEPT').and_return(respond_to?(:accept))
-
-        if respond_to?(:accept)
-          expect(env).to receive(:[]).with('HTTP_ACCEPT').and_return(accept)
-        else
-          expect(env).to_not receive(:[]).with('HTTP_ACCEPT')
-        end
-      end
+      subject(:content_type) { described_class.from_interrupt_params({}, http_accept_header).headers['Content-Type'] }
 
       context('with Accept: text/html') do
-        let(:accept) { 'text/html' }
+        let(:http_accept_header) { 'text/html' }
 
-        it { is_expected.to eq accept }
+        it { is_expected.to eq http_accept_header }
       end
 
       context('with Accept: application/json') do
-        let(:accept) { 'application/json' }
+        let(:http_accept_header) { 'application/json' }
 
-        it { is_expected.to eq accept }
+        it { is_expected.to eq http_accept_header }
       end
 
       context('with Accept: text/plain') do
-        let(:accept) { 'text/plain' }
+        let(:http_accept_header) { 'text/plain' }
 
-        it { is_expected.to eq accept }
+        it { is_expected.to eq http_accept_header }
       end
 
       context('without Accept header') do
+        let(:http_accept_header) { nil }
+
         it { is_expected.to eq 'application/json' }
       end
 
       context('with Accept: */*') do
-        let(:accept) { '*/*' }
+        let(:http_accept_header) { '*/*' }
 
         it { is_expected.to eq 'application/json' }
       end
 
       context('with Accept: text/*') do
-        let(:accept) { 'text/*' }
+        let(:http_accept_header) { 'text/*' }
 
         it { is_expected.to eq 'text/html' }
       end
 
       context('with Accept: application/*') do
-        let(:accept) { 'application/*' }
+        let(:http_accept_header) { 'application/*' }
 
         it { is_expected.to eq 'application/json' }
       end
 
       context('with unparseable Accept header') do
-        let(:accept) { 'invalid' }
+        let(:http_accept_header) { 'invalid' }
 
         it { is_expected.to eq 'application/json' }
       end
 
       context('with Accept: text/*;q=0.7, application/*;q=0.8, */*;q=0.9') do
-        let(:accept) { 'text/*;q=0.7, application/*;q=0.8, */*;q=0.9' }
+        let(:http_accept_header) { 'text/*;q=0.7, application/*;q=0.8, */*;q=0.9' }
 
         it { is_expected.to eq 'application/json' }
       end
 
       context('with unsupported Accept header') do
-        let(:accept) { 'image/webp' }
+        let(:http_accept_header) { 'image/webp' }
 
         it { is_expected.to eq 'application/json' }
       end
 
       context('with Mozilla Firefox Accept') do
-        let(:accept) { 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8' }
+        let(:http_accept_header) { 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8' }
 
         it { is_expected.to eq 'text/html' }
       end
 
       context('with Google Chrome Accept') do
-        let(:accept) { 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' } # rubocop:disable Layout/LineLength
+        let(:http_accept_header) { 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' } # rubocop:disable Layout/LineLength
 
         it { is_expected.to eq 'text/html' }
       end
 
       context('with Apple Safari Accept') do
-        let(:accept) { 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' }
+        let(:http_accept_header) { 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' }
 
         it { is_expected.to eq 'text/html' }
       end

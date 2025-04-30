@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'connection'
 require_relative 'ext'
 require_relative 'rack_builder'
@@ -25,13 +27,13 @@ module Datadog
           end
 
           def register_middleware!
-            ::Faraday::Middleware.register_middleware(ddtrace: Middleware)
+            ::Faraday::Middleware.register_middleware(datadog_tracing: Middleware)
           end
 
           def add_default_middleware!
             if target_version >= Gem::Version.new('1.0.0')
               # Patch the default connection (e.g. +Faraday.get+)
-              ::Faraday.default_connection.use(:ddtrace)
+              ::Faraday.default_connection.use(:datadog_tracing)
 
               # Patch new connection instances (e.g. +Faraday.new+)
               ::Faraday::Connection.prepend(Connection)

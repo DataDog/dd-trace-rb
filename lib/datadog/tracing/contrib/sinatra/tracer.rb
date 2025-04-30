@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 require 'sinatra/base'
 
 require_relative '../../../core/utils/only_once'
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative 'env'
 require_relative 'ext'
@@ -24,7 +26,7 @@ module Datadog
             def render(engine, data, *)
               return super unless Tracing.enabled?
 
-              Tracing.trace(Ext::SPAN_RENDER_TEMPLATE, span_type: Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE) do |span|
+              Tracing.trace(Ext::SPAN_RENDER_TEMPLATE, type: Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE) do |span|
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_TEMPLATE)
 
@@ -52,7 +54,7 @@ module Datadog
               Tracing.trace(
                 Ext::SPAN_ROUTE,
                 service: configuration[:service_name],
-                span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
+                type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
                 resource: "#{request.request_method} #{datadog_route}",
               ) do |span, trace|
                 span.set_tag(Ext::TAG_APP_NAME, settings.name || settings.superclass.name)
@@ -66,6 +68,10 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ROUTE)
 
                 trace.resource = span.resource
+
+                _, path = env['sinatra.route'].split(' ', 2)
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, path)
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
 
                 sinatra_request_span = Sinatra::Env.datadog_span(env)
 

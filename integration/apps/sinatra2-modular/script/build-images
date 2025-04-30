@@ -31,6 +31,7 @@ else
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.1 -t datadog/dd-apm-demo:rb-3.1-sinatra2-modular .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.2 -t datadog/dd-apm-demo:rb-3.2-sinatra2-modular .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.3 -t datadog/dd-apm-demo:rb-3.3-sinatra2-modular .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.4 -t datadog/dd-apm-demo:rb-3.4-sinatra2-modular .
   # ADD NEW RUBIES HERE
 fi
 echo "== Done building Sinatra images. =="

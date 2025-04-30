@@ -6,7 +6,7 @@ module Datadog
           class Subscription
             attr_accessor span_name: untyped
 
-            attr_accessor options: untyped
+            attr_accessor span_options: untyped
 
             def initialize: (untyped span_name, untyped options) ?{ () -> untyped } -> void
             def call: (untyped name, untyped start, untyped finish, untyped id, untyped payload) -> untyped

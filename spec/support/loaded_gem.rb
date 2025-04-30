@@ -25,13 +25,14 @@ module LoadedGem
 
   module Helpers
     def decrement_gem_version(version)
-      segments = version.segments.dup
+      segments = Gem::Version.new(version).segments.dup
       segments.reverse.each_with_index do |value, i|
         if value.to_i > 0
           segments[segments.length - 1 - i] -= 1
           break
         end
       end
+
       Gem::Version.new(segments.join('.'))
     end
 

@@ -3,6 +3,19 @@ require 'spec_helper'
 require 'datadog/tracing/contrib/utils/quantization/http'
 
 RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
+  describe 'RFC3986_URL_BASE' do
+    let(:regex) { described_class::RFC3986_URL_BASE }
+
+    it 'matches in linear time' do
+      if !Regexp.respond_to?(:linear_time?)
+        skip 'Regexp.linear_time? method is only available on Ruby 3.3+'
+      else
+        pending
+        expect(Regexp.linear_time?(regex)).to be true
+      end
+    end
+  end
+
   describe '#url' do
     subject(:result) { described_class.url(url, options) }
 
@@ -568,6 +581,14 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       'OpenSSH ECDSA public key' => 'ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJX/IRZ4icqvJ8OpEDMs5X566bilqX6u6XEF/f/llF4YmiiSpo6cTVzl/2L9HXSfOlwuzVyRFaLpMWEUE3az0PI= dummy'
     }
     # rubocop:enable Layout/LineLength
+
+    it 'matches in linear time' do
+      if !Regexp.respond_to?(:linear_time?)
+        skip 'Regexp.linear_time? method is only available on Ruby 3.3+'
+      else
+        expect(Regexp.linear_time?(regex)).to be true
+      end
+    end
 
     key_matches.each do |key|
       context "given query string key #{key.inspect} and its value" do

@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Excon
+        class SSRFDetectionMiddleware < ::Faraday::Middleware
+          def request_call: (untyped data) -> void
+        end
+      end
+    end
+  end
+end

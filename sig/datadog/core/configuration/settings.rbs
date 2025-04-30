@@ -54,6 +54,44 @@ module Datadog
           def templates: () -> _TemplatesBlock
         end
 
+        interface _DI
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def untargeted_trace_points: () -> bool
+
+          def untargeted_trace_points=: (bool) -> void
+
+          def propagate_all_exceptions: () -> bool
+
+          def propagate_all_exceptions=: (bool) -> void
+
+          def redacted_identifiers: () -> Array[String]
+
+          def redacted_identifiers=: (Array[String]) -> void
+
+          def redacted_type_names: () -> Array[String]
+
+          def redacted_type_names=: (Array[String]) -> void
+
+          def max_capture_depth: () -> Integer
+
+          def max_capture_depth=: (Integer) -> void
+
+          def max_capture_collection_size: () -> Integer
+
+          def max_capture_collection_size=: (Integer) -> void
+
+          def max_capture_string_length: () -> Integer
+
+          def max_capture_string_length=: (Integer) -> void
+
+          def max_capture_attribute_count: () -> Integer
+
+          def max_capture_attribute_count=: (Integer) -> void
+        end
+
         interface _TemplatesBlock
           def html=: (::String) -> void
 
@@ -70,17 +108,21 @@ module Datadog
 
         def initialize: (*untyped _) -> untyped
 
-        def env: -> String
+        def env: -> String?
 
         def service: -> String
 
         def version: -> String?
+
+        def tags: -> ::Hash[::String, ::String]
 
         def logger=: (untyped logger) -> untyped
 
         def runtime_metrics: (?untyped? options) -> untyped
 
         def appsec: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AppSec
+
+        def dynamic_instrumentation: (?untyped? options) -> Datadog::Core::Configuration::Settings::_DI
 
         def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
       end

@@ -3,7 +3,7 @@ module Datadog
     module Diagnostics
       module Health
         class Metrics < Core::Metrics::Client
-          extend Tracing::Diagnostics::Health::Metrics
+          include Tracing::Diagnostics::Health::Metrics
         end
       end
     end

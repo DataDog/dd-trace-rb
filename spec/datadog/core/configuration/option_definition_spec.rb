@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe Datadog::Core::Configuration::OptionDefinition do
   subject(:definition) { described_class.new(name, meta, &block) }
@@ -260,13 +260,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         is_expected.to be block
         expect(builder.helpers).to include(name => block)
       end
-    end
-  end
-
-  describe '#lazy' do
-    it 'logs deprecation warning' do
-      expect(Datadog::Core).to receive(:log_deprecation)
-      builder.lazy
     end
   end
 
