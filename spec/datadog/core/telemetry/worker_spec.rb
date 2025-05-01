@@ -336,6 +336,11 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     let(:heartbeat_interval_seconds) { 60 }
     let(:metrics_aggregation_interval_seconds) { 30 }
 
+    before do
+      # This test expects the AppStarted event apparently
+      Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
+    end
+
     it 'flushes events and stops the worker' do
       worker.start
 
