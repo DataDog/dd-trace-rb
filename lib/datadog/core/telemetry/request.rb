@@ -13,7 +13,7 @@ module Datadog
 
           def build_payload(event, seq_id)
             hash = {
-              api_version: Http::Ext::API_VERSION,
+              api_version: 'v2',
               application: application,
               debug: false,
               host: host,

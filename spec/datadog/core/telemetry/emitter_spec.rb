@@ -104,7 +104,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
   end
 
   describe 'when initialized multiple times' do
-    let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
+    let(:http_transport) { double(Datadog::Core::Telemetry::Transport::Telemetry::Transport) }
 
     context 'sequence is stored' do
       it do

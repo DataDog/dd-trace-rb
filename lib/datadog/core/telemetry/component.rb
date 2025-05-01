@@ -2,7 +2,6 @@
 
 require_relative 'emitter'
 require_relative 'event'
-require_relative 'http/transport'
 require_relative 'metrics_manager'
 require_relative 'worker'
 require_relative 'logging'
