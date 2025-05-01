@@ -90,7 +90,7 @@ module Datadog
           return unless enabled? || !run_loop?
 
           loop do
-            break if buffer.empty?
+            break if buffer.empty? && sent_started_event?
             sleep 0.1
           end
         end
