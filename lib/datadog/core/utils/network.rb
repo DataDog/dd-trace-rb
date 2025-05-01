@@ -52,10 +52,10 @@ module Datadog
             return unless ip
 
             clean_ip = if likely_ipv4?(ip)
-                         strip_ipv4_port(ip)
-                       else
-                         strip_zone_specifier(strip_ipv6_port(ip))
-                       end
+              strip_ipv4_port(ip)
+            else
+              strip_zone_specifier(strip_ipv6_port(ip))
+            end
 
             begin
               IPAddr.new(clean_ip)

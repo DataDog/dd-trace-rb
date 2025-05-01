@@ -37,8 +37,8 @@ module Datadog
             case adapter
             when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
               hostname = self.hostname
-              hostname = "[#{hostname}]" if hostname =~ IPV6_REGEXP
-              "#{ssl ? 'https' : 'http'}://#{hostname}:#{port}/"
+              hostname = "[#{hostname}]" if IPV6_REGEXP.match?(hostname)
+              "#{ssl ? "https" : "http"}://#{hostname}:#{port}/"
             when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
               "unix://#{uds_path}"
             else
@@ -158,7 +158,7 @@ module Datadog
               value: settings.agent.timeout_seconds,
             ),
             try_parsing_as_integer(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} "\
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} " \
                 'environment variable',
               value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS],
             )
@@ -338,7 +338,7 @@ module Datadog
           log_warning(
             'Configuration mismatch: values differ between ' \
             "#{detected_configurations_in_priority_order
-              .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(' and ')}" \
+              .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(" and ")}" \
             ". Using #{detected_configurations_in_priority_order.first.value.inspect} and ignoring other configuration."
           )
         end

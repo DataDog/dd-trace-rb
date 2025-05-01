@@ -123,7 +123,7 @@ module Datadog
           # @return [Boolean]
           option :debug do |o|
             o.env [Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED,
-                   Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
             o.default false
             o.type :bool
             o.env_parser do |value|
@@ -454,7 +454,7 @@ module Datadog
               o.after_set do |_, _, precedence|
                 unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                   Core.log_deprecation(key: :experimental_crash_tracking_enabled) do
-                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal '\
+                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal ' \
                     'and no longer does anything. Please remove it from your Datadog.configure block.'
                   end
                 end
@@ -641,11 +641,11 @@ module Datadog
                 val ||= ''
                 # maps OpenTelemetry semantic attributes to Datadog tags
                 key = case key.downcase
-                      when 'deployment.environment' then 'env'
-                      when 'service.version' then 'version'
-                      when 'service.name' then 'service'
-                      else key
-                      end
+                when 'deployment.environment' then 'env'
+                when 'service.version' then 'version'
+                when 'service.name' then 'service'
+                else key
+                end
                 result[key] = val unless key.empty?
               end
             end

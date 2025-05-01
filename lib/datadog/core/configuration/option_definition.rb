@@ -111,7 +111,7 @@ module Datadog
 
           def type(value, nilable: false)
             @type = value
-            @type_options = { nilable: nilable }
+            @type_options = {nilable: nilable}
 
             value
           end
@@ -156,7 +156,7 @@ module Datadog
             if !@default.nil? && @default_proc
               raise InvalidOptionError,
                 'Using `default` and `default_proc` is not allowed. Please use one or the other.' \
-                                'If you want to store a block as the default value use `default_proc`'\
+                                'If you want to store a block as the default value use `default_proc`' \
                                 ' otherwise use `default`'
             end
           end

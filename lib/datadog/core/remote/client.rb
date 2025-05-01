@@ -11,6 +11,7 @@ module Datadog
       # Client communicates with the agent and sync remote configuration
       class Client
         class TransportError < StandardError; end
+
         class SyncError < StandardError; end
 
         attr_reader :transport, :repository, :id, :dispatcher, :logger
@@ -134,10 +135,10 @@ module Datadog
             "ruby.runtime.engine.name:#{RUBY_ENGINE}",
             "ruby.runtime.engine.version:#{ruby_engine_version}",
             "ruby.rubygems.platform.local:#{Gem::Platform.local}",
-            "ruby.gem.libddwaf.version:#{gem_spec('libddwaf').version}",
-            "ruby.gem.libddwaf.platform:#{gem_spec('libddwaf').platform}",
-            "ruby.gem.libdatadog.version:#{gem_spec('libdatadog').version}",
-            "ruby.gem.libdatadog.platform:#{gem_spec('libdatadog').platform}",
+            "ruby.gem.libddwaf.version:#{gem_spec("libddwaf").version}",
+            "ruby.gem.libddwaf.platform:#{gem_spec("libddwaf").platform}",
+            "ruby.gem.libdatadog.version:#{gem_spec("libdatadog").version}",
+            "ruby.gem.libdatadog.platform:#{gem_spec("libdatadog").platform}",
           ]
 
           if (git_repository_url = Core::Environment::Git.git_repository_url)
@@ -202,37 +203,37 @@ module Datadog
           return @native_platform unless @native_platform.nil?
 
           os = if RUBY_ENGINE == 'jruby'
-                 os_name = java.lang.System.get_property('os.name')
+            os_name = java.lang.System.get_property('os.name')
 
-                 case os_name
-                 when /linux/i then 'linux'
-                 when /mac/i   then 'darwin'
-                 else os_name
-                 end
-               else
-                 Gem::Platform.local.os
-               end
+            case os_name
+            when /linux/i then 'linux'
+            when /mac/i then 'darwin'
+            else os_name
+            end
+          else
+            Gem::Platform.local.os
+          end
 
           version = if os != 'linux'
-                      nil
-                    elsif RUBY_PLATFORM =~ /linux-(.+)$/
-                      # Old rubygems don't handle non-gnu linux correctly
-                      Regexp.last_match(1)
-                    else
-                      'gnu'
-                    end
+            nil
+          elsif RUBY_PLATFORM =~ /linux-(.+)$/
+            # Old rubygems don't handle non-gnu linux correctly
+            Regexp.last_match(1)
+          else
+            'gnu'
+          end
 
           cpu = if RUBY_ENGINE == 'jruby'
-                  os_arch = java.lang.System.get_property('os.arch')
+            os_arch = java.lang.System.get_property('os.arch')
 
-                  case os_arch
-                  when 'amd64' then 'x86_64'
-                  when 'aarch64' then os == 'darwin' ? 'arm64' : 'aarch64'
-                  else os_arch
-                  end
-                else
-                  Gem::Platform.local.cpu
-                end
+            case os_arch
+            when 'amd64' then 'x86_64'
+            when 'aarch64' then (os == 'darwin') ? 'arm64' : 'aarch64'
+            else os_arch
+            end
+          else
+            Gem::Platform.local.cpu
+          end
 
           @native_platform = [cpu, os, version].compact.join('-')
         end

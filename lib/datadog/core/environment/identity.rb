@@ -67,12 +67,12 @@ module Datadog
 
           rest.split('.').tap do |segments|
             if segments.length >= 4
-              pre   = "-#{segments.shift}"
-              build = "+#{segments.join('.')}"
+              pre = "-#{segments.shift}"
+              build = "+#{segments.join(".")}"
             elsif segments.length == 1
               pre = "-#{segments.shift}"
             else
-              build = "+#{segments.join('.')}"
+              build = "+#{segments.join(".")}"
             end
           end
 

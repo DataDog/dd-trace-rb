@@ -78,7 +78,7 @@ module Datadog
           underflow = nil
           overflow = nil
 
-          overflow_size = @max_size > 0 ? (@items.length + items.length) - @max_size : 0
+          overflow_size = (@max_size > 0) ? (@items.length + items.length) - @max_size : 0
 
           if overflow_size > 0
             # Items will overflow

@@ -231,7 +231,7 @@ module Datadog
                   env.body = env.request.parcel.data
 
                   # Query for response
-                  http_response = super(env, &block)
+                  http_response = super
 
                   response_options = {}
 

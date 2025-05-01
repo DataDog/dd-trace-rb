@@ -142,14 +142,14 @@ module Datadog
 
         def reset
           @value = if definition.resetter
-                     # Don't change @is_set to false; custom resetters are
-                     # responsible for changing @value back to a good state.
-                     # Setting @is_set = false would cause a default to be applied.
-                     context_exec(@value, &definition.resetter)
-                   else
-                     @is_set = false
-                     nil
-                   end
+            # Don't change @is_set to false; custom resetters are
+            # responsible for changing @value back to a good state.
+            # Setting @is_set = false would cause a default to be applied.
+            context_exec(@value, &definition.resetter)
+          else
+            @is_set = false
+            nil
+          end
 
           # Reset back to the lowest precedence, to allow all `set`s to succeed right after a reset.
           @precedence_set = Precedence::DEFAULT
@@ -227,20 +227,20 @@ module Datadog
 
           unless valid_type
             raise_error = if @definition.type_options[:nilable]
-                            !value.is_a?(NilClass)
-                          else
-                            true
-                          end
+              !value.is_a?(NilClass)
+            else
+              true
+            end
           end
 
           if raise_error
             error_msg = if @definition.type_options[:nilable]
-                          "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a "\
-                          "#{@definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})."\
-                        else
-                          "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a "\
-                          "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})."\
-                        end
+              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "#{@definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})." \
+            else
+              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})." \
+            end
 
             error_msg = "#{error_msg} Please update your `configure` block. "
 

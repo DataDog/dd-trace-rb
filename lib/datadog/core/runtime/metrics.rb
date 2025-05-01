@@ -96,7 +96,7 @@ module Datadog
 
         def try_flush
           yield
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.warn("Error while sending runtime metric. Cause: #{e.class.name} #{e.message}")
         end
 
