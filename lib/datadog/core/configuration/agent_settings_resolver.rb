@@ -344,7 +344,7 @@ module Datadog
         end
 
         def log_warning(message)
-          logger.warn(message) if logger
+          logger&.warn(message)
         end
 
         def http_scheme?(uri)

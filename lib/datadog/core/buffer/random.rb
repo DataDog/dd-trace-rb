@@ -40,7 +40,7 @@ module Datadog
           add_all!(underflow) unless underflow.nil?
 
           # Iteratively replace items, to ensure pseudo-random replacement.
-          overflow.each { |item| replace!(item) } unless overflow.nil?
+          overflow&.each { |item| replace!(item) }
         end
 
         # Stored items are returned and the local buffer is reset.
