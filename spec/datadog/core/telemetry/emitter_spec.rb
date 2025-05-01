@@ -5,7 +5,7 @@ require 'datadog/core/telemetry/transport/http'
 require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Core::Telemetry::Emitter do
-  subject(:emitter) { described_class.new(http_transport: http_transport) }
+  subject(:emitter) { described_class.new(http_transport: http_transport, api_key: '1234') }
   let(:http_transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
   let(:response) { double(Datadog::Core::Transport::HTTP::Adapters::Net::Response) }
   let(:response_ok) { true }
@@ -98,7 +98,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
         request
 
-        expect(http_transport).to have_received(:send_telemetry).with(request_type: request_type, payload: '{"foo":"bar"}')
+        expect(http_transport).to have_received(:send_telemetry).with(request_type: request_type, payload: {"foo":"bar"}, api_key: '1234')
       end
     end
   end
@@ -108,8 +108,8 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
     context 'sequence is stored' do
       it do
-        emitter_first = described_class.new(http_transport: http_transport)
-        emitter_second = described_class.new(http_transport: http_transport)
+        emitter_first = described_class.new(http_transport: http_transport, api_key: '1234')
+        emitter_second = described_class.new(http_transport: http_transport, api_key: '1234')
         expect(emitter_first.class.sequence).to be(emitter_second.class.sequence)
       end
     end
