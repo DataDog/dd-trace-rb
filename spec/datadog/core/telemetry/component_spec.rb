@@ -25,7 +25,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   let(:shutdown_timeout_seconds) { 1 }
   let(:dependency_collection) { true }
   let(:worker) { double(Datadog::Core::Telemetry::Worker) }
-  let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
+  let(:http_transport) { double(Datadog::Core::Telemetry::Transport::Telemetry::Transport) }
   let(:not_found) { false }
 
   let(:logger) do
