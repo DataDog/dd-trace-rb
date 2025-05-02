@@ -399,7 +399,7 @@ jobs:
           ./run.sh ++docker ${{ matrix.scenario }} \
             ${{ env.FORCED_TESTS_LIST && fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario] && format('-F {0}', join(fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario], ' -F ')) || ''}}
         env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
           SYSTEM_TESTS_AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
           SYSTEM_TESTS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
           FORCED_TESTS_LIST: ${{ needs.build-apps.outputs.FORCED_TESTS_LIST }}
