@@ -30,6 +30,22 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Propagation do
     WebMock.disable_net_connect!(allow: agent_url)
   end
 
+  it 'contains default inject propagation styles in its propagation styles list' do
+    expect(propagation.instance_variable_get(:@propagation_styles).keys)
+      .to include(*Datadog.configuration.tracing.propagation_style_inject)
+    Datadog.configuration.tracing.propagation_style_inject.each do |style|
+      expect(propagation.instance_variable_get(:@propagation_styles)[style]).to_not be_nil
+    end
+  end
+
+  it 'contains default extract propagation styles in its propagation styles list' do
+    expect(propagation.instance_variable_get(:@propagation_styles).keys)
+      .to include(*Datadog.configuration.tracing.propagation_style_extract)
+    Datadog.configuration.tracing.propagation_style_extract.each do |style|
+      expect(propagation.instance_variable_get(:@propagation_styles)[style]).to_not be_nil
+    end
+  end
+
   it_behaves_like 'Distributed tracing propagator' do
     subject(:propagator) { propagation }
   end
