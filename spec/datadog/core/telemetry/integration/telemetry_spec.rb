@@ -8,6 +8,8 @@ require 'datadog/core/telemetry/component'
 # rubocop:disable RSpec/ScatteredLet
 
 RSpec.describe 'Telemetry integration tests' do
+  with_env DD_TRACE_AGENT_PORT: nil, DD_TRACE_AGENT_URL: nil
+
   let(:component) do
     Datadog::Core::Telemetry::Component.build(settings, agent_settings, logger)
   end
