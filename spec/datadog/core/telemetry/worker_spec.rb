@@ -284,6 +284,15 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
         end
 
+        let(:started_workers) { [] }
+
+        after do
+          started_workers.each do |w|
+            w.stop(true, 0)
+            w.join
+          end
+        end
+
         it 'sends single started event' do
           started_events = 0
           mutex = Mutex.new
@@ -311,18 +320,15 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               metrics_manager: metrics_manager,
               dependency_collection: dependency_collection,
               logger: logger,
-            )
+            ).tap do |worker|
+              started_workers << worker
+            end
           end
           workers.each(&:start)
 
           try_wait_until { heartbeat_events >= 3 }
 
           expect(started_events).to be(1)
-
-          workers.each do |w|
-            w.stop(true, 1)
-            w.join
-          end
         end
       end
     end
