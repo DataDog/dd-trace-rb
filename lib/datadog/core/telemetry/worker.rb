@@ -89,7 +89,7 @@ module Datadog
 
           started = Utils::Time.get_time
           loop do
-            return true if buffer.empty? && sent_started_event?
+            return true if buffer.empty?
             sleep 0.5
 
             return false if Utils::Time.get_time - started > 30
