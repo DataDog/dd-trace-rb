@@ -115,7 +115,6 @@ jobs:
     name: dd/junit
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
-    continue-on-error: true
     container:
       image: datadog/ci
       credentials:
@@ -165,6 +164,7 @@ jobs:
         run: echo "DD_GIT_COMMIT_SHA=$DD_GIT_COMMIT_SHA" >> "$GITHUB_ENV"
       - run: echo "$DD_GIT_COMMIT_SHA"
       - name: Upload junit reports
+        continue-on-error: true
         run: datadog-ci junit upload --verbose tmp/rspec/
 
   coverage:
