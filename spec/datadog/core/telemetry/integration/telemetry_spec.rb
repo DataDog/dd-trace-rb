@@ -8,7 +8,10 @@ require 'datadog/core/telemetry/component'
 # rubocop:disable RSpec/ScatteredLet
 
 RSpec.describe 'Telemetry integration tests' do
-  with_env DD_TRACE_AGENT_PORT: nil, DD_TRACE_AGENT_URL: nil
+  # Although the tests override the environment variables, if any,
+  # with programmatic configuration, that may produce warnings from the
+  # configuration code. Remove environment variables to suppress the warnings.
+  #with_env DD_TRACE_AGENT_PORT: nil, DD_TRACE_AGENT_URL: nil
 
   let(:component) do
     Datadog::Core::Telemetry::Component.build(settings, agent_settings, logger)
