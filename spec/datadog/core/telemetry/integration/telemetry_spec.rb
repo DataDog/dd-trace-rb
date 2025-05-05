@@ -11,7 +11,9 @@ RSpec.describe 'Telemetry integration tests' do
   # Although the tests override the environment variables, if any,
   # with programmatic configuration, that may produce warnings from the
   # configuration code. Remove environment variables to suppress the warnings.
-  with_env DD_TRACE_AGENT_PORT: nil, DD_TRACE_AGENT_URL: nil
+  # DD_AGENT_HOST is set in CI and *must* be overridden.
+  with_env DD_TRACE_AGENT_PORT: nil, DD_TRACE_AGENT_URL: nil,
+    DD_AGENT_HOST: nil
 
   let(:component) do
     Datadog::Core::Telemetry::Component.build(settings, agent_settings, logger)
