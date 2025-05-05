@@ -104,7 +104,7 @@ RSpec.describe 'Telemetry integration tests' do
       before do
         # To avoid noise from the startup events, turn those off.
         Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.run do
-          # nothing
+          true
         end
       end
 
