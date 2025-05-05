@@ -314,7 +314,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           expect(started_events).to be(1)
 
           workers.each do |w|
-            w.stop(true, 0)
+            w.stop(true, 1)
             w.join
           end
         end
