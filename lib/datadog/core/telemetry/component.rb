@@ -100,7 +100,7 @@ module Datadog
             enabled: @enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-            emitter: Emitter.new(http_transport: http_transport, api_key: api_key),
+            emitter: Emitter.new(http_transport: http_transport),
             metrics_manager: @metrics_manager,
             dependency_collection: dependency_collection,
             logger: logger,

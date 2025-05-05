@@ -35,7 +35,7 @@ module Datadog
               @client = HTTP::Client.new(@apis[default_api], logger: logger)
             end
 
-            def send_telemetry(request_type:, payload:, api_key:)
+            def send_telemetry(request_type:, payload:)
               json = JSON.dump(payload)
               parcel = EncodedParcel.new(json)
               request = Request.new(request_type, parcel, api_key)
