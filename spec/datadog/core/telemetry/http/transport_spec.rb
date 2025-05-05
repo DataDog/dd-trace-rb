@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/http/transport'
-require 'datadog/core/telemetry/http/adapters/net'
+require 'datadog/core/transport/http/adapters/net'
 
 RSpec.describe Datadog::Core::Telemetry::Http::Transport do
   subject(:transport) { described_class.build_agent_transport(agent_settings) }
@@ -57,8 +57,8 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
   describe '#request' do
     subject(:request) { transport.request(request_type: request_type, payload: payload) }
 
-    let(:adapter) { instance_double(Datadog::Core::Telemetry::Http::Adapters::Net, post: response) }
-    let(:env) { instance_double(Datadog::Core::Telemetry::Http::Env, body: payload, path: path) }
+    let(:adapter) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net, post: response) }
+    let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env, body: payload, path: path) }
     let(:headers) do
       {
         'Content-Type' => 'application/json',
@@ -75,23 +75,26 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
     let(:payload) { '{"foo":"bar"}' }
     let(:port) { 1234 }
     let(:request_type) { 'app-started' }
-    let(:response) { instance_double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
+    let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response) }
     let(:ssl) { false }
 
     before do
       Datadog.configuration.agent.host = hostname
       Datadog.configuration.agent.port = port
 
-      allow(Datadog::Core::Telemetry::Http::Env).to receive(:new).and_return(env)
+      allow(Datadog::Core::Transport::HTTP::Env).to receive(:new).and_return(env)
       allow(env).to receive(:path=).with(path)
       allow(env).to receive(:body=).with(payload)
       allow(env).to receive(:headers=).with(headers)
 
-      allow(Datadog::Core::Telemetry::Http::Adapters::Net).to receive(:new)
+      allow(Datadog::Core::Transport::HTTP::Adapters::Net).to receive(:new)
         .with(
-          hostname: hostname,
-          port: port,
-          ssl: ssl
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+            adapter: :net_http,
+            hostname: hostname,
+            port: port,
+            ssl: ssl
+          )
         ).and_return(adapter)
     end
 
