@@ -80,18 +80,19 @@ module Datadog
         end
 
         # Wait for the worker to send out all events that have already
-        # been queued.
-        #
-        # Note that if events are being constantly enqueued, this method
-        # may wait indefinitely.
+        # been queued, up to 30 seconds. Returns whether all events have
+        # been flushed.
         #
         # @api private
         def flush
-          return unless enabled? || !run_loop?
+          return true unless enabled? || !run_loop?
 
+          started = Utils::Time.get_time
           loop do
-            break if buffer.empty? && sent_started_event?
-            sleep 0.1
+            return true if buffer.empty? && sent_started_event?
+            sleep 0.5
+
+            return false if Utils::Time.get_time - started > 30
           end
         end
 

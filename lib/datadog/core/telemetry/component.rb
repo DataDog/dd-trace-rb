@@ -130,10 +130,8 @@ module Datadog
         end
 
         # Wait for the worker to send out all events that have already
-        # been queued.
-        #
-        # Note that if events are being constantly enqueued, this method
-        # may wait indefinitely.
+        # been queued, up to 30 seconds. Returns whether all events have
+        # been flushed.
         #
         # @api private
         def flush
