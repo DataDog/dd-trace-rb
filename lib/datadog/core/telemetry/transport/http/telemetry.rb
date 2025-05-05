@@ -62,7 +62,7 @@ module Datadog
                   super
                 end
 
-                def headers(request_type:, api_version: Http::Ext::API_VERSION, api_key:)
+                def headers(request_type:, api_version: 'v2', api_key:)
                   {
                     Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => '1',
                     # Provided by encoder
