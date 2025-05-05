@@ -158,7 +158,7 @@ RSpec.describe 'Telemetry integration tests' do
     end
   end
 
-  context 'agentful' do
+  context 'in agent mode' do
     http_server do |http_server|
       http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
     end
@@ -175,7 +175,7 @@ RSpec.describe 'Telemetry integration tests' do
     include_examples 'telemetry integration tests'
   end
 
-  context 'agentless' do
+  context 'in agentless mode' do
     http_server do |http_server|
       http_server.mount_proc('/api/v2/apmtelemetry', &handler_proc)
     end
