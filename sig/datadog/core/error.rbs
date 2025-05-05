@@ -1,25 +1,26 @@
 module Datadog
   module Core
     class Error
-      attr_reader type: untyped
+      attr_reader type: String
 
-      attr_reader message: untyped
+      attr_reader message: String
 
-      attr_reader backtrace: untyped
+      attr_reader backtrace: String
 
-      def self.build_from: (untyped value) -> untyped
+      interface _ContainsMessage
+        def message: () -> String
+        def class: () -> Class
+      end
+
+      def self.build_from: ((Error | [Object] | [Object, Object] | [Object, Object, Object] | ::Exception | _ContainsMessage | ::String) value) -> Error
 
       private
-      def self.full_backtrace: (untyped ex) -> untyped
-      def self.backtrace_for: (untyped ex, untyped backtrace) -> (nil | untyped)
+      def self.full_backtrace: (Exception ex) -> String
+      def self.backtrace_for: (Exception ex, String backtrace) -> void
 
       public
 
-      def initialize: (?untyped? `type`, ?untyped? message, ?untyped? backtrace) -> void
-
-      BlankError: untyped
-
-      ContainsMessage: untyped
+      def initialize: (?Object? `type`, ?Object? message, ?Object? backtrace) -> void
     end
   end
 end
