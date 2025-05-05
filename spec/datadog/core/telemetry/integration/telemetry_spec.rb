@@ -30,7 +30,7 @@ RSpec.describe 'Telemetry integration tests' do
 
   let(:sent_payloads) { [] }
 
-  shared_examples 'telemetry' do
+  shared_examples 'telemetry integration tests' do
     it 'initializes correctly' do
       expect(component.enabled).to be true
     end
@@ -51,12 +51,12 @@ RSpec.describe 'Telemetry integration tests' do
       )
     end
 
-    context 'first run' do
+    describe 'startup events' do
       before do
         Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
       end
 
-      it 'sends startup payloads' do
+      it 'sends expected startup events' do
         expect(settings.telemetry.dependency_collection).to be true
 
         # Instantiate the component
@@ -105,7 +105,7 @@ RSpec.describe 'Telemetry integration tests' do
       end
     end
 
-    context 'not first run' do
+    describe 'error event' do
       before do
         # To avoid noise from the startup events, turn those off.
         Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.run do
@@ -172,7 +172,7 @@ RSpec.describe 'Telemetry integration tests' do
 
     let(:expected_headers) { expected_base_headers }
 
-    include_examples 'telemetry'
+    include_examples 'telemetry integration tests'
   end
 
   context 'agentless' do
@@ -192,7 +192,7 @@ RSpec.describe 'Telemetry integration tests' do
 
     let(:expected_headers) { expected_agentless_headers }
 
-    include_examples 'telemetry'
+    include_examples 'telemetry integration tests'
   end
 end
 
