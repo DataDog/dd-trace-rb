@@ -77,7 +77,7 @@ module Datadog
         trace_state: nil,
         trace_state_unknown_fields: nil,
         remote_parent: false,
-        tracer: nil,
+        tracer: nil, # DEV-3.0: deprecated, remove in 3.0
         baggage: nil
 
       )
@@ -103,7 +103,6 @@ module Datadog
         @apm_tracing_enabled = apm_tracing_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
-        @tracer = tracer
         @baggage = baggage
 
         # Generic tags
