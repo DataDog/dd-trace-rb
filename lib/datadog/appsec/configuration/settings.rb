@@ -259,11 +259,13 @@ module Datadog
                       APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES.include?(env_value.strip.downcase)
                     end
                   end
-                  o.after_set do
-                    Core.log_deprecation(key: :appsec_track_user_events_enabled) do
-                      'The appsec.track_user_events.enabled setting has been deprecated for removal. ' \
-                      'Please remove it from your Datadog.configure block and use ' \
-                      'appsec.auto_user_instrumentation.mode instead.'
+                  o.after_set do |_, _, precedence|
+                    unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                      Core.log_deprecation(key: :appsec_track_user_events_enabled) do
+                        'The appsec.track_user_events.enabled setting has been deprecated for removal. ' \
+                        'Please remove it from your Datadog.configure block and use ' \
+                        'appsec.auto_user_instrumentation.mode instead.'
+                      end
                     end
                   end
                 end
@@ -287,11 +289,13 @@ module Datadog
                       SAFE_TRACK_USER_EVENTS_MODE
                     end
                   end
-                  o.after_set do
-                    Core.log_deprecation(key: :appsec_track_user_events_mode) do
-                      'The appsec.track_user_events.mode setting has been deprecated for removal. ' \
-                      'Please remove it from your Datadog.configure block and use ' \
-                      'appsec.auto_user_instrumentation.mode instead.'
+                  o.after_set do |_, _, precedence|
+                    unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                      Core.log_deprecation(key: :appsec_track_user_events_mode) do
+                        'The appsec.track_user_events.mode setting has been deprecated for removal. ' \
+                        'Please remove it from your Datadog.configure block and use ' \
+                        'appsec.auto_user_instrumentation.mode instead.'
+                      end
                     end
                   end
                 end
