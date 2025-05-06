@@ -381,7 +381,7 @@ module Datadog
         end
 
         events.span_finished.subscribe do |event_span, event_trace_op|
-          sample_trace(trace_op)
+          sample_trace(trace_op) if trace_op.sampling_priority.nil?
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
         end
