@@ -120,11 +120,21 @@ module Datadog
         end
 
         def get
-          if @is_set
-            @value
-          else
-            set_value_from_env_or_default
+          unless @is_set
+            # Previously, `set_value_from_env_or_default` was only setting env or default value, not both.
+            # Which is problematic if we want to `unset` an env value, as it would not fallback on the default value.
+            #
+            # It also had inconsistent behavior. If an option didn't have an env,
+            # it would call `set` with DEFAULT precedence and value, and set `@is_set` to true.
+            # But if an option did have an env, it would set it with ENVIRONMENT precedence,
+            # then by calling `unset` on the ENVIRONMENT value, it would `reset` the option,
+            # set DEFAULT precedence and value, and change `@is_set` to false. because @is_set is false,
+            # calling `get` would again call `set_value_from_env_or_default` and set the option back to the env value.
+            set_default_value
+            set_env_value
           end
+
+          @value
         end
 
         def reset
@@ -258,7 +268,8 @@ module Datadog
           when NilClass
             true # No validation is performed when option is typeless
           else
-            raise ArgumentError, "The option #{@definition.name} is using an unsupported type option `#{@definition.type}`"
+            raise InvalidDefinitionError,
+              "The option #{@definition.name} is using an unsupported type option `#{@definition.type}`"
           end
         end
 
@@ -271,7 +282,7 @@ module Datadog
             @resolved_env = resolved_env
             # Store original value to ensure we can always safely call `#internal_set`
             # when restoring a value from `@value_per_precedence`, and we are only running `definition.setter`
-            # on the original value, not on a valud that has already been processed by `definition.setter`.
+            # on the original value, not on a value that has already been processed by `definition.setter`.
             @value_per_precedence[precedence] = value
             context_exec(v, old_value, precedence, &definition.after_set) if definition.after_set
           end
@@ -285,9 +296,12 @@ module Datadog
           @context.instance_eval(&block)
         end
 
-        def set_value_from_env_or_default
+        def set_default_value
+          set(default_value, precedence: Precedence::DEFAULT)
+        end
+
+        def set_env_value
           value = nil
-          precedence = nil
           resolved_env = nil
 
           if definition.env
@@ -296,7 +310,6 @@ module Datadog
 
               resolved_env = env
               value = coerce_env_variable(ENV[env])
-              precedence = Precedence::ENVIRONMENT
               break
             end
           end
@@ -304,16 +317,13 @@ module Datadog
           if value.nil? && definition.deprecated_env && ENV[definition.deprecated_env]
             resolved_env = definition.deprecated_env
             value = coerce_env_variable(ENV[definition.deprecated_env])
-            precedence = Precedence::ENVIRONMENT
 
             Datadog::Core.log_deprecation do
               "#{definition.deprecated_env} environment variable is deprecated, use #{definition.env} instead."
             end
           end
 
-          option_value = value.nil? ? default_value : value
-
-          set(option_value, precedence: precedence || Precedence::DEFAULT, resolved_env: resolved_env)
+          set(value, precedence: Precedence::ENVIRONMENT, resolved_env: resolved_env) if value
         rescue ArgumentError
           raise ArgumentError,
             "Expected environment variable #{resolved_env} to be a #{@definition.type}, " \
