@@ -27,7 +27,11 @@ module Datadog
 
         def sync
           # TODO: Skip sync if no capabilities are registered
-          response = transport.send_config(payload)
+          config_payload = payload
+
+          Datadog.logger.debug { "#{config_payload}" }
+
+          response = transport.send_config(config_payload)
 
           if response.ok?
             process_response(response)
