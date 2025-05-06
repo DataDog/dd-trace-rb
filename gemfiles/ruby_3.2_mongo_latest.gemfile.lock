@@ -13,6 +13,7 @@ GEM
   specs:
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
+    base64 (0.2.0)
     benchmark-ips (2.14.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -75,7 +76,8 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    mongo (2.21.0)
+    mongo (2.21.1)
+      base64
       bson (>= 4.14.1, < 6.0.0)
     msgpack (1.8.0)
     os (1.1.4)
