@@ -323,7 +323,7 @@ module Datadog
             end
           end
 
-          set(value, precedence: Precedence::ENVIRONMENT, resolved_env: resolved_env) if value
+          set(value, precedence: Precedence::ENVIRONMENT, resolved_env: resolved_env) unless value.nil?
         rescue ArgumentError
           raise ArgumentError,
             "Expected environment variable #{resolved_env} to be a #{@definition.type}, " \
