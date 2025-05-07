@@ -868,6 +868,12 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
         end
 
+        it 'falls back to default when unsetting env' do
+          option.get
+          option.unset(described_class::Precedence::ENVIRONMENT)
+          expect(option.get).to eq default
+        end
+
         it_behaves_like 'env coercion'
         it_behaves_like 'with env_parser'
       end
