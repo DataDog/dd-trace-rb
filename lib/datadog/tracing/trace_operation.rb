@@ -221,8 +221,8 @@ module Datadog
         # Don't allow more span measurements if the
         # trace is already completed. Prevents multiple
         # root spans with parent_span_id = 0.
-        return yield(
-          SpanOperation.new(op_name logger: logger),
+        return yield( # rubocop:disable Style/MultilineIfModifier
+          SpanOperation.new(op_name logger: logger), # rubocop:disable Style/NestedParenthesizedCalls
           TraceOperation.new(logger: logger)) if finished? || full?
 
         # Create new span
