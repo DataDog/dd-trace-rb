@@ -27,12 +27,12 @@ module Datadog
         class << self
           include Datadog::Tracing::Component
 
-          def build_health_metrics(settings, logger)
+          def build_health_metrics(settings, logger, telemetry)
             settings = settings.health_metrics
             options = { enabled: settings.enabled }
             options[:statsd] = settings.statsd unless settings.statsd.nil?
 
-            Core::Diagnostics::Health::Metrics.new(logger: logger, **options)
+            Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
           end
 
           def build_logger(settings)
@@ -120,7 +120,7 @@ module Datadog
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger)
-          @health_metrics = self.class.build_health_metrics(settings, @logger)
+          @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
