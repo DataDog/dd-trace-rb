@@ -222,7 +222,7 @@ module Datadog
         # trace is already completed. Prevents multiple
         # root spans with parent_span_id = 0.
         return yield( # rubocop:disable Style/MultilineIfModifier
-          SpanOperation.new(op_name logger: logger), # rubocop:disable Style/NestedParenthesizedCalls
+          SpanOperation.new(op_name, logger: logger), # rubocop:disable Style/NestedParenthesizedCalls
           TraceOperation.new(logger: logger)) if finished? || full?
 
         # Create new span
