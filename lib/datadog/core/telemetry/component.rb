@@ -37,24 +37,25 @@ module Datadog
           end
 
           transport = if enabled
-            if agentless_enabled
-              agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
-                settings,
-                host_prefix: 'instrumentation-telemetry-intake',
-                url_override: settings.telemetry.agentless_url_override,
-                url_override_source: 'c.telemetry.agentless_url_override',
-                logger: logger,
-              )
-              Telemetry::Transport::HTTP.agentless_telemetry(
-                agent_settings: agent_settings, logger: logger,
-                          api_key: settings.api_key,
-              )
-                      else
-              Telemetry::Transport::HTTP.agent_telemetry(
-                agent_settings: agent_settings, logger: logger,
-              )
+                        if agentless_enabled
+                          agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
+                            settings,
+                            host_prefix: 'instrumentation-telemetry-intake',
+                            url_override: settings.telemetry.agentless_url_override,
+                            url_override_source: 'c.telemetry.agentless_url_override',
+                            logger: logger,
+                          )
+                          Telemetry::Transport::HTTP.agentless_telemetry(
+                            agent_settings: agent_settings,
+                            logger: logger,
+                            api_key: settings.api_key,
+                          )
+                        else
+                          Telemetry::Transport::HTTP.agent_telemetry(
+                            agent_settings: agent_settings, logger: logger,
+                          )
+                        end
                       end
-            end
 
           Telemetry::Component.new(
             transport: transport,
