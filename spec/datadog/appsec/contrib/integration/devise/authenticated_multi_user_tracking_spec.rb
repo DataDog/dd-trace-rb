@@ -9,7 +9,7 @@ require 'active_record'
 require 'sqlite3'
 require 'devise'
 
-RSpec.describe 'Devise auto login and signup events tracking' do
+RSpec.describe 'Devise auto authenticated multi-user tracking' do
   include Rack::Test::Methods
   include Warden::Test::Helpers
 
