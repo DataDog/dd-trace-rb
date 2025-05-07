@@ -281,11 +281,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
       context 'several workers running' do
 
-        before do
-          # This test expects the AppStarted event
-          Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
-        end
-
         let(:started_workers) { [] }
 
         after do
