@@ -12,7 +12,8 @@ RSpec.describe 'Telemetry integration tests' do
   # with programmatic configuration, that may produce warnings from the
   # configuration code. Remove environment variables to suppress the warnings.
   # DD_AGENT_HOST is set in CI and *must* be overridden.
-  with_env DD_TRACE_AGENT_PORT: nil, DD_TRACE_AGENT_URL: nil,
+  with_env DD_TRACE_AGENT_PORT: nil,
+    DD_TRACE_AGENT_URL: nil,
     DD_AGENT_HOST: nil
 
   let(:component) do

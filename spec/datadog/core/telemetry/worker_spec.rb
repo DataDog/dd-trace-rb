@@ -280,7 +280,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       end
 
       context 'several workers running' do
-
         let(:started_workers) { [] }
 
         after do

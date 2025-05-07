@@ -105,6 +105,7 @@ module Datadog
             # sending is 10 seconds, the timeout needs to be strictly
             # greater than that.
             return true if buffer.empty? && !in_iteration? && TELEMETRY_STARTED_ONCE.success?
+
             sleep 0.5
 
             return false if Utils::Time.get_time - started > 15
