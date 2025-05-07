@@ -56,8 +56,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   after do
     worker.stop(true)
     worker.join
-
-    Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
   end
 
   describe '.new' do
@@ -73,6 +71,10 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   describe '#start' do
+    before do
+      Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
+    end
+
     context 'when enabled' do
       context "when backend doesn't support telemetry" do
         let(:backend_supports_telemetry?) { false }
