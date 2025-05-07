@@ -83,22 +83,26 @@ static VALUE _native_configurator_get(VALUE self) {
   *config_vec = configurator_result.ok;
   VALUE config_vec_rb = TypedData_Wrap_Struct(config_vec_class, &config_vec_typed_data, config_vec);
 
-  VALUE config_array = rb_ary_new();
+  VALUE local_config_hash = rb_hash_new();
+  VALUE fleet_config_hash = rb_hash_new();
   for (uintptr_t i = 0; i < config_vec->len; i++) {
     ddog_LibraryConfig config = config_vec->ptr[i];
-    VALUE config_hash = rb_hash_new();
+    VALUE selected_hash;
+    if (config.source == DDOG_LIBRARY_CONFIG_SOURCE_LOCAL_STABLE_CONFIG) {
+      selected_hash = local_config_hash;
+    }
+    else {
+      selected_hash = fleet_config_hash;
+    }
 
     ddog_CStr name = ddog_library_config_name_to_env(config.name);
-    rb_hash_aset(config_hash, ID2SYM(rb_intern("name")), rb_str_new(name.ptr, name.length));
-
-    // config.value is already a CStr
-    rb_hash_aset(config_hash, ID2SYM(rb_intern("value")), rb_str_new(config.value.ptr, config.value.length));
-
-    ddog_CStr source = ddog_library_config_source_to_string(config.source);
-    rb_hash_aset(config_hash, ID2SYM(rb_intern("source")), rb_to_symbol(rb_str_new(source.ptr, source.length)));
-
-    rb_ary_push(config_array, config_hash);
+    rb_hash_aset(selected_hash, rb_str_new(name.ptr, name.length), rb_str_new(config.value.ptr, config.value.length));
   }
+
+  VALUE result = rb_hash_new();
+  rb_hash_aset(result, ID2SYM(rb_intern("local")), local_config_hash);
+  rb_hash_aset(result, ID2SYM(rb_intern("fleet")), fleet_config_hash);
+
   RB_GC_GUARD(config_vec_rb);
-  return config_array;
+  return result;
 }
