@@ -115,13 +115,42 @@ RSpec.describe Datadog::Tracing::SpanEvent do
           'bool' => { type: 1, bool_value: true },
           'int' => { type: 2, int_value: 1 },
           'float' => { type: 3, double_value: 1.0 },
-          'string_arr' => { type: 4,
-                            array_value: [{ type: 0, string_value: 'ab' }, { type: 0, string_value: 'cd' }] },
-          'bool_arr' => { type: 4,
-                          array_value: [{ type: 1, bool_value: true }, { type: 1, bool_value: false }] },
-          'int_arr' => { type: 4, array_value: [{ type: 2, int_value: 1 }, { type: 2, int_value: 2 }] },
-          'float_arr' => { type: 4,
-                           array_value: [{ type: 3, double_value: 1.0 }, { type: 3, double_value: 2.0 }] }
+          'string_arr' => {
+            type: 4,
+            array_value: {
+              values: [
+                { type: 0, string_value: 'ab' },
+                { type: 0, string_value: 'cd' }
+              ]
+            }
+          },
+          'bool_arr' => {
+            type: 4,
+            array_value: {
+              values: [
+                { type: 1, bool_value: true },
+                { type: 1, bool_value: false }
+              ]
+            }
+          },
+          'int_arr' => {
+            type: 4,
+            array_value: {
+              values: [
+                { type: 2, int_value: 1 },
+                { type: 2, int_value: 2 }
+              ]
+            }
+          },
+          'float_arr' => {
+            type: 4,
+            array_value: {
+              values: [
+                { type: 3, double_value: 1.0 },
+                { type: 3, double_value: 2.0 }
+              ]
+            }
+          }
         )
       end
     end
