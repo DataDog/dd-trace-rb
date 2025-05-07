@@ -22,7 +22,7 @@ module Datadog
         include Core::Utils::Forking
         include Telemetry::Logging
 
-        def self.build(settings, agent_settings, logger)
+        def self.build(settings, agent_settings, logger) # rubocop:disable Metrics/MethodLength
           enabled = settings.telemetry.enabled
           agentless_enabled = settings.telemetry.agentless_enabled
 
