@@ -98,7 +98,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
         request
 
-        expect(http_transport).to have_received(:send_telemetry).with(request_type: request_type, payload: {"foo":"bar"})
+        expect(http_transport).to have_received(:send_telemetry).with(request_type: request_type, payload: { foo: 'bar' })
       end
     end
   end
