@@ -101,7 +101,7 @@ module Datadog
             # Note that if the AppStarted sending fails, this check
             # will return false and flushing will be blocked until the
             # 10 second timeout.
-            return true if buffer.empty? && TELEMETRY_STARTED_ONCE.success?
+            return true if buffer.empty? && !in_iteration? && TELEMETRY_STARTED_ONCE.success?
             sleep 0.5
 
             return false if Utils::Time.get_time - started > 10
