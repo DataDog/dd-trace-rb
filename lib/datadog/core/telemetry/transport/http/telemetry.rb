@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
+require_relative '../../../transport/http/api/endpoint'
 require_relative '../../../transport/http/api/instance'
 require_relative '../../../transport/http/api/spec'
+require_relative '../../../transport/request'
 require_relative 'client'
 
 module Datadog
