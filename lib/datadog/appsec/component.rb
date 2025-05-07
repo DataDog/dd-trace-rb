@@ -61,9 +61,16 @@ module Datadog
 
           exclusions = AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: settings.appsec.ip_passlist)
 
+          # NOTE: This is a temporary solution before the RuleMerger refactoring
+          #       with new RemoteConfig setup
+          processors = rules['processors']
+          scanners = rules['scanners']
+
           ruleset = AppSec::Processor::RuleMerger.merge(
             rules: [rules],
             data: data,
+            scanners: scanners,
+            processors: processors,
             exclusions: exclusions,
             telemetry: telemetry
           )

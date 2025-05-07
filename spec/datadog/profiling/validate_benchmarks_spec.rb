@@ -10,14 +10,14 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
   end
 
   benchmarks_to_validate = [
-    "profiler_allocation",
-    "profiler_gc",
-    "profiler_hold_resume_interruptions",
-    "profiler_http_transport",
-    "profiler_memory_sample_serialize",
-    "profiler_sample_loop_v2",
-    "profiler_sample_serialize",
-    "profiler_sample_gvl",
+    "profiling_allocation",
+    "profiling_gc",
+    "profiling_hold_resume_interruptions",
+    "profiling_http_transport",
+    "profiling_memory_sample_serialize",
+    "profiling_sample_loop_v2",
+    "profiling_sample_serialize",
+    "profiling_sample_gvl",
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|
@@ -28,7 +28,7 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
 
   # This test validates that we don't forget to add new benchmarks to benchmarks_to_validate
   it "tests all expected benchmarks in the benchmarks folder" do
-    all_benchmarks = Dir["./benchmarks/profiler_*"].map { |it| it.gsub("./benchmarks/", "").gsub(".rb", "") }
+    all_benchmarks = Dir["./benchmarks/profiling_*"].map { |it| it.gsub("./benchmarks/", "").gsub(".rb", "") }
 
     expect(benchmarks_to_validate).to contain_exactly(*all_benchmarks)
   end

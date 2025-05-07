@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@ca041f971d66735f3e5ff1e21cc13e2d51e7e535 # v1.233.0
+      - uses: ruby/setup-ruby@eaecf785f6a34567a6d97f686bbb7bccc1ac1e5c # v1.237.0
         with:
           ruby-version: '3.3.7'
 
@@ -105,46 +105,26 @@ jobs:
             console.log(`Found open milestone ${process.env.GEM_VERSION} (ID: ${versionMilestone.number})`);
 
       # Check if the commit has passed all Github checks
-      # API: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-for-a-git-reference
       - name: Verify check runs
         continue-on-error: ${{ inputs.force }}
+        env:
+          APP_ID: 15368 # Github Actions app ID
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
+          retries: 3
           script: |
-            const checkRuns = await github.paginate(github.rest.checks.listForRef, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              per_page: 100
-            });
-
-            const failedChecks = checkRuns.filter(check =>
-              check.status === 'completed' &&
-              check.conclusion !== 'success' &&
-              check.conclusion !== 'skipped'
-            );
-
-            if (failedChecks.length > 0) {
-              const failedNames = failedChecks.map(c => c.name).join(', ');
-              core.setFailed(`Check runs failed: ${failedNames}`);
-            }
+            const script = require('./.github/scripts/publish/verify_check_runs.js')
+            await script({github, context, core})
 
       # Check if the commit has passed external CI checks
-      # API: https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
       - name: Verify commit status
         continue-on-error: ${{ inputs.force }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
+          retries: 3
           script: |
-            const { data: status } = await github.rest.repos.getCombinedStatusForRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha
-            });
-
-            if (status.state !== 'success') {
-              core.setFailed(`Commit status is ${status.state}`);
-            }
+            const script = require('./.github/scripts/publish/verify_commit_status.js')
+            await script({github, context, core})
 
       # Check if the commit has all the checks passed
       - name: Verify deferred commit data
@@ -185,7 +165,7 @@ jobs:
         with:
           persist-credentials: false # `rubygems/release-gem` action handles credentials itself
       - name: Set up Ruby
-        uses: ruby/setup-ruby@ca041f971d66735f3e5ff1e21cc13e2d51e7e535 # v1.233.0
+        uses: ruby/setup-ruby@eaecf785f6a34567a6d97f686bbb7bccc1ac1e5c # v1.237.0
         with:
           ruby-version: '3.3.7'
       - run: bundle install
@@ -229,7 +209,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@ca041f971d66735f3e5ff1e21cc13e2d51e7e535 # v1.233.0
+        uses: ruby/setup-ruby@eaecf785f6a34567a6d97f686bbb7bccc1ac1e5c # v1.237.0
         with:
           ruby-version: '3.3.7'
       - run: bundle install

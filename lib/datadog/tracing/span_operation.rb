@@ -93,8 +93,14 @@ module Datadog
         @events = events || Events.new
         @span = nil
 
-        # Subscribe :on_error event
-        @events.on_error.wrap_default(&on_error) if on_error.is_a?(Proc)
+        if on_error.nil?
+          # Nothing, default error handler is already set up.
+        elsif on_error.is_a?(Proc)
+          # Subscribe :on_error event
+          @events.on_error.wrap_default(&on_error)
+        else
+          Datadog.logger.warn("on_error argument to SpanOperation ignored because is not a Proc: #{on_error}")
+        end
 
         # Start the span with start time, if given.
         start(start_time) if start_time

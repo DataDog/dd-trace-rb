@@ -330,6 +330,7 @@ RSpec.describe 'Rails integration tests' do
 
         context 'with an event-triggering request in application/x-www-form-url-encoded body' do
           let(:params) { { q: '1 OR 1;' } }
+          let(:headers) { { 'HTTP_X_Forwarded' => '2001:db8:85a3:8d3:1319:8a2e:370:7348' } }
 
           it { is_expected.to be_ok }
 
@@ -343,6 +344,10 @@ RSpec.describe 'Rails integration tests' do
             let(:appsec_ruleset) { crs_942_100 }
 
             it { is_expected.to be_forbidden }
+
+            it 'sets HTTP request headers as span tags' do
+              expect(span.meta).to include('http.request.headers.x-forwarded' => '2001:db8:85a3:8d3:1319:8a2e:370:7348')
+            end
 
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 403 span'
