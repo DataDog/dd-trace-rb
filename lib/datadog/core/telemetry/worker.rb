@@ -80,7 +80,7 @@ module Datadog
         end
 
         # Wait for the worker to send out all events that have already
-        # been queued, up to 30 seconds. Returns whether all events have
+        # been queued, up to 10 seconds. Returns whether all events have
         # been flushed.
         #
         # @api private
@@ -100,11 +100,11 @@ module Datadog
             # either way with or without the event being sent out.
             # Note that if the AppStarted sending fails, this check
             # will return false and flushing will be blocked until the
-            # 30 second timeout.
+            # 10 second timeout.
             return true if buffer.empty? && TELEMETRY_STARTED_ONCE.success?
             sleep 0.5
 
-            return false if Utils::Time.get_time - started > 30
+            return false if Utils::Time.get_time - started > 10
           end
         end
 
