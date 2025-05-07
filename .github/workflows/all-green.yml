@@ -22,5 +22,5 @@ jobs:
       - name: Run Ensure CI Success
         uses: DataDog/ensure-ci-success@f40e6ffd8e60280d478b9b92209aaa30d3d56895
         with:
-          initial-delay-seconds: "600"
+          initial-delay-seconds: "900"
           max-retries: "60"
