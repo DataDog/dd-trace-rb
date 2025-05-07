@@ -6,6 +6,7 @@ require_relative '../core/environment/identity'
 require_relative '../core/utils'
 require_relative '../core/utils/time'
 require_relative '../core/utils/safe_dup'
+require_relative '../core/error_tracking/collector'
 
 require_relative 'event'
 require_relative 'metadata'
@@ -37,7 +38,7 @@ module Datadog
         :start_time,
         :trace_id,
         :type
-      attr_accessor :links, :status, :span_events
+      attr_accessor :links, :status, :span_events, :collector
 
       def initialize(
         name,
@@ -73,6 +74,8 @@ module Datadog
         @links = links || []
         # stores array of span events
         @span_events = span_events || []
+
+        @collector = Datadog::Core::ErrorTracking::Collector.new
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -167,7 +170,7 @@ module Datadog
           # Stop the span first, so timing is a more accurate.
           # If the span failed to start, timing may be inaccurate,
           # but this is not really a serious concern.
-          stop
+          stop(nil, e)
 
           # Trigger the on_error event
           events.on_error.publish(self, e)
@@ -208,7 +211,7 @@ module Datadog
       #
       # steep:ignore:start
       # Steep issue fixed in https://github.com/soutaro/steep/pull/1467
-      def stop(stop_time = nil)
+      def stop(stop_time = nil, error = nil)
         # A span should not be stopped twice. Note that this is not thread-safe,
         # stop is called from multiple threads, a given span might be stopped
         # several times. Again, one should not do this, so this test is more a
@@ -226,7 +229,7 @@ module Datadog
         @duration_end = stop_time.nil? ? duration_marker : nil
 
         # Trigger after_stop event
-        events.after_stop.publish(self)
+        events.after_stop.publish(self, error)
 
         self
       end

@@ -41,6 +41,7 @@ require 'support/test_helpers'
 require 'support/tracer_helpers'
 require 'support/libdatadog_helpers'
 require 'support/http_server_helpers'
+require 'support/errortracking_helpers'
 
 begin
   # Ignore interpreter warnings from external libraries
