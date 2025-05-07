@@ -56,6 +56,12 @@ module Datadog
         def set_default_value: () -> void
 
         def set_env_value: () -> void
+
+        def set_customer_stable_config_value: () -> void
+
+        def set_fleet_stable_config_value: () -> void
+
+        def get_value_and_resolved_env_from: (Hash[String, String] env_vars, ?source: String) -> [Hash[String, String] | Array[String] | String | Integer | Float | bool, String | nil]
       end
     end
   end
