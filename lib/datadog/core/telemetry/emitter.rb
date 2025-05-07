@@ -10,21 +10,21 @@ module Datadog
     module Telemetry
       # Class that emits telemetry events
       class Emitter
-        attr_reader :http_transport
+        attr_reader :transport
 
         extend Core::Utils::Forking
 
-        # @param http_transport [Datadog::Core::Telemetry::Http::Transport] Transport object that can be used to send
-        #   telemetry requests via the agent
-        def initialize(http_transport:)
-          @http_transport = http_transport
+        # @param transport [Datadog::Core::Telemetry::Transport::Telemetry::Transport]
+        #   Transport object that can be used to send telemetry requests
+        def initialize(transport:)
+          @transport = transport
         end
 
         # Retrieves and emits a TelemetryRequest object based on the request type specified
         def request(event)
           seq_id = self.class.sequence.next
           payload = Request.build_payload(event, seq_id)
-          res = @http_transport.send_telemetry(request_type: event.type, payload: payload)
+          res = @transport.send_telemetry(request_type: event.type, payload: payload)
           Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (response: #{res})" }
           res
         rescue => e

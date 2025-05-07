@@ -57,7 +57,7 @@ module Datadog
             end
 
           Telemetry::Component.new(
-            http_transport: transport,
+            transport: transport,
             enabled: enabled,
             metrics_enabled: enabled && settings.telemetry.metrics_enabled,
             heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
@@ -80,7 +80,7 @@ module Datadog
           metrics_aggregation_interval_seconds:,
           dependency_collection:,
           logger:,
-          http_transport:,
+          transport:,
           shutdown_timeout_seconds:,
           enabled: true,
           metrics_enabled: true,
@@ -100,7 +100,7 @@ module Datadog
             enabled: @enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-            emitter: Emitter.new(http_transport: http_transport),
+            emitter: Emitter.new(transport: transport),
             metrics_manager: @metrics_manager,
             dependency_collection: dependency_collection,
             logger: logger,
