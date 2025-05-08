@@ -189,7 +189,7 @@ module Datadog
 
       protected
 
-      def components(allow_initialization: true)
+      def components(allow_initialization: false)
         current_components = COMPONENTS_READ_LOCK.synchronize { defined?(@components) && @components }
         return current_components if current_components || !allow_initialization
 
