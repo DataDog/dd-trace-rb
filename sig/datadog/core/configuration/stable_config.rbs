@@ -1,0 +1,20 @@
+module Datadog
+  module Core
+    module Configuration
+      module StableConfig
+
+        type stable_config = Hash[Symbol, Hash[String, String]]
+
+        class Configurator
+          def initialize: -> void
+          def get: -> stable_config
+        end
+
+        @configuration: stable_config
+
+        def self.extract_configuration: -> stable_config
+        def self.configuration: -> stable_config
+      end
+    end
+  end
+end

@@ -29,10 +29,7 @@ VALUE datadog_gem_version(void) {
 }
 
 static VALUE log_failure_to_process_tag(VALUE err_details) {
-  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  VALUE logger = rb_funcall(datadog_module, rb_intern("logger"), 0);
-
-  return rb_funcall(logger, rb_intern("warn"), 1, rb_sprintf("Failed to convert tag: %"PRIsVALUE, err_details));
+  return log_warning(rb_sprintf("Failed to convert tag: %"PRIsVALUE, err_details));
 }
 
 __attribute__((warn_unused_result))
