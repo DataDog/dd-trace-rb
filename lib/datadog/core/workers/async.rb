@@ -49,7 +49,7 @@ module Datadog
             worker.terminate
             # Wait for the worker thread to end
             begin
-              Timeout.timeout(0.5) do
+              Timeout.timeout(SHUTDOWN_TIMEOUT) do
                 worker.join
               end
             rescue Timeout::Error
