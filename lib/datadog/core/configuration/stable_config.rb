@@ -13,7 +13,7 @@ module Datadog
             return {}
           end
           native_configurator = Configurator.new
-          native_configurator.get
+          native_configurator.get || {}
         end
 
         def configuration
