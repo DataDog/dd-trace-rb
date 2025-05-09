@@ -56,8 +56,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   after do
     worker.stop(true)
     worker.join
-
-    Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
   end
 
   describe '.new' do
@@ -73,6 +71,10 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   describe '#start' do
+    before do
+      Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
+    end
+
     context 'when enabled' do
       context "when backend doesn't support telemetry" do
         let(:backend_supports_telemetry?) { false }
@@ -278,6 +280,15 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       end
 
       context 'several workers running' do
+        let(:started_workers) { [] }
+
+        after do
+          started_workers.each do |w|
+            w.stop(true, 0)
+            w.join
+          end
+        end
+
         it 'sends single started event' do
           started_events = 0
           mutex = Mutex.new
@@ -305,18 +316,15 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               metrics_manager: metrics_manager,
               dependency_collection: dependency_collection,
               logger: logger,
-            )
+            ).tap do |worker|
+              started_workers << worker
+            end
           end
           workers.each(&:start)
 
           try_wait_until { heartbeat_events >= 3 }
 
           expect(started_events).to be(1)
-
-          workers.each do |w|
-            w.stop(true, 0)
-            w.join
-          end
         end
       end
     end
@@ -335,6 +343,11 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   describe '#stop' do
     let(:heartbeat_interval_seconds) { 60 }
     let(:metrics_aggregation_interval_seconds) { 30 }
+
+    before do
+      # This test expects the AppStarted event apparently
+      Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
+    end
 
     it 'flushes events and stops the worker' do
       worker.start
