@@ -262,7 +262,7 @@ module Datadog
                   o.after_set do |_, _, precedence|
                     unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                       Core.log_deprecation(key: :appsec_track_user_events_enabled) do
-                        'The appsec.track_user_events.enabled setting has been deprecated for removal. ' \
+                        'The appsec.track_user_events.enabled setting is deprecated. ' \
                         'Please remove it from your Datadog.configure block and use ' \
                         'appsec.auto_user_instrumentation.mode instead.'
                       end
@@ -292,7 +292,7 @@ module Datadog
                   o.after_set do |_, _, precedence|
                     unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                       Core.log_deprecation(key: :appsec_track_user_events_mode) do
-                        'The appsec.track_user_events.mode setting has been deprecated for removal. ' \
+                        'The appsec.track_user_events.mode setting is deprecated. ' \
                         'Please remove it from your Datadog.configure block and use ' \
                         'appsec.auto_user_instrumentation.mode instead.'
                       end
