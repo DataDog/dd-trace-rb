@@ -9,7 +9,7 @@ require 'active_record'
 require 'sqlite3'
 require 'devise'
 
-RSpec.describe 'Devise auto authenticated sing-user tracking' do
+RSpec.describe 'Devise auto login and signup events session tracking' do
   include Rack::Test::Methods
   include Warden::Test::Helpers
 
@@ -68,6 +68,9 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
     #       The order of hacks matters!
     allow(Devise).to receive(:regenerate_helpers!)
 
+    # Customer middleware
+    customer_middleware
+
     # Rails app
     # NOTE: https://github.com/heartcombo/devise/blob/fec67f98f26fcd9a79072e4581b1bd40d0c7fa1d/guides/bug_report_templates/integration_test.rb#L43-L57
     app = Class.new(Rails::Application) do
@@ -79,6 +82,8 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
       config.consider_all_requests_local = true
       # NOTE: For debugging replace with $stdout
       config.logger = Rails.logger = Logger.new(StringIO.new)
+
+      config.middleware.insert_before(Warden::Manager, CustomerMiddleware)
 
       config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
         def initialize(files, dirs = {}, &block)
@@ -97,6 +102,7 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
       config.tracing.instrument :http
 
       config.appsec.enabled = true
+      config.appsec.ruleset = custom_rules
       config.appsec.instrument :rails
       config.appsec.instrument :devise
       config.appsec.auto_user_instrumentation.mode = 'identification'
@@ -109,7 +115,6 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
       devise_for :users, controllers: { registrations: 'test_registrations' }
 
       get '/public' => 'public#index'
-      get '/private' => 'private#index'
     end
 
     # NOTE: Unfortunately, can't figure out why devise receives 3 times `finalize!`
@@ -119,23 +124,23 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
     Devise.configure_warden!
 
     # app/controllers
-    public_controller
-    stub_const('PrivateController', Class.new(ActionController::Base)).class_eval do
-      before_action :authenticate_user!
-
+    stub_const('PublicController', Class.new(ActionController::Base)).class_eval do
       def index
         respond_to do |format|
-          format.html { render plain: 'This is private page' }
+          format.html { render plain: 'This is public page' }
         end
       end
     end
 
     allow(Rails).to receive(:application).and_return(app)
+    allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
 
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
       .and_return(true)
+
+    Datadog::AppSec::Monitor::Gateway::Watcher.watch
   end
 
   after do
@@ -166,12 +171,63 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
     Rails.cache = nil
   end
 
-  let(:public_controller) do
-    stub_const('PublicController', Class.new(ActionController::Base)).class_eval do
-      def index
-        respond_to do |format|
-          format.html { render plain: 'This is public page' }
-        end
+  let(:custom_rules) do
+    {
+      'version' => '2.1',
+      'metadata' => { 'rules_version' => '1.2.6' },
+      'rules' => [
+        {
+          'id' => 'arachni_rule',
+          'name' => 'Arachni',
+          'tags' => { 'type' => 'security_scanner', 'category' => 'attack_attempt' },
+          'conditions' => [
+            {
+              'parameters' => {
+                'inputs' => [
+                  {
+                    'address' => 'server.request.headers.no_cookies',
+                    'key_path' => ['user-agent']
+                  }
+                ],
+                'regex' => '^Arachni\\/v'
+              },
+              'operator' => 'match_regex'
+            }
+          ],
+          'on_match' => ['block']
+        }
+      ],
+      'scanners' => [],
+      'processors' => [
+        {
+          'id' => 'session-fingerprint',
+          'generator' => 'session_fingerprint',
+          'conditions' => [],
+          'parameters' => {
+            'mappings' => [
+              {
+                'cookies' => [{ 'address' => 'server.request.cookies' }],
+                'session_id' => [{ 'address' => 'usr.session_id' }],
+                'user_id' => [{ 'address' => 'usr.id' }],
+                'output' => '_dd.appsec.fp.session'
+              }
+            ]
+          },
+          'evaluate' => true,
+          'output' => true
+        }
+      ]
+    }
+  end
+
+  let(:customer_middleware) do
+    stub_const('CustomerMiddleware', Class.new).class_eval do
+      def initialize(app)
+        @app = app
+      end
+
+      def call(env)
+        @app.call(env)
       end
     end
   end
@@ -179,6 +235,7 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
   let(:http_service_entry_span) { spans.find { |s| s.name == 'rack.request' } }
   let(:http_service_entry_trace) { traces.find { |t| t.id == http_service_entry_span.trace_id } }
 
+  let(:gateway) { Datadog::AppSec::Instrumentation::Gateway.new }
   let(:response) { last_response }
   let(:app) { Rails.application }
 
@@ -190,21 +247,8 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
       expect(response.body).to eq('This is public page')
 
       expect(http_service_entry_span.tags).not_to have_key('usr.id')
-      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
-      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
-      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
-    end
-
-    it 'forbids unauthenticated user to visit private page and does not track it' do
-      get('/private')
-
-      expect(response).to be_redirect
-      expect(response.location).to match('users/sign_in')
-
-      expect(http_service_entry_span.tags).not_to have_key('usr.id')
-      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
-      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
-      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
+      expect(http_service_entry_span.tags).not_to have_key('usr.session_id')
+      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.fp.session')
     end
   end
 
@@ -220,60 +264,92 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
       expect(response).to be_ok
       expect(response.body).to eq('This is public page')
 
+      expect(http_service_entry_span.tags).not_to have_key('usr.session_id')
       expect(http_service_entry_span.tags).to include(
         'usr.id' => '1',
-        '_dd.appsec.usr.id' => '1',
-        '_dd.appsec.user.collection_mode' => 'identification'
-      )
-    end
-
-    it 'allows authenticated user to visit private page and tracks it' do
-      get('/private')
-
-      expect(response).to be_ok
-      expect(response.body).to eq('This is private page')
-
-      expect(http_service_entry_span.tags).to include(
-        'usr.id' => '1',
-        '_dd.appsec.usr.id' => '1',
-        '_dd.appsec.user.collection_mode' => 'identification'
+        '_dd.appsec.fp.session' => String
       )
     end
   end
 
   context 'when user is authenticated and customer already uses SDK to set user' do
     before do
+      allow_any_instance_of(Datadog::AppSec::Context).to receive(:run_waf).and_call_original
+
       user = User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
       login_as(user)
     end
 
-    let(:public_controller) do
-      stub_const('PublicController', Class.new(ActionController::Base)).class_eval do
-        def index
-          span = Datadog::Tracing.active_span
-          trace = Datadog::Tracing.active_trace
+    context 'when only user id was set' do
+      let(:customer_middleware) do
+        stub_const('CustomerMiddleware', Class.new).class_eval do
+          def initialize(app)
+            @app = app
+          end
 
-          Datadog::Kit::Identity.set_user(trace, span, id: '42', email: 'hello@gmail.com')
+          def call(env)
+            span = Datadog::Tracing.active_span
+            trace = Datadog::Tracing.active_trace
 
-          respond_to do |format|
-            format.html { render plain: 'This is public page' }
+            Datadog::Kit::Identity.set_user(trace, span, id: '42')
+
+            @app.call(env)
           end
         end
       end
+
+      it 'tracks it with SDK values and session id from auto-instrumentation' do
+        expect_any_instance_of(Datadog::AppSec::Context).to receive(:run_waf)
+          .with(hash_including('usr.session_id' => String), anything, anything).once
+          .and_call_original
+
+        get('/public')
+
+        expect(response).to be_ok
+        expect(response.body).to eq('This is public page')
+
+        expect(http_service_entry_span.tags).not_to have_key('usr.session_id')
+        expect(http_service_entry_span.tags).to include(
+          'usr.id' => '42',
+          '_dd.appsec.fp.session' => String
+        )
+      end
     end
 
-    it 'allows authenticated user to visit public page and tracks it with SDK values' do
-      get('/public')
+    context 'when user id and session id were set' do
+      let(:customer_middleware) do
+        stub_const('CustomerMiddleware', Class.new).class_eval do
+          def initialize(app)
+            @app = app
+          end
 
-      expect(response).to be_ok
-      expect(response.body).to eq('This is public page')
+          def call(env)
+            span = Datadog::Tracing.active_span
+            trace = Datadog::Tracing.active_trace
 
-      expect(http_service_entry_span.tags).to include(
-        'usr.id' => '42',
-        'usr.email' => 'hello@gmail.com',
-        '_dd.appsec.usr.id' => '1',
-        '_dd.appsec.user.collection_mode' => 'sdk'
-      )
+            Datadog::Kit::Identity.set_user(trace, span, id: '42', session_id: '1234567890')
+
+            @app.call(env)
+          end
+        end
+      end
+
+      it 'tracks it with SDK values and customer session id' do
+        expect_any_instance_of(Datadog::AppSec::Context).to receive(:run_waf)
+          .with(hash_including('usr.session_id' => '1234567890'), anything, anything).once
+          .and_call_original
+
+        get('/public')
+
+        expect(response).to be_ok
+        expect(response.body).to eq('This is public page')
+
+        expect(http_service_entry_span.tags).to include(
+          'usr.id' => '42',
+          'usr.session_id' => '1234567890',
+          '_dd.appsec.fp.session' => String
+        )
+      end
     end
   end
 end

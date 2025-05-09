@@ -10,6 +10,7 @@ module Datadog
         # A Rack middleware capable of tracking currently signed user
         class TrackingMiddleware
           WARDEN_KEY = 'warden'
+          SESSION_ID_KEY = 'session_id'
 
           def initialize(app)
             @app = app
@@ -32,16 +33,28 @@ module Datadog
               return @app.call(env)
             end
 
+            # NOTE: Rails session id will be set for unauthenticated users as well,
+            #       so we need to make sure we are tracking only authenticated users.
             id = transform(extract_id(env[WARDEN_KEY]))
+            session_id = env[WARDEN_KEY].raw_session[SESSION_ID_KEY] if id
+
             if id
-              unless context.span.has_tag?(Ext::TAG_USR_ID)
-                context.span[Ext::TAG_USR_ID] = id
+              # NOTE: There is no option to set session id without setting user id via SDK.
+              unless context.span.has_tag?(Ext::TAG_USR_ID) && context.span.has_tag?(Ext::TAG_SESSION_ID)
+                user_id = context.span[Ext::TAG_USR_ID] || id
+                user_session_id = context.span[Ext::TAG_SESSION_ID] || session_id
+
+                # FIXME: The current implementation of event arguments is forsing us
+                #        to bloat User class, and pass nil-value instead of skip
+                #        passing them at first place.
+                #        This is a temporary situation until we refactor events model.
                 AppSec::Instrumentation.gateway.push(
-                  'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id, nil)
+                  'identity.set_user', AppSec::Instrumentation::Gateway::User.new(user_id, nil, user_session_id)
                 )
               end
 
-              context.span[Ext::TAG_DD_USR_ID] = id.to_s
+              context.span[Ext::TAG_USR_ID] ||= id
+              context.span[Ext::TAG_DD_USR_ID] = id
               context.span[Ext::TAG_DD_COLLECTION_MODE] ||= Configuration.auto_user_instrumentation_mode
             end
 

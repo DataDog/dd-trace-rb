@@ -63,8 +63,8 @@ module Datadog
 
           # NOTE: This is a temporary solution before the RuleMerger refactoring
           #       with new RemoteConfig setup
-          processors = rules.delete('processors')
-          scanners = rules.delete('scanners')
+          processors = rules['processors']
+          scanners = rules['scanners']
 
           ruleset = AppSec::Processor::RuleMerger.merge(
             rules: [rules],
