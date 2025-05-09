@@ -74,7 +74,7 @@ module Datadog
             aggregation_interval: metrics_aggregation_interval_seconds
           )
 
-          @transport = if enabled
+          @transport = if @enabled
                         if agentless_enabled
                           agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
                             settings,
