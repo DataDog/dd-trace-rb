@@ -345,7 +345,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       context 'with :agentless_enabled true' do
         let(:agentless_enabled) { true }
-        let(:transport) { instance_double(Datadog::Core::Telemetry::Http::Transport) }
+        let(:transport) { instance_double(Datadog::Core::Telemetry::Transport::Telemetry::Transport) }
         let(:expected_options) do
           { enabled: enabled, http_transport: transport,
             logger: logger,
@@ -356,7 +356,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         before do
-          expect(Datadog::Core::Telemetry::Http::Transport).to receive(:build_agentless_transport).with(
+          expect(Datadog::Core::Telemetry::Transport::HTTP).to receive(:agentless_telemetry).with(
             api_key: api_key,
             dd_site: settings.site,
             url_override: settings.telemetry.agentless_url_override
