@@ -39,6 +39,7 @@ module Datadog
 
           Telemetry::Component.new(
             settings: settings,
+            agent_settings: agent_settings,
             enabled: enabled,
             logger: logger,
           )
@@ -47,6 +48,7 @@ module Datadog
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
         def initialize(
           settings:,
+          agent_settings:,
           logger:,
           enabled:
         )
