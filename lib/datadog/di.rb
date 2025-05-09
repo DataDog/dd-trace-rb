@@ -46,7 +46,7 @@ module Datadog
       # perhaps we should delete the +component+ method and just use
       # +current_component+ in all cases.
       def component
-        Datadog.send(:components).dynamic_instrumentation
+        Datadog.send(:components, allow_initialization: false)&.dynamic_instrumentation
       end
     end
   end

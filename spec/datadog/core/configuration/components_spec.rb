@@ -86,7 +86,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .and_return(runtime_metrics)
 
       expect(described_class).to receive(:build_health_metrics)
-        .with(settings, logger)
+        .with(settings, logger, telemetry)
         .and_return(health_metrics)
     end
 
@@ -155,7 +155,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_health_metrics' do
-    subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger) }
+    subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger, telemetry) }
 
     context 'given settings' do
       shared_examples_for 'new health metrics' do
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Diagnostics::Health::Metrics).to receive(:new)
-            .with(default_options.merge(options).merge(logger: logger))
+            .with(default_options.merge(options).merge(logger: logger, telemetry: telemetry))
             .and_return(health_metrics)
         end
 
