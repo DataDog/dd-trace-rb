@@ -13,7 +13,7 @@ module Datadog
             return if boot.nil?
             return if span.nil?
 
-            active_remote = Datadog.send(:components, allow_initialization: false).remote
+            active_remote = Datadog.send(:components, allow_initialization: false)&.remote
             return if active_remote.nil?
 
             # TODO: this is not thread-consistent

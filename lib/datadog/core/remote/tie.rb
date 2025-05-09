@@ -11,7 +11,7 @@ module Datadog
         )
 
         def self.boot
-          active_remote = Datadog.send(:components, allow_initialization: false).remote
+          active_remote = Datadog.send(:components, allow_initialization: false)&.remote
           return if active_remote.nil?
 
           barrier = nil
