@@ -26,6 +26,7 @@ module Datadog
           enabled = settings.telemetry.enabled
           agentless_enabled = settings.telemetry.agentless_enabled
 
+          # TODO remove
           if !agentless_enabled && agent_settings.adapter != Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
             enabled = false
             logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
@@ -37,45 +38,29 @@ module Datadog
           end
 
           Telemetry::Component.new(
+            settings: settings,
             enabled: enabled,
-            metrics_enabled: enabled && settings.telemetry.metrics_enabled,
-            heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
-            metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
-            dependency_collection: settings.telemetry.dependency_collection,
             logger: logger,
-            shutdown_timeout_seconds: settings.telemetry.shutdown_timeout_seconds,
-            log_collection_enabled: settings.telemetry.log_collection_enabled,
-            api_key: settings.api_key,
           )
         end
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
-        # @param metrics_enabled [Boolean] Determines whether telemetry metrics should be sent to the API
-        # @param heartbeat_interval_seconds [Float] How frequently heartbeats will be reported, in seconds.
-        # @param metrics_aggregation_interval_seconds [Float] How frequently metrics will be aggregated, in seconds.
-        # @param [Boolean] dependency_collection Whether to send the `app-dependencies-loaded` event
         def initialize(
-          heartbeat_interval_seconds:,
-          metrics_aggregation_interval_seconds:,
-          dependency_collection:,
+          settings:,
           logger:,
-          shutdown_timeout_seconds:,
-          enabled: true,
-          metrics_enabled: true,
-          log_collection_enabled: true,
-          api_key: nil
+          enabled:
         )
           @enabled = enabled
-          @log_collection_enabled = log_collection_enabled
+          @log_collection_enabled = settings.telemetry.log_collection_enabled
           @logger = logger
 
           @metrics_manager = MetricsManager.new(
-            enabled: enabled && metrics_enabled,
-            aggregation_interval: metrics_aggregation_interval_seconds
+            enabled: @enabled && settings.telemetry.metrics_enabled,
+            aggregation_interval: settings.telemetry.metrics_aggregation_interval_seconds,
           )
 
           @transport = if @enabled
-                        if agentless_enabled
+                        if settings.telemetry.agentless_enabled
                           agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
                             settings,
                             host_prefix: 'instrumentation-telemetry-intake',
@@ -86,6 +71,8 @@ module Datadog
                           Telemetry::Transport::HTTP.agentless_telemetry(
                             agent_settings: agent_settings,
                             logger: logger,
+                            # api_key should have already validated to be
+                            # not nil by +build+ method above.
                             api_key: settings.api_key,
                           )
                         else
@@ -97,13 +84,13 @@ module Datadog
 
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
-            heartbeat_interval_seconds: heartbeat_interval_seconds,
-            metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
+            heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
+            metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
             emitter: Emitter.new(transport: @transport),
             metrics_manager: @metrics_manager,
-            dependency_collection: dependency_collection,
+            dependency_collection: settings.telemetry.dependency_collection,
             logger: logger,
-            shutdown_timeout: shutdown_timeout_seconds
+            shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
           )
 
           @stopped = false
