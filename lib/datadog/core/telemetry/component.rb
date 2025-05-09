@@ -17,7 +17,7 @@ module Datadog
       # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
       # Note: Telemetry does not spawn its worker thread in fork processes, thus no telemetry is sent in forked processes.
       class Component
-        attr_reader :enabled, :logger
+        attr_reader :enabled, :logger, :transport
 
         include Core::Utils::Forking
         include Telemetry::Logging
@@ -36,29 +36,7 @@ module Datadog
             logger.debug { 'Telemetry disabled. Agentless telemetry requires an DD_API_KEY variable to be set.' }
           end
 
-          transport = if enabled
-                        if agentless_enabled
-                          agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
-                            settings,
-                            host_prefix: 'instrumentation-telemetry-intake',
-                            url_override: settings.telemetry.agentless_url_override,
-                            url_override_source: 'c.telemetry.agentless_url_override',
-                            logger: logger,
-                          )
-                          Telemetry::Transport::HTTP.agentless_telemetry(
-                            agent_settings: agent_settings,
-                            logger: logger,
-                            api_key: settings.api_key,
-                          )
-                        else
-                          Telemetry::Transport::HTTP.agent_telemetry(
-                            agent_settings: agent_settings, logger: logger,
-                          )
-                        end
-                      end
-
           Telemetry::Component.new(
-            transport: transport,
             enabled: enabled,
             metrics_enabled: enabled && settings.telemetry.metrics_enabled,
             heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
@@ -81,7 +59,6 @@ module Datadog
           metrics_aggregation_interval_seconds:,
           dependency_collection:,
           logger:,
-          transport:,
           shutdown_timeout_seconds:,
           enabled: true,
           metrics_enabled: true,
@@ -97,11 +74,32 @@ module Datadog
             aggregation_interval: metrics_aggregation_interval_seconds
           )
 
+          @transport = if enabled
+                        if agentless_enabled
+                          agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
+                            settings,
+                            host_prefix: 'instrumentation-telemetry-intake',
+                            url_override: settings.telemetry.agentless_url_override,
+                            url_override_source: 'c.telemetry.agentless_url_override',
+                            logger: logger,
+                          )
+                          Telemetry::Transport::HTTP.agentless_telemetry(
+                            agent_settings: agent_settings,
+                            logger: logger,
+                            api_key: settings.api_key,
+                          )
+                        else
+                          Telemetry::Transport::HTTP.agent_telemetry(
+                            agent_settings: agent_settings, logger: logger,
+                          )
+                        end
+                      end
+
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-            emitter: Emitter.new(transport: transport),
+            emitter: Emitter.new(transport: @transport),
             metrics_manager: @metrics_manager,
             dependency_collection: dependency_collection,
             logger: logger,
