@@ -121,15 +121,9 @@ module Datadog
 
         def get
           unless @is_set
-            # Previously, `set_value_from_env_or_default` was only setting env or default value, not both.
-            # Which is problematic if we want to `unset` an env value, as it would not fallback on the default value.
-            #
-            # It also had inconsistent behavior. If an option didn't have an env,
-            # it would call `set` with DEFAULT precedence and value, and set `@is_set` to true.
-            # But if an option did have an env, it would set it with ENVIRONMENT precedence,
-            # then by calling `unset` on the ENVIRONMENT value, it would `reset` the option,
-            # set DEFAULT precedence and value, and change `@is_set` to false. because @is_set is false,
-            # calling `get` would again call `set_value_from_env_or_default` and set the option back to the env value.
+            # Ensures that both the default value and the environment value are set.
+            # This approach handles scenarios where an environment value is unset
+            # by falling back to the default value consistently.
             set_default_value
             set_env_value
           end
