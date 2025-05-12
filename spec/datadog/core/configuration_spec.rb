@@ -440,8 +440,8 @@ RSpec.describe Datadog::Core::Configuration do
         end
       end
 
-      context 'when configuration is not initialized' do
-        it { expect(logger.level).to be ::Logger::DEBUG }
+      context 'when configuration is not initialized and DD_TRACE_DEBUG is not set' do
+        it { expect(logger.level).to be ::Logger::INFO }
 
         it 'calls logger_without_configuration' do
           expect(test_class).to receive(:logger_without_configuration)
@@ -460,6 +460,16 @@ RSpec.describe Datadog::Core::Configuration do
 
           expect(logger).to be_a_kind_of(Datadog::Core::Logger)
         end
+      end
+
+      context 'when configuration is not initialized and DD_TRACE_DEBUG is set' do
+        around do |example|
+          ClimateControl.modify('DD_TRACE_DEBUG' => 'true') do
+            example.run
+          end
+        end
+
+        it { expect(logger.level).to be ::Logger::DEBUG }
       end
 
       context 'when components are being replaced' do
