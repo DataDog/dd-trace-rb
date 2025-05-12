@@ -11,6 +11,8 @@ module Datadog
 
           TAG_USR_ID: ::String
 
+          TAG_SESSION_ID: ::String
+
           TAG_LOGIN_SUCCESS_TRACK: ::String
 
           TAG_LOGIN_SUCCESS_USR_LOGIN: ::String
