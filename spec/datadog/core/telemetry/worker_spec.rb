@@ -368,7 +368,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         response
       end
 
-      worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+      ok = worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+      expect(ok).to be true
       worker.stop(true)
 
       try_wait_until { events_received == 1 }
@@ -395,7 +396,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
       events_sent = 3
       events_sent.times do
-        worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+        ok = worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+        expect(ok).to be true
       end
 
       try_wait_until { events_received == events_sent }
