@@ -28,7 +28,7 @@ module Datadog
 
           if agentless_enabled && settings.api_key.nil?
             enabled = false
-            logger.debug { 'Telemetry disabled. Agentless telemetry requires an DD_API_KEY variable to be set.' }
+            logger.debug { 'Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set.' }
           end
 
           Telemetry::Component.new(
@@ -78,31 +78,33 @@ module Datadog
                         end
                       end
 
-          @worker = Telemetry::Worker.new(
-            enabled: @enabled,
-            heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
-            metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
-            emitter: Emitter.new(transport: @transport),
-            metrics_manager: @metrics_manager,
-            dependency_collection: settings.telemetry.dependency_collection,
-            logger: logger,
-            shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
-          )
-
           @stopped = false
 
-          @worker.start
+          if @enabled
+            @worker = Telemetry::Worker.new(
+              enabled: @enabled,
+              heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
+              metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
+              emitter: Emitter.new(transport: @transport),
+              metrics_manager: @metrics_manager,
+              dependency_collection: settings.telemetry.dependency_collection,
+              logger: logger,
+              shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
+            )
+
+            @worker.start
+          end
         end
 
         def disable!
           @enabled = false
-          @worker.enabled = false
+          @worker&.enabled = false
         end
 
         def stop!
           return if @stopped
 
-          @worker.stop(true)
+          @worker&.stop(true)
           @stopped = true
         end
 
@@ -130,6 +132,8 @@ module Datadog
         #
         # @api private
         def flush
+          return if !@enabled || forked?
+
           @worker.flush
         end
 

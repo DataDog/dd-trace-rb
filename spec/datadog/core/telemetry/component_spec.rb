@@ -61,7 +61,6 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   describe '.build' do
     subject(:telemetry) { described_class.build(settings, agent_settings, logger) }
-    let(:logger) { instance_double(Logger) }
 
     context 'given settings' do
       let(:mock_telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
@@ -81,8 +80,6 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       let(:api_key) { 'api_key' }
 
       before do
-        expect(Datadog::Core::Telemetry::Component).to receive(:new).with(expected_options).and_return(mock_telemetry)
-        allow(settings).to receive(:api_key).and_return(api_key)
         allow(settings.telemetry).to receive(:enabled).and_return(enabled)
         allow(settings.telemetry).to receive(:agentless_enabled).and_return(agentless_enabled)
       end
@@ -119,42 +116,29 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         end
       end
 
-      context 'with :agentless_enabled true' do
-        let(:agentless_enabled) { true }
-        let(:transport) { instance_double(Datadog::Core::Telemetry::Transport::Telemetry::Transport) }
-        let(:expected_options) do
-          { enabled: enabled, transport: transport,
-            logger: logger,
-            metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
-            metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-            dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-            log_collection_enabled: log_collection_enabled, }
-        end
-
+      context 'when agentless' do
         before do
-          expect(Datadog::Core::Telemetry::Transport::HTTP).to receive(:agentless_telemetry).with(
-            agent_settings: an_instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings),
-            logger: logger,
-            api_key: api_key,
-          ).and_return(transport)
+          expect(settings.telemetry).to receive(:agentless_enabled).and_return(true)
         end
 
-        it { is_expected.to be(mock_telemetry) }
-
-        context 'and no api key' do
-          let(:api_key) { nil }
-          let(:expected_options) do
-            { enabled: false, transport: transport,
-              logger: logger,
-              metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
-              metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-              dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-              log_collection_enabled: true, }
+        context 'with api_key specified' do
+          before do
+            expect(settings).to receive(:api_key).at_least(:once).and_return('1234')
           end
 
-          it 'does not enable telemetry when agentless mode requested but api key is not present' do
-            expect(logger).to receive(:debug)
-            is_expected.to be(mock_telemetry)
+          it 'enables telemetry' do
+            expect(telemetry.enabled).to be true
+          end
+        end
+
+        context 'with api_key not specified' do
+          before do
+            expect(settings).to receive(:api_key).and_return(nil)
+          end
+
+          it 'disables telemetry' do
+            expect_lazy_log(logger, :debug, /Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set/)
+            expect(telemetry.enabled).to be false
           end
         end
       end
