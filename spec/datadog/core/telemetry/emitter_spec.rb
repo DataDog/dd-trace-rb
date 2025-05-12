@@ -5,13 +5,13 @@ require 'datadog/core/telemetry/transport/http'
 require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Core::Telemetry::Emitter do
-  subject(:emitter) { described_class.new(http_transport: http_transport) }
-  let(:http_transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
+  subject(:emitter) { described_class.new(transport: transport) }
+  let(:transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
   let(:response) { double(Datadog::Core::Transport::HTTP::Adapters::Net::Response) }
   let(:response_ok) { true }
 
   before do
-    allow(http_transport).to receive(:send_telemetry).and_return(response)
+    allow(transport).to receive(:send_telemetry).and_return(response)
     emitter.class.sequence.reset!
   end
 
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
   describe '#initialize' do
     it { is_expected.to be_a_kind_of(described_class) }
-    it { expect(emitter.http_transport).to be(http_transport) }
+    it { expect(emitter.transport).to be(transport) }
 
     it 'seq_id begins with 1' do
       original_seq_id = emitter.class.sequence.instance_variable_get(:@current)
@@ -98,18 +98,18 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
         request
 
-        expect(http_transport).to have_received(:send_telemetry).with(request_type: request_type, payload: { foo: 'bar' })
+        expect(transport).to have_received(:send_telemetry).with(request_type: request_type, payload: { foo: 'bar' })
       end
     end
   end
 
   describe 'when initialized multiple times' do
-    let(:http_transport) { double(Datadog::Core::Telemetry::Transport::Telemetry::Transport) }
+    let(:transport) { double(Datadog::Core::Telemetry::Transport::Telemetry::Transport) }
 
     context 'sequence is stored' do
       it do
-        emitter_first = described_class.new(http_transport: http_transport)
-        emitter_second = described_class.new(http_transport: http_transport)
+        emitter_first = described_class.new(transport: transport)
+        emitter_second = described_class.new(transport: transport)
         expect(emitter_first.class.sequence).to be(emitter_second.class.sequence)
       end
     end
