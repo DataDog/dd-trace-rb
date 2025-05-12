@@ -19,7 +19,7 @@ module Datadog
 
         def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings, Datadog::Core::Logger logger) -> Component
 
-        def initialize: (logger: ::Logger, http_transport: Datadog::Core::Telemetry::Http::Transport, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool, shutdown_timeout_seconds: Float | Integer, ?log_collection_enabled: bool) -> void
+        def initialize: (logger: ::Logger, settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, enabled: true | false) -> void
 
         def disable!: () -> void
 
