@@ -9,7 +9,11 @@ module Datadog
 
         def extract_configuration
           if (libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE)
-            Datadog.logger.debug("Cannot enable stable config: #{libdatadog_api_failure}")
+            if Datadog.send(:configuration?)
+              Datadog.logger.debug("Cannot enable stable config: #{libdatadog_api_failure}")
+            else
+              Datadog.send(:logger_without_configuration).debug("Cannot enable stable config: #{libdatadog_api_failure}")
+            end
             return {}
           end
           native_configurator = Configurator.new

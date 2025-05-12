@@ -70,7 +70,11 @@ static VALUE _native_configurator_get(VALUE self) {
   if (configurator_result.tag == DDOG_RESULT_VEC_LIBRARY_CONFIG_ERR_VEC_LIBRARY_CONFIG) {
     ddog_Error err = configurator_result.err;
     VALUE message = get_error_details_and_drop(&err);
-    log_warning(message);
+    if (is_config_loaded()) {
+      log_warning(message);
+    } else {
+      log_warning_without_config(message);
+    }
     return Qnil;
   }
 
