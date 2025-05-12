@@ -508,4 +508,3 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
   end
 end
-
