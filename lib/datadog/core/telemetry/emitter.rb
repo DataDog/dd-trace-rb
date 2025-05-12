@@ -22,9 +22,9 @@ module Datadog
         end
 
         # Retrieves and emits a TelemetryRequest object based on the request type specified
-        def request(event)
+        def request(event, debug: false)
           seq_id = self.class.sequence.next
-          payload = Request.build_payload(event, seq_id)
+          payload = Request.build_payload(event, seq_id, debug: debug)
           res = @transport.send_telemetry(request_type: event.type, payload: payload)
           logger.debug { "Telemetry sent for event `#{event.type}` (response code: #{res.code})" }
           res

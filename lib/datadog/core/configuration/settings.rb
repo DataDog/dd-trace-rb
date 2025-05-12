@@ -946,6 +946,16 @@ module Datadog
           # @default `nil`.
           # @return [String,nil]
           option :service
+
+          # For internal use only.
+          # Enables telemetry debugging through the Datadog platform.
+          #
+          # @default `false`.
+          # @return [Boolean]
+          option :debug do |o|
+            o.type :bool
+            o.default false
+          end
         end
 
         settings :crashtracking do
