@@ -5,7 +5,8 @@ require 'datadog/core/telemetry/transport/http'
 require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Core::Telemetry::Emitter do
-  subject(:emitter) { described_class.new(transport: transport) }
+  subject(:emitter) { described_class.new(transport: transport, logger: logger) }
+  let(:logger) { logger_allowing_debug }
   let(:transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
   let(:response) { double(Datadog::Core::Transport::HTTP::Adapters::Net::Response) }
   let(:response_ok) { true }
@@ -35,22 +36,13 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
     let(:request_type) { double('request_type') }
     let(:payload) { { foo: 'bar' } }
 
-    before do
-      logger = double(Datadog::Core::Logger)
-      allow(logger).to receive(:debug)
-      allow(Datadog).to receive(:logger).and_return(logger)
-    end
-
     context 'when event' do
       context 'is invalid' do
         let(:event) { 'Not an event' }
 
         it do
+          expect_lazy_log(logger, :debug, /Unable to send telemetry request/)
           request
-
-          expect(Datadog.logger).to have_received(:debug) do |message|
-            expect(message).to include('Unable to send telemetry request')
-          end
         end
       end
 
@@ -75,12 +67,8 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
           end
 
           it 'logs the request correctly' do
-            log_message = nil
-            expect(Datadog.logger).to receive(:debug) { |&message| log_message = message.call }
-
+            expect_lazy_log(logger, :debug, 'Telemetry sent for event')
             request
-
-            expect(log_message).to match('Telemetry sent for event')
           end
         end
       end

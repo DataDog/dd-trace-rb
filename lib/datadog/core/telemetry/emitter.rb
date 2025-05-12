@@ -10,14 +10,15 @@ module Datadog
     module Telemetry
       # Class that emits telemetry events
       class Emitter
-        attr_reader :transport
+        attr_reader :transport, :logger
 
         extend Core::Utils::Forking
 
         # @param transport [Datadog::Core::Telemetry::Transport::Telemetry::Transport]
         #   Transport object that can be used to send telemetry requests
-        def initialize(transport:)
+        def initialize(transport:, logger: Datadog.logger)
           @transport = transport
+          @logger = logger
         end
 
         # Retrieves and emits a TelemetryRequest object based on the request type specified
@@ -25,10 +26,10 @@ module Datadog
           seq_id = self.class.sequence.next
           payload = Request.build_payload(event, seq_id)
           res = @transport.send_telemetry(request_type: event.type, payload: payload)
-          Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (response code: #{res.code})" }
+          logger.debug { "Telemetry sent for event `#{event.type}` (response code: #{res.code})" }
           res
         rescue => e
-          Datadog.logger.debug("Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}")
+          logger.debug { "Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}" }
           Core::Transport::InternalErrorResponse.new(e)
         end
 
