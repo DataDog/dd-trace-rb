@@ -7,8 +7,6 @@ require "json"
 require "socket"
 require "webrick"
 
-# https://github.com/rubocop/rubocop-rspec/issues/2078
-
 # Design note for this class's specs: from the Ruby code side, we're treating the `_native_` methods as an API
 # between the Ruby code and the native methods, and thus in this class we have a bunch of tests to make sure the
 # native methods are invoked correctly.
