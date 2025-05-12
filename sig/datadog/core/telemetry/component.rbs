@@ -11,6 +11,7 @@ module Datadog
 
         attr_reader enabled: bool
         attr_reader logger: ::Logger
+        attr_reader worker: Datadog::Core::Telemetry::Worker
 
         include Core::Telemetry::Logging
         include Core::Telemetry::_Logging
