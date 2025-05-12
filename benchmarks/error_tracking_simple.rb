@@ -104,7 +104,7 @@ def run_benchmark(&block)
   raise "Benchmark failed with status #{status}" unless status.success?
 end
 
-ErrorTrackingInstrumentBenchmark.new.instance_exec do
+ErrorTrackingSimpleBenchmark.new.instance_exec do
   run_benchmark { benchmark_simple_no_error_tracking }
   run_benchmark { benchmark_simple_all }
   run_benchmark { benchmark_simple_user }

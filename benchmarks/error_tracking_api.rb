@@ -116,7 +116,7 @@ def run_benchmark(&block)
   raise "Benchmark failed with status #{status}" unless status.success?
 end
 
-ErrorTrackingInstrumentBenchmark.new.instance_exec do
+ErrorTrackingApiBenchmark.new.instance_exec do
   run_benchmark { benchmark_with_http_request_simulation_no_error_tracking }
   run_benchmark { benchmark_with_http_request_simulation_all }
   run_benchmark { benchmark_with_http_request_simulation_user }

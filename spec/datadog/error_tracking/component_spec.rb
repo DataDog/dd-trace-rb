@@ -331,17 +331,20 @@ RSpec.describe Datadog::ErrorTracking::Component do
     end
 
     context "when instrumenting ['lib1'] with absolute exact path" do
-      include_examples 'error tracking behavior', nil, ['/app/spec/datadog/error_tracking/lib1'], ['lib1 error']
+      absolute_path = File.expand_path('./spec/datadog/error_tracking/lib1')
+      include_examples 'error tracking behavior', nil, [absolute_path], ['lib1 error']
     end
 
     context "when instrumenting ['lib1'] with absolute exact path and .rb" do
-      include_examples 'error tracking behavior', nil, ['/app/spec/datadog/error_tracking/lib1.rb'], ['lib1 error']
+      absolute_path = File.expand_path('./spec/datadog/error_tracking/lib1.rb')
+      include_examples 'error tracking behavior', nil, [absolute_path], ['lib1 error']
     end
 
     context "when instrumenting ['lib1'] with abs path " do
+      absolute_path = File.expand_path('./spec/datadog/error_tracking/sublib')
       include_examples 'error tracking behavior',
         nil,
-        ['/app/spec/datadog/error_tracking/sublib'],
+        [absolute_path],
         ['sublib1 error', 'sublib2 error']
     end
 
