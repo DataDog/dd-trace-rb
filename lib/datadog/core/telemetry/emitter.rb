@@ -25,7 +25,7 @@ module Datadog
           seq_id = self.class.sequence.next
           payload = Request.build_payload(event, seq_id)
           res = @transport.send_telemetry(request_type: event.type, payload: payload)
-          Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (response: #{res})" }
+          Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (response code: #{res.code})" }
           res
         rescue => e
           Datadog.logger.debug("Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}")
