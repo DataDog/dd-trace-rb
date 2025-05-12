@@ -278,7 +278,6 @@ module Datadog
       def logger_without_components
         # Use default logger without initializing components.
         # This enables logging during initialization, otherwise we'd run into deadlocks.
-        return logger_without_configuration unless configuration?
 
         @temp_logger ||= begin
           logger = configuration.logger.instance || Core::Logger.new($stdout)
