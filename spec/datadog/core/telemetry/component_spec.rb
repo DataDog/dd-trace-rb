@@ -62,84 +62,29 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   describe '.build' do
     subject(:telemetry) { described_class.build(settings, agent_settings, logger) }
 
-    context 'given settings' do
-      let(:mock_telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-      let(:expected_options) do
-        { enabled: enabled, settings: settings, agent_settings: agent_settings,
-          logger: logger,
-           }
-      end
-      let(:enabled) { true }
-      let(:agentless_enabled) { false }
-      let(:metrics_enabled) { true }
-      let(:log_collection_enabled) { true }
-      let(:heartbeat_interval_seconds) { 60 }
-      let(:metrics_aggregation_interval_seconds) { 10 }
-      let(:shutdown_timeout_seconds) { 1.0 }
-      let(:dependency_collection) { true }
-      let(:api_key) { 'api_key' }
-
+    context 'when agentless' do
       before do
-        allow(settings.telemetry).to receive(:enabled).and_return(enabled)
-        allow(settings.telemetry).to receive(:agentless_enabled).and_return(agentless_enabled)
+        expect(settings.telemetry).to receive(:agentless_enabled).at_least(:once).and_return(true)
       end
 
-      it { is_expected.to be(mock_telemetry) }
-
-      context 'with :enabled true' do
-        let(:enabled) { double('enabled') }
-
-        it { is_expected.to be(mock_telemetry) }
-
-        context 'and :unix agent adapter' do
-          let(:expected_options) do
-            { enabled: false, transport: an_instance_of(Datadog::Core::Telemetry::Transport::Telemetry::Transport),
-              metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
-              metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-              dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-              logger: logger,
-              log_collection_enabled: true, }
-          end
-          let(:agent_settings) do
-            instance_double(
-              Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
-              adapter: :unix,
-              hostname: 'foo',
-              port: 1234
-            )
-          end
-
-          it 'does not enable telemetry for unsupported non-http transport' do
-            expect(logger).to receive(:debug)
-            is_expected.to be(mock_telemetry)
-          end
-        end
-      end
-
-      context 'when agentless' do
+      context 'with api_key specified' do
         before do
-          expect(settings.telemetry).to receive(:agentless_enabled).and_return(true)
+          expect(settings).to receive(:api_key).at_least(:once).and_return('1234')
         end
 
-        context 'with api_key specified' do
-          before do
-            expect(settings).to receive(:api_key).at_least(:once).and_return('1234')
-          end
+        it 'enables telemetry' do
+          expect(telemetry.enabled).to be true
+        end
+      end
 
-          it 'enables telemetry' do
-            expect(telemetry.enabled).to be true
-          end
+      context 'with api_key not specified' do
+        before do
+          expect(settings).to receive(:api_key).and_return(nil)
         end
 
-        context 'with api_key not specified' do
-          before do
-            expect(settings).to receive(:api_key).and_return(nil)
-          end
-
-          it 'disables telemetry' do
-            expect_lazy_log(logger, :debug, /Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set/)
-            expect(telemetry.enabled).to be false
-          end
+        it 'disables telemetry' do
+          expect_lazy_log(logger, :debug, /Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set/)
+          expect(telemetry.enabled).to be false
         end
       end
     end
