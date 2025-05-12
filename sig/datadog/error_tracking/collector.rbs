@@ -1,0 +1,21 @@
+module Datadog
+  module ErrorTracking
+    class Collector
+      self.@after_stop: untyped
+
+      @span_event_per_error: untyped
+
+      SPAN_EVENTS_LIMIT: 100
+
+      LOCK: untyped
+      def self.after_stop: () -> untyped
+
+      def initialize: () -> void
+
+      def add_span_event: (untyped span_op, untyped error, untyped span_event) -> untyped
+      def on_error: (untyped span_op, untyped error) -> (nil | untyped)
+
+      def get_span_events: () -> untyped
+    end
+  end
+end

@@ -82,11 +82,9 @@ RSpec.describe Datadog::ErrorTracking::Component do
 
       it 'captures exception details' do
         tracer.trace('operation') do
-          begin
-            raise 'this is an exception'
-          rescue
-            # do nothing
-          end
+          raise 'this is an exception'
+        rescue
+          # do nothing
         end
         validate_span_events
       end
@@ -124,15 +122,15 @@ RSpec.describe Datadog::ErrorTracking::Component do
 
       it 'capture exception details' do
         tracer.trace('operation') do
+          # rubocop:disable Lint/UselessRescue,Lint/RedundantCopDisableDirective
           begin
-            begin
-              raise 'this is an exception'
-            rescue StandardError => e
-              raise e
-            end
-          rescue
-            # do nothing
+            raise 'this is an exception'
+          rescue => e
+            raise e
           end
+          # rubocop:enable Lint/UselessRescue,Lint/RedundantCopDisableDirective
+        rescue
+          # do nothing
         end
         validate_span_events
       end
@@ -149,14 +147,12 @@ RSpec.describe Datadog::ErrorTracking::Component do
       it 'capture exception details' do
         tracer.trace('operation') do
           begin
-            begin
-              raise 'this is an exception'
-            rescue StandardError => e
-              raise KeyError, e
-            end
-          rescue
-            # do nothing
+            raise 'this is an exception'
+          rescue => e
+            raise KeyError, e
           end
+        rescue
+          # do nothing
         end
         validate_span_events
       end
@@ -170,13 +166,13 @@ RSpec.describe Datadog::ErrorTracking::Component do
       it 'capture exception details' do
         begin
           tracer.trace('operation') do |span|
-            begin
-              @span_op = span
-              raise 'this is an exception'
-            rescue StandardError
-              raise
-            end
+            @span_op = span
+            raise 'this is an exception'
+          # rubocop:disable Lint/UselessRescue
+          rescue
+            raise
           end
+          # rubocop:enable Lint/UselessRescue
         rescue
           # do nothing
         end
@@ -192,11 +188,9 @@ RSpec.describe Datadog::ErrorTracking::Component do
       it 'capture exception details' do
         tracer.trace('operation') do
           101.times do
-            begin
-              raise 'this is an exception'
-            rescue
-              # do nothing
-            end
+            raise 'this is an exception'
+          rescue
+            # do nothing
           end
         end
         validate_span_events
@@ -211,22 +205,20 @@ RSpec.describe Datadog::ErrorTracking::Component do
       it 'capture exception details' do
         def parent_span
           tracer.trace('parent_span') do
-            begin
-              child_span
-            rescue
-              # do nothing
-            end
+            child_span
+          rescue
+            # do nothing
           end
         end
 
         def child_span
+          # rubocop:disable Lint/UselessRescue
           tracer.trace('child_span') do
-            begin
-              raise 'this is an exception'
-            rescue StandardError => e
-              raise e
-            end
+            raise 'this is an exception'
+          rescue => e
+            raise e
           end
+          # rubocop:enable Lint/UselessRescue
         end
 
         parent_span
@@ -338,16 +330,38 @@ RSpec.describe Datadog::ErrorTracking::Component do
       include_examples 'error tracking behavior', nil, ['lib1'], ['lib1 error']
     end
 
+    context "when instrumenting ['lib1'] with absolute exact path" do
+      include_examples 'error tracking behavior', nil, ['/app/spec/datadog/error_tracking/lib1'], ['lib1 error']
+    end
+
+    context "when instrumenting ['lib1'] with absolute exact path and .rb" do
+      include_examples 'error tracking behavior', nil, ['/app/spec/datadog/error_tracking/lib1.rb'], ['lib1 error']
+    end
+
+    context "when instrumenting ['lib1'] with abs path " do
+      include_examples 'error tracking behavior',
+        nil,
+        ['/app/spec/datadog/error_tracking/sublib'],
+        ['sublib1 error', 'sublib2 error']
+    end
+
+    context "when instrumenting ['lib1'] with rel path" do
+      include_examples 'error tracking behavior', nil, ['./spec/datadog/error_tracking/lib1'], ['lib1 error']
+    end
+
     context "when instrumenting ['sublib']" do
       include_examples 'error tracking behavior', nil, ['sublib'], ['sublib1 error', 'sublib2 error']
     end
 
     context "when instrumenting ['sublib1', 'lib1']" do
-      include_examples 'error tracking behavior', nil, ['sublib1', 'lib1'], ['sublib1 error', 'lib1 error']
+      include_examples 'error tracking behavior', nil, ['sublib1', 'lib1.rb'], ['sublib1 error', 'lib1 error']
     end
 
     context "when instrumenting ['sublib', 'lib1']" do
-      include_examples 'error tracking behavior', nil, ['sublib', 'lib1'], ['lib1 error', 'sublib1 error', 'sublib2 error']
+      include_examples 'error tracking behavior',
+        nil,
+        ['error_tracking/sublib', 'lib1'],
+        ['lib1 error', 'sublib1 error', 'sublib2 error']
     end
   end
 

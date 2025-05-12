@@ -9,7 +9,7 @@ require 'benchmark'
 require 'net/http'
 require 'webrick'
 
-class ErrorTrackingInstrumentBenchmark
+class ErrorTrackingSimpleBenchmark
   module NoopWriter
     def write(trace)
       # no-op

@@ -1,0 +1,41 @@
+module Datadog
+  module ErrorTracking
+    class Component
+      @tracer: untyped
+      @instrumented_files: untyped
+
+      @handled_errors_include: untyped
+      @filter_function: untyped
+      @handled_exc_tracker: untyped
+      @include_path_getter: untyped
+
+      LOCK: untyped
+
+      attr_accessor handled_exc_tracker: untyped
+
+      attr_accessor module_path_getter: untyped
+
+      attr_accessor tracer: untyped
+
+      attr_accessor handled_errors_include: untyped
+
+      attr_accessor instrumented_files: untyped
+
+      def self.build: (untyped settings, untyped tracer, untyped logger) -> (nil | untyped)
+      def self.environment_supported?: (untyped logger) -> (false | true)
+
+      def initialize: (tracer: untyped, handled_errors: untyped, handled_errors_include: untyped) -> void
+
+      def create_exc_tracker_tracepoint: (untyped event) -> untyped
+
+      def create_script_compiled_tracepoint: () -> untyped
+      def start: () -> untyped
+      def shutdown!: () -> untyped
+
+      private
+      def _generate_span_event: (untyped exception) -> untyped
+
+      def _add_instrumented_file: (untyped file_path) -> untyped
+    end
+  end
+end

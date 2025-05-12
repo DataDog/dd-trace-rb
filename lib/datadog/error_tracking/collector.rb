@@ -13,7 +13,7 @@ module Datadog
     # @api private
     class Collector
       SPAN_EVENTS_LIMIT = 100
-
+      LOCK = Mutex.new
       # Proc called when the span_operation :after_stop event is published
       def self.after_stop
         @after_stop ||= proc do |span_op, error|
@@ -60,9 +60,12 @@ module Datadog
         def on_error(span_op, error)
           return unless @span_event_per_error.key?(error)
 
-          if span_op.parent_id != 0
+          if span_op.parent?
             parent = span_op.send(:parent)
-            parent.collector.add_span_event(parent, error, @span_event_per_error[error])
+            LOCK.synchronize do
+              parent_collector = parent.collector { Collector.new }
+              parent_collector.add_span_event(parent, error, @span_event_per_error[error])
+            end
           end
 
           @span_event_per_error.delete(error)

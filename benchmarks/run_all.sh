@@ -6,7 +6,8 @@
 set -ex
 
 for file in \
-  `dirname "$0"`/error_tracking.rb \
+  `dirname "$0"`/error_tracking_simple.rb \
+  `dirname "$0"`/error_tracking_api.rb \
   `dirname "$0"`/di_instrument.rb \
   `dirname "$0"`/library_gem_loading.rb \
   `dirname "$0"`/profiling_allocation.rb \

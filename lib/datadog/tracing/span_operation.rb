@@ -37,8 +37,7 @@ module Datadog
         :service,
         :start_time,
         :trace_id,
-        :type,
-        :collector
+        :type
 
       attr_accessor :links, :status, :span_events
 
@@ -142,8 +141,12 @@ module Datadog
         @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow this to be explicitly set to nil
       end
 
-      def create_collector
+      def collector
         @collector ||= yield
+      end
+
+      def parent?
+        parent_id != 0
       end
 
       def measure
