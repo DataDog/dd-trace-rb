@@ -153,6 +153,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     context 'with default parameters' do
       subject(:telemetry) do
         described_class.new(
+          enabled: enabled,
           logger: logger,
           settings: settings,
           agent_settings: agent_settings,
