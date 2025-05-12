@@ -14,7 +14,7 @@ module Datadog
           module Telemetry
             module Client
               def send_telemetry_payload(request)
-                send_request(request) do |api, env|
+                send_request(request) do |api, env| # steep:ignore
                   api.send_telemetry(env)
                 end
               end
