@@ -84,7 +84,11 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         end
 
         it 'disables telemetry' do
-          expect_lazy_log(logger, :debug, /Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set/)
+          expect_lazy_log(
+            logger,
+            :debug,
+            /Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set/
+          )
           expect(telemetry.enabled).to be false
           expect(telemetry.worker).to be nil
         end

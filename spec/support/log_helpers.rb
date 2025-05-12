@@ -127,9 +127,8 @@ module LogHelpers
   end
 
   def expect_lazy_log_many(logger, meth, *expectations)
-    if expectations.empty?
-      raise ArgumentError, "Must have at least one expectation"
-    end
+    raise ArgumentError, 'Must have at least one expectation' if expectations.empty?
+
     expect(logger).to receive(meth).exactly(expectations.length).times do |&block|
       expected_msg = expectations.shift
       case expected_msg
@@ -139,7 +138,7 @@ module LogHelpers
         expect(block.call).to match(expected_msg)
       when nil
         value = block.call
-        fail "Logger #{logger} #{meth} called without an expectation set: #{value}"
+        raise "Logger #{logger} #{meth} called without an expectation set: #{value}"
       end
     end
   end

@@ -25,7 +25,7 @@ RSpec.describe 'Telemetry integration tests' do
   end
 
   let(:logger) { logger_allowing_debug }
-  let(:logger) { Logger.new(STDERR, level: :debug) }
+  let(:logger) { Logger.new($stderr, level: :debug) }
 
   after do
     # TODO: why is there no shutdown! method on telemetry component?
