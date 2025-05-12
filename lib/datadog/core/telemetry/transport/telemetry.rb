@@ -40,7 +40,7 @@ module Datadog
               parcel = EncodedParcel.new(json)
               request = Request.new(request_type, parcel, api_key)
 
-              response = @client.send_telemetry_payload(request)
+              @client.send_telemetry_payload(request)
               # Perform no error checking here
             end
           end
