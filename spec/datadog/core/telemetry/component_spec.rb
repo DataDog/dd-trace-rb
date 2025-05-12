@@ -170,11 +170,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       subject(:telemetry) do
         described_class.new(
           logger: logger,
-          transport: http_transport,
-          heartbeat_interval_seconds: heartbeat_interval_seconds,
-          metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-          dependency_collection: dependency_collection,
-          shutdown_timeout_seconds: shutdown_timeout_seconds
+          settings: settings,
+          agent_settings: agent_settings,
         )
       end
 
