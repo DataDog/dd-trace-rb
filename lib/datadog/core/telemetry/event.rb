@@ -74,10 +74,9 @@ module Datadog
               profiler: {
                 enabled: Datadog::Profiling.enabled?,
               },
-              # DEV: Not implemented yet
-              # dynamic_instrumentation: {
-              #   enabled: true,
-              # }
+              dynamic_instrumentation: {
+                enabled: defined?(Datadog::DI) && Datadog::DI.enabled?,
+              }
             }
 
             if (unsupported_reason = Datadog::Profiling.unsupported_reason)
