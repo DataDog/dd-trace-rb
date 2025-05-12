@@ -26,12 +26,6 @@ module Datadog
           enabled = settings.telemetry.enabled
           agentless_enabled = settings.telemetry.agentless_enabled
 
-          # TODO remove
-          if !agentless_enabled && agent_settings.adapter != Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-            enabled = false
-            logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
-          end
-
           if agentless_enabled && settings.api_key.nil?
             enabled = false
             logger.debug { 'Telemetry disabled. Agentless telemetry requires an DD_API_KEY variable to be set.' }
