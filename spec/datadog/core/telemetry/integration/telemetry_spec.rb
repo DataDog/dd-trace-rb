@@ -157,7 +157,8 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     describe 'error event' do
-      include_context 'mark telemetry started'
+      # To avoid noise from the startup events, turn those off.
+      mark_telemetry_started
 
       it 'sends expected payload' do
         component.error('test error')
