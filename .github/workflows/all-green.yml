@@ -20,5 +20,19 @@ jobs:
       - name: Run Ensure CI Success
         uses: DataDog/ensure-ci-success@727e7fe39ae2e1ce7ea336ec85a7369ab0731754
         with:
+          # How long to wait before we start checking the job status
+          # GitHub's API has a limit, so this helps avoid making too many calls
+          # Note: If the job is retried, we'll check it once right away before waiting
           initial-delay-seconds: "900"
+
+          # How long to wait between each check
           max-retries: "60"
+
+          # Sleep time between each check (default: 60 seconds)
+          # polling-interval-seconds: "60"
+
+          # Excluded jobs names, each line is a regular expression that must fullm atch the job name
+          # it's currently empty, but here is an example:
+          # ignored-name-patterns: |
+          #   .*-test-flaky
+          #   useless-job
