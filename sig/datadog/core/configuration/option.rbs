@@ -51,7 +51,9 @@ module Datadog
 
         def context_eval: () { () -> untyped } -> untyped
 
-        def set_value_from_env_or_default: () -> untyped
+        def set_default_value: () -> void
+
+        def set_env_value: () -> void
       end
     end
   end

@@ -47,6 +47,14 @@ module Datadog
             @run_async = false
             Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
             worker.terminate
+            # Wait for the worker thread to end
+            begin
+              Timeout.timeout(SHUTDOWN_TIMEOUT) do
+                worker.join
+              end
+            rescue Timeout::Error
+              Datadog.logger.debug { "Worker thread did not end after 0.5 seconds: #{self}" }
+            end
             true
           end
 

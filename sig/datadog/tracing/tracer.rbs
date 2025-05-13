@@ -1,6 +1,11 @@
 module Datadog
   module Tracing
     class Tracer
+      
+      @logger: Core::Logger
+
+      attr_reader logger: Core::Logger
+
       def active_root_span: (?untyped? key) -> Datadog::Tracing::Span
 
       def active_span: (?untyped? key) -> Datadog::Tracing::Span

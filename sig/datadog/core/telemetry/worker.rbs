@@ -35,6 +35,8 @@ module Datadog
         def enqueue: (Event::Base event) -> void
 
         def dequeue: () -> Array[Event::Base]
+	
+	def flush: () -> (true | false)
 
         private
 

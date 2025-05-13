@@ -70,6 +70,27 @@ module CoreHelpers
         end
       end
     end
+
+    # Positional and keyword arguments are both accepted to make the method
+    # work on Ruby 2.5/2.6 and 2.7+. In practice only one type of arguments
+    # should be used in any given call.
+    def with_env(*args, **opts)
+      if args.any? && opts.any? # rubocop:disable Style/IfUnlessModifier
+        raise ArgumentError, 'Do not pass both args and opts'
+      end
+
+      around do |example|
+        if args.any?
+          ClimateControl.modify(*args) do
+            example.run
+          end
+        else
+          ClimateControl.modify(**opts) do
+            example.run
+          end
+        end
+      end
+    end
   end
 
   def self.included(base)
