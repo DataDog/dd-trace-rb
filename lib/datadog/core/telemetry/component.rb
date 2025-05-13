@@ -60,25 +60,25 @@ module Datadog
           return unless @enabled
 
           @transport = if settings.telemetry.agentless_enabled
-                           agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
-                             settings,
-                             host_prefix: 'instrumentation-telemetry-intake',
-                             url_override: settings.telemetry.agentless_url_override,
-                             url_override_source: 'c.telemetry.agentless_url_override',
-                             logger: logger,
-                           )
-                           Telemetry::Transport::HTTP.agentless_telemetry(
-                             agent_settings: agent_settings,
-                             logger: logger,
-                             # api_key should have already validated to be
-                             # not nil by +build+ method above.
-                             api_key: settings.api_key,
-                           )
-                         else
-                           Telemetry::Transport::HTTP.agent_telemetry(
-                             agent_settings: agent_settings, logger: logger,
-                           )
-                         end
+                         agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
+                           settings,
+                           host_prefix: 'instrumentation-telemetry-intake',
+                           url_override: settings.telemetry.agentless_url_override,
+                           url_override_source: 'c.telemetry.agentless_url_override',
+                           logger: logger,
+                         )
+                         Telemetry::Transport::HTTP.agentless_telemetry(
+                           agent_settings: agent_settings,
+                           logger: logger,
+                           # api_key should have already validated to be
+                           # not nil by +build+ method above.
+                           api_key: settings.api_key,
+                         )
+                       else
+                         Telemetry::Transport::HTTP.agent_telemetry(
+                           agent_settings: agent_settings, logger: logger,
+                         )
+                       end
 
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
