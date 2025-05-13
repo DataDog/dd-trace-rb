@@ -33,15 +33,6 @@ RSpec.describe 'Telemetry integration tests' do
 
   let(:sent_payloads) { [] }
 
-  shared_context 'mark telemetry started' do
-    before do
-      # To avoid noise from the startup events, turn those off.
-      Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.run do
-        true
-      end
-    end
-  end
-
   shared_examples 'telemetry integration tests' do
     it 'initializes correctly' do
       expect(component.enabled).to be true
