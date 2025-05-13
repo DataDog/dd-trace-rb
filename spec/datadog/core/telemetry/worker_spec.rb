@@ -395,7 +395,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         response
       end
 
-      worker.start
+      ok = worker.start
+      expect(ok).to be true
 
       events_sent = 3
       events_sent.times do

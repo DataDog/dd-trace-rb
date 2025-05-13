@@ -52,10 +52,15 @@ module Datadog
 
         attr_reader :logger
 
+        # Returns true if worker thread is successfully started,
+        # false if worker thread was not started but telemetry is enabled,
+        # nil if telemetry is disabled.
         def start
           return if !enabled? || forked?
 
           # starts async worker
+          # perform should return true if thread was actually started,
+          # false otherwise
           perform
         end
 
