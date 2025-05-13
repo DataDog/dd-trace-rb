@@ -207,7 +207,7 @@ module Datadog
           when :bool
             string_value = value.strip
             string_value = string_value.downcase
-            string_value == 'true' || string_value == '1' # rubocop:disable Style/MultipleComparison
+            string_value == 'true' || string_value == '1'
           when :string, NilClass
             value
           else
