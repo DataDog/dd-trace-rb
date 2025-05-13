@@ -82,7 +82,7 @@ RSpec.describe 'Telemetry integration tests' do
         'hostname' => String,
         'kernel_name' => String,
         'kernel_release' => String,
-        'kernel_version' => String,
+        'kernel_version' => (RUBY_ENGINE == 'jruby' ? nil : String),
       }
     end
 
