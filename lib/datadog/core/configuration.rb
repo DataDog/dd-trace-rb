@@ -291,8 +291,7 @@ module Datadog
         # such as reading stable config. In this case we cannot access configuration.
 
         @temp_config_logger ||= begin
-          debug_env_var = ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]
-          debug_env_value = debug_env_var&.strip&.downcase
+          debug_env_value = ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
           debug_value = debug_env_value == 'true' || debug_env_value == '1' # rubocop:disable Style/MultipleComparison
 
           logger = Core::Logger.new($stdout)
