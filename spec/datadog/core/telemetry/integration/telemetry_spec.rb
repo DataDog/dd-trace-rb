@@ -88,8 +88,8 @@ RSpec.describe 'Telemetry integration tests' do
 
     let(:expected_products_hash) do
       {
-        'appsec' => {'enabled' => false},
-        'profiler' => {'enabled' => false},
+        'appsec' => { 'enabled' => false },
+        'profiler' => { 'enabled' => false },
       }
     end
 
