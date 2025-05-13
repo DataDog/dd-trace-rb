@@ -100,8 +100,8 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
           )
         end
 
-        it 'returns nil' do
-          expect(perform).to be nil
+        it 'returns true' do
+          expect(perform).to be true
         end
       end
     end
