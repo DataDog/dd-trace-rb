@@ -16,17 +16,18 @@ permissions:
 jobs:
   all-jobs-are-green:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Run Ensure CI Success
-        uses: DataDog/ensure-ci-success@727e7fe39ae2e1ce7ea336ec85a7369ab0731754
+        uses: DataDog/ensure-ci-success@727e7fe39ae2e1ce7ea336ec85a7369ab0731754 # v2.1.1
         with:
           # How long to wait before we start checking the job status
           # GitHub's API has a limit, so this helps avoid making too many calls
           # Note: If the job is retried, we'll check it once right away before waiting
-          initial-delay-seconds: "900"
+          initial-delay-seconds: 900
 
           # How long to wait between each check
-          max-retries: "60"
+          max-retries: 60
 
           # Sleep time between each check (default: 60 seconds)
           # polling-interval-seconds: "60"
