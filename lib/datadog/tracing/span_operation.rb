@@ -171,7 +171,7 @@ module Datadog
           # Stop the span first, so timing is a more accurate.
           # If the span failed to start, timing may be inaccurate,
           # but this is not really a serious concern.
-          stop
+          stop(exception: e)
 
           # Trigger the on_error event
           events.on_error.publish(self, e)
@@ -212,7 +212,7 @@ module Datadog
       #
       # steep:ignore:start
       # Steep issue fixed in https://github.com/soutaro/steep/pull/1467
-      def stop(stop_time = nil)
+      def stop(stop_time = nil, exception: nil)
         # A span should not be stopped twice. Note that this is not thread-safe,
         # stop is called from multiple threads, a given span might be stopped
         # several times. Again, one should not do this, so this test is more a
@@ -230,7 +230,7 @@ module Datadog
         @duration_end = stop_time.nil? ? duration_marker : nil
 
         # Trigger after_stop event
-        events.after_stop.publish(self)
+        events.after_stop.publish(self, exception)
 
         self
       end
