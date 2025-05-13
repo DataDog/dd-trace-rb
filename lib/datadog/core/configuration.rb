@@ -172,6 +172,10 @@ module Datadog
         end
       end
 
+      def config_init_logger
+        configuration? ? logger : logger_without_configuration
+      end
+
       # Gracefully shuts down all components.
       #
       # Components will still respond to method calls as usual,
