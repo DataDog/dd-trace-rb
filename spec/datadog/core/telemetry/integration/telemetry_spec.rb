@@ -109,12 +109,8 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     describe 'error event' do
-      before do
-        # To avoid noise from the startup events, turn those off.
-        Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.run do
-          true
-        end
-      end
+      # To avoid noise from the startup events, turn those off.
+      mark_telemetry_started
 
       it 'sends expected payload' do
         component.error('test error')

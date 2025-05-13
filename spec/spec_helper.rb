@@ -38,6 +38,7 @@ require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
 require 'support/test_helpers'
+require 'support/telemetry_helpers'
 require 'support/tracer_helpers'
 require 'support/libdatadog_helpers'
 require 'support/http_server_helpers'
@@ -68,6 +69,7 @@ RSpec.configure do |config|
   config.include LoadedGem::Helpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
+  config.include TelemetryHelpers
   config.include TracerHelpers
   config.include TestHelpers::RSpec::Integration, :integration
   config.include HttpServerHelpers
