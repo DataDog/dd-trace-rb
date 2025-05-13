@@ -14,14 +14,15 @@ module Datadog
           end
 
           class Request < Datadog::Core::Transport::Request
+
+            attr_reader :request_type
+            attr_reader :api_key
+
             def initialize(request_type, parcel, api_key)
               @request_type = request_type
               super(parcel)
               @api_key = api_key
             end
-
-            attr_reader :request_type
-            attr_reader :api_key
           end
 
           class Transport
