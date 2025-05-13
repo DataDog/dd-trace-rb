@@ -9,3 +9,5 @@
 # to used `docker compose` for development, which already handles the Ruby version for you.
 
 eval_gemfile("#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION.split('.').take(2).join('.')}.gemfile")
+
+gem 'graphql'
