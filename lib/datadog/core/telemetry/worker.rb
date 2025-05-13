@@ -137,7 +137,7 @@ module Datadog
 
         def flush_events(events)
           return if events.empty?
-          # TODO can this method silently drop events which are
+          # TODO: can this method silently drop events which are
           # generated prior to the started event being submitted?
           return if !enabled? || !sent_started_event?
 
