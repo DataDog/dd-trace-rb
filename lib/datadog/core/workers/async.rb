@@ -53,7 +53,7 @@ module Datadog
                 worker.join
               end
             rescue Timeout::Error
-              Datadog.logger.debug { "Worker thread did not end after 0.5 seconds: #{self}" }
+              Datadog.logger.debug { "Worker thread did not end after #{SHUTDOWN_TIMEOUT} seconds: #{self}" }
             end
             true
           end
