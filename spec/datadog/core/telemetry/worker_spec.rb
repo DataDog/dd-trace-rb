@@ -377,6 +377,9 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   describe '#enqueue' do
+    # Telemetry may drop events silently if it is not started?
+    mark_telemetry_started
+
     it 'adds events to the buffer and flushes them later' do
       events_received = 0
       mutex = Mutex.new
