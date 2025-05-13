@@ -65,8 +65,12 @@ module Datadog
           super
         end
 
+        # Returns true if event was enqueued, nil if not.
+        # While returning false may seem more reasonable, the only reason
+        # for not enqueueing event (presently) is that telemetry is disabled
+        # altogether, and in this case other methods return nil.
         def enqueue(event)
-          return false if !enabled? || forked?
+          return if !enabled? || forked?
 
           buffer.push(event)
           true
