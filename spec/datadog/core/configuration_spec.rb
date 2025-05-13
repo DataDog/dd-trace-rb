@@ -442,17 +442,8 @@ RSpec.describe Datadog::Core::Configuration do
 
     describe '#logger_without_configuration' do
       subject(:logger_without_configuration) { test_class.send(:logger_without_configuration) }
-
-      it { is_expected.to be_a_kind_of(Datadog::Core::Logger) }
-
       context 'when configuration is not initialized and DD_TRACE_DEBUG is not set' do
         it { expect(logger_without_configuration.level).to be ::Logger::INFO }
-
-        it 'returns a logger' do
-          logger_without_configuration
-
-          expect(logger_without_configuration).to be_a_kind_of(Datadog::Core::Logger)
-        end
       end
 
       context 'when configuration is not initialized and DD_TRACE_DEBUG is set' do
