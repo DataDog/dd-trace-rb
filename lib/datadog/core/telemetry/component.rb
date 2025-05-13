@@ -55,8 +55,11 @@ module Datadog
             aggregation_interval: settings.telemetry.metrics_aggregation_interval_seconds,
           )
 
-          @transport = if @enabled
-                         if settings.telemetry.agentless_enabled
+          @stopped = false
+
+          return unless @enabled
+
+          @transport = if settings.telemetry.agentless_enabled
                            agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
                              settings,
                              host_prefix: 'instrumentation-telemetry-intake',
@@ -76,24 +79,19 @@ module Datadog
                              agent_settings: agent_settings, logger: logger,
                            )
                          end
-                       end
 
-          @stopped = false
+          @worker = Telemetry::Worker.new(
+            enabled: @enabled,
+            heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
+            metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
+            emitter: Emitter.new(@transport, logger: @logger),
+            metrics_manager: @metrics_manager,
+            dependency_collection: settings.telemetry.dependency_collection,
+            logger: logger,
+            shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
+          )
 
-          if @enabled
-            @worker = Telemetry::Worker.new(
-              enabled: @enabled,
-              heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
-              metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
-              emitter: Emitter.new(@transport, logger: @logger),
-              metrics_manager: @metrics_manager,
-              dependency_collection: settings.telemetry.dependency_collection,
-              logger: logger,
-              shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
-            )
-
-            @worker.start
-          end
+          @worker.start
         end
 
         def disable!
