@@ -185,7 +185,7 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     describe 'heartbeat event' do
-      include_context 'mark telemetry started'
+      mark_telemetry_started
 
       it 'sends expected payload' do
         component.worker.send(:heartbeat!)
