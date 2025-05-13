@@ -403,7 +403,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         expect(ok).to be true
       end
 
-      try_wait_until { events_received == events_sent }
+      try_wait_until { p events_received; events_received == events_sent }
     end
   end
 end
