@@ -16,9 +16,8 @@ class ErrorTrackingApiBenchmark
     end
   end
 
-  # @param [Integer] time in seconds. The default is 12 seconds because having over 105 samples allows the
-  #   benchmarking platform to calculate helpful aggregate stats. Because benchmark-ips tries to run one iteration
-  #   per 100ms, this means we'll have around 120 samples (give or take a small margin of error).
+  # @param [Integer] time in seconds. The default is 20 seconds.Because benchmark-ips tries to run one iteration
+  #   per 100ms, this means we'll have around 200 samples (give or take a small margin of error).
   # @param [Integer] warmup in seconds. The default is 2 seconds.
   def benchmark_time(time: 20, warmup: 2)
     VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: time, warmup: warmup }
@@ -38,6 +37,11 @@ class ErrorTrackingApiBenchmark
       x.report('without error tracking with http') do
         Datadog::Tracing.trace('http.request') do
           Net::HTTP.get_response(URI('http://localhost:8126/test'))
+          begin
+            raise 'Test error'
+          rescue
+            # do nothing
+          end
         end
       end
 
@@ -54,9 +58,14 @@ class ErrorTrackingApiBenchmark
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
-      x.report('error tracking with http - all features') do
-        Datadog::Tracing.trace('http.request') do |span|
+      x.report('error tracking with http - all') do
+        Datadog::Tracing.trace('http.request') do
           Net::HTTP.get_response(URI('http://localhost:8126/test'))
+          begin
+            raise 'Test error'
+          rescue
+            # do nothing
+          end
         end
       end
 
@@ -73,9 +82,38 @@ class ErrorTrackingApiBenchmark
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
-      x.report('error tracking with http - user features only') do
-        Datadog::Tracing.trace('http.request') do |span|
+      x.report('error tracking with http - user code only') do
+        Datadog::Tracing.trace('http.request') do
           Net::HTTP.get_response(URI('http://localhost:8126/test'))
+          begin
+            raise 'Test error'
+          rescue
+            # do nothing
+          end
+        end
+      end
+
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.compare!
+    end
+  end
+
+  def benchmark_with_http_request_simulation_third_party
+    Datadog.configure do |c|
+      c.error_tracking.handled_errors = 'user'
+    end
+
+    Benchmark.ips do |x|
+      x.config(**benchmark_time)
+
+      x.report('error tracking with http - third_party only') do
+        Datadog::Tracing.trace('http.request') do
+          Net::HTTP.get_response(URI('http://localhost:8126/test'))
+          begin
+            raise 'Test error'
+          rescue
+            # do nothing
+          end
         end
       end
 
@@ -93,12 +131,6 @@ class ErrorTrackingApiBenchmark
       AccessLog: []
     ).tap do |server|
       server.mount_proc('/test') do |_req, res|
-        sleep 0.14 # Simulate 70ms request processing
-        begin
-          raise 'Test error'
-        rescue
-          # do nothing
-        end
         res.status = 200
         res.body = 'OK'
       end
@@ -120,4 +152,5 @@ ErrorTrackingApiBenchmark.new.instance_exec do
   run_benchmark { benchmark_with_http_request_simulation_no_error_tracking }
   run_benchmark { benchmark_with_http_request_simulation_all }
   run_benchmark { benchmark_with_http_request_simulation_user }
+  run_benchmark { benchmark_with_http_request_simulation_third_party }
 end

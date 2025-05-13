@@ -145,10 +145,6 @@ module Datadog
         @collector ||= yield
       end
 
-      def parent?
-        parent_id != 0
-      end
-
       def measure
         raise ArgumentError, 'Must provide block to measure!' unless block_given?
         # TODO: Should we just invoke the block and skip tracing instead?
@@ -253,6 +249,10 @@ module Datadog
       # Return whether the duration is stopped or not.
       def stopped?
         !@end_time.nil?
+      end
+
+      def parent?
+        parent_id != 0
       end
 
       # for backwards compatibility

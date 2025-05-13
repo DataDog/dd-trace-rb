@@ -159,7 +159,7 @@ module Datadog
       end
 
       def _add_instrumented_file(file_path)
-        @instrumented_files.add(file_path)
+        @instrumented_files&.add(file_path)
       end
     end
   end

@@ -27,7 +27,7 @@ module Datadog
                 o.setter do |value|
                   next value if Ext::VALID_HANDLED_ERRORS.include?(value)
 
-                  unless value.empty?
+                  unless !value.nil? && value.empty?
                     Datadog.logger.warn(
                       "Invalid handled errors scope: #{value}. " \
                       "Supported values are: #{Ext::VALID_HANDLED_ERRORS.join(' | ')}. " \

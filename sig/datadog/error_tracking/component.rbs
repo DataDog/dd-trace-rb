@@ -1,41 +1,37 @@
 module Datadog
   module ErrorTracking
     class Component
-      @tracer: untyped
-      @instrumented_files: untyped
+      @tracer: Datadog::Tracing::Tracer
+      @instrumented_files: Set[String]?
 
-      @handled_errors_include: untyped
-      @filter_function: untyped
-      @handled_exc_tracker: untyped
-      @include_path_getter: untyped
+      @handled_errors_include: Array[String]
+      @filter_function: Proc
+      @handled_exc_tracker: TracePoint
+      @include_path_getter: TracePoint?
 
-      LOCK: untyped
+      LOCK: Mutex
 
-      attr_accessor handled_exc_tracker: untyped
+      attr_accessor handled_exc_tracker: TracePoint
+      attr_accessor module_path_getter: TracePoint?
+      attr_accessor tracer: Datadog::Tracing::Tracer
+      attr_accessor handled_errors_include: Array[String]
+      attr_accessor instrumented_files: Set[String]?
 
-      attr_accessor module_path_getter: untyped
+      def self.build: (Datadog::Core::Configuration::Settings, Datadog::Tracing::Tracer, Datadog::Core::Logger) -> Component?
+      def self.environment_supported?: (Datadog::Core::Logger) -> bool
 
-      attr_accessor tracer: untyped
+      def initialize: (tracer: Datadog::Tracing::Tracer, handled_errors: String, handled_errors_include: Array[String]) -> void
 
-      attr_accessor handled_errors_include: untyped
+      def create_exc_tracker_tracepoint: (Symbol) -> TracePoint
 
-      attr_accessor instrumented_files: untyped
-
-      def self.build: (untyped settings, untyped tracer, untyped logger) -> (nil | untyped)
-      def self.environment_supported?: (untyped logger) -> (false | true)
-
-      def initialize: (tracer: untyped, handled_errors: untyped, handled_errors_include: untyped) -> void
-
-      def create_exc_tracker_tracepoint: (untyped event) -> untyped
-
-      def create_script_compiled_tracepoint: () -> untyped
-      def start: () -> untyped
-      def shutdown!: () -> untyped
+      def create_script_compiled_tracepoint: () -> TracePoint
+      def start: () -> void
+      def shutdown!: () -> void
 
       private
-      def _generate_span_event: (untyped exception) -> untyped
+      def _generate_span_event: (Exception) -> Datadog::Tracing::SpanEvent
 
-      def _add_instrumented_file: (untyped file_path) -> untyped
+      def _add_instrumented_file: (String) -> void
     end
   end
 end

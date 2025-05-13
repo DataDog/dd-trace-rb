@@ -1,7 +1,9 @@
-require 'spec_helper'
+require 'datadog/error_tracking/spec_helper'
 require 'datadog/error_tracking/component'
 
 RSpec.describe Datadog::ErrorTracking::Component do
+  error_tracking_test
+
   let(:tracer) { new_tracer(enabled: false) }
   let(:spans) { tracer.writer.spans(:keep) }
   let(:logger) { Logger.new($stdout) }
