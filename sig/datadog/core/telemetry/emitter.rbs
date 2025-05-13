@@ -8,7 +8,7 @@ module Datadog
         attr_reader logger: Core::Logger
 
         extend Core::Utils::Forking
-        def initialize: (transport: untyped, ?logger: Core::Logger) -> void
+        def initialize: (untyped transport, ?logger: Core::Logger) -> void
         def request: (Datadog::Core::Telemetry::Event::Base event) -> (Datadog::Core::Transport::HTTP::Adapters::Net::Response | Datadog::Core::Transport::InternalErrorResponse)
         def self.sequence: () -> Datadog::Core::Utils::Sequence
       end
