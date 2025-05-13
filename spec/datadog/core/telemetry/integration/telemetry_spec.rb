@@ -101,6 +101,15 @@ RSpec.describe 'Telemetry integration tests' do
       it 'sends expected startup events' do
         expect(settings.telemetry.dependency_collection).to be true
 
+        # Profiling will return the unsupported reason, and telemetry will
+        # report it as an error, even if profiling was not requested to
+        # be enabled.
+        # The most common unsupported reason is failure to load profiling
+        # C extension due to it not having been compiled - we get that in
+        # some CI configurations.
+        expect(Datadog::Profiling).to receive(:enabled?).and_return(false)
+        expect(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
+
         # Instantiate the component
         component
 
