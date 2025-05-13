@@ -62,7 +62,7 @@ module Datadog
 
       def start: (?untyped? start_time) -> self
 
-      def stop: (?untyped? stop_time) -> self?
+      def stop: (?Time? stop_time, ?exception: Exception) -> self?
 
       def started?: () -> untyped
 
