@@ -14,7 +14,8 @@ module Datadog
         end
 
         def self.configuration
-          @configuration ||= StableConfig.extract_configuration
+          # @configuration ||= StableConfig.extract_configuration # TODO: After libdatadog 17.1 release, uncomment this line
+          @configuration ||= {} # TODO: After libdatadog 17.1 release, delete this line
         end
       end
     end
