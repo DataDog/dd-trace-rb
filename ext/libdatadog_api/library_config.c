@@ -34,7 +34,7 @@ static void config_vec_free(void *config_vec_ptr) {
 }
 
 static const rb_data_type_t config_vec_typed_data = {
-  .wrap_struct_name = "Datadog::Core::Configuration::StableConfig::Configurator::ConfigVec",
+  .wrap_struct_name = "Datadog::Core::Configuration::StableConfigVec",
   .function = {
     .dfree = config_vec_free,
     .dsize = NULL,
@@ -47,7 +47,7 @@ void library_config_init(VALUE core_module) {
   VALUE configuration_module = rb_define_module_under(core_module, "Configuration");
   VALUE stable_config_module = rb_define_module_under(configuration_module, "StableConfig");
   VALUE configurator_class = rb_define_class_under(stable_config_module, "Configurator", rb_cObject);
-  config_vec_class = rb_define_class_under(configurator_class, "ConfigVec", rb_cObject);
+  config_vec_class = rb_define_class_under(configuration_module, "StableConfigVec", rb_cObject);
 
   rb_define_alloc_func(configurator_class, _native_configurator_new);
   rb_define_method(configurator_class, "get", _native_configurator_get, 0);
