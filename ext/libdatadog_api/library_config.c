@@ -55,17 +55,12 @@ void library_config_init(VALUE core_module) {
   rb_undef_alloc_func(config_vec_class); // It cannot be created from Ruby code and only serves as an intermediate object for the Ruby GC
 }
 
-// TODO: After libdatadog 17.1 release, delete rb_raise, uncomment code and change `DDTRACE_UNUSED VALUE _klass` by `VALUE klass`
-static VALUE _native_configurator_new(DDTRACE_UNUSED VALUE _klass) {
-  /*
+static VALUE _native_configurator_new(VALUE klass) {
   ddog_Configurator *configurator = ddog_library_configurator_new(false, DDOG_CHARSLICE_C("ruby"));
 
   ddog_library_configurator_with_detect_process_info(configurator);
 
   return TypedData_Wrap_Struct(klass, &configurator_typed_data, configurator);
-  */
-
-  rb_raise(rb_eNotImpError, "TODO: Not in use yet, waiting for libdatadog 17.1");
 }
 
 static VALUE _native_configurator_get(VALUE self) {
@@ -96,8 +91,6 @@ static VALUE _native_configurator_get(VALUE self) {
 
   VALUE local_config_hash = rb_hash_new();
   VALUE fleet_config_hash = rb_hash_new();
-  // TODO: Uncomment next block after libdatadog 17.1 release
-  /*
   for (uintptr_t i = 0; i < config_vec->len; i++) {
     ddog_LibraryConfig config = config_vec->ptr[i];
     VALUE selected_hash;
@@ -111,7 +104,6 @@ static VALUE _native_configurator_get(VALUE self) {
     ddog_CStr name = ddog_library_config_name_to_env(config.name);
     rb_hash_aset(selected_hash, rb_str_new(name.ptr, name.length), rb_str_new(config.value.ptr, config.value.length));
   }
-  */
 
   VALUE result = rb_hash_new();
   rb_hash_aset(result, ID2SYM(rb_intern("local")), local_config_hash);
