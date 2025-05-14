@@ -82,6 +82,7 @@ module Datadog
 
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
+            debug: settings.telemetry.debug,
             heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
             emitter: Emitter.new(@transport, logger: @logger),
