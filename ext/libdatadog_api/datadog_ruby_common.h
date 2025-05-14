@@ -41,20 +41,6 @@ static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   return char_slice;
 }
 
-static inline bool is_config_loaded(void) {
-  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  VALUE is_config_loaded = rb_funcall(datadog_module, rb_intern("configuration?"), 0);
-
-  return is_config_loaded == Qtrue;
-}
-
-static inline VALUE log_warning_without_config(VALUE warning) {
-  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  VALUE logger = rb_funcall(datadog_module, rb_intern("logger_without_configuration"), 0);
-
-  return rb_funcall(logger, rb_intern("warn"), 1, warning);
-}
-
 static inline VALUE log_warning(VALUE warning) {
   VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
   VALUE logger = rb_funcall(datadog_module, rb_intern("logger"), 0);
