@@ -53,6 +53,9 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           appsec: {
             enabled: false,
           },
+          dynamic_instrumentation: {
+            enabled: false,
+          },
           profiler: hash_including(enabled: false),
         },
         configuration: contain_configuration(
