@@ -368,6 +368,7 @@ module Datadog
         DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
 
         attr_reader \
+          :logger,
           :after_finish,
           :after_stop,
           :before_start
