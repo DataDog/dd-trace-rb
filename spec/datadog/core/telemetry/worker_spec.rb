@@ -368,7 +368,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         response
       end
 
-      worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+      ok = worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+      expect(ok).to be true
       worker.stop(true)
 
       try_wait_until { events_received == 1 }
@@ -376,6 +377,9 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   describe '#enqueue' do
+    # Telemetry may drop events silently if it is not started?
+    mark_telemetry_started
+
     it 'adds events to the buffer and flushes them later' do
       events_received = 0
       mutex = Mutex.new
@@ -391,14 +395,16 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         response
       end
 
-      worker.start
+      ok = worker.start
+      expect(ok).to be true
 
       events_sent = 3
       events_sent.times do
-        worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+        ok = worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+        expect(ok).to be true
       end
 
-      try_wait_until { events_received == events_sent }
+      try_wait_until { p events_received; events_received == events_sent }
     end
   end
 end
