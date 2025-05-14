@@ -27,7 +27,6 @@ module Datadog
           dependency_collection:,
           logger:,
           enabled: true,
-          debug: false,
           shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
         )
@@ -35,7 +34,6 @@ module Datadog
           @metrics_manager = metrics_manager
           @dependency_collection = dependency_collection
           @logger = logger
-          @debug = !!debug
 
           @ticks_per_heartbeat = (heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
           @current_ticks = 0
@@ -53,10 +51,6 @@ module Datadog
         end
 
         attr_reader :logger
-
-        def debug?
-          @debug
-        end
 
         def start
           return if !enabled? || forked?
@@ -178,7 +172,7 @@ module Datadog
         end
 
         def send_event(event)
-          res = @emitter.request(event, debug: debug?)
+          res = @emitter.request(event)
 
           disable_on_not_found!(res)
 
