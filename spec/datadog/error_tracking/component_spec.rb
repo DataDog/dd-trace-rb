@@ -12,6 +12,9 @@ RSpec.describe Datadog::ErrorTracking::Component do
   def validate_span_events
     expected_exceptions.each_with_index do |events_per_span, i|
       expect(spans[i].events.length).to eq(events_per_span.length)
+      unless events_per_span.empty?
+        expect(spans[i].get_tag(Datadog::ErrorTracking::Ext::SPAN_EVENTS_HAS_EXCEPTION)).to eq('true')
+      end
       events_per_span.each_with_index do |event, j|
         expect(spans[i].events[j].attributes['exception.type']).to eq(event[:type])
         expect(spans[i].events[j].attributes['exception.message']).to eq(event[:message])
