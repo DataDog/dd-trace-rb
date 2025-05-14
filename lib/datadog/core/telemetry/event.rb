@@ -75,7 +75,7 @@ module Datadog
                 enabled: Datadog::Profiling.enabled?,
               },
               dynamic_instrumentation: {
-                enabled: defined?(Datadog::DI) && Datadog::DI.enabled?,
+                enabled: defined?(Datadog::DI) && Datadog::DI.respond_to?(:enabled?) && Datadog::DI.enabled?,
               }
             }
 
