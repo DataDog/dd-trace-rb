@@ -42,23 +42,16 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     end
     it_behaves_like 'event with no attributes'
 
-    it do
-      # Helper to make configuration matching table easier to read
-      def contain_configuration(*array)
-        array.map { |name, value| { name: name, origin: 'code', seq_id: id, value: value } }
-      end
+    # Helper to make configuration matching table easier to read
+    def contain_code_configuration(*array)
+      array.map { |name, value| { name: name, origin: 'code', seq_id: id, value: value } }
+    end
 
-      is_expected.to match(
-        products: {
-          appsec: {
-            enabled: false,
-          },
-          dynamic_instrumentation: {
-            enabled: false,
-          },
-          profiler: hash_including(enabled: false),
-        },
-        configuration: contain_configuration(
+    def contain_env_configuration(*array)
+      array.map { |name, value| { name: name, origin: 'env_var', seq_id: id, value: value } }
+    end
+
+    DEFAULT_CODE_CONFIGURATION = [
           ['DD_AGENT_HOST', '1.2.3.4'],
           ['DD_AGENT_TRANSPORT', 'TCP'],
           ['DD_TRACE_SAMPLE_RATE', '0.5'],
@@ -87,8 +80,31 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           ['logger.instance', 'MyLogger'],
           ['appsec.enabled', false],
           ['appsec.sca_enabled', false]
+    ]
+
+    let(:expected_products) do
+      {
+          appsec: {
+            enabled: false,
+          },
+          dynamic_instrumentation: {
+            enabled: false,
+          },
+          profiler: hash_including(enabled: false),
+        }
+    end
+
+    let(:expected_install_signature) do
+      { install_id: 'id', install_time: 'time', install_type: 'type' }
+    end
+
+    it do
+      is_expected.to match(
+        products: expected_products,
+        configuration: contain_code_configuration(
+          *DEFAULT_CODE_CONFIGURATION
         ),
-        install_signature: { install_id: 'id', install_time: 'time', install_type: 'type' },
+        install_signature: expected_install_signature,
       )
     end
 
@@ -107,11 +123,16 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       end
 
       it 'reports git/SCI values to telemetry' do
-        #expect_in_fork do
           is_expected.to match(
-            configuration: 42,
+            products: expected_products,
+            configuration: contain_env_configuration(
+              ['DD_GIT_REPOSITORY_URL', 'https://github.com/datadog/hello'],
+              ['DD_GIT_COMMIT_SHA', '1234hash'],
+            ) + contain_code_configuration(
+          *DEFAULT_CODE_CONFIGURATION
+        ),
+            install_signature: expected_install_signature,
           )
-        #end
       end
     end
 
