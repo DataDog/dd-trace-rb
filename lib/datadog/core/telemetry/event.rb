@@ -90,6 +90,7 @@ module Datadog
           end
 
           TARGET_OPTIONS = %w[
+            dynamic_instrumentation.enabled
             logger.level
             profiling.advanced.code_provenance_enabled
             profiling.advanced.endpoint.collection.enabled
