@@ -1,0 +1,41 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Transport
+        module HTTP
+          module Telemetry
+            module Client
+              def send_telemetry_payload: (untyped request) -> untyped
+            end
+
+            module API
+              class Instance < Core::Transport::HTTP::API::Instance
+                def send_telemetry: (untyped env) -> untyped
+              end
+
+              class Spec < Core::Transport::HTTP::API::Spec
+                attr_accessor telemetry: untyped
+
+                def send_telemetry: (untyped env) { (?) -> untyped } -> untyped
+              end
+
+              class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
+                @encoder: untyped
+
+                HEADER_CONTENT_TYPE: "Content-Type"
+
+                attr_reader encoder: untyped
+
+                def initialize: (untyped path, untyped encoder) -> void
+
+                def call: (untyped env) { (?) -> untyped } -> untyped
+
+                def headers: (request_type: untyped, api_key: untyped, ?api_version: ::String) -> untyped
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end

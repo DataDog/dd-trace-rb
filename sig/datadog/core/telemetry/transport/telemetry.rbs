@@ -1,0 +1,49 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Transport
+        module Telemetry
+          class EncodedParcel
+            include Datadog::Core::Transport::Parcel
+          end
+
+          class Request < Datadog::Core::Transport::Request
+            @request_type: untyped
+
+            @api_key: untyped
+
+            def initialize: (untyped request_type, untyped parcel, untyped api_key) -> void
+
+            attr_reader request_type: untyped
+
+            attr_reader api_key: untyped
+          end
+
+          class Transport
+            @apis: untyped
+
+            @logger: untyped
+
+            @client: untyped
+
+            attr_reader client: untyped
+
+            attr_reader apis: untyped
+
+            attr_reader default_api: untyped
+
+            attr_reader current_api_id: untyped
+
+            attr_reader logger: untyped
+
+            attr_accessor api_key: untyped
+
+            def initialize: (untyped apis, untyped default_api, logger: untyped) -> void
+
+            def send_telemetry: (request_type: untyped, payload: untyped) -> untyped
+          end
+        end
+      end
+    end
+  end
+end
