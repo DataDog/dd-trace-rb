@@ -176,6 +176,21 @@ RSpec.describe 'Telemetry integration tests' do
     let(:expected_headers) { expected_base_headers }
 
     include_examples 'telemetry integration tests'
+
+    context 'agent listening on UDS' do
+      define_http_server_uds do |http_server|
+        http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
+      end
+
+      let(:settings) do
+        Datadog::Core::Configuration::Settings.new.tap do |settings|
+          settings.agent.uds_path = uds_socket_path
+          settings.telemetry.enabled = true
+        end
+      end
+
+      include_examples 'telemetry integration tests'
+    end
   end
 
   context 'in agentless mode' do

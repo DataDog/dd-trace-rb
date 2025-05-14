@@ -5,17 +5,26 @@ require 'datadog/core/telemetry/component'
 RSpec.describe Datadog::Core::Telemetry::Component do
   subject(:telemetry) do
     described_class.new(
+      settings: settings,
+      agent_settings: agent_settings,
       logger: logger,
       enabled: enabled,
-      http_transport: http_transport,
-      metrics_enabled: metrics_enabled,
-      log_collection_enabled: log_collection_enabled,
-      heartbeat_interval_seconds: heartbeat_interval_seconds,
-      metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-      dependency_collection: dependency_collection,
-      shutdown_timeout_seconds: shutdown_timeout_seconds
     )
   end
+
+  let(:settings) do
+    Datadog::Core::Configuration::Settings.new.tap do |c|
+      c.telemetry.enabled = enabled
+      c.telemetry.metrics_enabled = metrics_enabled
+      c.telemetry.log_collection_enabled = log_collection_enabled
+      c.telemetry.heartbeat_interval_seconds = heartbeat_interval_seconds
+      c.telemetry.metrics_aggregation_interval_seconds = metrics_aggregation_interval_seconds
+      c.telemetry.shutdown_timeout_seconds = shutdown_timeout_seconds
+      c.telemetry.dependency_collection = dependency_collection
+    end
+  end
+
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
   let(:enabled) { true }
   let(:metrics_enabled) { true }
@@ -25,7 +34,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   let(:shutdown_timeout_seconds) { 1 }
   let(:dependency_collection) { true }
   let(:worker) { double(Datadog::Core::Telemetry::Worker) }
-  let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
+  let(:transport) { double(Datadog::Core::Telemetry::Transport::Telemetry::Transport) }
   let(:not_found) { false }
 
   let(:logger) do
@@ -50,6 +59,43 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     allow(worker).to receive(:"enabled=")
   end
 
+  describe '.build' do
+    subject(:telemetry) { described_class.build(settings, agent_settings, logger) }
+
+    context 'when agentless' do
+      before do
+        expect(settings.telemetry).to receive(:agentless_enabled).at_least(:once).and_return(true)
+      end
+
+      context 'with api_key specified' do
+        before do
+          expect(settings).to receive(:api_key).at_least(:once).and_return('1234')
+        end
+
+        it 'enables telemetry' do
+          expect(telemetry.enabled).to be true
+          expect(telemetry.worker).to be worker
+        end
+      end
+
+      context 'with api_key not specified' do
+        before do
+          expect(settings).to receive(:api_key).and_return(nil)
+        end
+
+        it 'disables telemetry' do
+          expect_lazy_log(
+            logger,
+            :debug,
+            /Telemetry disabled. Agentless telemetry requires a DD_API_KEY variable to be set/
+          )
+          expect(telemetry.enabled).to be false
+          expect(telemetry.worker).to be nil
+        end
+      end
+    end
+  end
+
   describe '#initialize' do
     after do
       telemetry.stop!
@@ -58,12 +104,10 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     context 'with default parameters' do
       subject(:telemetry) do
         described_class.new(
+          enabled: enabled,
           logger: logger,
-          http_transport: http_transport,
-          heartbeat_interval_seconds: heartbeat_interval_seconds,
-          metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-          dependency_collection: dependency_collection,
-          shutdown_timeout_seconds: shutdown_timeout_seconds
+          settings: settings,
+          agent_settings: agent_settings,
         )
       end
 
