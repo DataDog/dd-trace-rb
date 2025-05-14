@@ -36,8 +36,7 @@ void process_discovery_init(VALUE core_module) {
   rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 2);
 }
 
-// TODO: Remove DDTRACE_UNUSED and rename _self to self once we have updated libdatadog to 17.1
-static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   VALUE logger;
   VALUE options;
   rb_scan_args(argc, argv, "1:", &logger, &options);
@@ -61,7 +60,6 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED
   ENFORCE_TYPE(service_env, T_STRING);
   ENFORCE_TYPE(service_version, T_STRING);
 
-  /*
   ddog_Result_TracerMemfdHandle result = ddog_store_tracer_metadata(
     (uint8_t) NUM2UINT(schema_version),
     char_slice_from_ruby_string(runtime_id),
@@ -86,9 +84,6 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED
   VALUE tracer_memfd_class = rb_const_get(self, rb_intern("TracerMemfd"));
   VALUE tracer_memfd = TypedData_Wrap_Struct(tracer_memfd_class, &tracer_memfd_type, fd);
   return tracer_memfd;
-  */
-
-  rb_raise(rb_eNotImpError, "TODO: Not in use yet, waiting for libdatadog 17.1");
 }
 
 static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd) {
