@@ -114,6 +114,9 @@ module Datadog
             seq_id = Event.configuration_sequence.next
 
             list = [
+              conf_value('DD_GIT_REPOSITORY_URL', Core::Environment::Git.git_repository_url, seq_id, 'env_var'),
+              conf_value('DD_GIT_COMMIT_SHA', Core::Environment::Git.git_commit_sha, seq_id, 'env_var'),
+
               conf_value('DD_AGENT_HOST', config.agent.host, seq_id),
               conf_value('DD_AGENT_TRANSPORT', agent_transport(config), seq_id),
               conf_value('DD_TRACE_SAMPLE_RATE', to_value(config.tracing.sampling.default_rate), seq_id),

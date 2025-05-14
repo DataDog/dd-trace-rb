@@ -19,6 +19,15 @@ module Datadog
 
           @git_commit_sha = ENV[Datadog::Core::Git::Ext::ENV_COMMIT_SHA]
         end
+
+        private
+
+        # Resets caches in this module. Meant for internal use in the
+        # test suite only.
+        def self._reset
+          remove_instance_variable(:@git_repository_url) if defined?(@git_repository_url)
+          remove_instance_variable(:@git_commit_sha) if defined?(@git_commit_sha)
+        end
       end
     end
   end
