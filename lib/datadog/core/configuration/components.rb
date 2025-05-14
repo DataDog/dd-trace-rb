@@ -51,11 +51,11 @@ module Datadog
             Core::Runtime::Metrics.new(logger: logger, telemetry: telemetry, **options)
           end
 
-          def build_runtime_metrics_worker(settings, logger)
+          def build_runtime_metrics_worker(settings, logger, telemetry)
             # NOTE: Should we just ignore building the worker if its not enabled?
             options = settings.runtime_metrics.opts.merge(
               enabled: settings.runtime_metrics.enabled,
-              metrics: build_runtime_metrics(settings, logger),
+              metrics: build_runtime_metrics(settings, logger, telemetry),
               logger: logger,
             )
 
