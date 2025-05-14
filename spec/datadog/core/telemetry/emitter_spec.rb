@@ -82,7 +82,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
       let(:payload) { { foo: 'bar' } }
 
       it 'creates a telemetry event with data' do
-        allow(Datadog::Core::Telemetry::Request).to receive(:build_payload).with(event, 1).and_return(payload)
+        allow(Datadog::Core::Telemetry::Request).to receive(:build_payload).with(event, 1, debug: false).and_return(payload)
 
         request
 
