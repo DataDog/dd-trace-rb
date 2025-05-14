@@ -153,7 +153,8 @@ RSpec.describe 'Telemetry integration tests' do
       mark_telemetry_started
 
       it 'sends expected payload' do
-        component.error('test error')
+        ok = component.error('test error')
+        expect(ok).to be true
 
         component.flush
         expect(sent_payloads.length).to eq 1
