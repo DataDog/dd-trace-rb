@@ -59,7 +59,7 @@ module Datadog
               logger: logger,
             )
 
-            Core::Workers::RuntimeMetrics.new(options)
+            Core::Workers::RuntimeMetrics.new(telemetry: telemetry, **options)
           end
 
           def build_telemetry(settings, agent_settings, logger)
