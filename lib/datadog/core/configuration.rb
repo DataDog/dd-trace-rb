@@ -278,7 +278,6 @@ module Datadog
       def logger_without_components
         # Use default logger without initializing components.
         # This enables logging during initialization, otherwise we'd run into deadlocks.
-        return logger_without_configuration unless configuration?
 
         @temp_logger ||= begin
           logger = configuration.logger.instance || Core::Logger.new($stdout)
@@ -290,9 +289,14 @@ module Datadog
       def logger_without_configuration
         # There's rare cases where we need to use logger during configuration initialization,
         # such as reading stable config. In this case we cannot access configuration.
+
         @temp_config_logger ||= begin
+          debug_env_value = ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
+          debug_value = debug_env_value == 'true' || debug_env_value == '1' # rubocop:disable Style/MultipleComparison
+
           logger = Core::Logger.new($stdout)
-          logger.level = ::Logger::DEBUG
+          # We cannot access config and the default level is INFO, so we need to set the level manually
+          logger.level = debug_value ? ::Logger::DEBUG : ::Logger::INFO
           logger
         end
       end

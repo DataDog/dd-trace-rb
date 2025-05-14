@@ -1,0 +1,12 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Transport
+        module HTTP
+          def self?.agentless_telemetry: (agent_settings: untyped, logger: untyped, ?api_key: untyped?, ?api_version: untyped?, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
+          def self?.agent_telemetry: (agent_settings: untyped, logger: untyped, ?api_version: untyped?, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
+        end
+      end
+    end
+  end
+end
