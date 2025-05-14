@@ -172,6 +172,10 @@ module Datadog
         end
       end
 
+      def config_init_logger
+        configuration? ? logger : logger_without_configuration
+      end
+
       # Gracefully shuts down all components.
       #
       # Components will still respond to method calls as usual,
@@ -292,7 +296,7 @@ module Datadog
 
         @temp_config_logger ||= begin
           debug_env_value = ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
-          debug_value = debug_env_value == 'true' || debug_env_value == '1' # rubocop:disable Style/MultipleComparison
+          debug_value = debug_env_value == 'true' || debug_env_value == '1'
 
           logger = Core::Logger.new($stdout)
           # We cannot access config and the default level is INFO, so we need to set the level manually

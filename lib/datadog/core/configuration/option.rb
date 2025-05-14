@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'stable_config'
 require_relative '../utils/safe_dup'
 
 module Datadog
@@ -32,19 +33,25 @@ module Datadog
           end
 
           # Remote configuration provided through the Datadog app.
-          REMOTE_CONFIGURATION = Value.new(3, :remote_configuration).freeze
+          REMOTE_CONFIGURATION = Value.new(5, :remote_configuration).freeze
 
           # Configuration provided in Ruby code, in this same process
-          PROGRAMMATIC = Value.new(2, :programmatic).freeze
+          PROGRAMMATIC = Value.new(4, :programmatic).freeze
+
+          # Configuration provided by fleet managed stable config
+          FLEET_STABLE = Value.new(3, :fleet_stable).freeze
 
           # Configuration provided via environment variable
-          ENVIRONMENT = Value.new(1, :environment).freeze
+          ENVIRONMENT = Value.new(2, :environment).freeze
+
+          # Configuration provided by local stable config file
+          LOCAL_STABLE = Value.new(1, :local_stable).freeze
 
           # Configuration that comes from default values
           DEFAULT = Value.new(0, :default).freeze
 
           # All precedences, sorted from highest to lowest
-          LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, ENVIRONMENT, DEFAULT].sort.reverse.freeze
+          LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, FLEET_STABLE, ENVIRONMENT, LOCAL_STABLE, DEFAULT].sort.reverse.freeze
         end
 
         def initialize(definition, context)
@@ -125,7 +132,9 @@ module Datadog
             # This approach handles scenarios where an environment value is unset
             # by falling back to the default value consistently.
             set_default_value
+            set_customer_stable_config_value
             set_env_value
+            set_fleet_stable_config_value
           end
 
           @value
@@ -198,7 +207,7 @@ module Datadog
           when :bool
             string_value = value.strip
             string_value = string_value.downcase
-            string_value == 'true' || string_value == '1' # rubocop:disable Style/MultipleComparison
+            string_value == 'true' || string_value == '1'
           when :string, NilClass
             value
           else
@@ -295,33 +304,54 @@ module Datadog
         end
 
         def set_env_value
+          value, resolved_env = get_value_and_resolved_env_from(ENV)
+          set(value, precedence: Precedence::ENVIRONMENT, resolved_env: resolved_env) unless value.nil?
+        end
+
+        def set_customer_stable_config_value
+          customer_config = StableConfig.configuration[:local]
+          return if customer_config.nil?
+
+          value, resolved_env = get_value_and_resolved_env_from(customer_config, source: 'local stable config')
+          set(value, precedence: Precedence::LOCAL_STABLE, resolved_env: resolved_env) unless value.nil?
+        end
+
+        def set_fleet_stable_config_value
+          fleet_config = StableConfig.configuration[:fleet]
+          return if fleet_config.nil?
+
+          value, resolved_env = get_value_and_resolved_env_from(fleet_config, source: 'fleet stable config')
+          set(value, precedence: Precedence::FLEET_STABLE, resolved_env: resolved_env) unless value.nil?
+        end
+
+        def get_value_and_resolved_env_from(env_vars, source: 'environment variable')
           value = nil
           resolved_env = nil
 
           if definition.env
             Array(definition.env).each do |env|
-              next if ENV[env].nil?
+              next if env_vars[env].nil?
 
               resolved_env = env
-              value = coerce_env_variable(ENV[env])
+              value = coerce_env_variable(env_vars[env])
               break
             end
           end
 
-          if value.nil? && definition.deprecated_env && ENV[definition.deprecated_env]
+          if value.nil? && definition.deprecated_env && env_vars[definition.deprecated_env]
             resolved_env = definition.deprecated_env
-            value = coerce_env_variable(ENV[definition.deprecated_env])
+            value = coerce_env_variable(env_vars[definition.deprecated_env])
 
             Datadog::Core.log_deprecation do
-              "#{definition.deprecated_env} environment variable is deprecated, use #{definition.env} instead."
+              "#{definition.deprecated_env} #{source} is deprecated, use #{definition.env} instead."
             end
           end
 
-          set(value, precedence: Precedence::ENVIRONMENT, resolved_env: resolved_env) unless value.nil?
+          [value, resolved_env]
         rescue ArgumentError
           raise ArgumentError,
-            "Expected environment variable #{resolved_env} to be a #{@definition.type}, " \
-                              "but '#{ENV[resolved_env]}' was provided"
+            "Expected #{source} #{resolved_env} to be a #{@definition.type}, " \
+                              "but '#{env_vars[resolved_env]}' was provided"
         end
 
         # Anchor object that represents a value that is not set.
