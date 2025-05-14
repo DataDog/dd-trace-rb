@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include <datadog/library-config.h>
 
+#include "library_config.h"
 #include "datadog_ruby_common.h"
 
 static VALUE _native_configurator_new(VALUE klass);
@@ -42,6 +43,7 @@ static const rb_data_type_t config_vec_typed_data = {
 };
 
 void library_config_init(VALUE core_module) {
+  rb_global_variable(&config_vec_class);
   VALUE configuration_module = rb_define_module_under(core_module, "Configuration");
   VALUE stable_config_module = rb_define_module_under(configuration_module, "StableConfig");
   VALUE configurator_class = rb_define_class_under(stable_config_module, "Configurator", rb_cObject);
@@ -50,7 +52,7 @@ void library_config_init(VALUE core_module) {
   rb_define_alloc_func(configurator_class, _native_configurator_new);
   rb_define_method(configurator_class, "get", _native_configurator_get, 0);
 
-  rb_undef_alloc_func(config_vec_class); // It cannot be created form Ruby code and only serves as an intermediate object for the Ruby GC
+  rb_undef_alloc_func(config_vec_class); // It cannot be created from Ruby code and only serves as an intermediate object for the Ruby GC
 }
 
 static VALUE _native_configurator_new(VALUE klass) {
