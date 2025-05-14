@@ -7,8 +7,7 @@ require_relative 'benchmarks_helper'
 require 'datadog'
 require 'benchmark'
 require 'net/http'
-require 'webrick'
-
+require 'webmock'
 class ErrorTrackingApiBenchmark
   module NoopWriter
     def write(trace)
@@ -25,8 +24,15 @@ class ErrorTrackingApiBenchmark
 
   def initialize
     ::Datadog::Tracing::Writer.prepend(NoopWriter)
-    Thread.new do
-      server.start
+
+    # Enable WebMock but allow connections to the Datadog agent
+    WebMock.disable_net_connect!(allow: ['testagent:9126', 'localhost:9126', '127.0.0.1:9126'])
+
+    WebMock.stub_request(:any, 'http://example.com/test').to_return do
+      # Sleep for 50ms to simulate network latency
+      sleep(0.05)
+
+      { status: 200, body: 'OK' }
     end
   end
 
@@ -36,7 +42,7 @@ class ErrorTrackingApiBenchmark
 
       x.report('without error tracking with http') do
         Datadog::Tracing.trace('http.request') do
-          Net::HTTP.get_response(URI('http://localhost:8126/test'))
+          Net::HTTP.get_response(URI('http://example.com/test'))
           begin
             raise 'Test error'
           rescue
@@ -60,7 +66,7 @@ class ErrorTrackingApiBenchmark
 
       x.report('error tracking with http - all') do
         Datadog::Tracing.trace('http.request') do
-          Net::HTTP.get_response(URI('http://localhost:8126/test'))
+          Net::HTTP.get_response(URI('http://example.com/test'))
           begin
             raise 'Test error'
           rescue
@@ -84,7 +90,7 @@ class ErrorTrackingApiBenchmark
 
       x.report('error tracking with http - user code only') do
         Datadog::Tracing.trace('http.request') do
-          Net::HTTP.get_response(URI('http://localhost:8126/test'))
+          Net::HTTP.get_response(URI('http://example.com/test'))
           begin
             raise 'Test error'
           rescue
@@ -108,7 +114,7 @@ class ErrorTrackingApiBenchmark
 
       x.report('error tracking with http - third_party only') do
         Datadog::Tracing.trace('http.request') do
-          Net::HTTP.get_response(URI('http://localhost:8126/test'))
+          Net::HTTP.get_response(URI('http://example.com/test'))
           begin
             raise 'Test error'
           rescue
@@ -119,21 +125,6 @@ class ErrorTrackingApiBenchmark
 
       x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
-    end
-  end
-
-  private
-
-  def server
-    WEBrick::HTTPServer.new(
-      Port: 8126,
-      Logger: WEBrick::Log.new(nil, WEBrick::Log::ERROR),
-      AccessLog: []
-    ).tap do |server|
-      server.mount_proc('/test') do |_req, res|
-        res.status = 200
-        res.body = 'OK'
-      end
     end
   end
 end
@@ -154,3 +145,6 @@ ErrorTrackingApiBenchmark.new.instance_exec do
   run_benchmark { benchmark_with_http_request_simulation_user }
   run_benchmark { benchmark_with_http_request_simulation_third_party }
 end
+
+# Clean up WebMock stubs after all benchmarks are finished
+WebMock.disable!
