@@ -77,7 +77,7 @@ static VALUE _native_configurator_get(VALUE self) {
     } else {
       log_warning_without_config(message);
     }
-    return Qnil;
+    return rb_hash_new();
   }
 
   // Wrapping config_vec into a Ruby object enables the Ruby GC to manage its memory
