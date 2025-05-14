@@ -54,6 +54,36 @@ RSpec.describe 'Telemetry integration tests' do
       )
     end
 
+    let(:expected_application_hash) do
+      {
+        'env' => nil,
+        'language_name' => 'ruby',
+        'language_version' => String,
+        'runtime_name' => /\Aj?ruby\z/i,
+        'runtime_version' => String,
+        'service_name' => String,
+        'service_version' => nil,
+        'tracer_version' => String,
+      }
+    end
+
+    let(:expected_host_hash) do
+      {
+        'architecture' => String,
+        'hostname' => String,
+        'kernel_name' => String,
+        'kernel_release' => String,
+        'kernel_version' => (RUBY_ENGINE == 'jruby' ? nil : String),
+      }
+    end
+
+    let(:expected_products_hash) do
+      {
+        'appsec' => { 'enabled' => false },
+        'profiler' => { 'enabled' => false },
+      }
+    end
+
     describe 'startup events' do
       before do
         Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
@@ -61,6 +91,15 @@ RSpec.describe 'Telemetry integration tests' do
 
       it 'sends expected startup events' do
         expect(settings.telemetry.dependency_collection).to be true
+
+        # Profiling will return the unsupported reason, and telemetry will
+        # report it as an error, even if profiling was not requested to
+        # be enabled.
+        # The most common unsupported reason is failure to load profiling
+        # C extension due to it not having been compiled - we get that in
+        # some CI configurations.
+        expect(Datadog::Profiling).to receive(:enabled?).and_return(false)
+        expect(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
 
         # Instantiate the component
         component
@@ -71,12 +110,12 @@ RSpec.describe 'Telemetry integration tests' do
         payload = sent_payloads[0]
         expect(payload.fetch(:payload)).to match(
           'api_version' => 'v2',
-          'application' => Hash,
+          'application' => expected_application_hash,
           'debug' => false,
-          'host' => Hash,
+          'host' => expected_host_hash,
           'payload' => {
             'configuration' => Array,
-            'products' => Hash,
+            'products' => expected_products_hash,
             'install_signature' => Hash,
           },
           'request_type' => 'app-started',
@@ -91,9 +130,9 @@ RSpec.describe 'Telemetry integration tests' do
         payload = sent_payloads[1]
         expect(payload.fetch(:payload)).to match(
           'api_version' => 'v2',
-          'application' => Hash,
+          'application' => expected_application_hash,
           'debug' => false,
-          'host' => Hash,
+          'host' => expected_host_hash,
           'payload' => {
             'dependencies' => Array,
           },
@@ -109,12 +148,8 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     describe 'error event' do
-      before do
-        # To avoid noise from the startup events, turn those off.
-        Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.run do
-          true
-        end
-      end
+      # To avoid noise from the startup events, turn those off.
+      mark_telemetry_started
 
       it 'sends expected payload' do
         component.error('test error')
@@ -125,9 +160,9 @@ RSpec.describe 'Telemetry integration tests' do
         payload = sent_payloads[0]
         expect(payload.fetch(:payload)).to match(
           'api_version' => 'v2',
-          'application' => Hash,
+          'application' => expected_application_hash,
           'debug' => false,
-          'host' => Hash,
+          'host' => expected_host_hash,
           'payload' => [
             'payload' => {
               'logs' => [
@@ -145,6 +180,32 @@ RSpec.describe 'Telemetry integration tests' do
         )
         expect(payload.fetch(:headers)).to include(
           expected_headers.merge('dd-telemetry-request-type' => %w[message-batch])
+        )
+      end
+    end
+
+    describe 'heartbeat event' do
+      mark_telemetry_started
+
+      it 'sends expected payload' do
+        component.worker.send(:heartbeat!)
+        component.worker.flush
+        expect(sent_payloads.length).to eq 1
+
+        payload = sent_payloads[0]
+        expect(payload.fetch(:payload)).to match(
+          'api_version' => 'v2',
+          'application' => expected_application_hash,
+          'debug' => false,
+          'host' => expected_host_hash,
+          'payload' => {},
+          'request_type' => 'app-heartbeat',
+          'runtime_id' => String,
+          'seq_id' => Integer,
+          'tracer_time' => Integer,
+        )
+        expect(payload.fetch(:headers)).to include(
+          expected_headers.merge('dd-telemetry-request-type' => %w[app-heartbeat])
         )
       end
     end
