@@ -209,6 +209,36 @@ RSpec.describe 'Telemetry integration tests' do
         )
       end
     end
+
+    context 'when telemetry debugging is enabled in settings' do
+      mark_telemetry_started
+
+      before do
+        settings.telemetry.debug = true
+      end
+
+      it 'sets debug to true in payload' do
+        component.worker.send(:heartbeat!)
+        component.worker.flush
+        expect(sent_payloads.length).to eq 1
+
+        payload = sent_payloads[0]
+        expect(payload.fetch(:payload)).to match(
+          'api_version' => 'v2',
+          'application' => expected_application_hash,
+          'debug' => true,
+          'host' => expected_host_hash,
+          'payload' => {},
+          'request_type' => 'app-heartbeat',
+          'runtime_id' => String,
+          'seq_id' => Integer,
+          'tracer_time' => Integer,
+        )
+        expect(payload.fetch(:headers)).to include(
+          expected_headers.merge('dd-telemetry-request-type' => %w[app-heartbeat])
+        )
+      end
+    end
   end
 
   let(:handler_proc) do
