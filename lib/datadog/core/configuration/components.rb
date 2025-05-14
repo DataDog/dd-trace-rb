@@ -42,13 +42,13 @@ module Datadog
             logger
           end
 
-          def build_runtime_metrics(settings, logger)
+          def build_runtime_metrics(settings, logger, telemetry)
             options = { enabled: settings.runtime_metrics.enabled }
             options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
             options[:services] = [settings.service] unless settings.service.nil?
             options[:experimental_runtime_id_enabled] = settings.runtime_metrics.experimental_runtime_id_enabled
 
-            Core::Runtime::Metrics.new(logger: logger, **options)
+            Core::Runtime::Metrics.new(logger: logger, telemetry: telemetry, **options)
           end
 
           def build_runtime_metrics_worker(settings, logger)
@@ -119,7 +119,7 @@ module Datadog
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 
-          @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger)
+          @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger, telemetry)
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
