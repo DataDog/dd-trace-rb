@@ -2,8 +2,12 @@
 
 module Datadog
   module ErrorTracking
-    # The filters module is in charge of creating
-    # the filter function called in the handled_exc_tracker.
+    # Based on configuration, the tracepoint listening to :rescue or :raise
+    # may report more handled errors than we want to report. Therefore we need
+    # a function to filter the events. As the filter function both depends
+    # on configuration and is called numerous time, we generate it during
+    # during the initialization of the feature to have the best performance
+    # possible.
     #
     # @api private
     module Filters
@@ -35,19 +39,21 @@ module Datadog
         get_gem_name(file_path) && !datadog_code?(file_path)
       end
 
-      def instrumented_module?(file_path, instrumented_files)
+      def file_included?(file_path, instrumented_files)
         instrumented_files.include?(file_path)
       end
 
       # Generate the proc used in the tracepoint
       def generate_filter(to_instrument_scope, handled_errors_include = nil)
         case to_instrument_scope
+        # If DD_ERROR_TRACKING_HANDLED_ERRORS is set
         when 'all'
           return proc { |file_path| !datadog_code?(file_path) }
         when 'user'
+          # If DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE is set
           if handled_errors_include
             return proc { |file_path|
-              user_code?(file_path) || instrumented_module?(file_path, handled_errors_include)
+              user_code?(file_path) || file_included?(file_path, handled_errors_include)
             }
           else
             return proc { |file_path| user_code?(file_path) }
@@ -55,15 +61,15 @@ module Datadog
         when 'third_party'
           if handled_errors_include
             return proc { |file_path|
-              third_party_code?(file_path) || instrumented_module?(file_path, handled_errors_include)
+              third_party_code?(file_path) || file_included?(file_path, handled_errors_include)
             }
           else
             return proc { |file_path| third_party_code?(file_path) }
           end
         end
 
-        # If only handled_errors_include is set
-        proc { |file_path| instrumented_module?(file_path, handled_errors_include) }
+        # If only DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE is set
+        proc { |file_path| file_included?(file_path, handled_errors_include) }
       end
     end
   end

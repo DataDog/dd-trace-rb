@@ -4,11 +4,12 @@ require_relative 'ext'
 
 module Datadog
   module ErrorTracking
-    # The collector is in charge of storing the span events
-    # corresponding to the handled exceptions.
+    # The Collector is in charge, for a SpanOperation of storing the span events
+    # created when an error is handled. Each SpanOperation has a Collector as soon
+    # as a span event is created and the Collector has the same life time as the SpanOp.
     #
-    # We do not add the span events directly to the span as we may
-    # delete some if an exception which was handled is rethrown
+    # If an error is handled then rethrown, the SpanEvent corresponding to the error
+    # will be deleted. That is why we do not add directly the SpanEvent to the SpanOp.
     #
     # @api private
     class Collector
@@ -18,7 +19,7 @@ module Datadog
       def self.after_stop
         @after_stop ||= proc do |span_op, error|
           collector = span_op.collector
-          # if an error exited the scope of the span
+          # if an error exited the scope of the span, we delete the corresponding SpanEvent.
           collector.on_error(span_op, error) unless error.nil?
 
           span_events = collector.get_span_events
@@ -32,13 +33,16 @@ module Datadog
 
       def add_span_event(span_op, error, span_event)
         # When this is the first time we add a span event for a span,
-        # we suscribe :after_stop event
+        # we suscribe to the :after_stop event
         if @span_event_per_error.empty?
           events = span_op.send(:events)
           events.after_stop.subscribe(&self.class.after_stop)
 
+          # This tag is used by the Error Tracking product to report
+          # the error in Error Tracking
           span_op.set_tag(Ext::SPAN_EVENTS_HAS_EXCEPTION, true)
         end
+        # Set a limit to the number of span event we can store per SpanOp
         if @span_event_per_error.key?(error) || @span_event_per_error.length < SPAN_EVENTS_LIMIT
           @span_event_per_error[error] =
             span_event
@@ -53,8 +57,8 @@ module Datadog
           @span_event_per_error.delete(error)
         end
       else
-        # Up to ruby3.2, we are listening to :raise error. We need to ensure
-        # that an error exiting the scope a span is not handled in a parent span.
+        # Up to ruby3.2, we are listening to :raise event. We need to ensure
+        # that an error exiting the scope of a span is not handled in a parent span.
         # This function will propagate the span event to the parent span. If the
         # error is not handled in the parent span, it will be deleted by design.
         def on_error(span_op, error)

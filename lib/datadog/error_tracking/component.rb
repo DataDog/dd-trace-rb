@@ -6,12 +6,12 @@ require_relative 'filters'
 
 module Datadog
   module ErrorTracking
-    # Component for error tracking.
+    # Component for Error Tracking.
     #
     # Only one instance of the Component should ever be active.
     #
     # The component instance records every handled exceptions from the configured scopes
-    # (user, third_party packages, specified modules of everything).
+    # (user, third_party packages, specified files or everything).
     class Component
       LOCK = Mutex.new
 
@@ -23,7 +23,7 @@ module Datadog
 
       class << self
         def build(settings, tracer, logger)
-          return if !settings.respond_to?(:error_tracking) || (settings.error_tracking.handled_errors.empty? &&
+          return if !settings.respond_to?(:error_tracking) || (settings.error_tracking.handled_errors.nil? &&
             settings.error_tracking.handled_errors_include.empty?)
 
           return unless environment_supported?(logger)
@@ -61,11 +61,10 @@ module Datadog
         @handled_errors_include = handled_errors_include
 
         # Filter function is used to filter out the exception
-        # we do not want to report. For instance exception from third
-        # party packages.
+        # we do not want to report. For instance exception from gems.
         @filter_function = Filters.generate_filter(handled_errors, @instrumented_files)
 
-        # :raise event was added in Ruby 3.3
+        # :rescue event was added in Ruby 3.3
         #
         # Before Ruby3.3 the tracepoint listen for :raise events.
         # If an error is not handled, we will delete the according
@@ -77,9 +76,10 @@ module Datadog
         @handled_exc_tracker = create_exc_tracker_tracepoint(event)
 
         unless @instrumented_files.nil?
-          # The only thing we know about the handled errors is in which file it was
-          # rescued. Therefore, when a user specifies the modules to instrument,
-          # we use this tracepoint to get their paths.
+          # The only thing we know about the handled errors is the path of the file
+          # in which the error was rescued. Therefore, we need to retrieve the path
+          # of the files the user want to instrument. This tracepoint is used for that
+          # purpose
           @include_path_getter = create_script_compiled_tracepoint
         end
       end
@@ -89,6 +89,8 @@ module Datadog
           active_span = @tracer.active_span
           unless active_span.nil?
             raised_exception = tp.raised_exception
+            # Note that in 3.2, this will give the path of where the error was raised
+            # which may cause de handled_error_include env variable to malfunction.
             rescue_file_path = tp.path
             if @filter_function.call(rescue_file_path)
               span_event = _generate_span_event(raised_exception)
@@ -108,17 +110,22 @@ module Datadog
           path = tp.instruction_sequence.path
           next if path.nil?
 
-          @handled_errors_include.each do |module_to_instr|
-            # The regex is looking for the name of the module with '/' before
-            # and either '/' or '.rb' after
+          @handled_errors_include.each do |file_to_instr|
+            # The user can provide either
+            # - absolute_path starting with '/'. In that case the path of the file
+            #   should begin with file_to_instr
+            # - a relative_path starting with './'. In that case, we extend the path
+            #   and it is the same as above
+            # - otherwise we just check if the name provided is in the path and is
+            #   either the name of a folder or of a ruby file.
             regex =
-              if module_to_instr.start_with?('/')
-                %r{\A#{Regexp.escape(module_to_instr)}(?:/|\.rb\z|\z)}
-              elsif module_to_instr.start_with?('./')
-                abs_path = File.expand_path(module_to_instr)
+              if file_to_instr.start_with?('/')
+                %r{\A#{Regexp.escape(file_to_instr)}(?:/|\.rb\z|\z)}
+              elsif file_to_instr.start_with?('./')
+                abs_path = File.expand_path(file_to_instr)
                 %r{\A#{Regexp.escape(abs_path)}(?:/|\.rb\z|\z)}
               else
-                %r{/#{Regexp.escape(module_to_instr)}(?:/|\.rb\z|\z)}
+                %r{/#{Regexp.escape(file_to_instr)}(?:/|\.rb\z|\z)}
               end
 
             _add_instrumented_file(path) if path.match?(regex)

@@ -2,7 +2,7 @@
 
 module Datadog
   module ErrorTracking
-    # Configuration for DI
+    # Configuration for ErrorTracking
     module Configuration
     end
   end

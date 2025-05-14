@@ -2766,6 +2766,30 @@ When profiling [Resque](https://github.com/resque/resque) jobs, you should set t
 
 Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
 
+### Error Tracking
+
+`datadog` can automatically report handled errors. The errors are attached through span events to the span in which they are handled. They are also directly reported to Error Tracking.
+
+#### Requirements
+
+- Ruby 2.6+. JRuby and TruffleRuby are not supported.
+- datadog 2.16.0+.
+
+#### Configuration
+
+To enable automatic reporting of handled errors, one of the two environement variables must be set:
+- `DD_ERROR_TRACKING_HANDLED_ERRORS` = `user|third_party|all`. Report handled errors of user code, gems or both.
+- `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` = `file, gems, path..`. A list of comma-separated paths, file names
+and gem names for which handled errors will be reported.  
+The value provided should be:
+  * A file name, for instance `main`: `main.rb` will be instrumented.
+  * A folder name, for instance `mypackage`: every ruby files in folders called `mypackage` will be instrumented.
+  * A gem name: every ruby files of this gem will be instrumented. Be careful, if you specify for instance `rails` and you have a subfolder `rails` in your project, it will also be instrumented.
+  * An absolute path (a path beginning with `/`) For example: `/app/lib/mypackage/main.rb`. If you provide just `/app/lib/mypackage`, every ruby files in the folder will be instrumented.
+  * A path relative to the current directory (a path beginning with `./`). For example, if you execute your program in `/app/`, you can provide `./lib/mypackage/main.rb`. If you provide a path like `./lib/mypackage/`, every ruby files in this folder will be instrumented.
+
+**Important**: In Ruby3.2 and before, `datadog` can only get the location of where the error was thrown and not where it is handled. This can cause the second environment variable to malfunction if the error is handled in another file than the one specified.
+
 ## Known issues and suggested configurations
 
 ### Payload too large

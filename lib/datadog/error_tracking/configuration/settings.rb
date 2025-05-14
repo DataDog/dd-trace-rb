@@ -14,9 +14,12 @@ module Datadog
 
         def self.add_settings!(base)
           base.class_eval do
+            # Error Tracking specific configurations.
+            # @public_api
             settings :error_tracking do
-              # Enable automatic reporting of handled errors and set the scope
-              # of the errors to report: all | user | third_party
+              # Enable automatic reporting of handled errors and defines the scope
+              # for which to report errors: user code, gems, or both. Possible
+              # values are: all | user | third_party.
               #
               # @default 'DD_ERROR_TRACKING_HANDLED_ERRORS' environment variable, otherwise `nil`
               # @return [String, nil]
@@ -27,7 +30,7 @@ module Datadog
                 o.setter do |value|
                   next value if Ext::VALID_HANDLED_ERRORS.include?(value)
 
-                  unless !value.nil? && value.empty?
+                  unless value.nil?
                     Datadog.logger.warn(
                       "Invalid handled errors scope: #{value}. " \
                       "Supported values are: #{Ext::VALID_HANDLED_ERRORS.join(' | ')}. " \
@@ -39,8 +42,10 @@ module Datadog
                 end
               end
 
-              # Enable automatic reporting of handled errors and set the module
-              # for which handled errors should be reported. List of comma separated modules
+              # Enable automatic reporting of handled errors and specify what files should be
+              # instrumented. The value is a list of comma separated paths, filenames or gem names.
+              # The paths can be absolute, starting with '/' or relative to directory in which the program
+              # is launched, starting with './'.
               #
               # @default 'DD_ERROR_TRACKING_HANDLED_ERRORS_MODULES' environment variable, otherwise `nil`
               # @return [String, nil]

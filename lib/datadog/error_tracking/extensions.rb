@@ -7,7 +7,7 @@ module Datadog
   module ErrorTracking
     # Extends Datadog tracing with ErrorTracking features
     module Extensions
-      # Inject ErrorTracking into global objects.
+      # Inject Error Tracking into global objects.
       def self.activate!
         Core::Configuration::Settings.extend(Configuration::Settings)
       end

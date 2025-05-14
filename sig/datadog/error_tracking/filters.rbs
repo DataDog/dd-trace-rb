@@ -5,7 +5,7 @@ module Datadog
       def self.user_code?: (String) -> bool
       def self.datadog_code?: (String) -> bool
       def self.third_party_code?: (String) -> bool
-      def self.instrumented_module?: (String, Set[String]?) -> bool
+      def self.file_included?: (String, Set[String]?) -> bool
       def self.generate_filter: (String, Set[String]?) -> Proc
     end
   end
