@@ -16,7 +16,7 @@ require_relative 'serializer'
 require_relative 'transport/http'
 require_relative 'utils'
 
-if %w(1 true yes).include?(ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
+if %w[1 true yes].include?(ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
   # For initial release of Dynamic Instrumentation, activate code tracking
   # only if DI is explicitly requested in the environment.
   # Code tracking is required for line probes to work; see the comments
