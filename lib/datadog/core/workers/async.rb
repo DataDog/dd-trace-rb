@@ -120,23 +120,33 @@ module Datadog
             @worker ||= nil
           end
 
+          # Returns true if worker thread is successfully started,
+          # false if it is not started. Reasons for not starting the worker
+          # thread: it is already running, or the process forked and fork
+          # policy is to stop the workers on fork (which means they are
+          # not started in children, really).
           def start_async(&block)
             mutex.synchronize do
-              return if running?
+              return false if running?
 
               if forked?
                 case fork_policy
                 when FORK_POLICY_STOP
                   stop_fork
+                  false
                 when FORK_POLICY_RESTART
+                  # restart_after_fork should return true
                   restart_after_fork(&block)
                 end
               elsif !run_async?
+                # start_worker should return true
                 start_worker(&block)
               end
             end
           end
 
+          # Returns true if worker thread is successfully started,
+          # which should generally be always.
           def start_worker
             @run_async = true
             @pid = Process.pid
@@ -159,7 +169,7 @@ module Datadog
             @worker.name = self.class.name
             @worker.thread_variable_set(:fork_safe, true)
 
-            nil
+            true
           end
 
           def stop_fork
