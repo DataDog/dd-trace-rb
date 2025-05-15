@@ -12,10 +12,10 @@ module Datadog
 
       def initialize: () -> void
 
-      def add_span_event: (Datadog::Tracing::SpanOperation, Exception, Datadog::Tracing::SpanEvent) -> void
+      def add_span_event: (Datadog::Tracing::SpanOperation, Datadog::Tracing::SpanEvent, Exception) -> void
       def on_error: (Datadog::Tracing::SpanOperation, Exception) -> void
 
-      def get_span_events: () -> Array[Datadog::Tracing::SpanEvent]?
+      def span_events: () -> Array[Datadog::Tracing::SpanEvent]?
     end
   end
 end

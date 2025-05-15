@@ -18,12 +18,13 @@ module Datadog
       # Proc called when the span_operation :after_stop event is published
       def self.after_stop
         @after_stop ||= proc do |span_op, error|
-          collector = span_op.collector
+          # if this proc is called, we are sure that span_op has a collector
+          collector = span_op.get_collector_or_initialize
           # if an error exited the scope of the span, we delete the corresponding SpanEvent.
-          collector.on_error(span_op, error) unless error.nil?
+          collector.on_error(span_op, error) if error
 
-          span_events = collector.get_span_events
-          span_op.span_events.concat(span_events) if span_events
+          span_events = collector.span_events
+          span_op.span_events.concat(span_events)
         end
       end
 
@@ -31,7 +32,7 @@ module Datadog
         @span_event_per_error = {}
       end
 
-      def add_span_event(span_op, error, span_event)
+      def add_span_event(span_op, span_event, error)
         # When this is the first time we add a span event for a span,
         # we suscribe to the :after_stop event
         if @span_event_per_error.empty?
@@ -41,15 +42,18 @@ module Datadog
           # This tag is used by the Error Tracking product to report
           # the error in Error Tracking
           span_op.set_tag(Ext::SPAN_EVENTS_HAS_EXCEPTION, true)
+
         end
         # Set a limit to the number of span event we can store per SpanOp
+        # If an error has been handled several times in the same span we can still
+        # modify the event (even if the capacity is reached) in order to report
+        # the information of the last rescue
         if @span_event_per_error.key?(error) || @span_event_per_error.length < SPAN_EVENTS_LIMIT
-          @span_event_per_error[error] =
-            span_event
+          @span_event_per_error[error] = span_event
         end
       end
 
-      if RUBY_VERSION >= '3.3'
+      if RUBY_VERSION >= Ext::RUBY_VERSION_WITH_RESCUE_EVENT
         # Starting from ruby3.3, as we are listening to :rescue event,
         # we just want to remove the span event if the error was
         # previously handled
@@ -64,11 +68,11 @@ module Datadog
         def on_error(span_op, error)
           return unless @span_event_per_error.key?(error)
 
-          if span_op.parent?
+          unless span_op.root?
             parent = span_op.send(:parent)
             LOCK.synchronize do
-              parent_collector = parent.collector { Collector.new }
-              parent_collector.add_span_event(parent, error, @span_event_per_error[error])
+              parent_collector = parent.get_collector_or_initialize { Collector.new }
+              parent_collector.add_span_event(parent, @span_event_per_error[error], error)
             end
           end
 
@@ -76,7 +80,7 @@ module Datadog
         end
       end
 
-      def get_span_events
+      def span_events
         @span_event_per_error.values
       end
     end

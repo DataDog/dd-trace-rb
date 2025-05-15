@@ -15,12 +15,6 @@ module Datadog
     class Component
       LOCK = Mutex.new
 
-      attr_accessor :handled_exc_tracker,
-        :module_path_getter,
-        :tracer,
-        :handled_errors_include,
-        :instrumented_files
-
       class << self
         def build(settings, tracer, logger)
           return if !settings.respond_to?(:error_tracking) || (settings.error_tracking.handled_errors.nil? &&
@@ -35,29 +29,29 @@ module Datadog
           ).tap(&:start)
         end
 
-        # Checks whether the runtime environment is supported by
-        # error tracking.
         def environment_supported?(logger)
           if RUBY_ENGINE != 'ruby'
             logger.warn("error tracking: cannot enable error tracking: MRI is required, but running on #{RUBY_ENGINE}")
-            return false
-          end
-          if RUBY_VERSION < '2.6'
+            false
+          elsif RUBY_VERSION < '2.6'
             logger.warn(
               "error tracking: cannot enable error tracking: Ruby 2.6+ is required, but running
               on #{RUBY_VERSION}"
             )
-            return false
+            false
+          else
+            true
           end
-          true
         end
       end
 
       def initialize(tracer:, handled_errors:, handled_errors_include:)
         @tracer = tracer
 
-        # Hash containing the file path of the modules to instrument
+        # Hash containing the paths to the instrumented files
         @instrumented_files = Set.new unless handled_errors_include.empty?
+        # Array containing file paths, file names and gems names to instrument.
+        # This is coming from the DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE env variable
         @handled_errors_include = handled_errors_include
 
         # Filter function is used to filter out the exception
@@ -69,13 +63,13 @@ module Datadog
         # Before Ruby3.3 the tracepoint listen for :raise events.
         # If an error is not handled, we will delete the according
         # span event in the collector.
-        event = RUBY_VERSION >= '3.3' ? :rescue : :raise
+        event = (RUBY_VERSION >= '3.3') ? :rescue : :raise
 
         # This tracepoint is in charge of capturing the handled exceptions
         # and of adding the corresponding span events to the collector
         @handled_exc_tracker = create_exc_tracker_tracepoint(event)
 
-        unless @instrumented_files.nil?
+        if @instrumented_files
           # The only thing we know about the handled errors is the path of the file
           # in which the error was rescued. Therefore, we need to retrieve the path
           # of the files the user want to instrument. This tracepoint is used for that
@@ -87,16 +81,16 @@ module Datadog
       def create_exc_tracker_tracepoint(event)
         TracePoint.new(event) do |tp|
           active_span = @tracer.active_span
-          unless active_span.nil?
+          if active_span
             raised_exception = tp.raised_exception
             # Note that in 3.2, this will give the path of where the error was raised
-            # which may cause de handled_error_include env variable to malfunction.
+            # which may cause the handled_error_include env variable to malfunction.
             rescue_file_path = tp.path
             if @filter_function.call(rescue_file_path)
-              span_event = _generate_span_event(raised_exception)
+              span_event = generate_span_event(raised_exception)
               LOCK.synchronize do
-                collector = active_span.collector { Collector.new }
-                collector.add_span_event(active_span, raised_exception, span_event)
+                collector = active_span.get_collector_or_initialize { Collector.new }
+                collector.add_span_event(active_span, span_event, raised_exception)
               end
             end
           end
@@ -128,7 +122,7 @@ module Datadog
                 %r{/#{Regexp.escape(file_to_instr)}(?:/|\.rb\z|\z)}
               end
 
-            _add_instrumented_file(path) if path.match?(regex)
+            add_instrumented_file(path) if path.match?(regex)
           end
         end
       end
@@ -155,7 +149,7 @@ module Datadog
       #
       # The event follows the otel semantics.
       # https://opentelemetry.io/docs/specs/otel/trace/exceptions/
-      def _generate_span_event(exception)
+      def generate_span_event(exception)
         formatted_exception = Datadog::Core::Error.build_from(exception)
         attributes = {
           'exception.type' => formatted_exception.type,
@@ -165,7 +159,7 @@ module Datadog
         Datadog::Tracing::SpanEvent.new('exception', attributes: attributes)
       end
 
-      def _add_instrumented_file(file_path)
+      def add_instrumented_file(file_path)
         @instrumented_files&.add(file_path)
       end
     end

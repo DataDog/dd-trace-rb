@@ -29,9 +29,9 @@ module Datadog
       def shutdown!: () -> void
 
       private
-      def _generate_span_event: (Exception) -> Datadog::Tracing::SpanEvent
+      def generate_span_event: (Exception) -> Datadog::Tracing::SpanEvent
 
-      def _add_instrumented_file: (String) -> void
+      def add_instrumented_file: (String) -> void
     end
   end
 end

@@ -16,6 +16,8 @@ module Datadog
       VALID_HANDLED_ERRORS: ::Array[untyped]
 
       SPAN_EVENTS_HAS_EXCEPTION: "_dd.span_events.has_exception"
+
+      RUBY_VERSION_WITH_RESCUE_EVENT: '3.3'
     end
   end
 end

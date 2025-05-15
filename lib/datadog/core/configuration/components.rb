@@ -125,7 +125,7 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings, @logger)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
-          @error_tracking = Datadog::ErrorTracking::Component.build(settings, tracer, logger)
+          @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
           # TODO: Re-enable this once we have updated libdatadog to 17.1
           # @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)

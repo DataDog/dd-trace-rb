@@ -33,7 +33,7 @@ module Datadog
                   unless value.nil?
                     Datadog.logger.warn(
                       "Invalid handled errors scope: #{value}. " \
-                      "Supported values are: #{Ext::VALID_HANDLED_ERRORS.join(' | ')}. " \
+                      "Supported values are: #{Ext::VALID_HANDLED_ERRORS.join(" | ")}. " \
                       'Deactivating the feature.'
                     )
                   end

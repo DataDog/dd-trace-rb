@@ -22,7 +22,7 @@ module Datadog
 
         begin
           Gem::Specification.find_by_name(gem_name)
-        rescue
+        rescue Gem::MissingSpecError
           nil
         end
       end
@@ -36,7 +36,8 @@ module Datadog
       end
 
       def third_party_code?(file_path)
-        get_gem_name(file_path) && !datadog_code?(file_path)
+        gem_name = get_gem_name(file_path)
+        gem_name && gem_name != "datadog"
       end
 
       def file_included?(file_path, instrumented_files)
@@ -48,28 +49,28 @@ module Datadog
         case to_instrument_scope
         # If DD_ERROR_TRACKING_HANDLED_ERRORS is set
         when 'all'
-          return proc { |file_path| !datadog_code?(file_path) }
+          proc { |file_path| !datadog_code?(file_path) }
         when 'user'
           # If DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE is set
           if handled_errors_include
-            return proc { |file_path|
+            proc { |file_path|
               user_code?(file_path) || file_included?(file_path, handled_errors_include)
             }
           else
-            return proc { |file_path| user_code?(file_path) }
+            proc { |file_path| user_code?(file_path) }
           end
         when 'third_party'
           if handled_errors_include
-            return proc { |file_path|
+            proc { |file_path|
               third_party_code?(file_path) || file_included?(file_path, handled_errors_include)
             }
           else
-            return proc { |file_path| third_party_code?(file_path) }
+            proc { |file_path| third_party_code?(file_path) }
           end
+        else
+          # If only DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE is set
+          proc { |file_path| file_included?(file_path, handled_errors_include) }
         end
-
-        # If only DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE is set
-        proc { |file_path| file_included?(file_path, handled_errors_include) }
       end
     end
   end

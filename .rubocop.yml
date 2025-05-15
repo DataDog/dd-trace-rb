@@ -43,6 +43,10 @@ Style:
     - 'spec/datadog/profiling*'
     - 'spec/datadog/profiling/**/*'
     - 'ext/datadog_profiling_*/**/*'
+    - 'lib/datadog/error_tracking*'
+    - 'lib/datadog/error_tracking/**/*'
+    - 'spec/datadog/error_tracking*'
+    - 'spec/datadog/error_tracking/**/*'
 Layout:
   Exclude:
     - 'lib/datadog/profiling/*'
@@ -50,6 +54,10 @@ Layout:
     - 'spec/datadog/profiling/*'
     - 'spec/datadog/profiling/**/**'
     - 'ext/datadog_profiling_*/**/*'
+    - 'lib/datadog/error_tracking*'
+    - 'lib/datadog/error_tracking/**/*'
+    - 'spec/datadog/error_tracking*'
+    - 'spec/datadog/error_tracking/**/*'
 
 Layout/LineLength:
   Max: 124

@@ -12,6 +12,7 @@ module Datadog
       DEFAULT_HANDLED_ERRORS = nil
       VALID_HANDLED_ERRORS = [HANDLED_ERRORS_ALL, HANDLED_ERRORS_USER, HANDLED_ERRORS_THIRD_PARTY].freeze
       SPAN_EVENTS_HAS_EXCEPTION = '_dd.span_events.has_exception'
+      RUBY_VERSION_WITH_RESCUE_EVENT = '3.3'
     end
   end
 end

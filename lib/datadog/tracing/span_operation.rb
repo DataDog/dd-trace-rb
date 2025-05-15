@@ -141,7 +141,7 @@ module Datadog
         @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow this to be explicitly set to nil
       end
 
-      def collector
+      def get_collector_or_initialize
         @collector ||= yield
       end
 
@@ -251,8 +251,8 @@ module Datadog
         !@end_time.nil?
       end
 
-      def parent?
-        parent_id != 0
+      def root?
+        parent_id == 0
       end
 
       # for backwards compatibility

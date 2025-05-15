@@ -1,4 +1,4 @@
-module ErrortrackingHelpers
+module ErrorTrackingHelpers
   def error_tracking_test
     if PlatformHelpers.jruby?
       before(:all) do
@@ -14,5 +14,5 @@ module ErrortrackingHelpers
 end
 
 RSpec.configure do |config|
-  config.extend ErrortrackingHelpers
+  config.extend ErrorTrackingHelpers
 end
