@@ -20,8 +20,8 @@ module Datadog
         attr_reader \
           :metrics
 
-        def initialize(options = {})
-          @metrics = options.fetch(:metrics) { Core::Runtime::Metrics.new(logger: options[:logger]) }
+        def initialize(telemetry:, **options)
+          @metrics = options.fetch(:metrics) { Core::Runtime::Metrics.new(logger: options[:logger], telemetry: telemetry) }
 
           # Workers::Async::Thread settings
           self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)

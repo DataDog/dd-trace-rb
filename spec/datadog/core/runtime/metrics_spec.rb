@@ -5,8 +5,9 @@ require 'datadog/core/runtime/metrics'
 
 RSpec.describe Datadog::Core::Runtime::Metrics do
   let(:logger) { logger_allowing_debug }
+  let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
   let(:options) { {} }
-  subject(:runtime_metrics) { described_class.new(logger: logger, **options) }
+  subject(:runtime_metrics) { described_class.new(logger: logger, telemetry: telemetry, **options) }
 
   describe '::new' do
     context 'given :services' do
