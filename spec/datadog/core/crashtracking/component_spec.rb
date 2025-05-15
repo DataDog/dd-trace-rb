@@ -186,6 +186,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
 
+      # NOTE: If any of these tests seem flaky, the `upload_timeout_seconds` may need to be raised (or otherwise
+      # we need to tweak libdatadog to not need such high timeouts).
+
       [:fiddle, :signal].each do |trigger|
         it "reports crashes via http when app crashes with #{trigger}" do
           fork_expectations = proc do |status:, stdout:, stderr:|
