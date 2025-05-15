@@ -16,7 +16,7 @@ module Datadog
 
         # @param transport [Datadog::Core::Telemetry::Transport::Telemetry::Transport]
         #   Transport object that can be used to send telemetry requests
-        def initialize(transport, debug: false, logger: Datadog.logger)
+        def initialize(transport, logger: Datadog.logger, debug: false)
           @transport = transport
           @logger = logger
           @debug = !!debug

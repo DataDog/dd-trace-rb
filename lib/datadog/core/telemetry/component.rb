@@ -86,8 +86,8 @@ module Datadog
             metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
             emitter: Emitter.new(
               @transport,
+              logger: @logger,
               debug: settings.telemetry.debug,
-              logger: @logger
             ),
             metrics_manager: @metrics_manager,
             dependency_collection: settings.telemetry.dependency_collection,
