@@ -208,8 +208,12 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           end
 
           crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
+          stack_trace = JSON.parse(crash_report[:stack_trace], symbolize_names: true).fetch(:frames)
 
-          expect(crash_report[:stack_trace]).to_not be_empty
+          expect(stack_trace).to_not be_empty
+          expect(stack_trace.size).to be > 10
+          expect(stack_trace.first).to match(hash_including(path: /libdatadog/))
+
           expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
 
           crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
