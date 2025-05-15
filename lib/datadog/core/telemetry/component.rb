@@ -84,7 +84,11 @@ module Datadog
             enabled: @enabled,
             heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
-            emitter: Emitter.new(@transport, logger: @logger),
+            emitter: Emitter.new(
+              @transport,
+              logger: @logger,
+              debug: settings.telemetry.debug,
+            ),
             metrics_manager: @metrics_manager,
             dependency_collection: settings.telemetry.dependency_collection,
             logger: logger,
