@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       array.map { |name, value| { name: name, origin: 'env_var', seq_id: id, value: value } }
     end
 
-    DEFAULT_CODE_CONFIGURATION = [
+    let(:default_code_configuration){ [
       ['DD_AGENT_HOST', '1.2.3.4'],
       ['DD_AGENT_TRANSPORT', 'TCP'],
       ['DD_TRACE_SAMPLE_RATE', '0.5'],
@@ -94,13 +94,13 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       ['logger.instance', 'MyLogger'],
       ['appsec.enabled', false],
       ['appsec.sca_enabled', false]
-    ].freeze
+    ].freeze}
 
     it do
       is_expected.to match(
         products: expected_products,
         configuration: contain_code_configuration(
-          *DEFAULT_CODE_CONFIGURATION
+          *default_code_configuration
         ),
         install_signature: expected_install_signature,
       )
@@ -127,7 +127,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
             ['DD_GIT_REPOSITORY_URL', 'https://github.com/datadog/hello'],
             ['DD_GIT_COMMIT_SHA', '1234hash'],
           ) + contain_code_configuration(
-            *DEFAULT_CODE_CONFIGURATION
+            *default_code_configuration
           ),
           install_signature: expected_install_signature,
         )
