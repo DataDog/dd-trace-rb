@@ -18,6 +18,8 @@ module Datadog
         PRODUCT = 'LIVE_DEBUGGING'
 
         def products
+          # TODO: do not send our product on unsupported runtimes
+          # (Ruby 2.5 / JRuby)
           [PRODUCT]
         end
 
