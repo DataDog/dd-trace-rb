@@ -104,7 +104,6 @@ target :datadog do
   # language basics like 'send' and 'raise'.
   ignore 'lib/datadog/di/probe_notifier_worker.rb'
   ignore 'lib/datadog/error_tracking/configuration/settings.rb'
-  ignore 'lib/datadog/error_tracking/filters.rb'
   ignore 'lib/datadog/kit/appsec/events.rb' # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/kit/identity.rb'      # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/opentelemetry.rb'

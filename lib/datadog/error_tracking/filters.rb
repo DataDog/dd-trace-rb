@@ -21,7 +21,7 @@ module Datadog
         gem_name = regex_match[1]
 
         begin
-          Gem::Specification.find_by_name(gem_name)
+          Gem::Specification.find_by_name(gem_name) # steep:ignore
         rescue Gem::MissingSpecError
           nil
         end

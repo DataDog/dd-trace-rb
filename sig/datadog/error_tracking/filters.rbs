@@ -1,12 +1,16 @@
 module Datadog
   module ErrorTracking
     module Filters
-      def self.get_gem_name: (String) -> String?
-      def self.user_code?: (String) -> bool
-      def self.datadog_code?: (String) -> bool
-      def self.third_party_code?: (String) -> bool
-      def self.file_included?: (String, Set[String]?) -> bool
-      def self.generate_filter: (String, Set[String]?) -> Proc
+      def self?.get_gem_name: (untyped file_path) -> (nil | untyped)
+
+      def self?.user_code?: (untyped file_path) -> untyped
+
+      def self?.datadog_code?: (untyped file_path) -> untyped
+
+      def self?.third_party_code?: (untyped file_path) -> untyped
+
+      def self?.file_included?: (untyped file_path, untyped instrumented_files) -> untyped
+      def self?.generate_filter: (untyped to_instrument_scope, ?untyped? handled_errors_include) -> untyped
     end
   end
 end

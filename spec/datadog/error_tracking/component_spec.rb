@@ -243,12 +243,23 @@ RSpec.describe Datadog::ErrorTracking::Component do
 
   shared_examples 'error tracking behavior' do |instrument_setting = nil, handled_errors_include = [], expected_errors = []|
     before(:all) do
-      @gem_lib_dir = File.expand_path('../../fixtures/gems/mock-gem-2.1.1/lib', __dir__)
+      @gem_root_dir = File.expand_path('../../fixtures/gems/mock-gem-2.1.1', __dir__)
+      @gem_lib_dir = File.join(@gem_root_dir, 'lib')
       $LOAD_PATH.unshift(@gem_lib_dir) unless $LOAD_PATH.include?(@gem_lib_dir)
+
+      # Create and register the mock gem specification
+      mock_gemspec = Gem::Specification.new do |s|
+        s.name = 'mock-gem'
+        s.version = '2.1.1'
+        s.loaded_from = File.join(@gem_root_dir, 'mock-gem.gemspec')
+        s.full_gem_path = @gem_root_dir
+      end
+      Gem::Specification.add_spec(mock_gemspec)
     end
 
     after(:all) do
       $LOAD_PATH.delete(@gem_lib_dir)
+      Gem::Specification.reset
     end
 
     before do
@@ -268,8 +279,6 @@ RSpec.describe Datadog::ErrorTracking::Component do
       require_relative '../error_tracking/sublib/sublib2'
 
       tracer.enabled = true
-
-      allow(Gem::Specification).to receive(:find_by_name).with('mock-gem').and_return(true)
     end
 
     after do

@@ -12,12 +12,6 @@ module Datadog
   #
   # @api private
   module ErrorTracking
-    class << self
-      def enabled?
-        Datadog.configuration.dynamic_instrumentation.enabled
-      end
-    end
-
     # Expose ErrorTracking to global shared objects
     Extensions.activate!
   end
