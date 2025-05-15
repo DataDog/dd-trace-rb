@@ -103,7 +103,7 @@ module Datadog
           logger.error(
             "Failed to send count stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
-          telemetry&.report(e, description: 'Failed to send count stat')
+          telemetry.report(e, description: 'Failed to send count stat')
         end
 
         def distribution(stat, value = nil, options = nil, &block)
@@ -117,7 +117,7 @@ module Datadog
           logger.error(
             "Failed to send distribution stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
-          telemetry&.report(e, description: 'Failed to send distribution stat')
+          telemetry.report(e, description: 'Failed to send distribution stat')
         end
 
         def increment(stat, options = nil)
@@ -130,7 +130,7 @@ module Datadog
           logger.error(
             "Failed to send increment stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
-          telemetry&.report(e, description: 'Failed to send increment stat')
+          telemetry.report(e, description: 'Failed to send increment stat')
         end
 
         def gauge(stat, value = nil, options = nil, &block)
@@ -144,7 +144,7 @@ module Datadog
           logger.error(
             "Failed to send gauge stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
-          telemetry&.report(e, description: 'Failed to send gauge stat')
+          telemetry.report(e, description: 'Failed to send gauge stat')
         end
 
         def time(stat, options = nil)
@@ -164,7 +164,7 @@ module Datadog
             logger.error(
               "Failed to send time stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
             )
-            telemetry&.report(e, description: 'Failed to send time stat')
+            telemetry.report(e, description: 'Failed to send time stat')
           end
         end
 
