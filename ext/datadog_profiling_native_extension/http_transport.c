@@ -275,7 +275,7 @@ static void *call_exporter_without_gvl(void *call_args) {
 
 // Called by Ruby when it wants to interrupt call_exporter_without_gvl above, e.g. when the app wants to exit cleanly
 static void interrupt_exporter_call(void *cancel_token) {
-  // TODO: False where may mean it was already cancelled OR it failed completely to cancel. I think we need
-  // to change libdatadog to be able to distinguish between them.
+  // TODO: False here can mean two things: it was already cancelled OR it failed to cancel.
+  // Would be nice to change libdatadog to be able to distinguish between them...
   ddog_CancellationToken_cancel((ddog_CancellationToken *) cancel_token);
 }
