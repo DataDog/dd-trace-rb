@@ -1066,6 +1066,35 @@ RSpec.describe Datadog::Core::Configuration::Option do
         it { is_expected.to be(setter_value) }
       end
     end
+
+    # Stubbed config files.
+    context 'with local config file' do
+      let(:env) { 'TEST' }
+      let(:setter) { proc { |value| value } }
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
+          { local: { 'TEST' => 'test' } }
+        )
+      end
+
+      it 'uses the local config file' do
+        expect(option.get).to eq 'test'
+      end
+    end
+
+    context 'with fleet config file' do
+      let(:env) { 'TEST' }
+      let(:setter) { proc { |value| value } }
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
+          { fleet: { 'TEST' => 'test' } }
+        )
+      end
+
+      it 'uses the fleet config file' do
+        expect(option.get).to eq 'test'
+      end
+    end
   end
 
   describe '#reset' do

@@ -74,10 +74,9 @@ module Datadog
               profiler: {
                 enabled: Datadog::Profiling.enabled?,
               },
-              # DEV: Not implemented yet
-              # dynamic_instrumentation: {
-              #   enabled: true,
-              # }
+              dynamic_instrumentation: {
+                enabled: defined?(Datadog::DI) && Datadog::DI.respond_to?(:enabled?) && Datadog::DI.enabled?,
+              }
             }
 
             if (unsupported_reason = Datadog::Profiling.unsupported_reason)
@@ -91,6 +90,7 @@ module Datadog
           end
 
           TARGET_OPTIONS = %w[
+            dynamic_instrumentation.enabled
             logger.level
             profiling.advanced.code_provenance_enabled
             profiling.advanced.endpoint.collection.enabled

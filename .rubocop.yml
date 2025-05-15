@@ -276,6 +276,9 @@ Style/SlicingWithRange:
 Style/NegatedIfElseCondition:
   Enabled: false
 
+Style/MultipleComparison:
+  ComparisonsThreshold: 3
+
 # Converts `to change{foo.bar}` to `to change(foo, :bar)`.
 # It doesn't seem to make it more readable, and doesn't work
 # when `foo` has to be re-evaluated.

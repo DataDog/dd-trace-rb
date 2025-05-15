@@ -53,6 +53,9 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           appsec: {
             enabled: false,
           },
+          dynamic_instrumentation: {
+            enabled: false,
+          },
           profiler: hash_including(enabled: false),
         },
         configuration: contain_configuration(
@@ -62,6 +65,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           ['DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED', true],
           ['DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED', false],
           ['DD_TRACE_PEER_SERVICE_MAPPING', 'foo:bar'],
+          ['dynamic_instrumentation.enabled', false],
           ['logger.level', 0],
           ['profiling.advanced.code_provenance_enabled', true],
           ['profiling.advanced.endpoint.collection.enabled', true],

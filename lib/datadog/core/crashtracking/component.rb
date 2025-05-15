@@ -63,7 +63,7 @@ module Datadog
               # Must NOT reference `self` here, as only the first instance will
               # be captured by the ONLY_ONCE and we want to pick the latest active one
               # (which may have different tags or agent config)
-              Datadog.send(:components).crashtracker&.update_on_fork
+              Datadog.send(:components, allow_initialization: false)&.crashtracker&.update_on_fork
             end
           end
         end
