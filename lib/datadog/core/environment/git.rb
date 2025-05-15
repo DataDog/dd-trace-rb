@@ -19,11 +19,9 @@ module Datadog
 
           @git_commit_sha = ENV[Datadog::Core::Git::Ext::ENV_COMMIT_SHA]
         end
-
       end
 
       class << self
-
         private
 
         # Resets caches in this module. Meant for internal use in the
