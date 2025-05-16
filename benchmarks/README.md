@@ -8,6 +8,7 @@
   - `profiling_`
   - `tracing_`
   - `di_`
+  - `error_tracking_`
 
 2. Add the new file to `run_all.sh` in this directory.
 
@@ -18,6 +19,7 @@
   - `profiling_` prefix: `./spec/datadog/profiling/validate_benchmarks_spec.rb`
   - `tracing_` prefix: `./spec/datadog/tracing/validate_benchmarks_spec.rb`
   - `di_` prefix: `./spec/datadog/di/validate_benchmarks_spec.rb`
+  - `error_tracking_` prefix: `./spec/datadog/error_tracing/validate_benchmarks_spec.rb`
 
 ## Adding Benchmarks For a New Product
 
