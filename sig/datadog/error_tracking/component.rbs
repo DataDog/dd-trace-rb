@@ -22,9 +22,9 @@ module Datadog
 
       def initialize: (tracer: Datadog::Tracing::Tracer, handled_errors: String, handled_errors_include: Array[String]) -> void
 
-      def create_exc_tracker_tracepoint: (Symbol) -> TracePoint
+      def create_exc_tracker_trace_point: (Symbol) -> TracePoint
 
-      def create_script_compiled_tracepoint: () -> TracePoint
+      def create_script_compiled_trace_point: () -> TracePoint
       def start: () -> void
       def shutdown!: () -> void
 

@@ -77,7 +77,6 @@ target :datadog do
   # steep gets lost in module inclusions
   ignore 'lib/datadog/core/remote/transport/http/config.rb'
   ignore 'lib/datadog/core/remote/transport/http/negotiation.rb'
-  ignore 'lib/datadog/core/error_tracking/filters.rb'
   ignore 'lib/datadog/core/runtime/ext.rb'
   ignore 'lib/datadog/core/runtime/metrics.rb'
   ignore 'lib/datadog/core/transport/http/adapters/net.rb'

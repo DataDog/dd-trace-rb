@@ -60,25 +60,25 @@ module Datadog
 
         # :rescue event was added in Ruby 3.3
         #
-        # Before Ruby3.3 the tracepoint listen for :raise events.
+        # Before Ruby3.3 the TracePoint listen for :raise events.
         # If an error is not handled, we will delete the according
         # span event in the collector.
         event = (RUBY_VERSION >= '3.3') ? :rescue : :raise
 
-        # This tracepoint is in charge of capturing the handled exceptions
+        # This TracePoint is in charge of capturing the handled exceptions
         # and of adding the corresponding span events to the collector
-        @handled_exc_tracker = create_exc_tracker_tracepoint(event)
+        @handled_exc_tracker = create_exc_tracker_trace_point(event)
 
         if @instrumented_files
           # The only thing we know about the handled errors is the path of the file
           # in which the error was rescued. Therefore, we need to retrieve the path
-          # of the files the user want to instrument. This tracepoint is used for that
+          # of the files the user want to instrument. This TracePoint is used for that
           # purpose
-          @include_path_getter = create_script_compiled_tracepoint
+          @include_path_getter = create_script_compiled_trace_point
         end
       end
 
-      def create_exc_tracker_tracepoint(event)
+      def create_exc_tracker_trace_point(event)
         TracePoint.new(event) do |tp|
           active_span = @tracer.active_span
           if active_span
@@ -97,7 +97,7 @@ module Datadog
         end
       end
 
-      def create_script_compiled_tracepoint
+      def create_script_compiled_trace_point
         TracePoint.new(:script_compiled) do |tp|
           next if tp.eval_script
 
@@ -127,9 +127,9 @@ module Datadog
         end
       end
 
-      # Starts the tracepoints.
+      # Starts the TracePoints.
       #
-      # Enables the script_compiled tracepoint if handled_errors_include is not empty.
+      # Enables the script_compiled TracePoint if handled_errors_include is not empty.
       def start
         @handled_exc_tracker.enable
         @include_path_getter&.enable
@@ -137,7 +137,7 @@ module Datadog
 
       # Shuts down error tracker.
       #
-      # Disables the tracepoints.
+      # Disables the TracePoints.
       def shutdown!
         @handled_exc_tracker.disable
         @include_path_getter&.disable

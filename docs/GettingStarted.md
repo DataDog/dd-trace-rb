@@ -2781,14 +2781,14 @@ You can enable automatic reporting of handled errors using the following environ
 
 | Environment variable | Type | Description | Default |
 |---|---|---|---|
-| `DD_ERROR_TRACKING_HANDLED_ERRORS` | `String` | Report handled errors from user code, gems, or both. Accepted values are: `user,third_party,all`. | `nil` |
+| `DD_ERROR_TRACKING_HANDLED_ERRORS` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user,third_party,all`. | `nil` |
 | `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` | `Array[String]` | A list of comma-separated paths, file names, and gem names for which handled errors will be reported. Possible values are specified below. <br/> For Ruby 3.3 or newer, the location where the error was raised and where it was rescued will be matched. For earlier versions of Ruby, only the location where the error was raised can be matched.  | `[]` |
 
 Alternatively, you can set error tracking parameters in code with these functions, inside a `Datadog.configure` block:
 
 | Environment variable | Type | Description | Default |
 |---|---|---|---|
-| `c.error_tracking.handled_errors` | `String` | Report handled errors from user code, gems, or both. Accepted values are: `user,third_party,all`. | `nil` |
+| `c.error_tracking.handled_errors` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user,third_party,all`. | `nil` |
 | `c.error_tracking.handled_errors_include` | `Array[String]` | A list of comma-separated paths, file names, and gem names for which handled errors will be reported. Possible values are specified below. <br/> For Ruby 3.3 or newer, the location where the error was raised and where it was rescued will be matched. For earlier versions of Ruby, only the location where the error was raised can be matched.  | `[]` |
 
 `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` comma-separated values should be either:
