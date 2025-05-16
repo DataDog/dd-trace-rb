@@ -57,9 +57,7 @@ module Datadog
           def find_devise_scope(object)
             return if ::Devise.mappings.count == 1
 
-            @devise_scopes[object.class.name] ||= begin
-              ::Devise.mappings.each_value.find { |mapping| mapping.class_name == object.class.name }&.name
-            end
+            @devise_scopes[object.class.name] ||= ::Devise.mappings.each_value.find { |mapping| mapping.class_name == object.class.name }&.name
           end
 
           def transform(value)

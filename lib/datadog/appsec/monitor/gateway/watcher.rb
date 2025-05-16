@@ -60,7 +60,7 @@ module Datadog
 
                 next stack.call(kind) unless WATCHED_LOGIN_EVENTS.include?(kind)
 
-                persistent_data = { "server.business_logic.#{kind}" => ARBITRARY_VALUE }
+                persistent_data = {"server.business_logic.#{kind}" => ARBITRARY_VALUE}
                 result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
                 if result.match? || result.derivatives.any?

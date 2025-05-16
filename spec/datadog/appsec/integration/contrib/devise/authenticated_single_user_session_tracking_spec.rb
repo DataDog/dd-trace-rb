@@ -38,7 +38,7 @@ RSpec.describe 'Devise auto login and signup events session tracking' do
 
     # app/models
     stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-      klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
       klass.connection.create_table 'users', force: :cascade do |t|
         t.string :username, null: false
         t.string :email, default: '', null: false
@@ -89,7 +89,7 @@ RSpec.describe 'Devise auto login and signup events session tracking' do
         def initialize(files, dirs = {}, &block)
           dirs = dirs.delete('') if dirs.include?('')
 
-          super(files, dirs, &block)
+          super
         end
       end
     end
@@ -112,7 +112,7 @@ RSpec.describe 'Devise auto login and signup events session tracking' do
 
     app.initialize!
     app.routes.draw do
-      devise_for :users, controllers: { registrations: 'test_registrations' }
+      devise_for :users, controllers: {registrations: 'test_registrations'}
 
       get '/public' => 'public#index'
     end
@@ -174,12 +174,12 @@ RSpec.describe 'Devise auto login and signup events session tracking' do
   let(:custom_rules) do
     {
       'version' => '2.1',
-      'metadata' => { 'rules_version' => '1.2.6' },
+      'metadata' => {'rules_version' => '1.2.6'},
       'rules' => [
         {
           'id' => 'arachni_rule',
           'name' => 'Arachni',
-          'tags' => { 'type' => 'security_scanner', 'category' => 'attack_attempt' },
+          'tags' => {'type' => 'security_scanner', 'category' => 'attack_attempt'},
           'conditions' => [
             {
               'parameters' => {
@@ -206,9 +206,9 @@ RSpec.describe 'Devise auto login and signup events session tracking' do
           'parameters' => {
             'mappings' => [
               {
-                'cookies' => [{ 'address' => 'server.request.cookies' }],
-                'session_id' => [{ 'address' => 'usr.session_id' }],
-                'user_id' => [{ 'address' => 'usr.id' }],
+                'cookies' => [{'address' => 'server.request.cookies'}],
+                'session_id' => [{'address' => 'usr.session_id'}],
+                'user_id' => [{'address' => 'usr.id'}],
                 'output' => '_dd.appsec.fp.session'
               }
             ]

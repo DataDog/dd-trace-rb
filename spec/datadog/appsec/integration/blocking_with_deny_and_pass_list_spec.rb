@@ -43,20 +43,20 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
   let(:sqli_blocking_ruleset) do
     {
       'version' => '2.2',
-      'metadata' => { 'rules_version' => '1.4.1' },
+      'metadata' => {'rules_version' => '1.4.1'},
       'rules' => [
         {
           'id' => 'crs-942-100',
           'name' => 'SQL Injection Attack Detected via libinjection',
-          'tags' => { 'type' => 'sql_injection', 'category' => 'attack_attempt' },
+          'tags' => {'type' => 'sql_injection', 'category' => 'attack_attempt'},
           'conditions' => [
             {
               'parameters' => {
                 'inputs' => [
-                  { 'address' => 'server.request.query' },
-                  { 'address' => 'server.request.body' },
-                  { 'address' => 'server.request.path_params' },
-                  { 'address' => 'grpc.server.request.message' }
+                  {'address' => 'server.request.query'},
+                  {'address' => 'server.request.body'},
+                  {'address' => 'server.request.path_params'},
+                  {'address' => 'grpc.server.request.message'}
                 ]
               },
               'operator' => 'is_sqli'
@@ -78,7 +78,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
       use Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware
 
       map '/test' do
-        run ->(_) { [200, { 'Content-Type' => 'text/html' }, ['OK']] }
+        run ->(_) { [200, {'Content-Type' => 'text/html'}, ['OK']] }
       end
     end
 
@@ -88,7 +88,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
   subject(:response) { last_response }
 
   context 'when deny and pass lists are not set' do
-    before { get('/test', { q: '1 OR 1;' }, { 'HTTP_X_FORWARDED_FOR' => '1.2.3.4' }) }
+    before { get('/test', {q: '1 OR 1;'}, {'HTTP_X_FORWARDED_FOR' => '1.2.3.4'}) }
 
     it { expect(response).to be_forbidden }
   end
@@ -100,7 +100,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
         c.appsec.ip_passlist = ['1.2.3.4']
       end
 
-      get('/test', { q: '1 OR 1;' }, { 'HTTP_X_FORWARDED_FOR' => '1.2.3.4' })
+      get('/test', {q: '1 OR 1;'}, {'HTTP_X_FORWARDED_FOR' => '1.2.3.4'})
     end
 
     it { expect(response).to be_ok }
@@ -110,7 +110,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
     before do
       Datadog.configure { |c| c.appsec.ip_passlist = ['1.2.3.4'] }
 
-      get('/test', { q: '1 OR 1;' }, { 'HTTP_X_FORWARDED_FOR' => '1.2.3.4' })
+      get('/test', {q: '1 OR 1;'}, {'HTTP_X_FORWARDED_FOR' => '1.2.3.4'})
     end
 
     it { expect(response).to be_ok }
@@ -123,12 +123,12 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
         c.appsec.ip_passlist = ['1.2.3.4']
       end
 
-      body = { statement: <<~SQL }
+      body = {statement: <<~SQL}
         -- select count(*) from accounts where account_number is null
         select count(*) from payments where created_at >= '2025-03-01' and created_at < '2025-03-08'
       SQL
 
-      post('/test', body.to_json, { 'CONTENT_TYPE' => 'application/json', 'HTTP_X_FORWARDED_FOR' => '1.2.3.4' })
+      post('/test', body.to_json, {'CONTENT_TYPE' => 'application/json', 'HTTP_X_FORWARDED_FOR' => '1.2.3.4'})
     end
 
     it { expect(response).to be_ok }

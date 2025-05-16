@@ -71,7 +71,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         def initialize(files, dirs = {}, &block)
           dirs = dirs.delete('') if dirs.include?('')
 
-          super(files, dirs, &block)
+          super
         end
       end
     end
@@ -93,7 +93,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     app.initialize!
     app.routes.draw do
-      devise_for :users, controllers: { sessions: 'test_sessions' }
+      devise_for :users, controllers: {sessions: 'test_sessions'}
       get '/private' => 'private#index'
     end
 
@@ -158,7 +158,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
   let(:user_model) do
     stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-      klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
       klass.connection.create_table 'users', force: :cascade do |t|
         t.string :username, null: false
         t.string :email, default: '', null: false
@@ -185,7 +185,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     before do
       User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
 
-      post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
+      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
     end
 
     it 'tracks successful login event' do
@@ -214,7 +214,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       allow(User).to receive(:find_for_database_authentication)
         .and_return(User.build(email: 'john.doe@example.com', password: '123456'))
 
-      post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
+      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
     end
 
     it 'tracks successful login event' do
@@ -285,7 +285,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     let(:user_model) do
       stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-        klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+        klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
         klass.connection.create_table 'users', force: :cascade do |t|
           t.string :username, null: false
           t.string :email, default: '', null: false
@@ -318,7 +318,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     before do
       User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
 
-      post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
+      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
     end
 
     let(:sessions_controller) do
@@ -327,8 +327,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
           Datadog::Kit::AppSec::Events.track_login_success(
             Datadog::Tracing.active_trace,
             Datadog::Tracing.active_span,
-            user: { id: '42' },
-            'usr.login': 'hello@gmail.com'
+            user: {id: '42'},
+            "usr.login": 'hello@gmail.com'
           )
 
           super
@@ -357,7 +357,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   end
 
   context 'when user unsuccessfully logging because such user does not exist' do
-    before { post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } }) }
+    before { post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}}) }
 
     it 'tracks login failure event' do
       expect(response).to be_unprocessable
@@ -381,12 +381,12 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     before do
       User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', is_admin: false)
 
-      post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
+      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
     end
 
     let(:user_model) do
       stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-        klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+        klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
         klass.connection.create_table 'users', force: :cascade do |t|
           t.string :username, null: false
           t.string :email, default: '', null: false
@@ -431,12 +431,12 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     before do
       User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', is_admin: false)
 
-      post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
+      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
     end
 
     let(:user_model) do
       stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-        klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+        klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
         klass.connection.create_table 'users', force: :cascade do |t|
           t.string :username, null: false
           t.string :email, default: '', null: false
@@ -465,7 +465,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
             Datadog::Tracing.active_span,
             user_exists: true,
             user_id: '42',
-            'usr.login': 'hello@gmail.com'
+            "usr.login": 'hello@gmail.com'
           )
 
           super

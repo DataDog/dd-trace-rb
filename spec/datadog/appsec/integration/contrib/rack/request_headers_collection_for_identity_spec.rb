@@ -59,16 +59,16 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
         run(
           lambda do |_env|
             Datadog::Kit::AppSec::Events.track_login_success(
-              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, user: { id: '42' }
+              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, user: {id: '42'}
             )
 
-            [200, { 'Content-Type' => 'text/html' }, ['OK']]
+            [200, {'Content-Type' => 'text/html'}, ['OK']]
           end
         )
       end
 
       map '/without-identity-set-user' do
-        run ->(_env) { [200, { 'Content-Type' => 'text/html' }, ['OK']] }
+        run ->(_env) { [200, {'Content-Type' => 'text/html'}, ['OK']] }
       end
     end
 

@@ -124,7 +124,7 @@ module Datadog
             end
           end
 
-          tags['_dd.appsec.json'] = json_parse({ triggers: triggers }) unless triggers.empty?
+          tags['_dd.appsec.json'] = json_parse({triggers: triggers}) unless triggers.empty?
           tags
         end
 

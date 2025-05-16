@@ -131,9 +131,12 @@ module Datadog
                     o.type :string, nilable: true
                     o.setter do |value|
                       if value
-                        raise(ArgumentError, "appsec.templates.html: file not found: #{value}") unless File.exist?(value)
+                        unless File.exist?(value)
+                          raise(ArgumentError,
+                            "appsec.templates.html: file not found: #{value}")
+                        end
 
-                        File.open(value, 'rb', &:read) || ''
+                        File.binread(value) || ''
                       end
                     end
                   end
@@ -143,9 +146,12 @@ module Datadog
                     o.type :string, nilable: true
                     o.setter do |value|
                       if value
-                        raise(ArgumentError, "appsec.templates.json: file not found: #{value}") unless File.exist?(value)
+                        unless File.exist?(value)
+                          raise(ArgumentError,
+                            "appsec.templates.json: file not found: #{value}")
+                        end
 
-                        File.open(value, 'rb', &:read) || ''
+                        File.binread(value) || ''
                       end
                     end
                   end
@@ -155,9 +161,12 @@ module Datadog
                     o.type :string, nilable: true
                     o.setter do |value|
                       if value
-                        raise(ArgumentError, "appsec.templates.text: file not found: #{value}") unless File.exist?(value)
+                        unless File.exist?(value)
+                          raise(ArgumentError,
+                            "appsec.templates.text: file not found: #{value}")
+                        end
 
-                        File.open(value, 'rb', &:read) || ''
+                        File.binread(value) || ''
                       end
                     end
                   end
@@ -237,7 +246,7 @@ module Datadog
 
                     Datadog.logger.warn(
                       'The appsec.auto_user_instrumentation.mode value provided is not supported. ' \
-                      "Supported values are: #{AUTO_USER_INSTRUMENTATION_MODES.join(' | ')}. " \
+                      "Supported values are: #{AUTO_USER_INSTRUMENTATION_MODES.join(" | ")}. " \
                       "Using value: #{DISABLED_AUTO_USER_INSTRUMENTATION_MODE}."
                     )
 
@@ -282,7 +291,7 @@ module Datadog
                     else
                       Datadog.logger.warn(
                         'The appsec.track_user_events.mode value provided is not supported.' \
-                        "Supported values are: #{APPSEC_VALID_TRACK_USER_EVENTS_MODE.join(' | ')}." \
+                        "Supported values are: #{APPSEC_VALID_TRACK_USER_EVENTS_MODE.join(" | ")}." \
                         "Using default value: #{SAFE_TRACK_USER_EVENTS_MODE}."
                       )
 

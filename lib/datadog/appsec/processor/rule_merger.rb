@@ -11,8 +11,8 @@ module Datadog
         # RuleVersionMismatchError
         class RuleVersionMismatchError < StandardError
           def initialize(version1, version2)
-            msg = 'Merging rule files with different version could lead to unkown behaviour. '\
-              "We have receieve two rule files with versions: #{version1}, #{version2}. "\
+            msg = 'Merging rule files with different version could lead to unkown behaviour. ' \
+              "We have receieve two rule files with versions: #{version1}, #{version2}. " \
               'Please validate the configuration is correct and try again.'
             super(msg)
           end
@@ -27,7 +27,7 @@ module Datadog
           )
             processors ||= begin
               default_waf_processors
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error("libddwaf rulemerger failed to parse default waf processors. Error: #{e.inspect}")
               telemetry.report(
                 e,
@@ -38,7 +38,7 @@ module Datadog
 
             scanners ||= begin
               default_waf_scanners
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error("libddwaf rulemerger failed to parse default waf scanners. Error: #{e.inspect}")
               telemetry.report(
                 e,
@@ -146,7 +146,7 @@ module Datadog
             end
 
             result.each_with_object([]) do |entry, acc|
-              value = { 'value' => entry[0] }
+              value = {'value' => entry[0]}
               value['expiration'] = entry[1] if entry[1]
 
               acc << value
