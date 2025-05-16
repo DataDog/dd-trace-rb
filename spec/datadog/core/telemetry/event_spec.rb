@@ -87,7 +87,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       end
 
       # Reset global cache
-      Datadog::Core::Environment::Git.send(:_reset)
+      Datadog::Core::Environment::Git.reset_for_tests
     end
     it_behaves_like 'event with no attributes'
 
@@ -116,12 +116,12 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
       before do
         # Reset global cache so that we get our values back
-        Datadog::Core::Environment::Git.send(:_reset)
+        Datadog::Core::Environment::Git.reset_for_tests
       end
 
       after do
         # Do not use our values in other tests
-        Datadog::Core::Environment::Git.send(:_reset)
+        Datadog::Core::Environment::Git.reset_for_tests
       end
 
       it 'reports git/SCI values to telemetry' do
