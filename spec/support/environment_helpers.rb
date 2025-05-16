@@ -8,4 +8,4 @@ module EnvironmentHelpers
   end
 end
 
-Datadog::Core::Environment::Git.send(:extend, EnvironmentHelpers::Git)
+Datadog::Core::Environment::Git.extend EnvironmentHelpers::Git
