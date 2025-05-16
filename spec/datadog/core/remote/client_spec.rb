@@ -541,6 +541,21 @@ RSpec.describe Datadog::Core::Remote::Client do
           context 'client_tracer' do
             context 'tags' do
               let(:gem_datadog_version) { '1.1.1' }
+              let(:expected_base_client_tracer_tags) do
+                [
+                  "platform:#{native_platform}",
+                  "ruby.tracer.version:#{gem_datadog_version}",
+                  "ruby.runtime.platform:#{ruby_platform}",
+                  "ruby.runtime.version:#{ruby_version}",
+                  "ruby.runtime.engine.name:#{ruby_engine}",
+                  "ruby.runtime.engine.version:#{ruby_engine_version}",
+                  "ruby.rubygems.platform.local:#{gem_platform_local}",
+                  "ruby.gem.libddwaf.version:#{libddwaf_gem_spec.version}",
+                  "ruby.gem.libddwaf.platform:#{libddwaf_gem_spec.platform}",
+                  "ruby.gem.libdatadog.version:#{libdatadog_gem_spec.version}",
+                  "ruby.gem.libdatadog.platform:#{libdatadog_gem_spec.platform}",
+                ]
+              end
               let(:ruby_platform) { 'ruby-platform' }
               let(:ruby_version) { '2.2.2' }
               let(:ruby_engine) { 'ruby_engine_name' }
@@ -562,22 +577,6 @@ RSpec.describe Datadog::Core::Remote::Client do
                 allow(client).to receive(:native_platform).and_return(native_platform)
                 allow(client).to receive(:gem_spec).with('libddwaf').and_return(libddwaf_gem_spec)
                 allow(client).to receive(:gem_spec).with('libdatadog').and_return(libdatadog_gem_spec)
-              end
-
-              let(:expected_base_client_tracer_tags) do
-                [
-                  "platform:#{native_platform}",
-                  "ruby.tracer.version:#{gem_datadog_version}",
-                  "ruby.runtime.platform:#{ruby_platform}",
-                  "ruby.runtime.version:#{ruby_version}",
-                  "ruby.runtime.engine.name:#{ruby_engine}",
-                  "ruby.runtime.engine.version:#{ruby_engine_version}",
-                  "ruby.rubygems.platform.local:#{gem_platform_local}",
-                  "ruby.gem.libddwaf.version:#{libddwaf_gem_spec.version}",
-                  "ruby.gem.libddwaf.platform:#{libddwaf_gem_spec.platform}",
-                  "ruby.gem.libdatadog.version:#{libdatadog_gem_spec.version}",
-                  "ruby.gem.libdatadog.platform:#{libdatadog_gem_spec.platform}",
-                ]
               end
 
               it 'returns client_tracer tags' do

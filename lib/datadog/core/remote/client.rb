@@ -140,10 +140,10 @@ module Datadog
             "ruby.gem.libdatadog.platform:#{gem_spec('libdatadog').platform}",
           ]
 
-          if git_repository_url = Core::Environment::Git.git_repository_url
+          if (git_repository_url = Core::Environment::Git.git_repository_url)
             client_tracer_tags << "git.repository_url:#{git_repository_url}"
           end
-          if git_commit_sha = Core::Environment::Git.git_commit_sha
+          if (git_commit_sha = Core::Environment::Git.git_commit_sha)
             client_tracer_tags << "git.commit.sha:#{git_commit_sha}"
           end
 
