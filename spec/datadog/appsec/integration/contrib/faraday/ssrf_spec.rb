@@ -37,14 +37,14 @@ RSpec.describe 'Faraday SSRF Injection' do
             conditions: [
               {
                 parameters: {
-                  resource: [{ address: 'server.io.net.url' }],
+                  resource: [{address: 'server.io.net.url'}],
                   params: [
-                    { address: 'server.request.query' },
-                    { address: 'server.request.body' },
-                    { address: 'server.request.path_params' },
-                    { address: 'grpc.server.request.message' },
-                    { address: 'graphql.server.all_resolvers' },
-                    { address: 'graphql.server.resolver' }
+                    {address: 'server.request.query'},
+                    {address: 'server.request.body'},
+                    {address: 'server.request.path_params'},
+                    {address: 'grpc.server.request.message'},
+                    {address: 'graphql.server.all_resolvers'},
+                    {address: 'graphql.server.resolver'}
                   ]
                 },
                 operator: 'ssrf_detector'
@@ -76,14 +76,14 @@ RSpec.describe 'Faraday SSRF Injection' do
         run(
           lambda do |env|
             request = Rack::Request.new(env)
-            client = Faraday.new("http://#{request.params['url']}") do |faraday|
+            client = Faraday.new("http://#{request.params["url"]}") do |faraday|
               faraday.adapter(:test) do |stub|
                 stub.get('/') { |_| [200, {}, 'OK'] }
               end
             end
             response = client.get('/')
 
-            [200, { 'Content-Type' => 'application/json' }, [response.status]]
+            [200, {'Content-Type' => 'application/json'}, [response.status]]
           end
         )
       end
@@ -99,7 +99,7 @@ RSpec.describe 'Faraday SSRF Injection' do
 
   context 'when request params contain SSRF attack' do
     before do
-      get('/ssrf', { 'url' => '169.254.169.254' }, { 'REMOTE_ADDR' => '127.0.0.1' })
+      get('/ssrf', {'url' => '169.254.169.254'}, {'REMOTE_ADDR' => '127.0.0.1'})
     end
 
     it { expect(last_response).to be_forbidden }
@@ -107,7 +107,7 @@ RSpec.describe 'Faraday SSRF Injection' do
 
   context 'when request params do not contain SSRF attack' do
     before do
-      get('/ssrf', { 'url' => 'example.com' }, { 'REMOTE_ADDR' => '127.0.0.1' })
+      get('/ssrf', {'url' => 'example.com'}, {'REMOTE_ADDR' => '127.0.0.1'})
     end
 
     it { expect(last_response).to be_ok }

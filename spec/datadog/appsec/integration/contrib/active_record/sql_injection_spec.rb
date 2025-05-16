@@ -14,7 +14,7 @@ RSpec.describe 'ActiveRecord SQL Injection' do
 
   before do
     stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-      klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
 
       klass.connection.create_table 'users', force: :cascade do |t|
         t.string :name, null: false
@@ -47,9 +47,9 @@ RSpec.describe 'ActiveRecord SQL Injection' do
               {
                 operator: 'sqli_detector',
                 parameters: {
-                  resource: [{ address: 'server.db.statement' }],
-                  params: [{ address: 'server.request.query' }],
-                  db_type: [{ address: 'server.db.system' }]
+                  resource: [{address: 'server.db.statement'}],
+                  params: [{address: 'server.request.query'}],
+                  db_type: [{address: 'server.db.system'}]
                 }
               }
             ],
@@ -79,10 +79,10 @@ RSpec.describe 'ActiveRecord SQL Injection' do
           lambda do |env|
             request = Rack::Request.new(env)
             users = User.find_by_sql(
-              "SELECT * FROM users WHERE name = '#{request.params['name']}'"
+              "SELECT * FROM users WHERE name = '#{request.params["name"]}'"
             )
 
-            [200, { 'Content-Type' => 'application/json' }, [users.to_json]]
+            [200, {'Content-Type' => 'application/json'}, [users.to_json]]
           end
         )
       end
@@ -98,7 +98,7 @@ RSpec.describe 'ActiveRecord SQL Injection' do
 
   context 'when RASP check triggered for database query' do
     before do
-      get('/rasp', { 'name' => "Bob'; OR 1=1" }, { 'REMOTE_ADDR' => '127.0.0.1' })
+      get('/rasp', {'name' => "Bob'; OR 1=1"}, {'REMOTE_ADDR' => '127.0.0.1'})
     end
 
     it { expect(last_response).to be_forbidden }

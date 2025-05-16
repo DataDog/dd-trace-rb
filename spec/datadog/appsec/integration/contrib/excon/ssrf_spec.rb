@@ -36,9 +36,9 @@ RSpec.describe 'Excon SSRF Injection' do
             conditions: [
               {
                 parameters: {
-                  resource: [{ address: 'server.io.net.url' }],
+                  resource: [{address: 'server.io.net.url'}],
                   params: [
-                    { address: 'server.request.query' }
+                    {address: 'server.request.query'}
                   ]
                 },
                 operator: 'ssrf_detector'
@@ -70,12 +70,12 @@ RSpec.describe 'Excon SSRF Injection' do
         run(
           lambda do |env|
             request = Rack::Request.new(env)
-            client = ::Excon.new("http://#{request.params['url']}", mock: true).tap do
-              ::Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200)
+            client = ::Excon.new("http://#{request.params["url"]}", mock: true).tap do
+              ::Excon.stub({method: :get, path: '/success'}, body: 'OK', status: 200)
             end
             response = client.get(path: '/success')
 
-            [200, { 'Content-Type' => 'application/json' }, [response.status]]
+            [200, {'Content-Type' => 'application/json'}, [response.status]]
           end
         )
       end
@@ -91,7 +91,7 @@ RSpec.describe 'Excon SSRF Injection' do
 
   context 'when request params contain SSRF attack' do
     before do
-      get('/ssrf', { 'url' => '169.254.169.254' }, { 'REMOTE_ADDR' => '127.0.0.1' })
+      get('/ssrf', {'url' => '169.254.169.254'}, {'REMOTE_ADDR' => '127.0.0.1'})
     end
 
     it { expect(last_response).to be_forbidden }
@@ -99,7 +99,7 @@ RSpec.describe 'Excon SSRF Injection' do
 
   context 'when request params do not contain SSRF attack' do
     before do
-      get('/ssrf', { 'url' => 'example.com' }, { 'REMOTE_ADDR' => '127.0.0.1' })
+      get('/ssrf', {'url' => 'example.com'}, {'REMOTE_ADDR' => '127.0.0.1'})
     end
 
     it { expect(last_response).to be_ok }

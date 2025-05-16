@@ -38,7 +38,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
     # app/models
     user_model
     stub_const('Admin', Class.new(ActiveRecord::Base)).tap do |klass|
-      klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
       klass.connection.create_table 'admins', force: :cascade do |t|
         t.string :username, null: false
         t.string :email, default: '', null: false
@@ -84,7 +84,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
         def initialize(files, dirs = {}, &block)
           dirs = dirs.delete('') if dirs.include?('')
 
-          super(files, dirs, &block)
+          super
         end
       end
     end
@@ -106,7 +106,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
     app.initialize!
     app.routes.draw do
-      devise_for :users, controllers: { registrations: 'test_registrations' }
+      devise_for :users, controllers: {registrations: 'test_registrations'}
       devise_for :admins
     end
 
@@ -162,7 +162,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
   let(:user_model) do
     stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-      klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
       klass.connection.create_table 'users', force: :cascade do |t|
         t.string :username, null: false
         t.string :email, default: '', null: false
@@ -188,7 +188,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
   context 'when user successfully signed up and immediately login' do
     before do
       form_data = {
-        user: { username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456' }
+        user: {username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456'}
       }
 
       post('/users', form_data)
@@ -216,7 +216,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
   context 'when admin successfully signed up and immediately login' do
     before do
       form_data = {
-        admin: { username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456' }
+        admin: {username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456'}
       }
 
       post('/admins', form_data)
@@ -244,7 +244,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
   context 'when user successfully signed up and must confirm email before loggin in' do
     before do
       form_data = {
-        user: { username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456' }
+        user: {username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456'}
       }
 
       post('/users', form_data)
@@ -261,7 +261,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
     let(:user_model) do
       stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-        klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+        klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
         klass.connection.create_table 'users', force: :cascade do |t|
           t.string :username, null: false
           t.string :email, default: '', null: false
@@ -303,7 +303,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
   context 'when user successfully signed up and customer uses SDK to set user' do
     before do
       form_data = {
-        user: { username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456' }
+        user: {username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456'}
       }
 
       post('/users', form_data)
@@ -315,8 +315,8 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
           Datadog::Kit::AppSec::Events.track_signup(
             Datadog::Tracing.active_trace,
             Datadog::Tracing.active_span,
-            user: { id: '42' },
-            'usr.login': 'hello@gmail.com'
+            user: {id: '42'},
+            "usr.login": 'hello@gmail.com'
           )
 
           super
@@ -326,7 +326,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
     let(:user_model) do
       stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-        klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+        klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
         klass.connection.create_table 'users', force: :cascade do |t|
           t.string :username, null: false
           t.string :email, default: '', null: false

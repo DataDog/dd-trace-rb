@@ -38,7 +38,7 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
 
     # app/models
     stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-      klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
       klass.connection.create_table 'users', force: :cascade do |t|
         t.string :username, null: false
         t.string :email, default: '', null: false
@@ -84,7 +84,7 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
         def initialize(files, dirs = {}, &block)
           dirs = dirs.delete('') if dirs.include?('')
 
-          super(files, dirs, &block)
+          super
         end
       end
     end
@@ -106,7 +106,7 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
 
     app.initialize!
     app.routes.draw do
-      devise_for :users, controllers: { registrations: 'test_registrations' }
+      devise_for :users, controllers: {registrations: 'test_registrations'}
 
       get '/public' => 'public#index'
       get '/private' => 'private#index'

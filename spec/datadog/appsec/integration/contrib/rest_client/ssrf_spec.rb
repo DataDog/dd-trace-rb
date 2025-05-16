@@ -37,9 +37,9 @@ RSpec.describe 'RestClient SSRF Injection' do
             conditions: [
               {
                 parameters: {
-                  resource: [{ address: 'server.io.net.url' }],
+                  resource: [{address: 'server.io.net.url'}],
                   params: [
-                    { address: 'server.request.query' },
+                    {address: 'server.request.query'},
                   ]
                 },
                 operator: 'ssrf_detector'
@@ -73,9 +73,9 @@ RSpec.describe 'RestClient SSRF Injection' do
         run(
           lambda do |env|
             request = Rack::Request.new(env)
-            response = RestClient.get("http://#{request.params['url']}")
+            response = RestClient.get("http://#{request.params["url"]}")
 
-            [200, { 'Content-Type' => 'application/json' }, [response.code]]
+            [200, {'Content-Type' => 'application/json'}, [response.code]]
           end
         )
       end
@@ -86,7 +86,7 @@ RSpec.describe 'RestClient SSRF Injection' do
 
   context 'when request params contain SSRF attack' do
     before do
-      get('/ssrf', { 'url' => '169.254.169.254' }, { 'REMOTE_ADDR' => '127.0.0.1' })
+      get('/ssrf', {'url' => '169.254.169.254'}, {'REMOTE_ADDR' => '127.0.0.1'})
     end
 
     it { expect(last_response).to be_forbidden }
@@ -94,7 +94,7 @@ RSpec.describe 'RestClient SSRF Injection' do
 
   context 'when request params do not contain SSRF attack' do
     before do
-      get('/ssrf', { 'url' => 'example.com' }, { 'REMOTE_ADDR' => '127.0.0.1' })
+      get('/ssrf', {'url' => 'example.com'}, {'REMOTE_ADDR' => '127.0.0.1'})
     end
 
     it { expect(last_response).to be_ok }

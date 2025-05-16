@@ -116,7 +116,7 @@ RSpec.describe Datadog::AppSec::Remote do
               'custom' => {
                 'v' => 1,
               },
-              'hashes' => { 'sha256' => Digest::SHA256.hexdigest(rules.to_json) },
+              'hashes' => {'sha256' => Digest::SHA256.hexdigest(rules.to_json)},
               'length' => rules.to_s.length
             }
           )
@@ -197,7 +197,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 'custom' => {
                   'v' => 1,
                 },
-                'hashes' => { 'sha256' => Digest::SHA256.hexdigest(data.to_json) },
+                'hashes' => {'sha256' => Digest::SHA256.hexdigest(data.to_json)},
                 'length' => data.to_s.length
               }
             )
@@ -319,7 +319,7 @@ RSpec.describe Datadog::AppSec::Remote do
               end
 
               let(:data) do
-                { 'actions' => actions }
+                {'actions' => actions}
               end
 
               it 'pass the right values to RuleMerger' do
