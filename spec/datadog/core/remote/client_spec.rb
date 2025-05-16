@@ -564,10 +564,8 @@ RSpec.describe Datadog::Core::Remote::Client do
                 allow(client).to receive(:gem_spec).with('libdatadog').and_return(libdatadog_gem_spec)
               end
 
-              it 'returns client_tracer tags' do
-                expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
-
-                expected_client_tracer_tags = [
+              let(:expected_base_client_tracer_tags) do
+                [
                   "platform:#{native_platform}",
                   "ruby.tracer.version:#{gem_datadog_version}",
                   "ruby.runtime.platform:#{ruby_platform}",
@@ -580,8 +578,34 @@ RSpec.describe Datadog::Core::Remote::Client do
                   "ruby.gem.libdatadog.version:#{libdatadog_gem_spec.version}",
                   "ruby.gem.libdatadog.platform:#{libdatadog_gem_spec.platform}",
                 ]
+              end
 
-                expect(client_payload[:client_tracer][:tags]).to eq(expected_client_tracer_tags)
+              it 'returns client_tracer tags' do
+                expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
+
+                expect(client_payload[:client_tracer][:tags]).to eq(expected_base_client_tracer_tags)
+              end
+
+              context 'when SCI environment variables are set' do
+                with_env 'DD_GIT_REPOSITORY_URL' => 'http://foo',
+                  'DD_GIT_COMMIT_SHA' => '1234hash'
+
+                let(:expected_sci_tags) do
+                  [
+                    'git.repository_url:http://foo',
+                    'git.commit.sha:1234hash',
+                  ]
+                end
+
+                before do
+                  Datadog::Core::Environment::Git.send(:_reset)
+                end
+
+                it 'includes SCI tags in remote config' do
+                  expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
+
+                  expect(client_payload[:client_tracer][:tags]).to eq(expected_base_client_tracer_tags + expected_sci_tags)
+                end
               end
             end
 
