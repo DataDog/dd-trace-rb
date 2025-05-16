@@ -85,6 +85,9 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         c.telemetry.install_time = 'time'
         c.appsec.sca_enabled = false
       end
+
+      # Reset global cache
+      Datadog::Core::Environment::Git.send(:_reset)
     end
     it_behaves_like 'event with no attributes'
 
