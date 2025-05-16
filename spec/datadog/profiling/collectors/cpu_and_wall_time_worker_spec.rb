@@ -894,11 +894,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
+        current_method_name = caller_locations(0, 1).first.base_label
+
         test_struct_heap_sample = lambda { |sample|
           first_frame = sample.locations.first
           first_frame.lineno == allocation_line &&
             first_frame.path == __FILE__ &&
-            first_frame.base_label == "new" &&
+            (
+              first_frame.base_label == "new" ||
+              # From Ruby 3.5 onwards, new is inlined into the bytecode of the caller and there's no "new"
+              # frame, see https://github.com/ruby/ruby/pull/13080
+              (RUBY_VERSION >= "3.5.0" && first_frame.base_label == current_method_name)
+            ) &&
             sample.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" &&
             (sample.values[:"heap-live-samples"] || 0) > 0
         }
@@ -906,15 +913,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # We can't just use find here because samples might have different gc age labels
         # if a gc happens to run in the middle of this test. Thus, we'll have to sum up
         # together the values of all matching samples.
-        relevant_samples = samples_from_pprof(recorder.serialize!)
-          .select(&test_struct_heap_sample)
+        relevant_samples = samples_from_pprof(recorder.serialize!).select(&test_struct_heap_sample)
 
         total_samples = relevant_samples.map { |sample| sample.values[:"heap-live-samples"] || 0 }.reduce(:+)
         total_size = relevant_samples.map { |sample| sample.values[:"heap-live-size"] || 0 }.reduce(:+)
 
         expect(total_samples).to eq test_num_allocated_object
-        # 40 is the size of a basic object and we have test_num_allocated_object of them
-        expect(total_size).to eq test_num_allocated_object * 40
+
+        expected_size_of_object = 40 # 40 is the size of a basic object and we have test_num_allocated_object of them
+
+        # Starting with Ruby 3.5, the object_id counts towards the object's size
+        if RUBY_VERSION >= "3.5.0"
+          expected_size_of_object = 104
+
+          expect(ObjectSpace.memsize_of(CpuAndWallTimeWorkerSpec::TestStruct.new.tap(&:object_id)))
+            .to be expected_size_of_object
+        end
+
+        expect(total_size).to eq test_num_allocated_object * expected_size_of_object
       end
 
       describe "heap cleanup after GC" do

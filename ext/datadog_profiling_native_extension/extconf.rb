@@ -131,6 +131,9 @@ end
 
 have_func "malloc_stats"
 
+# On Ruby 3.5, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
+$defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "3.5"
+
 # On Ruby 2.5 and 3.3, this symbol was not visible. It is on 2.6 to 3.2, as well as 3.4+
 $defs << "-DNO_RB_OBJ_INFO" if RUBY_VERSION.start_with?("2.5", "3.3")
 
