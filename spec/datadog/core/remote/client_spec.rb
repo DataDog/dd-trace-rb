@@ -597,7 +597,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 end
 
                 before do
-                  Datadog::Core::Environment::Git.send(:_reset)
+                  Datadog::Core::Environment::Git.reset_for_tests
                 end
 
                 it 'includes SCI tags in remote config' do
