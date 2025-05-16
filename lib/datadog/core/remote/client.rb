@@ -138,6 +138,8 @@ module Datadog
             "ruby.gem.libddwaf.platform:#{gem_spec('libddwaf').platform}",
             "ruby.gem.libdatadog.version:#{gem_spec('libdatadog').version}",
             "ruby.gem.libdatadog.platform:#{gem_spec('libdatadog').platform}",
+            "git.repository_url:#{Core::Environment::Git.git_repository_url}",
+            "git.commit.sha:#{Core::Environment::Git.git_commit_sha}",
           ]
 
           client_tracer = {
