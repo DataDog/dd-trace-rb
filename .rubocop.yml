@@ -41,17 +41,18 @@ Style:
   Exclude:
     - "lib/datadog/profiling*"
     - "lib/datadog/profiling/**/*"
-    - "lib/datadog/appsec*"
-    - "lib/datadog/appsec/**/*"
     - "spec/datadog/profiling*"
     - "spec/datadog/profiling/**/*"
+    - "ext/datadog_profiling_*/**/*"
     - "lib/datadog/error_tracking*"
     - "lib/datadog/error_tracking/**/*"
     - "spec/datadog/error_tracking*"
     - "spec/datadog/error_tracking/**/*"
+    - "lib/datadog/appsec*"
+    - "lib/datadog/appsec/**/*"
     - "spec/datadog/appsec*"
     - "spec/datadog/appsec/**/*"
-    - "ext/datadog_profiling_*/**/*"
+
 Layout:
   Exclude:
     - "lib/datadog/profiling/*"
@@ -63,10 +64,10 @@ Layout:
     - "lib/datadog/error_tracking/**/*"
     - "spec/datadog/error_tracking*"
     - "spec/datadog/error_tracking/**/*"
-    - "lib/datadog/appsec/*"
-    - "lib/datadog/appsec/**/**"
-    - "spec/datadog/appsec/*"
-    - "spec/datadog/appsec/**/**"
+    - "lib/datadog/appsec*"
+    - "lib/datadog/appsec/**/*"
+    - "spec/datadog/appsec*"
+    - "spec/datadog/appsec/**/*"
 
 Layout/LineLength:
   Max: 124

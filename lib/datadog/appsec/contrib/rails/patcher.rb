@@ -107,7 +107,7 @@ module Datadog
                 else
                   # rails 7.0 uses ... to pass args
                   args_getter = Class.new do
-                    def method_missing(_op, *args) # rubocop:disable Style/MissingRespondToMissing
+                    def method_missing(_op, *args) # standard:disable Style/MissingRespondToMissing
                       args
                     end
                   end.new
