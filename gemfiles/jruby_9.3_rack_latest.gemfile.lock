@@ -47,7 +47,7 @@ GEM
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
     public_suffix (5.1.1)
-    rack (3.1.13)
+    rack (3.1.14)
     rack-contrib (2.5.0)
       rack (< 4)
     rack-test (2.1.0)
