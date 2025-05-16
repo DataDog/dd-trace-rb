@@ -5,6 +5,7 @@ REQUIRES = [
   ['datadog', 'Datadog::Core'],
   ['datadog/appsec', 'Datadog::AppSec'],
   ['datadog/core', 'Datadog::Core'],
+  ['datadog/error_tracking', 'Datadog::ErrorTracking'],
   ['datadog/di', 'Datadog::DI',
    -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
   ['datadog/di/preload', 'Datadog::DI::CodeTracker',
