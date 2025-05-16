@@ -8,7 +8,7 @@ require 'rack/contrib'
 require 'datadog/tracing'
 require 'datadog/appsec'
 
-RSpec.describe 'Rack-request headers collection for identity.set_user' do
+RSpec.describe 'Blocking with deny and pass list configuration' do
   include Rack::Test::Methods
 
   before do
