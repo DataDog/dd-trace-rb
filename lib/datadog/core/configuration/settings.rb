@@ -990,6 +990,7 @@ module Datadog
             end
           end
         end
+
         # TODO: Tracing should manage its own settings.
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings
