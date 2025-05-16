@@ -42,7 +42,6 @@ module Datadog
           # This tag is used by the Error Tracking product to report
           # the error in Error Tracking
           span_op.set_tag(Ext::SPAN_EVENTS_HAS_EXCEPTION, true)
-
         end
         # Set a limit to the number of span event we can store per SpanOp
         # If an error has been handled several times in the same span we can still
