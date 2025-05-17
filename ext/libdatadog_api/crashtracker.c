@@ -108,11 +108,6 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 }
 
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
-  ddog_VoidResult result = ddog_crasht_shutdown();
-
-  if (result.tag == DDOG_VOID_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to stop the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
-
+  // TODO: Waiting for libdatadog to re-add way to stop crashtracking
   return Qtrue;
 }
