@@ -2,5 +2,8 @@
     "APPSEC_BLOCKING": [
         "tests/appsec/test_fingerprinting.py::Test_Fingerprinting_Endpoint_Preprocessor",
         "tests/appsec/test_fingerprinting.py::Test_Fingerprinting_Header_And_Network_Preprocessor"
+    ],
+    "PARAMETRIC": [
+        "tests/parametric/test_process_discovery.py"
     ]
 }
