@@ -1,6 +1,8 @@
 require "datadog/profiling/spec_helper"
 require "datadog/profiling/stack_recorder"
 
+require "objspace"
+
 RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported(self) }
 
@@ -740,6 +742,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
 
               stack_recorder.serialize
+
+              GC.enable
+              GC.start
+
+              # Sanity check: All the objects should've been garbage collected
+              @object_ids.map do |object_id|
+                expect { ObjectSpace._id2ref(object_id) }.to raise_error(RangeError)
+              end
 
               # Older objects are only cleared at serialization time
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
