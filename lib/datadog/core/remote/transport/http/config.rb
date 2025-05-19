@@ -23,9 +23,7 @@ module Datadog
               def initialize(http_response, options = {}) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
                 super(http_response)
 
-                if http_response.code != 200
-                  raise AgentErrorResponse.new(http_response.code, http_response.payload)
-                end
+                raise AgentErrorResponse.new(http_response.code, http_response.payload) if http_response.code != 200
 
                 begin
                   payload = JSON.parse(http_response.payload, symbolize_names: true)
@@ -142,10 +140,10 @@ module Datadog
               class AgentErrorResponse < ConfigError
                 def initialize(code, body)
                   truncated_body = if body.length > 1000
-                    "#{body[0...800]}...#{body[800...1000]}"
-                  else
-                    body
-                  end
+                                     "#{body[0...800]}...#{body[800...1000]}"
+                                   else
+                                     body
+                                   end
                   message = "Agent returned an error response: #{code}: #{truncated_body}"
                   super(message)
                 end
