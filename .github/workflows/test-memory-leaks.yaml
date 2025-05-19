@@ -2,8 +2,6 @@ name: Test for memory leaks
 
 on: # yamllint disable-line rule:truthy
   push:
-    branches:
-      - master
   pull_request:
 
 # Default permissions for all jobs
