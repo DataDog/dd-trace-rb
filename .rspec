@@ -1,1 +1,1 @@
---require spec_helper --seed 3003 --format=documentation
+--require spec_helper
