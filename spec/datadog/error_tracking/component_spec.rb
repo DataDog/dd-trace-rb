@@ -70,7 +70,7 @@ RSpec.describe Datadog::ErrorTracking::Component do
 
     shared_examples 'span event validation' do
       it 'has the expected span events' do
-        expect(spans.length).to eq(expected_exceptions.length)
+        expect(spans.count).to eq(expected_exceptions.count)
         expected_exceptions.each_with_index do |events_per_span, i|
           expect(spans[i].events.length).to eq(events_per_span.length)
           unless events_per_span.empty?
