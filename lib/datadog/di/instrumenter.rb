@@ -111,7 +111,8 @@ module Datadog
               # Arguments may be mutated by the method, therefore
               # they need to be serialized prior to method invocation.
               entry_args = if probe.capture_snapshot?
-                serializer.serialize_args(args, kwargs,
+                instance_vars = Instrumenter.get_instance_variables(self)
+                serializer.serialize_args(args, kwargs, instance_vars,
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
@@ -368,6 +369,16 @@ module Datadog
         else
           # TODO add test coverage for this path
           logger.debug { "di: unknown probe type to unhook: #{probe}" }
+        end
+      end
+
+      class << self
+        def get_instance_variables(object)
+          {}.tap do |hash|
+            object.instance_variables.each do |var|
+              hash[var] = object.instance_variable_get(var)
+            end
+          end
         end
       end
 

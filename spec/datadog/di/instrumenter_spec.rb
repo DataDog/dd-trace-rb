@@ -301,6 +301,34 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'when capturing snapshot and there are instance variables' do
+      let(:probe_args) do
+        {type_name: 'HookIvarTestClass', method_name: 'hook_test_method',
+         capture_snapshot: true}
+      end
+
+      let(:target_call) do
+        expect(HookIvarTestClass.new.hook_test_method).to eq 42
+      end
+
+      it 'captures instance variables' do
+        instrumenter.hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        target_call
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.keys.sort).to eq call_keys
+        expect(observed_calls.first[:rv]).to eq 42
+        expect(observed_calls.first[:duration]).to be_a(Float)
+
+        expect(observed_calls.first[:serialized_entry_args]).to eq(
+          :@ivar => {type: 'Integer', value: '2442'},
+        )
+      end
+    end
+
     context 'positional args' do
       context 'without snapshot capture' do
         let(:probe_args) do
@@ -346,6 +374,35 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first[:duration]).to be_a(Float)
 
             expect(observed_calls.first[:serialized_entry_args]).to eq(arg1: {type: 'Integer', value: '2'})
+          end
+
+          context 'when there are instance variables' do
+            let(:probe_args) do
+              {type_name: 'HookIvarTestClass', method_name: 'hook_test_method_with_arg',
+               capture_snapshot: true}
+            end
+
+            let(:target_call) do
+              expect(HookIvarTestClass.new.hook_test_method_with_arg(2)).to eq 2
+            end
+
+            it 'captures instance variables in addition to parameters' do
+              instrumenter.hook_method(probe) do |payload|
+                observed_calls << payload
+              end
+
+              target_call
+
+              expect(observed_calls.length).to eq 1
+              expect(observed_calls.first.keys.sort).to eq call_keys
+              expect(observed_calls.first[:rv]).to eq 2
+              expect(observed_calls.first[:duration]).to be_a(Float)
+
+              expect(observed_calls.first[:serialized_entry_args]).to eq(
+                arg1: {type: 'Integer', value: '2'},
+                :@ivar => {type: 'Integer', value: '2442'},
+              )
+            end
           end
         end
 
@@ -422,6 +479,35 @@ RSpec.describe Datadog::DI::Instrumenter do
             let(:rate_limit) { 0 }
 
             include_examples 'does not invoke callback but invokes target method'
+          end
+        end
+
+        context 'when there are instance variables' do
+          let(:probe_args) do
+            {type_name: 'HookIvarTestClass', method_name: 'hook_test_method_with_kwarg',
+             capture_snapshot: true}
+          end
+
+          let(:target_call) do
+            expect(HookIvarTestClass.new.hook_test_method_with_kwarg(kwarg: 42)).to eq 42
+          end
+
+          it 'captures instance variables in addition to kwargs' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq 42
+            expect(observed_calls.first[:duration]).to be_a(Float)
+
+            expect(observed_calls.first[:serialized_entry_args]).to eq(
+              kwarg: {type: 'Integer', value: '42'},
+              :@ivar => {type: 'Integer', value: '2442'},
+            )
           end
         end
       end
