@@ -13,6 +13,7 @@ module Datadog
           end
 
           def initialize(events)
+            super()
             @events = events
           end
 
