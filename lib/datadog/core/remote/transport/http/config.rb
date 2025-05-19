@@ -23,6 +23,10 @@ module Datadog
               def initialize(http_response, options = {}) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
                 super(http_response)
 
+                if http_response.code != 200
+                  raise AgentErrorResponse.new(http_response.code, http_response.payload)
+                end
+
                 begin
                   payload = JSON.parse(http_response.payload, symbolize_names: true)
                 rescue JSON::ParserError => e
@@ -130,8 +134,25 @@ module Datadog
                 end
               end
 
+              # Base class for Remote Configuration Config errors
+              class ConfigError < StandardError
+              end
+
+              # When the agent returned an error response to our request
+              class AgentErrorResponse < ConfigError
+                def initialize(code, body)
+                  truncated_body = if body.length > 1000
+                    "#{body[0...800]}...#{body[800...1000]}"
+                  else
+                    body
+                  end
+                  message = "Agent returned an error response: #{code}: #{truncated_body}"
+                  super(message)
+                end
+              end
+
               # When an expected value type is incorrect
-              class TypeError < StandardError
+              class TypeError < ConfigError
                 def initialize(type, value)
                   message = "not a #{type}: #{value.inspect}"
 
@@ -140,7 +161,7 @@ module Datadog
               end
 
               # When value decoding fails
-              class DecodeError < StandardError
+              class DecodeError < ConfigError
                 def initialize(key, value)
                   message = "could not decode key #{key.inspect}: #{value.inspect}"
 
@@ -149,7 +170,7 @@ module Datadog
               end
 
               # When value parsing fails
-              class ParseError < StandardError
+              class ParseError < ConfigError
                 def initialize(key, value)
                   message = "could not parse key #{key.inspect}: #{value.inspect}"
 

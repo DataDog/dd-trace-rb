@@ -51,7 +51,7 @@ module Datadog
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
                 "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. "\
-                'reseting client state'
+                'resetting client state'
               end
 
               # client state is unknown, state might be corrupted
