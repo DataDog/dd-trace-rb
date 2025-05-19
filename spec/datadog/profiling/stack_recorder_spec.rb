@@ -675,7 +675,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           it "only keeps track of some allocations" do
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
-            expect(heap_samples.size).to eq(1)
+            expect(heap_samples.size)
+              .to eq(1), "Expected one heap sample, got #{heap_samples.size}; heap_samples is #{heap_samples}"
 
             heap_sample = heap_samples.first
             expect(heap_sample.labels[:"allocation class"]).to eq("Array")
