@@ -5,7 +5,7 @@ require "datadog/profiling/collectors/stack"
 # at their stack traces. Hence, we disable Rubocop's complaints here.
 #
 # rubocop:disable Layout/LineLength
-RSpec.describe Datadog::Profiling::Collectors::Stack do
+RSpec.describe Datadog::Profiling::Collectors::Stack, :focus do
   before { skip_if_profiling_not_supported(self) }
 
   subject(:collectors_stack) { described_class.new }
