@@ -83,6 +83,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           {foo: 42}
         end
 
+        let(:instance_vars) do
+          {ivar: 42}
+        end
+
         let(:expected_captures) do
           {entry: {
             arguments: {
@@ -101,7 +105,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         it 'builds expected payload' do
-          payload = builder.build_snapshot(probe, args: args, kwargs: kwargs)
+          payload = builder.build_snapshot(probe, args: args, kwargs: kwargs, instance_vars: instance_vars)
           expect(payload).to be_a(Hash)
           captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
           expect(captures).to eq(expected_captures)

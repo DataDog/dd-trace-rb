@@ -858,7 +858,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     let(:call_keys) do
-      %i[caller_locations probe trace_point]
+      %i[caller_locations locals path probe]
     end
 
     context 'when called without a block' do
@@ -1052,9 +1052,11 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         expect(observed_calls.length).to eq 2
         expect(observed_calls.first).to be_a(Hash)
-        expect(observed_calls.first[:trace_point]).to be_a(TracePoint)
+        # We do not have locals here because we are not capturing,
+        # but we do have path which came from the trace point object.
+        expect(observed_calls.first[:path]).to be_a(String)
         expect(observed_calls[1]).to be_a(Hash)
-        expect(observed_calls[1][:trace_point]).to be_a(TracePoint)
+        expect(observed_calls[1][:path]).to be_a(String)
       end
     end
 
