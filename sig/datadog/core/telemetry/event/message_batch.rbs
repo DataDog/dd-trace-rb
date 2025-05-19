@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Telemetry
       class Event
-        class MessageBatch
+        class MessageBatch < Base
           @events: Array[Datadog::Core::Telemetry::Event::Base]
 
           attr_reader events: Array[Datadog::Core::Telemetry::Event::Base]
