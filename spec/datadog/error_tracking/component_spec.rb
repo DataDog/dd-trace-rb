@@ -233,7 +233,7 @@ RSpec.describe Datadog::ErrorTracking::Component do
       end
 
       it 'has the correct span names' do
-        expect(spans.length).to eq(2)
+        expect(spans).to have(2).items
         expect(spans[0].name).to eq('child_span')
         expect(spans[1].name).to eq('parent_span')
       end
