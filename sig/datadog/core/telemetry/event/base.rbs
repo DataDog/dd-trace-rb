@@ -1,0 +1,15 @@
+module Datadog
+  module Core
+    module Telemetry
+      class Event
+        class Base
+          def type: () -> untyped
+          def payload: () -> ::Hash[untyped, untyped]
+          def ==: (untyped other) -> untyped
+          alias eql? ==
+          def hash: () -> untyped
+        end
+      end
+    end
+  end
+end

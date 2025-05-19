@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Telemetry
+      class Event
+        class Distributions < GenerateMetrics
+          def type: () -> "distributions"
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,25 @@
+module Datadog
+  module Core
+    module Telemetry
+      class Event
+        class MessageBatch
+          @events: untyped
+
+          attr_reader events: untyped
+
+          def type: () -> "message-batch"
+
+          def initialize: (untyped events) -> void
+
+          def payload: () -> untyped
+
+          def ==: (untyped other) -> untyped
+
+          alias eql? ==
+
+          def hash: () -> untyped
+        end
+      end
+    end
+  end
+end

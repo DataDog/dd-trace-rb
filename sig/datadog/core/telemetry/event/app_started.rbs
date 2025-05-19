@@ -1,0 +1,28 @@
+module Datadog
+  module Core
+    module Telemetry
+      class Event
+        class AppStarted < Base
+          def type: () -> "app-started"
+
+          def payload: () -> { products: untyped, configuration: untyped, install_signature: untyped }
+
+          private
+
+          def products: () -> untyped
+
+          TARGET_OPTIONS: ::Array["dynamic_instrumentation.enabled" | "logger.level" | "profiling.advanced.code_provenance_enabled" | "profiling.advanced.endpoint.collection.enabled" | "profiling.enabled" | "runtime_metrics.enabled" | "tracing.analytics.enabled" | "tracing.propagation_style_extract" | "tracing.propagation_style_inject" | "tracing.enabled" | "tracing.log_injection" | "tracing.partial_flush.enabled" | "tracing.partial_flush.min_spans_threshold" | "tracing.report_hostname" | "tracing.sampling.rate_limit"]
+          def configuration: () -> untyped
+
+          def agent_transport: (untyped config) -> untyped
+
+          def conf_value: (untyped name, untyped value, untyped seq_id, ?::String origin) -> { name: untyped, value: untyped, origin: untyped, seq_id: untyped }
+
+          def to_value: (untyped value) -> untyped
+
+          def install_signature: () -> { install_id: untyped, install_type: untyped, install_time: untyped }
+        end
+      end
+    end
+  end
+end
