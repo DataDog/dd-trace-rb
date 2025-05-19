@@ -7,13 +7,13 @@ module Datadog
 
           @metric_series: untyped
 
-          attr_reader namespace: untyped
+          attr_reader namespace: String
 
-          attr_reader metric_series: untyped
+          attr_reader metric_series: Array[Metric::Base]
 
           def type: () -> "generate-metrics"
 
-          def initialize: (untyped namespace, untyped metric_series) -> void
+          def initialize: (String namespace, Array[Metric::Base] metric_series) -> void
 
           def payload: () -> { namespace: untyped, series: untyped }
 

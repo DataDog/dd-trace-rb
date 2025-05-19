@@ -9,9 +9,9 @@ module Datadog
 
           private
 
-          def integrations: () -> untyped
+          def integrations: -> Array[Hash[Symbol, string]]
 
-          def patch_error: (untyped integration) -> (untyped | ::String)
+          def patch_error: (untyped integration) -> String
         end
       end
     end

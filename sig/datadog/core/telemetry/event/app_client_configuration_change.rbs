@@ -7,17 +7,17 @@ module Datadog
 
           @origin: untyped
 
-          attr_reader changes: untyped
+          attr_reader changes: Array[[String, Numeric | bool | String | int]]
 
-          attr_reader origin: untyped
+          attr_reader origin: String
 
           def type: () -> "app-client-configuration-change"
 
-          def initialize: (untyped changes, untyped origin) -> void
+          def initialize: (Array[[String, Numeric | bool | String]] changes, String origin) -> void
 
           def payload: () -> { configuration: untyped }
 
-          def configuration: () -> untyped
+          def configuration: () -> Array[Hash[Symbol, untyped]]
 
           def ==: (untyped other) -> untyped
 

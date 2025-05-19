@@ -3,8 +3,8 @@ module Datadog
     module Telemetry
       class Event
         class Base
-          def type: () -> untyped
-          def payload: () -> ::Hash[untyped, untyped]
+          def payload: () -> (Hash[Symbol, untyped] | Array[Hash[Symbol, untyped]])
+          def type: -> String
           def ==: (untyped other) -> untyped
           alias eql? ==
           def hash: () -> untyped

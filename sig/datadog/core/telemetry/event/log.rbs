@@ -10,22 +10,19 @@ module Datadog
 
           @count: untyped
 
-          LEVELS: { error: "ERROR", warn: "WARN" }
+          LEVELS: Hash[Symbol, String]
 
-          LEVELS_STRING: untyped
+          LEVELS_STRING: Array[String]
 
-          attr_reader message: untyped
-
-          attr_reader level: untyped
-
-          attr_reader stack_trace: untyped
-
-          attr_reader count: untyped
+          attr_reader count: Integer
+          attr_reader message: String
+          attr_reader level: String
+          attr_reader stack_trace: String?
 
           def type: () -> "logs"
-          def initialize: (message: untyped, level: untyped, ?stack_trace: untyped?, ?count: ::Integer) -> void
+          def initialize: (message: String, level: (Symbol|String), ?stack_trace: String?, ?count: Integer) -> void
 
-          def payload: () -> { logs: ::Array[untyped] }
+          def payload: () -> { logs: [Hash[Symbol, (String|Integer)]] }
           def ==: (untyped other) -> untyped
 
           alias eql? ==

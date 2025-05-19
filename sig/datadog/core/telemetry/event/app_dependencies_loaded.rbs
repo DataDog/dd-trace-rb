@@ -9,7 +9,7 @@ module Datadog
 
           private
 
-          def dependencies: () -> untyped
+          def dependencies: -> Array[Hash[Symbol, String]]
         end
       end
     end

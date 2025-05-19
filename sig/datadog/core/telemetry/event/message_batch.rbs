@@ -3,13 +3,13 @@ module Datadog
     module Telemetry
       class Event
         class MessageBatch
-          @events: untyped
+          @events: Array[Datadog::Core::Telemetry::Event::Base]
 
-          attr_reader events: untyped
+          attr_reader events: Array[Datadog::Core::Telemetry::Event::Base]
 
           def type: () -> "message-batch"
 
-          def initialize: (untyped events) -> void
+          def initialize: (Array[Datadog::Core::Telemetry::Event::Base] events) -> void
 
           def payload: () -> untyped
 
