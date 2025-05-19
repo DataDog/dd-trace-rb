@@ -1,8 +1,12 @@
+# frozen_string_literal: true
+
 module Datadog
   module Core
     module Telemetry
       class Event
-        # Telemetry class for the 'message-batch' event
+        # Telemetry class for the 'message-batch' event.
+        #
+        # Note that this class does not derive from Base.
         class MessageBatch
           attr_reader :events
 
