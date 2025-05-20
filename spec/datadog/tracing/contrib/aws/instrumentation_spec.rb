@@ -134,6 +134,25 @@ RSpec.describe 'AWS instrumentation' do
       end
     end
 
+    context 'when the client runs and the API returns an error' do
+      subject(:list_buckets) { client.list_buckets }
+
+      let(:client) { ::Aws::S3::Client.new(stub_responses: true) }
+
+      before do
+        client.stub_responses(:list_buckets, status_code: 500,
+                                             body: 'error',
+                                             headers: {})
+      end
+
+      it 'generates an errored span' do
+        expect do
+          list_buckets
+        end.to raise_error(Aws::S3::Errors::Http500Error)
+        expect(span).to have_error
+      end
+    end
+
     describe '#list_objects' do
       subject!(:list_objects) { client.list_objects(bucket: 'bucketname', max_keys: 2) }
 
@@ -194,19 +213,6 @@ RSpec.describe 'AWS instrumentation' do
         it 'returns an unmodified response' do
           expect(presign).to start_with('https://bucket.s3.us-stubbed-1.amazonaws.com/key')
         end
-      end
-    end
-
-    context 'when the client runs and the API returns an error' do
-      before(:each) do
-        client.stub_responses(:list_buckets, status_code: 500,
-                                             body: 'error',
-                                             headers: {})
-      end
-
-      it 'generates an errored span' do
-        expect { client.list_buckets }.to raise_error
-        expect(span).to have_error
       end
     end
   end
