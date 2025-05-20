@@ -53,6 +53,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
+        expect(span).not_to have_error
         expect(span.service).to eq('aws')
         expect(span.type).to eq('http')
         expect(span.resource).to eq('sts.get_access_key_info')
@@ -193,6 +194,19 @@ RSpec.describe 'AWS instrumentation' do
         it 'returns an unmodified response' do
           expect(presign).to start_with('https://bucket.s3.us-stubbed-1.amazonaws.com/key')
         end
+      end
+    end
+
+    context 'when the client runs and the API returns an error' do
+      before(:each) do
+        client.stub_responses(:list_buckets, status_code: 500,
+                                             body: 'error',
+                                             headers: {})
+      end
+
+      it 'generates an errored span' do
+        expect { client.list_buckets }.to raise_error
+        expect(span).to have_error
       end
     end
   end
