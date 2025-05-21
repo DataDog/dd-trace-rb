@@ -5,6 +5,7 @@ require 'json'
 require_relative '../config'
 require_relative 'client'
 require_relative '../../../utils/base64'
+require_relative '../../../utils/truncation'
 require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
 
@@ -139,11 +140,7 @@ module Datadog
               # When the agent returned an error response to our request
               class AgentErrorResponse < ConfigError
                 def initialize(code, body)
-                  truncated_body = if body.length > 1000
-                                     "#{body[0...800]}...#{body[800...1000]}"
-                                   else
-                                     body
-                                   end
+                  truncated_body = Core::Utils::Truncation.truncate_in_middle(body, 700, 300)
                   message = "Agent returned an error response: #{code}: #{truncated_body}"
                   super(message)
                 end
