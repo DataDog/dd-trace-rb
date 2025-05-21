@@ -26,7 +26,7 @@ module Datadog
         # second and subsequent app-started (and app-closing) events in the
         # first place, and only works with the existing hackery of app-started
         # and app-closing events.
-        class FakeAppClientConfigurationChange < AppStarted
+        class SynthAppClientConfigurationChange < AppStarted
           def type
             'app-client-configuration-change'
           end

@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Telemetry
       class Event
-        class FakeAppClientConfigurationChange < AppStarted
+        class SynthAppClientConfigurationChange < AppStarted
           def type: () -> "app-client-configuration-change"
 
           def payload: () -> { configuration: untyped }
