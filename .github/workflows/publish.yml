@@ -5,7 +5,7 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
       force:
-        description: 'Force release bypassing verification checks'
+        description: "Force release bypassing verification checks"
         type: boolean
         default: false
         required: false
@@ -30,7 +30,7 @@ jobs:
           persist-credentials: false
       - uses: ruby/setup-ruby@e34163cd15f4bb403dcd72d98e295997e6a55798 # v1.238.0
         with:
-          ruby-version: '3.3.7'
+          ruby-version: "3.3.7"
 
       - id: version
         run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> "$GITHUB_OUTPUT"
@@ -167,7 +167,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@e34163cd15f4bb403dcd72d98e295997e6a55798 # v1.238.0
         with:
-          ruby-version: '3.3.7'
+          ruby-version: "3.3.7"
       - run: bundle install
       - uses: rubygems/release-gem@a25424ba2ba8b387abc8ef40807c2c85b96cbe32 # v1.1.1
 
@@ -211,7 +211,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@e34163cd15f4bb403dcd72d98e295997e6a55798 # v1.238.0
         with:
-          ruby-version: '3.3.7'
+          ruby-version: "3.3.7"
       - run: bundle install
       - id: next_version
         run: |
@@ -336,5 +336,5 @@ jobs:
             --base release \
             --head "${TEMP_BRANCH}" \
             --title "Update document v${GEM_VERSION}" \
-            --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready." \
+          --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready.\n\nTo resolve conflicts:\n\`\`\`bash\ngit merge release\ngit checkout --ours .\`\`\`." \
             --label "docs"
