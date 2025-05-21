@@ -33,9 +33,9 @@ module Datadog
           if RUBY_ENGINE != 'ruby'
             logger.warn("error tracking: cannot enable error tracking: MRI is required, but running on #{RUBY_ENGINE}")
             false
-          elsif RUBY_VERSION < '2.6'
+          elsif RUBY_VERSION < '2.7'
             logger.warn(
-              "error tracking: cannot enable error tracking: Ruby 2.6+ is required, but running
+              "error tracking: cannot enable error tracking: Ruby 2.7+ is required, but running
               on #{RUBY_VERSION}"
             )
             false

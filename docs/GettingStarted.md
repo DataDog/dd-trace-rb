@@ -2772,7 +2772,7 @@ Without this flag, profiles for short-lived Resque jobs will not be available as
 
 #### Requirements
 
-- Ruby 2.6+. JRuby and TruffleRuby are not supported.
+- Ruby 2.7+. JRuby and TruffleRuby are not supported.
 - datadog 2.16.0+.
 
 #### Configuration
