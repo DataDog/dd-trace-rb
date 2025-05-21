@@ -1,0 +1,31 @@
+module Datadog
+  module Core
+    module Telemetry
+      class Event
+        class AppClientConfigurationChange < Base
+          @changes: untyped
+
+          @origin: untyped
+
+          attr_reader changes: Array[[String, Numeric | bool | String | int]]
+
+          attr_reader origin: String
+
+          def type: () -> "app-client-configuration-change"
+
+          def initialize: (Array[[String, Numeric | bool | String]] changes, String origin) -> void
+
+          def payload: () -> { configuration: untyped }
+
+          def configuration: () -> Array[Hash[Symbol, untyped]]
+
+          def ==: (untyped other) -> untyped
+
+          alias eql? ==
+
+          def hash: () -> untyped
+        end
+      end
+    end
+  end
+end
