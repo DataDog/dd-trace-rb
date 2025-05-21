@@ -25,7 +25,7 @@ module Datadog
               request_options = datadog_configuration(host)
               client_config = Datadog.configuration_for(self)
 
-              Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+              Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!).to_proc) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND

@@ -30,7 +30,7 @@ module Datadog
 
               return super(req, body, &block) if Contrib::HTTP.should_skip_tracing?(req)
 
-              Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+              Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!).to_proc) do |span, trace|
                 span.service = service_name(host, request_options, client_config)
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
