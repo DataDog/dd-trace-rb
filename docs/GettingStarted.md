@@ -1540,6 +1540,8 @@ end
 | 2.6 - 2.7    | 9.2 - 9.3      | 5.0 - 6.1      |
 | 3.0 - 3.2    | 9.4            | 6.1            |
 
+Instrumentation for the [Rails Runner](https://guides.rubyonrails.org/command_line.html#bin-rails-runner) command is only supported for Rails 5.1 or higher.
+
 ### Rake
 
 You can add instrumentation around your Rake tasks by activating the `rake` integration and

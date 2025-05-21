@@ -3,6 +3,12 @@
 require_relative 'rails_helper'
 require_relative '../analytics_examples'
 
+# Manually load the `RunnerCommand` class, since this file is only loaded
+# by Rails during the execution of `rails runner`.
+# In a `rails runner` execution, the `RunnerCommand` class is loaded and then
+# Rails immediately loads the Rails application, which calls `Datadog.configure`: https://github.com/rails/rails/blob/ad858b91a9a4bc94950708955e44c654a1f3789b/railties/lib/rails/commands/runner/runner_command.rb#L30
+require 'rails/commands/runner/runner_command' if Rails.version >= '5.1'
+
 RSpec.describe Datadog::Tracing::Contrib::Rails::Runner do
   include_context 'Rails test application'
 
@@ -18,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner do
   end
 
   before do
-    skip('Rails runner tracing is not supported on Rails 4') if Rails::VERSION::MAJOR < 5
+    skip('Rails runner tracing is not supported on Rails < 5.1') if Rails.version < '5.1'
 
     Datadog.configure do |c|
       c.tracing.instrument :rails, **configuration_options
@@ -32,7 +38,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner do
       let(:configuration_options) { { service_name: 'runner-name' } }
 
       it 'sets the span service name' do
-        run
+        expect { run }.to output('OK').to_stdout
         expect(span.service).to eq('runner-name')
       end
     end
@@ -88,6 +94,10 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner do
   end
 
   context 'from STDIN' do
+    before do
+      skip('Rails Runner in Rails 5.1 does not support STDIN') if Rails.version < '5.2'
+    end
+
     around do |example|
       begin
         stdin = $stdin
