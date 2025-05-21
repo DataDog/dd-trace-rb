@@ -145,7 +145,7 @@ module Datadog
             end
           end
 
-          if settings.remote.enabled && old_state&.[](:remote_started)
+          if settings.remote.enabled && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
             # through the installed Rack middleware which started the remote).
@@ -173,7 +173,7 @@ module Datadog
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
-          tracer.shutdown! unless replacement && tracer == replacement.tracer
+          tracer.shutdown! unless replacement && tracer.eql?(replacement.tracer)
 
           # Shutdown old profiler
           profiler&.shutdown!
@@ -206,8 +206,8 @@ module Datadog
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          # enqueue closing event before stopping telemetry so it will be send out on shutdown
-          telemetry.emit_closing! unless replacement
+          # enqueue closing event before stopping telemetry so it will be sent out on shutdown
+          telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.stop!
 
           # TODO: Re-enable this once we have updated libdatadog to 17.1

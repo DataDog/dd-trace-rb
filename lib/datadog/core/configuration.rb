@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'configuration/components'
+require_relative 'configuration/components_state'
 require_relative 'configuration/settings'
 require_relative 'telemetry/emitter'
 require_relative 'logger'
@@ -268,9 +269,7 @@ module Datadog
         # Currently, if we already started the remote component (which
         # happens after a request goes through installed Rack middleware),
         # we will start the new remote component as well.
-        old_state = {
-          remote_started: old.remote&.started?,
-        }
+        old_state = ComponentsState.new(old)
 
         old.shutdown!(components)
         components.startup!(settings, old_state: old_state)
