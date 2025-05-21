@@ -94,8 +94,6 @@ module Datadog
             logger: logger,
             shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
           )
-
-          @worker.start
         end
 
         def disable!
@@ -103,7 +101,11 @@ module Datadog
           @worker&.enabled = false
         end
 
-        def stop!
+        def start
+          @worker.start
+        end
+
+        def shutdown!
           return if @stopped
 
           @worker&.stop(true)
