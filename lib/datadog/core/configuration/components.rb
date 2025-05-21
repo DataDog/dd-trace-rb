@@ -135,6 +135,8 @@ module Datadog
 
         # Starts up components
         def startup!(settings, old_state: nil)
+          telemetry.start
+
           if settings.profiling.enabled
             if profiler
               profiler.start
@@ -208,7 +210,7 @@ module Datadog
 
           # enqueue closing event before stopping telemetry so it will be sent out on shutdown
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
-          telemetry.stop!
+          telemetry.shutdown!
 
           # TODO: Re-enable this once we have updated libdatadog to 17.1
           # Core::ProcessDiscovery._native_close_tracer_memfd(@process_discovery_fd, @logger) if @process_discovery_fd

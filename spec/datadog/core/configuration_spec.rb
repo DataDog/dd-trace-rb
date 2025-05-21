@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Configuration do
   let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
   before do
-    allow(telemetry).to receive(:stop!)
+    allow(telemetry).to receive(:shutdown!)
     allow(telemetry).to receive(:emit_closing!)
     allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
     allow(Datadog::Core::Remote::Component).to receive(:build)
