@@ -25,7 +25,7 @@ module Datadog
 
               is_enabled = is_instrumented && integration.klass.patcher.patch_successful
 
-              version = integration.klass.class.version ? integration.klass.class.version.to_s : nil
+              version = integration.klass.class.version&.to_s
 
               res = {
                 name: integration.name.to_s,
