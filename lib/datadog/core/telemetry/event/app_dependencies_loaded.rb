@@ -13,7 +13,7 @@ module Datadog
           end
 
           def payload
-            { dependencies: dependencies }
+            {dependencies: dependencies}
           end
 
           private

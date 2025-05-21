@@ -13,7 +13,7 @@ module Datadog
           end
 
           def payload
-            { integrations: integrations }
+            {integrations: integrations}
           end
 
           private

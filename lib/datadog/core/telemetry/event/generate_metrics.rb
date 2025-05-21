@@ -31,7 +31,7 @@ module Datadog
             other.is_a?(GenerateMetrics) && other.namespace == @namespace && other.metric_series == @metric_series
           end
 
-          alias eql? ==
+          alias_method :eql?, :==
 
           def hash
             [self.class, @namespace, @metric_series].hash

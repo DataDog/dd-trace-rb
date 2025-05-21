@@ -30,7 +30,7 @@ module Datadog
             other.is_a?(MessageBatch) && other.events == @events
           end
 
-          alias eql? ==
+          alias_method :eql?, :==
 
           def hash
             [self.class, @events].hash
