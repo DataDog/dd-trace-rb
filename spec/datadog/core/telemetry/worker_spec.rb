@@ -380,10 +380,18 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     # Telemetry may drop events silently if it is not started?
     mark_telemetry_started
 
+    let(:synth_response) do
+    double(
+      Datadog::Core::Transport::HTTP::Adapters::Net::Response,
+      not_found?: !backend_supports_telemetry?,
+      ok?: backend_supports_telemetry?
+    )
+  end
+
     it 'adds events to the buffer and flushes them later' do
       events_received = 0
       mutex = Mutex.new
-      allow(emitter).to receive(:request).with(
+      expect(emitter).to receive(:request).with(
         an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
       ) do |event|
         event.events.each do |subevent|
@@ -393,6 +401,12 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         end
 
         response
+      end
+      expect(emitter).to receive(:request).with(
+        an_instance_of(Datadog::Core::Telemetry::Event::SynthAppClientConfigurationChange)
+        ).at_least(:once) do
+        require'byebug';byebug
+        synth_response
       end
 
       ok = worker.start
