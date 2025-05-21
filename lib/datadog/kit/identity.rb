@@ -70,7 +70,7 @@ module Datadog
             if Datadog::AppSec.active_context
               active_span.set_tag('_dd.appsec.user.collection_mode', 'sdk')
 
-              user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id, others[:login])
+              user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id, others[:login], session_id)
               ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
             end
           end

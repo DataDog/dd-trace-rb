@@ -1144,7 +1144,7 @@ require 'mongo'
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :mongo, **options
+  c.tracing.instrument :mongo, json_command: true, **options
 end
 
 # Create a MongoDB client and use it as usual
@@ -1164,6 +1164,7 @@ Datadog.configure_onto(client, **options)
 | `service_name` | `DD_TRACE_MONGO_SERVICE_NAME` | `String` | Name of application running the `mongo` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)   | `mongodb`                                        |
 | `peer_service` | `DD_TRACE_MONGO_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                        | `nil`                                            |
 | `quantize`     |                               | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
+| `json_command` | `DD_TRACE_MONGO_JSON_COMMAND` | `Bool` | (Recommended) Serialize the MongoDB command as JSON, which enables full support for introspection in the Datadog App. | `false` |
 
 **Configuring trace settings per connection**
 
@@ -2764,6 +2765,39 @@ If you run into issues with profiling, please check the [Profiler Troubleshootin
 When profiling [Resque](https://github.com/resque/resque) jobs, you should set the `RUN_AT_EXIT_HOOKS=1` option described in the [Resque](https://github.com/resque/resque/blob/v2.0.0/docs/HOOKS.md#worker-hooks) documentation.
 
 Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
+
+### Error Tracking
+
+`datadog` can automatically report handled errors. The errors are attached through span events to the span in which they are handled. They are also directly reported to Error Tracking.
+
+#### Requirements
+
+- Ruby 2.7+. JRuby and TruffleRuby are not supported.
+- datadog 2.16.0+.
+
+#### Configuration
+
+You can enable automatic reporting of handled errors using the following environment variables:
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_ERROR_TRACKING_HANDLED_ERRORS` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user,third_party,all`. | `nil` |
+| `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` | `Array[String]` | A list of comma-separated paths, file names, and gem names for which handled errors will be reported. Possible values are specified below. <br/> For Ruby 3.3 or newer, the location where the error was raised and where it was rescued will be matched. For earlier versions of Ruby, only the location where the error was raised can be matched.  | `[]` |
+
+Alternatively, you can set error tracking parameters in code with these functions, inside a `Datadog.configure` block:
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `c.error_tracking.handled_errors` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user,third_party,all`. | `nil` |
+| `c.error_tracking.handled_errors_include` | `Array[String]` | A list of comma-separated paths, file names, and gem names for which handled errors will be reported. Possible values are specified below. <br/> For Ruby 3.3 or newer, the location where the error was raised and where it was rescued will be matched. For earlier versions of Ruby, only the location where the error was raised can be matched.  | `[]` |
+
+`DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` comma-separated values should be either:
+  * A file name, such as `main`: `main.rb` will be instrumented.
+  * A folder name, such as `mypackage`: Every Ruby file in folders named `mypackage` will be instrumented.
+  * A gem name: Every Ruby file in the gem will be instrumented. Be careful, if you specify, for example `rails`, and you have a subfolder named `rails` in your project, it will also be instrumented.
+  * An absolute path (a path beginning with `/`), for example, `/app/lib/mypackage/main.rb`. If you provide only `/app/lib/mypackage`, every Ruby file in that folder will be instrumented.
+  * A path relative to the current directory (a path beginning with `./`). For example, if you execute your program in `/app/`, you can provide `./lib/mypackage/main.rb`. If you provide a path like `./lib/mypackage/`, every Ruby file in this folder will be instrumented.
+
 
 ## Known issues and suggested configurations
 

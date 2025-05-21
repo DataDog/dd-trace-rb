@@ -74,10 +74,9 @@ module Datadog
               profiler: {
                 enabled: Datadog::Profiling.enabled?,
               },
-              # DEV: Not implemented yet
-              # dynamic_instrumentation: {
-              #   enabled: true,
-              # }
+              dynamic_instrumentation: {
+                enabled: defined?(Datadog::DI) && Datadog::DI.respond_to?(:enabled?) && Datadog::DI.enabled?,
+              }
             }
 
             if (unsupported_reason = Datadog::Profiling.unsupported_reason)
@@ -91,6 +90,7 @@ module Datadog
           end
 
           TARGET_OPTIONS = %w[
+            dynamic_instrumentation.enabled
             logger.level
             profiling.advanced.code_provenance_enabled
             profiling.advanced.endpoint.collection.enabled
@@ -114,6 +114,9 @@ module Datadog
             seq_id = Event.configuration_sequence.next
 
             list = [
+              conf_value('DD_GIT_REPOSITORY_URL', Core::Environment::Git.git_repository_url, seq_id, 'env_var'),
+              conf_value('DD_GIT_COMMIT_SHA', Core::Environment::Git.git_commit_sha, seq_id, 'env_var'),
+
               conf_value('DD_AGENT_HOST', config.agent.host, seq_id),
               conf_value('DD_AGENT_TRANSPORT', agent_transport(config), seq_id),
               conf_value('DD_TRACE_SAMPLE_RATE', to_value(config.tracing.sampling.default_rate), seq_id),

@@ -3,9 +3,19 @@ module Datadog
     module Monitor
       module Gateway
         module Watcher
+          ARBITRARY_VALUE: ::String
+
+          EVENT_LOGIN_SUCCESS: ::String
+
+          EVENT_LOGIN_FAILURE: ::String
+
+          WATCHED_LOGIN_EVENTS: ::Array[::String]
+
           def self.watch: () -> untyped
 
-          def self.watch_user_id: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> untyped
+          def self.watch_user_id: (?Instrumentation::Gateway gateway) -> void
+
+          def self.watch_user_login: (?Instrumentation::Gateway gateway) -> void
         end
       end
     end

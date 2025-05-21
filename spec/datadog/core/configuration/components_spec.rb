@@ -82,11 +82,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
       ).and_return([profiler, environment_logger_extra])
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
-        .with(settings, logger)
+        .with(settings, logger, telemetry)
         .and_return(runtime_metrics)
 
       expect(described_class).to receive(:build_health_metrics)
-        .with(settings, logger)
+        .with(settings, logger, telemetry)
         .and_return(health_metrics)
     end
 
@@ -155,7 +155,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_health_metrics' do
-    subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger) }
+    subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger, telemetry) }
 
     context 'given settings' do
       shared_examples_for 'new health metrics' do
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Diagnostics::Health::Metrics).to receive(:new)
-            .with(default_options.merge(options).merge(logger: logger))
+            .with(default_options.merge(options).merge(logger: logger, telemetry: telemetry))
             .and_return(health_metrics)
         end
 
@@ -284,109 +284,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
     subject(:build_telemetry) { described_class.build_telemetry(settings, agent_settings, logger) }
     let(:logger) { instance_double(Logger) }
 
-    context 'given settings' do
-      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-      let(:expected_options) do
-        { enabled: enabled, http_transport: an_instance_of(Datadog::Core::Telemetry::Http::Transport),
-          metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
-          metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-          dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-          logger: logger,
-          log_collection_enabled: log_collection_enabled, }
-      end
-      let(:enabled) { true }
-      let(:agentless_enabled) { false }
-      let(:metrics_enabled) { true }
-      let(:log_collection_enabled) { true }
-      let(:heartbeat_interval_seconds) { 60 }
-      let(:metrics_aggregation_interval_seconds) { 10 }
-      let(:shutdown_timeout_seconds) { 1.0 }
-      let(:dependency_collection) { true }
-      let(:api_key) { 'api_key' }
-
-      before do
-        expect(Datadog::Core::Telemetry::Component).to receive(:new).with(expected_options).and_return(telemetry)
-        allow(settings).to receive(:api_key).and_return(api_key)
-        allow(settings.telemetry).to receive(:enabled).and_return(enabled)
-        allow(settings.telemetry).to receive(:agentless_enabled).and_return(agentless_enabled)
-      end
-
-      it { is_expected.to be(telemetry) }
-
-      context 'with :enabled true' do
-        let(:enabled) { double('enabled') }
-
-        it { is_expected.to be(telemetry) }
-
-        context 'and :unix agent adapter' do
-          let(:expected_options) do
-            { enabled: false, http_transport: an_instance_of(Datadog::Core::Telemetry::Http::Transport),
-              metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
-              metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-              dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-              logger: logger,
-              log_collection_enabled: true, }
-          end
-          let(:agent_settings) do
-            instance_double(
-              Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
-              adapter: :unix,
-              hostname: 'foo',
-              port: 1234
-            )
-          end
-
-          it 'does not enable telemetry for unsupported non-http transport' do
-            expect(logger).to receive(:debug)
-            is_expected.to be(telemetry)
-          end
-        end
-      end
-
-      context 'with :agentless_enabled true' do
-        let(:agentless_enabled) { true }
-        let(:transport) { instance_double(Datadog::Core::Telemetry::Http::Transport) }
-        let(:expected_options) do
-          { enabled: enabled, http_transport: transport,
-            logger: logger,
-            metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
-            metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-            dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-            log_collection_enabled: log_collection_enabled, }
-        end
-
-        before do
-          expect(Datadog::Core::Telemetry::Http::Transport).to receive(:build_agentless_transport).with(
-            api_key: api_key,
-            dd_site: settings.site,
-            url_override: settings.telemetry.agentless_url_override
-          ).and_return(transport)
-        end
-
-        it { is_expected.to be(telemetry) }
-
-        context 'and no api key' do
-          let(:api_key) { nil }
-          let(:expected_options) do
-            { enabled: false, http_transport: transport,
-              logger: logger,
-              metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
-              metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-              dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-              log_collection_enabled: true, }
-          end
-
-          it 'does not enable telemetry when agentless mode requested but api key is not present' do
-            expect(logger).to receive(:debug)
-            is_expected.to be(telemetry)
-          end
-        end
-      end
+    it 'invokes Telemetry::Component.build' do
+      expect(Datadog::Core::Telemetry::Component).to receive(:build).with(settings, agent_settings, logger)
+      build_telemetry
     end
   end
 
   describe '::build_runtime_metrics' do
-    subject(:build_runtime_metrics) { described_class.build_runtime_metrics(settings, logger) }
+    subject(:build_runtime_metrics) { described_class.build_runtime_metrics(settings, logger, telemetry) }
 
     context 'given settings' do
       shared_examples_for 'new runtime metrics' do
@@ -400,7 +305,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Runtime::Metrics).to receive(:new)
-            .with(default_options.merge(options).merge(logger: logger))
+            .with(**default_options.merge(options).merge(logger: logger, telemetry: telemetry))
             .and_return(runtime_metrics)
         end
 
@@ -470,7 +375,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_runtime_metrics_worker' do
-    subject(:build_runtime_metrics_worker) { described_class.build_runtime_metrics_worker(settings, logger) }
+    subject(:build_runtime_metrics_worker) { described_class.build_runtime_metrics_worker(settings, logger, telemetry) }
 
     context 'given settings' do
       shared_examples_for 'new runtime metrics worker' do
@@ -486,11 +391,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           allow(described_class).to receive(:build_runtime_metrics)
-            .with(settings, logger)
+            .with(settings, logger, telemetry)
             .and_return(runtime_metrics)
 
           expect(Datadog::Core::Workers::RuntimeMetrics).to receive(:new)
-            .with(default_options.merge(options).merge(logger: logger))
+            .with(**default_options.merge(options).merge(logger: logger, telemetry: telemetry))
             .and_return(runtime_metrics_worker)
         end
 

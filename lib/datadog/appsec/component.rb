@@ -13,7 +13,7 @@ module Datadog
         def build_appsec_component(settings, telemetry:)
           return if !settings.respond_to?(:appsec) || !settings.appsec.enabled
 
-          ffi_version = Gem.loaded_specs['ffi'] && Gem.loaded_specs['ffi'].version
+          ffi_version = Gem.loaded_specs['ffi']&.version
           unless ffi_version
             Datadog.logger.warn('FFI gem is not loaded, AppSec will be disabled.')
             telemetry.error('AppSec: Component not loaded, due to missing FFI gem')
@@ -61,9 +61,16 @@ module Datadog
 
           exclusions = AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: settings.appsec.ip_passlist)
 
+          # NOTE: This is a temporary solution before the RuleMerger refactoring
+          #       with new RemoteConfig setup
+          processors = rules['processors']
+          scanners = rules['scanners']
+
           ruleset = AppSec::Processor::RuleMerger.merge(
             rules: [rules],
             data: data,
+            scanners: scanners,
+            processors: processors,
             exclusions: exclusions,
             telemetry: telemetry
           )
@@ -88,13 +95,13 @@ module Datadog
         @mutex.synchronize do
           new_processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
 
-          if new_processor && new_processor.ready?
+          if new_processor&.ready?
             old_processor = @processor
 
             @telemetry = telemetry
             @processor = new_processor
 
-            old_processor.finalize if old_processor
+            old_processor&.finalize
           end
         end
       end
@@ -105,7 +112,7 @@ module Datadog
 
       def shutdown!
         @mutex.synchronize do
-          if processor && processor.ready?
+          if processor&.ready?
             processor.finalize
             @processor = nil
           end

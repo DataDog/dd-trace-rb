@@ -486,7 +486,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
             it 'writes the deprication message' do
               expect(Datadog::Core).to receive(:log_deprecation) do |_, &block|
-                expect(block.call).to match(/setting has been deprecated for removal/)
+                expect(block.call).to match(/setting is deprecated/)
               end
               expect(enabled).to eq(true)
             end
@@ -580,7 +580,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
           it 'writes the deprication message' do
             expect(Datadog::Core).to receive(:log_deprecation) do |_, &block|
-              expect(block.call).to match(/setting has been deprecated for removal/)
+              expect(block.call).to match(/setting is deprecated/)
             end
 
             set_appsec_track_user_events_mode
@@ -866,9 +866,9 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe 'block' do
       describe 'templates' do
         [
-          { method_name: :html, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML' },
-          { method_name: :json, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON' },
-          { method_name: :text, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT' }
+          {method_name: :html, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML'},
+          {method_name: :json, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON'},
+          {method_name: :text, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT'}
         ].each do |test_info|
           describe "##{test_info[:method_name]}" do
             context "when #{test_info[:env_var]}" do

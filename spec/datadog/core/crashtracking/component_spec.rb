@@ -4,10 +4,7 @@ require 'datadog/core/crashtracking/component'
 require 'webrick'
 require 'fiddle'
 
-# https://github.com/rubocop/rubocop-rspec/issues/2078
-# rubocop:disable RSpec/ScatteredLet
-
-RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelpers.supported? do
+RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers.supported? do
   let(:logger) { Logger.new($stdout) }
 
   describe '.build' do
@@ -226,24 +223,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       end
 
       context 'via unix domain socket' do
-        let(:temporary_directory) { Dir.mktmpdir }
-        let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
-        let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
-        define_http_server do |http_server|
-          http_server.listeners << unix_domain_socket
+        define_http_server_uds do |http_server|
           http_server.mount_proc('/', &server_proc)
-        end
-        let(:http_server_options) do
-          {
-            DoNotListen: true,
-          }
-        end
-        let(:agent_base_url) { "unix://#{socket_path}" }
-
-        after do
-          FileUtils.remove_entry(temporary_directory)
-        rescue Errno::ENOENT => _e
-          # Do nothing, it's ok
         end
 
         it 'reports crashes via uds when app crashes with fiddle' do
@@ -253,7 +234,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
           end
 
           expect_in_fork(fork_expectations: fork_expectations) do
-            crash_tracker = build_crashtracker(agent_base_url: agent_base_url)
+            crash_tracker = build_crashtracker(agent_base_url: uds_agent_base_url)
             crash_tracker.start
 
             Fiddle.free(42)
@@ -317,5 +298,3 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
     described_class._native_stop
   end
 end
-
-# rubocop:enable RSpec/ScatteredLet

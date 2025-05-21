@@ -23,7 +23,7 @@ module Datadog
           if var && ENV.key?(var)
             value = ENV[var].to_s.strip
             value.downcase!
-            value == 'true' || value == '1' # rubocop:disable Style/MultipleComparison
+            value == 'true' || value == '1'
           else
             default
           end

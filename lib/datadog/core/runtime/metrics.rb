@@ -14,7 +14,7 @@ module Datadog
     module Runtime
       # For generating runtime metrics
       class Metrics < Core::Metrics::Client
-        def initialize(**options)
+        def initialize(telemetry:, **options)
           super
 
           # Initialize service list

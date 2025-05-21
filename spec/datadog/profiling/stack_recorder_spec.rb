@@ -1,6 +1,8 @@
 require "datadog/profiling/spec_helper"
 require "datadog/profiling/stack_recorder"
 
+require "objspace"
+
 RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported(self) }
 
@@ -673,7 +675,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           it "only keeps track of some allocations" do
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
-            expect(heap_samples.size).to eq(1)
+            expect(heap_samples.size)
+              .to eq(1), "Expected one heap sample, got #{heap_samples.size}; heap_samples is #{heap_samples}"
 
             heap_sample = heap_samples.first
             expect(heap_sample.labels[:"allocation class"]).to eq("Array")
@@ -740,6 +743,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
 
               stack_recorder.serialize
+
+              GC.enable
+              GC.start
+
+              # Sanity check: All the objects should've been garbage collected
+              @object_ids.map do |object_id|
+                expect { ObjectSpace._id2ref(object_id) }.to raise_error(RangeError)
+              end
 
               # Older objects are only cleared at serialization time
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]

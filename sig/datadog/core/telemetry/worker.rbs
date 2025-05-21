@@ -35,6 +35,8 @@ module Datadog
         def enqueue: (Event::Base event) -> void
 
         def dequeue: () -> Array[Event::Base]
+	
+	def flush: () -> (true | false)
 
         private
 
@@ -46,11 +48,11 @@ module Datadog
 
         def flush_events: (Array[Event::Base] events) -> void
 
-        def send_event: (Event::Base event) -> (Http::Adapters::Net::Response | Telemetry::Http::InternalErrorResponse)
+        def send_event: (Event::Base event) -> (Core::Transport::HTTP::Adapters::Net::Response | Core::Transport::InternalErrorResponse)
 
         def disable!: () -> void
 
-        def disable_on_not_found!: ((Http::Adapters::Net::Response | Telemetry::Http::InternalErrorResponse) response) -> void
+        def disable_on_not_found!: ((Core::Transport::HTTP::Adapters::Net::Response | Core::Transport::InternalErrorResponse) response) -> void
 
         def buffer_klass: () -> untyped
       end

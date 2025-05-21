@@ -4,6 +4,10 @@ module Datadog
       include Metadata::Tagging
 
       DEFAULT_MAX_LENGTH: ::Integer
+      
+      @logger: Core::Logger
+      
+      attr_reader logger: Core::Logger
 
       attr_accessor agent_sample_rate: untyped
       attr_accessor hostname: untyped

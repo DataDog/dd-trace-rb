@@ -19,7 +19,7 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 env:
-  GEM_HOST: 'https://rubygems.pkg.github.com/DataDog'
+  GEM_HOST: "https://rubygems.pkg.github.com/DataDog"
 
 jobs:
   build:
@@ -36,9 +36,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@e5ac7b085f6e63d49c8973eb0c6e04d876b881f1 # v1.230.0
+      - uses: ruby/setup-ruby@e34163cd15f4bb403dcd72d98e295997e6a55798 # v1.238.0
         with:
-          ruby-version: '3.2'
+          ruby-version: "3.2"
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - name: Patch version
         if: ${{ matrix.type != 'final' }}
@@ -65,8 +65,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
-          path: 'pkg/*.gem'
+          name: "datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}"
+          path: "pkg/*.gem"
   test:
     strategy:
       fail-fast: false
@@ -80,16 +80,16 @@ jobs:
       - build
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
-          path: 'pkg'
+          name: "datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}"
+          path: "pkg"
       - name: List gem
         run: |
           find pkg
-      - uses: ruby/setup-ruby@e5ac7b085f6e63d49c8973eb0c6e04d876b881f1 # v1.230.0
+      - uses: ruby/setup-ruby@e34163cd15f4bb403dcd72d98e295997e6a55798 # v1.238.0
         with:
-          ruby-version: '3.2'
+          ruby-version: "3.2"
       - name: Install gem
         run: |
           gem install pkg/*.gem
@@ -106,10 +106,10 @@ jobs:
     if: ${{ inputs.push }}
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
-          path: 'pkg'
+          name: "datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}"
+          path: "pkg"
       - name: List gem
         run: |
           find pkg

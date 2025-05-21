@@ -18,6 +18,7 @@ module Datadog
           TAG_DD_LOGIN_FAILURE_MODE = '_dd.appsec.events.users.login.failure.auto.mode'
 
           TAG_USR_ID = 'usr.id'
+          TAG_SESSION_ID = 'usr.session_id'
           TAG_SIGNUP_TRACK = 'appsec.events.users.signup.track'
           TAG_SIGNUP_USR_ID = 'appsec.events.users.signup.usr.id'
           TAG_SIGNUP_USR_LOGIN = 'appsec.events.users.signup.usr.login'

@@ -55,7 +55,7 @@ module Datadog
           span_id = Helpers.parse_hex_id(fetcher[@span_id_key])
 
           # Return early if this propagation is not valid
-          return if span_id.nil? || span_id <= 0 || span_id >= Tracing::Utils::EXTERNAL_MAX_ID
+          return if span_id.nil? || span_id <= 0 || span_id > Tracing::Utils::EXTERNAL_MAX_ID
 
           # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
           sampling_priority = Helpers.parse_decimal_id(fetcher[@sampled_key])

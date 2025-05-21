@@ -16,14 +16,14 @@ RSpec.describe Datadog::AppSec::CompressedJson do
     context 'when payload is small' do
       before { stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 1000) }
 
-      it { expect(described_class.dump({ foo: 'bar' })).to eq('{"foo":"bar"}') }
+      it { expect(described_class.dump({foo: 'bar'})).to eq('{"foo":"bar"}') }
     end
 
     context 'when payload is large' do
       before { stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 10) }
 
       it 'returns compressed data' do
-        compressed = described_class.dump({ foo: 'block_request_and_redirect_to_login_page' })
+        compressed = described_class.dump({foo: 'block_request_and_redirect_to_login_page'})
 
         expect(compressed).to_not eq('{"foo":"block_request_and_redirect_to_login_page"}')
         expect(compressed).to match(%r{^[-A-Za-z0-9+/]*={0,3}$})
@@ -34,14 +34,14 @@ RSpec.describe Datadog::AppSec::CompressedJson do
       before { allow(JSON).to receive(:dump).and_raise(ArgumentError) }
 
       it 'reports the error and returns nil' do
-        expect(described_class.dump({ foo: 'something bad' })).to be_nil
+        expect(described_class.dump({foo: 'something bad'})).to be_nil
         expect(Datadog::AppSec.telemetry).to have_received(:report)
       end
     end
 
     context 'when JSON dump fails' do
       it 'reports the error and returns nil' do
-        expect(described_class.dump({ foo: "\xC2" })).to be_nil
+        expect(described_class.dump({foo: "\xC2"})).to be_nil
         expect(Datadog::AppSec.telemetry).to have_received(:report)
       end
     end
@@ -53,7 +53,7 @@ RSpec.describe Datadog::AppSec::CompressedJson do
       end
 
       it 'reports the error and returns nil' do
-        expect(described_class.dump({ foo: 'bar' })).to be_nil
+        expect(described_class.dump({foo: 'bar'})).to be_nil
         expect(Datadog::AppSec.telemetry).to have_received(:report)
       end
     end

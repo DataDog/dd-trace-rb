@@ -7,9 +7,6 @@ require "json"
 require "socket"
 require "webrick"
 
-# https://github.com/rubocop/rubocop-rspec/issues/2078
-# rubocop:disable RSpec/ScatteredLet
-
 # Design note for this class's specs: from the Ruby code side, we're treating the `_native_` methods as an API
 # between the Ruby code and the native methods, and thus in this class we have a bunch of tests to make sure the
 # native methods are invoked correctly.
@@ -391,26 +388,11 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
 
     context "via unix domain socket" do
-      let(:temporary_directory) { Dir.mktmpdir }
-      let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
-      let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
-      define_http_server do |http_server|
-        http_server.listeners << unix_domain_socket
+      define_http_server_uds do |http_server|
         http_server.mount_proc('/', &server_proc)
       end
-      let(:http_server_options) do
-        {
-          DoNotListen: true,
-        }
-      end
       let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
-      let(:uds_path) { socket_path }
-
-      after do
-        FileUtils.remove_entry(temporary_directory)
-      rescue Errno::ENOENT => _e
-        # Do nothing, it's ok
-      end
+      let(:uds_path) { uds_socket_path }
 
       include_examples "correctly reports profiling data"
     end
@@ -526,5 +508,3 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
   end
 end
-
-# rubocop:enable RSpec/ScatteredLet

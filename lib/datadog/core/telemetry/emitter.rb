@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'request'
-require_relative 'http/transport'
+require_relative '../transport/response'
 require_relative '../utils/sequence'
 require_relative '../utils/forking'
 
@@ -10,26 +10,32 @@ module Datadog
     module Telemetry
       # Class that emits telemetry events
       class Emitter
-        attr_reader :http_transport
+        attr_reader :transport, :logger
 
         extend Core::Utils::Forking
 
-        # @param http_transport [Datadog::Core::Telemetry::Http::Transport] Transport object that can be used to send
-        #   telemetry requests via the agent
-        def initialize(http_transport:)
-          @http_transport = http_transport
+        # @param transport [Datadog::Core::Telemetry::Transport::Telemetry::Transport]
+        #   Transport object that can be used to send telemetry requests
+        def initialize(transport, logger: Datadog.logger, debug: false)
+          @transport = transport
+          @logger = logger
+          @debug = !!debug
+        end
+
+        def debug?
+          @debug
         end
 
         # Retrieves and emits a TelemetryRequest object based on the request type specified
         def request(event)
           seq_id = self.class.sequence.next
-          payload = Request.build_payload(event, seq_id)
-          res = @http_transport.request(request_type: event.type, payload: payload.to_json)
-          Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (code: #{res.code.inspect})" }
+          payload = Request.build_payload(event, seq_id, debug: debug?)
+          res = @transport.send_telemetry(request_type: event.type, payload: payload)
+          logger.debug { "Telemetry sent for event `#{event.type}` (response code: #{res.code})" }
           res
         rescue => e
-          Datadog.logger.debug("Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}")
-          Telemetry::Http::InternalErrorResponse.new(e)
+          logger.debug { "Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}" }
+          Core::Transport::InternalErrorResponse.new(e)
         end
 
         # Initializes a Sequence object to track seq_id if not already initialized; else returns stored

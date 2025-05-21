@@ -1,0 +1,35 @@
+module Datadog
+  module AppSec
+    class SecurityEvent
+      @waf_result: SecurityEngine::result
+
+      @trace: Tracing::TraceOperation?
+
+      @span: Tracing::SpanOperation?
+
+      @is_attack: bool
+
+      @has_schema: bool
+
+      @has_fingerprint: bool
+
+      attr_reader waf_result: SecurityEngine::result
+
+      attr_reader trace: Tracing::TraceOperation?
+
+      attr_reader span: Tracing::SpanOperation?
+
+      SCHEMA_KEY_PREFIX: ::String
+
+      FINGERPRINT_KEY_PREFIX: ::String
+
+      def initialize: (SecurityEngine::result waf_result, trace: Tracing::TraceOperation?, span: Tracing::SpanOperation?) -> void
+
+      def attack?: () -> bool
+
+      def schema?: () -> bool
+
+      def fingerprint?: () -> bool
+    end
+  end
+end
