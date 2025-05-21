@@ -16,7 +16,7 @@ module Datadog
           # steep:ignore:start
           # Steep doesn't like an array with up to 3 elements to be passed here: it thinks the array is unbounded.
           when Array then new(*value)
-          # Steep can follow the logic inside the lambda, thus it doesn't know `value` responds to `:message`.
+          # Steep can not follow the logic inside the lambda, thus it doesn't know `value` responds to `:message`.
           when ->(v) { v.respond_to?(:message) } then new(value.class, value.message)
           # steep:ignore:end
           when String then new(nil, value)
