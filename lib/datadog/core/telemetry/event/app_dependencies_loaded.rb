@@ -23,7 +23,6 @@ module Datadog
               {
                 name: name,
                 version: gem.version.to_s,
-                # hash: nil,
               }
             end
           end
