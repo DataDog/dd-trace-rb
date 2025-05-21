@@ -10,7 +10,7 @@ module Datadog
 
         def add!: (Object) -> Object
 
-        def add_all!: (Array[Object])-> void
+        def add_all!: (Array[Object]) -> void
 
         def close: -> void
 
