@@ -29,6 +29,12 @@ AllCops:
     # reformatting all of this code to rubocop's demands and then have it
     # be different from telemetry.
     - lib/datadog/core/telemetry/transport/**/*
+    - lib/datadog/di/**/*
+    - lib/datadog/di.rb
+    - spec/datadog/di/**/*
+    - lib/datadog/core/**/*
+    - lib/datadog/core.rb
+    - spec/datadog/core/**/*
   NewCops: disable # Don't allow new cops to be enabled implicitly.
   SuggestExtensions: false # Stop pushing suggestions constantly.
 
@@ -49,12 +55,6 @@ Style:
     - "lib/datadog/appsec/**/*"
     - "spec/datadog/appsec*"
     - "spec/datadog/appsec/**/*"
-    - lib/datadog/di/**/*
-    - lib/datadog/di.rb
-    - spec/datadog/di/**/*
-    - lib/datadog/core/**/*
-    - lib/datadog/core.rb
-    - spec/datadog/core/**/*
 
 Layout:
   Exclude:
