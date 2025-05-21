@@ -515,6 +515,7 @@ Naming/FileName:
     - DynamoDB
     - YJIT
     - IO
+    - LRU
 
 Lint/RedundantRequireStatement:
   Enabled: true
