@@ -119,7 +119,7 @@ module Datadog
           end
         end
 
-        def payload # rubocop:disable Metrics/MethodLength
+        def payload # standard:disable Metrics/MethodLength
           state = repository.state
 
           client_tracer_tags = [

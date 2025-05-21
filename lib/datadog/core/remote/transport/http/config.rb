@@ -21,7 +21,7 @@ module Datadog
               include Datadog::Core::Transport::HTTP::Response
               include Core::Remote::Transport::Config::Response
 
-              def initialize(http_response, options = {}) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
+              def initialize(http_response, options = {}) # standard:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
                 super(http_response)
 
                 raise AgentErrorResponse.new(http_response.code, http_response.payload) if http_response.code != 200

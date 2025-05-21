@@ -18,7 +18,7 @@ module Datadog
     module Configuration
       # Global configuration settings for the Datadog library.
       # @public_api
-      # rubocop:disable Metrics/BlockLength
+      # standard:disable Metrics/BlockLength
       class Settings
         include Base
 
@@ -995,7 +995,7 @@ module Datadog
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings
       end
-      # rubocop:enable Metrics/BlockLength
+      # standard:enable Metrics/BlockLength
     end
   end
 end
