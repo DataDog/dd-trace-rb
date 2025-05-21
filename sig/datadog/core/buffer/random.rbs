@@ -6,7 +6,7 @@ module Datadog
         @items: Array[Object]
         @max_size: Integer
 
-        def initialize: (Integer)-> void
+        def initialize: (Integer) -> void
 
         def add!: (Object) -> Object
 
