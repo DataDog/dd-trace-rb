@@ -42,6 +42,8 @@ RSpec.describe Datadog::Core::Configuration do
           end
 
           it do
+            #expect(@original_components.telemetry).to receive(:enabled)
+
             # Components should have changed
             expect { configure }
               .to change { test_class.send(:components) }
@@ -58,7 +60,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             expect(new_components)
               .to have_received(:startup!)
-              .with(test_class.configuration, old_state: { remote_started: nil })
+              .with(test_class.configuration, old_state: an_instance_of(Datadog::Core::Configuration::ComponentsState))
               .ordered
 
             expect(new_components).to_not have_received(:shutdown!)
