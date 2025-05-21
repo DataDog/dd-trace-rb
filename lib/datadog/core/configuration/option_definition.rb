@@ -71,11 +71,11 @@ module Datadog
             validate_options!
           end
 
-          def env(value)
+          def env(value) # standard:disable Style/TrivialAccessors
             @env = value
           end
 
-          def deprecated_env(value)
+          def deprecated_env(value) # standard:disable Style/TrivialAccessors
             @deprecated_env = value
           end
 

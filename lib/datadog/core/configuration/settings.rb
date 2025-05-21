@@ -137,7 +137,7 @@ module Datadog
             o.after_set do |enabled|
               # Enable rich debug print statements.
               # We do not need to unnecessarily load 'pp' unless in debugging mode.
-              require 'pp' if enabled
+              require 'pp' if enabled # standard:disable Lint/RedundantRequireStatement
             end
           end
 
