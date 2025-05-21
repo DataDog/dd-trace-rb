@@ -185,12 +185,12 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       let(:request) { messages.first }
 
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
-      let(:fork_expectations) {
+      let(:fork_expectations) do
         proc do |status:, stdout:, stderr:|
           expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
           expect(stderr).to include('[BUG] Segmentation fault')
         end
-      }
+      end
 
       # NOTE: If any of these tests seem flaky, the `upload_timeout_seconds` may need to be raised (or otherwise
       # we need to tweak libdatadog to not need such high timeouts).
@@ -213,7 +213,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
           expect(stack_trace).to_not be_empty
           expect(stack_trace.size).to be > 10
-          expect(stack_trace.first).to match(hash_including(path: /libdatadog/))
+          expect(stack_trace.first)
+            .to match(hash_including(path: /libdatadog/)).or match(hash_including(file: /libdatadog/))
 
           expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
 
@@ -230,15 +231,19 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         end
       end
 
-      it "picks up the latest settings when reporting a crash" do
+      it 'picks up the latest settings when reporting a crash' do
         expect_in_fork(fork_expectations: fork_expectations) do
           expect(logger).to_not receive(:error)
 
-          crash_tracker = build_crashtracker(agent_base_url: "http://example.com:6006", logger: logger)
+          crash_tracker = build_crashtracker(agent_base_url: 'http://example.com:6006', logger: logger)
           crash_tracker.start
           crash_tracker.stop
 
-          crash_tracker = build_crashtracker(agent_base_url: agent_base_url, tags: {'latest_settings' => 'included'}, logger: logger)
+          crash_tracker = build_crashtracker(
+            agent_base_url: agent_base_url,
+            tags: { 'latest_settings' => 'included' },
+            logger: logger
+          )
           crash_tracker.start
 
           Fiddle.free(42)
