@@ -32,7 +32,7 @@ ignore:
   - ext/libdatadog_api/**/**
   - lib/*
   - lib/datadog/*
-  - lib/datadog/core/**/**
+  - lib/datadog/core/vendor/**/**
   - lib/datadog/kit/**/**
   - lib/datadog/opentelemetry/**/**
   - lib/datadog/tracing/**/**

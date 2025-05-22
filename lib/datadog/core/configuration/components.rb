@@ -30,7 +30,7 @@ module Datadog
 
           def build_health_metrics(settings, logger, telemetry)
             settings = settings.health_metrics
-            options = { enabled: settings.enabled }
+            options = {enabled: settings.enabled}
             options[:statsd] = settings.statsd unless settings.statsd.nil?
 
             Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
@@ -44,7 +44,7 @@ module Datadog
           end
 
           def build_runtime_metrics(settings, logger, telemetry)
-            options = { enabled: settings.runtime_metrics.enabled }
+            options = {enabled: settings.runtime_metrics.enabled}
             options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
             options[:services] = [settings.service] unless settings.service.nil?
             options[:experimental_runtime_id_enabled] = settings.runtime_metrics.experimental_runtime_id_enabled
@@ -163,20 +163,20 @@ module Datadog
         # and avoid tearing down parts still in use.
         def shutdown!(replacement = nil)
           # Shutdown remote configuration
-          remote.shutdown! if remote
+          remote&.shutdown!
 
           # Shutdown DI after remote, since remote config triggers DI operations.
           dynamic_instrumentation&.shutdown!
 
           # Decommission AppSec
-          appsec.shutdown! if appsec
+          appsec&.shutdown!
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
           tracer.shutdown! unless replacement && tracer == replacement.tracer
 
           # Shutdown old profiler
-          profiler.shutdown! unless profiler.nil?
+          profiler&.shutdown!
 
           # Shutdown workers
           runtime_metrics.stop(true, close_metrics: false)
@@ -194,14 +194,14 @@ module Datadog
             health_metrics.statsd
           ].compact.uniq
 
-          new_statsd =  if replacement
-                          [
-                            replacement.runtime_metrics.metrics.statsd,
-                            replacement.health_metrics.statsd
-                          ].compact.uniq
-                        else
-                          []
-                        end
+          new_statsd = if replacement
+            [
+              replacement.runtime_metrics.metrics.statsd,
+              replacement.health_metrics.statsd
+            ].compact.uniq
+          else
+            []
+          end
 
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)

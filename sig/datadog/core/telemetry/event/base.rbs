@@ -1,0 +1,15 @@
+module Datadog
+  module Core
+    module Telemetry
+      class Event
+        class Base
+          def payload: () -> (Hash[Symbol, untyped] | Array[Hash[Symbol, untyped]])
+          def type: -> String
+          def ==: (untyped other) -> untyped
+          alias eql? ==
+          def hash: () -> untyped
+        end
+      end
+    end
+  end
+end

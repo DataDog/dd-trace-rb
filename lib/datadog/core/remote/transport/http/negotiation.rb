@@ -79,7 +79,7 @@ module Datadog
 
                 def call(env, &block)
                   # Query for response
-                  http_response = super(env, &block)
+                  http_response = super
 
                   # Process the response
                   body = JSON.parse(http_response.payload, symbolize_names: true) if http_response.ok?
