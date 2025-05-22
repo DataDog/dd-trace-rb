@@ -127,7 +127,19 @@ module Datadog
         def perform(*events)
           return if !enabled? || forked?
 
-          started! unless sent_started_event?
+          unless sent_started_event?
+            started!
+            unless sent_started_event?
+              # We still haven't succeeded in sending the started event,
+              # which will make flush_events do nothing - but the events
+              # given to us as the parameter have already been removed
+              # from the queue.
+              # Put the events back to the front of the queue to not
+              # lose them.
+              queue.unshift(*events)
+              return
+            end
+          end
 
           metric_events = @metrics_manager.flush!
           events = [] if events.nil?
