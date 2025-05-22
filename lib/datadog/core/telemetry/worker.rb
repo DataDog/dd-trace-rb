@@ -17,8 +17,6 @@ module Datadog
         DEFAULT_BUFFER_MAX_SIZE = 1000
         APP_STARTED_EVENT_RETRIES = 10
 
-        TELEMETRY_STARTED_ONCE = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
-
         def initialize(
           heartbeat_interval_seconds:,
           metrics_aggregation_interval_seconds:,
@@ -48,9 +46,12 @@ module Datadog
           @buffer_size = buffer_size
 
           self.buffer = buffer_klass.new(@buffer_size)
+
+          @initial_event_once = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
         end
 
         attr_reader :logger
+        attr_reader :initial_event_once
 
         # Returns true if worker thread is successfully started,
         # false if worker thread was not started but telemetry is enabled,
@@ -81,12 +82,16 @@ module Datadog
           true
         end
 
-        def sent_started_event?
-          TELEMETRY_STARTED_ONCE.success?
+        def sent_initial_event?
+          initial_event_once.success?
         end
 
-        def failed_to_start?
-          TELEMETRY_STARTED_ONCE.failed?
+        def failed_initial_event?
+          initial_event_once.failed?
+        end
+
+        def need_initial_event?
+          !sent_initial_event? && !failed_initial_event?
         end
 
         # Wait for the worker to send out all events that have already
@@ -114,7 +119,7 @@ module Datadog
             # Note that the first wait interval between telemetry event
             # sending is 10 seconds, the timeout needs to be strictly
             # greater than that.
-            return true if buffer.empty? && !in_iteration? && TELEMETRY_STARTED_ONCE.success?
+            return true if buffer.empty? && !in_iteration? && sent_initial_event?
 
             sleep 0.5
 
@@ -127,9 +132,9 @@ module Datadog
         def perform(*events)
           return if !enabled? || forked?
 
-          unless sent_started_event?
+          if need_initial_event?
             started!
-            unless sent_started_event?
+            unless sent_initial_event?
               # We still haven't succeeded in sending the started event,
               # which will make flush_events do nothing - but the events
               # given to us as the parameter have already been removed
@@ -163,7 +168,7 @@ module Datadog
         end
 
         def heartbeat!
-          return if !enabled? || !sent_started_event?
+          return if !enabled? || !sent_initial_event?
 
           send_event(Event::AppHeartbeat.new)
         end
@@ -177,7 +182,7 @@ module Datadog
             return
           end
 
-          TELEMETRY_STARTED_ONCE.run do
+          initial_event_once.run do
             res = send_event(Event::AppStarted.new)
 
             if res.ok?
