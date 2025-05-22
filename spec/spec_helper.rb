@@ -191,7 +191,7 @@ RSpec.configure do |config|
           # Rails connection reaper
           backtrace.find { |b| b =~ %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb} } ||
           # Rails connection reaper in newer Rails are native (no backtrace), but have a consistent call site
-          caller.find { |b| %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb}.match?(b) } ||
+          caller.find { |b| b =~ %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb} } ||
           # Ruby JetBrains debugger
           (t.class.name && t.class.name.include?('DebugThread')) ||
           # Categorized as a known leaky thread

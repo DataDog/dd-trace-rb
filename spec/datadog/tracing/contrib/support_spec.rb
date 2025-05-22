@@ -4,14 +4,18 @@ require 'tempfile'
 
 RSpec.describe Datadog::Tracing::Contrib::Support do
   describe '.fully_loaded?' do
-    let(:temp_file) do
-      file = Tempfile.create(['autoloaded_constant', '.rb'])
-      file.write('module AutoloadedParent::AutoloadedConstant; end')
-      file.flush
-      file
+    around do |example|
+      Tempfile.create(['autoloaded_constant', '.rb']) do |file|
+        file.write('module AutoloadedParent::AutoloadedConstant; end')
+        file.flush
+        @temp_file = file
+
+        example.run
+      end
     end
+
     let(:test_module) do
-      temp_file = self.temp_file
+      temp_file = @temp_file
       stub_const(
         'AutoloadedParent',
         Module.new do
@@ -20,8 +24,6 @@ RSpec.describe Datadog::Tracing::Contrib::Support do
         end
       )
     end
-
-    after { temp_file.close }
 
     it 'returns false for autoloaded but not yet loaded constants' do
       expect(described_class.fully_loaded?(test_module, :AutoloadedConstant)).to be false
