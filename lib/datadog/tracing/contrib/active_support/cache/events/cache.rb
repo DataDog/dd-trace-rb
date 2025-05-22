@@ -62,7 +62,10 @@ module Datadog
               end
 
               def on_start(span, event, _id, payload)
-                key = payload[:key]
+                # Since Rails 8, `dd_original_keys` contains the denormalized key provided by the user.
+                # In previous versions, the denormalized key is stored in the official `key` attribute.
+                # We fall back to `key`, even in Rails 8, as a defensive measure.
+                key = payload[:dd_original_keys] || payload[:key]
                 store = payload[:store]
 
                 mapping = MAPPING.fetch(event)

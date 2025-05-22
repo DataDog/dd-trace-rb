@@ -9,7 +9,7 @@ require_relative '../analytics_examples'
 # Rails immediately loads the Rails application, which calls `Datadog.configure`: https://github.com/rails/rails/blob/ad858b91a9a4bc94950708955e44c654a1f3789b/railties/lib/rails/commands/runner/runner_command.rb#L30
 require 'rails/commands/runner/runner_command' if Rails.version >= '5.1'
 
-RSpec.describe Datadog::Tracing::Contrib::Rails::Runner do
+RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.version.to_i >= 8 do
   include_context 'Rails test application'
 
   subject(:run) { ::Rails::Command.invoke 'runner', argv }
