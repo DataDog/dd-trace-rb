@@ -31,6 +31,16 @@ module Datadog
         #
         # @param block [Proc] block that returns a `Time` object representing the current wall time
         def now_provider=(block)
+          class << self
+            # Avoid method redefinition warning.
+            # `rescue nil` is added in case customers remove the method
+            # themselves to squelch the warning.
+            begin
+              remove_method(:now)
+            rescue
+              nil
+            end
+          end
           define_singleton_method(:now, &block)
         end
 
@@ -43,6 +53,16 @@ module Datadog
         #
         # @param block [Proc] block that accepts unit and returns timestamp in the requested unit
         def get_time_provider=(block)
+          class << self
+            # Avoid method redefinition warning
+            # `rescue nil` is added in case customers remove the method
+            # themselves to squelch the warning.
+            begin
+              remove_method(:get_time)
+            rescue
+              nil
+            end
+          end
           define_singleton_method(:get_time, &block)
         end
 

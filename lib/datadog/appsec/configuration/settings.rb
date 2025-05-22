@@ -131,9 +131,12 @@ module Datadog
                     o.type :string, nilable: true
                     o.setter do |value|
                       if value
-                        raise(ArgumentError, "appsec.templates.html: file not found: #{value}") unless File.exist?(value)
+                        unless File.exist?(value)
+                          raise(ArgumentError,
+                            "appsec.templates.html: file not found: #{value}")
+                        end
 
-                        File.open(value, 'rb', &:read) || ''
+                        File.binread(value) || ''
                       end
                     end
                   end
@@ -143,9 +146,12 @@ module Datadog
                     o.type :string, nilable: true
                     o.setter do |value|
                       if value
-                        raise(ArgumentError, "appsec.templates.json: file not found: #{value}") unless File.exist?(value)
+                        unless File.exist?(value)
+                          raise(ArgumentError,
+                            "appsec.templates.json: file not found: #{value}")
+                        end
 
-                        File.open(value, 'rb', &:read) || ''
+                        File.binread(value) || ''
                       end
                     end
                   end
@@ -155,9 +161,12 @@ module Datadog
                     o.type :string, nilable: true
                     o.setter do |value|
                       if value
-                        raise(ArgumentError, "appsec.templates.text: file not found: #{value}") unless File.exist?(value)
+                        unless File.exist?(value)
+                          raise(ArgumentError,
+                            "appsec.templates.text: file not found: #{value}")
+                        end
 
-                        File.open(value, 'rb', &:read) || ''
+                        File.binread(value) || ''
                       end
                     end
                   end
@@ -237,11 +246,11 @@ module Datadog
 
                     Datadog.logger.warn(
                       'The appsec.auto_user_instrumentation.mode value provided is not supported. ' \
-                      "Supported values are: #{AUTO_USER_INSTRUMENTATION_MODES.join(' | ')}. " \
-                      "Using default value: #{IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE}."
+                      "Supported values are: #{AUTO_USER_INSTRUMENTATION_MODES.join(" | ")}. " \
+                      "Using value: #{DISABLED_AUTO_USER_INSTRUMENTATION_MODE}."
                     )
 
-                    IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
+                    DISABLED_AUTO_USER_INSTRUMENTATION_MODE
                   end
                 end
               end
@@ -259,11 +268,13 @@ module Datadog
                       APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES.include?(env_value.strip.downcase)
                     end
                   end
-                  o.after_set do
-                    Core.log_deprecation(key: :appsec_track_user_events_enabled) do
-                      'The appsec.track_user_events.enabled setting has been deprecated for removal. ' \
-                      'Please remove it from your Datadog.configure block and use ' \
-                      'appsec.auto_user_instrumentation.mode instead.'
+                  o.after_set do |_, _, precedence|
+                    unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                      Core.log_deprecation(key: :appsec_track_user_events_enabled) do
+                        'The appsec.track_user_events.enabled setting is deprecated. ' \
+                        'Please remove it from your Datadog.configure block and use ' \
+                        'appsec.auto_user_instrumentation.mode instead.'
+                      end
                     end
                   end
                 end
@@ -280,18 +291,20 @@ module Datadog
                     else
                       Datadog.logger.warn(
                         'The appsec.track_user_events.mode value provided is not supported.' \
-                        "Supported values are: #{APPSEC_VALID_TRACK_USER_EVENTS_MODE.join(' | ')}." \
+                        "Supported values are: #{APPSEC_VALID_TRACK_USER_EVENTS_MODE.join(" | ")}." \
                         "Using default value: #{SAFE_TRACK_USER_EVENTS_MODE}."
                       )
 
                       SAFE_TRACK_USER_EVENTS_MODE
                     end
                   end
-                  o.after_set do
-                    Core.log_deprecation(key: :appsec_track_user_events_mode) do
-                      'The appsec.track_user_events.mode setting has been deprecated for removal. ' \
-                      'Please remove it from your Datadog.configure block and use ' \
-                      'appsec.auto_user_instrumentation.mode instead.'
+                  o.after_set do |_, _, precedence|
+                    unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                      Core.log_deprecation(key: :appsec_track_user_events_mode) do
+                        'The appsec.track_user_events.mode setting is deprecated. ' \
+                        'Please remove it from your Datadog.configure block and use ' \
+                        'appsec.auto_user_instrumentation.mode instead.'
+                      end
                     end
                   end
                 end
@@ -318,14 +331,6 @@ module Datadog
               option :sca_enabled do |o|
                 o.type :bool, nilable: true
                 o.env 'DD_APPSEC_SCA_ENABLED'
-              end
-
-              settings :standalone do
-                option :enabled do |o|
-                  o.type :bool
-                  o.env 'DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED'
-                  o.default false
-                end
               end
             end
           end

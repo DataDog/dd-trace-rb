@@ -1,6 +1,57 @@
 [
   {
-    "id": "processor-001",
+    "id": "http-endpoint-fingerprint",
+    "generator": "http_endpoint_fingerprint",
+    "conditions": [
+      {
+        "operator": "exists",
+        "parameters": {
+          "inputs": [
+            {
+              "address": "waf.context.event"
+            },
+            {
+              "address": "server.business_logic.users.login.failure"
+            },
+            {
+              "address": "server.business_logic.users.login.success"
+            }
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "mappings": [
+        {
+          "method": [
+            {
+              "address": "server.request.method"
+            }
+          ],
+          "uri_raw": [
+            {
+              "address": "server.request.uri.raw"
+            }
+          ],
+          "body": [
+            {
+              "address": "server.request.body"
+            }
+          ],
+          "query": [
+            {
+              "address": "server.request.query"
+            }
+          ],
+          "output": "_dd.appsec.fp.http.endpoint"
+        }
+      ]
+    },
+    "evaluate": false,
+    "output": true
+  },
+  {
+    "id": "extract-content",
     "generator": "extract_schema",
     "conditions": [
       {
@@ -32,10 +83,10 @@
         {
           "inputs": [
             {
-              "address": "server.request.headers.no_cookies"
+              "address": "server.request.cookies"
             }
           ],
-          "output": "_dd.appsec.s.req.headers"
+          "output": "_dd.appsec.s.req.cookies"
         },
         {
           "inputs": [
@@ -56,10 +107,73 @@
         {
           "inputs": [
             {
-              "address": "server.request.cookies"
+              "address": "server.response.body"
             }
           ],
-          "output": "_dd.appsec.s.req.cookies"
+          "output": "_dd.appsec.s.res.body"
+        },
+        {
+          "inputs": [
+            {
+              "address": "graphql.server.all_resolvers"
+            }
+          ],
+          "output": "_dd.appsec.s.graphql.all_resolvers"
+        },
+        {
+          "inputs": [
+            {
+              "address": "graphql.server.resolver"
+            }
+          ],
+          "output": "_dd.appsec.s.graphql.resolver"
+        }
+      ],
+      "scanners": [
+        {
+          "tags": {
+            "category": "payment"
+          }
+        },
+        {
+          "tags": {
+            "category": "pii"
+          }
+        }
+      ]
+    },
+    "evaluate": false,
+    "output": true
+  },
+  {
+    "id": "extract-headers",
+    "generator": "extract_schema",
+    "conditions": [
+      {
+        "operator": "equals",
+        "parameters": {
+          "inputs": [
+            {
+              "address": "waf.context.processor",
+              "key_path": [
+                "extract-schema"
+              ]
+            }
+          ],
+          "type": "boolean",
+          "value": true
+        }
+      }
+    ],
+    "parameters": {
+      "mappings": [
+        {
+          "inputs": [
+            {
+              "address": "server.request.headers.no_cookies"
+            }
+          ],
+          "output": "_dd.appsec.s.req.headers"
         },
         {
           "inputs": [
@@ -68,21 +182,136 @@
             }
           ],
           "output": "_dd.appsec.s.res.headers"
-        },
-        {
-          "inputs": [
-            {
-              "address": "server.response.body"
-            }
-          ],
-          "output": "_dd.appsec.s.res.body"
         }
       ],
       "scanners": [
         {
           "tags": {
+            "category": "credentials"
+          }
+        },
+        {
+          "tags": {
             "category": "pii"
           }
+        }
+      ]
+    },
+    "evaluate": false,
+    "output": true
+  },
+  {
+    "id": "http-header-fingerprint",
+    "generator": "http_header_fingerprint",
+    "conditions": [
+      {
+        "operator": "exists",
+        "parameters": {
+          "inputs": [
+            {
+              "address": "waf.context.event"
+            },
+            {
+              "address": "server.business_logic.users.login.failure"
+            },
+            {
+              "address": "server.business_logic.users.login.success"
+            }
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "mappings": [
+        {
+          "headers": [
+            {
+              "address": "server.request.headers.no_cookies"
+            }
+          ],
+          "output": "_dd.appsec.fp.http.header"
+        }
+      ]
+    },
+    "evaluate": false,
+    "output": true
+  },
+  {
+    "id": "http-network-fingerprint",
+    "generator": "http_network_fingerprint",
+    "conditions": [
+      {
+        "operator": "exists",
+        "parameters": {
+          "inputs": [
+            {
+              "address": "waf.context.event"
+            },
+            {
+              "address": "server.business_logic.users.login.failure"
+            },
+            {
+              "address": "server.business_logic.users.login.success"
+            }
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "mappings": [
+        {
+          "headers": [
+            {
+              "address": "server.request.headers.no_cookies"
+            }
+          ],
+          "output": "_dd.appsec.fp.http.network"
+        }
+      ]
+    },
+    "evaluate": false,
+    "output": true
+  },
+  {
+    "id": "session-fingerprint",
+    "generator": "session_fingerprint",
+    "conditions": [
+      {
+        "operator": "exists",
+        "parameters": {
+          "inputs": [
+            {
+              "address": "waf.context.event"
+            },
+            {
+              "address": "server.business_logic.users.login.failure"
+            },
+            {
+              "address": "server.business_logic.users.login.success"
+            }
+          ]
+        }
+      }
+    ],
+    "parameters": {
+      "mappings": [
+        {
+          "cookies": [
+            {
+              "address": "server.request.cookies"
+            }
+          ],
+          "session_id": [
+            {
+              "address": "usr.session_id"
+            }
+          ],
+          "user_id": [
+            {
+              "address": "usr.id"
+            }
+          ],
+          "output": "_dd.appsec.fp.session"
         }
       ]
     },

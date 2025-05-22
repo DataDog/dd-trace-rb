@@ -3,8 +3,10 @@ require 'spec_helper'
 require 'datadog/tracing/transport/http'
 
 RSpec.describe Datadog::Tracing::Transport::HTTP do
+  let(:logger) { logger_allowing_debug }
+
   describe '.default' do
-    subject(:default) { described_class.default(agent_settings: default_agent_settings) }
+    subject(:default) { described_class.default(agent_settings: default_agent_settings, logger: logger) }
     let(:default_agent_settings) do
       Datadog::Core::Configuration::AgentSettingsResolver.call(
         Datadog::Core::Configuration::Settings.new,
@@ -46,7 +48,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     end
 
     context 'when given an agent_settings' do
-      subject(:default) { described_class.default(agent_settings: agent_settings, **options) }
+      subject(:default) { described_class.default(agent_settings: agent_settings, logger: logger, **options) }
 
       let(:options) { {} }
 
@@ -87,7 +89,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     end
 
     context 'when given options' do
-      subject(:default) { described_class.default(agent_settings: default_agent_settings, **options) }
+      subject(:default) { described_class.default(agent_settings: default_agent_settings, logger: logger, **options) }
 
       context 'that specify an API version' do
         let(:options) { { api_version: api_version } }
@@ -120,7 +122,9 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
 
     context 'when given a block' do
       it do
-        expect { |b| described_class.default(agent_settings: default_agent_settings, &b) }.to yield_with_args(
+        expect do |b|
+          described_class.default(agent_settings: default_agent_settings, logger: logger, &b)
+        end.to yield_with_args(
           kind_of(Datadog::Core::Transport::HTTP::Builder)
         )
       end

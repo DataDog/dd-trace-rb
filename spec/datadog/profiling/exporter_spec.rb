@@ -20,10 +20,10 @@ RSpec.describe Datadog::Profiling::Exporter do
 
   let(:start) { Time.now }
   let(:finish) { start + 60 }
-  let(:pprof_data) { "dummy pprof data" }
+  let(:encoded_profile) { instance_double(Datadog::Profiling::EncodedProfile) }
   let(:profile_stats) { {stat1: 1, stat2: "a string", stat3: true} }
   let(:code_provenance_data) { "dummy code provenance data" }
-  let(:pprof_recorder_serialize) { [start, finish, pprof_data, profile_stats] }
+  let(:pprof_recorder_serialize) { [start, finish, encoded_profile, profile_stats] }
   let(:pprof_recorder) do
     instance_double(Datadog::Profiling::StackRecorder, serialize: pprof_recorder_serialize, stats: recorder_stats)
   end
@@ -63,12 +63,11 @@ RSpec.describe Datadog::Profiling::Exporter do
       expect(flush).to have_attributes(
         start: start,
         finish: finish,
-        pprof_file_name: "rubyprofile.pprof",
+        encoded_profile: encoded_profile,
         code_provenance_file_name: "code-provenance.json",
+        code_provenance_data: code_provenance_data,
         tags_as_array: array_including(%w[language ruby], ["process_id", Process.pid.to_s]),
       )
-      expect(flush.pprof_data).to eq pprof_data
-      expect(flush.code_provenance_data).to eq code_provenance_data
       expect(JSON.parse(flush.internal_metadata_json, symbolize_names: true)).to match(
         {
           no_signals_workaround_enabled: no_signals_workaround_enabled,

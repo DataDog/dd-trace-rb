@@ -1,7 +1,6 @@
 require 'json'
 require 'stringio'
 require 'typhoeus'
-require 'webrick'
 
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/contrib/ethon/easy_patch'

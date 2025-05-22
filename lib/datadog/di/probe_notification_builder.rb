@@ -191,7 +191,7 @@ module Datadog
       end
 
       def timestamp_now
-        (Time.now.to_f * 1000).to_i
+        (Core::Utils::Time.now.to_f * 1000).to_i
       end
 
       def get_local_variables(trace_point)

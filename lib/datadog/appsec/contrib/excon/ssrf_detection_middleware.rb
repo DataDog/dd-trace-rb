@@ -3,6 +3,9 @@
 
 require 'excon'
 
+require_relative '../../event'
+require_relative '../../security_event'
+
 module Datadog
   module AppSec
     module Contrib
@@ -15,22 +18,18 @@ module Datadog
             context = AppSec.active_context
 
             request_url = URI.join("#{data[:scheme]}://#{data[:host]}", data[:path]).to_s
-            ephemeral_data = { 'server.io.net.url' => request_url }
+            ephemeral_data = {'server.io.net.url' => request_url}
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, Datadog.configuration.appsec.waf_timeout)
 
             if result.match?
-              Datadog::AppSec::Event.tag_and_keep!(context, result)
+              AppSec::Event.tag_and_keep!(context, result)
 
-              context.events << {
-                waf_result: result,
-                trace: context.trace,
-                span: context.span,
-                request_url: request_url,
-                actions: result.actions
-              }
+              context.events.push(
+                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+              )
 
-              ActionsHandler.handle(result.actions)
+              AppSec::ActionsHandler.handle(result.actions)
             end
 
             super

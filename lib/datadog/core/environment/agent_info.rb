@@ -51,11 +51,12 @@ module Datadog
       #
       # @see https://github.com/DataDog/datadog-agent/blob/f07df0a3c1fca0c83b5a15f553bd994091b0c8ac/pkg/trace/api/info.go#L20
       class AgentInfo
-        attr_reader :agent_settings
+        attr_reader :agent_settings, :logger
 
-        def initialize(agent_settings)
+        def initialize(agent_settings, logger: Datadog.logger)
           @agent_settings = agent_settings
-          @client = Remote::Transport::HTTP.root(agent_settings: agent_settings)
+          @logger = logger
+          @client = Remote::Transport::HTTP.root(agent_settings: agent_settings, logger: logger)
         end
 
         # Fetches the information from the agent.

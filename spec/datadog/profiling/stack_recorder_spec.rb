@@ -1,6 +1,8 @@
 require "datadog/profiling/spec_helper"
 require "datadog/profiling/stack_recorder"
 
+require "objspace"
+
 RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported(self) }
 
@@ -236,6 +238,21 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           period: 0,
           comment: [],
         )
+      end
+
+      context "when requesting multiple serializations of empty profiles" do
+        it "correctly sets the profile start timestamp in libdatadog" do
+          # The `start` timestamp returned is tracked locally by us. This test validates that the actual profile
+          # matches it, e.g. that we're passing it along correctly to libdatadog.
+          start_timestamps = []
+          4.times do
+            start, _, profile = stack_recorder.serialize
+            expect(decode_profile(profile).time_nanos).to eq(Datadog::Core::Utils::Time.as_utc_epoch_ns(start))
+
+            start_timestamps << start
+          end
+          expect(start_timestamps.sort).to eq(start_timestamps) # No later timestamp should come before an earlier one
+        end
       end
 
       it "returns stats reporting no recorded samples" do
@@ -658,7 +675,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           it "only keeps track of some allocations" do
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
-            expect(heap_samples.size).to eq(1)
+            expect(heap_samples.size)
+              .to eq(1), "Expected one heap sample, got #{heap_samples.size}; heap_samples is #{heap_samples}"
 
             heap_sample = heap_samples.first
             expect(heap_sample.labels[:"allocation class"]).to eq("Array")
@@ -725,6 +743,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
 
               stack_recorder.serialize
+
+              GC.enable
+              GC.start
+
+              # Sanity check: All the objects should've been garbage collected
+              @object_ids.map do |object_id|
+                expect { ObjectSpace._id2ref(object_id) }.to raise_error(RangeError)
+              end
 
               # Older objects are only cleared at serialization time
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
@@ -851,11 +877,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     subject(:serialize!) { stack_recorder.serialize! }
 
     context "when serialization succeeds" do
+      let(:encoded_profile) { instance_double(Datadog::Profiling::EncodedProfile, _native_bytes: "serialized-data") }
+
       before do
-        expect(described_class).to receive(:_native_serialize).and_return([:ok, %w[start finish serialized-data]])
+        expect(described_class)
+          .to receive(:_native_serialize).and_return([:ok, [:dummy_start, :dummy_finish, encoded_profile]])
       end
 
-      it { is_expected.to eq("serialized-data") }
+      it { is_expected.to be encoded_profile }
     end
 
     context "when serialization fails" do

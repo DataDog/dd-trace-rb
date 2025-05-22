@@ -1,7 +1,14 @@
 name: Publish gem
 
 # TODO: Implement a dry-run mode to verify the checks without publishing
-on: workflow_dispatch # yamllint disable-line rule:truthy
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Force release bypassing verification checks"
+        type: boolean
+        default: false
+        required: false
 
 concurrency: "rubygems" # Only one publish job at a time
 
@@ -14,21 +21,23 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       checks: read
+      contents: write
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@922ebc4c5262cd14e07bb0e1db020984b6c064fe # v1.226.0
+      - uses: ruby/setup-ruby@13e7a03dc3ac6c3798f4570bfead2aed4d96abfb # v1.244.0
         with:
-          ruby-version: '3.3.7'
+          ruby-version: "3.3.7"
 
       - id: version
         run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> "$GITHUB_OUTPUT"
 
       # Check if the gem version is already published
       - name: Verify gem version
+        continue-on-error: ${{ inputs.force }}
         env:
           GEM_VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -39,51 +48,87 @@ jobs:
             echo "Version $GEM_VERSION is not published yet"
           fi
 
-      # TODO: Verify draft release
-      # TODO: Verify milestone
-
-      # Check if the commit has passed all Github checks
-      # API: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-for-a-git-reference
-      - name: Verify check runs
+      # Check if there is a draft release for this version
+      # API: https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#list-releases
+      - name: Verify draft release
+        continue-on-error: ${{ inputs.force }}
+        env:
+          GEM_VERSION: ${{ steps.version.outputs.version }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const checkRuns = await github.paginate(github.rest.checks.listForRef, {
+            const { data: releases } = await github.rest.repos.listReleases({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: context.sha,
-              per_page: 100
             });
 
-            const failedChecks = checkRuns.filter(check =>
-              check.status === 'completed' &&
-              check.conclusion !== 'success' &&
-              check.conclusion !== 'skipped'
+            console.log(releases);
+
+            const versionTag = `v${process.env.GEM_VERSION}`;
+            const draftRelease = releases.find(
+              release => release.tag_name === versionTag && release.draft === true
             );
 
-            if (failedChecks.length > 0) {
-              const failedNames = failedChecks.map(c => c.name).join(', ');
-              core.setFailed(`Check runs failed: ${failedNames}`);
+            if (!draftRelease) {
+              core.setFailed(`No draft release found with tag ${versionTag}. Please create a draft release first.`);
+              return;
             }
 
-      # Check if the commit has passed external CI checks
-      # API: https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
-      - name: Verify commit status
+            console.log(`Found draft release with tag ${versionTag} (ID: ${draftRelease.id})`);
+
+      # Check if there is an open milestone for this version
+      # API: https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28#list-milestones
+      - name: Verify milestone
+        continue-on-error: ${{ inputs.force }}
+        env:
+          GEM_VERSION: ${{ steps.version.outputs.version }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const { data: status } = await github.rest.repos.getCombinedStatusForRef({
+            const { data: milestones } = await github.rest.issues.listMilestones({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: context.sha
+              state: 'open'
             });
 
-            if (status.state !== 'success') {
-              core.setFailed(`Commit status is ${status.state}`);
+            console.log(milestones);
+
+            const versionMilestone = milestones.find(
+              milestone => milestone.title === process.env.GEM_VERSION
+            );
+
+            if (!versionMilestone) {
+              core.setFailed(`No open milestone found with title ${process.env.GEM_VERSION}. Please create a milestone first.`);
+              return;
             }
+
+            console.log(`Found open milestone ${process.env.GEM_VERSION} (ID: ${versionMilestone.number})`);
+
+      # Check if the commit has passed all Github checks
+      - name: Verify check runs
+        continue-on-error: ${{ inputs.force }}
+        env:
+          APP_ID: 15368 # Github Actions app ID
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          retries: 3
+          script: |
+            const script = require('./.github/scripts/publish/verify_check_runs.js')
+            await script({github, context, core})
+
+      # Check if the commit has passed external CI checks
+      - name: Verify commit status
+        continue-on-error: ${{ inputs.force }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          retries: 3
+          script: |
+            const script = require('./.github/scripts/publish/verify_commit_status.js')
+            await script({github, context, core})
 
       # Check if the commit has all the checks passed
       - name: Verify deferred commit data
+        continue-on-error: ${{ inputs.force }}
         # NOTE:
         #
         # This step uses Github's internal API (for rendering the status of the checks in UI),
@@ -100,7 +145,10 @@ jobs:
             echo "::error::Status check state is '$STATUS'. See: $COMMIT_URL"
             exit 1
           fi
-
+      - name: Warning for bypassing checks
+        if: ${{ inputs.force }}
+        run: |
+          echo "::warning::Bypassing verification checks"
 
   rubygems-release:
     name: Build and push gem to RubyGems.org
@@ -117,9 +165,9 @@ jobs:
         with:
           persist-credentials: false # `rubygems/release-gem` action handles credentials itself
       - name: Set up Ruby
-        uses: ruby/setup-ruby@922ebc4c5262cd14e07bb0e1db020984b6c064fe # v1.226.0
+        uses: ruby/setup-ruby@13e7a03dc3ac6c3798f4570bfead2aed4d96abfb # v1.244.0
         with:
-          ruby-version: '3.3.7'
+          ruby-version: "3.3.7"
       - run: bundle install
       - uses: rubygems/release-gem@a25424ba2ba8b387abc8ef40807c2c85b96cbe32 # v1.1.1
 
@@ -161,9 +209,9 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@922ebc4c5262cd14e07bb0e1db020984b6c064fe # v1.226.0
+        uses: ruby/setup-ruby@13e7a03dc3ac6c3798f4570bfead2aed4d96abfb # v1.244.0
         with:
-          ruby-version: '3.3.7'
+          ruby-version: "3.3.7"
       - run: bundle install
       - id: next_version
         run: |
@@ -288,5 +336,5 @@ jobs:
             --base release \
             --head "${TEMP_BRANCH}" \
             --title "Update document v${GEM_VERSION}" \
-            --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready." \
+          --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready.\n\nTo resolve conflicts:\n\`\`\`bash\ngit merge release\ngit checkout --ours .\`\`\`." \
             --label "docs"

@@ -19,14 +19,16 @@ RSpec.describe Datadog::AppSec::Component do
         expect(component).to be_a(described_class)
       end
 
-      context 'when using old ffi version with Ruby 3.3.x' do
+      context 'when using ffi version that is known to leak memory with Ruby >= 3.3.0' do
         before do
           stub_const('RUBY_VERSION', '3.3.0')
           allow(Gem).to receive(:loaded_specs).and_return('ffi' => double(version: Gem::Version.new('1.15.4')))
         end
 
-        it 'returns a Datadog::AppSec::Component instance with a nil processor' do
+        it 'returns nil, warns and reports telemetry' do
           expect(Datadog.logger).to receive(:warn)
+          expect(telemetry).to receive(:error)
+            .with('AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0')
 
           component = described_class.build_appsec_component(settings, telemetry: telemetry)
           expect(component).to be_nil
@@ -36,8 +38,9 @@ RSpec.describe Datadog::AppSec::Component do
       context 'when ffi is not loaded' do
         before { allow(Gem).to receive(:loaded_specs).and_return({}) }
 
-        it 'returns a Datadog::AppSec::Component instance with a nil processor and does not warn' do
-          expect(Datadog.logger).not_to receive(:warn)
+        it 'returns nil, warns and reports telemetry' do
+          expect(Datadog.logger).to receive(:warn)
+          expect(telemetry).to receive(:error).with('AppSec: Component not loaded, due to missing FFI gem')
 
           component = described_class.build_appsec_component(settings, telemetry: telemetry)
           expect(component).to be_nil
@@ -194,7 +197,7 @@ RSpec.describe Datadog::AppSec::Component do
 
       it 'does not swap the processor instance and finalize the old processor' do
         component = described_class.new(processor, telemetry)
-        ruleset = { 'invalid_one' => true }
+        ruleset = {'invalid_one' => true}
 
         expect(processor).to_not receive(:finalize)
         expect(component.processor).to eq(processor)

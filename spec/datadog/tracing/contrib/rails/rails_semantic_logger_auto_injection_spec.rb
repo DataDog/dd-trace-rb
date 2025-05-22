@@ -88,7 +88,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
 
             if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
               expect(log_entries).to have(6).items
-              expect(log_entries).to all include low_order_trace_id(trace.id).to_s
+              expect(log_entries).to all include format_for_correlation(trace.id)
               expect(log_entries).to all include 'ddsource: ruby'
 
               rack_started_entry,
@@ -119,7 +119,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
             else
               expect(log_entries).to have(5).items
 
-              expect(log_entries).to all include low_order_trace_id(trace.id).to_s
+              expect(log_entries).to all include format_for_correlation(trace.id)
               expect(log_entries).to all include 'ddsource: ruby'
             end
           end
@@ -138,7 +138,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
             if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
               expect(log_entries).to have(6).items
 
-              expect(log_entries).to all include(low_order_trace_id(trace.id).to_s)
+              expect(log_entries).to all include(format_for_correlation(trace.id))
               expect(log_entries).to all include('ddsource: ruby')
               expect(log_entries).to all include('some_tag')
               expect(log_entries).to all include('some_value')
@@ -171,7 +171,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
             else
               expect(log_entries).to have(5).items
 
-              expect(log_entries).to all include(low_order_trace_id(trace.id).to_s)
+              expect(log_entries).to all include(format_for_correlation(trace.id))
               expect(log_entries).to all include('ddsource: ruby')
               expect(log_entries).to all include('some_tag')
               expect(log_entries).to all include('some_value')

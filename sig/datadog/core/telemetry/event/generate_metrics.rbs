@@ -1,0 +1,29 @@
+module Datadog
+  module Core
+    module Telemetry
+      class Event
+        class GenerateMetrics < Base
+          @namespace: untyped
+
+          @metric_series: untyped
+
+          attr_reader namespace: String
+
+          attr_reader metric_series: Array[Metric::Base]
+
+          def type: () -> "generate-metrics"
+
+          def initialize: (String namespace, Array[Metric::Base] metric_series) -> void
+
+          def payload: () -> { namespace: untyped, series: untyped }
+
+          def ==: (untyped other) -> untyped
+
+          alias eql? ==
+
+          def hash: () -> untyped
+        end
+      end
+    end
+  end
+end

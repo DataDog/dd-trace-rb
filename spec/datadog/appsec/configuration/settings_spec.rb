@@ -486,7 +486,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
             it 'writes the deprication message' do
               expect(Datadog::Core).to receive(:log_deprecation) do |_, &block|
-                expect(block.call).to match(/setting has been deprecated for removal/)
+                expect(block.call).to match(/setting is deprecated/)
               end
               expect(enabled).to eq(true)
             end
@@ -580,7 +580,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
           it 'writes the deprication message' do
             expect(Datadog::Core).to receive(:log_deprecation) do |_, &block|
-              expect(block.call).to match(/setting has been deprecated for removal/)
+              expect(block.call).to match(/setting is deprecated/)
             end
 
             set_appsec_track_user_events_mode
@@ -801,7 +801,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           expect(logger).to receive(:warn).with(/value provided is not supported/)
           settings.appsec.auto_user_instrumentation.mode = 'unknown'
 
-          expect(settings.appsec.auto_user_instrumentation.mode).to eq('identification')
+          expect(settings.appsec.auto_user_instrumentation.mode).to eq('disabled')
         end
       end
 
@@ -836,7 +836,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         it 'sets the value to the default and writes a warning message' do
           expect(logger).to receive(:warn).with(/value provided is not supported/)
-          expect(settings.appsec.auto_user_instrumentation.mode).to eq('identification')
+          expect(settings.appsec.auto_user_instrumentation.mode).to eq('disabled')
         end
       end
 
@@ -866,9 +866,9 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe 'block' do
       describe 'templates' do
         [
-          { method_name: :html, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML' },
-          { method_name: :json, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON' },
-          { method_name: :text, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT' }
+          {method_name: :html, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML'},
+          {method_name: :json, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON'},
+          {method_name: :text, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT'}
         ].each do |test_info|
           describe "##{test_info[:method_name]}" do
             context "when #{test_info[:env_var]}" do
@@ -1056,46 +1056,6 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
             before { set_sca_enabled }
 
             it { expect(settings.appsec.sca_enabled).to eq(value) }
-          end
-        end
-      end
-    end
-
-    describe 'standalone' do
-      describe '#enabled' do
-        subject(:enabled) { settings.appsec.standalone.enabled }
-
-        context 'when DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED' => appsec_standalone_enabled) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:appsec_standalone_enabled) { nil }
-
-            it { is_expected.to eq false }
-          end
-
-          context 'is defined' do
-            let(:appsec_standalone_enabled) { 'true' }
-
-            it { is_expected.to eq(true) }
-          end
-        end
-      end
-
-      describe '#enabled=' do
-        subject(:set_appsec_standalone_enabled) { settings.appsec.standalone.enabled = appsec_standalone_enabled }
-
-        [true, false].each do |value|
-          context "when given #{value}" do
-            let(:appsec_standalone_enabled) { value }
-
-            before { set_appsec_standalone_enabled }
-
-            it { expect(settings.appsec.standalone.enabled).to eq(value) }
           end
         end
       end

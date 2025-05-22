@@ -1007,7 +1007,8 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     let(:writer) { Datadog::Tracing::Writer.new(transport: transport) }
-    let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) }
+    let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) }
+    let(:logger) { logger_allowing_debug }
 
     before do
       Datadog.configure do |c|

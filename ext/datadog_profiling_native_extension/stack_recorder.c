@@ -8,6 +8,7 @@
 #include "ruby_helpers.h"
 #include "time_helpers.h"
 #include "heap_recorder.h"
+#include "encoded_profile.h"
 
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -181,6 +182,7 @@ typedef struct {
 typedef struct {
   ddog_prof_Profile profile;
   stats_slot stats;
+  ddog_Timespec start_timestamp;
 } profile_slot;
 
 // Contains native state for each instance
@@ -252,7 +254,7 @@ static ddog_Timespec system_epoch_now_timespec(void);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static void serializer_set_start_timestamp_for_next_profile(stack_recorder_state *state, ddog_Timespec start_time);
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
-static void reset_profile_slot(profile_slot *slot, ddog_Timespec *start_time /* Can be null */);
+static void reset_profile_slot(profile_slot *slot, ddog_Timespec start_timestamp);
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class);
 static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations);
 static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
@@ -358,24 +360,26 @@ static void initialize_slot_concurrency_control(stack_recorder_state *state) {
 }
 
 static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types) {
+  ddog_Timespec start_timestamp = system_epoch_now_timespec();
+
   ddog_prof_Profile_NewResult slot_one_profile_result =
-    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, &start_timestamp);
 
   if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
   }
 
-  state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok };
+  state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok, .start_timestamp = start_timestamp };
 
   ddog_prof_Profile_NewResult slot_two_profile_result =
-    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, &start_timestamp);
 
   if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
     // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
     rb_raise(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
   }
 
-  state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_result.ok };
+  state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_result.ok, .start_timestamp = start_timestamp };
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -564,18 +568,14 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   state->stats_lifetime.serialization_successes++;
 
-  VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
+  // Once we wrap this into a Ruby object, our `EncodedProfile` class will automatically manage memory for it
+  VALUE encoded_profile = from_ddog_prof_EncodedProfile(serialized_profile.ok);
 
-  ddog_Timespec ddprof_start = serialized_profile.ok.start;
-  ddog_Timespec ddprof_finish = serialized_profile.ok.end;
-
-  ddog_prof_EncodedProfile_drop(&serialized_profile.ok);
-
-  VALUE start = ruby_time_from(ddprof_start);
-  VALUE finish = ruby_time_from(ddprof_finish);
+  VALUE start = ruby_time_from(args.slot->start_timestamp);
+  VALUE finish = ruby_time_from(finish_timestamp);
   VALUE profile_stats = build_profile_stats(args.slot, serialization_time_ns, heap_iteration_prep_time_ns, args.heap_profile_build_time_ns);
 
-  return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(4, start, finish, encoded_pprof, profile_stats));
+  return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(4, start, finish, encoded_profile, profile_stats));
 }
 
 static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
@@ -780,7 +780,7 @@ static void *call_serialize_without_gvl(void *call_args) {
 }
 
 VALUE enforce_recorder_instance(VALUE object) {
-  Check_TypedStruct(object, &stack_recorder_typed_data);
+  ENFORCE_TYPED_DATA(object, &stack_recorder_typed_data);
   return object;
 }
 
@@ -889,9 +889,9 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
   // In case the fork happened halfway through `serializer_flip_active_and_inactive_slots` execution and the
   // resulting state is inconsistent, we make sure to reset it back to the initial state.
   initialize_slot_concurrency_control(state);
-
-  reset_profile_slot(&state->profile_slot_one, /* start_time: */ NULL);
-  reset_profile_slot(&state->profile_slot_two, /* start_time: */ NULL);
+  ddog_Timespec start_timestamp = system_epoch_now_timespec();
+  reset_profile_slot(&state->profile_slot_one, start_timestamp);
+  reset_profile_slot(&state->profile_slot_two, start_timestamp);
 
   heap_recorder_after_fork(state->heap_recorder);
 
@@ -903,7 +903,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
 static void serializer_set_start_timestamp_for_next_profile(stack_recorder_state *state, ddog_Timespec start_time) {
   // Before making this profile active, we reset it so that it uses the correct start_time for its start
   profile_slot *next_profile_slot = (state->active_slot == 1) ? &state->profile_slot_two : &state->profile_slot_one;
-  reset_profile_slot(next_profile_slot, &start_time);
+  reset_profile_slot(next_profile_slot, start_time);
 }
 
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint) {
@@ -948,11 +948,12 @@ static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locatio
   return Qnil;
 }
 
-static void reset_profile_slot(profile_slot *slot, ddog_Timespec *start_time /* Can be null */) {
-  ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(&slot->profile, start_time);
+static void reset_profile_slot(profile_slot *slot, ddog_Timespec start_timestamp) {
+  ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(&slot->profile, &start_timestamp);
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
   }
+  slot->start_timestamp = start_timestamp;
   slot->stats = (stats_slot) {};
 }
 

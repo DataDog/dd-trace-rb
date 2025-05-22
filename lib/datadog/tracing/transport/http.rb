@@ -18,12 +18,14 @@ module Datadog
         # Pass a block to override any settings.
         def default(
           agent_settings:,
+          logger: Datadog.logger,
           api_version: nil,
           headers: nil
         )
           Core::Transport::HTTP.build(
             api_instance_class: Traces::API::Instance,
             agent_settings: agent_settings,
+            logger: logger,
             api_version: api_version,
             headers: headers
           ) do |transport|

@@ -29,7 +29,7 @@ module Datadog
           @agent_settings = options[:agent_settings]
 
           @transport = options.fetch(:transport) do
-            Datadog::Tracing::Transport::HTTP.default(agent_settings: agent_settings, **transport_options)
+            Datadog::Tracing::Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
           end
         end
         # rubocop:enable Lint/MissingSuper

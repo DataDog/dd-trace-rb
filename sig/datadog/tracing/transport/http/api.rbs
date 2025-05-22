@@ -8,12 +8,6 @@ module Datadog
           V3: "v0.3"
 
           def self?.defaults: () -> untyped
-          
-	  class Instance < Datadog::Core::Transport::HTTP::API::Instance
-	  end
-	  
-          class Instance < Datadog::Core::Transport::HTTP::API::Instance
-          end
         end
       end
     end

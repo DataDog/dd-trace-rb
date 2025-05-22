@@ -1,5 +1,3 @@
 {
-  "SCA_STANDALONE_EXPERIMENTAL": [
-    "tests/appsec/test_asm_standalone.py::Test_SCAStandalone_Telemetry"
-  ]
+  
 }

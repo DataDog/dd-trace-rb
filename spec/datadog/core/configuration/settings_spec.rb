@@ -8,26 +8,7 @@ require 'datadog/core/environment/ext'
 require 'datadog/core/runtime/ext'
 require 'datadog/core/utils/time'
 require 'datadog/profiling/ext'
-
-RSpec.shared_examples_for 'a binary setting with' do |env_variable:, default:|
-  context "when #{env_variable}" do
-    around { |example| ClimateControl.modify(env_variable => environment) { example.run } }
-
-    context 'is not defined' do
-      let(:environment) { nil }
-
-      it { is_expected.to be default }
-    end
-
-    [true, false].each do |value|
-      context "is defined as #{value}" do
-        let(:environment) { value.to_s }
-
-        it { is_expected.to be value }
-      end
-    end
-  end
-end
+require_relative 'settings_shared_examples'
 
 RSpec.describe Datadog::Core::Configuration::Settings do
   subject(:settings) { described_class.new(options) }
@@ -1863,6 +1844,24 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         expect { settings.crashtracking.enabled = false }
           .to change { settings.crashtracking.enabled }
           .from(true).to(false)
+      end
+    end
+  end
+
+  describe '#apm' do
+    describe '#tracing' do
+      describe '#enabled' do
+        subject(:apm_tracing_enabled) { settings.apm.tracing.enabled }
+
+        it_behaves_like 'a binary setting with', env_variable: 'DD_APM_TRACING_ENABLED', default: true
+      end
+
+      describe '#enabled=' do
+        it 'updates the #enabled setting' do
+          expect { settings.apm.tracing.enabled = false }
+            .to change { settings.apm.tracing.enabled }
+            .from(true).to(false)
+        end
       end
     end
   end

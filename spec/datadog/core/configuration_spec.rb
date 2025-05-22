@@ -87,6 +87,10 @@ RSpec.describe Datadog::Core::Configuration do
 
       context 'when debug mode' do
         it 'is toggled with default settings' do
+          # If configuration is not initialized, and components neither, we create a temporary logger with debug level
+          # In order to test that the default log level is INFO, we need to ensure that configuration is initialized.
+          test_class.configuration
+
           # Assert initial state
           expect(test_class.logger.level).to be default_log_level
 
@@ -403,7 +407,7 @@ RSpec.describe Datadog::Core::Configuration do
       subject(:logger) { test_class.logger }
 
       it { is_expected.to be_a_kind_of(Datadog::Core::Logger) }
-      it { expect(logger.level).to be default_log_level }
+      it { expect(logger.level).to be ::Logger::INFO }
 
       context 'when components are not initialized' do
         it 'does not cause them to be initialized' do
@@ -433,6 +437,23 @@ RSpec.describe Datadog::Core::Configuration do
 
           expect(logger_during_component_replacement).to be old_logger
         end
+      end
+    end
+
+    describe '#logger_without_configuration' do
+      subject(:logger_without_configuration) { test_class.send(:logger_without_configuration) }
+      context 'when configuration is not initialized and DD_TRACE_DEBUG is not set' do
+        it { expect(logger_without_configuration.level).to be ::Logger::INFO }
+      end
+
+      context 'when configuration is not initialized and DD_TRACE_DEBUG is set' do
+        around do |example|
+          ClimateControl.modify('DD_TRACE_DEBUG' => 'true') do
+            example.run
+          end
+        end
+
+        it { expect(logger_without_configuration.level).to be ::Logger::DEBUG }
       end
     end
 

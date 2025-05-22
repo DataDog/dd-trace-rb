@@ -26,6 +26,7 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
 require 'support/core_helpers'
+require 'support/environment_helpers'
 require 'support/execute_in_fork'
 require 'support/faux_transport'
 require 'support/faux_writer'
@@ -39,8 +40,10 @@ require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
 require 'support/test_helpers'
+require 'support/telemetry_helpers'
 require 'support/tracer_helpers'
-require 'support/crashtracking_helpers'
+require 'support/libdatadog_helpers'
+require 'support/http_server_helpers'
 
 begin
   # Ignore interpreter warnings from external libraries
@@ -68,8 +71,10 @@ RSpec.configure do |config|
   config.include LoadedGem::Helpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
+  config.include TelemetryHelpers
   config.include TracerHelpers
   config.include TestHelpers::RSpec::Integration, :integration
+  config.include HttpServerHelpers
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
@@ -102,6 +107,29 @@ RSpec.configure do |config|
 
     # List skipped/pending specs
     config.pending_failure_output = :full
+  end
+
+  # Guard-clause to skip tests that require a specific Ruby version.
+  # Should work on anything that supports filters, i.e it/describe/context.
+  #
+  # Examples:
+  #
+  # 1. Guard with explicit matcher `>` (greater than)
+  #    Supported operators: `>`, `>=`, `==`, `!=`, `<`, `<=`
+  #
+  #    WARNING: Space between operator and version is required.
+  #
+  #    it 'runs only for specific Ruby version', ruby: '> 2.7' do
+  #      expect(something).to be_good
+  #    end
+  #
+  # 2. Guard with implicit matcher `==` (equal to)
+  #
+  #    it 'runs only for Ruby 2.7.x', ruby: '2.7' do
+  #      expect(something).to be_good
+  #    end
+  config.before(:each, ruby: ->(value) { !PlatformHelpers.ruby_version_matches?(value) }) do |example|
+    skip "Test requires Ruby #{example.metadata[:ruby]}"
   end
 
   config.before(:example, ractors: true) do

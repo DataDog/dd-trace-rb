@@ -18,14 +18,6 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `crashtracker.c`
       class Component
-        LIBDATADOG_API_FAILURE =
-          begin
-            require "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
-            nil
-          rescue LoadError => e
-            e.message
-          end
-
         ONLY_ONCE = Core::Utils::OnlyOnce.new
 
         def self.build(settings, agent_settings, logger:)
@@ -71,7 +63,7 @@ module Datadog
               # Must NOT reference `self` here, as only the first instance will
               # be captured by the ONLY_ONCE and we want to pick the latest active one
               # (which may have different tags or agent config)
-              Datadog.send(:components).crashtracker&.update_on_fork
+              Datadog.send(:components, allow_initialization: false)&.crashtracker&.update_on_fork
             end
           end
         end
