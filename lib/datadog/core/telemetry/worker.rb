@@ -143,7 +143,10 @@ module Datadog
 
           metric_events = @metrics_manager.flush!
           events = [] if events.nil?
-          flush_events(events + metric_events)
+          events += metric_events
+          if events.any?
+            flush_events(events)
+          end
 
           @current_ticks += 1
           return if @current_ticks < @ticks_per_heartbeat
@@ -153,11 +156,6 @@ module Datadog
         end
 
         def flush_events(events)
-          return if events.empty?
-          # TODO: can this method silently drop events which are
-          # generated prior to the started event being submitted?
-          return if !enabled? || !sent_started_event?
-
           events = deduplicate_logs(events)
 
           logger.debug { "Sending #{events&.count} telemetry events" }
