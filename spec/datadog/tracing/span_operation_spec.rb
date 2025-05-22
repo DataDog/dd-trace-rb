@@ -999,6 +999,81 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
     end
   end
+
+  describe '#record_exception' do
+    let(:error) { StandardError.new('test error').tap { |e| e.set_backtrace(['this is a backtrace']) } }
+
+    it 'creates a span event' do
+      begin
+        raise error
+      rescue => e
+        span_op.record_exception(e)
+      end
+
+      expect(span_op.span_events.last).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+        }
+      )
+    end
+
+    it 'provides custom attributes' do
+      begin
+        raise error
+      rescue => e
+        span_op.record_exception(e, attributes: { custom_attr: 'value' })
+      end
+
+      expect(span_op.span_events.last).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+          'custom_attr' => 'value'
+        }
+      )
+    end
+
+    it 'supports non-primitive types in user-supplied attributes' do
+      begin
+        raise error
+      rescue => e
+        span_op.record_exception(
+          e,
+          attributes: {
+            array_attr: [1, 2, 3],
+            str_attr: 'value',
+            int_attr: 0,
+            bool_attr: false,
+            hash_attr: { key: 'value', nested: { foo: 'bar' } },
+            symbol_attr: :symbol_value,
+            time_attr: Time.new(2023, 1, 1, 12, 0, 0),
+            nil_attr: nil
+          }
+        )
+      end
+
+      expect(span_op.span_events.last).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+          'array_attr' => [1, 2, 3],
+          'str_attr' => 'value',
+          'int_attr' => 0,
+          'bool_attr' => false,
+        }
+      )
+    end
+  end
 end
 
 RSpec.describe Datadog::Tracing::SpanOperation::Events do

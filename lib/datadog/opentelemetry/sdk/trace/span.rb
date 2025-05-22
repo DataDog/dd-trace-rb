@@ -28,12 +28,7 @@ module Datadog
         def record_exception(exception, attributes: nil)
           res = super
           if (span = datadog_span)
-            # Sets the exception attributes as span error tags. The values in the attribute hash MUST
-            # take precedence over the type, message and stacktrace inferred from the exception object
-            type = attributes&.[]('exception.type') || exception.class.to_s
-            message = attributes&.[]('exception.message') || exception.message
-            stacktrace = attributes&.[]('exception.stacktrace') || exception.full_message(highlight: false, order: :top)
-            span.set_error_tags([type, message, stacktrace])
+            span.record_exception(exception, attributes: attributes)
           end
           res
         end
