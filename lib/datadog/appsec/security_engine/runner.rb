@@ -11,6 +11,7 @@ module Datadog
 
         def initialize(handle, telemetry:)
           @mutex = Mutex.new
+          # TODO: pass WAF context
           @context = WAF::Context.new(handle)
           @telemetry = telemetry
 

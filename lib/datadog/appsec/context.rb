@@ -9,6 +9,7 @@ module Datadog
     class Context
       ActiveContextError = Class.new(StandardError)
 
+      # TODO: add delegators for active trace span
       attr_reader :trace, :span, :events
 
       class << self
