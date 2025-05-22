@@ -7,7 +7,7 @@ require 'rack/test'
 require 'datadog/tracing'
 require 'datadog/appsec'
 
-RSpec.describe 'Rails integration tests' do
+RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >= 8 do
   include Rack::Test::Methods
 
   let(:sorted_spans) do

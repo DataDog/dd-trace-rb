@@ -99,6 +99,7 @@ GEM
     dogstatsd-ruby (5.6.1)
     erubi (1.13.0)
     extlz4 (0.3.4)
+    ffi (1.17.1-arm64-darwin)
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-x86_64-linux-gnu)
     globalid (1.2.1)
@@ -114,6 +115,7 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (16.0.1.1.0)
     libdatadog (16.0.1.1.0-aarch64-linux)
     libdatadog (16.0.1.1.0-x86_64-linux)
     libddwaf (1.22.0.0.2-aarch64-linux)
@@ -265,6 +267,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  arm64-darwin-23
   x86_64-linux
 
 DEPENDENCIES
