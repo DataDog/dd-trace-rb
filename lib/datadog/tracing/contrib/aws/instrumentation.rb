@@ -35,6 +35,12 @@ module Datadog
             span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)
+
+            # Set error on the span if the Response Status Code is in error range
+            if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(context.safely(:status_code))
+              span.set_error(context.safely(:http_response))
+            end
+
             aws_service = span.resource.split('.')[0]
             span.set_tag(Ext::TAG_AWS_SERVICE, aws_service)
             params = context.safely(:params)
