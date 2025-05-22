@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
   describe '#start' do
     before do
-      Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
+      #Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
     end
 
     context 'when enabled' do
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           sent_hearbeat = false
           allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
             # app-started was already sent by now
-            expect(worker.sent_started_event?).to be(true)
+            expect(worker.sent_initial_event?).to be(true)
 
             sent_hearbeat = true
 
@@ -187,7 +187,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             try_wait_until { !worker.enabled? }
 
             expect(sent_hearbeat).to be(false)
-            expect(worker.failed_to_start?).to be(true)
+            expect(worker.failed_initial_event?).to be(true)
           end
         end
 
@@ -198,7 +198,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             sent_dependencies = false
             allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppDependenciesLoaded)) do
               # app-started was already sent by now
-              # don't use worker.sent_started_event? because it uses the same lock
+              # don't use worker.sent_initial_event? because it uses the same lock
               expect(@received_started).to be(true)
 
               sent_dependencies = true
@@ -346,7 +346,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
     before do
       # This test expects the AppStarted event apparently
-      Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
+      #Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
     end
 
     it 'flushes events and stops the worker' do

@@ -43,6 +43,19 @@ module Datadog
           overflow&.each { |item| replace!(item) }
         end
 
+        def unshift(*items)
+          # TODO The existing concat implementation does not always append
+          # to the end of the buffer - if the buffer is full, a random
+          # item is deleted and the new item is added in the position of
+          # removed item.
+          # Therefore, if we want to preserve the item order, concat
+          # would also need to be changed to maintain order.
+          # With the existing implementation, the idea is to not move
+          # existing items around, which is what sets unshift apart from
+          # concat to begin with.
+          concat(items)
+        end
+
         # Stored items are returned and the local buffer is reset.
         def pop
           drain!
