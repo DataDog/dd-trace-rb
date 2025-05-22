@@ -86,7 +86,7 @@ module Datadog
 
           # Instruments the `bin/rails runner` command.
           def patch_rails_runner
-            ::Rails::Command.singleton_class.prepend(Command) if defined?(::Rails::Command)
+            ::Rails::Command::RunnerCommand.prepend(Runner) if defined?(::Rails::Command::RunnerCommand)
           end
         end
       end
