@@ -2782,20 +2782,20 @@ You can enable automatic reporting of handled errors using the following environ
 | Environment variable | Type | Description | Default |
 |---|---|---|---|
 | `DD_ERROR_TRACKING_HANDLED_ERRORS` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user, third_party, all`. | `nil` |
-| `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` | `Array[String]` | A comma-separated list of paths, file names, or gem names whose handled errors should be reported. See [Include Format](#include-format) for details. <br><br>Ruby 3.3 or later: the location where the error was raised and where it was rescued are matched.<br>Ruby 3.2 or earlier: only the location where the error was raised are matched.  | `[]` |
+| `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` | `Array[String]` | A comma-separated list of paths, file names, or gem names whose handled errors should be reported. See [Include Format](#include-format) for details. <br><br>Ruby 3.3 or later: the location where the error was rescued is matched.<br>Ruby 3.2 or earlier: the location where the error was raised is matched.  | `[]` |
 
-Alternatively, set error tracking parameters inside a `Datadog.configure` block with these functions:
+Alternatively, set error tracking parameters inside a `Datadog.configure` block with the following settings:
 
-| Environment variable | Type | Description | Default |
+| Setting | Type | Description | Default |
 |---|---|---|---|
 | `c.error_tracking.handled_errors` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user, third_party, all`. | `nil` |
-| `c.error_tracking.handled_errors_include` | `Array[String]` | A comma-separated list of paths, file names, or gem names whose handled errors should be reported. See [Include Format](#include-format) for details. <br><br>Ruby 3.3 or later: the location where the error was raised and where it was rescued are matched.<br>Ruby 3.2 or earlier: only the location where the error was raised are matched.  | `[]` |
+| `c.error_tracking.handled_errors_include` | `Array[String]` | A comma-separated list of paths, file names, or gem names whose handled errors should be reported. See [Include Format](#include-format) for details. <br><br>Ruby 3.3 or later: the location where the error was rescued is matched.<br>Ruby 3.2 or earlier: the location where the error was raised is matched.  | `[]` |
 
 #### Include format
 
-`DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` should specify one or more of the following:
+`DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` environment variable or the `c.error_tracking.handled_errors_include` setting should specify one or more of the following:
 * A file name. For example, `main` to instrument `main.rb`.
-* A folder name. For example, `mypackage` to instrument every Ruby file in folders named `mypackage`.
+* A folder name. For example, `subdir` to instrument every Ruby file in folders named `subdir`.
 * Gem name. For example, `rails` to instruments every Ruby file in the *rails* gem **and** any project subfolder named `rails`.
 * Absolute path. For example, `/app/lib/mypackage/main.rb` to instrument that file, or `/app/lib/mypackage/` to instrument every Ruby file in that folder.
 * Relative path. For example, for a programming running in the `app` directory, use `./lib/mypackage/main.rb` to instrument the `main.rb` file, or`./lib/mypackage/` to instrument every Ruby file in that folder.
