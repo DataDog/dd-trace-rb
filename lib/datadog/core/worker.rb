@@ -12,7 +12,7 @@ module Datadog
       end
 
       def perform(*args)
-        task.call(*args) unless task.nil?
+        task&.call(*args)
       end
 
       protected

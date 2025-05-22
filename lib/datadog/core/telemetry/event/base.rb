@@ -27,7 +27,7 @@ module Datadog
           end
 
           # @see #==
-          alias eql? ==
+          alias_method :eql?, :==
 
           # @see #==
           def hash

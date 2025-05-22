@@ -35,7 +35,11 @@ module Datadog
             # Avoid method redefinition warning.
             # `rescue nil` is added in case customers remove the method
             # themselves to squelch the warning.
-            remove_method(:now) rescue nil
+            begin
+              remove_method(:now)
+            rescue
+              nil
+            end
           end
           define_singleton_method(:now, &block)
         end
@@ -53,7 +57,11 @@ module Datadog
             # Avoid method redefinition warning
             # `rescue nil` is added in case customers remove the method
             # themselves to squelch the warning.
-            remove_method(:get_time) rescue nil
+            begin
+              remove_method(:get_time)
+            rescue
+              nil
+            end
           end
           define_singleton_method(:get_time, &block)
         end

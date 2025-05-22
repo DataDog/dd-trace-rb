@@ -64,7 +64,7 @@ module Datadog
               other.level == @level && other.stack_trace == @stack_trace && other.count == @count
           end
 
-          alias eql? ==
+          alias_method :eql?, :==
 
           def hash
             [self.class, @message, @level, @stack_trace, @count].hash

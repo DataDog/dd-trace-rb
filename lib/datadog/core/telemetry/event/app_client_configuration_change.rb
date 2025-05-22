@@ -21,7 +21,7 @@ module Datadog
           end
 
           def payload
-            { configuration: configuration }
+            {configuration: configuration}
           end
 
           def configuration
@@ -53,7 +53,7 @@ module Datadog
             other.is_a?(AppClientConfigurationChange) && other.changes == @changes && other.origin == @origin
           end
 
-          alias eql? ==
+          alias_method :eql?, :==
 
           def hash
             [self.class, @changes, @origin].hash
