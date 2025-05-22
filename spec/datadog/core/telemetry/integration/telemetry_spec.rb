@@ -27,8 +27,7 @@ RSpec.describe 'Telemetry integration tests' do
   let(:logger) { logger_allowing_debug }
 
   after do
-    # TODO: why is there no shutdown! method on telemetry component?
-    component.stop!
+    component.shutdown!
   end
 
   let(:sent_payloads) { [] }
@@ -87,7 +86,7 @@ RSpec.describe 'Telemetry integration tests' do
 
     describe 'startup events' do
       before do
-        Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
+        #Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
       end
 
       it 'sends expected startup events' do
@@ -103,7 +102,7 @@ RSpec.describe 'Telemetry integration tests' do
         expect(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
 
         # Instantiate the component
-        component
+        component.start
 
         component.flush
         expect(sent_payloads.length).to eq 2
@@ -152,6 +151,11 @@ RSpec.describe 'Telemetry integration tests' do
       # To avoid noise from the startup events, turn those off.
       mark_telemetry_started
 
+      before do
+        component.start
+        expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
+      end
+
       it 'sends expected payload' do
         ok = component.error('test error')
         expect(ok).to be true
@@ -189,6 +193,11 @@ RSpec.describe 'Telemetry integration tests' do
     describe 'heartbeat event' do
       mark_telemetry_started
 
+      before do
+        component.start
+        expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
+      end
+
       it 'sends expected payload' do
         component.worker.send(:heartbeat!)
         component.worker.flush
@@ -217,6 +226,11 @@ RSpec.describe 'Telemetry integration tests' do
 
       before do
         settings.telemetry.debug = true
+      end
+
+      before do
+        component.start
+        expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
       end
 
       it 'sets debug to true in payload' do

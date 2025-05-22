@@ -98,7 +98,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   describe '#initialize' do
     after do
-      telemetry.stop!
+      telemetry.shutdown!
     end
 
     context 'with default parameters' do
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   describe '#disable!' do
     after do
-      telemetry.stop!
+      telemetry.shutdown!
     end
 
     it { expect { telemetry.disable! }.to change { telemetry.enabled }.from(true).to(false) }
@@ -147,7 +147,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     subject(:emit_closing!) { telemetry.emit_closing! }
 
     after do
-      telemetry.stop!
+      telemetry.shutdown!
     end
 
     context 'when disabled' do
@@ -182,12 +182,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  describe '#stop!' do
-    subject(:stop!) { telemetry.stop! }
+  describe '#shutdown!' do
+    subject(:shutdown!) { telemetry.shutdown! }
 
     it 'stops worker once' do
-      stop!
-      stop!
+      shutdown!
+      shutdown!
 
       expect(worker).to have_received(:stop).once
     end
@@ -197,7 +197,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     subject(:integrations_change!) { telemetry.integrations_change! }
 
     after do
-      telemetry.stop!
+      telemetry.shutdown!
     end
 
     context 'when disabled' do
@@ -237,7 +237,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     let(:changes) { double('changes') }
 
     after do
-      telemetry.stop!
+      telemetry.shutdown!
     end
 
     context 'when disabled' do
@@ -274,7 +274,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   describe 'includes Datadog::Core::Telemetry::Logging' do
     after do
-      telemetry.stop!
+      telemetry.shutdown!
     end
 
     it { is_expected.to a_kind_of(Datadog::Core::Telemetry::Logging) }
@@ -282,7 +282,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   describe '#log!' do
     after do
-      telemetry.stop!
+      telemetry.shutdown!
     end
 
     describe 'when enabled and log_collection_enabled is enabled' do

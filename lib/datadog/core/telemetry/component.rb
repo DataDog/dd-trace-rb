@@ -102,6 +102,8 @@ module Datadog
         end
 
         def start
+          return if !@enabled
+
           @worker.start
         end
 

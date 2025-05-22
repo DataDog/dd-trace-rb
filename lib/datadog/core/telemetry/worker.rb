@@ -141,7 +141,7 @@ module Datadog
               # from the queue.
               # Put the events back to the front of the queue to not
               # lose them.
-              queue.unshift(*events)
+              buffer.unshift(*events)
               return
             end
           end
@@ -176,12 +176,6 @@ module Datadog
         def started!
           return unless enabled?
 
-          if failed_to_start?
-            logger.debug('Telemetry app-started event exhausted retries, disabling telemetry worker')
-            disable!
-            return
-          end
-
           initial_event_once.run do
             res = send_event(Event::AppStarted.new)
 
@@ -195,6 +189,12 @@ module Datadog
               logger.debug('Error sending telemetry app-started event, retry after heartbeat interval...')
               false
             end
+          end
+
+          if failed_initial_event?
+            logger.debug('Telemetry app-started event exhausted retries, disabling telemetry worker')
+            disable!
+            return
           end
         end
 
