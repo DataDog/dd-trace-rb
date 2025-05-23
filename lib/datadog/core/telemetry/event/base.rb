@@ -3,7 +3,7 @@
 module Datadog
   module Core
     module Telemetry
-      class Event
+      module Event
         # Base class for all Telemetry V2 events.
         class Base
           # The type of the event.

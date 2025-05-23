@@ -5,7 +5,7 @@ require_relative 'base'
 module Datadog
   module Core
     module Telemetry
-      class Event
+      module Event
         # Telemetry class for the 'app-client-configuration-change' event
         class AppClientConfigurationChange < Base
           attr_reader :changes, :origin
