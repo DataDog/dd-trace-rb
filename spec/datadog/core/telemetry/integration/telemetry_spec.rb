@@ -4,9 +4,6 @@ require 'spec_helper'
 
 require 'datadog/core/telemetry/component'
 
-# https://github.com/rubocop/rubocop-rspec/issues/2078
-# rubocop:disable RSpec/ScatteredLet
-
 RSpec.describe 'Telemetry integration tests' do
   # Although the tests override the environment variables, if any,
   # with programmatic configuration, that may produce warnings from the
@@ -27,8 +24,7 @@ RSpec.describe 'Telemetry integration tests' do
   let(:logger) { logger_allowing_debug }
 
   after do
-    # TODO: why is there no shutdown! method on telemetry component?
-    component.stop!
+    component.shutdown!
   end
 
   let(:sent_payloads) { [] }
@@ -85,14 +81,8 @@ RSpec.describe 'Telemetry integration tests' do
       }
     end
 
-    describe 'startup events' do
+    shared_context 'disable profiling' do
       before do
-        Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
-      end
-
-      it 'sends expected startup events' do
-        expect(settings.telemetry.dependency_collection).to be true
-
         # Profiling will return the unsupported reason, and telemetry will
         # report it as an error, even if profiling was not requested to
         # be enabled.
@@ -101,56 +91,122 @@ RSpec.describe 'Telemetry integration tests' do
         # some CI configurations.
         expect(Datadog::Profiling).to receive(:enabled?).and_return(false)
         expect(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
+      end
+    end
 
-        # Instantiate the component
-        component
+    describe 'initial event' do
+      before do
+        #Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
+        settings.telemetry.dependency_collection = true
+      end
 
-        component.flush
-        expect(sent_payloads.length).to eq 2
+      context 'when not asked to send configuration change event' do
+        include_context 'disable profiling'
 
-        payload = sent_payloads[0]
-        expect(payload.fetch(:payload)).to match(
-          'api_version' => 'v2',
-          'application' => expected_application_hash,
-          'debug' => false,
-          'host' => expected_host_hash,
-          'payload' => {
-            'configuration' => Array,
-            'products' => expected_products_hash,
-            'install_signature' => Hash,
-          },
-          'request_type' => 'app-started',
-          'runtime_id' => String,
-          'seq_id' => Integer,
-          'tracer_time' => Integer,
-        )
-        expect(payload.fetch(:headers)).to include(
-          expected_headers.merge('dd-telemetry-request-type' => %w[app-started])
-        )
+        it 'sends app-started' do
+          component.start
 
-        payload = sent_payloads[1]
-        expect(payload.fetch(:payload)).to match(
-          'api_version' => 'v2',
-          'application' => expected_application_hash,
-          'debug' => false,
-          'host' => expected_host_hash,
-          'payload' => {
-            'dependencies' => Array,
-          },
-          'request_type' => 'app-dependencies-loaded',
-          'runtime_id' => String,
-          'seq_id' => Integer,
-          'tracer_time' => Integer,
-        )
-        expect(payload.fetch(:headers)).to include(
-          expected_headers.merge('dd-telemetry-request-type' => %w[app-dependencies-loaded])
-        )
+          component.flush
+          expect(sent_payloads.length).to eq 2
+
+          payload = sent_payloads[0]
+          expect(payload.fetch(:payload)).to match(
+            'api_version' => 'v2',
+            'application' => expected_application_hash,
+            'debug' => false,
+            'host' => expected_host_hash,
+            'payload' => {
+              'configuration' => Array,
+              'products' => expected_products_hash,
+              'install_signature' => Hash,
+            },
+            'request_type' => 'app-started',
+            'runtime_id' => String,
+            'seq_id' => Integer,
+            'tracer_time' => Integer,
+          )
+          expect(payload.fetch(:headers)).to include(
+            expected_headers.merge('dd-telemetry-request-type' => %w[app-started])
+          )
+        end
+      end
+
+      context 'when asked to send configuration change event' do
+        it 'sends app-client-configuration-change' do
+          component.start(true)
+
+          component.flush
+          expect(sent_payloads.length).to eq 2
+
+          payload = sent_payloads[0]
+          expect(payload.fetch(:payload)).to match(
+            'api_version' => 'v2',
+            'application' => expected_application_hash,
+            'debug' => false,
+            'host' => expected_host_hash,
+            'payload' => {
+              'configuration' => Array,
+            },
+            'request_type' => 'app-client-configuration-change',
+            'runtime_id' => String,
+            'seq_id' => Integer,
+            'tracer_time' => Integer,
+          )
+          expect(payload.fetch(:headers)).to include(
+            expected_headers.merge('dd-telemetry-request-type' => %w[app-client-configuration-change])
+          )
+        end
+      end
+    end
+
+    describe 'app-dependencies-loaded event' do
+      include_context 'disable profiling'
+
+      context 'when dependency collection is enabled' do
+        before do
+          settings.telemetry.dependency_collection = true
+        end
+
+        it 'sends app-dependencies-loaded event' do
+          component.start
+
+          component.flush
+          expect(sent_payloads.length).to eq 2
+
+          payload = sent_payloads[0]
+          expect(payload.fetch(:payload)).to include(
+            'request_type' => 'app-started',
+          )
+
+          payload = sent_payloads[1]
+          expect(payload.fetch(:payload)).to match(
+            'api_version' => 'v2',
+            'application' => expected_application_hash,
+            'debug' => false,
+            'host' => expected_host_hash,
+            'payload' => {
+              'dependencies' => Array,
+            },
+            'request_type' => 'app-dependencies-loaded',
+            'runtime_id' => String,
+            'seq_id' => Integer,
+            'tracer_time' => Integer,
+          )
+          expect(payload.fetch(:headers)).to include(
+            expected_headers.merge('dd-telemetry-request-type' => %w[app-dependencies-loaded])
+          )
+        end
       end
     end
 
     describe 'error event' do
       # To avoid noise from the startup events, turn those off.
       mark_telemetry_started
+
+      before do
+        component.start
+        expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
+      end
 
       it 'sends expected payload' do
         ok = component.error('test error')
@@ -189,6 +245,11 @@ RSpec.describe 'Telemetry integration tests' do
     describe 'heartbeat event' do
       mark_telemetry_started
 
+      before do
+        component.start
+        expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
+      end
+
       it 'sends expected payload' do
         component.worker.send(:heartbeat!)
         component.worker.flush
@@ -217,6 +278,11 @@ RSpec.describe 'Telemetry integration tests' do
 
       before do
         settings.telemetry.debug = true
+      end
+
+      before do
+        component.start
+        expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
       end
 
       it 'sets debug to true in payload' do
@@ -306,5 +372,3 @@ RSpec.describe 'Telemetry integration tests' do
     include_examples 'telemetry integration tests'
   end
 end
-
-# rubocop:enable RSpec/ScatteredLet

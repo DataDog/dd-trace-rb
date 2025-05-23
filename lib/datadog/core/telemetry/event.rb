@@ -7,7 +7,7 @@ module Datadog
   module Core
     module Telemetry
       # Collection of telemetry events
-      class Event
+      module Event
         extend Core::Utils::Forking
 
         # returns sequence that increments every time the configuration changes
@@ -27,6 +27,7 @@ require_relative 'event/app_dependencies_loaded'
 require_relative 'event/app_heartbeat'
 require_relative 'event/app_integrations_change'
 require_relative 'event/app_started'
+require_relative 'event/synth_app_client_configuration_change'
 require_relative 'event/generate_metrics'
 require_relative 'event/distributions'
 require_relative 'event/log'

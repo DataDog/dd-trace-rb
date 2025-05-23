@@ -5,7 +5,7 @@ require_relative 'base'
 module Datadog
   module Core
     module Telemetry
-      class Event
+      module Event
         # Telemetry class for the 'app-started' event
         class AppStarted < Base
           def type
