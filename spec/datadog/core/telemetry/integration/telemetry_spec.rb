@@ -160,36 +160,44 @@ RSpec.describe 'Telemetry integration tests' do
           )
         end
       end
-
-=begin
-        payload = sent_payloads[1]
-        expect(payload.fetch(:payload)).to match(
-          'api_version' => 'v2',
-          'application' => expected_application_hash,
-          'debug' => false,
-          'host' => expected_host_hash,
-          'payload' => {
-            'dependencies' => Array,
-          },
-          'request_type' => 'app-dependencies-loaded',
-          'runtime_id' => String,
-          'seq_id' => Integer,
-          'tracer_time' => Integer,
-        )
-        expect(payload.fetch(:headers)).to include(
-          expected_headers.merge('dd-telemetry-request-type' => %w[app-dependencies-loaded])
-        )
-      end
-=end
     end
 
     describe 'app-dependencies-loaded event' do
+      include_context 'disable profiling'
+
       context 'when dependency collection is enabled' do
         before do
           settings.telemetry.dependency_collection = true
         end
 
         it 'sends app-dependencies-loaded event' do
+          component.start
+
+          component.flush
+          expect(sent_payloads.length).to eq 2
+
+          payload = sent_payloads[0]
+          expect(payload.fetch(:payload)).to include(
+            'request_type' => 'app-started',
+          )
+
+          payload = sent_payloads[1]
+          expect(payload.fetch(:payload)).to match(
+            'api_version' => 'v2',
+            'application' => expected_application_hash,
+            'debug' => false,
+            'host' => expected_host_hash,
+            'payload' => {
+              'dependencies' => Array,
+            },
+            'request_type' => 'app-dependencies-loaded',
+            'runtime_id' => String,
+            'seq_id' => Integer,
+            'tracer_time' => Integer,
+          )
+          expect(payload.fetch(:headers)).to include(
+            expected_headers.merge('dd-telemetry-request-type' => %w[app-dependencies-loaded])
+          )
         end
       end
     end
