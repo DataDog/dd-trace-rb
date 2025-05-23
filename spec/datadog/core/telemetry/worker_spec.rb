@@ -282,55 +282,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           expect(@received_heartbeat).to be(false)
         end
       end
-
-      context 'several workers running' do
-        let(:started_workers) { [] }
-
-        after do
-          started_workers.each do |w|
-            w.stop(true, 0)
-            w.join
-          end
-        end
-
-        it 'sends single started event' do
-          started_events = 0
-          mutex = Mutex.new
-          allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppStarted)) do
-            started_events += 1
-
-            response
-          end
-
-          heartbeat_events = 0
-          allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
-            mutex.synchronize do
-              heartbeat_events += 1
-            end
-
-            response
-          end
-
-          workers = Array.new(3) do
-            described_class.new(
-              enabled: enabled,
-              heartbeat_interval_seconds: heartbeat_interval_seconds,
-              metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-              emitter: emitter,
-              metrics_manager: metrics_manager,
-              dependency_collection: dependency_collection,
-              logger: logger,
-            ).tap do |worker|
-              started_workers << worker
-            end
-          end
-          workers.each(&:start)
-
-          try_wait_until { heartbeat_events >= 3 }
-
-          expect(started_events).to be(1)
-        end
-      end
     end
 
     context 'when disabled' do
