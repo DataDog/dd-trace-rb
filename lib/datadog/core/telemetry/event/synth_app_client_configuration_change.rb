@@ -5,7 +5,7 @@ require_relative 'base'
 module Datadog
   module Core
     module Telemetry
-      class Event
+      module Event
         # app-client-configuration-change event emitted instead of
         # app-started event for telemetry startups other than the initial
         # one in a process.
