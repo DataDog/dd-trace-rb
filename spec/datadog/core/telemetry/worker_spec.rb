@@ -34,6 +34,10 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     )
   end
 
+  let(:initial_event) do
+    Datadog::Core::Telemetry::Event::AppStarted.new
+  end
+
   before do
     allow(logger).to receive(:debug).with(any_args)
 
@@ -80,7 +84,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         let(:backend_supports_telemetry?) { false }
 
         it 'disables the worker' do
-          worker.start
+          worker.start(initial_event)
 
           try_wait_until { !worker.enabled? }
 
@@ -96,7 +100,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         let(:backend_supports_telemetry?) { true }
 
         it 'starts the worker and sends heartbeat event' do
-          worker.start
+          worker.start(initial_event)
 
           try_wait_until { @received_heartbeat }
 
@@ -120,7 +124,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             response
           end
 
-          worker.start
+          worker.start(initial_event)
 
           try_wait_until { sent_hearbeat }
         end
@@ -152,7 +156,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               response
             end
 
-            worker.start
+            worker.start(initial_event)
 
             try_wait_until { sent_hearbeat }
           end
@@ -182,7 +186,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               response
             end
 
-            worker.start
+            worker.start(initial_event)
 
             try_wait_until { !worker.enabled? }
 
@@ -206,7 +210,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               response
             end
 
-            worker.start
+            worker.start(initial_event)
 
             try_wait_until { sent_dependencies }
           end
@@ -232,7 +236,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               response
             end
 
-            worker.start
+            worker.start(initial_event)
 
             try_wait_until { received_metrics }
           end
@@ -254,7 +258,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :error))
             worker.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
 
-            worker.start
+            worker.start(initial_event)
             try_wait_until { !events_received.empty? }
 
             expect(events_received).to contain_exactly(
@@ -271,7 +275,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         let(:response) { Datadog::Core::Transport::InternalErrorResponse.new('error') }
 
         it 'does not send heartbeat event' do
-          worker.start
+          worker.start(initial_event)
 
           try_wait_until { @received_started }
 
@@ -335,7 +339,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       it 'does not start the worker' do
         expect(worker).not_to receive(:perform)
 
-        worker.start
+        worker.start(initial_event)
       end
     end
   end
@@ -350,7 +354,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     end
 
     it 'flushes events and stops the worker' do
-      worker.start
+      worker.start(initial_event)
 
       try_wait_until { @received_started }
 
@@ -386,7 +390,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       not_found?: !backend_supports_telemetry?,
       ok?: backend_supports_telemetry?
     )
-  end
+    end
 
     it 'adds events to the buffer and flushes them later' do
       events_received = 0
@@ -409,7 +413,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         synth_response
       end
 
-      ok = worker.start
+      ok = worker.start(initial_event)
       expect(ok).to be true
 
       events_sent = 3
