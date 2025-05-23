@@ -53,6 +53,9 @@ module Datadog
           # With the existing implementation, the idea is to not move
           # existing items around, which is what sets unshift apart from
           # concat to begin with.
+          #
+          # Since this method currently delegates to +concat+, it does not
+          # have a matching definition in the thread-safe worker.
           concat(items)
         end
 
