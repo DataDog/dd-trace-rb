@@ -4,9 +4,6 @@ require 'spec_helper'
 
 require 'datadog/core/telemetry/component'
 
-# https://github.com/rubocop/rubocop-rspec/issues/2078
-# rubocop:disable RSpec/ScatteredLet
-
 RSpec.describe 'Telemetry integration tests' do
   # Although the tests override the environment variables, if any,
   # with programmatic configuration, that may produce warnings from the
@@ -375,5 +372,3 @@ RSpec.describe 'Telemetry integration tests' do
     include_examples 'telemetry integration tests'
   end
 end
-
-# rubocop:enable RSpec/ScatteredLet
