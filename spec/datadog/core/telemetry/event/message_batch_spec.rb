@@ -12,7 +12,12 @@ RSpec.describe Datadog::Core::Telemetry::Event::MessageBatch do
   let(:event_class) { described_class }
   let(:event) { event_class.new(events) }
 
-  let(:events) { [described_class::AppClosing.new, described_class::AppHeartbeat.new] }
+  let(:events) do
+    [
+      Datadog::Core::Telemetry::Event::AppClosing.new,
+      Datadog::Core::Telemetry::Event::AppHeartbeat.new,
+    ]
+  end
 
   it do
     is_expected.to eq(
