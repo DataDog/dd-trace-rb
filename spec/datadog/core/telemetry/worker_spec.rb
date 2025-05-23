@@ -336,11 +336,11 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     mark_telemetry_started
 
     let(:synth_response) do
-    double(
-      Datadog::Core::Transport::HTTP::Adapters::Net::Response,
-      not_found?: !backend_supports_telemetry?,
-      ok?: backend_supports_telemetry?
-    )
+      double(
+        Datadog::Core::Transport::HTTP::Adapters::Net::Response,
+        not_found?: !backend_supports_telemetry?,
+        ok?: backend_supports_telemetry?
+      )
     end
 
     it 'adds events to the buffer and flushes them later' do
@@ -356,12 +356,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         end
 
         response
-      end
-      expect(emitter).to receive(:request).with(
-        an_instance_of(Datadog::Core::Telemetry::Event::SynthAppClientConfigurationChange)
-        ).at_least(:once) do
-        require'byebug';byebug
-        synth_response
       end
 
       ok = worker.start(initial_event)
