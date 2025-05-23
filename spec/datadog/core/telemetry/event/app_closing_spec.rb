@@ -1,7 +1,6 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/event'
-require 'datadog/core/telemetry/metric'
+require 'datadog/core/telemetry/event/app_closing'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppClosing do
   let(:id) { double('seq_id') }

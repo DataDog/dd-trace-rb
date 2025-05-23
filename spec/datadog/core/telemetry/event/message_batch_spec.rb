@@ -1,7 +1,6 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/event'
-require 'datadog/core/telemetry/metric'
+require 'datadog/core/telemetry/event/message_batch'
 
 RSpec.describe Datadog::Core::Telemetry::Event::MessageBatch do
   let(:id) { double('seq_id') }

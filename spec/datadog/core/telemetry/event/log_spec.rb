@@ -1,7 +1,6 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/event'
-require 'datadog/core/telemetry/metric'
+require 'datadog/core/telemetry/event/log'
 
 RSpec.describe Datadog::Core::Telemetry::Event::Log do
   let(:id) { double('seq_id') }

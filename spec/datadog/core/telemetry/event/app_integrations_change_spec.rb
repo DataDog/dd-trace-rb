@@ -1,7 +1,6 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/event'
-require 'datadog/core/telemetry/metric'
+require 'datadog/core/telemetry/event/app_integrations_change'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppIntegrationsChange do
   let(:id) { double('seq_id') }

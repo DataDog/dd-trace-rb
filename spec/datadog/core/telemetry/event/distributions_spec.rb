@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/event'
+require 'datadog/core/telemetry/event/distributions'
 require 'datadog/core/telemetry/metric'
 
 RSpec.describe Datadog::Core::Telemetry::Event::Distributions do
