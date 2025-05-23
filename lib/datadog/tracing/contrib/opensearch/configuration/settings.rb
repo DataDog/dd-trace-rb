@@ -30,9 +30,10 @@ module Datadog
               o.default 1.0
             end
 
-            option :quantize, default: {}
+            option :quantize, default: {}, type: :hash
 
             option :service_name do |o|
+              o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,
@@ -44,6 +45,23 @@ module Datadog
             option :peer_service do |o|
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
+            end
+
+            option :resource_pattern do |o|
+              o.type :string
+              o.env Ext::ENV_RESOURCE_PATTERN
+              o.default Ext::DEFAULT_RESOURCE_PATTERN
+              o.setter do |value|
+                next value if Ext::VALID_RESOURCE_PATTERNS.include?(value)
+
+                Datadog.logger.warn(
+                  "Invalid resource pattern: #{value}. " \
+                  "Supported values are: #{Ext::VALID_RESOURCE_PATTERNS.join(' | ')}. " \
+                  "Using default value: #{Ext::DEFAULT_RESOURCE_PATTERN}."
+                )
+
+                Ext::DEFAULT_RESOURCE_PATTERN
+              end
             end
           end
         end

@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/ethon/integration_context'
 require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Ethon do
-  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+  skip_unless_integration_testing_enabled
 
   before(:context) do
     # Ethon will lazily initialize LibCurl,
@@ -42,8 +42,8 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon do
   context 'with concurrent Hydra requests' do
     include_context 'integration context'
 
-    let(:url_1) { "http://#{host}:#{@port}#{path}?status=200&simulate_timeout=true" }
-    let(:url_2) { "http://#{host}:#{@port}#{path}" }
+    let(:url_1) { "http://#{host}:#{http_server_port}#{path}?status=200&simulate_timeout=true" }
+    let(:url_2) { "http://#{host}:#{http_server_port}#{path}" }
     let(:request_1) { Typhoeus::Request.new(url_1, timeout: 0.001) }
     let(:request_2) { Typhoeus::Request.new(url_2, method: :post, timeout: timeout, body: { status: 404 }) }
 
@@ -81,8 +81,8 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon do
       end
 
       it 'has span hierarchy properly set up' do
-        expect(span_get.parent_id).to eq(span_parent.span_id)
-        expect(span_post.parent_id).to eq(span_parent.span_id)
+        expect(span_get.parent_id).to eq(span_parent.id)
+        expect(span_post.parent_id).to eq(span_parent.id)
       end
     end
   end

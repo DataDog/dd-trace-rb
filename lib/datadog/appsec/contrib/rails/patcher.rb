@@ -1,6 +1,7 @@
+# frozen_string_literal: true
+
 require_relative '../../../core/utils/only_once'
 
-require_relative '../patcher'
 require_relative 'framework'
 require_relative '../../response'
 require_relative '../rack/request_middleware'
@@ -16,8 +17,6 @@ module Datadog
       module Rails
         # Patcher for AppSec on Rails
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
           AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
 
@@ -49,7 +48,6 @@ module Datadog
             BEFORE_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
               # Middleware must be added before the application is initialized.
               # Otherwise the middleware stack will be frozen.
-              # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
               patch_process_action
             end
@@ -72,29 +70,19 @@ module Datadog
             def process_action(*args)
               env = request.env
 
-              context = env[Datadog::AppSec::Ext::SCOPE_KEY]
+              context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
               return super unless context
 
               # TODO: handle exceptions, except for super
 
               gateway_request = Gateway::Request.new(request)
-              request_return, request_response = Instrumentation.gateway.push('rails.request.action', gateway_request) do
+
+              http_response, _gateway_request = Instrumentation.gateway.push('rails.request.action', gateway_request) do
                 super
               end
 
-              if request_response
-                blocked_event = request_response.find { |action, _options| action == :block }
-                if blocked_event
-                  @_response = AppSec::Response.negotiate(
-                    env,
-                    blocked_event.last[:actions]
-                  ).to_action_dispatch_response
-                  request_return = @_response.body
-                end
-              end
-
-              request_return
+              http_response
             end
           end
 
@@ -137,7 +125,7 @@ module Datadog
           end
 
           def inspect_middlewares(app)
-            Datadog.logger.debug { 'Rails middlewares: ' << app.middleware.map(&:inspect).inspect }
+            Datadog.logger.debug { +'Rails middlewares: ' << app.middleware.map(&:inspect).inspect }
           end
 
           def patch_after_initialize

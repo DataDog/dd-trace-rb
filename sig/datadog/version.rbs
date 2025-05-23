@@ -1,0 +1,18 @@
+module Datadog
+  module VERSION
+    MAJOR: 2
+
+    MINOR: 0
+
+    PATCH: 0
+
+    PRE: "dev"
+
+    BUILD: nil
+
+    STRING: untyped
+
+    MINIMUM_RUBY_VERSION: "2.5.0"
+    MAXIMUM_RUBY_VERSION: "3.4"
+  end
+end

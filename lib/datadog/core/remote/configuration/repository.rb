@@ -164,7 +164,7 @@ module Datadog
               end
             end
 
-            # Insert content into the reporistory contents
+            # Insert content into the repository contents
             class Insert
               attr_reader :path, :target, :content
 
@@ -272,7 +272,8 @@ module Datadog
 
               return deleted(path, previous) if previous && content.nil?
               return inserted(path, content) if content && previous.nil?
-              return updated(path, content, previous) if content && previous
+
+              updated(path, content, previous) if content && previous
             end
 
             def deleted(path, previous)

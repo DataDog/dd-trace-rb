@@ -1,7 +1,6 @@
 module Datadog
   module AppSec
     module Configuration
-      # Settings
       module Settings
         extend Datadog::Core::Configuration::Base::ClassMethods
         include Datadog::Core::Configuration::Base::InstanceMethods
@@ -9,9 +8,26 @@ module Datadog
         include Datadog::Core::Configuration::Options::InstanceMethods
 
         DEFAULT_OBFUSCATOR_KEY_REGEX: ::String
+
         DEFAULT_OBFUSCATOR_VALUE_REGEX: ::String
-        APPSEC_VALID_TRACK_USER_EVENTS_MODE: ::Array[String]
-        APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES: ::Array[String]
+
+        DISABLED_AUTO_USER_INSTRUMENTATION_MODE: ::String
+
+        ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE: ::String
+
+        IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE: ::String
+
+        AUTO_USER_INSTRUMENTATION_MODES: ::Array[::String]
+
+        AUTO_USER_INSTRUMENTATION_MODES_ALIASES: ::Hash[::String, ::String]
+
+        SAFE_TRACK_USER_EVENTS_MODE: ::String
+
+        EXTENDED_TRACK_USER_EVENTS_MODE: ::String
+
+        APPSEC_VALID_TRACK_USER_EVENTS_MODE: ::Array[::String]
+
+        APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES: ::Array[::String]
 
         def self.extended: (untyped base) -> untyped
 

@@ -2,6 +2,7 @@
 
 require_relative 'fetcher'
 require_relative '../../../distributed/propagation'
+require_relative '../../../distributed/propagation_policy'
 require_relative '../../../distributed/b3_multi'
 require_relative '../../../distributed/b3_single'
 require_relative '../../../distributed/datadog'
@@ -15,7 +16,11 @@ module Datadog
         module Distributed
           # Extracts and injects propagation through HTTP headers.
           class Propagation < Tracing::Distributed::Propagation
-            def initialize
+            def initialize(
+              propagation_style_inject:,
+              propagation_style_extract:,
+              propagation_extract_first:
+            )
               super(
                 propagation_styles: {
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER =>
@@ -26,8 +31,14 @@ module Datadog
                     Tracing::Distributed::Datadog.new(fetcher: Fetcher),
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT =>
                     Tracing::Distributed::TraceContext.new(fetcher: Fetcher),
-                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_NONE => Tracing::Distributed::None.new
-                })
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE =>
+                  Tracing::Distributed::Baggage.new(fetcher: Fetcher),
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_NONE => Tracing::Distributed::None.new,
+                },
+                propagation_style_inject: propagation_style_inject,
+                propagation_style_extract: propagation_style_extract,
+                propagation_extract_first: propagation_extract_first
+              )
             end
           end
         end

@@ -10,15 +10,15 @@ module Datadog
         class Tracer
           def initialize(options = {})
             @shoryuken_service = options[:service_name] || configuration[:service_name]
-            @error_handler = options[:error_handler] || configuration[:error_handler]
+            @on_error = options[:on_error] || configuration[:on_error]
           end
 
           def call(worker_instance, queue, sqs_msg, body)
             Tracing.trace(
               Ext::SPAN_JOB,
               service: @shoryuken_service,
-              span_type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
-              on_error: @error_handler
+              type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
+              on_error: @on_error
             ) do |span|
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)
 

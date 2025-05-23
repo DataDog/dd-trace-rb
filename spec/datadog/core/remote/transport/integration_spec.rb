@@ -2,15 +2,19 @@
 
 require 'spec_helper'
 
+require 'ostruct'
+require 'datadog/core/utils/base64'
 require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/transport/http/negotiation'
 require 'datadog/core/remote/transport/negotiation'
 
 RSpec.describe Datadog::Core::Remote::Transport::HTTP do
-  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+  skip_unless_integration_testing_enabled
+
+  let(:logger) { logger_allowing_debug }
 
   describe '.root' do
-    subject(:transport) { described_class.root(&client_options) }
+    subject(:transport) { described_class.root(agent_settings: test_agent_settings, logger: logger, &client_options) }
 
     let(:client_options) { proc { |_client| } }
 
@@ -31,7 +35,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   describe '.v7' do
     before { skip 'TODO: needs remote config on api key+agent+backend' if ENV['TEST_DATADOG_INTEGRATION'] }
 
-    subject(:transport) { described_class.v7(&client_options) }
+    subject(:transport) { described_class.v7(agent_settings: test_agent_settings, logger: logger, &client_options) }
 
     let(:client_options) { proc { |_client| } }
 
@@ -84,12 +88,12 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             client_tracer: {
               runtime_id: Datadog::Core::Environment::Identity.id,
               language: Datadog::Core::Environment::Identity.lang,
-              tracer_version: Datadog::Core::Environment::Identity.tracer_version,
+              tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version,
               service: Datadog.configuration.service,
               env: Datadog.configuration.env,
               tags: [],
             },
-            capabilities: Base64.encode64(capabilities_binary).chomp,
+            capabilities: Datadog::Core::Utils::Base64.encode64(capabilities_binary).chomp,
           },
           cached_target_files: [],
         }

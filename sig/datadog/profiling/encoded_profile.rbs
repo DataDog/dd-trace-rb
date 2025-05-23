@@ -1,0 +1,7 @@
+module Datadog
+  module Profiling
+    class EncodedProfile
+      def _native_bytes: () -> String
+    end
+  end
+end

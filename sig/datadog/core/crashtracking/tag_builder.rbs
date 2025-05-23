@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Crashtracking
+      module TagBuilder
+        def self.call: (Datadog::Core::Configuration::Settings) -> ::Hash[::String, ::String]
+      end
+    end
+  end
+end

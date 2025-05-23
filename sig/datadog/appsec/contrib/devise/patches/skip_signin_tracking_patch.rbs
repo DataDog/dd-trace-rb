@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        module Patches
+          module SkipSigninTrackingPatch
+            def validate: (*untyped args) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

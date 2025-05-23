@@ -3,7 +3,7 @@ require 'rack/test'
 
 require 'sinatra/base'
 
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/sinatra/tracer'
 
 RSpec.describe 'Sinatra instrumentation for multi-apps' do
@@ -78,7 +78,6 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
             end
 
             expect(span.resource).to eq('GET /endpoint')
-            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/endpoint')
             expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to eq('/one')
           end
         end

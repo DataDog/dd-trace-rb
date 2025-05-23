@@ -10,8 +10,8 @@ module Datadog
       # This processor executes the configured `operation` for each {Datadog::Tracing::Span}
       # in a {Datadog::Tracing::TraceSegment}.
       #
-      # If `operation` returns a truthy value for a span, that span is kept,
-      # otherwise the span is removed from the trace.
+      # If `operation` returns a truthy value for a span, that span is dropped,
+      # otherwise the span is kept.
       #
       # @public_api
       class SpanFilter < SpanProcessor

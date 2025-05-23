@@ -24,7 +24,7 @@ RSpec.describe 'Sinatra integration tests' do
         # root reached (default)
         break o if o.last.parent_id == 0
 
-        parent = spans.find { |span| span.span_id == o.last.parent_id }
+        parent = spans.find { |span| span.id == o.last.parent_id }
 
         # root reached (distributed tracing)
         break o if parent.nil?
@@ -35,13 +35,13 @@ RSpec.describe 'Sinatra integration tests' do
     sort = ->(list) { list.sort_by { |e| chain.call(e).count } }
     sort.call(spans)
   end
-
   let(:sinatra_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_REQUEST } }
   let(:route_span) { sorted_spans.find { |x| x.name == Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_ROUTE } }
   let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST } }
 
-  let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
+  let(:appsec_enabled) { true }
+
   let(:appsec_ip_denylist) { [] }
   let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
@@ -98,18 +98,19 @@ RSpec.describe 'Sinatra integration tests' do
   before do
     Datadog.configure do |c|
       c.tracing.enabled = tracing_enabled
+
       c.tracing.instrument :sinatra
 
       c.appsec.enabled = appsec_enabled
-      c.appsec.waf_timeout = 10_000_000 # in us
+
       c.appsec.instrument :sinatra
+
+      c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.ip_denylist = appsec_ip_denylist
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
       c.appsec.api_security.enabled = api_security_enabled
       c.appsec.api_security.sample_rate = api_security_sample
-
-      # TODO: test with c.appsec.instrument :rack
     end
   end
 
@@ -144,11 +145,7 @@ RSpec.describe 'Sinatra integration tests' do
     let(:client_ip) { remote_addr }
 
     let(:service_span) do
-      span = sorted_spans.reverse.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
-
-      expect(span.name).to eq 'rack.request'
-
-      span
+      sorted_spans.reverse.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
     end
 
     let(:span) { rack_span }

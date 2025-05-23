@@ -1,5 +1,5 @@
 require 'support/metric_helpers'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/diagnostics/ext'
 
 module HealthMetricHelpers

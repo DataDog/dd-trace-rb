@@ -36,7 +36,7 @@ module Datadog
             # dependent upon stripe/stripe-ruby#1168
             span.resource = "stripe.#{event.object_name}" if event.respond_to?(:object_name) && event.object_name
 
-            span.span_type = Ext::SPAN_TYPE_REQUEST
+            span.type = Ext::SPAN_TYPE_REQUEST
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
@@ -47,8 +47,9 @@ module Datadog
 
             # Measure service stats
             Contrib::Analytics.set_measured(span)
-
-            span.set_tag(Ext::TAG_REQUEST_ID, event.request_id)
+            # `5.38.0` Add request_id to RequestEndEvent
+            # https://github.com/stripe/stripe-ruby/blob/master/CHANGELOG.md#5380---2021-08-10
+            span.set_tag(Ext::TAG_REQUEST_ID, event.request_id) if event.respond_to?(:request_id)
             span.set_tag(Ext::TAG_REQUEST_HTTP_STATUS, event.http_status.to_s)
             span.set_tag(Ext::TAG_REQUEST_METHOD, event.method)
             span.set_tag(Ext::TAG_REQUEST_PATH, event.path)

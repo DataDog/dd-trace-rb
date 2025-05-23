@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../ext'
 require_relative '../../event'
 require_relative '../../consumer_event'
@@ -15,9 +17,11 @@ module Datadog
               extend Kafka::ConsumerEvent
               extend Kafka::ConsumerGroupEvent
 
-              EVENT_NAME = 'heartbeat.consumer.kafka'.freeze
+              EVENT_NAME = 'heartbeat.consumer.kafka'
 
-              def self.process(span, _event, _id, payload)
+              module_function
+
+              def on_start(span, _event, _id, payload)
                 super
 
                 if payload.key?(:topic_partitions)
@@ -26,8 +30,6 @@ module Datadog
                   end
                 end
               end
-
-              module_function
 
               def span_name
                 Ext::SPAN_CONSUMER_HEARTBEAT

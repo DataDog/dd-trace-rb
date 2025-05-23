@@ -10,7 +10,7 @@ module Datadog
 
             def self?.patch: () -> untyped
 
-            def self?.cache_store_class: (untyped meth) -> untyped
+            def self?.cache_store_class: (Symbol meth) -> Array[Class]
 
             def self?.patch_cache_store_read: () -> untyped
 

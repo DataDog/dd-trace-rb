@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
-require 'ddtrace'
+require 'datadog'
 
 require 'elasticsearch'
 
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
 
         child, parent = spans
 
-        expect(child.parent_id).to eq(parent.span_id)
+        expect(child.parent_id).to eq(parent.id)
         expect(child.trace_id).to eq(parent.trace_id)
       end
     end
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
       it { expect(span.resource).to eq('GET _cluster/health') }
-      it { expect(span.span_type).to eq('elasticsearch') }
+      it { expect(span.type).to eq('elasticsearch') }
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
 
@@ -94,6 +94,36 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       }
 
       it_behaves_like 'schema version span'
+    end
+  end
+
+  describe 'get request' do
+    context 'when requesting a document that does not exist' do
+      let(:index_name) { 'some_index' }
+      let(:document_id) { 999 }
+      let(:exception_class) do
+        if defined?(Elastic::Transport) # version >= 8
+          Elastic::Transport::Transport::Errors::NotFound
+        else # version < 8
+          Elasticsearch::Transport::Transport::Errors::NotFound
+        end
+      end
+
+      subject(:request) { client.perform_request 'GET', "#{index_name}/_doc/#{document_id}" }
+
+      it 'marks span with error' do
+        expect { request }.to raise_error(exception_class)
+        expect(span).to have_error
+      end
+
+      context 'when configured_with `on_error`' do
+        let(:configuration_options) { { on_error: ->(_span, _error) { false } } }
+
+        it 'does not mark span with error' do
+          expect { request }.to raise_error(exception_class)
+          expect(span).not_to have_error
+        end
+      end
     end
   end
 
@@ -138,7 +168,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       end
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
-      it { expect(span.span_type).to eq('elasticsearch') }
+      it { expect(span.type).to eq('elasticsearch') }
       it { expect(span.resource).to eq('PUT some_index/_doc/?') }
 
       it { expect(span.parent_id).not_to be_nil }

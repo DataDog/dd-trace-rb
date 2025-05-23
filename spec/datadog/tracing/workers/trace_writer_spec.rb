@@ -12,7 +12,7 @@ require 'datadog/core/transport/http/response'
 require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Tracing::Workers::TraceWriter do
-  subject(:writer) { described_class.new(options) }
+  subject(:writer) { described_class.new({ agent_settings: test_agent_settings }.update(options)) }
 
   let(:options) { {} }
 
@@ -28,11 +28,11 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     context 'given :transport_options' do
       let(:options) { { transport_options: transport_options } }
 
-      let(:transport_options) { { example_transport_option: true } }
+      let(:transport_options) { { api_version: 42 } }
 
       before do
         expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-          .with(transport_options)
+          .with(transport_options.merge(agent_settings: test_agent_settings, logger: Datadog.logger))
           .and_return(transport)
       end
 
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 
       it 'configures a transport with the agent_settings' do
         expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-          .with(agent_settings: agent_settings)
+          .with(agent_settings: agent_settings, logger: Datadog.logger)
           .and_return(transport)
 
         expect(writer.transport).to be transport
@@ -54,11 +54,11 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
       context 'and also :transport_options' do
         let(:options) { { **super(), transport_options: transport_options } }
 
-        let(:transport_options) { { example_transport_option: true } }
+        let(:transport_options) { { api_version: 42 } }
 
         before do
           expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-            .with(agent_settings: agent_settings, example_transport_option: true)
+            .with(agent_settings: agent_settings, logger: Datadog.logger, api_version: 42)
             .and_return(transport)
         end
 
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 end
 
 RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
-  subject(:writer) { described_class.new(options) }
+  subject(:writer) { described_class.new({ agent_settings: test_agent_settings }.update(options)) }
 
   let(:options) { {} }
 
@@ -559,7 +559,11 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
 
   describe 'integration tests' do
     let(:options) { { transport: transport, fork_policy: fork_policy } }
-    let(:transport) { Datadog::Tracing::Transport::HTTP.default { |t| t.adapter :test, output } }
+    let(:transport) do
+      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: Datadog.logger) do |t|
+        t.adapter :test, output
+      end
+    end
     let(:output) { [] }
 
     describe 'forking' do

@@ -4,9 +4,8 @@ module Datadog
       module Propagation
         module SqlComment
           class Comment
-            def initialize: (untyped hash) -> void
-
-            def to_s: () -> untyped
+            def initialize: (Hash[string, untyped] hash) -> void
+            def to_s: () -> string
           end
         end
       end

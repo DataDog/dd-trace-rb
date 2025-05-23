@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module HTTP
+        def self.inject: (TraceDigest digest, Hash[untyped, untyped] data) -> void
+        def self.extract: (Hash[untyped, untyped] data) -> (TraceDigest | nil)
+
+        self.@propagation: HTTP::Distributed::Propagation
+      end
+    end
+  end
+end

@@ -1,0 +1,52 @@
+name: 'Prepare bundle cache'
+
+description: 'Sets up bundle cache for GitHub Actions'
+
+outputs:
+  cache-key:
+    description: 'Cache key for the bundle'
+    value: ${{ steps.restore-cache.outputs.cache-primary-key }}
+  lockfile:
+    description: 'Lockfile name'
+    value: ${{ steps.lockfile.outputs.lockfile }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: ruby-alias
+      shell: bash
+      run: |
+        engine=$(ruby -e "puts RUBY_ENGINE")
+        alias=$(ruby -e "puts RUBY_ENGINE_VERSION.split('.').take(2).join")
+
+        echo "ruby-alias=$engine-$alias" >> "$GITHUB_OUTPUT"
+    - name: Generate lockfile
+      id: lockfile
+      shell: bash
+      env:
+        LOCKFILE: lockfile-${{ steps.ruby-alias.outputs.ruby-alias }}
+      run: |
+        bundle lock
+        echo "lockfile=$LOCKFILE" >> "$GITHUB_OUTPUT"
+    - name: Upload lockfile
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: ${{ steps.lockfile.outputs.lockfile }}
+        path: "*.lock"
+    - name: Restore cache
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-${{ steps.ruby-alias.outputs.ruby-alias }}-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      name: Save cache
+      uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
+    - run: bundle check
+      shell: bash

@@ -1,11 +1,13 @@
+# frozen_string_literal: true
+
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
-
 require_relative 'event'
 require_relative 'metadata/tagging'
 require_relative 'sampling/ext'
 require_relative 'span_operation'
 require_relative 'trace_digest'
+require_relative 'correlation'
 require_relative 'trace_segment'
 require_relative 'utils'
 
@@ -33,7 +35,9 @@ module Datadog
         :rate_limiter_rate,
         :rule_sample_rate,
         :sample_rate,
-        :sampling_priority
+        :sampling_priority,
+        :remote_parent,
+        :baggage
 
       attr_reader \
         :active_span_count,
@@ -67,16 +71,22 @@ module Datadog
         sampling_priority: nil,
         service: nil,
         profiling_enabled: nil,
+        apm_tracing_enabled: nil,
         tags: nil,
         metrics: nil,
         trace_state: nil,
-        trace_state_unknown_fields: nil
+        trace_state_unknown_fields: nil,
+        remote_parent: false,
+        tracer: nil,
+        baggage: nil
+
       )
         # Attributes
         @id = id || Tracing::Utils::TraceId.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
-        @sampled = sampled.nil? ? true : sampled
+        @sampled = sampled.nil? || sampled
+        @remote_parent = remote_parent
 
         # Tags
         @agent_sample_rate = agent_sample_rate
@@ -90,8 +100,11 @@ module Datadog
         @sampling_priority = sampling_priority
         @service = service
         @profiling_enabled = profiling_enabled
+        @apm_tracing_enabled = apm_tracing_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
+        @tracer = tracer
+        @baggage = baggage
 
         # Generic tags
         set_tags(tags) if tags
@@ -155,6 +168,29 @@ module Datadog
         @resource || (root_span && root_span.resource)
       end
 
+      # When retrieving tags or metrics we need to include root span tags for sampling purposes
+      def get_tag(key)
+        super || (root_span && root_span.get_tag(key))
+      end
+
+      def get_metric(key)
+        super || (root_span && root_span.get_metric(key))
+      end
+
+      def set_distributed_source(product_bit)
+        source = get_tag(Metadata::Ext::Distributed::TAG_TRACE_SOURCE)&.to_i(16) || 0
+        source |= product_bit
+        set_tag(Metadata::Ext::Distributed::TAG_TRACE_SOURCE, format('%02X', source))
+      end
+
+      def tags
+        all_tags = {}
+        all_tags.merge!(root_span&.tags || {}) if root_span
+        all_tags.merge!(super)
+
+        all_tags
+      end
+
       # Returns true if the resource has been explicitly set
       #
       # @return [Boolean]
@@ -175,6 +211,7 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
+        id: nil,
         &block
       )
         # Don't allow more span measurements if the
@@ -191,7 +228,8 @@ module Datadog
           service: service,
           start_time: start_time,
           tags: tags,
-          type: type
+          type: type,
+          id: id
         )
 
         # Start span measurement
@@ -206,7 +244,8 @@ module Datadog
         service: nil,
         start_time: nil,
         tags: nil,
-        type: nil
+        type: nil,
+        id: nil
       )
         begin
           # Resolve span options:
@@ -243,7 +282,8 @@ module Datadog
             start_time: start_time,
             tags: tags,
             trace_id: trace_id,
-            type: type
+            type: type,
+            id: id
           )
         rescue StandardError => e
           Datadog.logger.debug { "Failed to build new span: #{e}" }
@@ -274,17 +314,21 @@ module Datadog
       # Returns a set of trace headers used for continuing traces.
       # Used for propagation across execution contexts.
       # Data should reflect the active state of the trace.
+      # DEV-3.0: Sampling is a side effect of generating the digest.
+      # We should move the sample call to inject and right before moving to new contexts(threads, forking etc.)
       def to_digest
         # Resolve current span ID
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
+        # sample the trace_operation with the tracer
+        @tracer&.sample_trace(self) unless sampling_priority
 
         TraceDigest.new(
           span_id: span_id,
-          span_name: (@active_span && @active_span.name),
-          span_resource: (@active_span && @active_span.resource),
-          span_service: (@active_span && @active_span.service),
-          span_type: (@active_span && @active_span.type),
+          span_name: @active_span && @active_span.name,
+          span_resource: @active_span && @active_span.resource,
+          span_service: @active_span && @active_span.service,
+          span_type: @active_span && @active_span.type,
           trace_distributed_tags: distributed_tags,
           trace_hostname: @hostname,
           trace_id: @id,
@@ -297,7 +341,20 @@ module Datadog
           trace_service: service,
           trace_state: @trace_state,
           trace_state_unknown_fields: @trace_state_unknown_fields,
+          span_remote: @remote_parent && @active_span.nil?,
+          baggage: @baggage.nil? || @baggage.empty? ? nil : @baggage
         ).freeze
+      end
+
+      def to_correlation
+        # Resolve current span ID
+        span_id = @active_span && @active_span.id
+        span_id ||= @parent_span_id unless finished?
+
+        Correlation::Identifier.new(
+          trace_id: @id,
+          span_id: span_id
+        )
       end
 
       # Returns a copy of this trace suitable for forks (w/o spans.)
@@ -305,24 +362,25 @@ module Datadog
       def fork_clone
         self.class.new(
           agent_sample_rate: @agent_sample_rate,
-          events: (@events && @events.dup),
-          hostname: (@hostname && @hostname.dup),
+          events: @events && @events.dup,
+          hostname: @hostname && @hostname.dup,
           id: @id,
           max_length: @max_length,
-          name: (name && name.dup),
-          origin: (@origin && @origin.dup),
+          name: name && name.dup,
+          origin: @origin && @origin.dup,
           parent_span_id: (@active_span && @active_span.id) || @parent_span_id,
           rate_limiter_rate: @rate_limiter_rate,
-          resource: (resource && resource.dup),
+          resource: resource && resource.dup,
           rule_sample_rate: @rule_sample_rate,
           sample_rate: @sample_rate,
           sampled: @sampled,
           sampling_priority: @sampling_priority,
-          service: (service && service.dup),
-          trace_state: (@trace_state && @trace_state.dup),
-          trace_state_unknown_fields: (@trace_state_unknown_fields && @trace_state_unknown_fields.dup),
+          service: service && service.dup,
+          trace_state: @trace_state && @trace_state.dup,
+          trace_state_unknown_fields: @trace_state_unknown_fields && @trace_state_unknown_fields.dup,
           tags: meta.dup,
-          metrics: metrics.dup
+          metrics: metrics.dup,
+          remote_parent: @remote_parent
         )
       end
 
@@ -463,6 +521,7 @@ module Datadog
           metrics: metrics,
           root_span_id: !partial ? root_span && root_span.id : nil,
           profiling_enabled: @profiling_enabled,
+          apm_tracing_enabled: @apm_tracing_enabled
         )
       end
 

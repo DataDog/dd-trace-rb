@@ -45,7 +45,7 @@ module Datadog
               option_name.to_sym => proc do
                 get_option(option_name)
               end,
-              "#{option_name}=".to_sym => proc do |value|
+              :"#{option_name}=" => proc do |value|
                 set_option(option_name, value)
               end
             }
@@ -68,7 +68,7 @@ module Datadog
           end
 
           def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
-            resolve_option(name).set(value, precedence: precedence)
+            resolve_option(name).set(value, precedence: precedence, resolved_env: resolved_env(name))
           end
 
           def unset_option(name, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
@@ -114,6 +114,10 @@ module Datadog
             assert_valid_option!(name)
             definition = self.class.options[name]
             options[name] = definition.build(self)
+          end
+
+          def resolved_env(name)
+            options[name].resolved_env if options.key?(name)
           end
 
           def assert_valid_option!(name)

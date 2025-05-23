@@ -4,22 +4,36 @@ module Datadog
       module HTTP
         module Adapters
           class UnixSocket < Adapters::Net
+            @filepath: untyped
+
+            @timeout: untyped
+
             attr_reader filepath: untyped
 
             attr_reader timeout: untyped
 
             alias uds_path filepath
-
             def initialize: (?untyped? uds_path, **untyped options) -> void
 
             def self.build: (untyped agent_settings) -> untyped
 
-            def open: () ?{ () -> untyped } -> untyped
+            def open: () { (?) -> untyped } -> untyped
 
             def url: () -> ::String
-
             class HTTP < ::Net::HTTP
-              DEFAULT_TIMEOUT: 1
+              @filepath: untyped
+
+              @read_timeout: untyped
+
+              @continue_timeout: untyped
+
+              @debug_output: untyped
+
+              @unix_socket: untyped
+
+              @socket: untyped
+
+              DEFAULT_TIMEOUT: 30
 
               attr_reader filepath: untyped
 

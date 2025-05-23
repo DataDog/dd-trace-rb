@@ -1,0 +1,8 @@
+# Integration tests that run in docker should not receive the gemfile lock
+# files that aren't checked into git, because these lock files are dependent
+# on the system set of installed software which is different between the
+# host and the docker container.
+#
+# Gemfile lock files that *are* checked into git should be in docker
+# containers also.
+Gemfile.lock

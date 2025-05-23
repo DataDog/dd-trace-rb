@@ -1,16 +1,19 @@
+# frozen_string_literal: true
+
 require 'faraday'
 
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../http_annotation_helper'
+require_relative '../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
     module Contrib
       module Faraday
-        # Middleware implements a faraday-middleware for ddtrace instrumentation
+        # Middleware implements a faraday-middleware for datadog instrumentation
         class Middleware < ::Faraday::Middleware
           include Contrib::HttpAnnotationHelper
 
@@ -26,7 +29,12 @@ module Datadog
 
             Tracing.trace(Ext::SPAN_REQUEST, on_error: request_options[:on_error]) do |span, trace|
               annotate!(span, env, request_options)
-              propagate!(trace, span, env) if request_options[:distributed_tracing] && Tracing.enabled?
+              if Tracing::Distributed::PropagationPolicy.enabled?(
+                global_config: request_options,
+                trace: trace
+              )
+                propagate!(trace, span, env)
+              end
               app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }
             end
           end
@@ -35,10 +43,11 @@ module Datadog
 
           attr_reader :app
 
+          # rubocop:disable Metrics/AbcSize
           def annotate!(span, env, options)
             span.resource = resource_name(env)
             span.service = service_name(env[:url].host, options)
-            span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+            span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
             if options[:peer_service]
               span.set_tag(
@@ -73,20 +82,27 @@ module Datadog
             )
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+          rescue StandardError => e
+            Datadog.logger.error(e.message)
+            Datadog::Core::Telemetry::Logger.report(e)
           end
+          # rubocop:enable Metrics/AbcSize
 
           def handle_response(span, env, options)
-            span.set_error(["Error #{env[:status]}", env[:body]]) if options.fetch(:error_handler).call(env)
+            span.set_error(["Error #{env[:status]}", env[:body]]) if options[:error_status_codes].include? env[:status]
 
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, env[:status])
 
             span.set_tags(
               Datadog.configuration.tracing.header_tags.response_tags(env[:response_headers])
             )
+          rescue StandardError => e
+            Datadog.logger.error(e.message)
+            Datadog::Core::Telemetry::Logger.report(e)
           end
 
           def propagate!(trace, span, env)
-            Tracing::Propagation::HTTP.inject!(trace, env[:request_headers])
+            Contrib::HTTP.inject(trace, env[:request_headers])
           end
 
           def resource_name(env)

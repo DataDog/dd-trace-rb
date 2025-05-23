@@ -8,7 +8,12 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
     if ::ActiveRecord.respond_to?(:version) && ::ActiveRecord.version >= Gem::Version.new('6')
       # ::ActiveRecord::DatabaseConfigurations` was introduced from 6+
       require 'active_record/database_configurations'
-      described_class.new(::ActiveRecord::DatabaseConfigurations.new(configuration))
+      # A keyword argument is passed as the last argument to avoid old Rubies considering the
+      # `::ActiveRecord::DatabaseConfigurations.new(configuration)` a keyword argument Hash, and
+      # erroneously calling `to_hash` on it. `ruby2_keywords` didn't work for this case.
+      # Neither did adding a `**` splat operator here, or explicitly declaring the keyword argument in
+      # the initializer.
+      described_class.new(::ActiveRecord::DatabaseConfigurations.new(configuration), cache_limit: 200)
     else
       described_class.new(configuration)
     end
@@ -101,6 +106,15 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
       let(:matcher) { 'bala boom!' }
 
       it 'does not resolves' do
+        expect(Datadog.logger).to receive(:error) do |message|
+          expect(message).to match(/failed to resolve/i)
+        end
+
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(
+          an_instance_of(URI::InvalidURIError),
+          description: 'Failed to resolve key'
+        )
+
         add
 
         expect(resolver.configurations).to be_empty
@@ -322,6 +336,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
           expect(message).to match(/failed to resolve/i)
           expect(message).not_to match(/password/i)
         end
+
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(
+          an_instance_of(URI::InvalidURIError),
+          description: 'Failed to resolve ActiveRecord database configuration'
+        )
 
         is_expected.to be_nil
       end

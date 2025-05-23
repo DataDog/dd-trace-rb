@@ -1,5 +1,5 @@
 require 'datadog/demo_env'
-require 'ddtrace'
+require 'datadog'
 
 Datadog.configure do |c|
   c.diagnostics.debug = true if Datadog::DemoEnv.feature?('debug')

@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
 
-require 'ddtrace'
+require 'datadog'
 
 require 'datadog/tracing/contrib/rails/rails_helper'
 

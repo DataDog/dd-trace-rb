@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Distributed
+      module PropagationPolicy
+        def self.enabled?: (?pin_config: Datadog::Core::Pin?, ?global_config: Datadog::Tracing::Contrib::Configuration::Settings?, ?trace: Datadog::Tracing::TraceOperation?) -> bool
+      end
+    end
+  end
+end

@@ -5,9 +5,9 @@ module Datadog
         module Cache
           module Redis
             module Patcher
-              def patch_redis?: (untyped meth) -> untyped
-
-              def cache_store_class: (untyped meth) -> untyped
+              def patch_redis_store?: (Symbol) -> bool
+              def patch_redis_cache_store?: (Symbol) -> bool
+              def cache_store_class: (Symbol) -> Array[Class]
             end
           end
         end

@@ -1,9 +1,11 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'redis'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'Redis instrumentation test' do
+  skip_unless_integration_testing_enabled
+
   let(:test_host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:test_port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
@@ -20,14 +22,10 @@ RSpec.describe 'Redis instrumentation test' do
     Datadog.registry[:redis].reset_configuration!
   end
 
-  before do
-    skip unless ENV['TEST_DATADOG_INTEGRATION']
-  end
-
   RSpec::Matchers.define :be_a_redis_span do
     match(notify_expectation_failures: true) do |span|
       expect(span.name).to eq('redis.command')
-      expect(span.span_type).to eq('redis')
+      expect(span.type).to eq('redis')
 
       expect(span.resource).to eq(@resource)
       expect(span.service).to eq(@service)

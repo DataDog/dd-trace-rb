@@ -1,0 +1,18 @@
+module Datadog
+  module DI
+    class Logger
+      @settings: untyped
+
+      @target: ::Logger
+
+      def initialize: (untyped settings, ::Logger target) -> void
+
+      attr_reader settings: untyped
+
+      attr_reader target: ::Logger
+
+      def debug: () { (?) -> untyped } -> void
+      def trace: () { (?) -> untyped } -> void
+    end
+  end
+end

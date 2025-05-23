@@ -1,5 +1,0 @@
-module Datadog
-  module AutoInstrument
-    LOADED: true
-  end
-end

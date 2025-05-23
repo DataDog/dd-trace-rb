@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 require_relative '../../configuration/resolver'
-require_relative '../vendor/connection_specification'
 require_relative 'makara_resolver'
+require_relative '../../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -31,6 +33,7 @@ module Datadog
           # based on addition order (`#add`).
           class Resolver < Contrib::Configuration::Resolver
             prepend MakaraResolver
+            prepend Contrib::Configuration::CachingResolver
 
             def initialize(active_record_configuration = nil)
               super()
@@ -70,10 +73,12 @@ module Datadog
               #
               # `db_config` input may contain sensitive information such as passwords,
               # hence provide a succinct summary for the error logging.
+              #
               Datadog.logger.error(
                 'Failed to resolve ActiveRecord database configuration. '\
                 "Cause: #{e.class.name} Source: #{Array(e.backtrace).first}"
               )
+              Core::Telemetry::Logger.report(e, description: 'Failed to resolve ActiveRecord database configuration')
 
               nil
             end
@@ -93,6 +98,7 @@ module Datadog
                 "Failed to resolve key #{matcher.inspect}. " \
                 "Cause: #{e.class.name} Source: #{Array(e.backtrace).first}"
               )
+              Core::Telemetry::Logger.report(e, description: 'Failed to resolve key')
 
               nil
             end
@@ -109,12 +115,8 @@ module Datadog
                 if defined?(::ActiveRecord::Base.configurations.resolve)
                   ::ActiveRecord::DatabaseConfigurations.new(active_record_configuration)
                 # From 4+ to 6.0.x
-                elsif defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
-                  ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(active_record_configuration)
                 else
-                  Contrib::ActiveRecord::Vendor::ConnectionAdapters::ConnectionSpecification::Resolver.new(
-                    active_record_configuration
-                  )
+                  ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(active_record_configuration)
                 end
             end
 

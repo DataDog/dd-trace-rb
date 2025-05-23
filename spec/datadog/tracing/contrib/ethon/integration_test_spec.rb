@@ -1,7 +1,6 @@
 require 'json'
 require 'stringio'
 require 'typhoeus'
-require 'webrick'
 
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/contrib/ethon/easy_patch'
@@ -13,7 +12,7 @@ require 'datadog/tracing/contrib/support/http'
 require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
 
 RSpec.describe 'Ethon integration tests' do
-  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+  skip_unless_integration_testing_enabled
 
   context 'with Easy HTTP request' do
     subject(:request) do

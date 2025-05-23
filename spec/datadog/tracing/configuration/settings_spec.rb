@@ -8,6 +8,7 @@ require 'datadog/tracing/flush'
 require 'datadog/tracing/sampling/priority_sampler'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
+require 'datadog/core/configuration/settings_spec'
 
 RSpec.describe Datadog::Tracing::Configuration::Settings do
   # TODO: Core::Configuration::Settings directly extends Tracing::Configuration::Settings
@@ -18,6 +19,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
   let(:options) { {} }
 
   describe '#tracing' do
+    let(:envs) { { '_test_' => nil } }
+    around do |example|
+      ClimateControl.modify(envs) do
+        example.run
+      end
+    end
     describe '#analytics' do
       describe '#enabled' do
         subject(:enabled) { settings.tracing.analytics.enabled }
@@ -57,70 +64,40 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
-    describe '#distributed_tracing' do
-      around do |example|
-        ClimateControl.modify(var_name => var_value) do
-          example.run
+    describe '#propagation_style_extract' do
+      subject(:propagation_style_extract) { settings.tracing.propagation_style_extract }
+
+      context 'when DD_TRACE_PROPAGATION_STYLE_EXTRACT' do
+        let(:envs) { { 'DD_TRACE_PROPAGATION_STYLE_EXTRACT' => var_value } }
+
+        context 'is not defined' do
+          let(:var_value) { nil }
+
+          it do
+            is_expected.to contain_exactly(
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE
+            )
+          end
         end
-      end
 
-      describe '#propagation_extract_style' do
-        subject(:propagation_extract_style) { settings.tracing.distributed_tracing.propagation_extract_style }
+        context 'is defined' do
+          let(:var_value) { 'b3multi,b3' }
 
-        context 'when DD_TRACE_PROPAGATION_STYLE_EXTRACT' do
-          let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_EXTRACT' }
-
-          context 'is not defined' do
-            let(:var_value) { nil }
-
-            it do
-              is_expected.to contain_exactly(
-                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+          it do
+            is_expected.to eq(
+              [
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
-                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
-              )
-            end
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+              ]
+            )
           end
 
-          context 'is defined' do
-            let(:var_value) { 'b3multi,b3' }
+          context 'with a mixed case value' do
+            let(:var_value) { 'B3Multi,B3' }
 
-            it do
-              is_expected.to eq(
-                [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
-              )
-            end
-          end
-
-          context 'is set to deprecated style names' do
-            let(:var_value) { 'B3,B3 single header' }
-
-            it 'translates to new names' do
-              is_expected.to eq(
-                [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
-              )
-            end
-          end
-        end
-
-        context 'with deprecated DD_PROPAGATION_STYLE_EXTRACT' do
-          let(:var_name) { 'DD_PROPAGATION_STYLE_EXTRACT' }
-
-          context 'is defined' do
-            let(:var_value) { 'b3multi,b3' }
-
-            it do
-              expect(::Datadog::Core).to receive(:log_deprecation).with(no_args) do |&message_block|
-                expect(message_block.call).to match('DD_PROPAGATION_STYLE_EXTRACT environment variable is deprecated')
-              end
-
+            it 'parses in a case-insensitive manner' do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
@@ -131,62 +108,42 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           end
         end
       end
+    end
 
-      describe '#propagation_inject_style' do
-        subject(:propagation_inject_style) { settings.tracing.distributed_tracing.propagation_inject_style }
+    describe '#propagation_style_inject' do
+      subject(:propagation_style_inject) { settings.tracing.propagation_style_inject }
 
-        context 'with DD_TRACE_PROPAGATION_STYLE_INJECT' do
-          let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_INJECT' }
+      context 'with DD_TRACE_PROPAGATION_STYLE_INJECT' do
+        let(:envs) { { 'DD_TRACE_PROPAGATION_STYLE_INJECT' => var_value } }
 
-          context 'is not defined' do
-            let(:var_value) { nil }
+        context 'is not defined' do
+          let(:var_value) { nil }
 
-            it do
-              is_expected.to contain_exactly(
+          it do
+            is_expected.to contain_exactly(
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE
+            )
+          end
+        end
+
+        context 'is defined' do
+          let(:var_value) { 'datadog,b3' }
+
+          it do
+            is_expected.to eq(
+              [
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
-              )
-            end
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+              ]
+            )
           end
 
-          context 'is defined' do
-            let(:var_value) { 'Datadog,b3' }
+          context 'with a mixed case value' do
+            let(:var_value) { 'Datadog,B3' }
 
-            it do
-              is_expected.to eq(
-                [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
-              )
-            end
-          end
-
-          context 'is set to deprecated style names' do
-            let(:var_value) { 'B3,B3 single header' }
-
-            it 'translates to new names' do
-              is_expected.to eq(
-                [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
-              )
-            end
-          end
-        end
-
-        context 'with deprecated DD_PROPAGATION_STYLE_INJECT' do
-          let(:var_name) { 'DD_PROPAGATION_STYLE_INJECT' }
-
-          context 'is defined' do
-            let(:var_value) { 'Datadog,b3' }
-
-            it do
-              expect(::Datadog::Core).to receive(:log_deprecation).with(no_args) do |&message_block|
-                expect(message_block.call).to match('DD_PROPAGATION_STYLE_INJECT environment variable is deprecated')
-              end
-
+            it 'parses in a case-insensitive manner' do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
@@ -197,87 +154,120 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           end
         end
       end
+    end
 
-      describe '#propagation_style' do
-        subject(:propagation_style) { settings.tracing.distributed_tracing.propagation_style }
+    describe '#propagation_style' do
+      subject(:propagation_style) { settings.tracing.propagation_style }
 
-        def propagation_extract_style
-          settings.tracing.distributed_tracing.propagation_extract_style
-        end
+      def propagation_style_extract
+        settings.tracing.propagation_style_extract
+      end
 
-        def propagation_inject_style
-          settings.tracing.distributed_tracing.propagation_inject_style
-        end
+      def propagation_style_inject
+        settings.tracing.propagation_style_inject
+      end
 
-        context 'with DD_TRACE_PROPAGATION_STYLE' do
-          let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE' }
+      context 'with DD_TRACE_PROPAGATION_STYLE' do
+        let(:envs) { { 'DD_TRACE_PROPAGATION_STYLE' => var_value } }
 
-          context 'is not defined' do
-            let(:var_value) { nil }
+        context 'is not defined' do
+          let(:var_value) { nil }
 
-            it { is_expected.to eq [] }
+          it { is_expected.to eq [] }
 
-            it 'does not change propagation_extract_style' do
-              expect { propagation_style }.to_not change { propagation_extract_style }.from(
-                %w[Datadog b3multi b3 tracecontext]
-              )
-            end
-
-            it 'does not change propagation_inject_style' do
-              expect { propagation_style }.to_not change { propagation_inject_style }.from(%w[Datadog tracecontext])
-            end
+          it 'does not change propagation_style_extract' do
+            expect { propagation_style }.to_not change { propagation_style_extract }.from(%w[datadog tracecontext baggage])
           end
 
-          context 'is defined' do
-            let(:var_value) { 'b3multi,b3' }
+          it 'does not change propagation_style_inject' do
+            expect { propagation_style }.to_not change { propagation_style_inject }.from(%w[datadog tracecontext baggage])
+          end
+        end
 
-            it { is_expected.to contain_exactly('b3multi', 'b3') }
+        context 'is defined' do
+          let(:var_value) { 'b3multi,b3' }
 
-            it 'sets propagation_extract_style' do
-              expect { propagation_style }.to change { propagation_extract_style }.to(%w[b3multi b3])
-            end
+          it { is_expected.to contain_exactly('b3multi', 'b3') }
 
-            it 'sets propagation_inject_style' do
-              expect { propagation_style }.to change { propagation_inject_style }.to(%w[b3multi b3])
+          it 'sets propagation_style_extract' do
+            expect { propagation_style }.to change { propagation_style_extract }.to(%w[b3multi b3])
+          end
+
+          it 'sets propagation_style_inject' do
+            expect { propagation_style }.to change { propagation_style_inject }.to(%w[b3multi b3])
+          end
+
+          context 'with a mixed case value' do
+            let(:var_value) { 'b3MULTI' }
+
+            it 'parses in a case-insensitive manner' do
+              expect { propagation_style }.to change { propagation_style_extract }.to(%w[b3multi])
             end
           end
         end
       end
 
-      describe '#propagation_extract_first' do
-        subject(:propagation_extract_first) { settings.tracing.distributed_tracing.propagation_extract_first }
-
-        let(:var_value) { nil }
-        let(:var_name) { 'DD_TRACE_PROPAGATION_EXTRACT_FIRST' }
-        it { is_expected.to be false }
-
-        context 'when DD_TRACE_PROPAGATION_EXTRACT_FIRST' do
-          context 'is not defined' do
-            let(:var_value) { nil }
-
-            it { is_expected.to be false }
+      context 'with OTEL_PROPAGATORS' do
+        context 'and without DD_TRACE_PROPAGATION_STYLE' do
+          let(:envs) { { 'OTEL_PROPAGATORS' => 'tracecontext,jaegar,b3,b3multi' } }
+          it 'sets propagation_style_extract' do
+            expect { propagation_style }.to change { propagation_style_extract }.to(%w[tracecontext b3 b3multi])
           end
 
-          context 'is set to true' do
-            let(:var_value) { 'true' }
-
-            it { is_expected.to be true }
-          end
-
-          context 'is set to false' do
-            let(:var_value) { 'false' }
-
-            it { is_expected.to be false }
+          it 'sets propagation_style_inject' do
+            expect { propagation_style }.to change { propagation_style_inject }.to(%w[tracecontext b3 b3multi])
           end
         end
 
-        describe '#propagation_extract_first=' do
-          it 'updates the #propagation_extract_first setting' do
-            expect { settings.tracing.distributed_tracing.propagation_extract_first = true }
-              .to change { settings.tracing.distributed_tracing.propagation_extract_first }
-              .from(false)
-              .to(true)
+        context 'and with DD_TRACE_PROPAGATION_STYLE' do
+          let(:envs) do
+            { 'OTEL_PROPAGATORS' => 'tracecontext,jaegar,b3single', 'DD_TRACE_PROPAGATION_STYLE' => 'b3multi,b3' }
           end
+
+          it 'sets propagation_style_extract' do
+            expect { propagation_style }.to change { propagation_style_extract }.to(%w[b3multi b3])
+          end
+
+          it 'sets propagation_style_inject' do
+            expect { propagation_style }.to change { propagation_style_inject }.to(%w[b3multi b3])
+          end
+        end
+      end
+    end
+
+    describe '#propagation_extract_first' do
+      subject(:propagation_extract_first) { settings.tracing.propagation_extract_first }
+
+      let(:envs) { { 'DD_TRACE_PROPAGATION_EXTRACT_FIRST' => var_value } }
+      let(:var_value) { nil }
+      it { is_expected.to be false }
+
+      context 'when DD_TRACE_PROPAGATION_EXTRACT_FIRST' do
+        context 'is not defined' do
+          let(:var_value) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        context 'is set to true' do
+          let(:var_value) { 'true' }
+
+          it { is_expected.to be true }
+        end
+
+        context 'is set to false' do
+          let(:var_value) { 'false' }
+
+          it { is_expected.to be false }
+        end
+      end
+
+      describe '#propagation_extract_first=' do
+        it 'updates the #propagation_extract_first setting' do
+          expect { settings.tracing.propagation_extract_first = true }
+            .to change { settings.tracing.propagation_extract_first }
+            .from(false)
+            .to(true)
         end
       end
     end
@@ -310,6 +300,47 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           let(:enable) { 'false' }
 
           it { is_expected.to be false }
+        end
+      end
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER}" do
+        around do |example|
+          ClimateControl.modify(
+            {
+              Datadog::Tracing::Configuration::Ext::ENV_ENABLED => dd_enable,
+              Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER => otel_exporter
+            }
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:dd_enable) { nil }
+          let(:otel_exporter) { nil }
+          it { is_expected.to be true }
+        end
+
+        context 'is set to none' do
+          let(:dd_enable) { nil }
+          let(:otel_exporter) { 'none' }
+          it { is_expected.to be false }
+        end
+
+        context 'is set to unsupported value' do
+          let(:dd_enable) { nil }
+          let(:otel_exporter) { 'otlp' }
+          it 'the default value is used' do
+            is_expected.to be true
+          end
+        end
+
+        context 'is set to none AND DD_TRACE_ENABLED is set to True' do
+          let(:dd_enable) { 'true' }
+          let(:otel_exporter) { 'none' }
+          it 'datadog configurations take precedence' do
+            is_expected.to be true
+          end
         end
       end
     end
@@ -442,21 +473,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
-    describe '#priority_sampling' do
-      subject(:priority_sampling) { settings.tracing.priority_sampling }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#priority_sampling=' do
-      it 'updates the #priority_sampling setting' do
-        expect { settings.tracing.priority_sampling = true }
-          .to change { settings.tracing.priority_sampling }
-          .from(nil)
-          .to(true)
-      end
-    end
-
     describe '#report_hostname' do
       subject(:report_hostname) { settings.tracing.report_hostname }
 
@@ -490,6 +506,23 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#native_span_events' do
+      subject(:native_span_events) { settings.tracing.native_span_events }
+
+      it_behaves_like 'a binary setting with',
+        env_variable: 'DD_TRACE_NATIVE_SPAN_EVENTS',
+        default: nil
+    end
+
+    describe '#native_span_events=' do
+      it 'changes the #native_span_events setting' do
+        expect { settings.tracing.native_span_events = true }
+          .to change { settings.tracing.native_span_events }
+          .from(nil)
+          .to(true)
+      end
+    end
+
     describe '#sampler' do
       subject(:sampler) { settings.tracing.sampler }
 
@@ -517,12 +550,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
         context 'when ENV is provided' do
           around do |example|
-            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
+            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT => '20') do
               example.run
             end
           end
 
-          it { is_expected.to eq(20.0) }
+          it { is_expected.to eq(20) }
         end
       end
 
@@ -533,7 +566,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           it { is_expected.to be nil }
         end
 
-        context 'when ENV is provided' do
+        context 'when DD_TRACE_SAMPLE_RATE is provided' do
           around do |example|
             ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => '0.5') do
               example.run
@@ -541,6 +574,66 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           end
 
           it { is_expected.to eq(0.5) }
+        end
+
+        context 'when OTEL_TRACES_SAMPLER is set to' do
+          let(:otel_sampler) { nil }
+          let(:otel_sampler_arg) { nil }
+          let(:dd_sample_rate) { nil }
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Sampling::ENV_OTEL_TRACES_SAMPLER => otel_sampler,
+              Datadog::Tracing::Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG => otel_sampler_arg,
+              Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => dd_sample_rate,
+            ) do
+              example.run
+            end
+          end
+
+          context 'always_on' do
+            let(:otel_sampler) { 'always_on' }
+            it { is_expected.to eq(1) }
+          end
+
+          context 'always_off' do
+            let(:otel_sampler) { 'always_off' }
+            it { is_expected.to eq(0) }
+          end
+
+          context 'traceidratio' do
+            let(:otel_sampler) { 'traceidratio' }
+            let(:otel_sampler_arg) { '0.5' }
+            it { is_expected.to eq(0.5) }
+          end
+
+          context 'parentbased_always_on' do
+            let(:otel_sampler) { 'parentbased_always_on' }
+            it { is_expected.to eq(1) }
+          end
+
+          context 'parentbased_always_off' do
+            let(:otel_sampler) { 'parentbased_always_off' }
+            it { is_expected.to eq(0) }
+          end
+
+          context 'parentbased_traceidratio' do
+            let(:otel_sampler) { 'parentbased_traceidratio' }
+            let(:otel_sampler_arg) { '0.5' }
+            it { is_expected.to eq(0.5) }
+          end
+
+          context 'traceidratio and OTEL_TRACES_SAMPLER_ARG is not set' do
+            let(:otel_sampler) { 'traceidratio' }
+            it { is_expected.to eq(1) }
+          end
+
+          context 'and DD_TRACE_SAMPLE_RATE is set' do
+            let(:otel_sampler) { 'always_on' }
+            let(:dd_sample_rate) { '0.5' }
+            it 'datadog configurations take precedence' do
+              is_expected.to eq(0.5)
+            end
+          end
         end
       end
 
@@ -706,7 +799,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
 
       describe '#writer_options=' do
-        let(:options) { { priority_sampling: true } }
+        let(:options) { { anything: double } }
 
         it 'updates the #writer_options setting' do
           expect { settings.tracing.test_mode.writer_options = options }
@@ -714,23 +807,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             .from({})
             .to(options)
         end
-      end
-    end
-
-    describe '#transport_options' do
-      subject(:transport_options) { settings.tracing.transport_options }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#transport_options=' do
-      let(:config_proc) { proc { |t| t.adapter :test } }
-
-      it 'updates the #transport_options setting' do
-        expect { settings.tracing.transport_options = config_proc }
-          .to change { settings.tracing.transport_options }
-          .from(nil)
-          .to(config_proc)
       end
     end
 
@@ -766,7 +842,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     end
 
     describe '#writer_options=' do
-      let(:options) { { priority_sampling: true } }
+      let(:options) { { anything: double } }
 
       it 'updates the #writer_options setting' do
         expect { settings.tracing.writer_options = options }
@@ -868,7 +944,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context 'is not defined' do
           let(:env_var) { nil }
 
-          it { is_expected.to eq(false) }
+          it { is_expected.to eq(true) }
         end
 
         context 'is `true`' do
@@ -888,10 +964,36 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     describe '#trace_id_128_bit_logging_enabled=' do
       it 'updates the #trace_id_128_bit_logging_enabled setting' do
         expect do
-          settings.tracing.trace_id_128_bit_logging_enabled = true
+          settings.tracing.trace_id_128_bit_logging_enabled = false
         end.to change { settings.tracing.trace_id_128_bit_logging_enabled }
-          .from(false)
-          .to(true)
+          .from(true)
+          .to(false)
+      end
+    end
+
+    describe '#client_ip.enabled' do
+      context 'default' do
+        it do
+          expect(settings.tracing.client_ip.enabled).to eq(false)
+        end
+      end
+
+      {
+        'true' => true,
+        '1' => true,
+        'false' => false
+      }.each do |env, value|
+        context "when ENV['DD_TRACE_CLIENT_IP_ENABLED'] is '#{env}'" do
+          around do |example|
+            ClimateControl.modify('DD_TRACE_CLIENT_IP_ENABLED' => env) do
+              example.run
+            end
+          end
+
+          it do
+            expect(settings.tracing.client_ip.enabled).to eq(value)
+          end
+        end
       end
     end
   end

@@ -8,9 +8,15 @@ module Datadog
   module Core
     module Diagnostics
       # Base class for EnvironmentLoggers - should allow for easy reporting by users to Datadog support.
+      #
+      # The EnvironmentLogger should not pollute the logs in a development environment.
       module EnvironmentLogging
         def log_configuration!(prefix, data)
           logger.info("DATADOG CONFIGURATION - #{prefix} - #{data}")
+        end
+
+        def log_debug!(prefix, data)
+          logger.debug("DATADOG CONFIGURATION - #{prefix} - #{data}")
         end
 
         def log_error!(prefix, type, error)
@@ -23,34 +29,15 @@ module Datadog
           Datadog.logger
         end
 
-        # If logger should log and hasn't logged already, then output environment configuration and possible errors.
-        def log_once!
-          # Check if already been executed
-          return false if (defined?(@executed) && @executed) || !log?
-
-          yield if block_given?
-
-          @executed = true
-        end
-
         # Are we logging the environment data?
         def log?
           startup_logs_enabled = Datadog.configuration.diagnostics.startup_logs.enabled
           if startup_logs_enabled.nil?
-            !repl? && !rspec? # Suppress logs if we are running in a REPL or rspec
+            # Do not pollute the logs in a development environment.
+            !Datadog::Core::Environment::Execution.development?
           else
             startup_logs_enabled
           end
-        end
-
-        REPL_PROGRAM_NAMES = %w[irb pry].freeze
-
-        def repl?
-          REPL_PROGRAM_NAMES.include?($PROGRAM_NAME)
-        end
-
-        def rspec?
-          $PROGRAM_NAME.end_with?('rspec')
         end
       end
 
@@ -59,7 +46,7 @@ module Datadog
         extend EnvironmentLogging
 
         def self.collect_and_log!(extra_fields = nil)
-          log_once! do
+          if log?
             data = EnvironmentCollector.collect_config!
             data = data.merge(extra_fields) if extra_fields
             log_configuration!('CORE', data.to_json)
@@ -92,7 +79,7 @@ module Datadog
 
           # @return [String] current time in ISO8601 format
           def date
-            Time.now.utc.iso8601
+            Core::Utils::Time.now.utc.iso8601
           end
 
           # Best portable guess of OS information.
@@ -101,9 +88,9 @@ module Datadog
             RbConfig::CONFIG['host']
           end
 
-          # @return [String] ddtrace version
+          # @return [String] datadog version
           def version
-            DDTrace::VERSION::STRING
+            Datadog::VERSION::STRING
           end
 
           # @return [String] "ruby"
@@ -167,7 +154,7 @@ module Datadog
 
           # @return [Boolean, nil] health metrics enabled in configuration
           def health_metrics_enabled
-            !!Datadog.configuration.diagnostics.health_metrics.enabled
+            !!Datadog.configuration.health_metrics.enabled
           end
 
           private

@@ -21,11 +21,13 @@ module Datadog
       module Context
         CURRENT_SPAN_KEY = ::OpenTelemetry::Trace.const_get(:CURRENT_SPAN_KEY)
         private_constant :CURRENT_SPAN_KEY
+        BAGGAGE_REMOVE_KEY = Object.new # sentinel object to indicate the deletion of a value in baggage
 
-        def initialize(entries, trace: nil)
+        def initialize(entries, trace: nil, baggage: nil)
           @trace = trace || ::Datadog::Tracing.send(:tracer).send(:start_trace)
           @trace.otel_values.merge!(entries) if entries
           @trace.otel_context ||= self
+          @trace.baggage = baggage if baggage
         end
 
         # Because Context can be reused, we have to make sure we have
@@ -79,8 +81,20 @@ module Datadog
           end
 
           existing_values = @trace && @trace.otel_values || {}
+          existing_baggage = @trace && @trace.baggage || {}
 
-          ::OpenTelemetry::Context.new(existing_values.merge(values), trace: trace)
+          # Retrieve the baggage removal sentinel and remove it from the values hash
+          existing_baggage.delete(values[BAGGAGE_REMOVE_KEY]) if values.key?(BAGGAGE_REMOVE_KEY)
+
+          # If the values hash contains a BAGGAGE_KEY, merge its contents with existing baggage
+          # Otherwise, keep the existing baggage unchanged
+          new_baggage = if values.key?(::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY))
+                          existing_baggage.merge(values[::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY)])
+                        else
+                          existing_baggage
+                        end
+
+          ::OpenTelemetry::Context.new(existing_values.merge(values), trace: trace, baggage: new_baggage)
         end
 
         # The Datadog {TraceOperation} associated with this {Context}.

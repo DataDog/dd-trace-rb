@@ -17,25 +17,24 @@ module Datadog
           end
 
           def call(env)
-            context = env[Datadog::AppSec::Ext::SCOPE_KEY]
+            context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
             return @app.call(env) unless context
 
             # TODO: handle exceptions, except for @app.call
 
-            request_return, request_response = Instrumentation.gateway.push(
-              'rack.request.body',
-              Gateway::Request.new(env)
-            ) do
-              @app.call(env)
+            http_response = nil
+            interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+              http_response, _request = Instrumentation.gateway.push('rack.request.body', Gateway::Request.new(env)) do
+                @app.call(env)
+              end
+
+              nil
             end
 
-            if request_response
-              blocked_event = request_response.find { |action, _event| action == :block }
-              request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
-            end
+            return AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack if interrupt_params
 
-            request_return
+            http_response
           end
         end
       end

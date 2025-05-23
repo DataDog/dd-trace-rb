@@ -1,9 +1,0 @@
-module Datadog
-  module OpenTracer
-    module BinaryPropagator
-      extend Propagator
-      def self.inject: (untyped span_context, untyped carrier) -> nil
-      def self.extract: (untyped carrier) -> untyped
-    end
-  end
-end

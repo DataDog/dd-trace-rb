@@ -25,9 +25,9 @@ module Datadog
           #   2. Checking if `Net::HTTP` is referring to the original one
           #   => ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter::OriginalNetHTTP)
           def webmock_enabled?
-            defined?(::WebMock::HttpLibAdapters::NetHttpAdapter) &&
+            !!(defined?(::WebMock::HttpLibAdapters::NetHttpAdapter) &&
               defined?(::Net::HTTP) &&
-              ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter.instance_variable_get(:@webMockNetHTTP))
+              ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter.instance_variable_get(:@webMockNetHTTP)))
           end
 
           private
@@ -68,7 +68,7 @@ module Datadog
 
           # Check if we are running from `bin/cucumber` or `cucumber/rake/task`.
           def cucumber?
-            defined?(::Cucumber::Cli)
+            !!defined?(::Cucumber::Cli)
           end
 
           # If this is a Rails application, use different heuristics to detect
@@ -80,7 +80,7 @@ module Datadog
             # detecting its presence is enough to deduct if this is a development environment.
             #
             # @see https://github.com/rails/spring/blob/48b299348ace2188444489a0c216a6f3e9687281/README.md?plain=1#L204-L207
-            defined?(::Spring) || rails_env_development?
+            !!defined?(::Spring) || rails_env_development?
           end
 
           RAILS_ENV_DEVELOPMENT = Set['development', 'test'].freeze
@@ -94,7 +94,7 @@ module Datadog
           # it's common to have a custom "staging" environment, and such environment normally want to run as close
           # to production as possible.
           def rails_env_development?
-            defined?(::Rails.env) && RAILS_ENV_DEVELOPMENT.include?(::Rails.env)
+            !!defined?(::Rails.env) && RAILS_ENV_DEVELOPMENT.include?(::Rails.env)
           end
         end
       end

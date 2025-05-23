@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'ext'
 
 require_relative '../metrics/client'
@@ -19,6 +21,9 @@ module Datadog
           @services = Set.new(options.fetch(:services, []))
           @service_tags = nil
           compile_service_tags!
+
+          # Initialize the collection of runtime-id
+          @runtime_id_enabled = options.fetch(:experimental_runtime_id_enabled, false)
         end
 
         # Associate service with runtime metrics
@@ -92,7 +97,7 @@ module Datadog
         def try_flush
           yield
         rescue StandardError => e
-          Datadog.logger.error("Error while sending runtime metric. Cause: #{e.class.name} #{e.message}")
+          Datadog.logger.warn("Error while sending runtime metric. Cause: #{e.class.name} #{e.message}")
         end
 
         def default_metric_options
@@ -103,6 +108,9 @@ module Datadog
 
             # Add services dynamically because they might change during runtime.
             options[:tags].concat(service_tags) unless service_tags.nil?
+
+            # Add runtime-id dynamically because it might change during runtime.
+            options[:tags].concat(["runtime-id:#{Core::Environment::Identity.id}"]) if @runtime_id_enabled
           end
         end
 
@@ -110,11 +118,12 @@ module Datadog
 
         attr_reader \
           :service_tags,
-          :services
+          :services,
+          :runtime_id_enabled
 
         def compile_service_tags!
           @service_tags = services.to_a.collect do |service|
-            "#{Core::Runtime::Ext::Metrics::TAG_SERVICE}:#{service}".freeze
+            "#{Core::Runtime::Ext::Metrics::TAG_SERVICE}:#{service}"
           end
         end
 
@@ -138,6 +147,7 @@ module Datadog
           gauge(metric_name, metric_value) if metric_value
         end
 
+        # rubocop:disable Metrics/MethodLength
         def flush_yjit_stats
           # Only on Ruby >= 3.2
           try_flush do
@@ -174,9 +184,18 @@ module Datadog
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_OUTLINED_CODE_SIZE,
                 Core::Environment::YJIT.outlined_code_size
               )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_YJIT_ALLOC_SIZE,
+                Core::Environment::YJIT.yjit_alloc_size
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_RATIO_IN_YJIT,
+                Core::Environment::YJIT.ratio_in_yjit
+              )
             end
           end
         end
+        # rubocop:enable Metrics/MethodLength
       end
     end
   end

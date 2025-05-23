@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Metrics
+      module Exporter
+        def self?.export_waf_metrics: (Metrics::Collector::Store metrics, Tracing::SpanOperation span) -> void
+
+        def self?.export_rasp_metrics: (Metrics::Collector::Store metrics, Tracing::SpanOperation span) -> void
+
+        def self?.convert_ns_to_us: (::Integer value) -> ::Float
+      end
+    end
+  end
+end

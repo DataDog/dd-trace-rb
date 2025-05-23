@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/appsec/contrib/support/integration/shared_examples'
 require 'rack/test'
@@ -14,7 +16,7 @@ RSpec.describe 'Rails integration tests' do
         # root reached (default)
         break o if o.last.parent_id == 0
 
-        parent = spans.find { |span| span.span_id == o.last.parent_id }
+        parent = spans.find { |span| span.id == o.last.parent_id }
 
         # root reached (distributed tracing)
         break o if parent.nil?
@@ -28,12 +30,14 @@ RSpec.describe 'Rails integration tests' do
 
   let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST } }
 
-  let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
+  let(:appsec_enabled) { true }
+
+  let(:appsec_instrument_rack) { false }
+
   let(:appsec_ip_denylist) { [] }
   let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
-  let(:nested_app) { false }
   let(:api_security_enabled) { false }
   let(:api_security_sample) { 0.0 }
 
@@ -87,18 +91,20 @@ RSpec.describe 'Rails integration tests' do
   before do
     Datadog.configure do |c|
       c.tracing.enabled = tracing_enabled
+
       c.tracing.instrument :rails
 
       c.appsec.enabled = appsec_enabled
-      c.appsec.waf_timeout = 10_000_000 # in us
+
       c.appsec.instrument :rails
+      c.appsec.instrument :rack if appsec_instrument_rack
+
+      c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.ip_denylist = appsec_ip_denylist
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
       c.appsec.api_security.enabled = api_security_enabled
       c.appsec.api_security.sample_rate = api_security_sample
-
-      c.appsec.instrument :rack if nested_app
     end
   end
 
@@ -149,11 +155,7 @@ RSpec.describe 'Rails integration tests' do
     let(:client_ip) { remote_addr }
 
     let(:service_span) do
-      span = sorted_spans.reverse.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
-
-      expect(span.name).to eq 'rack.request'
-
-      span
+      sorted_spans.reverse.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
     end
 
     let(:span) { rack_span }
@@ -404,7 +406,7 @@ RSpec.describe 'Rails integration tests' do
       end
 
       describe 'Nested apps' do
-        let(:nested_app) { true }
+        let(:appsec_instrument_rack) { true }
         let(:middlewares) do
           [
             Datadog::Tracing::Contrib::Rack::TraceMiddleware,

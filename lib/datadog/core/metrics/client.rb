@@ -1,5 +1,8 @@
+# frozen_string_literal: true
+
 require_relative '../utils/time'
 require_relative '../utils/only_once'
+require_relative '../telemetry/logger'
 require_relative '../configuration/ext'
 
 require_relative 'ext'
@@ -18,9 +21,10 @@ module Datadog
         extend Options
         extend Helpers
 
-        attr_reader :statsd
+        attr_reader :statsd, :logger
 
-        def initialize(statsd: nil, enabled: true, **_)
+        def initialize(logger: Datadog.logger, statsd: nil, enabled: true, **_)
+          @logger = logger
           @statsd =
             if supported?
               statsd || default_statsd_client
@@ -49,7 +53,7 @@ module Datadog
         end
 
         def default_hostname
-          ENV.fetch(Configuration::Ext::Transport::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
+          ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
         end
 
         def default_port
@@ -95,9 +99,10 @@ module Datadog
 
           statsd.count(stat, value, metric_options(options))
         rescue StandardError => e
-          Datadog.logger.error(
+          logger.error(
             "Failed to send count stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Telemetry::Logger.report(e, description: 'Failed to send count stat')
         end
 
         def distribution(stat, value = nil, options = nil, &block)
@@ -108,9 +113,10 @@ module Datadog
 
           statsd.distribution(stat, value, metric_options(options))
         rescue StandardError => e
-          Datadog.logger.error(
+          logger.error(
             "Failed to send distribution stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Telemetry::Logger.report(e, description: 'Failed to send distribution stat')
         end
 
         def increment(stat, options = nil)
@@ -120,9 +126,10 @@ module Datadog
 
           statsd.increment(stat, metric_options(options))
         rescue StandardError => e
-          Datadog.logger.error(
+          logger.error(
             "Failed to send increment stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Telemetry::Logger.report(e, description: 'Failed to send increment stat')
         end
 
         def gauge(stat, value = nil, options = nil, &block)
@@ -133,9 +140,10 @@ module Datadog
 
           statsd.gauge(stat, value, metric_options(options))
         rescue StandardError => e
-          Datadog.logger.error(
+          logger.error(
             "Failed to send gauge stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Telemetry::Logger.report(e, description: 'Failed to send gauge stat')
         end
 
         def time(stat, options = nil)
@@ -151,9 +159,11 @@ module Datadog
               distribution(stat, ((finished - start) * 1000), options)
             end
           rescue StandardError => e
-            Datadog.logger.error(
+            # TODO: Likely to be redundant, since `distribution` handles its own errors.
+            logger.error(
               "Failed to send time stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
             )
+            Telemetry::Logger.report(e, description: 'Failed to send time stat')
           end
         end
 
@@ -185,7 +195,7 @@ module Datadog
 
         def ignored_statsd_warning
           IGNORED_STATSD_ONLY_ONCE.run do
-            Datadog.logger.warn(
+            logger.warn(
               'Ignoring user-supplied statsd instance as currently-installed version of dogstastd-ruby is incompatible. ' \
               "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.3'` on your Gemfile or gems.rb file."
             )

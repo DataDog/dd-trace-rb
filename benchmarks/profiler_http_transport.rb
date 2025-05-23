@@ -3,12 +3,9 @@ VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require 'benchmark/ips'
-require 'ddtrace'
-require 'pry'
+require_relative 'benchmarks_helper'
 require 'securerandom'
 require 'socket'
-require_relative 'dogstatsd_reporter'
 
 # This benchmark measures the performance of the http_transport class used for reporting profiling data
 #
@@ -29,12 +26,11 @@ class ProfilerHttpTransportBenchmark
 
     @transport = Datadog::Profiling::HttpTransport.new(
       agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
-        adapter: Datadog::Core::Transport::Ext::HTTP::ADAPTER,
+        adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
         uds_path: nil,
         ssl: false,
         hostname: '127.0.0.1',
         port: @port,
-        deprecated_for_removal_transport_configuration_proc: nil,
         timeout_seconds: nil,
       ),
       site: nil,
@@ -45,8 +41,7 @@ class ProfilerHttpTransportBenchmark
     @flush = Datadog::Profiling::Flush.new(
       start: flush_finish - 60,
       finish: flush_finish,
-      pprof_file_name: 'example_pprof_file_name.pprof',
-      pprof_data: '', # Random.new(0).bytes(32_000),
+      encoded_profile: Datadog::Profiling::StackRecorder.for_testing.serialize!,
       code_provenance_file_name: 'example_code_provenance_file_name.json',
       code_provenance_data: '', # Random.new(1).bytes(4_000),
       tags_as_array: [],
@@ -82,22 +77,14 @@ class ProfilerHttpTransportBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 70, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_http_transport')
       )
 
       x.report("http_transport #{ENV['CONFIG']}") do
         run_once
       end
 
-      x.save! 'profiler-http-transport-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
-    end
-  end
-
-  def run_forever
-    while true
-      100.times { run_once }
-      print '.'
     end
   end
 
@@ -111,9 +98,5 @@ end
 puts "Current pid is #{Process.pid}"
 
 ProfilerHttpTransportBenchmark.new.instance_exec do
-  if ARGV.include?('--forever')
-    run_forever
-  else
-    run_benchmark
-  end
+  run_benchmark
 end

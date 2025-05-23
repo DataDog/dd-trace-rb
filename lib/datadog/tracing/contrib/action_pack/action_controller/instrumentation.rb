@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
 
@@ -5,6 +7,7 @@ require_relative '../ext'
 require_relative '../utils'
 require_relative '../../rack/middlewares'
 require_relative '../../analytics'
+require_relative '../../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -24,7 +27,7 @@ module Datadog
               span = Tracing.trace(
                 Ext::SPAN_ACTION_CONTROLLER,
                 service: service,
-                span_type: type,
+                type: type,
                 resource: "#{payload.fetch(:controller)}##{payload.fetch(:action)}",
               )
               trace = Tracing.active_trace
@@ -41,6 +44,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def finish_processing(payload)
@@ -79,10 +83,13 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             # Instrumentation for ActionController::Metal
             module Metal
+              # TODO: Refactor this method to avoid using async API that splits the logic
+              # into two different methods (`start_processing` and `finish_processing`)
               def process_action(*args)
                 # mutable payload with a tracing context that is used in two different
                 # signals; it propagates the request span so that it can be finished

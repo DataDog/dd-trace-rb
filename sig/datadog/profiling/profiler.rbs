@@ -12,7 +12,7 @@ module Datadog
 
       def initialize: (
         worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
-        scheduler: Datadog::Profiling::Scheduler,
+        scheduler: Datadog::Profiling::Scheduler
       ) -> void
 
       def start: () -> void

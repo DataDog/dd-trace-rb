@@ -12,7 +12,7 @@ RSpec.describe 'Server tracer' do
   before do
     Sidekiq::Testing.server_middleware.clear
     Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Tracing::Contrib::Sidekiq::ServerTracer)
+      chain.add(Datadog::Tracing::Contrib::Sidekiq::ServerTracer, sidekiq_options)
     end
   end
 
@@ -75,8 +75,6 @@ RSpec.describe 'Server tracer' do
 
   context 'with custom job' do
     before do
-      allow(Datadog.configuration.tracing).to receive(:[]).with(:sidekiq).and_return(sidekiq_options)
-
       stub_const(
         'CustomWorker',
         Class.new do
@@ -113,21 +111,6 @@ RSpec.describe 'Server tracer' do
       expect(custom.get_metric('_dd.measured')).to eq(1.0)
       expect(custom.get_tag('span.kind')).to eq('consumer')
       expect(custom.get_tag('messaging.system')).to eq('sidekiq')
-    end
-
-    context 'with tag_args' do
-      let(:sidekiq_options) { { service_name: 'sidekiq-slow', tag_args: true } }
-
-      it 'records tag values' do
-        perform_async
-        CustomWorker.perform_async('random_id')
-
-        expect(spans).to have(4).items
-
-        custom, _empty, _push, _push = spans
-
-        expect(custom.get_tag('sidekiq.job.args')).to eq(['random_id'].to_s)
-      end
     end
 
     context 'with default quantization' do

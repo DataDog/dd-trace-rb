@@ -18,25 +18,35 @@ module Datadog
           end
         end
 
-        DEFAULT_WAF_PROCESSORS = begin
-          JSON.parse(Datadog::AppSec::Assets.waf_processors)
-        rescue StandardError => e
-          Datadog.logger.error { "libddwaf rulemerger failed to parse default waf processors. Error: #{e.inspect}" }
-          []
-        end
-
-        DEFAULT_WAF_SCANNERS = begin
-          JSON.parse(Datadog::AppSec::Assets.waf_scanners)
-        rescue StandardError => e
-          Datadog.logger.error { "libddwaf rulemerger failed to parse default waf scanners. Error: #{e.inspect}" }
-          []
-        end
-
         class << self
+          # TODO: `processors` and `scanners` are not provided by the caller, consider removing them
           def merge(
-            rules:, data: [], overrides: [], exclusions: [], custom_rules: [],
-            processors: DEFAULT_WAF_PROCESSORS, scanners: DEFAULT_WAF_SCANNERS
+            telemetry:,
+            rules:, actions: [], data: [], overrides: [], exclusions: [], custom_rules: [],
+            processors: nil, scanners: nil
           )
+            processors ||= begin
+              default_waf_processors
+            rescue StandardError => e
+              Datadog.logger.error("libddwaf rulemerger failed to parse default waf processors. Error: #{e.inspect}")
+              telemetry.report(
+                e,
+                description: 'libddwaf rulemerger failed to parse default waf processors'
+              )
+              []
+            end
+
+            scanners ||= begin
+              default_waf_scanners
+            rescue StandardError => e
+              Datadog.logger.error("libddwaf rulemerger failed to parse default waf scanners. Error: #{e.inspect}")
+              telemetry.report(
+                e,
+                description: 'libddwaf rulemerger failed to parse default waf scanners'
+              )
+              []
+            end
+
             combined_rules = combine_rules(rules)
 
             combined_data = combine_data(data) if data.any?
@@ -44,6 +54,7 @@ module Datadog
             combined_exclusions = combine_exclusions(exclusions) if exclusions.any?
             combined_custom_rules = combine_custom_rules(custom_rules) if custom_rules.any?
 
+            combined_rules['actions'] = actions if actions.any?
             combined_rules['rules_data'] = combined_data if combined_data
             combined_rules['rules_override'] = combined_overrides if combined_overrides
             combined_rules['exclusions'] = combined_exclusions if combined_exclusions
@@ -51,6 +62,14 @@ module Datadog
             combined_rules['processors'] = processors
             combined_rules['scanners'] = scanners
             combined_rules
+          end
+
+          def default_waf_processors
+            @default_waf_processors ||= JSON.parse(Datadog::AppSec::Assets.waf_processors)
+          end
+
+          def default_waf_scanners
+            @default_waf_scanners ||= JSON.parse(Datadog::AppSec::Assets.waf_scanners)
           end
 
           private

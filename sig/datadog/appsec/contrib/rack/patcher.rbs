@@ -3,8 +3,6 @@ module Datadog
     module Contrib
       module Rack
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           def self?.patched?: () -> bool
 
           def self?.target_version: () -> untyped

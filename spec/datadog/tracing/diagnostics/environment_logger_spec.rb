@@ -5,11 +5,15 @@ require 'datadog/tracing/diagnostics/environment_logger'
 require 'datadog/tracing/transport/io'
 
 RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
+  around { |example| ClimateControl.modify(environment) { example.run } }
+
   subject(:env_logger) { described_class }
 
   # Reading DD_AGENT_HOST allows this to work in CI
   let(:agent_hostname) { ENV['DD_AGENT_HOST'] || '127.0.0.1' }
   let(:agent_port) { ENV['DD_TRACE_AGENT_PORT'] || 8126 }
+
+  let(:environment) { {} }
 
   before do
     # Resets "only-once" execution pattern of `collect_and_log!`
@@ -19,12 +23,13 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
   end
 
   describe '#collect_and_log!' do
+    include_context 'non-development execution environment'
+
     subject(:collect_and_log!) { env_logger.collect_and_log! }
 
     let(:logger) { instance_double(Datadog::Core::Logger) }
 
     before do
-      allow(env_logger).to receive(:rspec?).and_return(false) # Allow rspec to log for testing purposes
       allow(Datadog).to receive(:logger).and_return(logger)
       allow(logger).to receive(:debug?).and_return true
       allow(logger).to receive(:debug)
@@ -45,17 +50,25 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           'sampling_rules' => nil,
           'integrations_loaded' => nil,
           'partial_flushing_enabled' => false,
-          'priority_sampling_enabled' => false,
         )
       end
     end
 
-    context 'with multiple invocations' do
-      it 'executes only once' do
-        env_logger.collect_and_log!
-        env_logger.collect_and_log!
+    context 'with integrations loaded' do
+      before { Datadog.configure { |c| c.tracing.instrument :http } }
 
-        expect(logger).to have_received(:info).once
+      it 'logs the integration settings as debug' do
+        expect(logger).to receive(:debug).with start_with('DATADOG CONFIGURATION - TRACING INTEGRATIONS') do |msg|
+          json = JSON.parse(msg.partition('- TRACING INTEGRATIONS -')[2].strip)
+          expect(json).to include(
+            'http_analytics_enabled' => 'false',
+            'http_analytics_sample_rate' => '1.0',
+            'http_distributed_tracing' => 'true',
+            'http_split_by_domain' => 'false',
+          )
+        end
+
+        collect_and_log!
       end
     end
 
@@ -79,22 +92,10 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
     end
 
-    context 'under a REPL' do
-      around do |example|
-        begin
-          original = $PROGRAM_NAME
-          $0 = 'irb'
-          example.run
-        ensure
-          $0 = original
-        end
-      end
+    context 'in a development execution environment' do
+      before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(true) }
 
       context 'with default settings' do
-        before do
-          allow(env_logger).to receive(:rspec?).and_return(true) # Prevent rspec from logging
-        end
-
         it do
           collect_and_log!
           expect(logger).to_not have_received(:info)
@@ -140,7 +141,6 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           sampling_rules: nil,
           integrations_loaded: nil,
           partial_flushing_enabled: false,
-          priority_sampling_enabled: false,
         )
       end
 
@@ -163,12 +163,14 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
 
       context 'with unix socket transport' do
-        before do
-          allow(Datadog.configuration.tracing).to receive(:transport_options).and_return(
-            lambda { |t|
-              t.adapter :unix, '/tmp/trace.sock'
-            }
-          )
+        let(:environment) do
+          environment = {}
+
+          environment['DD_AGENT_HOST'] = nil
+          environment['DD_TRACE_AGENT_PORT'] = nil
+          environment['DD_TRACE_AGENT_URL'] = 'unix:///tmp/trace.sock'
+
+          environment
         end
 
         it { is_expected.to include agent_url: include('unix') }
@@ -193,36 +195,24 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           is_expected.to include integrations_loaded: end_with("@#{RUBY_VERSION}")
         end
 
-        context 'with integration-specific settings' do
-          let(:options) { { service_name: 'my-http' } }
-
-          it { is_expected.to include integration_http_analytics_enabled: 'false' }
-          it { is_expected.to include integration_http_analytics_sample_rate: '1.0' }
-          it { is_expected.to include integration_http_service_name: 'my-http' }
-          it { is_expected.to include integration_http_distributed_tracing: 'true' }
-          it { is_expected.to include integration_http_split_by_domain: 'false' }
-        end
-
-        context 'with a complex setting value' do
-          let(:options) { { service_name: Class.new } }
-
-          it 'converts to a string' do
-            is_expected.to include integration_http_service_name: start_with('#<Class:')
-          end
-        end
-
         context 'with partial flushing enabled' do
           before { expect(Datadog.configuration.tracing.partial_flush).to receive(:enabled).and_return(true) }
 
           it { is_expected.to include partial_flushing_enabled: true }
         end
-
-        context 'with priority sampling enabled' do
-          before { expect(Datadog.configuration.tracing).to receive(:priority_sampling).and_return(true) }
-
-          it { is_expected.to include priority_sampling_enabled: true }
-        end
       end
+    end
+
+    describe '#collect_integrations_settings!' do
+      subject(:collect_config!) { described_class.collect_integrations_settings! }
+
+      before { Datadog.configure { |c| c.tracing.instrument :http, service_name: 'my-http' } }
+
+      it { is_expected.to include http_analytics_enabled: 'false' }
+      it { is_expected.to include http_analytics_sample_rate: '1.0' }
+      it { is_expected.to include http_service_name: 'my-http' }
+      it { is_expected.to include http_distributed_tracing: 'true' }
+      it { is_expected.to include http_split_by_domain: 'false' }
     end
 
     describe '#collect_errors!' do

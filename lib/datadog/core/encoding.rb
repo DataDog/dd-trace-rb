@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'msgpack'
 
@@ -8,6 +10,7 @@ module Datadog
       # Encoder interface that provides the logic to encode traces and service
       # @abstract
       module Encoder
+        # :nocov:
         def content_type
           raise NotImplementedError
         end
@@ -21,13 +24,20 @@ module Datadog
         def encode(_)
           raise NotImplementedError
         end
+
+        # Deserializes a value serialized with {#encode}.
+        # This method is used for debugging purposes.
+        def decode(_)
+          raise NotImplementedError
+        end
+        # :nocov:
       end
 
       # Encoder for the JSON format
       module JSONEncoder
         extend Encoder
 
-        CONTENT_TYPE = 'application/json'.freeze
+        CONTENT_TYPE = 'application/json'
 
         module_function
 
@@ -37,6 +47,10 @@ module Datadog
 
         def encode(obj)
           JSON.dump(obj)
+        end
+
+        def decode(obj)
+          JSON.parse(obj)
         end
 
         def join(encoded_data)
@@ -50,7 +64,7 @@ module Datadog
 
         module_function
 
-        CONTENT_TYPE = 'application/msgpack'.freeze
+        CONTENT_TYPE = 'application/msgpack'
 
         def content_type
           CONTENT_TYPE
@@ -58,6 +72,10 @@ module Datadog
 
         def encode(obj)
           MessagePack.pack(obj)
+        end
+
+        def decode(obj)
+          MessagePack.unpack(obj)
         end
 
         def join(encoded_data)

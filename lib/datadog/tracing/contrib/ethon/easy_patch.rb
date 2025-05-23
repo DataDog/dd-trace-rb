@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 require 'uri'
 
 require_relative '../../../core/utils/hash'
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative 'ext'
 require_relative '../http_annotation_helper'
 
@@ -101,16 +103,19 @@ module Datadog
               @datadog_span = Tracing.trace(
                 Ext::SPAN_REQUEST,
                 service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
-                span_type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
+                type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
                 **trace_options
               )
               datadog_trace = Tracing.active_trace
 
               datadog_tag_request
 
-              if datadog_configuration[:distributed_tracing]
+              if Tracing::Distributed::PropagationPolicy.enabled?(
+                global_config: datadog_configuration,
+                trace: datadog_trace
+              )
                 @datadog_original_headers ||= {}
-                Tracing::Propagation::HTTP.inject!(datadog_trace, @datadog_original_headers)
+                Contrib::HTTP.inject(datadog_trace, @datadog_original_headers)
                 self.headers = @datadog_original_headers
               end
             end

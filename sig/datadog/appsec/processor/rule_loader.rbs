@@ -3,7 +3,11 @@ module Datadog
     class Processor
       module RuleLoader
         type ruleset = Symbol | String | File | StringIO | Hash[String, untyped]
-        def self.load_rules: (ruleset: ruleset) -> ::Hash[untyped, untyped]?
+
+        def self.load_rules: (
+          telemetry: Datadog::Core::Telemetry::Component,
+          ruleset: ruleset
+        ) -> ::Hash[untyped, untyped]?
 
         def self.load_data: (?ip_denylist: Array[String], ?user_id_denylist: Array[String]) -> Array[Hash[String, untyped]]
 

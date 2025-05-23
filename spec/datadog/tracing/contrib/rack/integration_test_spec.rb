@@ -2,33 +2,81 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'rack/test'
 require 'securerandom'
 require 'rack'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/rack/middlewares'
+require 'datadog/tracing/contrib/support/integration/shared_examples'
 require_relative '../support/http'
+
+begin
+  require 'rack/contrib/json_body_parser'
+rescue LoadError
+  # fallback for old rack-contrib
+  require 'rack/contrib/post_body_content_type_parser'
+end
 
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
 
   let(:rack_options) { {} }
+  let(:instrument_http) { false }
   let(:remote_enabled) { false }
+  let(:apm_tracing_enabled) { true }
+  let(:logger) { logger_allowing_debug }
 
+  # We send the trace to a mocked agent to verify that the trace includes the headers that we want
+  # In the future, it might be a good idea to use the traces that the mocked agent
+  # receives in the tests/shared examples
+
+  # This before block is executed before booting the tracer, which is why we add mocks here
   before do
+    WebMock.enable!
+    stub_request(:get, 'http://localhost:3000/returnheaders')
+      .to_return do |request|
+        {
+          status: 200,
+          body: request.headers.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        }
+      end
+
+    # Mocked agent that returns the headers sent
+    stub_request(:post, 'http://localhost:6218/v0.4/traces').to_return do |request|
+      {
+        status: 200,
+        body: request.headers.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      }
+    end
+
+    # Sampler with the same settings as APM disabled one, except it is 4 seconds instead of 60 so tests are faster
+    unless apm_tracing_enabled
+      post_sampler = Datadog::Core::Configuration::Components.send(:build_rate_limit_post_sampler, **{ seconds: 4 })
+      allow(Datadog::Core::Configuration::Components).to receive(:build_rate_limit_post_sampler).and_return(post_sampler)
+    end
+
     unless remote_enabled
       Datadog.configure do |c|
+        c.apm.tracing.enabled = apm_tracing_enabled
+
         c.remote.enabled = false
         c.tracing.instrument :rack, rack_options
+        # Required for APM disablement tests with distributed tracing as rack can extract but not inject headers
+        c.tracing.instrument :http if instrument_http
       end
     end
   end
 
   after do
+    WebMock.reset!
+    WebMock.disable!
+
     Datadog.registry[:rack].reset_configuration!
   end
 
   shared_examples 'a rack GET 200 span' do
     it do
       expect(span.name).to eq('rack.request')
-      expect(span.span_type).to eq('web')
+      expect(span.type).to eq('web')
       expect(span.service).to eq(tracer.default_service)
       expect(span.resource).to eq('GET 200')
       expect(span.get_tag('http.method')).to eq('GET')
@@ -58,8 +106,6 @@ RSpec.describe 'Rack integration tests' do
           allow(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
 
           allow(client).to receive(:id).and_return(remote_client_id)
-          allow(worker).to receive(:start).and_call_original
-          allow(worker).to receive(:stop).and_call_original
 
           Datadog.configure do |c|
             c.remote.enabled = remote_enabled
@@ -274,7 +320,7 @@ RSpec.describe 'Rack integration tests' do
             allow(negotiation).to receive(:endpoint?).and_return(true)
             allow(worker).to receive(:call).and_call_original
             allow(client).to receive(:sync).and_raise(exception, 'test')
-            allow(Datadog.logger).to receive(:error).and_return(nil)
+            allow(logger).to receive(:error).and_return(nil)
           end
 
           it 'has boot tags' do
@@ -350,7 +396,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 404')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -375,16 +421,34 @@ RSpec.describe 'Rack integration tests' do
           map '/success/' do
             run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
           end
-        end
-      end
 
-      before do
-        is_expected.to be_ok
-        expect(spans).to have(1).items
+          map '/requestdownstream' do
+            run(
+              proc do |_env|
+                uri = URI('http://localhost:3000/returnheaders')
+                ext_request = nil
+                ext_response = nil
+
+                Net::HTTP.start(uri.host, uri.port) do |http|
+                  ext_request = Net::HTTP::Get.new(uri)
+
+                  ext_response = http.request(ext_request)
+                end
+
+                [200, { 'Content-Type' => 'application/json' }, [ext_response.body]]
+              end
+            )
+          end
+        end
       end
 
       describe 'GET request' do
         subject(:response) { get route }
+
+        before do
+          is_expected.to be_ok
+          expect(spans).to have(1).items
+        end
 
         context 'without parameters' do
           let(:route) { '/success/' }
@@ -556,12 +620,17 @@ RSpec.describe 'Rack integration tests' do
       describe 'POST request' do
         subject(:response) { post route }
 
+        before do
+          is_expected.to be_ok
+          expect(spans).to have(1).items
+        end
+
         context 'without parameters' do
           let(:route) { '/success/' }
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('POST 200')
             expect(span.get_tag('http.method')).to eq('POST')
@@ -579,6 +648,141 @@ RSpec.describe 'Rack integration tests' do
           end
         end
       end
+
+      describe 'APM disablement' do
+        before do
+          is_expected.to be_ok
+        end
+
+        let(:url) { '/requestdownstream' }
+        let(:params) { {} }
+        let(:headers) do
+          {
+            'HTTP_X_DATADOG_TRACE_ID' => headers_trace_id,
+            'HTTP_X_DATADOG_PARENT_ID' => headers_parent_id,
+            'HTTP_X_DATADOG_SAMPLING_PRIORITY' => headers_sampling_priority,
+            'HTTP_X_DATADOG_ORIGIN' => headers_origin,
+            'HTTP_X_DATADOG_TAGS' => headers_tags,
+            'HTTP_USER_AGENT' => user_agent
+          }
+        end
+        let(:env) { headers }
+
+        # Default values for headers
+        let(:headers_trace_id) { '1212121212121212121' }
+        let(:headers_parent_id) { '34343434' }
+        let(:headers_origin) { 'rum' }
+        let(:headers_sampling_priority) { '-1' }
+        let(:headers_tags) { '_dd.p.other=1' }
+        let(:user_agent) { nil }
+
+        # Overwrite tracer_helpers span method as in our case we also instrument http
+        let(:span) do
+          Datadog::Tracing::Transport::TraceFormatter.format!(traces.last)
+          spans.find { |s| s.name == 'rack.request' && s.get_tag('http.url') == '/requestdownstream' }
+        end
+
+        let(:apm_tracing_enabled) { false }
+        let(:instrument_http) { true }
+
+        context 'trace sent to agent with Datadog-Client-Computed-Stats header' do
+          # Agent mocked in top before block
+          subject(:response) do
+            clear_traces!
+            get '/success/'
+          end
+
+          it do
+            agent_settings = Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+              adapter: nil,
+              ssl: false,
+              uds_path: nil,
+              hostname: 'localhost',
+              port: 6218,
+              timeout_seconds: 30
+            )
+            agent_http_adapter = Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings)
+            agent_http_client = Datadog::Tracing::Transport::HTTP.default(
+              agent_settings: test_agent_settings,
+              logger: logger
+            ) do |t|
+              t.adapter agent_http_adapter
+            end
+            agent_return = agent_http_client.send_traces(traces)
+
+            expect(JSON.parse(agent_return.first.payload)['Datadog-Client-Computed-Stats']).to eq('yes')
+          end
+        end
+
+        context 'request contains propagated tags, trace sent without sampling priority set to FORCE_KEEP' do
+          subject(:response) do
+            clear_traces!
+            get '/success/'
+            get url, params, env
+          end
+
+          context 'from -1 sampling priority' do
+            it_behaves_like 'a trace with APM disablement tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x <= 0 }
+              }
+            it_behaves_like 'a request sent without propagated headers'
+          end
+
+          context 'from 0 sampling priority' do
+            let(:headers_sampling_priority) { '0' }
+
+            it_behaves_like 'a trace with APM disablement tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x <= 0 }
+              }
+            it_behaves_like 'a request sent without propagated headers'
+          end
+
+          context 'from 1 sampling priority' do
+            let(:headers_sampling_priority) { '1' }
+
+            it_behaves_like 'a trace with APM disablement tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x <= 0 }
+              }
+            it_behaves_like 'a request sent without propagated headers'
+          end
+
+          context 'from 2 sampling priority' do
+            let(:headers_sampling_priority) { '2' }
+
+            it_behaves_like 'a trace with APM disablement tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x <= 0 }
+              }
+            it_behaves_like 'a request sent without propagated headers'
+          end
+        end
+
+        context '2 heartbeat traces and 1 dropped trace' do
+          subject(:response) do
+            clear_traces!
+            get '/success/'
+            sleep(2)
+            get '/success/'
+            sleep(2)
+            get '/success/'
+          end
+
+          let(:env) { {} }
+
+          it do
+            expect(traces[0].sampling_priority).to eq(2)
+            expect(traces[1].sampling_priority).to eq(-1)
+            expect(traces[2].sampling_priority).to eq(2)
+          end
+        end
+      end
     end
 
     context 'when `request_queuing` enabled' do
@@ -590,46 +794,8 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      describe 'when request queueing includes the request time' do
-        let(:rack_options) { { request_queuing: :include_request } }
-
-        it 'creates web_server_span and rack span' do
-          get 'request_queuing_enabled',
-            nil,
-            { Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}" }
-
-          expect(trace.resource).to eq('GET 200')
-
-          expect(spans).to have(2).items
-
-          server_queue_span = spans[0]
-          rack_span = spans[1]
-
-          expect(server_queue_span).to be_root_span
-          expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_SERVER_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
-          expect(server_queue_span.service).to eq('web-server')
-          expect(server_queue_span.resource).to eq('http_server.queue')
-          expect(server_queue_span.get_tag('component')).to eq('rack')
-          expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.status).to eq(0)
-          expect(server_queue_span.get_tag('span.kind')).to eq('server')
-
-          expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
-          expect(rack_span.service).to eq(tracer.default_service)
-          expect(rack_span.resource).to eq('GET 200')
-          expect(rack_span.get_tag('http.method')).to eq('GET')
-          expect(rack_span.get_tag('http.status_code')).to eq('200')
-          expect(rack_span.status).to eq(0)
-          expect(rack_span.get_tag('component')).to eq('rack')
-          expect(rack_span.get_tag('operation')).to eq('request')
-          expect(rack_span.get_tag('span.kind')).to eq('server')
-        end
-      end
-
-      describe 'when request queueing excludes the request time' do
-        let(:rack_options) { { request_queuing: :exclude_request } }
+      describe 'when request queueing enabled' do
+        let(:rack_options) { { request_queuing: true } }
 
         it 'creates web_server_span and rack span' do
           get 'request_queuing_enabled',
@@ -646,7 +812,7 @@ RSpec.describe 'Rack integration tests' do
 
           expect(server_request_span).to be_root_span
           expect(server_request_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_REQUEST)
-          expect(server_request_span.span_type).to eq('proxy')
+          expect(server_request_span.type).to eq('proxy')
           expect(server_request_span.service).to eq('web-server')
           expect(server_request_span.resource).to eq('http.proxy.request')
           expect(server_request_span.get_tag('component')).to eq('http_proxy')
@@ -655,7 +821,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_request_span.get_tag('span.kind')).to eq('proxy')
 
           expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
+          expect(server_queue_span.type).to eq('proxy')
           expect(server_queue_span.service).to eq('web-server')
           expect(server_queue_span.resource).to eq('http.proxy.queue')
           expect(server_queue_span.get_tag('component')).to eq('http_proxy')
@@ -665,7 +831,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span).to be_measured
 
           expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
+          expect(rack_span.type).to eq('web')
           expect(rack_span.service).to eq(tracer.default_service)
           expect(rack_span.resource).to eq('GET 200')
           expect(rack_span.get_tag('http.method')).to eq('GET')
@@ -697,7 +863,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 400')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -735,7 +901,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 500')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -775,7 +941,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -816,7 +982,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -876,7 +1042,7 @@ RSpec.describe 'Rack integration tests' do
               expect(trace.resource).to eq('GET /app/')
 
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
+              expect(span.type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET /app/')
               expect(span.get_tag('http.method')).to eq('GET_V2')
@@ -896,65 +1062,8 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      context 'when `request_queuing` enabled with `:include_request` and trace resource overwritten by nested app' do
-        let(:rack_options) { { request_queuing: :include_request } }
-        let(:routes) do
-          proc do
-            map '/resource_override' do
-              run(
-                proc do |_env|
-                  Datadog::Tracing.trace('nested_app', resource: 'UserController#show') do |span_op, trace_op|
-                    trace_op.resource = span_op.resource
-
-                    [200, { 'Content-Type' => 'text/html' }, ['OK']]
-                  end
-                end
-              )
-            end
-          end
-        end
-
-        it 'creates a web_server span and rack span with resource overriden' do
-          get '/resource_override',
-            nil,
-            { Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}" }
-
-          expect(trace.resource).to eq('UserController#show')
-
-          expect(spans).to have(3).items
-
-          server_queue_span = spans[0]
-          rack_span = spans[2]
-          nested_app_span = spans[1]
-
-          expect(server_queue_span).to be_root_span
-          expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_SERVER_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
-          expect(server_queue_span.service).to eq('web-server')
-          expect(server_queue_span.resource).to eq('http_server.queue')
-          expect(server_queue_span.get_tag('component')).to eq('rack')
-          expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.status).to eq(0)
-          expect(server_queue_span.get_tag('span.kind')).to eq('server')
-
-          expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
-          expect(rack_span.service).to eq(tracer.default_service)
-          expect(rack_span.resource).to eq('UserController#show')
-          expect(rack_span.get_tag('http.method')).to eq('GET')
-          expect(rack_span.get_tag('http.status_code')).to eq('200')
-          expect(rack_span.status).to eq(0)
-          expect(rack_span.get_tag('component')).to eq('rack')
-          expect(rack_span.get_tag('operation')).to eq('request')
-          expect(rack_span.get_tag('span.kind')).to eq('server')
-
-          expect(nested_app_span.name).to eq('nested_app')
-          expect(nested_app_span.resource).to eq('UserController#show')
-        end
-      end
-
-      context 'when `request_queuing` enabled with `:exclude_request` and trace resource overwritten by nested app' do
-        let(:rack_options) { { request_queuing: :exclude_request } }
+      context 'when `request_queuing` enabled and trace resource overwritten by nested app' do
+        let(:rack_options) { { request_queuing: true } }
         let(:routes) do
           proc do
             map '/resource_override' do
@@ -987,7 +1096,7 @@ RSpec.describe 'Rack integration tests' do
 
           expect(server_request_span).to be_root_span
           expect(server_request_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_REQUEST)
-          expect(server_request_span.span_type).to eq('proxy')
+          expect(server_request_span.type).to eq('proxy')
           expect(server_request_span.service).to eq('web-server')
           expect(server_request_span.resource).to eq('http.proxy.request')
           expect(server_request_span.get_tag('component')).to eq('http_proxy')
@@ -996,7 +1105,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_request_span.get_tag('span.kind')).to eq('proxy')
 
           expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
+          expect(server_queue_span.type).to eq('proxy')
           expect(server_queue_span.service).to eq('web-server')
           expect(server_queue_span.resource).to eq('http.proxy.queue')
           expect(server_queue_span.get_tag('component')).to eq('http_proxy')
@@ -1006,7 +1115,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span).to be_measured
 
           expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
+          expect(rack_span.type).to eq('web')
           expect(rack_span.service).to eq(tracer.default_service)
           expect(rack_span.resource).to eq('UserController#show')
           expect(rack_span.get_tag('http.method')).to eq('GET')
@@ -1051,7 +1160,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
+              expect(span.type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -1094,7 +1203,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
+              expect(span.type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -1350,7 +1459,7 @@ RSpec.describe 'Rack integration tests' do
 
         expect(span).to be_root_span
         expect(span.name).to eq('rack.request')
-        expect(span.span_type).to eq('web')
+        expect(span.type).to eq('web')
         expect(span.service).to eq(tracer.default_service)
         expect(span.resource).to eq('POST 200')
         expect(span.get_tag('http.method')).to eq('POST')

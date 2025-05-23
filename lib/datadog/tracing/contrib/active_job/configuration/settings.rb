@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../../../span_operation'
 require_relative '../ext'
 require_relative '../../configuration/settings'
 
@@ -32,10 +31,6 @@ module Datadog
             end
 
             option :service_name
-            option :error_handler do |o|
-              o.type :proc
-              o.default_proc(&Tracing::SpanOperation::Events::DEFAULT_ON_ERROR)
-            end
           end
         end
       end

@@ -1,0 +1,137 @@
+module Datadog
+  module AppSec
+    # rubocop:disable Metrics/ModuleLength
+    module WAF
+      # retain logging proc if set properly
+      self.@log_callback: untyped
+
+      self.@logger: untyped
+
+      def self.version: () -> untyped
+
+      # rubocop:disable Metrics/MethodLength,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
+      def self.ruby_to_object: (untyped val, ?max_container_size: untyped?, ?max_container_depth: untyped?, ?max_string_length: untyped?, ?coerce: bool) -> untyped
+
+      def self.object_to_ruby: (untyped obj) -> untyped
+
+      def self.log_callback: (untyped level, untyped func, untyped file, untyped line, untyped message, untyped len) -> (nil | untyped)
+
+      def self.logger: () -> untyped
+
+      def self.logger=: (untyped logger) -> untyped
+
+      RESULT_CODE: { ddwaf_err_internal: :err_internal, ddwaf_err_invalid_object: :err_invalid_object, ddwaf_err_invalid_argument: :err_invalid_argument, ddwaf_ok: :ok, ddwaf_match: :match }
+
+      module LibDDWAF
+        class Error < StandardError
+          @diagnostics: untyped
+
+          attr_reader diagnostics: untyped
+
+          def initialize: (untyped msg, ?diagnostics: untyped?) -> void
+        end
+
+        class Object
+        end
+
+        DDWAF_RUN_TIMEOUT: untyped
+      end
+
+      class Handle
+        @config: untyped
+
+        @handle_obj: untyped
+
+        @diagnostics: untyped
+
+        @valid: untyped
+
+        attr_reader handle_obj: untyped
+
+        attr_reader diagnostics: untyped
+
+        attr_reader config: untyped
+
+        def initialize: (untyped rule, ?limits: ::Hash[untyped, untyped], ?obfuscator: ::Hash[untyped, untyped]) -> void
+
+        def finalize: () -> untyped
+
+        def required_addresses: () -> (::Array[untyped] | untyped)
+
+        def merge: (untyped data) -> untyped
+
+        private
+
+        def new_from_handle: (untyped handle_object, untyped diagnostics, untyped config) -> untyped
+
+        def validate!: () -> untyped
+
+        def invalidate!: () -> untyped
+
+        def valid?: () -> untyped
+
+        def valid!: () -> (nil | untyped)
+      end
+
+      class Result
+        @status: untyped
+
+        @events: untyped
+
+        @total_runtime: untyped
+
+        @timeout: untyped
+
+        @actions: untyped
+
+        @derivatives: untyped
+
+        attr_reader status: untyped
+
+        attr_reader events: untyped
+
+        attr_reader total_runtime: untyped
+
+        attr_reader timeout: untyped
+
+        attr_reader actions: untyped
+
+        attr_reader derivatives: untyped
+
+        def initialize: (untyped status, untyped events, untyped total_runtime, untyped timeout, untyped actions, untyped derivatives) -> void
+      end
+
+      class Context
+        @context_obj: untyped
+
+        @valid: untyped
+
+        @retained: untyped
+
+        attr_reader context_obj: untyped
+
+        def initialize: (untyped handle) -> void
+
+        def finalize: () -> untyped
+
+        def run: (untyped persistent_data, untyped ephemeral_data, ?untyped timeout) -> untyped
+
+        private
+
+        def validate!: () -> untyped
+
+        def invalidate!: () -> untyped
+
+        def valid?: () -> untyped
+
+        def valid!: () -> (nil | untyped)
+
+        def retained: () -> untyped
+
+        def retain: (untyped object) -> untyped
+
+        def release: (untyped object) -> untyped
+      end
+    end
+  end
+end

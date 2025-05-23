@@ -33,6 +33,7 @@ module Datadog
             end
 
             option :service_name do |o|
+              o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,
@@ -45,6 +46,11 @@ module Datadog
               o.type :string
               o.env Contrib::Propagation::SqlComment::Ext::ENV_DBM_PROPAGATION_MODE
               o.default Contrib::Propagation::SqlComment::Ext::DISABLED
+            end
+
+            option :append_comment do |o|
+              o.type :bool
+              o.default false
             end
 
             option :peer_service do |o|

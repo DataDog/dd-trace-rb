@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Profiling
     # Profiling entry point, which coordinates the worker and scheduler threads
@@ -26,7 +28,7 @@ module Datadog
       end
 
       def shutdown!
-        Datadog.logger.debug('Shutting down profiler')
+        Datadog.logger.debug("Shutting down profiler")
 
         stop_worker
         stop_scheduler
@@ -46,10 +48,14 @@ module Datadog
       def component_failed(failed_component)
         Datadog.logger.warn(
           "Detected issue with profiler (#{failed_component} component), stopping profiling. " \
-          'See previous log messages for details.'
+          "See previous log messages for details."
         )
 
+        # We explicitly not stop the crash tracker in this situation, under the assumption that, if a component failed,
+        # we're operating in a degraded state and crash tracking may still be helpful.
+
         if failed_component == :worker
+          scheduler.mark_profiler_failed
           stop_scheduler
         elsif failed_component == :scheduler
           stop_worker

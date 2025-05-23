@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../integration'
 require_relative 'configuration/settings'
 require_relative 'patcher'
@@ -14,6 +16,9 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :rest_client
+          def self.gem_name
+            'rest-client'
+          end
 
           def self.version
             Gem.loaded_specs['rest-client'] && Gem.loaded_specs['rest-client'].version

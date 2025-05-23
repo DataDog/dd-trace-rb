@@ -13,7 +13,7 @@ require 'datadog/tracing/transport/trace_formatter'
 RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
   subject(:trace_formatter) { described_class.new(trace) }
   let(:trace_options) { { id: trace_id } }
-  let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
+  let(:trace_id) { 0xa3efc9f3333333334d39dacf84ab3fe }
 
   shared_context 'trace metadata' do
     let(:trace_tags) do
@@ -199,7 +199,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
               {
                 'foo' => 'bar',
                 '_dd.p.dm' => '-1',
-                '_dd.p.tid' => high_order_hex_trace_id(trace_id),
+                '_dd.p.tid' => '0a3efc9f33333333',
               }
             )
           end

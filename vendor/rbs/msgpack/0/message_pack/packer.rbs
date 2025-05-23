@@ -1,0 +1,77 @@
+module MessagePack
+  class Packer
+    def buffer: () -> untyped
+
+    alias clear reset
+
+    def compatibility_mode?: () -> untyped
+
+    def empty?: () -> untyped
+
+    def flush: () -> untyped
+
+    def full_pack: () -> untyped
+
+    alias pack write
+
+    def register_type: (untyped type, untyped klass, ?untyped method_name) { (*untyped) -> untyped } -> untyped
+
+    def register_type_internal: (untyped, untyped, untyped) -> untyped
+
+    def registered_types: () -> untyped
+
+    def reset: () -> untyped
+
+    def size: () -> untyped
+
+    def to_a: () -> untyped
+
+    alias to_s to_str
+
+    def to_str: () -> untyped
+
+    def type_registered?: (untyped klass_or_type) -> untyped
+
+    def write: (untyped) -> untyped
+
+    def write_array: (untyped) -> untyped
+
+    def write_array_header: (untyped) -> untyped
+
+    def write_bin: (untyped) -> untyped
+
+    def write_bin_header: (untyped) -> untyped
+
+    def write_ext: (untyped, untyped) -> untyped
+
+    def write_extension: (untyped) -> untyped
+
+    def write_false: () -> untyped
+
+    def write_float: (untyped) -> untyped
+
+    def write_float32: (untyped) -> untyped
+
+    def write_hash: (untyped) -> untyped
+
+    def write_int: (untyped) -> untyped
+
+    def write_map_header: (untyped) -> untyped
+
+    def write_nil: () -> untyped
+
+    def write_string: (untyped) -> untyped
+
+    def write_symbol: (untyped) -> untyped
+
+    def write_to: (untyped) -> untyped
+
+    def write_true: () -> untyped
+
+    private
+
+    def initialize: (*untyped) -> void
+
+    def registered_types_internal: () -> untyped
+  end
+end

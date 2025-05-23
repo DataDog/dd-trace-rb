@@ -9,9 +9,20 @@ RSpec.describe Datadog::Tracing::Component do
       let(:writer) { double('writer') }
       let(:responses) { [double('response')] }
 
+      before do
+        Datadog::Tracing::Component::WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+      end
+
       it 'invokes the environment logger with responses' do
         expect(Datadog::Tracing::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!).with(responses: responses)
         call
+      end
+
+      it 'invokes the environment logger only once' do
+        expect(Datadog::Tracing::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!).once
+
+        described_class.call(writer, responses)
+        described_class.call(writer, responses)
       end
     end
   end

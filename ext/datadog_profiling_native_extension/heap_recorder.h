@@ -17,7 +17,7 @@
 typedef struct heap_recorder heap_recorder;
 
 // Extra data associated with each live object being tracked.
-typedef struct live_object_data {
+typedef struct {
   // The weight of this object from a sampling perspective.
   //
   // A notion of weight is preserved for each tracked object to allow for an approximate
@@ -27,7 +27,9 @@ typedef struct live_object_data {
   //          could be seen as being representative of 50 objects.
   unsigned int weight;
 
-  // Size of this object on last flush/update.
+  // Size of this object in memory.
+  // NOTE: This only gets updated during heap_recorder_prepare_iteration and only
+  //       for those objects that meet the minimum iteration age requirements.
   size_t size;
 
   // The class of the object that we're tracking.
@@ -38,6 +40,10 @@ typedef struct live_object_data {
   //
   // This enables us to calculate the age of this object in terms of GC executions.
   size_t alloc_gen;
+
+  // The age of this object in terms of GC generations.
+  // NOTE: This only gets updated during heap_recorder_prepare_iteration
+  size_t gen_age;
 
   // Whether this object was previously seen as being frozen. If this is the case,
   // we'll skip any further size updates since frozen objects are supposed to be
@@ -99,7 +105,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 //   The sampling weight of this object.
 //
 // WARN: It needs to be paired with a ::end_heap_allocation_recording call.
-void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class);
+void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class);
 
 // End a previously started heap allocation recording on the heap recorder.
 //
@@ -108,7 +114,14 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // @param locations The stacktrace representing the location of the allocation.
 //
 // WARN: It is illegal to call this without previously having called ::start_heap_allocation_recording.
-void end_heap_allocation_recording(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
+// WARN: This method rescues exceptions with `rb_protect`, returning the exception state integer for the caller to handle.
+__attribute__((warn_unused_result))
+int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
+
+// Update the heap recorder, **checking young objects only**. The idea here is to align with GC: most young objects never
+// survive enough GC generations, and thus periodically running this method reduces memory usage (we get rid of
+// these objects quicker) and hopefully reduces tail latency (because there's less objects at serialization time to check).
+void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
 
 // Update the heap recorder to reflect the latest state of the VM and prepare internal structures
 // for efficient iteration.
@@ -144,6 +157,11 @@ bool heap_recorder_for_each_live_object(
     bool (*for_each_callback)(heap_recorder_iteration_data data, void* extra_arg),
     void *for_each_callback_extra_arg);
 
+// Return a Ruby hash containing a snapshot of this recorder's interesting state at calling time.
+// WARN: This allocates in the Ruby VM and therefore should not be called without the
+//       VM lock or during GC.
+VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder);
+
 // v--- TEST-ONLY APIs ---v
 
 // Assert internal hashing logic is valid for the provided locations and its
@@ -153,3 +171,9 @@ void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locatio
 // Returns a Ruby string with a representation of internal data helpful to
 // troubleshoot issues such as unexpected test failures.
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder);
+
+// Check if a given object_id is being tracked or not
+VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VALUE obj_id);
+
+// Used to ensure that a GC actually triggers an update of the objects
+void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);

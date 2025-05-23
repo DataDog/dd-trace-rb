@@ -1,0 +1,71 @@
+name: "Bug Report (Low Priority)"
+description: "Create a public Bug Report. Note that these may not be addressed as quickly as the helpdesk and that looking up account information will be difficult."
+title: "[BUG]: "
+labels: community, bug
+body:
+  - type: input
+    attributes:
+      label: Tracer Version(s)
+      description: "Version(s) of the tracer affected by this bug"
+      placeholder: "1.23.4, 2.8.0"
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Ruby Version(s)
+      description: "Version(s) of Ruby (`ruby --version`) that you've encountered this bug with"
+      placeholder: "ruby 2.7.5p203 (2021-11-24 revision f69aeb8314) [arm64-darwin21]"
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Relevent Library and Version(s)
+      description: "The name of a library and version(s) that you've encountered this bug with"
+      placeholder: "mysql 2.9.1"
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Bug Report
+      description: Please add a clear and concise description of the bug here
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Reproduction Code
+      description: Please add code here to help us reproduce the problem
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Configuration Block
+      description: How is your tracer configured, e.g. `Datadog.configure ...`
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Error Logs
+      description: "Please provide any error logs from the tracer (`DD_TRACE_DEBUG=true` can help)"
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Operating System
+      description: "Provide your operating system and version (e.g. `uname -a`)"
+      placeholder: Darwin Kernel Version 23.6.0
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: How does Datadog help you?
+      description: "Optionally, tell us why and how you're using datadog, and what your overall experience with it is!"
+    validations:
+      required: false

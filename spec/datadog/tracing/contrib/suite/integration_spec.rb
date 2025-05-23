@@ -1,14 +1,18 @@
+require 'datadog/core/utils/base64'
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 # For testing dynamic configuration
 require 'semantic_logger'
 
 require 'rack'
 # `Rack::Handler::WEBrick` was extracted to the `rackup` gem in Rack 3.0
-require 'rackup' if Rack::VERSION[0] >= 3
+require 'rackup/handler/webrick' if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new('3')
 require 'webrick'
+
+# https://github.com/rubocop/rubocop-rspec/issues/2078
+# rubocop:disable RSpec/ScatteredLet
 
 RSpec.describe 'contrib integration testing', :integration do
   around do |example|
@@ -72,7 +76,7 @@ RSpec.describe 'contrib integration testing', :integration do
 
         target_files << {
           'path' => target,
-          'raw' => Base64.strict_encode64(raw),
+          'raw' => Datadog::Core::Utils::Base64.strict_encode64(raw),
         }
 
         targets_targets[target] = {
@@ -85,7 +89,7 @@ RSpec.describe 'contrib integration testing', :integration do
 
       {
         'target_files' => target_files,
-        'targets' => Base64.strict_encode64(targets.to_json),
+        'targets' => Datadog::Core::Utils::Base64.strict_encode64(targets.to_json),
         'client_configs' => client_configs,
       }.to_json
     end
@@ -142,20 +146,7 @@ RSpec.describe 'contrib integration testing', :integration do
 
       context 'for tracing_header_tags' do
         let(:tracing_header_tags) { [{ 'header' => 'test-header', 'tag_name' => '' }] }
-        let(:port) { @port }
-        let!(:rack) do
-          started = false
-          server = WEBrick::HTTPServer.new(
-            Port: 0,
-            StartCallback: lambda {
-              started = true
-            },
-            Logger: WEBrick::Log.new(StringIO.new)
-          )
-
-          # Find resolved local port
-          @port = server.config[:Port]
-
+        http_server do |http_server|
           app = Rack::Builder.new do
             use Datadog::Tracing::Contrib::Rack::TraceMiddleware
             map '/' do
@@ -163,26 +154,20 @@ RSpec.describe 'contrib integration testing', :integration do
             end
           end.to_app
 
-          server.mount '/', Rack::Handler::WEBrick, app
-
-          @thread = Thread.new { server.start }
-          try_wait_until { started }
-
-          server
+          if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new('3')
+            http_server.mount '/', Rackup::Handler::WEBrick, app
+          else
+            http_server.mount '/', Rack::Handler::WEBrick, app
+          end
         end
 
-        let(:uri) { URI("http://localhost:#{port}/") }
+        let(:uri) { URI("http://localhost:#{http_server_port}/") }
         let(:request) { Net::HTTP::Get.new(uri, { 'test-header' => 'test-request' }) }
 
         before do
           Datadog.configure do |c|
             c.tracing.instrument :http
           end
-        end
-
-        after do
-          rack.shutdown
-          @thread.kill
         end
 
         it 'changes the HTTP header tagging for span' do
@@ -277,3 +262,5 @@ RSpec.describe 'contrib integration testing', :integration do
     end
   end
 end
+
+# rubocop:enable RSpec/ScatteredLet

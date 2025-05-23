@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
 require_relative '../ext'
@@ -12,7 +14,7 @@ module Datadog
           module Discard
             include ActiveJob::Event
 
-            EVENT_NAME = 'discard.active_job'.freeze
+            EVENT_NAME = 'discard.active_job'
 
             module_function
 
@@ -24,7 +26,7 @@ module Datadog
               Ext::SPAN_DISCARD
             end
 
-            def process(span, event, _id, payload)
+            def on_start(span, event, _id, payload)
               span.name = span_name
               span.service = configuration[:service_name] if configuration[:service_name]
               span.resource = payload[:job].class.name

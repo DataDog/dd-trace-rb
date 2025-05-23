@@ -1,6 +1,6 @@
 require 'hanami/helpers'
 require 'hanami/assets'
-require 'ddtrace'
+require 'datadog'
 require_relative './controllers/fibonacci'
 
 module Acme

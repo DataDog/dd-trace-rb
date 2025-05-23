@@ -22,10 +22,22 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
         it_behaves_like 'sampler with sample rate', 1.0 do
           let(:trace) { nil }
         end
+
+        it do
+          expect(Datadog.logger).to receive(:warn).with('sample rate is not between 0 and 1, falling back to 1')
+
+          sampler
+        end
       end
 
       context 'that is 0' do
         let(:sample_rate) { 0.0 }
+
+        it_behaves_like 'sampler with sample rate', 0.0
+      end
+
+      context 'that is 1' do
+        let(:sample_rate) { 1.0 }
 
         it_behaves_like 'sampler with sample rate', 1.0
       end
@@ -40,6 +52,12 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
         let(:sample_rate) { 1.5 }
 
         it_behaves_like 'sampler with sample rate', 1.0
+
+        it do
+          expect(Datadog.logger).to receive(:warn).with('sample rate is not between 0 and 1, falling back to 1')
+
+          sampler
+        end
       end
     end
   end
@@ -58,12 +76,13 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
       let(:expected_num_of_sampled_traces) { trace_count * sample_rate }
 
       it 'samples an appropriate proportion of span operations' do
-        traces.each do |trace|
+        sample = traces.map do |trace|
           sampled = sampler.sample!(trace)
           expect(trace.sample_rate).to eq(sample_rate) if sampled
+          sampled
         end
 
-        expect(traces.count(&:sampled?)).to be_within(expected_num_of_sampled_traces * 0.1)
+        expect(sample.count(&:itself)).to be_within(expected_num_of_sampled_traces * 0.1)
           .of(expected_num_of_sampled_traces)
       end
     end

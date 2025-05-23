@@ -4,7 +4,7 @@ require 'rails'
 require 'active_support'
 require 'spec/datadog/tracing/contrib/action_mailer/helpers'
 require 'datadog/tracing/contrib/action_mailer/integration'
-require 'ddtrace'
+require 'datadog'
 
 begin
   require 'action_mailer'
@@ -61,7 +61,7 @@ RSpec.describe 'ActionMailer patcher' do
         expect(span.resource).to eq(mailer)
         expect(span.get_tag('action_mailer.action')).to eq(action)
         expect(span.get_tag('action_mailer.mailer')).to eq(mailer)
-        expect(span.span_type).to eq('template')
+        expect(span.type).to eq('template')
         expect(span.status).to_not eq(Datadog::Tracing::Metadata::Ext::Errors::STATUS)
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('action_mailer')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
@@ -74,7 +74,7 @@ RSpec.describe 'ActionMailer patcher' do
         expect(deliver_span.name).to eq('action_mailer.deliver')
         expect(deliver_span.resource).to eq(mailer)
         expect(deliver_span.get_tag('action_mailer.mailer')).to eq(mailer)
-        expect(deliver_span.span_type).to eq('worker')
+        expect(deliver_span.type).to eq('worker')
         expect(deliver_span.get_tag('action_mailer.message_id')).to_not be nil
         expect(deliver_span.status).to_not eq(Datadog::Tracing::Metadata::Ext::Errors::STATUS)
         expect(deliver_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('action_mailer')
@@ -100,7 +100,7 @@ RSpec.describe 'ActionMailer patcher' do
         expect(deliver_span.name).to eq('action_mailer.deliver')
         expect(deliver_span.resource).to eq(mailer)
         expect(deliver_span.get_tag('action_mailer.mailer')).to eq(mailer)
-        expect(deliver_span.span_type).to eq('worker')
+        expect(deliver_span.type).to eq('worker')
         expect(deliver_span.get_tag('action_mailer.message_id')).to_not be nil
         expect(deliver_span.status).to_not eq(Datadog::Tracing::Metadata::Ext::Errors::STATUS)
         expect(deliver_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('action_mailer')

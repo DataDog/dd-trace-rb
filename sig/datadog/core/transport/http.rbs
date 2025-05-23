@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        def self?.build: (api_instance_class: untyped, agent_settings: untyped, logger: untyped, ?api_version: untyped?, ?headers: untyped?) { (untyped) -> untyped } -> HTTP::Builder
+
+        def self?.default_headers: () -> untyped
+      end
+    end
+  end
+end

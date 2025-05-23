@@ -10,9 +10,9 @@ module Datadog
 
             attr_reader headers: untyped
 
-            attr_reader active_context: Datadog::AppSec::Processor::Context
+            attr_reader context: AppSec::Context
 
-            def initialize: (untyped body, untyped status, untyped headers, active_context: Datadog::AppSec::Processor::Context) -> void
+            def initialize: (untyped body, untyped status, untyped headers, context: AppSec::Context) -> void
 
             def response: () -> untyped
           end

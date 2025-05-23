@@ -9,11 +9,13 @@ module Datadog
 
         # Gateway User argument
         class User < Argument
-          attr_reader :id
+          attr_reader :id, :login
 
-          def initialize(id)
+          def initialize(id, login)
             super()
+
             @id = id
+            @login = login
           end
         end
       end

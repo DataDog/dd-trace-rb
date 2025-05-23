@@ -42,7 +42,7 @@ module Datadog
 
           data[@trace_id_key] = Tracing::Utils::TraceId.to_low_order(digest.trace_id).to_s
 
-          data[@parent_id_key] = digest.span_id.to_s
+          data[@parent_id_key] = digest.span_id.to_s if digest.span_id
           data[@sampling_priority_key] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
           data[@origin_key] = digest.trace_origin.to_s if digest.trace_origin
 
@@ -79,6 +79,7 @@ module Datadog
             trace_origin: origin,
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: trace_distributed_tags,
+            span_remote: true,
           )
         end
 
@@ -108,13 +109,15 @@ module Datadog
 
           return tags if high_order == 0
 
-          tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => high_order.to_s(16))
+          tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => format('%016x', high_order))
         end
 
         # Side effect: Remove high order 64 bit hex-encoded `tid` tag from distributed tags
         def extract_trace_id!(trace_id, tags)
           return trace_id unless tags
           return trace_id unless (high_order = tags.delete(Tracing::Metadata::Ext::Distributed::TAG_TID))
+          return trace_id unless high_order.size == 16
+          return trace_id unless /\A[0-9a-f]+\z/i.match?(high_order)
 
           Tracing::Utils::TraceId.concatenate(high_order.to_i(16), trace_id)
         end
@@ -123,7 +126,7 @@ module Datadog
         #
         # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
         # DEV: This means errors cannot be reported if there's not active span.
-        # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
+        # DEV: Ideally, we'd have a dedicated error reporting stream for all of datadog.
         def inject_tags!(tags, data)
           return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
 
@@ -147,7 +150,7 @@ module Datadog
         #
         # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
         # DEV: This means errors cannot be reported if there's not active span.
-        # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
+        # DEV: Ideally, we'd have a dedicated error reporting stream for all of datadog.
         def extract_tags(fetcher)
           tags = fetcher[@tags_key]
 

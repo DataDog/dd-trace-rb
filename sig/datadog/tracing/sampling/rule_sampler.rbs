@@ -13,6 +13,8 @@ module Datadog
         def sample!: (untyped trace) -> untyped
         def update: (*untyped args, **untyped kwargs) -> (false | untyped)
 
+        def self.parse: (Array[Hash[Symbol, untyped]] rules, Float rate_limit, Float default_sample_rate) -> RuleSampler?
+
         private
 
         def sample_trace: (untyped trace) { (untyped) -> untyped } -> untyped

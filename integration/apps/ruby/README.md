@@ -10,7 +10,7 @@ Install [direnv](https://github.com/direnv/direnv) for applying local settings.
 
 1. `cp .envrc.sample .envrc` and add your Datadog API key.
 2. `direnv allow` to load the env var.
-4. `docker-compose run --rm app bin/setup`
+3. `docker-compose run --rm app bin/setup`
 
 ## Running the application
 
@@ -78,7 +78,7 @@ e.g. `DD_DEMO_ENV_FEATURES=tracing,profiling`
 
 ### Running integration tests
 
-You can run integration tests using the following and substituting for the Ruby major and minor version (e.g. `2.7`)
+You can run integration tests using the following and substituting for the Ruby major and minor version (e.g. `2.7`). Currently, this integration test has nothing to do in CI, and there are no Ruby tests in `/bin/test`.
 
 ```sh
 ./script/build-images -v <RUBY_VERSION>

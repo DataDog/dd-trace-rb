@@ -26,6 +26,10 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
     before { registry.add(integration_name, integration) }
   end
 
+  before do
+    allow(Datadog.logger).to receive(:warn)
+  end
+
   context 'for' do
     describe Datadog do
       describe '#configure' do
@@ -46,7 +50,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             end
 
             it 'sends a telemetry integrations change event' do
-              expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+              expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:integrations_change!)
               configure
             end
           end
@@ -87,6 +91,30 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
                 let(:env_var) { 'key:value' }
 
                 it { is_expected.to eq({ 'key' => 'value' }) }
+              end
+            end
+          end
+
+          describe '#peer_service_defaults' do
+            subject { settings.contrib.peer_service_defaults }
+
+            context 'when given environment variable DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' do
+              around do |example|
+                ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => env_var) do
+                  example.run
+                end
+              end
+
+              context 'is not defined' do
+                let(:env_var) { nil }
+
+                it { is_expected.to be false }
+              end
+
+              context 'is defined' do
+                let(:env_var) { 'true' }
+
+                it { is_expected.to be true }
               end
             end
           end
@@ -245,79 +273,10 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           end
         end
 
-        describe '#use' do
-          subject(:result) { settings.send(:use, integration_name, options) }
+        describe '#instrumented_integrations' do
+          subject(:instrumented_integrations) { settings.instrumented_integrations }
 
-          let(:options) { {} }
-
-          context 'for a generic integration' do
-            include_context 'registry with integration'
-
-            before do
-              expect(integration).to receive(:configure).with(:default, options).and_return([])
-              expect(integration).to_not receive(:patch)
-            end
-
-            it do
-              expect { result }.to_not raise_error
-              expect(settings.integrations_pending_activation).to include(integration)
-              expect(settings.instrumented_integrations).to include(integration_name => integration)
-            end
-          end
-
-          context 'for an integration that includes Datadog::Tracing::Contrib::Integration' do
-            include_context 'registry with integration' do
-              let(:integration) do
-                integration_class.new(integration_name)
-              end
-
-              let(:integration_class) do
-                patcher_module
-
-                Class.new do
-                  include Datadog::Tracing::Contrib::Integration
-                  include Datadog::Tracing::Contrib::Configurable
-
-                  def self.version
-                    Gem::Version.new('0.1')
-                  end
-
-                  def patcher
-                    Patcher
-                  end
-                end
-              end
-
-              let(:patcher_module) do
-                stub_const(
-                  'Patcher',
-                  Module.new do
-                    include Datadog::Tracing::Contrib::Patcher
-
-                    def self.patch
-                      true
-                    end
-                  end
-                )
-              end
-            end
-
-            context 'which is provided only a name' do
-              it do
-                expect(integration).to receive(:configure).with(:default, {})
-                settings.send(:use, integration_name)
-              end
-            end
-
-            context 'which is provided a block' do
-              it do
-                expect(integration).to receive(:configure).with(:default, {}).and_call_original
-                expect { |b| settings.send(:use, integration_name, options, &b) }.to yield_with_args(
-                  a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings)
-                )
-              end
-            end
-          end
+          it { is_expected.to be_frozen }
         end
       end
     end

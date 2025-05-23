@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/statsd'
-require 'ddtrace'
+require 'datadog'
 
 require 'benchmark/ips'
 unless PlatformHelpers.jruby?
