@@ -7,7 +7,7 @@ module Datadog
   module Core
     module Telemetry
       # Collection of telemetry events
-      class Event
+      module Event
         extend Core::Utils::Forking
 
         # returns sequence that increments every time the configuration changes
