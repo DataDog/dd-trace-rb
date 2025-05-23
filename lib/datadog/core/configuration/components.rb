@@ -135,7 +135,7 @@ module Datadog
 
         # Starts up components
         def startup!(settings, old_state: nil)
-          telemetry.start
+          telemetry.start(old_state&.telemetry_enabled)
 
           if settings.profiling.enabled
             if profiler

@@ -16,6 +16,8 @@ module Datadog
     module Telemetry
       # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
       # Note: Telemetry does not spawn its worker thread in fork processes, thus no telemetry is sent in forked processes.
+      #
+      # @api private
       class Component
         attr_reader :enabled, :logger, :transport, :worker
 
@@ -101,10 +103,16 @@ module Datadog
           @worker&.enabled = false
         end
 
-        def start
+        def start(initial_event_is_change = false)
           return if !@enabled
 
-          @worker.start
+          initial_event = if initial_event_is_change
+            Event::AppStarted.new
+          else
+            Event::AppStarted.new
+          end
+
+          @worker.start(initial_event)
         end
 
         def shutdown!
