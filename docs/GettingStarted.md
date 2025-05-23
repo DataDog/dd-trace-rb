@@ -2794,11 +2794,11 @@ Alternatively, set error tracking parameters inside a `Datadog.configure` block 
 #### Include format
 
 `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` environment variable or the `c.error_tracking.handled_errors_include` setting should specify one or more of the following:
-* A file name. For example, `main` to instrument `main.rb`.
-* A folder name. For example, `subdir` to instrument every Ruby file in folders named `subdir`.
-* Gem name. For example, `rails` to instruments every Ruby file in the *rails* gem **and** any project subfolder named `rails`.
-* Absolute path. For example, `/app/lib/mypackage/main.rb` to instrument that file, or `/app/lib/mypackage/` to instrument every Ruby file in that folder.
-* Relative path. For example, for a programming running in the `app` directory, use `./lib/mypackage/main.rb` to instrument the `main.rb` file, or`./lib/mypackage/` to instrument every Ruby file in that folder.
+- A file name: For example, `main` to instrument `main.rb`.
+- A folder name: For example, `subdir` to instrument every Ruby file in folders named `subdir`.
+- Gem name: For example, `rails` to instruments every Ruby file in the *rails* gem **and** any project subfolder named `rails`.
+- Absolute path: For example, `/app/lib/mypackage/main.rb` to instrument that file, or `/app/lib/mypackage/` to instrument every Ruby file in that folder.
+- Relative path: For example, for a programming running in the `app` directory, use `./lib/mypackage/main.rb` to instrument the `main.rb` file, or`./lib/mypackage/` to instrument every Ruby file in that folder.
 
 
 ## Known issues and suggested configurations
