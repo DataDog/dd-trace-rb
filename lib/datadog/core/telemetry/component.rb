@@ -107,7 +107,7 @@ module Datadog
           return if !@enabled
 
           initial_event = if initial_event_is_change
-            Event::AppStarted.new
+            Event::SynthAppClientConfigurationChange.new
           else
             Event::AppStarted.new
           end
