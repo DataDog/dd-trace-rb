@@ -52,12 +52,15 @@ module Datadog
 
         attr_reader :logger
         attr_reader :initial_event_once
+        attr_reader :initial_event
 
         # Returns true if worker thread is successfully started,
         # false if worker thread was not started but telemetry is enabled,
         # nil if telemetry is disabled.
-        def start
+        def start(initial_event)
           return if !enabled? || forked?
+
+          @initial_event = initial_event
 
           # starts async worker
           # perform should return true if thread was actually started,
@@ -177,7 +180,7 @@ module Datadog
           return unless enabled?
 
           initial_event_once.run do
-            res = send_event(Event::AppStarted.new)
+            res = send_event(initial_event)
 
             if res.ok?
               logger.debug('Telemetry app-started event is successfully sent')
