@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module Telemetry
-      class Event
+      module Event
         class SynthAppClientConfigurationChange < AppStarted
           def type: () -> "app-client-configuration-change"
 
