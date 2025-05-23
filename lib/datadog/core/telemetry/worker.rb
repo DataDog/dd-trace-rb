@@ -197,7 +197,6 @@ module Datadog
           if failed_initial_event?
             logger.debug('Telemetry app-started event exhausted retries, disabling telemetry worker')
             disable!
-            return
           end
         end
 
