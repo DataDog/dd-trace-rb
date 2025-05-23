@@ -2774,7 +2774,7 @@ Without this flag, profiles for short-lived Resque jobs will not be available as
 #### Requirements
 
 - Ruby 2.7+. JRuby and TruffleRuby are not supported.
-- datadog 2.16.0+.
+- Datadog Ruby gem (`datadog`) v2.16.0+.
 
 #### Configuration
 
@@ -2782,22 +2782,24 @@ You can enable automatic reporting of handled errors using the following environ
 
 | Environment variable | Type | Description | Default |
 |---|---|---|---|
-| `DD_ERROR_TRACKING_HANDLED_ERRORS` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user,third_party,all`. | `nil` |
-| `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` | `Array[String]` | A list of comma-separated paths, file names, and gem names for which handled errors will be reported. Possible values are specified below. <br/> For Ruby 3.3 or newer, the location where the error was raised and where it was rescued will be matched. For earlier versions of Ruby, only the location where the error was raised can be matched.  | `[]` |
+| `DD_ERROR_TRACKING_HANDLED_ERRORS` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user, third_party, all`. | `nil` |
+| `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` | `Array[String]` | A comma-separated list of paths, file names, or gem names whose handled errors should be reported. See [Include Format](#include-format) for details. <br><br>Ruby 3.3 or later: the location where the error was rescued is matched.<br>Ruby 3.2 or earlier: the location where the error was raised is matched.  | `[]` |
 
-Alternatively, you can set error tracking parameters in code with these functions, inside a `Datadog.configure` block:
+Alternatively, set error tracking parameters inside a `Datadog.configure` block with the following settings:
 
-| Environment variable | Type | Description | Default |
+| Setting | Type | Description | Default |
 |---|---|---|---|
-| `c.error_tracking.handled_errors` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user,third_party,all`. | `nil` |
-| `c.error_tracking.handled_errors_include` | `Array[String]` | A list of comma-separated paths, file names, and gem names for which handled errors will be reported. Possible values are specified below. <br/> For Ruby 3.3 or newer, the location where the error was raised and where it was rescued will be matched. For earlier versions of Ruby, only the location where the error was raised can be matched.  | `[]` |
+| `c.error_tracking.handled_errors` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user, third_party, all`. | `nil` |
+| `c.error_tracking.handled_errors_include` | `Array[String]` | A comma-separated list of paths, file names, or gem names whose handled errors should be reported. See [Include Format](#include-format) for details. <br><br>Ruby 3.3 or later: the location where the error was rescued is matched.<br>Ruby 3.2 or earlier: the location where the error was raised is matched.  | `[]` |
 
-`DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` comma-separated values should be either:
-  * A file name, such as `main`: `main.rb` will be instrumented.
-  * A folder name, such as `mypackage`: Every Ruby file in folders named `mypackage` will be instrumented.
-  * A gem name: Every Ruby file in the gem will be instrumented. Be careful, if you specify, for example `rails`, and you have a subfolder named `rails` in your project, it will also be instrumented.
-  * An absolute path (a path beginning with `/`), for example, `/app/lib/mypackage/main.rb`. If you provide only `/app/lib/mypackage`, every Ruby file in that folder will be instrumented.
-  * A path relative to the current directory (a path beginning with `./`). For example, if you execute your program in `/app/`, you can provide `./lib/mypackage/main.rb`. If you provide a path like `./lib/mypackage/`, every Ruby file in this folder will be instrumented.
+#### Include format
+
+`DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` environment variable or the `c.error_tracking.handled_errors_include` setting should specify one or more of the following:
+- A file name: For example, `main` to instrument `main.rb`.
+- A folder name: For example, `subdir` to instrument every Ruby file in folders named `subdir`.
+- Gem name: For example, `rails` to instruments every Ruby file in the *rails* gem **and** any project subfolder named `rails`.
+- Absolute path: For example, `/app/lib/mypackage/main.rb` to instrument that file, or `/app/lib/mypackage/` to instrument every Ruby file in that folder.
+- Relative path: For example, for a program running in the `app` directory, use `./lib/mypackage/main.rb` to instrument the `main.rb` file, or`./lib/mypackage/` to instrument every Ruby file in that folder.
 
 
 ## Known issues and suggested configurations
