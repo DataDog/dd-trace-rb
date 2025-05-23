@@ -27,10 +27,6 @@ module Datadog
         exporter_configuration_array exporter_configuration,
         ::Integer upload_timeout_milliseconds,
         Datadog::Profiling::Flush flush,
-        ::Integer start_timespec_seconds,
-        ::Integer start_timespec_nanoseconds,
-        ::Integer finish_timespec_seconds,
-        ::Integer finish_timespec_nanoseconds,
       ) -> [:ok | :error, ::Integer | ::String]
 
       def config_without_api_key: () -> ::String

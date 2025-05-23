@@ -363,7 +363,7 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
   ddog_Timespec start_timestamp = system_epoch_now_timespec();
 
   ddog_prof_Profile_NewResult slot_one_profile_result =
-    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, &start_timestamp);
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */);
 
   if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
@@ -372,7 +372,7 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
   state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok, .start_timestamp = start_timestamp };
 
   ddog_prof_Profile_NewResult slot_two_profile_result =
-    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, &start_timestamp);
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */);
 
   if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
     // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
@@ -763,7 +763,6 @@ static void *call_serialize_without_gvl(void *call_args) {
   long serialize_no_gvl_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 
   profile_slot *slot_now_inactive = serializer_flip_active_and_inactive_slots(args->state);
-
   args->slot = slot_now_inactive;
 
   // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
@@ -772,7 +771,7 @@ static void *call_serialize_without_gvl(void *call_args) {
   args->heap_profile_build_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns;
 
   // Note: The profile gets reset by the serialize call
-  args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
+  args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->slot->start_timestamp, &args->finish_timestamp);
   args->serialize_ran = true;
   args->serialize_no_gvl_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns;
 
@@ -949,7 +948,7 @@ static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locatio
 }
 
 static void reset_profile_slot(profile_slot *slot, ddog_Timespec start_timestamp) {
-  ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(&slot->profile, &start_timestamp);
+  ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(&slot->profile);
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
   }

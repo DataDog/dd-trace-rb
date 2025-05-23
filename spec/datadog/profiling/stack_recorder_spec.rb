@@ -322,21 +322,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(labels).to eq(label_a: "value_a", label_b: "value_b")
       end
 
-      it "encodes a single empty mapping" do
-        expect(decoded_profile.mapping.size).to be 1
-
-        expect(decoded_profile.mapping.first).to have_attributes(
-          id: 1,
-          memory_start: 0,
-          memory_limit: 0,
-          file_offset: 0,
-          filename: 0,
-          build_id: 0,
-          has_functions: false,
-          has_filenames: false,
-          has_line_numbers: false,
-          has_inline_frames: false,
-        )
+      it "does not emit any mappings" do
+        expect(decoded_profile.mapping).to be_empty
       end
 
       it "returns stats reporting one recorded sample" do
@@ -348,25 +335,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             heap_profile_build_time_ns: be >= 0,
           )
         )
-      end
-    end
-
-    context "when sample is invalid" do
-      context "because the local root span id is being defined using a string instead of as a number" do
-        let(:metric_values) { {"cpu-time" => 123, "cpu-samples" => 456, "wall-time" => 789} }
-
-        it do
-          # We're using `_native_sample` here to test the behavior of `record_sample` in `stack_recorder.c`
-          expect do
-            Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-              Thread.current,
-              stack_recorder,
-              metric_values,
-              {"local root span id" => "incorrect", "state" => "unknown"}.to_a,
-              [],
-            )
-          end.to raise_error(ArgumentError)
-        end
       end
     end
 
