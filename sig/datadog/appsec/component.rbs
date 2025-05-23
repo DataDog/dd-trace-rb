@@ -11,6 +11,8 @@ module Datadog
 
       private
 
+      def self.incompatible_ffi_version?: () -> bool
+
       def self.create_processor: (Core::Configuration::Settings settings, Core::Telemetry::Component telemetry) -> Processor?
 
       public

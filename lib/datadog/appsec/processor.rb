@@ -73,7 +73,7 @@ module Datadog
         @addresses = @handle.required_addresses
 
         true
-      rescue WAF::LibDDWAFError => e
+      rescue WAF::LibDDWAF::Error => e
         Datadog.logger.error do
           "libddwaf failed to initialize, error: #{e.inspect}"
         end
