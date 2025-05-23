@@ -9,15 +9,6 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
   subject(:payload) { event.payload }
 
-  shared_examples 'event with no attributes' do
-    it 'all event instances to the same' do
-      event1 = event_class.new
-      event2 = event_class.new
-      expect(event1).to eq(event2)
-      expect(event1.hash).to eq(event2.hash)
-    end
-  end
-
   context 'AppStarted' do
     let(:logger) do
       stub_const('MyLogger', Class.new(::Logger)).new(nil)
@@ -89,7 +80,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       # Reset global cache
       Datadog::Core::Environment::Git.reset_for_tests
     end
-    it_behaves_like 'event with no attributes'
+    it_behaves_like 'telemetry event with no attributes'
 
     # Helper to make configuration matching table easier to read
     def contain_code_configuration(*array)
@@ -157,7 +148,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
   context 'AppDependenciesLoaded' do
     let(:event_class) { described_class::AppDependenciesLoaded }
-    it_behaves_like 'event with no attributes'
+    it_behaves_like 'telemetry event with no attributes'
 
     it 'all have name and Ruby gem version' do
       is_expected.to match(dependencies: all(match(name: kind_of(String), version: kind_of(String))))
@@ -172,7 +163,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
   context 'AppIntegrationsChange' do
     let(:event_class) { described_class::AppIntegrationsChange }
-    it_behaves_like 'event with no attributes'
+    it_behaves_like 'telemetry event with no attributes'
 
     it 'all have name and compatibility' do
       is_expected.to match(integrations: all(include(name: kind_of(String), compatible: boolean)))
@@ -285,7 +276,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
   context 'AppHeartbeat' do
     let(:event_class) { described_class::AppHeartbeat }
-    it_behaves_like 'event with no attributes'
+    it_behaves_like 'telemetry event with no attributes'
 
     it 'has no payload' do
       is_expected.to eq({})
@@ -294,7 +285,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
   context 'AppClosing' do
     let(:event_class) { described_class::AppClosing }
-    it_behaves_like 'event with no attributes'
+    it_behaves_like 'telemetry event with no attributes'
 
     it 'has no payload' do
       is_expected.to eq({})
