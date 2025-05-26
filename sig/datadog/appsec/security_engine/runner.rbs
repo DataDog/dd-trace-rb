@@ -7,15 +7,13 @@ module Datadog
 
         @mutex: ::Mutex
 
-        @context: WAF::Context
-
-        @telemetry: Core::Telemetry::Component
+        @waf_context: WAF::Context
 
         @debug_tag: ::String
 
         SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
 
-        def initialize: (WAF::Handle handle, telemetry: Core::Telemetry::Component) -> void
+        def initialize: (WAF::Context waf_context) -> void
 
         def run: (input_data persistent_data, input_data ephemeral_data, ?::Integer timeout) -> SecurityEngine::result
 

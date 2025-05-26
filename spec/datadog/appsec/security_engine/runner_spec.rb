@@ -7,19 +7,12 @@ require 'datadog/appsec/processor/rule_merger'
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
   before do
-    # NOTE: This is an intermediate step and will be removed
-    rules = Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry)
-    ruleset = Datadog::AppSec::Processor::RuleMerger.merge(rules: [rules], telemetry: telemetry)
-    Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry)
-
-    allow(Datadog::AppSec::WAF::Context).to receive(:new).and_return(waf_context)
+    require 'libddwaf'
   end
 
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:waf_handle) { instance_double(Datadog::AppSec::WAF::Handle) }
   let(:waf_context) { instance_double(Datadog::AppSec::WAF::Context) }
 
-  subject(:runner) { described_class.new(waf_handle, telemetry: telemetry) }
+  subject(:runner) { described_class.new(waf_context) }
 
   describe '#run' do
     context 'when keys contain values to clean' do
@@ -154,7 +147,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       end
 
       it 'sends telemetry error' do
-        expect(telemetry).to receive(:error)
+        expect(Datadog::AppSec.telemetry).to receive(:error)
           .with(/libddwaf:[\d.]+ method:ddwaf_run execution error: :err_invalid_object/)
 
         runner.run({'addr.a' => 'a'}, {}, 1_000)
@@ -165,17 +158,17 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       before do
         allow(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {}, 1_000)
-          .and_raise(Datadog::AppSec::WAF::LibDDWAF::Error, 'Could not convert persistent data')
+          .and_raise(Datadog::AppSec::WAF::LibDDWAFError, 'Could not convert persistent data')
       end
 
       let(:run_result) { runner.run({'addr.a' => 'a'}, {}, 1_000) }
 
       it 'sends telemetry report' do
-        expect(telemetry).to receive(:error)
+        expect(Datadog::AppSec.telemetry).to receive(:error)
           .with(/libddwaf:[\d.]+ method:ddwaf_run execution error: :err_internal/)
 
-        expect(telemetry).to receive(:report)
-          .with(kind_of(Datadog::AppSec::WAF::LibDDWAF::Error), description: 'libddwaf-rb internal low-level error')
+        expect(Datadog::AppSec.telemetry).to receive(:report)
+          .with(kind_of(Datadog::AppSec::WAF::LibDDWAFError), description: 'libddwaf-rb internal low-level error')
 
         expect(run_result).to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error)
         expect(run_result.duration_ext_ns).to be > 0

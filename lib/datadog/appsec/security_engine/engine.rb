@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-#
+
 module Datadog
   module AppSec
     module SecurityEngine
@@ -25,8 +25,17 @@ module Datadog
           Datadog.logger.warn('AppSec is disabled, see logged errors above')
         end
 
-        def active_context
+        def active_waf_context
           # TODO: maybe context can be initialized on request
+        end
+
+        def finalize
+          @waf_handle.finalize!
+          @waf_builder.finalize!
+        end
+
+        def new_runner
+          SecurityEngine::Runner.new(@waf_handle.build_context)
         end
 
         private
@@ -37,7 +46,7 @@ module Datadog
           libddwaf_platform = Gem.loaded_specs['libddwaf']&.platform || 'unknown'
           ruby_platforms = Gem.platforms.map(&:to_s)
 
-          error_message = "libddwaf failed to load - installed platform: #{libddwaf_platform}, "\
+          error_message = "libddwaf failed to load - installed platform: #{libddwaf_platform}, " \
             "ruby platforms: #{ruby_platforms}"
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
