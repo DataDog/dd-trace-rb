@@ -35,7 +35,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:telemetry) do
+    instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+      allow(telemetry).to receive(:start)
+      allow(telemetry).to receive(:enabled).and_return(false)
+    end
+  end
 
   let(:environment_logger_extra) { { hello: 123, world: '456' } }
 
@@ -1127,6 +1132,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '#shutdown!' do
+    before do
+      allow(telemetry).to receive(:emit_closing!)
+    end
+
     subject(:shutdown!) { components.shutdown!(replacement) }
 
     context 'given no replacement' do
@@ -1161,7 +1170,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
         let(:statsd) { instance_double(::Datadog::Statsd) }
-        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
         before do
           allow(replacement).to receive(:tracer).and_return(tracer)
