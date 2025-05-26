@@ -32,6 +32,11 @@ module Datadog
             return
           end
 
+          # TODO
+          # ApiSecurity::Sampler.activate(
+          #   ApiSecurity::Sampler.new(settings.api_security.sample_delay)
+          # )
+
           processor = create_processor(settings, telemetry)
 
           # We want to always instrument user events when AppSec is enabled.
