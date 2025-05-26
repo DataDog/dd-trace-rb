@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module Telemetry
-      class Event
+      module Event
         extend Core::Utils::Forking
 
         self.@sequence: Datadog::Core::Utils::Sequence
