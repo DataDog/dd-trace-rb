@@ -12,6 +12,8 @@ module Datadog
 
         def []: (untyped key) -> untyped?
 
+        def store: (untyped key, untyped value) -> untyped
+
         def fetch_or_store: (untyped key) { () -> untyped } -> untyped
 
         def clear: () -> void
