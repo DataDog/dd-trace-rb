@@ -30,6 +30,13 @@ module Datadog
           end
         end
 
+        # TODO: Add tests
+        def store(key, value)
+          # NOTE: evict the oldest entry if store reached the maximum allowed size
+          @store.shift if @store.size >= @max_size
+          @store[key] = value
+        end
+
         # NOTE: If the key exists, it's moved to the end of the list and
         #       if does not, the given block will be executed and the result
         #       will be stored (which will add it to the end of the list).
@@ -40,8 +47,7 @@ module Datadog
 
           # NOTE: evict the oldest entry if store reached the maximum allowed size
           @store.shift if @store.size >= @max_size
-
-          @store[key] ||= yield
+          @store[key] = yield
         end
       end
     end
