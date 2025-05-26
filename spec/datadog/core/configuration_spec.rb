@@ -8,7 +8,12 @@ require 'datadog/tracing/tracer'
 
 RSpec.describe Datadog::Core::Configuration do
   let(:default_log_level) { ::Logger::INFO }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:telemetry) do
+    instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+      allow(telemetry).to receive(:start)
+      allow(telemetry).to receive(:enabled).and_return(false)
+    end
+  end
   let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
   before do
