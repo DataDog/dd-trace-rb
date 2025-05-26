@@ -1,0 +1,37 @@
+module Datadog
+  module AppSec
+    module SecurityEngine
+      class Engine
+        @waf_builder: WAF::HandleBuilder
+
+        @diagnostics: untyped
+
+        @waf_handle: WAF::Handle
+
+        @addresses: ::Array[::String]
+
+        DEFAULT_CONFIG_PATH: ::String
+
+        attr_reader diagnostics: untyped
+
+        attr_reader addresses: ::Array[::String]
+
+        def initialize: (settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> void
+
+        def finalize: () -> void
+
+        def new_runner: () -> SecurityEngine::Runner
+
+        private
+
+        def require_libddwaf: (telemetry: Core::Telemetry::Component) -> void
+
+        def create_waf_builder: (settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> WAF::HandleBuilder
+
+        def load_default_config: (settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> untyped
+
+        def create_waf_handle: (telemetry: Core::Telemetry::Component) -> WAF::Handle
+      end
+    end
+  end
+end
