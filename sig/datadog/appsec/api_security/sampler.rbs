@@ -1,0 +1,40 @@
+module Datadog
+  module AppSec
+    module APISecurity
+      interface _Request
+        def env: () -> Hash[String, untyped]
+        def script_name: () -> String?
+        def method: () -> String
+        def path: () -> String
+      end
+
+      interface _Response
+        def status: () -> Integer
+      end
+
+      class Sampler
+        THREAD_KEY: Symbol
+
+        MAX_CACHE_SIZE: Integer
+
+        @cache: LRUCache
+
+        @sample_delay_seconds: Integer
+
+        def self.thread_local: () -> Sampler?
+
+        def self.activate: (Sampler sampler) -> Sampler
+
+        def self.deactivate: () -> void
+
+        def initialize: (Integer sample_delay) -> void
+
+        def sample?: (_Request request, _Response response) -> bool
+
+        private
+
+        def canonical_route: (_Request request) -> String
+      end
+    end
+  end
+end
