@@ -140,9 +140,12 @@ RSpec.describe 'AWS instrumentation' do
       let(:client) { ::Aws::S3::Client.new(stub_responses: true) }
 
       before do
-        client.stub_responses(:list_buckets, status_code: 500,
-                                             body: 'test body with 500 error',
-                                             headers: {})
+        client.stub_responses(
+          :list_buckets,
+          status_code: 500,
+          body: 'test body with 500 error',
+          headers: {}
+        )
       end
 
       it 'generates an errored span' do
