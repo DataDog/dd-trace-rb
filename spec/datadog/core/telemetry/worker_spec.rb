@@ -332,9 +332,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   describe '#enqueue' do
-    # Telemetry may drop events silently if it is not started?
-    mark_telemetry_started
-
     let(:synth_response) do
       double(
         Datadog::Core::Transport::HTTP::Adapters::Net::Response,

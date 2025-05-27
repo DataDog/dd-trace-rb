@@ -200,9 +200,6 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     describe 'error event' do
-      # To avoid noise from the startup events, turn those off.
-      mark_telemetry_started
-
       before do
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
         component.start
@@ -243,8 +240,6 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     describe 'heartbeat event' do
-      mark_telemetry_started
-
       before do
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
         component.start
@@ -274,13 +269,9 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when telemetry debugging is enabled in settings' do
-      mark_telemetry_started
-
       before do
         settings.telemetry.debug = true
-      end
 
-      before do
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
         component.start
       end
