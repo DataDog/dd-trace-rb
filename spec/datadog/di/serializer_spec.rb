@@ -263,19 +263,21 @@ RSpec.describe Datadog::DI::Serializer do
 
   describe "#serialize_args" do
     let(:serialized) do
-      serializer.serialize_args(args, kwargs)
+      serializer.serialize_args(args, kwargs, instance_vars)
     end
 
     cases = [
       {name: "both args and kwargs",
        args: [1, "x"],
        kwargs: {a: 42},
+       instance_vars: {},
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   a: {type: "Integer", value: "42"}},},
       {name: "kwargs contains redacted identifier",
        args: [1, "x"],
        kwargs: {password: 42},
+       instance_vars: {},
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   password: {type: "Integer", notCapturedReason: "redactedIdent"}},},
@@ -284,11 +286,13 @@ RSpec.describe Datadog::DI::Serializer do
     cases.each do |c|
       args = c.fetch(:args)
       kwargs = c.fetch(:kwargs)
+      instance_vars = c.fetch(:instance_vars)
       expected = c.fetch(:expected)
 
       context c.fetch(:name) do
         let(:args) { args }
         let(:kwargs) { kwargs }
+        let(:instance_vars) { instance_vars }
 
         it "serializes as expected" do
           expect(serialized).to eq(expected)
@@ -302,6 +306,7 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       let(:kwargs) { {} }
+      let(:instance_vars) { {} }
 
       it 'preserves original value' do
         serialized
@@ -324,6 +329,8 @@ RSpec.describe Datadog::DI::Serializer do
         {foo: 'bar'}
       end
 
+      let(:instance_vars) { {} }
+
       it 'preserves original value' do
         serialized
 
@@ -343,6 +350,7 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       let(:kwargs) { {} }
+      let(:instance_vars) { {} }
 
       it 'serializes without duplication' do
         expect(serialized).to eq(
@@ -360,6 +368,7 @@ RSpec.describe Datadog::DI::Serializer do
       let(:args) { [] }
 
       let(:kwargs) { {foo: frozen_string} }
+      let(:instance_vars) { {} }
 
       it 'serializes without duplication' do
         expect(serialized).to eq(
