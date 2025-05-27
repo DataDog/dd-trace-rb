@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Contrib::Dalli::Quantize do
 
     context 'different encodings' do
       let(:op) { :set }
-      let(:args) { ["\xa1".force_encoding('iso-8859-1'), "\xa1\xa1".force_encoding('euc-jp')] }
+      let(:args) { [+"\xa1".force_encoding('iso-8859-1'), "\xa1\xa1".force_encoding('euc-jp')] }
 
       it { is_expected.to match(/BLOB \(OMITTED\)/) }
     end
