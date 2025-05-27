@@ -77,10 +77,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.set_tag('aws_service', 'test-service')
           span.set_tag('span.kind', 'client')
           precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
+            span.set_tag(precursor, 'test-' + precursor)
 
             expect(described_class.set_peer_service!(span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('peer.service')).to eq('test-' + precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
 
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
             span.set_tag('aws_service', 'test-service')
             span.set_tag('span.kind', 'client')
             precursors.each do |precursor|
-              span.set_tag(precursor, 'test-' << precursor)
+              span.set_tag(precursor, 'test-' + precursor)
 
               set_peer_service!
               expect(span.get_tag('peer.service')).to be_nil
@@ -122,10 +122,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.set_tag('db.system', 'test-db')
           span.set_tag('span.kind', 'client')
           precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
+            span.set_tag(precursor, 'test-' + precursor)
 
             expect(described_class.set_peer_service!(span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('peer.service')).to eq('test-' + precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
 
@@ -142,10 +142,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.set_tag('messaging.system', 'test-msg-system')
           span.set_tag('span.kind', 'producer')
           precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
+            span.set_tag(precursor, 'test-' + precursor)
 
             expect(described_class.set_peer_service!(span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('peer.service')).to eq('test-' + precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
 
@@ -162,10 +162,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.set_tag('rpc.system', 'test-rpc')
           span.set_tag('span.kind', 'client')
           precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
+            span.set_tag(precursor, 'test-' + precursor)
 
             expect(described_class.set_peer_service!(span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('peer.service')).to eq('test-' + precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
 
@@ -184,10 +184,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.set_tag('aws_service', 'test-service')
           span.set_tag('span.kind', 'client')
           precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
+            span.set_tag(precursor, 'test-' + precursor)
 
             expect(described_class.set_peer_service!(span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('peer.service')).to eq('test-' + precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
 
@@ -203,10 +203,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.set_tag('db.system', 'test-db')
           span.set_tag('span.kind', 'client')
           precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
+            span.set_tag(precursor, 'test-' + precursor)
 
             expect(described_class.set_peer_service!(span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('peer.service')).to eq('test-' + precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
 
@@ -222,10 +222,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.set_tag('messaging.system', 'test-msg-system')
           span.set_tag('span.kind', 'client')
           precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
+            span.set_tag(precursor, 'test-' + precursor)
 
             expect(described_class.set_peer_service!(span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('peer.service')).to eq('test-' + precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
 
@@ -241,10 +241,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.set_tag('rpc.system', 'test-rpc')
           span.set_tag('span.kind', 'client')
           precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
+            span.set_tag(precursor, 'test-' + precursor)
 
             expect(described_class.set_peer_service!(span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('peer.service')).to eq('test-' + precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
 
