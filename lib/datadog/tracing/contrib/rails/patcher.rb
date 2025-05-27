@@ -86,7 +86,10 @@ module Datadog
 
           # Instruments the `bin/rails runner` command.
           def patch_rails_runner
-            ::Rails::Command::RunnerCommand.prepend(Runner) if defined?(::Rails::Command::RunnerCommand)
+            # The `RunnerCommand` class is only available in Rails 5.1 and later.
+            if defined?(::Rails::Command::RunnerCommand) && Integration.version >= Gem::Version.new('5.1')
+              ::Rails::Command::RunnerCommand.prepend(Runner)
+            end
           end
         end
       end

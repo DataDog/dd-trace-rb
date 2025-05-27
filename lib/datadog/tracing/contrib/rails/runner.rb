@@ -80,7 +80,13 @@ module Datadog
               name = Ext::SPAN_RUNNER_FILE
               resource = file
               operation = Ext::TAG_OPERATION_FILE
-              source = File.read(file)
+
+              begin
+                # Reads one more byte than the limit to allow us to check if the source exceeds the limit.
+                source = File.read(file, MAX_TAG_VALUE_SIZE + 1)
+              rescue => e
+                Datadog.logger.debug("Failed to read file '#{file}' for Rails runner: #{e.message}")
+              end
 
               Tracing.trace(
                 name,
