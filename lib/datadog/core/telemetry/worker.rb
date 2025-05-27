@@ -183,7 +183,7 @@ module Datadog
             res = send_event(initial_event)
 
             if res.ok?
-              logger.debug { "Telemetry initial event (#{initial_event.class}) is successfully sent" }
+              logger.debug { "Telemetry initial event (#{initial_event.type}) is successfully sent" }
 
               # TODO Dependencies loaded event should probably check for new
               # dependencies and send the new ones.
@@ -193,13 +193,13 @@ module Datadog
 
               true
             else
-              logger.debug("Error sending telemetry initial event (#{initial_event.class}), retry after heartbeat interval...")
+              logger.debug("Error sending telemetry initial event (#{initial_event.type}), retry after heartbeat interval...")
               false
             end
           end
 
           if failed_initial_event?
-            logger.debug { "Telemetry initial event (#{initial_event.class}) exhausted retries, disabling telemetry worker" }
+            logger.debug { "Telemetry initial event (#{initial_event.type}) exhausted retries, disabling telemetry worker" }
             disable!
           end
         end
