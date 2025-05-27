@@ -30,7 +30,6 @@ module Datadog
           end
         end
 
-        # TODO: Add tests
         def store(key, value)
           # NOTE: evict the oldest entry if store reached the maximum allowed size
           @store.shift if @store.size >= @max_size
