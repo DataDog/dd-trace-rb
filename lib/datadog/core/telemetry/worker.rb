@@ -189,7 +189,7 @@ module Datadog
               # dependencies and send the new ones.
               # System tests demand only one instance of this event per
               # dependency.
-              send_event(Event::AppDependenciesLoaded.new) if @dependency_collection && initial_event.class.eql?(Telemetry::Event::AppStarted)
+              send_event(Event::AppDependenciesLoaded.new) if @dependency_collection && initial_event.class.eql?(Telemetry::Event::AppStarted) # standard:disable Style/ClassEqualityComparison:
 
               true
             else
