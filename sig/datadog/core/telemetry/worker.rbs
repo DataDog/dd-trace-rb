@@ -8,7 +8,6 @@ module Datadog
         include Core::Workers::IntervalLoop
         include Core::Workers::Queue
 
-        TELEMETRY_STARTED_ONCE: Datadog::Core::Utils::OnlyOnceSuccessful
         APP_STARTED_EVENT_RETRIES: 10
         DEFAULT_BUFFER_MAX_SIZE: 1000
 

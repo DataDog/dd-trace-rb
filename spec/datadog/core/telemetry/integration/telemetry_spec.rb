@@ -96,7 +96,6 @@ RSpec.describe 'Telemetry integration tests' do
 
     describe 'initial event' do
       before do
-        #Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
         settings.telemetry.dependency_collection = true
       end
 
