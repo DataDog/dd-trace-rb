@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 LogHelpers.without_warnings do
   require 'resque'
 end

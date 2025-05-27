@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/correlation'
 require 'datadog/tracing/trace_operation'

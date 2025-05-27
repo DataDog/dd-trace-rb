@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require "datadog/profiling"
 if Datadog::Profiling.supported?
   require "datadog/profiling/pprof/pprof_pb"

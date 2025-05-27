@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'support/http_helpers'
 
 RSpec.shared_context 'Elasticsearch client' do

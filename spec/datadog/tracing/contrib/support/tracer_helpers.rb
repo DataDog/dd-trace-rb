@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'support/faux_writer'
 require 'support/network_helpers'
 

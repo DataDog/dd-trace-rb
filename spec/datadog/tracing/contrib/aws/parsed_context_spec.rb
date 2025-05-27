@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'aws-sdk'
 require 'datadog/tracing/contrib/aws/parsed_context'
 

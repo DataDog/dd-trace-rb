@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/status_range_env_parser'
 
 RSpec.describe Datadog::Tracing::Contrib::StatusRangeEnvParser do

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.describe 'Single step instrument', skip: !Process.respond_to?(:fork) do
   it do
     expect_in_fork do

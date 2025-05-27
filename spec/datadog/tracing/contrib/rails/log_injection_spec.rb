@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'ostruct'
 require 'datadog/tracing/contrib/rails/log_injection'
 

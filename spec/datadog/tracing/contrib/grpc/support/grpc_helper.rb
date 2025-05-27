@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'grpc'
 require 'spec/support/thread_helpers'
 

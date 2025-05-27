@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'support/metric_helpers'
 require 'datadog'
 require 'datadog/tracing/diagnostics/ext'

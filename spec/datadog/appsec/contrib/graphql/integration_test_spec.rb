@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'datadog/tracing/contrib/graphql/support/application'
 
 require 'datadog/appsec/contrib/support/integration/shared_examples'

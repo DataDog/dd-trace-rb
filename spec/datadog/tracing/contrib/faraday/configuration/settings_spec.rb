@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/faraday/configuration/settings'
 require 'datadog/tracing/contrib/service_name_settings_examples'
 require 'datadog/tracing/contrib/shared_settings_examples'

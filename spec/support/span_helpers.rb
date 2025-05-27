@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/metadata/ext'
 
 module SpanHelpers

@@ -329,6 +329,7 @@ Style/FrozenStringLiteralComment:
   Enabled: true
   Include:
     - "lib/**/*.rb"
+    - spec/**/*.rb
 
 # Replaces `x == 0` with `x.zero?` and similar.
 # These methods are ~2x slower than the simple math comparison.

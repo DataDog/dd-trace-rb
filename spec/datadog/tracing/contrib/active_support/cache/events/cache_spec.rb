@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'datadog/tracing/contrib/active_support/cache/events/cache'
 require 'datadog/tracing/span_operation'

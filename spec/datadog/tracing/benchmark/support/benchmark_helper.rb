@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 require 'datadog/statsd'
@@ -260,7 +262,7 @@ RSpec.shared_context 'minimal agent' do
         "Content-Type: application/json\r\n" \
         "Date: Thu, 03 Sep 2020 20:05:54 GMT\r\n" \
         "\r\n" \
-        "{\"rate_by_service\":{\"service:,env:\":1}}\n".freeze
+        "{\"rate_by_service\":{\"service:,env:\":1}}\n"
       conn.flush
 
       # Read HTTP request to allow other side to have enough

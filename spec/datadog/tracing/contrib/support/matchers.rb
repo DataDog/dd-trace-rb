@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Remove vendor-specific syntax (e.g quoting)
 # to allow for unified query matching.
 #

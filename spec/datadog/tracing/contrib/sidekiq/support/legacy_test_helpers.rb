@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This file is taken from Sidekiq 4.x to patch older version of Sidekiq,
 # In order to make it easier for testing.
 #

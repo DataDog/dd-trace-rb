@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # load the right adapter according to installed gem
 module Datadog
   module Tracing

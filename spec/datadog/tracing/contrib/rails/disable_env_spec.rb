@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This scenario requires Rails to *not* have been patched yet.
 # This file cannot be run after any tests that patch Rails, but
 # it can be the first Rails test in a process.

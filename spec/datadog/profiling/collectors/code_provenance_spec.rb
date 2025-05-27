@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require "datadog/profiling/collectors/code_provenance"
 require "json-schema"
 require "yaml"

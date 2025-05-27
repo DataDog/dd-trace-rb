@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails'
 
 RSpec.shared_context 'ActionMailer helpers' do

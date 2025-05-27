@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/que/configuration/settings'
 require 'datadog/tracing/contrib/shared_settings_examples'
 

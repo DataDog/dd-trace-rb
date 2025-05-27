@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, error: nil|
   context 'when default `disabled`' do
     it_behaves_like 'propagates with sql comment', mode: 'disabled', span_op_name: span_op_name, error: error do

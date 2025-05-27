@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 require_relative 'support/benchmark_helper'
@@ -13,7 +15,7 @@ RSpec.describe 'Microbenchmark' do
 
   describe Datadog::Tracing::Tracer do
     describe 'nested traces' do
-      let(:name) { 'span'.freeze }
+      let(:name) { 'span' }
       let(:tracer) { new_tracer(writer: FauxWriter.new(call_original: false)) }
       let(:steps) { [1, 10, 100] }
 
@@ -79,7 +81,7 @@ RSpec.describe 'Microbenchmark' do
     include_context 'minimal agent'
 
     describe 'nested traces' do
-      let(:name) { 'span'.freeze }
+      let(:name) { 'span' }
       let(:writer) { Datadog::Tracing::Writer.new(buffer_size: 1000, flush_interval: 0) }
       let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
       let(:steps) { [1, 10, 100] }
@@ -107,7 +109,7 @@ RSpec.describe 'Microbenchmark' do
       end
     end
 
-    let(:name) { 'span'.freeze }
+    let(:name) { 'span' }
     let(:tracer) { Datadog::Tracing.send(:tracer) }
     let(:steps) { [1, 10, 100] }
 

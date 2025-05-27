@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.shared_examples 'with error status code configuration' do |env:|
   before { subject }
 

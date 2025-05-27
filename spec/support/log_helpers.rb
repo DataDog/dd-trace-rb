@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module LogHelpers
   def without_warnings(&block)
     LogHelpers.without_warnings(&block)

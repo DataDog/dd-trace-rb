@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/core/utils'
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/sidekiq/client_tracer'

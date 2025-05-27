@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/aws/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Aws::Integration do

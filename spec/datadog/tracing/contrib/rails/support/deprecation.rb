@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Raises error when a deprecation would be emitted
 def raise_on_rails_deprecation!
   # DEV: In Rails 6.1 `ActiveSupport::Deprecation.disallowed_warnings`

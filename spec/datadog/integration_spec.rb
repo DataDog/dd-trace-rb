@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing'
 require 'datadog/statsd'
 

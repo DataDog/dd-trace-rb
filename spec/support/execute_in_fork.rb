@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'platform_helpers'
 
 # Adds support for running each RSpec examples in a forked process.

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/trilogy/configuration/settings'
 require 'datadog/tracing/contrib/service_name_settings_examples'
 

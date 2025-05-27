@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require "datadog/profiling/spec_helper"
 
 RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do

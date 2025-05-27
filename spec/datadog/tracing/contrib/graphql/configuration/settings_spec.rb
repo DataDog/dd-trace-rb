@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/graphql/configuration/settings'
 
 RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do

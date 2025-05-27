@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.shared_examples_for 'with on_error setting' do
   context 'default without settings' do
     subject { described_class.new }

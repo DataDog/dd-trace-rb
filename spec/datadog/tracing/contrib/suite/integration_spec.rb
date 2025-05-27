@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/core/utils/base64'
 require 'datadog/tracing/contrib/support/spec_helper'
 

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # This file is used by the `thread_context_spec.rb`. It's used to simulate the file from the `logging` gem on the same
 # partial path. See that file for more details.
 

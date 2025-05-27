@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/delayed_job/configuration/settings'
 require 'datadog/tracing/contrib/shared_settings_examples'
 

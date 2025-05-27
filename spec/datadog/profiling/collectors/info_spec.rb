@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require "datadog/profiling/collectors/info"
 require "json-schema"
 

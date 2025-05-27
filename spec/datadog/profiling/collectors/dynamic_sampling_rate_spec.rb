@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/dynamic_sampling_rate"
 

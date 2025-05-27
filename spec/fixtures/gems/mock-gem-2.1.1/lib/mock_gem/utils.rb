@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module MockGem
   module Utils
     def self.rescue_error

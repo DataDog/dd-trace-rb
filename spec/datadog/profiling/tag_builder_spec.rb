@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require "datadog/profiling/tag_builder"
 
 RSpec.describe Datadog::Profiling::TagBuilder do

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ActiveModelSerializersHelpers
   class << self
     def ams_0_10_or_newer?

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.shared_examples_for 'it handles the error' do |expected_error|
   it do
     expect { request_response }.to raise_error('test error')

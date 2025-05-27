@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/rack/header_collection'
 
 RSpec.describe Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection do

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'datadog/error_tracking'
 
 RSpec.describe Datadog::ErrorTracking::Configuration::Settings do

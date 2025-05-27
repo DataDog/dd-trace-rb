@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.shared_context 'with trace header tags' do
   around do |example|
     ClimateControl.modify('DD_TRACE_HEADER_TAGS' => trace_header_tags_config) do

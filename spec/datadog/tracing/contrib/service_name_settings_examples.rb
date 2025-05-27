@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.shared_examples 'service name setting' do |default_service_name_v0|
   describe 'Option `service_name`' do
     context 'when with service_name' do # default to include base

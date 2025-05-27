@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Loaded by the `bin/rails` script in a real Rails application
 require 'rails/command'
 

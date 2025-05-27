@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.describe 'gem release process' do
   context 'datadog.gemspec' do
     subject(:gemspec) { Gem::Specification.load('datadog.gemspec') }

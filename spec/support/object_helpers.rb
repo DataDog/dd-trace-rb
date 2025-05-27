@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ObjectHelpers
   RSpec::Matchers.define :be_a_frozen_copy_of do |expected|
     match do |actual|

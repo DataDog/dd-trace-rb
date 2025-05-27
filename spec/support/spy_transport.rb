@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/core/encoding'
 require 'datadog/tracing/transport/http'
 

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require "ext/datadog_profiling_native_extension/native_extension_helpers"
 require "ext/libdatadog_extconf_helpers"
 require "libdatadog"

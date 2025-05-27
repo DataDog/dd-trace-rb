@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module EnvironmentHelpers
   module Git
     # Resets caches in this module.

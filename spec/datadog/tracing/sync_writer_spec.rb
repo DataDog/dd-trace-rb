@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 require 'datadog/core/configuration/agent_settings_resolver'

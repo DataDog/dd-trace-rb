@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/graphql/configuration/error_extension_env_parser'
 
 RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::ErrorExtensionEnvParser do

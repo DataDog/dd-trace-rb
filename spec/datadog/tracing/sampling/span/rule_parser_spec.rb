@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/sampling/span/rule_parser'
 
 RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do

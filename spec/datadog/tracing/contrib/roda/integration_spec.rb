@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # typed: ignore
 
 require 'datadog/tracing/contrib/support/spec_helper'

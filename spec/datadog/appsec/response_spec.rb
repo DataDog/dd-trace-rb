@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'datadog/appsec/response'
 
 RSpec.describe Datadog::AppSec::Response do

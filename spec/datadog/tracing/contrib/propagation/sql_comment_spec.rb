@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/propagation/sql_comment'
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 

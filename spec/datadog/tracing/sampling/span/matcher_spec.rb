@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/sampling/span/matcher'
 
 RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do

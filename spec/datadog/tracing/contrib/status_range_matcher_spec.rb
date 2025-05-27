@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/status_range_matcher'
 
 RSpec.describe Datadog::Tracing::Contrib::StatusRangeMatcher do

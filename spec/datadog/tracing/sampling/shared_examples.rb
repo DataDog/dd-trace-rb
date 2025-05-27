@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/trace_operation'
 
 RSpec.shared_examples 'sampler with sample rate' do |sample_rate|

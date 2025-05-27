@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Overlay patch fix for https://github.com/simplecov-ruby/simplecov/pull/972.
 #
 # simplecov supports branch coverage only on some Ruby runtimes (for example,

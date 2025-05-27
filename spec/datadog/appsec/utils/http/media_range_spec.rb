@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'datadog/appsec/utils/http/media_range'
 
 RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do

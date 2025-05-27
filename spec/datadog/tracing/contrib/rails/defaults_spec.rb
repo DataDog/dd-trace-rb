@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails defaults', execute_in_fork: Rails.version.to_i >= 8 do

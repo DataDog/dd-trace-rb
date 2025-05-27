@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/sample_rate'
 

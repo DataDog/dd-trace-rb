@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module ErrorTrackingHelpers
   def error_tracking_test
     if PlatformHelpers.jruby?

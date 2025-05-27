@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module TelemetryHelpers
   module ClassMethods
     def mark_telemetry_started

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec/support/thread_helpers'
 require 'ethon'
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module TestHelpers
   module RSpec
     # RSpec extension to allow for declaring integration tests

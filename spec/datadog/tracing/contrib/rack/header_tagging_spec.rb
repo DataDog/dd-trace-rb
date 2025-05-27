@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rack'
 
 require 'datadog/tracing/contrib/rack/header_tagging'

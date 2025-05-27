@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module CoreHelpers
   RSpec.shared_context 'non-development execution environment' do
     before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }

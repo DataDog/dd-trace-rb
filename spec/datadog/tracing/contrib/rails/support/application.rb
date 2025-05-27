@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 version = Gem::Version.new(Rails.version)
 major_version, = version.segments
 

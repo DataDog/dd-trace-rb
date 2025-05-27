@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/opensearch/configuration/settings' # connecting to /lib/... ?
 require 'datadog/tracing/contrib/service_name_settings_examples'
 

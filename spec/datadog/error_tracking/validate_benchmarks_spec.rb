@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'datadog/error_tracking/spec_helper'
 
 RSpec.describe 'Error Tracking benchmarks', :memcheck_valgrind_skip do

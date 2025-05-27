@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require "datadog/profiling/flush"
 require "datadog/profiling/encoded_profile"
 

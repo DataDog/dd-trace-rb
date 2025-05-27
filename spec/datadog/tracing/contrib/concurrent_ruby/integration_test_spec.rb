@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'concurrent-ruby' # concurrent-ruby is not modular
 
 require 'datadog/tracing/contrib/support/spec_helper'

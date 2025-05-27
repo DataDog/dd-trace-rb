@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.shared_context 'Rails models' do
   let(:application_record) do
     unless (defined? no_db) && no_db

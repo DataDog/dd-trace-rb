@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/span_attribute_schema'
 
 RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
