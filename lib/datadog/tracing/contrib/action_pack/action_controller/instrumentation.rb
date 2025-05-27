@@ -66,8 +66,6 @@ module Datadog
                 # Measure service stats
                 Contrib::Analytics.set_measured(span)
 
-                span.set_tag(Ext::TAG_ROUTE_ACTION, payload.fetch(:action))
-                span.set_tag(Ext::TAG_ROUTE_CONTROLLER, payload.fetch(:controller))
 
                 exception = payload[:exception_object]
                 if exception.nil?
