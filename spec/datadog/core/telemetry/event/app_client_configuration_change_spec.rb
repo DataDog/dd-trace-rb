@@ -37,6 +37,10 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
         end
       end
 
+      after do
+        Datadog.configuration.reset!
+      end
+
       it 'includes sca enablement configuration' do
         is_expected.to eq(
           configuration:
