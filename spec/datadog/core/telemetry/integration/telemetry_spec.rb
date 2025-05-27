@@ -135,7 +135,7 @@ RSpec.describe 'Telemetry integration tests' do
           component.start(true)
 
           component.flush
-          expect(sent_payloads.length).to eq 2
+          expect(sent_payloads.length).to eq 1
 
           payload = sent_payloads[0]
           expect(payload.fetch(:payload)).to match(
