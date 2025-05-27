@@ -4,11 +4,9 @@ require 'datadog/core/telemetry/event/log'
 
 RSpec.describe Datadog::Core::Telemetry::Event::Log do
   let(:id) { double('seq_id') }
-  let(:event) { event_class.new }
+  let(:event) { described_class.new }
 
   subject(:payload) { event.payload }
-
-  let(:event_class) { described_class }
 
   it do
     event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :error)
@@ -46,8 +44,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
 
   it 'all events to be the same' do
     events =     [
-      event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
-      event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
+      described_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
+      described_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
     ]
 
     expect(events.uniq).to have(1).item
@@ -55,11 +53,11 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
 
   it 'all events to be different' do
     events =     [
-      event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
-      event_class.new(message: 'Yo', level: :warn, stack_trace: 'stack trace', count: 1),
-      event_class.new(message: 'Hi', level: :error, stack_trace: 'stack trace', count: 1),
-      event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack&trace', count: 1),
-      event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 2),
+      described_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
+      described_class.new(message: 'Yo', level: :warn, stack_trace: 'stack trace', count: 1),
+      described_class.new(message: 'Hi', level: :error, stack_trace: 'stack trace', count: 1),
+      described_class.new(message: 'Hi', level: :warn, stack_trace: 'stack&trace', count: 1),
+      described_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 2),
     ]
 
     expect(events.uniq).to eq(events)

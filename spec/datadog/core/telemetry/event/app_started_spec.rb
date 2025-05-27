@@ -4,7 +4,7 @@ require 'datadog/core/telemetry/event/app_started'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
   let(:id) { double('seq_id') }
-  let(:event) { event_class.new }
+  let(:event) { described_class.new }
 
   subject(:payload) { event.payload }
 
@@ -57,7 +57,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       profiler: hash_including(enabled: false),
     }
   end
-  let(:event_class) { described_class }
   before do
     allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
 

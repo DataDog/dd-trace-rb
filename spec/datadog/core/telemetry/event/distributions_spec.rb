@@ -5,12 +5,11 @@ require 'datadog/core/telemetry/metric'
 
 RSpec.describe Datadog::Core::Telemetry::Event::Distributions do
   let(:id) { double('seq_id') }
-  let(:event) { event_class.new }
+  let(:event) { described_class.new }
 
   subject(:payload) { event.payload }
 
-  let(:event_class) { described_class }
-  let(:event) { event_class.new(namespace, metrics) }
+  let(:event) { described_class.new(namespace, metrics) }
 
   let(:namespace) { 'general' }
   let(:metric_name) { 'request_duration' }
