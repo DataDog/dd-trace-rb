@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module Telemetry
-      class Event
+      module Event
         class Base
           def payload: () -> (Hash[Symbol, untyped] | Array[Hash[Symbol, untyped]])
           def type: -> String
