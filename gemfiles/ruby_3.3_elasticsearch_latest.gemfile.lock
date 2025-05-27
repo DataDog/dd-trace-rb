@@ -35,10 +35,10 @@ GEM
     elastic-transport (8.4.0)
       faraday (< 3)
       multi_json
-    elasticsearch (9.0.2)
+    elasticsearch (9.0.3)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 9.0.2)
-    elasticsearch-api (9.0.2)
+      elasticsearch-api (= 9.0.3)
+    elasticsearch-api (9.0.3)
       multi_json
     extlz4 (0.3.4)
     faraday (2.13.1)
@@ -57,7 +57,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.12.0)
+    json (2.12.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (16.0.1.1.0-aarch64-linux)
