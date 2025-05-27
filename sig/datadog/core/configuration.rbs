@@ -10,6 +10,8 @@ module Datadog
       def configuration: () -> untyped # The DSL methods have to be explicitly declared for this to be typed
 
       def config_init_logger: () -> Datadog::Core::Logger
+
+      def shutdown!: -> void
     end
   end
 end
