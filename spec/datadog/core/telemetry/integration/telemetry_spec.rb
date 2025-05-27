@@ -415,7 +415,6 @@ RSpec.describe 'Telemetry integration tests' do
 
   context 'when initial event fails' do
     let(:settings) do
-    ENV['DD_TRACE_DEBUG']=      'true'
       Datadog::Core::Configuration::Settings.new.tap do |settings|
         settings.telemetry.enabled = true
         # Setting heartbeat interval does not appear to make the worker
