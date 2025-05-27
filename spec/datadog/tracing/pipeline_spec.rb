@@ -12,10 +12,11 @@ require_relative 'pipeline/support/helper'
 RSpec.describe Datadog::Tracing::Pipeline do
   include PipelineHelpers
 
-  let(:span_a) { generate_span('a') }
-  let(:span_b) { generate_span('b') }
-  let(:span_c) { generate_span('c') }
-  let(:span_d) { generate_span('d') }
+  let(:span_a) { generate_span(+'a') }
+  # The span names are mutated by the filter, therefore cannot be frozen.
+  let(:span_b) { generate_span(+'b') }
+  let(:span_c) { generate_span(+'c') }
+  let(:span_d) { generate_span(+'d') }
   let(:span_list) { [span_a, span_b, span_c, span_d] }
   let(:callable) { ->(trace) { trace } }
   let(:callable2) { ->(trace) { trace } }
