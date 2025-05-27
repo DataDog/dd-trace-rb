@@ -334,7 +334,9 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     it 'adds events to the buffer and flushes them later' do
       events_received = 0
       mutex = Mutex.new
-      expect(emitter).to receive(:request).with(
+      # request could be called with AppHeartheat event, therefore a
+      # simple expect() assertion does not work here.
+      allow(emitter).to receive(:request).with(
         an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
       ) do |event|
         event.events.each do |subevent|
