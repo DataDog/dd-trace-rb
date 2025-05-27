@@ -22,14 +22,18 @@ module Datadog
         @logger: ::Logger
         
         attr_reader logger: ::Logger
+        attr_reader initial_event: Telemetry::Event::Base
+	attr_reader initial_event_once: Datadog::Core::Utils::OnlyOnceSuccessful
 
         def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?shutdown_timeout: Float | Integer, ?buffer_size: Integer, dependency_collection: bool, logger: ::Logger) -> void
 
-        def start: () -> void
+        def start: (Telemetry::Event::Base initial_event) -> void
 
-        def sent_started_event?: () -> bool
+        def sent_initial_event?: () -> bool
 
-        def failed_to_start?: () -> bool
+        def failed_initial_event?: () -> bool
+
+        def need_initial_event?: () -> bool
 
         def enqueue: (Event::Base event) -> void
 
