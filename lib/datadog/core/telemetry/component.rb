@@ -118,7 +118,10 @@ module Datadog
         def shutdown!
           return if @stopped
 
-          @worker&.stop(true)
+          if defined?(@worker)
+            @worker&.stop(true)
+          end
+
           @stopped = true
         end
 
