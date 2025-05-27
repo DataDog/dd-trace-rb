@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../core/remote/dispatcher'
-require_relative 'processor/rule_merger'
 require_relative 'processor/rule_loader'
 
 module Datadog
@@ -57,74 +56,22 @@ module Datadog
           remote_features_enabled? ? ASM_PRODUCTS : []
         end
 
-        # rubocop:disable Metrics/MethodLength
-        # rubocop:disable Metrics/CyclomaticComplexity
         def receivers(telemetry)
           return [] unless remote_features_enabled?
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
-          # rubocop:disable Metrics/BlockLength
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
-            changes.each do |change|
-              Datadog.logger.debug { "remote config change: '#{change.path}'" }
-            end
-
-            rules = []
-            custom_rules = []
-            data = []
-            overrides = []
-            exclusions = []
-            actions = []
-
             repository.contents.each do |content|
               parsed_content = parse_content(content)
 
-              case content.path.product
-              when 'ASM_DD'
-                rules << parsed_content
-              when 'ASM_DATA'
-                data << parsed_content['rules_data'] if parsed_content['rules_data']
-              when 'ASM'
-                overrides << parsed_content['rules_override'] if parsed_content['rules_override']
-                exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
-                custom_rules << parsed_content['custom_rules'] if parsed_content['custom_rules']
-                actions.concat(parsed_content['actions']) if parsed_content['actions']
-              end
-            end
+              Datadog::AppSec.reconfigure(config: parsed_content, config_path: content.path.to_s)
 
-            if rules.empty?
-              settings_rules = AppSec::Processor::RuleLoader.load_rules(
-                telemetry: telemetry,
-                ruleset: Datadog.configuration.appsec.ruleset
-              )
-
-              raise NoRulesError, 'no default rules available' unless settings_rules
-
-              rules = [settings_rules]
-            end
-
-            ruleset = AppSec::Processor::RuleMerger.merge(
-              rules: rules,
-              data: data,
-              actions: actions,
-              overrides: overrides,
-              exclusions: exclusions,
-              custom_rules: custom_rules,
-              telemetry: telemetry
-            )
-
-            Datadog::AppSec.reconfigure(ruleset: ruleset, telemetry: telemetry)
-
-            repository.contents.each do |content|
-              content.applied if ASM_PRODUCTS.include?(content.path.product)
+              content.applied
             end
           end
-          # rubocop:enable Metrics/BlockLength
 
           [receiver]
         end
-        # rubocop:enable Metrics/MethodLength
-        # rubocop:enable Metrics/CyclomaticComplexity
 
         private
 

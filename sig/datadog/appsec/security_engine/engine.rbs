@@ -22,6 +22,8 @@ module Datadog
 
         def new_runner: () -> SecurityEngine::Runner
 
+        def reconfigure: (config: ::Hash[::String, untyped], config_path: ::String) -> void
+
         private
 
         def require_libddwaf: (telemetry: Core::Telemetry::Component) -> void

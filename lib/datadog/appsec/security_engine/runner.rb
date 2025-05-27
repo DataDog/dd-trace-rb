@@ -32,7 +32,7 @@ module Datadog
             v.nil? || v.empty?
           end
 
-          _code, result = try_run(persistent_data, ephemeral_data, timeout)
+          result = try_run(persistent_data, ephemeral_data, timeout)
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
           report_execution(result)

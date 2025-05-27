@@ -13,17 +13,15 @@ module Datadog
 
       def self.incompatible_ffi_version?: () -> bool
 
-      def self.create_processor: (Core::Configuration::Settings settings, Core::Telemetry::Component telemetry) -> Processor?
-
       public
 
-      attr_reader processor: Processor?
+      attr_reader security_engine: AppSec::SecurityEngine::Engine?
 
       attr_reader telemetry: Core::Telemetry::Component
 
-      def initialize: (Processor processor, Core::Telemetry::Component telemetry) -> void
+      def initialize: (AppSec::SecurityEngine::Engine security_engine, Core::Telemetry::Component telemetry) -> void
 
-      def reconfigure: (ruleset: Processor::RuleMerger::rules, telemetry: Core::Telemetry::Component) -> void
+      def reconfigure: (config: ::Hash[::String, untyped], config_path: ::String) -> void
 
       def reconfigure_lock: () { (?) -> void } -> void
 

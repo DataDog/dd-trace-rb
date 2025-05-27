@@ -36,7 +36,7 @@ module Datadog
 
             telemetry.report(e, description: 'libddwaf ruleset failed to load')
 
-            nil
+            raise e
           end
 
           def load_data(ip_denylist: [], user_id_denylist: [])

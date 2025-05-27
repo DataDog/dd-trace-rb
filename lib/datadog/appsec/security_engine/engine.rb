@@ -33,6 +33,21 @@ module Datadog
           SecurityEngine::Runner.new(@waf_handle.build_context)
         end
 
+        def reconfigure(config:, config_path:)
+          # default config has to be removed when adding remote config
+          @waf_builder.remove_config_at_path(DEFAULT_CONFIG_PATH)
+
+          diagnostics = @waf_builder.add_or_update_config(config, path: config_path)
+          @diagnostics.merge!(diagnostics)
+
+          @waf_handle = @waf_builder.build_handle
+        rescue WAF::LibDDWAFError => e
+          error_message = "libddwaf handle builder failed to reconfigure at path: #{config_path}"
+
+          Datadog.logger.error("#{error_message}, error: #{e.inspect}")
+          AppSec.telemetry.report(e, description: error_message)
+        end
+
         private
 
         def require_libddwaf(telemetry:)
@@ -67,27 +82,16 @@ module Datadog
         end
 
         def load_default_config(settings:, telemetry:)
-          # this might return nil if an error occurs
-          rules = AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: settings.ruleset)
+          config = AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: settings.ruleset)
 
-          # TODO: this has nothing to do with rule loading
-          data = AppSec::Processor::RuleLoader.load_data(
+          # TODO: deprecate this - ip and user id denylists should be configured via RC
+          config['data'] ||= AppSec::Processor::RuleLoader.load_data(
             ip_denylist: settings.ip_denylist,
             user_id_denylist: settings.user_id_denylist
           )
 
-          # TODO: this has nothing to do with rule loading
-          exclusions = AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: settings.ip_passlist)
-
-          # TODO: RuleMerger might be removed
-          config = AppSec::Processor::RuleMerger.merge(
-            rules: [rules],
-            data: data,
-            scanners: rules['scanners'],
-            processors: rules['processors'],
-            exclusions: exclusions,
-            telemetry: telemetry
-          )
+          # TODO: deprecate this - ip passlist should be configured via RC
+          config['exclusions'] ||= AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: settings.ip_passlist)
 
           @waf_builder.add_or_update_config(config, path: DEFAULT_CONFIG_PATH)
         rescue WAF::Error => e

@@ -66,7 +66,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
           description: 'libddwaf ruleset failed to load'
         )
 
-        expect(rules).to be_nil
+        expect { rules }.to raise_error(Errno::ENOENT)
       end
     end
 
@@ -97,7 +97,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
           description: 'libddwaf ruleset failed to load'
         )
 
-        expect(rules).to be_nil
+        expect { rules }.to raise_error(JSON::ParserError)
       end
     end
   end

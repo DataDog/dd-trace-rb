@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'processor'
-require_relative 'processor/rule_merger'
+require_relative 'security_engine/engine'
+require_relative 'security_engine/runner'
 require_relative 'processor/rule_loader'
 require_relative 'actions_handler'
 
@@ -32,7 +32,7 @@ module Datadog
             return
           end
 
-          processor = create_processor(settings, telemetry)
+          security_engine = SecurityEngine::Engine.new(settings: settings.appsec, telemetry: telemetry)
 
           # We want to always instrument user events when AppSec is enabled.
           # There could be cases in which users use the DD_APPSEC_ENABLED Env variable to
@@ -42,67 +42,22 @@ module Datadog
           devise_integration = Datadog::AppSec::Contrib::Devise::Integration.new
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
-          new(processor, telemetry)
-        end
-
-        private
-
-        def create_processor(settings, telemetry)
-          rules = AppSec::Processor::RuleLoader.load_rules(
-            telemetry: telemetry,
-            ruleset: settings.appsec.ruleset
-          )
-          return nil unless rules
-
-          data = AppSec::Processor::RuleLoader.load_data(
-            ip_denylist: settings.appsec.ip_denylist,
-            user_id_denylist: settings.appsec.user_id_denylist,
-          )
-
-          exclusions = AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: settings.appsec.ip_passlist)
-
-          # NOTE: This is a temporary solution before the RuleMerger refactoring
-          #       with new RemoteConfig setup
-          processors = rules['processors']
-          scanners = rules['scanners']
-
-          ruleset = AppSec::Processor::RuleMerger.merge(
-            rules: [rules],
-            data: data,
-            scanners: scanners,
-            processors: processors,
-            exclusions: exclusions,
-            telemetry: telemetry
-          )
-
-          processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
-          return nil unless processor.ready?
-
-          processor
+          new(security_engine: security_engine, telemetry: telemetry)
         end
       end
 
-      attr_reader :processor, :telemetry
+      attr_reader :security_engine, :telemetry
 
-      def initialize(processor, telemetry)
-        @processor = processor
+      def initialize(security_engine:, telemetry:)
+        @security_engine = security_engine
         @telemetry = telemetry
 
         @mutex = Mutex.new
       end
 
-      def reconfigure(ruleset:, telemetry:)
+      def reconfigure(config:, config_path:)
         @mutex.synchronize do
-          new_processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
-
-          if new_processor&.ready?
-            old_processor = @processor
-
-            @telemetry = telemetry
-            @processor = new_processor
-
-            old_processor&.finalize
-          end
+          security_engine.reconfigure(config: config, config_path: config_path)
         end
       end
 
@@ -112,10 +67,8 @@ module Datadog
 
       def shutdown!
         @mutex.synchronize do
-          if processor&.ready?
-            processor.finalize
-            @processor = nil
-          end
+          security_engine.finalize
+          @security_engine = nil
         end
       end
     end

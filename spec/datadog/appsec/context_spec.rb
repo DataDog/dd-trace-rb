@@ -3,7 +3,6 @@
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor'
 require 'datadog/appsec/processor/rule_loader'
-require 'datadog/appsec/processor/rule_merger'
 
 RSpec.describe Datadog::AppSec::Context do
   let(:span) { instance_double(Datadog::Tracing::SpanOperation) }

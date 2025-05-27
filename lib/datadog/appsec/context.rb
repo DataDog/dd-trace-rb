@@ -31,12 +31,11 @@ module Datadog
         end
       end
 
-      def initialize(trace, span, security_engine)
+      def initialize(trace, span, waf_runner)
         @trace = trace
         @span = span
         @events = []
-        @security_engine = security_engine
-        @waf_runner = security_engine.new_runner
+        @waf_runner = waf_runner
         @metrics = Metrics::Collector.new
       end
 
