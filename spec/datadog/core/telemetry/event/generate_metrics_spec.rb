@@ -7,8 +7,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
   let(:id) { double('seq_id') }
   let(:event) { described_class.new }
 
-  subject(:payload) { event.payload }
-
   let(:event) { described_class.new(namespace, metrics) }
 
   let(:namespace) { 'general' }
@@ -20,13 +18,17 @@ RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
 
   let(:expected_metric_series) { [metric.to_h] }
 
-  it do
-    is_expected.to eq(
-      {
-        namespace: namespace,
-        series: expected_metric_series
-      }
-    )
+  describe '.payload' do
+    subject(:payload) { event.payload }
+
+    it do
+      is_expected.to eq(
+        {
+          namespace: namespace,
+          series: expected_metric_series
+        }
+      )
+    end
   end
 
   it 'all events to be the same' do

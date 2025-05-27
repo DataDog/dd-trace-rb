@@ -6,34 +6,35 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
   let(:id) { double('seq_id') }
   let(:event) { described_class.new }
 
-  subject(:payload) { event.payload }
+  describe '.payload' do
 
-  it do
-    event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :error)
-    expect(event.type).to eq('logs')
-    expect(event.payload).to eq(
-      {
-        logs: [{
-          message: 'Hi',
-          level: 'ERROR',
-          count: 1
-        }]
-      }
-    )
-  end
+    it do
+      event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :error)
+      expect(event.type).to eq('logs')
+      expect(event.payload).to eq(
+        {
+          logs: [{
+            message: 'Hi',
+            level: 'ERROR',
+            count: 1
+          }]
+        }
+      )
+    end
 
-  it do
-    event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :warn)
-    expect(event.type).to eq('logs')
-    expect(event.payload).to eq(
-      {
-        logs: [{
-          message: 'Hi',
-          level: 'WARN',
-          count: 1
-        }]
-      }
-    )
+    it do
+      event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :warn)
+      expect(event.type).to eq('logs')
+      expect(event.payload).to eq(
+        {
+          logs: [{
+            message: 'Hi',
+            level: 'WARN',
+            count: 1
+          }]
+        }
+      )
+    end
   end
 
   it do
