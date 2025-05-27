@@ -5,7 +5,7 @@ require_relative 'base'
 module Datadog
   module Core
     module Telemetry
-      class Event
+      module Event
         # Telemetry class for the 'logs' event.
         # Logs with the same content are deduplicated at flush time.
         class Log < Base
