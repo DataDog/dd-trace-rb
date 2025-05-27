@@ -42,27 +42,18 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       context 'with snapshot' do
-        let(:vars) do
-          {hello: 42, hash: {hello: 42, password: 'redacted'}, array: [true]}
+        let(:locals) do
+          double('local variables')
         end
 
         let(:captures) do
           {lines: {1 => {
-            locals: {
-              hello: {type: 'Integer', value: '42'},
-              hash: {type: 'Hash', entries: [
-                [{type: 'Symbol', value: 'hello'}, {type: 'Integer', value: '42'}],
-                [{type: 'Symbol', value: 'password'}, {type: 'String', notCapturedReason: 'redactedIdent'}],
-              ]},
-              array: {type: 'Array', elements: [
-                {type: 'TrueClass', value: 'true'},
-              ]},
-            },
+            locals: locals,
           }}}
         end
 
         it 'builds expected payload' do
-          payload = builder.build_snapshot(probe, snapshot: vars)
+          payload = builder.build_snapshot(probe, locals: locals)
           expect(payload).to be_a(Hash)
           expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to eq(captures)
         end
