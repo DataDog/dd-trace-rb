@@ -204,8 +204,8 @@ RSpec.describe 'Telemetry integration tests' do
       mark_telemetry_started
 
       before do
-        component.start
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
+        component.start
       end
 
       it 'sends expected payload' do
@@ -246,8 +246,8 @@ RSpec.describe 'Telemetry integration tests' do
       mark_telemetry_started
 
       before do
-        component.start
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
+        component.start
       end
 
       it 'sends expected payload' do
@@ -281,8 +281,8 @@ RSpec.describe 'Telemetry integration tests' do
       end
 
       before do
-        component.start
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
+        component.start
       end
 
       it 'sets debug to true in payload' do
