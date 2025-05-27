@@ -84,7 +84,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:instance_vars) do
-          {ivar: 42}
+          {'@ivar': 42}
         end
 
         let(:expected_captures) do
@@ -93,7 +93,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
               arg1: {type: 'Integer', value: '1'},
               arg2: {type: 'String', value: 'hello'},
               foo: {type: 'Integer', value: '42'},
-              ivar: {type: 'Integer', value: '42'},
+              '@ivar': {type: 'Integer', value: '42'},
             }, throwable: nil,
           }, return: {
             arguments: {
