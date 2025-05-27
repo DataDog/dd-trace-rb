@@ -311,7 +311,7 @@ module Datadog
             )
               if rate_limiter.nil? || rate_limiter.allow?
                 locals = if probe.capture_snapshot?
-                  serializer.serialize_vars(Instrumenter.get_local_variables(trace_point),
+                  serializer.serialize_vars(Instrumenter.get_local_variables(tp),
                     depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                     attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,
                   )
