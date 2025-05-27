@@ -141,7 +141,7 @@ RSpec.describe 'AWS instrumentation' do
 
       before do
         client.stub_responses(:list_buckets, status_code: 500,
-                                             body: 'error',
+                                             body: 'test body with 500 error',
                                              headers: {})
       end
 
@@ -149,7 +149,10 @@ RSpec.describe 'AWS instrumentation' do
         expect do
           list_buckets
         end.to raise_error(Aws::S3::Errors::Http500Error)
+        # The Http500Error instance does not contain the body of the
+        # response.
         expect(span).to have_error
+        expect(span.tags['http.status_code']).to eq('500')
       end
     end
 

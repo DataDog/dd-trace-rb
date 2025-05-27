@@ -38,7 +38,11 @@ module Datadog
 
             # Set error on the span if the Response Status Code is in error range
             if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(context.safely(:status_code))
-              span.set_error(context.safely(:http_response))
+              # At this point we do not have any additional diagnostics
+              # besides the HTTP status code which is recorded in the span tags
+              # later in this method.
+              # Just set the span as errored.
+              span.set_error(nil)
             end
 
             aws_service = span.resource.split('.')[0]
