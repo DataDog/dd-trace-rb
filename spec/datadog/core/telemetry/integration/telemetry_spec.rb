@@ -412,4 +412,61 @@ RSpec.describe 'Telemetry integration tests' do
       )
     end
   end
+
+  context 'when initial event fails' do
+    let(:settings) do
+    ENV['DD_TRACE_DEBUG']=      'true'
+      Datadog::Core::Configuration::Settings.new.tap do |settings|
+        settings.telemetry.enabled = true
+        # Setting heartbeat interval does not appear to make the worker
+        # run iterations any faster?
+        #settings.telemetry.heartbeat_interval_seconds = 0.1
+      end
+    end
+
+    let(:failed_response) do
+      double(Datadog::Core::Transport::HTTP::Adapters::Net::Response).tap do |response|
+        expect(response).to receive(:ok?).and_return(false).at_least(:once)
+      end
+    end
+
+    let(:ok_response) do
+      double(Datadog::Core::Transport::HTTP::Adapters::Net::Response).tap do |response|
+        expect(response).to receive(:ok?).and_return(true).at_least(:once)
+      end
+    end
+
+    let(:event) do
+      Datadog::Core::Telemetry::Event::Log.new(message: 'test log entry', level: :error)
+    end
+
+    it 'retries the initial event and delays log until after initial event succeeds' do
+      component.log!(event)
+
+      expect(component.worker.buffer.length).to eq 1
+
+      allow(component.worker).to receive(:send_event).with(
+        an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat)
+      ).and_return(ok_response)
+
+      expect(component.worker).to receive(:send_event).with(
+        an_instance_of(Datadog::Core::Telemetry::Event::AppStarted)
+      ).ordered.and_return(failed_response)
+      expect(component.worker).to receive(:send_event).with(
+        an_instance_of(Datadog::Core::Telemetry::Event::AppStarted)
+      ).ordered.and_return(ok_response)
+      expect(component.worker).to receive(:send_event).with(
+        an_instance_of(Datadog::Core::Telemetry::Event::AppDependenciesLoaded)
+      ).ordered.and_return(ok_response)
+      expect(component.worker).to receive(:send_event).with(
+        an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+      ).ordered.and_return(ok_response)
+
+      component.start
+
+      component.worker.flush
+
+      # Network I/O is mocked
+    end
+  end
 end
