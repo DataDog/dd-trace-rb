@@ -46,15 +46,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:agent_sample_rate) { rand }
     let(:hostname) { 'worker.host' }
     let(:max_length) { 100 }
-    let(:name) { 'web.request' }
-    let(:origin) { 'synthetics' }
+    let(:name) { +'web.request' }
+    let(:origin) { +'synthetics' }
     let(:rate_limiter_rate) { rand }
-    let(:resource) { 'reports#show' }
+    let(:resource) { +'reports#show' }
     let(:rule_sample_rate) { rand }
     let(:sample_rate) { rand }
     let(:sampled) { true }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
-    let(:service) { 'billing-api' }
+    let(:service) { +'billing-api' }
     let(:profiling_enabled) { 'profiling_enabled' }
     let(:tags) { { 'foo' => 'bar' }.merge(distributed_tags) }
     let(:metrics) { { 'baz' => 42.0 } }
@@ -191,7 +191,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       context ':origin' do
         subject(:options) { { origin: origin } }
-        let(:origin) { 'synthetics' }
+        let(:origin) { +'synthetics' }
 
         it { expect(trace_op.origin).to eq(origin) }
       end

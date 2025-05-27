@@ -85,14 +85,14 @@ RSpec.describe Datadog::Tracing::TraceSegment do
 
       context ':name' do
         let(:options) { { name: name } }
-        let(:name) { 'job.work' }
+        let(:name) { +'job.work' }
 
         it { is_expected.to have_attributes(name: be_a_copy_of(name)) }
       end
 
       context ':origin' do
         let(:options) { { origin: origin } }
-        let(:origin) { 'synthetics' }
+        let(:origin) { +'synthetics' }
 
         it { is_expected.to have_attributes(origin: be_a_copy_of(origin)) }
       end
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
 
       context ':resource' do
         let(:options) { { resource: resource } }
-        let(:resource) { 'generate_report' }
+        let(:resource) { +'generate_report' }
 
         it { is_expected.to have_attributes(resource: be_a_copy_of(resource)) }
       end
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
 
       context ':service' do
         let(:options) { { service: service } }
-        let(:service) { 'job-worker' }
+        let(:service) { +'job-worker' }
 
         it { is_expected.to have_attributes(service: be_a_copy_of(service)) }
       end
@@ -198,14 +198,14 @@ RSpec.describe Datadog::Tracing::TraceSegment do
 
       context ':name' do
         let(:options) { { tags: { Datadog::Tracing::TraceSegment::TAG_NAME => name } } }
-        let(:name) { 'job.work' }
+        let(:name) { +'job.work' }
 
         it { is_expected.to have_attributes(name: be_a_copy_of(name)) }
       end
 
       context ':origin' do
         let(:options) { { tags: { Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN => origin } } }
-        let(:origin) { 'synthetics' }
+        let(:origin) { +'synthetics' }
 
         it { is_expected.to have_attributes(origin: be_a_copy_of(origin)) }
       end
@@ -228,7 +228,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
 
       context ':resource' do
         let(:options) { { tags: { Datadog::Tracing::TraceSegment::TAG_RESOURCE => resource } } }
-        let(:resource) { 'generate_report' }
+        let(:resource) { +'generate_report' }
 
         it { is_expected.to have_attributes(resource: be_a_copy_of(resource)) }
       end
@@ -274,7 +274,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
 
       context ':service' do
         let(:options) { { tags: { Datadog::Tracing::TraceSegment::TAG_SERVICE => service } } }
-        let(:service) { 'job-worker' }
+        let(:service) { +'job-worker' }
 
         it { is_expected.to have_attributes(service: be_a_copy_of(service)) }
       end
