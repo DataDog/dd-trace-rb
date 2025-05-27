@@ -310,7 +310,7 @@ RSpec.describe 'Telemetry integration tests' do
     end
   end
 
-  context 'in agent mode' do
+  shared_context 'agent mode' do
     http_server do |http_server|
       http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
     end
@@ -323,6 +323,10 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     let(:expected_headers) { expected_base_headers }
+  end
+
+  context 'in agent mode' do
+    include_context 'agent mode'
 
     include_examples 'telemetry integration tests'
 
@@ -360,5 +364,52 @@ RSpec.describe 'Telemetry integration tests' do
     let(:expected_headers) { expected_agentless_headers }
 
     include_examples 'telemetry integration tests'
+  end
+
+  context 'when events are enqueued prior to start' do
+    # The mode is irrelevant for these tests, there is no need to test
+    # both modes therefore we choose an arbitrary one here.
+    include_context 'agent mode'
+
+    let(:event) do
+      Datadog::Core::Telemetry::Event::Log.new(message: 'test log entry', level: :error)
+    end
+
+    it 'stores the events and sends them after start' do
+      component.log!(event)
+
+      expect(component.worker.buffer.length).to eq 1
+
+      component.start
+
+      component.worker.flush
+      expect(sent_payloads.length).to eq 3
+
+      payload = sent_payloads[0]
+      expect(payload.fetch(:payload)).to include(
+        'request_type' => 'app-started',
+      )
+
+      payload = sent_payloads[1]
+      expect(payload.fetch(:payload)).to include(
+        'request_type' => 'app-dependencies-loaded',
+      )
+
+      # The logs are sent after app-started event
+      payload = sent_payloads[2]
+      expect(payload.fetch(:payload)).to include(
+        'request_type' => 'message-batch',
+        'payload' => [{
+          'payload' => {
+            'logs' => [
+              'count' => 1,
+              'level' => 'ERROR',
+              'message' => 'test log entry',
+            ],
+          },
+          'request_type' => 'logs',
+        }],
+      )
+    end
   end
 end
