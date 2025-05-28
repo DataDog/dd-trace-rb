@@ -42,27 +42,18 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       context 'with snapshot' do
-        let(:vars) do
-          {hello: 42, hash: {hello: 42, password: 'redacted'}, array: [true]}
+        let(:locals) do
+          double('local variables')
         end
 
         let(:captures) do
           {lines: {1 => {
-            locals: {
-              hello: {type: 'Integer', value: '42'},
-              hash: {type: 'Hash', entries: [
-                [{type: 'Symbol', value: 'hello'}, {type: 'Integer', value: '42'}],
-                [{type: 'Symbol', value: 'password'}, {type: 'String', notCapturedReason: 'redactedIdent'}],
-              ]},
-              array: {type: 'Array', elements: [
-                {type: 'TrueClass', value: 'true'},
-              ]},
-            },
+            locals: locals,
           }}}
         end
 
         it 'builds expected payload' do
-          payload = builder.build_snapshot(probe, snapshot: vars)
+          payload = builder.build_snapshot(probe, locals: locals)
           expect(payload).to be_a(Hash)
           expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to eq(captures)
         end
@@ -83,12 +74,17 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           {foo: 42}
         end
 
+        let(:instance_vars) do
+          {'@ivar': 42}
+        end
+
         let(:expected_captures) do
           {entry: {
             arguments: {
               arg1: {type: 'Integer', value: '1'},
               arg2: {type: 'String', value: 'hello'},
               foo: {type: 'Integer', value: '42'},
+              '@ivar': {type: 'Integer', value: '42'},
             }, throwable: nil,
           }, return: {
             arguments: {
@@ -101,7 +97,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         it 'builds expected payload' do
-          payload = builder.build_snapshot(probe, args: args, kwargs: kwargs)
+          payload = builder.build_snapshot(probe, args: args, kwargs: kwargs, instance_vars: instance_vars)
           expect(payload).to be_a(Hash)
           captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
           expect(captures).to eq(expected_captures)

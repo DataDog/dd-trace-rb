@@ -262,21 +262,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           capture_snapshot: true,)
       end
 
-      let(:trace_point) do
-        instance_double(TracePoint).tap do |tp|
-          # Returns an empty binding
-          expect(tp).to receive(:binding).and_return(get_binding)
-          expect(tp).to receive(:path).and_return('/foo.rb')
-        end
-      end
-
-      let(:get_binding) do
-        x = 1
-        binding
-      end
-
       let(:payload) do
-        builder.build_executed(probe, trace_point: trace_point)
+        builder.build_executed(probe, path: '/foo.rb', locals: locals)
+      end
+
+      let(:locals) do
+        {foo: {type: 'Integer', value: '1234'}}.freeze
       end
 
       let(:expected) do
@@ -288,7 +279,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             captures: {
               lines: {
                 1 => {
-                  locals: local_captures,
+                  locals: locals,
                 },
               },
             },
@@ -321,36 +312,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         }
       end
 
-      shared_examples 'returns a hash with expected contents' do
-        it 'returns a hash with expected contents' do
-          expect(payload).to be_a(Hash)
-          expect(payload).to match(expected)
-        end
-      end
-
-      context 'when binding is empty' do
-        let(:get_binding) do
-          binding
-        end
-
-        let(:local_captures) do
-          {}
-        end
-
-        include_examples 'returns a hash with expected contents'
-      end
-
-      context 'when binding is not empty' do
-        let(:get_binding) do
-          x = 1
-          binding
-        end
-
-        let(:local_captures) do
-          {x: {type: 'Integer', value: '1'}}
-        end
-
-        include_examples 'returns a hash with expected contents'
+      it 'returns a hash with expected contents' do
+        expect(payload).to be_a(Hash)
+        expect(payload).to match(expected)
       end
     end
   end

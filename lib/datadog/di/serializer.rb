@@ -82,7 +82,11 @@ module Datadog
       # between positional and keyword arguments. We convert positional
       # arguments to keyword arguments ("arg1", "arg2", ...) and ensure
       # the positional arguments are listed first.
-      def serialize_args(args, kwargs,
+      #
+      # Instance variables are technically a hash just like kwargs,
+      # we take them as a separate parameter to avoid a hash merge
+      # in upstream code.
+      def serialize_args(args, kwargs, instance_vars,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
         counter = 0
@@ -91,7 +95,7 @@ module Datadog
           # Conversion to symbol is needed here to put args ahead of
           # kwargs when they are merged below.
           c[:"arg#{counter}"] = value
-        end.update(kwargs)
+        end.update(kwargs).update(instance_vars)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count)
       end
 
