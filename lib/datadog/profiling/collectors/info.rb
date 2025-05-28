@@ -42,7 +42,12 @@ module Datadog
             hostname: Datadog::Core::Environment::Platform.hostname,
             kernel_name: Datadog::Core::Environment::Platform.kernel_name,
             kernel_release: Datadog::Core::Environment::Platform.kernel_release,
-            kernel_version: Datadog::Core::Environment::Platform.kernel_version
+            kernel_version: Datadog::Core::Environment::Platform.kernel_version,
+            'Datadog-Entity-Id': nil,
+            # ci-<CONTAINER_ID>
+            # or
+            # in-<CONTAINER_INODE>
+            'Datadog-External-Env': nil, # DD_EXTERNAL_ENV variable supplied by the Admission Controller.
           }.freeze
         end
 
