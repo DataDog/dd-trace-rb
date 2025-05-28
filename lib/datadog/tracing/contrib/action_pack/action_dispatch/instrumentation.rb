@@ -9,7 +9,6 @@ module Datadog
         module ActionDispatch
           # Instrumentation for ActionDispatch components
           module Instrumentation
-            HTTP_ROUTE_KEY = 'datadog.http.route'
             SCRIPT_NAME_KEY = 'SCRIPT_NAME'
             FORMAT_SUFFIX = '(.:format)'
 
@@ -52,7 +51,6 @@ module Datadog
                     http_route = route.path.spec.to_s
                     http_route.delete_suffix!(FORMAT_SUFFIX)
 
-                    req.env[HTTP_ROUTE_KEY] = http_route
                     Instrumentation.set_http_route_tags(http_route, req.env[SCRIPT_NAME_KEY])
 
                     break
@@ -71,7 +69,6 @@ module Datadog
                       http_route = route.path.spec.to_s
                       http_route.delete_suffix!(FORMAT_SUFFIX)
 
-                      req.env[HTTP_ROUTE_KEY] = http_route
                       Instrumentation.set_http_route_tags(http_route, req.env[SCRIPT_NAME_KEY])
                     end
 
