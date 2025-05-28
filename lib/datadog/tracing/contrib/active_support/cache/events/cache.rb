@@ -45,8 +45,14 @@ module Datadog
                 'cache_write_multi.active_support' => { resource: Ext::RESOURCE_CACHE_MSET, multi_key: true }
               }.freeze
 
-              def trace?(event, _payload)
+              def trace?(event, payload)
                 return false if !Tracing.enabled? || !configuration.enabled
+
+                if (cache_store = configuration[:cache_store])
+                  store = cache_backend(payload[:store])
+
+                  return false unless cache_store.include?(store)
+                end
 
                 # DEV-3.0: Backwards compatibility code for the 2.x gem series.
                 # DEV-3.0: See documentation at {Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation}
