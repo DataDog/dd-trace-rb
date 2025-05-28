@@ -66,7 +66,7 @@ module Datadog
           Datadog.logger.debug { "#{@debug_tag} execution error: #{e} backtrace: #{e.backtrace&.first(3)}" }
           AppSec.telemetry.report(e, description: 'libddwaf-rb internal low-level error')
 
-          [:err_internal, WAF::Result.new(:err_internal, [], 0, false, [], [])]
+          WAF::Result.new(:err_internal, [], 0, false, [], [])
         end
 
         def report_execution(result)

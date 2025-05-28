@@ -8,7 +8,7 @@ module Datadog
 
     def self.processor: () -> Processor?
 
-    def self.reconfigure: (config: ::Hash[::String, untyped], config_path: ::String) -> void
+    def self.reconfigure: (config: ::Hash[::String, untyped], asm_product: ::String, config_path: ::String) -> void
 
     def self.reconfigure_lock: () { (?) -> untyped } -> void
 

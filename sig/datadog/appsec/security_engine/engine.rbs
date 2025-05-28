@@ -11,6 +11,7 @@ module Datadog
         @addresses: ::Array[::String]
 
         DEFAULT_CONFIG_PATH: ::String
+        ASM_PRODUCT_FOR_DEFAULT_CONFIG: ::String
 
         attr_reader diagnostics: untyped
 
@@ -22,11 +23,9 @@ module Datadog
 
         def new_runner: () -> SecurityEngine::Runner
 
-        def reconfigure: (config: ::Hash[::String, untyped], config_path: ::String) -> void
+        def reconfigure: (config: ::Hash[::String, untyped], asm_product: ::String, config_path: ::String) -> void
 
         private
-
-        def require_libddwaf: (telemetry: Core::Telemetry::Component) -> void
 
         def create_waf_builder: (settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> WAF::HandleBuilder
 

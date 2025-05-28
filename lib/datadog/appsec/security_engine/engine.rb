@@ -6,39 +6,37 @@ module Datadog
       # SecurityEngine::Engine creates WAF builder and manages its configuration.
       # It also rebuilds WAF handle from the WAF builder when configuration changes.
       class Engine
+        ASM_PRODUCT_FOR_DEFAULT_CONFIG = 'ASM_DD'
         DEFAULT_CONFIG_PATH = 'ASM_DD/default'
 
         attr_reader :diagnostics, :addresses
 
         def initialize(settings:, telemetry:)
-          # TODO: set WAF logger to Datadog.logger - in the component
-
-          require_libddwaf(telemetry: telemetry)
-
           @waf_builder = create_waf_builder(settings: settings, telemetry: telemetry)
           @diagnostics = load_default_config(settings: settings, telemetry: telemetry)
 
           @waf_handle = create_waf_handle(telemetry: telemetry)
-          @addresses = @handle.known_addresses
-        rescue
-          Datadog.logger.warn('AppSec is disabled, see logged errors above')
+          @addresses = @waf_handle.known_addresses
         end
 
         def finalize
-          @waf_handle.finalize!
-          @waf_builder.finalize!
+          @waf_handle&.finalize!
+          @waf_builder&.finalize!
         end
 
         def new_runner
           SecurityEngine::Runner.new(@waf_handle.build_context)
         end
 
-        def reconfigure(config:, config_path:)
-          # default config has to be removed when adding remote config
-          @waf_builder.remove_config_at_path(DEFAULT_CONFIG_PATH)
+        def reconfigure(config:, asm_product:, config_path:)
+          # default config has to be removed before adding remote config for ASM_DD product
+          if @default_config_loaded && asm_product == ASM_PRODUCT_FOR_DEFAULT_CONFIG
+            @waf_builder.remove_config_at_path(DEFAULT_CONFIG_PATH)
+            @default_config_loaded = false
+          end
 
           diagnostics = @waf_builder.add_or_update_config(config, path: config_path)
-          @diagnostics.merge!(diagnostics)
+          diagnostics.merge!(diagnostics)
 
           @waf_handle = @waf_builder.build_handle
         rescue WAF::LibDDWAFError => e
@@ -49,21 +47,6 @@ module Datadog
         end
 
         private
-
-        def require_libddwaf(telemetry:)
-          require('libddwaf')
-        rescue LoadError => e
-          libddwaf_platform = Gem.loaded_specs['libddwaf']&.platform || 'unknown'
-          ruby_platforms = Gem.platforms.map(&:to_s)
-
-          error_message = "libddwaf failed to load - installed platform: #{libddwaf_platform}, " \
-            "ruby platforms: #{ruby_platforms}"
-
-          Datadog.logger.error("#{error_message}, error #{e.inspect}")
-          telemetry.report(e, description: error_message)
-
-          raise e
-        end
 
         def create_waf_builder(settings:, telemetry:)
           WAF::HandleBuilder.new(
@@ -93,7 +76,10 @@ module Datadog
           # TODO: deprecate this - ip passlist should be configured via RC
           config['exclusions'] ||= AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: settings.ip_passlist)
 
-          @waf_builder.add_or_update_config(config, path: DEFAULT_CONFIG_PATH)
+          diagnostics = @waf_builder.add_or_update_config(config, path: DEFAULT_CONFIG_PATH)
+          @default_config_loaded = true
+
+          diagnostics
         rescue WAF::Error => e
           error_message = "libddwaf handle builder failed to load default config"
 
@@ -104,7 +90,7 @@ module Datadog
         end
 
         def create_waf_handle(telemetry:)
-          @waf_handle = @waf_builder.build_handle
+          @waf_builder.build_handle
         rescue WAF::LibDDWAFError => e
           error_message = "libddwaf handle failed to initialize"
 

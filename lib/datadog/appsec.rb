@@ -30,11 +30,11 @@ module Datadog
         components.appsec&.security_engine
       end
 
-      def reconfigure(config:, config_path:)
+      def reconfigure(config:, asm_product:, config_path:)
         appsec_component = components.appsec
         return unless appsec_component
 
-        appsec_component.reconfigure(config: config, config_path: config_path)
+        appsec_component.reconfigure(config: config, asm_product: asm_product, config_path: config_path)
       end
 
       def reconfigure_lock(&block)

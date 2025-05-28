@@ -64,7 +64,11 @@ module Datadog
             repository.contents.each do |content|
               parsed_content = parse_content(content)
 
-              Datadog::AppSec.reconfigure(config: parsed_content, config_path: content.path.to_s)
+              Datadog::AppSec.reconfigure(
+                config: parsed_content,
+                asm_product: content.path.product,
+                config_path: content.path.to_s
+              )
 
               content.applied
             end

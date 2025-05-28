@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/processor'
 require 'datadog/appsec/processor/rule_loader'
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
@@ -30,7 +29,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'removes keys with nil values' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {'addr.b' => 'b'}, 1_000)
-          .and_return([result.status, result])
+          .and_return(result)
 
         runner.run({'addr.a' => 'a', 'addr.aa' => nil}, {'addr.b' => 'b', 'addr.bb' => nil}, 1_000)
       end
@@ -38,7 +37,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'removes keys with empty strings' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {'addr.b' => 'b'}, 1_000)
-          .and_return([result.status, result])
+          .and_return(result)
 
         runner.run({'addr.a' => 'a', 'addr.aa' => ''}, {'addr.b' => 'b', 'addr.bb' => ''}, 1_000)
       end
@@ -46,7 +45,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'removes keys with empty arrays' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => ['a']}, {'addr.b' => ['b']}, 1_000)
-          .and_return([result.status, result])
+          .and_return(result)
 
         runner.run({'addr.a' => ['a'], 'addr.aa' => []}, {'addr.b' => ['b'], 'addr.bb' => []}, 1_000)
       end
@@ -54,7 +53,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'removes keys with empty hashes' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => {'a' => '1'}}, {'addr.b' => {'b' => '2'}}, 1_000)
-          .and_return([result.status, result])
+          .and_return(result)
 
         runner.run({'addr.a' => {'a' => '1'}, 'addr.aa' => {}}, {'addr.b' => {'b' => '2'}, 'addr.bb' => {}}, 1_000)
       end
@@ -62,7 +61,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'does not remove keys with boolean values' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => 'a', 'addr.aa' => true}, {'addr.b' => 'b', 'addr.bb' => false}, 1_000)
-          .and_return([result.status, result])
+          .and_return(result)
 
         runner.run({'addr.a' => 'a', 'addr.aa' => true}, {'addr.b' => 'b', 'addr.bb' => false}, 1_000)
       end
@@ -72,7 +71,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       before do
         allow(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {}, 1_000)
-          .and_return([waf_result.status, waf_result])
+          .and_return(waf_result)
       end
 
       let(:waf_result) do
@@ -107,7 +106,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       before do
         allow(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {}, 1_000)
-          .and_return([waf_result.status, waf_result])
+          .and_return(waf_result)
       end
 
       let(:waf_result) do
@@ -138,7 +137,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       before do
         allow(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {}, 1_000)
-          .and_return([waf_result.status, waf_result])
+          .and_return(waf_result)
       end
 
       let(:waf_result) do

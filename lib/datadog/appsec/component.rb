@@ -32,7 +32,8 @@ module Datadog
             return
           end
 
-          security_engine = SecurityEngine::Engine.new(settings: settings.appsec, telemetry: telemetry)
+          require_libddwaf(telemetry: telemetry)
+          Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && settings.waf_debug
 
           # We want to always instrument user events when AppSec is enabled.
           # There could be cases in which users use the DD_APPSEC_ENABLED Env variable to
@@ -42,7 +43,29 @@ module Datadog
           devise_integration = Datadog::AppSec::Contrib::Devise::Integration.new
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
+          security_engine = SecurityEngine::Engine.new(settings: settings.appsec, telemetry: telemetry)
           new(security_engine: security_engine, telemetry: telemetry)
+        rescue
+          Datadog.logger.warn('AppSec is disabled, see logged errors above')
+
+          nil
+        end
+
+        private
+
+        def require_libddwaf(telemetry:)
+          require('libddwaf')
+        rescue LoadError => e
+          libddwaf_platform = Gem.loaded_specs['libddwaf']&.platform || 'unknown'
+          ruby_platforms = Gem.platforms.map(&:to_s)
+
+          error_message = "libddwaf failed to load - installed platform: #{libddwaf_platform}, " \
+            "ruby platforms: #{ruby_platforms}"
+
+          Datadog.logger.error("#{error_message}, error #{e.inspect}")
+          telemetry.report(e, description: error_message)
+
+          raise e
         end
       end
 
@@ -55,9 +78,9 @@ module Datadog
         @mutex = Mutex.new
       end
 
-      def reconfigure(config:, config_path:)
+      def reconfigure(config:, asm_product:, config_path:)
         @mutex.synchronize do
-          security_engine.reconfigure(config: config, config_path: config_path)
+          security_engine.reconfigure(config: config, asm_product: asm_product, config_path: config_path)
         end
       end
 
