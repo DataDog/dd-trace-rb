@@ -4,9 +4,7 @@ require 'datadog/core/telemetry/event/app_started'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
   let(:id) { double('seq_id') }
-  let(:event) { event_class.new }
-
-  subject(:payload) { event.payload }
+  let(:event) { described_class.new }
 
   let(:logger) do
     stub_const('MyLogger', Class.new(::Logger)).new(nil)
@@ -57,7 +55,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       profiler: hash_including(enabled: false),
     }
   end
-  let(:event_class) { described_class }
   before do
     allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
 
@@ -89,57 +86,61 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     array.map { |name, value| { name: name, origin: 'env_var', seq_id: id, value: value } }
   end
 
-  it do
-    is_expected.to match(
-      products: expected_products,
-      configuration: contain_code_configuration(
-        *default_code_configuration
-      ),
-      install_signature: expected_install_signature,
-    )
-  end
+  describe '.payload' do
+    subject(:payload) { event.payload }
 
-  context 'with git/SCI environment variables set' do
-    with_env 'DD_GIT_REPOSITORY_URL' => 'https://github.com/datadog/hello',
-      'DD_GIT_COMMIT_SHA' => '1234hash'
-
-    before do
-      # Reset global cache so that we get our values back
-      Datadog::Core::Environment::Git.reset_for_tests
-    end
-
-    after do
-      # Do not use our values in other tests
-      Datadog::Core::Environment::Git.reset_for_tests
-    end
-
-    it 'reports git/SCI values to telemetry' do
+    it do
       is_expected.to match(
         products: expected_products,
-        configuration: contain_env_configuration(
-          ['DD_GIT_REPOSITORY_URL', 'https://github.com/datadog/hello'],
-          ['DD_GIT_COMMIT_SHA', '1234hash'],
-        ) + contain_code_configuration(
+        configuration: contain_code_configuration(
           *default_code_configuration
         ),
         install_signature: expected_install_signature,
       )
     end
-  end
 
-  context 'with nil configurations' do
-    before do
-      Datadog.configure do |c|
-        c.logger.instance = nil
+    context 'with git/SCI environment variables set' do
+      with_env 'DD_GIT_REPOSITORY_URL' => 'https://github.com/datadog/hello',
+        'DD_GIT_COMMIT_SHA' => '1234hash'
+
+      before do
+        # Reset global cache so that we get our values back
+        Datadog::Core::Environment::Git.reset_for_tests
+      end
+
+      after do
+        # Do not use our values in other tests
+        Datadog::Core::Environment::Git.reset_for_tests
+      end
+
+      it 'reports git/SCI values to telemetry' do
+        is_expected.to match(
+          products: expected_products,
+          configuration: contain_env_configuration(
+            ['DD_GIT_REPOSITORY_URL', 'https://github.com/datadog/hello'],
+            ['DD_GIT_COMMIT_SHA', '1234hash'],
+          ) + contain_code_configuration(
+            *default_code_configuration
+          ),
+          install_signature: expected_install_signature,
+        )
       end
     end
 
-    it 'removes empty configurations from payload' do
-      is_expected.to_not match(
-        configuration: include(
-          { name: 'logger.instance', origin: anything, seq_id: anything, value: anything }
+    context 'with nil configurations' do
+      before do
+        Datadog.configure do |c|
+          c.logger.instance = nil
+        end
+      end
+
+      it 'removes empty configurations from payload' do
+        is_expected.to_not match(
+          configuration: include(
+            { name: 'logger.instance', origin: anything, seq_id: anything, value: anything }
+          )
         )
-      )
+      end
     end
   end
 end
