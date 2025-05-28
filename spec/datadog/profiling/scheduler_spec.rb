@@ -284,6 +284,10 @@ RSpec.describe Datadog::Profiling::Scheduler do
         allow(exporter).to receive(:flush).and_return(flush)
       end
 
+      after do
+        scheduler.stop(true) if instance_variable_defined?(:@stopped) && !@stopped
+      end
+
       # This test validates the behavior of the @stop_requested flag.
       #
       # Specifically, the looping behavior we get from the core helpers will keep on trying to flush
@@ -296,7 +300,9 @@ RSpec.describe Datadog::Profiling::Scheduler do
         scheduler.start
         wait_for { scheduler.run_loop? }.to be true
 
-        expect(scheduler.stop).to be true
+        @stopped = false
+        expect(scheduler.stop(false, 10)).to be true
+        @stopped = true
       end
     end
   end
