@@ -30,10 +30,6 @@ module Datadog
         def initialize: (Integer sample_delay) -> void
 
         def sample?: (_Request request, _Response response) -> bool
-
-        private
-
-        def canonical_route: (_Request request) -> String
       end
     end
   end

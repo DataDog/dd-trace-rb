@@ -2,6 +2,8 @@
 
 require 'zlib'
 require_relative 'lru_cache'
+require_relative 'route_extractor'
+require_relative '../../core/utils/time'
 
 module Datadog
   module AppSec
@@ -33,15 +35,9 @@ module Datadog
           @sample_delay_seconds = sample_delay
         end
 
-        # TODO: 1. Make sure that all contribs Gateway::Request have the same interface
-        #       2. Make sure that Gateway::Response have the same interface
-        #       3. Add request.route_path that does not exist and must be implemented
-        # HACK: We agreed to write into env of the request in order to carry over
-        #       the request route path which must be computed by the corresponding
-        #       contrib or red from the tag `http.route` if exists
         def sample?(request, response)
-          key = Zlib.crc32("#{request.method}#{request.route_path}#{response.status}")
-          current_timestamp = Time.now.to_i
+          key = Zlib.crc32("#{request.method}#{RouteExtractor.route_pattern(request)}#{response.status}")
+          current_timestamp = Core::Utils::Time.now.to_i
           cached_timestamp = @cache[key] || 0
 
           return false if current_timestamp - cached_timestamp <= @sample_delay_seconds
