@@ -17,7 +17,7 @@ export DD_RUBY_PLATFORM=`ruby -e 'puts Gem::Platform.local.to_s'`
 mkdir -p my-libdatadog-build/$DD_RUBY_PLATFORM
 ```
 
-5. Build libdatadog into this folder: `./build-profiling-ffi.sh my-libdatadog-build/$DD_RUBY_PLATFORM`
+5. From inside of the libdatadog repo, build libdatadog into this folder: `./build-profiling-ffi.sh my-libdatadog-build/$DD_RUBY_PLATFORM`
 6. Tell the Ruby where to find libdatadog: `export LIBDATADOG_VENDOR_OVERRIDE=/full/path/to/my-libdatadog-build/` (Notice no platform here)
 7. Run `bundle exec rake clean compile`
 
