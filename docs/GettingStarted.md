@@ -552,6 +552,7 @@ cache.read('city')
 | --------------- | - | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
 | `enabled` | `DD_TRACE_ACTIVE_SUPPORT_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `cache_service` | | `String` | Name of application running the `active_support` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `active_support-cache` |
+| `cache_store` | | `Array` | Specifies which cache stores to instrument. Accepts a list of store names (e.g. `memory_store`, `file_store`, or symbols like `:file_store`). If set, only the listed stores will be traced. By default (`nil`), it traces all stores. | `nil` |
 
 ### AWS
 
