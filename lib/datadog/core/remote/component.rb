@@ -42,7 +42,7 @@ module Datadog
               logger.error do
                 "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
               end
-            rescue StandardError => e
+            rescue => e
               # In case of unexpected errors, reset the negotiation object
               # given external conditions have changed and the negotiation
               # negotiation object stores error logging state that should be reset.
@@ -50,8 +50,8 @@ module Datadog
 
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
-                "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. "\
-                'reseting client state'
+                "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. " \
+                'resetting client state'
               end
 
               # client state is unknown, state might be corrupted

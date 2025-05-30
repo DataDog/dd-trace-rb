@@ -1,0 +1,5 @@
+module Datadog
+  module ErrorTracking
+    def self.enabled?: () -> untyped
+  end
+end

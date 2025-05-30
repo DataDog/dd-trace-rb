@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.15.0)
+    datadog (2.16.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.22.0.0.2)
@@ -51,7 +51,7 @@ GEM
       coderay (~> 1.1)
       method_source (~> 1.0)
     public_suffix (6.0.1)
-    rack (3.1.13)
+    rack (3.1.15)
     rack-contrib (2.5.0)
       rack (< 4)
     rack-test (2.1.0)

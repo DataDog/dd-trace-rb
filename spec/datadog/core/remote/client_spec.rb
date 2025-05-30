@@ -472,11 +472,24 @@ RSpec.describe Datadog::Core::Remote::Client do
         end
       end
 
+      context 'when agent returns an HTTP error' do
+        let(:response_code) { 500 }
+        let(:response_body) { 'unimplemented' }
+
+        it 'raises a transport error' do
+          expect { client.sync }.to raise_error(
+            Datadog::Core::Remote::Client::TransportError, /Agent returned an error response: 500: unimplemented/
+          )
+        end
+      end
+
       context 'with a network error' do
         it 'raises a transport error' do
           expect(http_connection).to receive(:request).and_raise(IOError)
 
-          expect { client.sync }.to raise_error(Datadog::Core::Remote::Client::TransportError)
+          expect { client.sync }.to raise_error(
+            Datadog::Core::Remote::Client::TransportError, /error_type:IOError error:IOError/
+          )
         end
       end
     end
@@ -541,6 +554,21 @@ RSpec.describe Datadog::Core::Remote::Client do
           context 'client_tracer' do
             context 'tags' do
               let(:gem_datadog_version) { '1.1.1' }
+              let(:expected_base_client_tracer_tags) do
+                [
+                  "platform:#{native_platform}",
+                  "ruby.tracer.version:#{gem_datadog_version}",
+                  "ruby.runtime.platform:#{ruby_platform}",
+                  "ruby.runtime.version:#{ruby_version}",
+                  "ruby.runtime.engine.name:#{ruby_engine}",
+                  "ruby.runtime.engine.version:#{ruby_engine_version}",
+                  "ruby.rubygems.platform.local:#{gem_platform_local}",
+                  "ruby.gem.libddwaf.version:#{libddwaf_gem_spec.version}",
+                  "ruby.gem.libddwaf.platform:#{libddwaf_gem_spec.platform}",
+                  "ruby.gem.libdatadog.version:#{libdatadog_gem_spec.version}",
+                  "ruby.gem.libdatadog.platform:#{libdatadog_gem_spec.platform}",
+                ]
+              end
               let(:ruby_platform) { 'ruby-platform' }
               let(:ruby_version) { '2.2.2' }
               let(:ruby_engine) { 'ruby_engine_name' }
@@ -567,21 +595,29 @@ RSpec.describe Datadog::Core::Remote::Client do
               it 'returns client_tracer tags' do
                 expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
 
-                expected_client_tracer_tags = [
-                  "platform:#{native_platform}",
-                  "ruby.tracer.version:#{gem_datadog_version}",
-                  "ruby.runtime.platform:#{ruby_platform}",
-                  "ruby.runtime.version:#{ruby_version}",
-                  "ruby.runtime.engine.name:#{ruby_engine}",
-                  "ruby.runtime.engine.version:#{ruby_engine_version}",
-                  "ruby.rubygems.platform.local:#{gem_platform_local}",
-                  "ruby.gem.libddwaf.version:#{libddwaf_gem_spec.version}",
-                  "ruby.gem.libddwaf.platform:#{libddwaf_gem_spec.platform}",
-                  "ruby.gem.libdatadog.version:#{libdatadog_gem_spec.version}",
-                  "ruby.gem.libdatadog.platform:#{libdatadog_gem_spec.platform}",
-                ]
+                expect(client_payload[:client_tracer][:tags]).to eq(expected_base_client_tracer_tags)
+              end
 
-                expect(client_payload[:client_tracer][:tags]).to eq(expected_client_tracer_tags)
+              context 'when SCI environment variables are set' do
+                with_env 'DD_GIT_REPOSITORY_URL' => 'http://foo',
+                  'DD_GIT_COMMIT_SHA' => '1234hash'
+
+                let(:expected_sci_tags) do
+                  [
+                    'git.repository_url:http://foo',
+                    'git.commit.sha:1234hash',
+                  ]
+                end
+
+                before do
+                  Datadog::Core::Environment::Git.reset_for_tests
+                end
+
+                it 'includes SCI tags in remote config' do
+                  expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
+
+                  expect(client_payload[:client_tracer][:tags]).to eq(expected_base_client_tracer_tags + expected_sci_tags)
+                end
               end
             end
 

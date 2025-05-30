@@ -13,7 +13,7 @@ module Datadog
         attr_reader statsd: untyped
 	attr_reader logger: Core::Logger
 
-        def initialize: (?statsd: untyped?, ?enabled: bool, logger: Core::Logger, **untyped _) -> void
+        def initialize: (telemetry: Core::Telemetry::Component, ?statsd: untyped?, ?enabled: bool, logger: Core::Logger, **untyped _) -> void
 
         def supported?: () -> untyped
 

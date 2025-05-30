@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.15.0)
+    datadog (2.16.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.22.0.0.2)
@@ -75,7 +75,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    mini_portile2 (2.8.8)
+    mini_portile2 (2.8.9)
     msgpack (1.8.0)
     os (1.1.4)
     pry (0.14.2)

@@ -178,7 +178,7 @@ RSpec.describe 'Sinatra integration tests' do
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
-        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
+        let(:env) { {'REMOTE_ADDR' => remote_addr}.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
@@ -191,7 +191,7 @@ RSpec.describe 'Sinatra integration tests' do
         end
 
         context 'with an event-triggering request in headers' do
-          let(:headers) { { 'HTTP_USER_AGENT' => 'Nessus SOAP' } }
+          let(:headers) { {'HTTP_USER_AGENT' => 'Nessus SOAP'} }
 
           it { is_expected.to be_ok }
           it { expect(triggers).to be_a Array }
@@ -204,7 +204,7 @@ RSpec.describe 'Sinatra integration tests' do
         end
 
         context 'with an event-triggering request in query string' do
-          let(:params) { { q: '1 OR 1;' } }
+          let(:params) { {q: '1 OR 1;'} }
 
           it { is_expected.to be_ok }
 
@@ -222,7 +222,7 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
@@ -254,7 +254,7 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
@@ -262,14 +262,14 @@ RSpec.describe 'Sinatra integration tests' do
         context 'with an event-triggering request in IP' do
           let(:client_ip) { '1.2.3.4' }
           let(:appsec_ip_denylist) { [client_ip] }
-          let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
+          let(:headers) { {'HTTP_X_FORWARDED_FOR' => client_ip} }
 
           it { is_expected.to be_forbidden }
 
           it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 403 span'
           it_behaves_like 'a trace with AppSec tags'
-          it_behaves_like 'a trace with AppSec events', { blocking: true }
+          it_behaves_like 'a trace with AppSec events', {blocking: true}
           it_behaves_like 'a trace with AppSec api security tags'
         end
 
@@ -305,7 +305,7 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
@@ -317,7 +317,7 @@ RSpec.describe 'Sinatra integration tests' do
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
-        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
+        let(:env) { {'REMOTE_ADDR' => remote_addr}.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
@@ -330,7 +330,7 @@ RSpec.describe 'Sinatra integration tests' do
         end
 
         context 'with an event-triggering request in application/x-www-form-url-encoded body' do
-          let(:params) { { q: '1 OR 1;' } }
+          let(:params) { {q: '1 OR 1;'} }
 
           it { is_expected.to be_ok }
 
@@ -348,15 +348,15 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
         unless Gem.loaded_specs['rack-test'].version.to_s < '0.7'
           context 'with an event-triggering request in multipart/form-data body' do
-            let(:params) { Rack::Test::Utils.build_multipart({ q: '1 OR 1;' }, true, true) }
-            let(:headers) { { 'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}" } }
+            let(:params) { Rack::Test::Utils.build_multipart({q: '1 OR 1;'}, true, true) }
+            let(:headers) { {'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}"} }
 
             it { is_expected.to be_ok }
 
@@ -385,7 +385,7 @@ RSpec.describe 'Sinatra integration tests' do
           end
 
           let(:params) { JSON.generate('q' => '1 OR 1;') }
-          let(:headers) { { 'CONTENT_TYPE' => 'application/json' } }
+          let(:headers) { {'CONTENT_TYPE' => 'application/json'} }
 
           it { is_expected.to be_ok }
 

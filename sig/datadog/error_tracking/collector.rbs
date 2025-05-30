@@ -1,0 +1,21 @@
+module Datadog
+  module ErrorTracking
+    class Collector
+      self.@after_stop: Proc
+
+      @span_event_per_error: Hash[Exception, Datadog::Tracing::SpanEvent]
+
+      SPAN_EVENTS_LIMIT: 100
+
+      LOCK: Mutex
+      def self.after_stop: () -> Proc
+
+      def initialize: () -> void
+
+      def add_span_event: (Datadog::Tracing::SpanOperation, Datadog::Tracing::SpanEvent, Exception) -> void
+      def on_error: (Datadog::Tracing::SpanOperation, Exception) -> void
+
+      def span_events: () -> Array[Datadog::Tracing::SpanEvent]?
+    end
+  end
+end

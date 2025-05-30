@@ -41,7 +41,7 @@ module Datadog
       class << self
         def tag_and_keep!(context, waf_result)
           # We want to keep the trace in case of security event
-          context.trace.keep! if context.trace
+          context.trace&.keep!
 
           if context.span
             if waf_result.actions.key?('block_request') || waf_result.actions.key?('redirect_request')
@@ -124,7 +124,7 @@ module Datadog
             end
           end
 
-          tags['_dd.appsec.json'] = json_parse({ triggers: triggers }) unless triggers.empty?
+          tags['_dd.appsec.json'] = json_parse({triggers: triggers}) unless triggers.empty?
           tags
         end
 

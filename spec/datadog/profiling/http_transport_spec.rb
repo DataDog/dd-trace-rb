@@ -67,7 +67,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
   let(:info_json) do
-    JSON.fast_generate(
+    JSON.generate(
       {
         application: {
           start_time: "2024-01-24T11:17:22Z"
