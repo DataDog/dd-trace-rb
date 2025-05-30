@@ -8,8 +8,8 @@ module TelemetryHelpers
 
   RSpec.shared_examples 'telemetry event with no attributes' do
     it 'all event instances to the same' do
-      event1 = event_class.new
-      event2 = event_class.new
+      event1 = described_class.new
+      event2 = described_class.new
       expect(event1).to eq(event2)
       expect(event1.hash).to eq(event2.hash)
     end
