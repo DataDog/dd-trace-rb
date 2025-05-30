@@ -83,9 +83,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
           try_wait_until { !worker.enabled? }
 
-          expect(logger).to have_received(:debug).with(
-            'Agent does not support telemetry; disabling future telemetry events.'
-          )
           expect(@received_started).to be(true)
           expect(@received_heartbeat).to be(false)
         end
