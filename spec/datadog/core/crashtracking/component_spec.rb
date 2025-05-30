@@ -201,7 +201,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
       [:fiddle, :signal].each do |trigger|
         it "reports crashes via http when app crashes with #{trigger}" do
-          expect_in_fork(fork_expectations: fork_expectations) do
+          expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
             crash_tracker = build_crashtracker(agent_base_url: agent_base_url)
             crash_tracker.start
 
@@ -231,7 +231,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
 
       it 'picks up the latest settings when reporting a crash' do
-        expect_in_fork(fork_expectations: fork_expectations) do
+        expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
           expect(logger).to_not receive(:error)
 
           crash_tracker = build_crashtracker(agent_base_url: 'http://example.com:6006', logger: logger)
@@ -262,7 +262,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         end
 
         it 'reports crashes via uds when app crashes with fiddle' do
-          expect_in_fork(fork_expectations: fork_expectations) do
+          expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
             crash_tracker = build_crashtracker(agent_base_url: uds_agent_base_url)
             crash_tracker.start
 
