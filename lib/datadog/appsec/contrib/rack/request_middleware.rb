@@ -139,6 +139,7 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
+          # standard:disable Metrics/MethodLength
           def add_appsec_tags(processor, context)
             span = context.span
             trace = context.trace
@@ -173,7 +174,9 @@ module Datadog
               end
             end
           end
+          # standard:enable Metrics/MethodLength
 
+          # standard:disable Metrics/MethodLength
           def add_request_tags(context, env)
             span = context.span
 
@@ -196,6 +199,7 @@ module Datadog
               )
             end
           end
+          # standard:enable Metrics/MethodLength
 
           def to_rack_header(header)
             @rack_headers[header] ||= Datadog::Tracing::Contrib::Rack::Header.to_rack_header(header)

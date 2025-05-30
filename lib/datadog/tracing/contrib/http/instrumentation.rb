@@ -30,7 +30,7 @@ module Datadog
 
               return super(req, body, &block) if Contrib::HTTP.should_skip_tracing?(req)
 
-              Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+              Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
                 span.service = service_name(host, request_options, client_config)
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
@@ -110,10 +110,6 @@ module Datadog
             rescue StandardError => e
               Datadog.logger.error("error preparing span from http response: #{e}")
               Datadog::Core::Telemetry::Logger.report(e)
-            end
-
-            def annotate_span_with_error!(span, error)
-              span.set_error(error)
             end
 
             def set_analytics_sample_rate(span, request_options)

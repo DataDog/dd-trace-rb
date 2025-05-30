@@ -30,13 +30,13 @@ module Datadog
 
         def block_response(interrupt_params, http_accept_header)
           content_type = case interrupt_params['type']
-                         when nil, 'auto' then content_type(http_accept_header)
-                         else FORMAT_TO_CONTENT_TYPE.fetch(interrupt_params['type'], DEFAULT_CONTENT_TYPE)
-                         end
+          when nil, 'auto' then content_type(http_accept_header)
+          else FORMAT_TO_CONTENT_TYPE.fetch(interrupt_params['type'], DEFAULT_CONTENT_TYPE)
+          end
 
           Response.new(
             status: interrupt_params['status_code']&.to_i || 403,
-            headers: { 'Content-Type' => content_type },
+            headers: {'Content-Type' => content_type},
             body: [content(content_type)],
           )
         end
@@ -45,8 +45,8 @@ module Datadog
           status_code = interrupt_params['status_code'].to_i
 
           Response.new(
-            status: (status_code >= 300 && status_code < 400 ? status_code : 303),
-            headers: { 'Location' => interrupt_params.fetch('location') },
+            status: ((status_code >= 300 && status_code < 400) ? status_code : 303),
+            headers: {'Location' => interrupt_params.fetch('location')},
             body: [],
           )
         end

@@ -48,7 +48,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
           actions: {},
-          derivatives: { '_dd.appsec.s.req.headers' => [{ 'host' => [8], 'version' => [8] }] },
+          derivatives: {'_dd.appsec.s.req.headers' => [{'host' => [8], 'version' => [8]}]},
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0
@@ -65,7 +65,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
           actions: {},
-          derivatives: { 'not_schema' => 'value' },
+          derivatives: {'not_schema' => 'value'},
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0
@@ -84,7 +84,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
           actions: {},
-          derivatives: { '_dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-' },
+          derivatives: {'_dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-'},
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0
@@ -101,7 +101,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
           actions: {},
-          derivatives: { 'not_fingerprint' => 'value' },
+          derivatives: {'not_fingerprint' => 'value'},
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0

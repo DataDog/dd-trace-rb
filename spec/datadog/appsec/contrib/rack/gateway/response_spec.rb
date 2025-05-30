@@ -8,7 +8,7 @@ require 'rack'
 RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
   let(:body) { ['Ok'] }
   let(:content_type) { 'text/html' }
-  let(:headers) { { 'Content-Type' => content_type } }
+  let(:headers) { {'Content-Type' => content_type} }
 
   let(:response) do
     described_class.new(
@@ -33,7 +33,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
 
   describe '#headers' do
     it 'returns the headers' do
-      expect(response.headers).to eq({ 'content-type' => 'text/html' })
+      expect(response.headers).to eq({'content-type' => 'text/html'})
     end
   end
 

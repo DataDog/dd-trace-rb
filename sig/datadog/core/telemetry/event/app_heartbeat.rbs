@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Event
+        class AppHeartbeat < Base
+          def type: () -> "app-heartbeat"
+        end
+      end
+    end
+  end
+end

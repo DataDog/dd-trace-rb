@@ -30,7 +30,7 @@ module Datadog
 
               raise ParseError, "could not parse: #{path.inspect}" if m.nil?
 
-              org_id = m['org_id'] ? m['org_id'].to_i : nil
+              org_id = m['org_id']&.to_i
 
               source = m['source']
               raise ParseError, 'missing source value' unless source

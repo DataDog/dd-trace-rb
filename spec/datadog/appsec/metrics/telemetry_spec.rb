@@ -22,9 +22,9 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
 
       it 'does not set WAF metrics on the span' do
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.rule.eval', 1, tags: { rule_type: 'my-type', waf_version: '1.42.99' })
+          .with('specsec', 'rasp.rule.eval', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.rule.match', 1, tags: { rule_type: 'my-type', waf_version: '1.42.99' })
+          .with('specsec', 'rasp.rule.match', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
 
         described_class.report_rasp('my-type', run_result)
       end
@@ -39,11 +39,11 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
 
       it 'does not set WAF metrics on the span' do
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.rule.eval', 1, tags: { rule_type: 'my-type', waf_version: '1.42.99' })
+          .with('specsec', 'rasp.rule.eval', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.rule.match', 1, tags: { rule_type: 'my-type', waf_version: '1.42.99' })
+          .with('specsec', 'rasp.rule.match', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.timeout', 1, tags: { rule_type: 'my-type', waf_version: '1.42.99' })
+          .with('specsec', 'rasp.timeout', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
 
         described_class.report_rasp('my-type', run_result)
       end
@@ -58,7 +58,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
 
       it 'does not set WAF metrics on the span' do
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.rule.eval', 1, tags: { rule_type: 'my-type', waf_version: '1.42.99' })
+          .with('specsec', 'rasp.rule.eval', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
 
         described_class.report_rasp('my-type', run_result)
       end
@@ -73,9 +73,9 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
 
       it 'does not set WAF metrics on the span' do
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.rule.eval', 1, tags: { rule_type: 'my-type', waf_version: '1.42.99' })
+          .with('specsec', 'rasp.rule.eval', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
         expect(telemetry).to receive(:inc)
-          .with('specsec', 'rasp.timeout', 1, tags: { rule_type: 'my-type', waf_version: '1.42.99' })
+          .with('specsec', 'rasp.timeout', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
 
         described_class.report_rasp('my-type', run_result)
       end

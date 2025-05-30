@@ -49,8 +49,6 @@ target :datadog do
   ignore 'lib/datadog/appsec/configuration/settings.rb'
   ignore 'lib/datadog/appsec/contrib/'
   ignore 'lib/datadog/appsec/monitor/gateway/watcher.rb'
-  ignore 'lib/datadog/core.rb'
-  ignore 'lib/datadog/core/buffer/random.rb'
   ignore 'lib/datadog/core/buffer/thread_safe.rb'
   ignore 'lib/datadog/core/configuration.rb'
   ignore 'lib/datadog/core/configuration/base.rb'
@@ -67,7 +65,6 @@ target :datadog do
   ignore 'lib/datadog/core/environment/socket.rb'
   ignore 'lib/datadog/core/environment/variable_helpers.rb'
   ignore 'lib/datadog/core/environment/vm_cache.rb'
-  ignore 'lib/datadog/core/error.rb'
   ignore 'lib/datadog/core/metrics/client.rb'
   ignore 'lib/datadog/core/metrics/helpers.rb'
   ignore 'lib/datadog/core/metrics/metric.rb'
@@ -102,6 +99,7 @@ target :datadog do
   # and then complains that this type doesn't have any methods including
   # language basics like 'send' and 'raise'.
   ignore 'lib/datadog/di/probe_notifier_worker.rb'
+  ignore 'lib/datadog/error_tracking/configuration/settings.rb'
   ignore 'lib/datadog/kit/appsec/events.rb' # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/kit/identity.rb'      # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/opentelemetry.rb'

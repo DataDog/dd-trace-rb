@@ -172,7 +172,7 @@ RSpec.describe 'GraphQL integration tests',
           let(:query) { '{ user(id: 1) { name } }' }
 
           it do
-            expect(last_response.body).to eq({ 'data' => { 'user' => { 'name' => 'Bits' } } }.to_json)
+            expect(last_response.body).to eq({'data' => {'user' => {'name' => 'Bits'}}}.to_json)
             expect(spans).to include(
               an_object_having_attributes(
                 name: 'graphql.parse',
@@ -196,7 +196,7 @@ RSpec.describe 'GraphQL integration tests',
           let(:query) { '{ userByName(name: "$testattack") { id } }' }
 
           it do
-            expect(last_response.body).to eq({ 'data' => { 'userByName' => { 'id' => '1' } } }.to_json)
+            expect(last_response.body).to eq({'data' => {'userByName' => {'id' => '1'}}}.to_json)
             expect(spans).to include(
               an_object_having_attributes(
                 name: 'graphql.parse',
@@ -221,7 +221,7 @@ RSpec.describe 'GraphQL integration tests',
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
+              'errors' => [{'title' => 'Blocked', 'detail' => 'Security provided by Datadog.'}]
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -253,7 +253,7 @@ RSpec.describe 'GraphQL integration tests',
 
           it do
             expect(last_response.body).to eq(
-              { 'data' => { 'createUser' => { 'user' => { 'name' => 'k9', 'id' => '1' } } } }.to_json
+              {'data' => {'createUser' => {'user' => {'name' => 'k9', 'id' => '1'}}}}.to_json
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -295,7 +295,7 @@ RSpec.describe 'GraphQL integration tests',
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
+              'errors' => [{'title' => 'Blocked', 'detail' => 'Security provided by Datadog.'}]
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -340,7 +340,7 @@ RSpec.describe 'GraphQL integration tests',
               },
               {
                 'query' => 'query Test($name: String!) { userByName(name: $name) { id } }',
-                'variables' => { 'name' => 'Caniche' }
+                'variables' => {'name' => 'Caniche'}
               }
             ]
           end
@@ -348,8 +348,8 @@ RSpec.describe 'GraphQL integration tests',
           it do
             expect(last_response.body).to eq(
               [
-                { 'data' => { 'user' => { 'name' => 'Bits' } } },
-                { 'data' => { 'userByName' => { 'id' => '10' } } }
+                {'data' => {'user' => {'name' => 'Bits'}}},
+                {'data' => {'userByName' => {'id' => '10'}}}
               ].to_json
             )
             expect(spans).to include(
@@ -380,7 +380,7 @@ RSpec.describe 'GraphQL integration tests',
               },
               {
                 'query' => 'query Test($name: String!) { userByName(name: $name) { id } }',
-                'variables' => { 'name' => '$testattack' }
+                'variables' => {'name' => '$testattack'}
               }
             ]
           end
@@ -388,8 +388,8 @@ RSpec.describe 'GraphQL integration tests',
           it do
             expect(last_response.body).to eq(
               [
-                { 'data' => { 'user' => { 'name' => 'Bits' } } },
-                { 'data' => { 'userByName' => { 'id' => '1' } } }
+                {'data' => {'user' => {'name' => 'Bits'}}},
+                {'data' => {'userByName' => {'id' => '1'}}}
               ].to_json
             )
             expect(spans).to include(
@@ -420,7 +420,7 @@ RSpec.describe 'GraphQL integration tests',
             [
               {
                 'query' => 'query Test($name: String!) { userByName(name: $name) { id } }',
-                'variables' => { 'name' => '$testattack' }
+                'variables' => {'name' => '$testattack'}
               },
               {
                 'query' => 'query { user(id: 1) { name } }',
@@ -431,7 +431,7 @@ RSpec.describe 'GraphQL integration tests',
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
+              'errors' => [{'title' => 'Blocked', 'detail' => 'Security provided by Datadog.'}]
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -461,7 +461,7 @@ RSpec.describe 'GraphQL integration tests',
             [
               {
                 'query' => 'query Test($format: String!) { user(id: 1) { name @case(format: $format) } }',
-                'variables' => { 'format' => 'upcase' }
+                'variables' => {'format' => 'upcase'}
               }
             ]
           end
@@ -469,7 +469,7 @@ RSpec.describe 'GraphQL integration tests',
           it do
             expect(last_response.body).to eq(
               [
-                { 'data' => { 'user' => { 'name' => 'BITS' } } },
+                {'data' => {'user' => {'name' => 'BITS'}}},
               ].to_json
             )
             expect(spans).to include(
@@ -496,7 +496,7 @@ RSpec.describe 'GraphQL integration tests',
             [
               {
                 'query' => 'query Test($format: String!) { user(id: 1) { name @case(format: $format) } }',
-                'variables' => { 'format' => '$testattack' }
+                'variables' => {'format' => '$testattack'}
               }
             ]
           end
@@ -504,7 +504,7 @@ RSpec.describe 'GraphQL integration tests',
           it do
             expect(last_response.body).to eq(
               [
-                { 'data' => { 'user' => { 'name' => 'Bits' } } }
+                {'data' => {'user' => {'name' => 'Bits'}}}
               ].to_json
             )
             expect(spans).to include(
@@ -535,14 +535,14 @@ RSpec.describe 'GraphQL integration tests',
             [
               {
                 'query' => 'query Test($format: String!) { user(id: 1) { name @case(format: $format) } }',
-                'variables' => { 'format' => '$testattack' }
+                'variables' => {'format' => '$testattack'}
               }
             ]
           end
 
           it do
             expect(JSON.parse(last_response.body)).to eq(
-              'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
+              'errors' => [{'title' => 'Blocked', 'detail' => 'Security provided by Datadog.'}]
             )
             expect(spans).to include(
               an_object_having_attributes(

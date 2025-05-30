@@ -42,7 +42,7 @@ module Datadog
         end
 
         def generate_json
-          JSON.fast_generate(v1: seen_libraries.to_a)
+          JSON.generate(v1: seen_libraries.to_a)
         end
 
         private

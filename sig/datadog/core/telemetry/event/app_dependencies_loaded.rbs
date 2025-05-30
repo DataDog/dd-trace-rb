@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Event
+        class AppDependenciesLoaded < Base
+          def type: () -> "app-dependencies-loaded"
+
+          def payload: () -> { dependencies: untyped }
+
+          private
+
+          def dependencies: -> Array[Hash[Symbol, String]]
+        end
+      end
+    end
+  end
+end

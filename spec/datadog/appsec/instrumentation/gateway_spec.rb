@@ -71,14 +71,14 @@ RSpec.describe Datadog::AppSec::Instrumentation::Gateway do
         next_.call(env)
       end
 
-      result = gateway.push('hello', { a: :b }) do
+      result = gateway.push('hello', {a: :b}) do
         [1 + 1, :done]
       end
 
       expect(result[0][0]).to eq(2)
       expect(result[0][1]).to eq(:done)
-      expect(env_1).to eq({ a: :b })
-      expect(env_2).to eq({ a: :b, c: :d })
+      expect(env_1).to eq({a: :b})
+      expect(env_2).to eq({a: :b, c: :d})
     end
   end
 

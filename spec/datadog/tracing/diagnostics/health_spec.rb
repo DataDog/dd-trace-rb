@@ -7,9 +7,10 @@ RSpec.describe Datadog::Tracing::Diagnostics::Health::Metrics do
   # TODO: Core::Health::Metrics directly extends Tracing::Health::Metrics
   #       In the future, have tracing add this behavior itself. For now,
   #       just use the core metrics class to drive the tests.
-  subject(:health_metrics) { Datadog::Core::Diagnostics::Health::Metrics.new(logger: logger) }
+  subject(:health_metrics) { Datadog::Core::Diagnostics::Health::Metrics.new(logger: logger, telemetry: telemetry) }
 
   let(:logger) { logger_allowing_debug }
+  let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
 
   shared_examples_for 'a health metric' do |type, name, stat|
     subject(:health_metric) { health_metrics.send(name, *args, &block) }

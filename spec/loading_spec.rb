@@ -5,6 +5,7 @@ REQUIRES = [
   ['datadog', 'Datadog::Core'],
   ['datadog/appsec', 'Datadog::AppSec'],
   ['datadog/core', 'Datadog::Core'],
+  ['datadog/error_tracking', 'Datadog::ErrorTracking'],
   ['datadog/di', 'Datadog::DI',
    -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
   ['datadog/di/preload', 'Datadog::DI::CodeTracker',
@@ -55,7 +56,7 @@ RSpec.describe 'loading of products' do
   end
 end
 
-RSpec.describe 'load core only and configure library' do
+RSpec.describe 'load core only and configure library with no settings' do
   let(:code) do
     <<-E
       if defined?(Datadog)
@@ -71,6 +72,31 @@ RSpec.describe 'load core only and configure library' do
     E
   end
 
+  it 'configures successfully' do
+    rv = system("ruby -e #{Shellwords.shellescape(code)}")
+    expect(rv).to be true
+  end
+end
+
+RSpec.describe 'load datadog and enable dynamic instrumentation' do
+  let(:code) do
+    <<-E
+      if defined?(Datadog)
+        unless Datadog.constants == [:VERSION]
+          exit 1
+        end
+      end
+
+      require 'datadog'
+
+      Datadog.configure do |c|
+        c.dynamic_instrumentation.enabled = true
+      end
+    E
+  end
+
+  # DI is not available in all environments, however asking for it to be
+  # turned on should not produce exceptions.
   it 'configures successfully' do
     rv = system("ruby -e #{Shellwords.shellescape(code)}")
     expect(rv).to be true

@@ -56,17 +56,18 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       info_json: info_json,
     )
   end
-  let(:start_timestamp) { "2022-02-07T15:59:53.987654321Z" }
-  let(:end_timestamp) { "2023-11-11T16:00:00.123456789Z" }
-  let(:start) { Time.iso8601(start_timestamp) }
-  let(:finish) { Time.iso8601(end_timestamp) }
-  let(:encoded_profile) { Datadog::Profiling::StackRecorder.for_testing.serialize! }
-  let(:pprof_file_name) { "rubyprofile.pprof" }
+  let(:serialize_result) { Datadog::Profiling::StackRecorder.for_testing.serialize }
+  let(:start) { serialize_result[0] }
+  let(:finish) { serialize_result[1] }
+  let(:encoded_profile) { serialize_result[2] }
+  let(:start_timestamp) { start.iso8601(9) }
+  let(:end_timestamp) { finish.iso8601(9) }
+  let(:pprof_file_name) { "profile.pprof" }
   let(:code_provenance_file_name) { "the_code_provenance_file_name.json" }
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
   let(:info_json) do
-    JSON.fast_generate(
+    JSON.generate(
       {
         application: {
           start_time: "2024-01-24T11:17:22Z"
@@ -185,21 +186,12 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     subject(:export) { http_transport.export(flush) }
 
     it "calls the native export method with the data from the flush" do
-      # Manually converted from the lets above :)
       upload_timeout_milliseconds = 10_000
-      start_timespec_seconds = 1644249593
-      start_timespec_nanoseconds = 987654321
-      finish_timespec_seconds = 1699718400
-      finish_timespec_nanoseconds = 123456789
 
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
         upload_timeout_milliseconds,
         flush,
-        start_timespec_seconds,
-        start_timespec_nanoseconds,
-        finish_timespec_seconds,
-        finish_timespec_nanoseconds,
       ).and_return([:ok, 200])
 
       export
@@ -208,6 +200,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     context "when successful" do
       before do
         expect(described_class).to receive(:_native_do_export).and_return([:ok, 200])
+        serialize_result # Trigger the serialization
       end
 
       it "logs a debug message" do
@@ -306,6 +299,20 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     let!(:encoded_profile_bytes) { encoded_profile._native_bytes }
 
     shared_examples "correctly reports profiling data" do
+      let(:expected_data_in_payload) {
+        {
+          "attachments" => contain_exactly(pprof_file_name, code_provenance_file_name),
+          "tags_profiler" => start_with("tag_a:value_a,tag_b:value_b,runtime_platform:#{RUBY_PLATFORM.split("-").first}"),
+          "start" => start_timestamp,
+          "end" => end_timestamp,
+          "family" => "ruby",
+          "version" => "4",
+          "endpoint_counts" => nil,
+          "internal" => hash_including("no_signals_workaround_enabled" => true),
+          "info" => info_string_keys,
+        }
+      }
+
       it "correctly reports profiling data" do
         success = http_transport.export(flush)
 
@@ -322,17 +329,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
 
-        expect(event_data).to match(
-          "attachments" => contain_exactly(pprof_file_name, code_provenance_file_name),
-          "tags_profiler" => "tag_a:value_a,tag_b:value_b",
-          "start" => start_timestamp,
-          "end" => end_timestamp,
-          "family" => "ruby",
-          "version" => "4",
-          "endpoint_counts" => nil,
-          "internal" => {"no_signals_workaround_enabled" => true},
-          "info" => info_string_keys,
-        )
+        expect(event_data).to match(expected_data_in_payload)
       end
 
       it "reports the payload as lz4-compressed files, that get automatically compressed by libdatadog" do
@@ -371,17 +368,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
 
-        expect(event_data).to eq(
-          "attachments" => [pprof_file_name],
-          "tags_profiler" => "tag_a:value_a,tag_b:value_b",
-          "start" => start_timestamp,
-          "end" => end_timestamp,
-          "family" => "ruby",
-          "version" => "4",
-          "endpoint_counts" => nil,
-          "internal" => {"no_signals_workaround_enabled" => true},
-          "info" => info_string_keys,
-        )
+        expect(event_data).to match(expected_data_in_payload.merge("attachments" => [pprof_file_name]))
 
         expect(body[code_provenance_file_name]).to be nil
       end
@@ -404,7 +391,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:error).with(/error trying to connect/)
+        expect(Datadog.logger).to receive(:error).with(/ddog_prof_Exporter_send failed/)
         expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to report profiling data")
 
         http_transport.export(flush)
@@ -463,7 +450,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
 
-        expect(event_data["tags_profiler"]).to eq "valid1:valid1,valid2:valid2"
+        expect(event_data["tags_profiler"]).to start_with("valid1:valid1,valid2:valid2,runtime_platform:")
       end
 
       it "logs a warning" do

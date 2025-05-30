@@ -33,7 +33,7 @@ module Datadog
         event_category = Ext::EXPLOIT_PREVENTION_EVENT_CATEGORY
         tag_key = Ext::TAG_METASTRUCT_STACK_TRACE
 
-        existing_stack_data = active_span.get_metastruct_tag(tag_key).dup || { event_category => [] }
+        existing_stack_data = active_span.get_metastruct_tag(tag_key).dup || {event_category => []}
         max_stack_traces = Datadog.configuration.appsec.stack_trace.max_stack_traces
         return if max_stack_traces != 0 && existing_stack_data[event_category].count >= max_stack_traces
 
@@ -42,7 +42,8 @@ module Datadog
         active_span.set_metastruct_tag(tag_key, existing_stack_data)
       end
 
-      def generate_schema(_action_params); end
+      def generate_schema(_action_params)
+      end
     end
   end
 end

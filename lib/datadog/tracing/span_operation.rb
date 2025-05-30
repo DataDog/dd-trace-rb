@@ -38,6 +38,7 @@ module Datadog
         :start_time,
         :trace_id,
         :type
+
       attr_accessor :links, :status, :span_events
 
       def initialize(
@@ -138,6 +139,10 @@ module Datadog
       # @return [String
       def resource=(resource)
         @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow this to be explicitly set to nil
+      end
+
+      def get_collector_or_initialize
+        @collector ||= yield
       end
 
       def measure
@@ -244,6 +249,10 @@ module Datadog
       # Return whether the duration is stopped or not.
       def stopped?
         !@end_time.nil?
+      end
+
+      def root?
+        parent_id == 0
       end
 
       # for backwards compatibility

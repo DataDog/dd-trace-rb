@@ -97,7 +97,8 @@ RSpec.describe Datadog::AppSec::Processor do
         stub_const(
           'Datadog::AppSec::WAF::Handle',
           Class.new do
-            def initialize(*); end
+            def initialize(*)
+            end
 
             def diagnostics
               :handle_diagnostics
@@ -229,7 +230,7 @@ RSpec.describe Datadog::AppSec::Processor do
     end
 
     context 'when ruleset is invalid' do
-      let(:ruleset) { { 'not' => 'valid' } }
+      let(:ruleset) { {'not' => 'valid'} }
 
       it do
         expect(Datadog.logger).to receive(:warn)

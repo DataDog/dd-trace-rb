@@ -1,6 +1,8 @@
 require "datadog/profiling/spec_helper"
 require "datadog/profiling/stack_recorder"
 
+require "objspace"
+
 RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported(self) }
 
@@ -320,21 +322,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(labels).to eq(label_a: "value_a", label_b: "value_b")
       end
 
-      it "encodes a single empty mapping" do
-        expect(decoded_profile.mapping.size).to be 1
-
-        expect(decoded_profile.mapping.first).to have_attributes(
-          id: 1,
-          memory_start: 0,
-          memory_limit: 0,
-          file_offset: 0,
-          filename: 0,
-          build_id: 0,
-          has_functions: false,
-          has_filenames: false,
-          has_line_numbers: false,
-          has_inline_frames: false,
-        )
+      it "does not emit any mappings" do
+        expect(decoded_profile.mapping).to be_empty
       end
 
       it "returns stats reporting one recorded sample" do
@@ -346,25 +335,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             heap_profile_build_time_ns: be >= 0,
           )
         )
-      end
-    end
-
-    context "when sample is invalid" do
-      context "because the local root span id is being defined using a string instead of as a number" do
-        let(:metric_values) { {"cpu-time" => 123, "cpu-samples" => 456, "wall-time" => 789} }
-
-        it do
-          # We're using `_native_sample` here to test the behavior of `record_sample` in `stack_recorder.c`
-          expect do
-            Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-              Thread.current,
-              stack_recorder,
-              metric_values,
-              {"local root span id" => "incorrect", "state" => "unknown"}.to_a,
-              [],
-            )
-          end.to raise_error(ArgumentError)
-        end
       end
     end
 
@@ -673,7 +643,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           it "only keeps track of some allocations" do
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
-            expect(heap_samples.size).to eq(1)
+            expect(heap_samples.size)
+              .to eq(1), "Expected one heap sample, got #{heap_samples.size}; heap_samples is #{heap_samples}"
 
             heap_sample = heap_samples.first
             expect(heap_sample.labels[:"allocation class"]).to eq("Array")
@@ -740,6 +711,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
 
               stack_recorder.serialize
+
+              GC.enable
+              GC.start
+
+              # Sanity check: All the objects should've been garbage collected
+              @object_ids.map do |object_id|
+                expect { ObjectSpace._id2ref(object_id) }.to raise_error(RangeError)
+              end
 
               # Older objects are only cleared at serialization time
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]

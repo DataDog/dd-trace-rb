@@ -704,7 +704,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
     it 'overwrites actions with new actions' do
       actions = [{
         'id' => 'block',
-        'parameters' => { 'location' => 'https://datadoghq.com', 'status_code' => 302 },
+        'parameters' => {'location' => 'https://datadoghq.com', 'status_code' => 302},
         'type' => 'redirect_request'
       }]
 

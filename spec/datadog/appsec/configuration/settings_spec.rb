@@ -866,9 +866,9 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe 'block' do
       describe 'templates' do
         [
-          { method_name: :html, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML' },
-          { method_name: :json, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON' },
-          { method_name: :text, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT' }
+          {method_name: :html, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML'},
+          {method_name: :json, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON'},
+          {method_name: :text, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT'}
         ].each do |test_info|
           describe "##{test_info[:method_name]}" do
             context "when #{test_info[:env_var]}" do

@@ -37,49 +37,49 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
 
       it 'removes keys with nil values' do
         expect(waf_context).to receive(:run)
-          .with({ 'addr.a' => 'a' }, { 'addr.b' => 'b' }, 1_000)
+          .with({'addr.a' => 'a'}, {'addr.b' => 'b'}, 1_000)
           .and_return([result.status, result])
 
-        runner.run({ 'addr.a' => 'a', 'addr.aa' => nil }, { 'addr.b' => 'b', 'addr.bb' => nil }, 1_000)
+        runner.run({'addr.a' => 'a', 'addr.aa' => nil}, {'addr.b' => 'b', 'addr.bb' => nil}, 1_000)
       end
 
       it 'removes keys with empty strings' do
         expect(waf_context).to receive(:run)
-          .with({ 'addr.a' => 'a' }, { 'addr.b' => 'b' }, 1_000)
+          .with({'addr.a' => 'a'}, {'addr.b' => 'b'}, 1_000)
           .and_return([result.status, result])
 
-        runner.run({ 'addr.a' => 'a', 'addr.aa' => '' }, { 'addr.b' => 'b', 'addr.bb' => '' }, 1_000)
+        runner.run({'addr.a' => 'a', 'addr.aa' => ''}, {'addr.b' => 'b', 'addr.bb' => ''}, 1_000)
       end
 
       it 'removes keys with empty arrays' do
         expect(waf_context).to receive(:run)
-          .with({ 'addr.a' => ['a'] }, { 'addr.b' => ['b'] }, 1_000)
+          .with({'addr.a' => ['a']}, {'addr.b' => ['b']}, 1_000)
           .and_return([result.status, result])
 
-        runner.run({ 'addr.a' => ['a'], 'addr.aa' => [] }, { 'addr.b' => ['b'], 'addr.bb' => [] }, 1_000)
+        runner.run({'addr.a' => ['a'], 'addr.aa' => []}, {'addr.b' => ['b'], 'addr.bb' => []}, 1_000)
       end
 
       it 'removes keys with empty hashes' do
         expect(waf_context).to receive(:run)
-          .with({ 'addr.a' => { 'a' => '1' } }, { 'addr.b' => { 'b' => '2' } }, 1_000)
+          .with({'addr.a' => {'a' => '1'}}, {'addr.b' => {'b' => '2'}}, 1_000)
           .and_return([result.status, result])
 
-        runner.run({ 'addr.a' => { 'a' => '1' }, 'addr.aa' => {} }, { 'addr.b' => { 'b' => '2' }, 'addr.bb' => {} }, 1_000)
+        runner.run({'addr.a' => {'a' => '1'}, 'addr.aa' => {}}, {'addr.b' => {'b' => '2'}, 'addr.bb' => {}}, 1_000)
       end
 
       it 'does not remove keys with boolean values' do
         expect(waf_context).to receive(:run)
-          .with({ 'addr.a' => 'a', 'addr.aa' => true }, { 'addr.b' => 'b', 'addr.bb' => false }, 1_000)
+          .with({'addr.a' => 'a', 'addr.aa' => true}, {'addr.b' => 'b', 'addr.bb' => false}, 1_000)
           .and_return([result.status, result])
 
-        runner.run({ 'addr.a' => 'a', 'addr.aa' => true }, { 'addr.b' => 'b', 'addr.bb' => false }, 1_000)
+        runner.run({'addr.a' => 'a', 'addr.aa' => true}, {'addr.b' => 'b', 'addr.bb' => false}, 1_000)
       end
     end
 
     context 'when run succeeded with a match result' do
       before do
         allow(waf_context).to receive(:run)
-          .with({ 'addr.a' => 'a' }, {}, 1_000)
+          .with({'addr.a' => 'a'}, {}, 1_000)
           .and_return([waf_result.status, waf_result])
       end
 
@@ -89,21 +89,21 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           status: :match,
           events: [],
           actions: {
-            'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' }
+            'block_request' => {'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto'}
           },
           derivatives: {},
           timeout: false,
           total_runtime: 10
         )
       end
-      let(:result) { runner.run({ 'addr.a' => 'a' }, {}, 1_000) }
+      let(:result) { runner.run({'addr.a' => 'a'}, {}, 1_000) }
 
       it 'returns match result with filled fields' do
         expect(result).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Match)
         expect(result).not_to be_timeout
         expect(result.events).to eq([])
         expect(result.actions).to eq(
-          { 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }
+          {'block_request' => {'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto'}}
         )
         expect(result.derivatives).to eq({})
         expect(result.duration_ns).to eq(10)
@@ -114,7 +114,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
     context 'when run succeeded with an ok result' do
       before do
         allow(waf_context).to receive(:run)
-          .with({ 'addr.a' => 'a' }, {}, 1_000)
+          .with({'addr.a' => 'a'}, {}, 1_000)
           .and_return([waf_result.status, waf_result])
       end
 
@@ -129,7 +129,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           total_runtime: 100
         )
       end
-      let(:result) { runner.run({ 'addr.a' => 'a' }, {}, 1_000) }
+      let(:result) { runner.run({'addr.a' => 'a'}, {}, 1_000) }
 
       it 'returns match result with filled fields' do
         expect(result).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Ok)
@@ -145,7 +145,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
     context 'when run failed with libddwaf error result' do
       before do
         allow(waf_context).to receive(:run)
-          .with({ 'addr.a' => 'a' }, {}, 1_000)
+          .with({'addr.a' => 'a'}, {}, 1_000)
           .and_return([waf_result.status, waf_result])
       end
 
@@ -157,18 +157,18 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(telemetry).to receive(:error)
           .with(/libddwaf:[\d.]+ method:ddwaf_run execution error: :err_invalid_object/)
 
-        runner.run({ 'addr.a' => 'a' }, {}, 1_000)
+        runner.run({'addr.a' => 'a'}, {}, 1_000)
       end
     end
 
     context 'when run failed with libddwaf low-level exception' do
       before do
         allow(waf_context).to receive(:run)
-          .with({ 'addr.a' => 'a' }, {}, 1_000)
+          .with({'addr.a' => 'a'}, {}, 1_000)
           .and_raise(Datadog::AppSec::WAF::LibDDWAF::Error, 'Could not convert persistent data')
       end
 
-      let(:run_result) { runner.run({ 'addr.a' => 'a' }, {}, 1_000) }
+      let(:run_result) { runner.run({'addr.a' => 'a'}, {}, 1_000) }
 
       it 'sends telemetry report' do
         expect(telemetry).to receive(:error)

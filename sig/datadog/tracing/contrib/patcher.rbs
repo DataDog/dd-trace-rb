@@ -6,7 +6,7 @@ module Datadog
         module CommonMethods
           attr_accessor patch_error_result: untyped
 
-          attr_accessor patch_successful: untyped
+          attr_accessor patch_successful: (true | false)
 
           def patch_name: () -> untyped
 

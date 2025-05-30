@@ -197,7 +197,7 @@ RSpec.describe Datadog::AppSec::Component do
 
       it 'does not swap the processor instance and finalize the old processor' do
         component = described_class.new(processor, telemetry)
-        ruleset = { 'invalid_one' => true }
+        ruleset = {'invalid_one' => true}
 
         expect(processor).to_not receive(:finalize)
         expect(component.processor).to eq(processor)

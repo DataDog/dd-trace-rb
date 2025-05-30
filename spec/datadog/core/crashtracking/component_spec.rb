@@ -185,15 +185,24 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       let(:request) { messages.first }
 
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
+      let(:fork_expectations) do
+        proc do |status:, stdout:, stderr:|
+          expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
+          expect(stderr).to include('[BUG] Segmentation fault')
+        end
+      end
+
+      let(:parsed_request) { JSON.parse(request.body, symbolize_names: true) }
+      let(:crash_report) { parsed_request.fetch(:payload).first }
+      let(:crash_report_message) { JSON.parse(crash_report.fetch(:message), symbolize_names: true) }
+      let(:stack_trace) { crash_report_message.fetch(:error).fetch(:stack).fetch(:frames) }
+
+      # NOTE: If any of these tests seem flaky, the `upload_timeout_seconds` may need to be raised (or otherwise
+      # we need to tweak libdatadog to not need such high timeouts).
 
       [:fiddle, :signal].each do |trigger|
         it "reports crashes via http when app crashes with #{trigger}" do
-          fork_expectations = proc do |status:, stdout:, stderr:|
-            expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
-            expect(stderr).to include('[BUG] Segmentation fault')
-          end
-
-          expect_in_fork(fork_expectations: fork_expectations) do
+          expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
             crash_tracker = build_crashtracker(agent_base_url: agent_base_url)
             crash_tracker.start
 
@@ -204,22 +213,52 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             end
           end
 
-          crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
+          expect(stack_trace).to_not be_empty
+          expect(stack_trace.size).to be > 10
+          expect(stack_trace.first)
+            .to match(hash_including(path: /libdatadog/)).or match(hash_including(file: /libdatadog/))
 
-          expect(crash_report[:stack_trace]).to_not be_empty
           expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
-
-          crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
 
           expect(crash_report_message[:metadata]).to include(
             library_name: 'dd-trace-rb',
             library_version: Datadog::VERSION::STRING,
             family: 'ruby',
-            tags: ['tag1:value1', 'tag2:value2'],
+            tags: ['tag1:value1', 'tag2:value2', 'language:ruby-testing-123', 'service:ruby-testing-123'],
           )
           expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
           expect(crash_report_message[:os_info]).to_not be_empty
+          expect(parsed_request.fetch(:application)).to include(
+            service_name: 'ruby-testing-123',
+            language_name: 'ruby-testing-123',
+          )
         end
+      end
+
+      it 'picks up the latest settings when reporting a crash' do
+        expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
+          expect(logger).to_not receive(:error)
+
+          crash_tracker = build_crashtracker(agent_base_url: 'http://example.com:6006', logger: logger)
+          crash_tracker.start
+          crash_tracker.stop
+
+          crash_tracker = build_crashtracker(
+            agent_base_url: agent_base_url,
+            tags: { 'latest_settings' => 'included' },
+            logger: logger
+          )
+          crash_tracker.start
+
+          Fiddle.free(42)
+        end
+
+        expect(crash_report_message[:metadata]).to include(
+          library_name: 'dd-trace-rb',
+          library_version: Datadog::VERSION::STRING,
+          family: 'ruby',
+          tags: ['latest_settings:included'],
+        )
       end
 
       context 'via unix domain socket' do
@@ -228,24 +267,15 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         end
 
         it 'reports crashes via uds when app crashes with fiddle' do
-          fork_expectations = proc do |status:, stdout:, stderr:|
-            expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
-            expect(stderr).to include('[BUG] Segmentation fault')
-          end
-
-          expect_in_fork(fork_expectations: fork_expectations) do
+          expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
             crash_tracker = build_crashtracker(agent_base_url: uds_agent_base_url)
             crash_tracker.start
 
             Fiddle.free(42)
           end
 
-          crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
-
-          expect(crash_report[:stack_trace]).to_not be_empty
+          expect(stack_trace).to_not be_empty
           expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
-
-          crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
 
           expect(crash_report_message[:metadata]).to_not be_empty
           expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
@@ -284,10 +314,12 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
     end
   end
 
-  def build_crashtracker(options = {})
+  def build_crashtracker(**options)
+    testing_string = 'ruby-testing-123'
     described_class.new(
       agent_base_url: options[:agent_base_url] || 'http://localhost:6006',
-      tags: options[:tags] || { 'tag1' => 'value1', 'tag2' => 'value2' },
+      tags: options[:tags] ||
+        { 'tag1' => 'value1', 'tag2' => 'value2', 'language' => testing_string, 'service' => testing_string },
       path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
       ld_library_path: Libdatadog.ld_library_path,
       logger: options[:logger] || Logger.new($stdout),

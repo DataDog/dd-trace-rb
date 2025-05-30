@@ -14,7 +14,6 @@ module Datadog
           end
 
           class Request < Datadog::Core::Transport::Request
-
             attr_reader :request_type
             attr_reader :api_key
 

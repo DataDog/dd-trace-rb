@@ -5,6 +5,7 @@ require_relative '../utils/url'
 
 module Datadog
   module Core
+    # Environment
     module Environment
       # Retrieves git repository information from environment variables
       module Git

@@ -1,0 +1,35 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Event
+        class Log < Base
+          @message: untyped
+
+          @stack_trace: untyped
+          @level: untyped
+
+          @count: untyped
+
+          LEVELS: Hash[Symbol, String]
+
+          LEVELS_STRING: Array[String]
+
+          attr_reader count: Integer
+          attr_reader message: String
+          attr_reader level: String
+          attr_reader stack_trace: String?
+
+          def type: () -> "logs"
+          def initialize: (message: String, level: (Symbol|String), ?stack_trace: String?, ?count: Integer) -> void
+
+          def payload: () -> { logs: [Hash[Symbol, (String|Integer)]] }
+          def ==: (untyped other) -> untyped
+
+          alias eql? ==
+
+          def hash: () -> untyped
+        end
+      end
+    end
+  end
+end

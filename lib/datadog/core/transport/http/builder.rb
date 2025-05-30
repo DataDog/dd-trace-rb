@@ -41,19 +41,19 @@ module Datadog
 
           def adapter(config, *args, **kwargs)
             @default_adapter = case config
-                               when Core::Configuration::AgentSettingsResolver::AgentSettings
-                                 registry_klass = REGISTRY.get(config.adapter)
-                                 raise UnknownAdapterError, config.adapter if registry_klass.nil?
+            when Core::Configuration::AgentSettingsResolver::AgentSettings
+              registry_klass = REGISTRY.get(config.adapter)
+              raise UnknownAdapterError, config.adapter if registry_klass.nil?
 
-                                 registry_klass.build(config)
-                               when Symbol
-                                 registry_klass = REGISTRY.get(config)
-                                 raise UnknownAdapterError, config if registry_klass.nil?
+              registry_klass.build(config)
+            when Symbol
+              registry_klass = REGISTRY.get(config)
+              raise UnknownAdapterError, config if registry_klass.nil?
 
-                                 registry_klass.new(*args, **kwargs)
-                               else
-                                 config
-                               end
+              registry_klass.new(*args, **kwargs)
+            else
+              config
+            end
           end
 
           def headers(values = {})

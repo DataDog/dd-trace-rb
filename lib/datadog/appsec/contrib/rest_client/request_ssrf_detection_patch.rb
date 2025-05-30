@@ -15,7 +15,7 @@ module Datadog
 
             context = AppSec.active_context
 
-            ephemeral_data = { 'server.io.net.url' => url }
+            ephemeral_data = {'server.io.net.url' => url}
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, Datadog.configuration.appsec.waf_timeout)
 
             if result.match?
@@ -28,7 +28,7 @@ module Datadog
               AppSec::ActionsHandler.handle(result.actions)
             end
 
-            super(&block)
+            super
           end
         end
       end
