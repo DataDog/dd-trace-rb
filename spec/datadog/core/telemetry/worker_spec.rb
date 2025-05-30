@@ -98,6 +98,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         it 'starts the worker and sends heartbeat event' do
           worker.start(initial_event)
 
+          try_wait_until { worker.sent_initial_event? }
+
           try_wait_until { @received_heartbeat }
 
           expect(worker).to have_attributes(
@@ -121,6 +123,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           end
 
           worker.start(initial_event)
+
+          try_wait_until { worker.sent_initial_event? }
 
           try_wait_until { sent_hearbeat }
         end
@@ -153,6 +157,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             end
 
             worker.start(initial_event)
+
+            try_wait_until { worker.sent_initial_event? }
 
             try_wait_until { sent_hearbeat }
           end
@@ -208,6 +214,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
             worker.start(initial_event)
 
+            try_wait_until { worker.sent_initial_event? }
+
             try_wait_until { sent_dependencies }
           end
         end
@@ -234,6 +242,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
             worker.start(initial_event)
 
+            try_wait_until { worker.sent_initial_event? }
+
             try_wait_until { received_metrics }
           end
         end
@@ -255,6 +265,9 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             worker.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
 
             worker.start(initial_event)
+
+            try_wait_until { worker.sent_initial_event? }
+
             try_wait_until { !events_received.empty? }
 
             expect(events_received).to contain_exactly(
