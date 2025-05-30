@@ -18,7 +18,7 @@ module Datadog
         module ClassMethods
           def options
             # Allows for class inheritance of option definitions
-            @options ||= superclass <= Options ? superclass.options.dup : {}
+            @options ||= (superclass <= Options) ? superclass.options.dup : {}
           end
 
           protected

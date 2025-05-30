@@ -37,7 +37,7 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
   end
 
   let(:db_config) do
-    { adapter: 'sqlite3', database: ':memory:' }
+    {adapter: 'sqlite3', database: ':memory:'}
   end
 
   before do
@@ -117,7 +117,7 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [],
-          actions: { 'generate_stack' => { 'stack_id' => 'some-id' } },
+          actions: {'generate_stack' => {'stack_id' => 'some-id'}},
           derivatives: {},
           timeout: false,
           duration_ns: 0,

@@ -8,8 +8,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       subject(:result) do
         described_class::Ok.new(
           events: [1],
-          actions: { '2' => '2' },
-          derivatives: { '3' => '3' },
+          actions: {'2' => '2'},
+          derivatives: {'3' => '3'},
           timeout: true,
           duration_ns: 400,
           duration_ext_ns: 500
@@ -18,8 +18,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
 
       it { expect(result).to be_timeout }
       it { expect(result.events).to eq([1]) }
-      it { expect(result.actions).to eq({ '2' => '2' }) }
-      it { expect(result.derivatives).to eq({ '3' => '3' }) }
+      it { expect(result.actions).to eq({'2' => '2'}) }
+      it { expect(result.derivatives).to eq({'3' => '3'}) }
       it { expect(result.duration_ns).to eq(400) }
       it { expect(result.duration_ext_ns).to eq(500) }
     end

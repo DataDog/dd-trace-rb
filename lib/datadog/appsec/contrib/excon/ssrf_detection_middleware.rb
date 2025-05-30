@@ -18,7 +18,7 @@ module Datadog
             context = AppSec.active_context
 
             request_url = URI.join("#{data[:scheme]}://#{data[:host]}", data[:path]).to_s
-            ephemeral_data = { 'server.io.net.url' => request_url }
+            ephemeral_data = {'server.io.net.url' => request_url}
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, Datadog.configuration.appsec.waf_timeout)
 

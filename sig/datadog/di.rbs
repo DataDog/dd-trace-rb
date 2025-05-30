@@ -1,6 +1,7 @@
 module Datadog
   module DI
     def self.component: () -> Component?
+    def self.enabled?: () -> bool
     
   end
 end

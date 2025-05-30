@@ -47,12 +47,12 @@ module Datadog
           # This wrapper prevents this by initializing the fork PID when the object is created.
           if RUBY_VERSION >= '3'
             def initialize(*args, **kwargs, &block)
-              super(*args, **kwargs, &block)
+              super
               update_fork_pid!
             end
           else
             def initialize(*args, &block)
-              super(*args, &block)
+              super
               update_fork_pid!
             end
           end

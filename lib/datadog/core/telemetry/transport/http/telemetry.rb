@@ -64,11 +64,11 @@ module Datadog
                   super
                 end
 
-                def headers(request_type:, api_version: 'v2', api_key:)
+                def headers(request_type:, api_key:, api_version: 'v2')
                   {
                     Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => '1',
                     # Provided by encoder
-                    #'Content-Type' => 'application/json',
+                    # 'Content-Type' => 'application/json',
                     'DD-Telemetry-API-Version' => api_version,
                     'DD-Telemetry-Request-Type' => request_type,
                     'DD-Client-Library-Language' => Core::Environment::Ext::LANG,

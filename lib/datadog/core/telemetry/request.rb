@@ -11,11 +11,11 @@ module Datadog
         class << self
           using Core::Utils::Hash::Refinement
 
-          def build_payload(event, seq_id, api_version: 'v2')
+          def build_payload(event, seq_id, api_version: 'v2', debug: false)
             hash = {
               api_version: api_version,
               application: application,
-              debug: false,
+              debug: debug,
               host: host,
               payload: event.payload,
               request_type: event.type,

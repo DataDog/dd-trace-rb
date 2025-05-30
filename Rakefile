@@ -70,12 +70,12 @@ namespace :spec do
              :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-             :profiling, :crashtracking]
+             :profiling, :crashtracking, :error_tracking]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking}/**/*_spec.rb,'\
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking}/**/*_spec.rb,'\
                         ' spec/**/{auto_instrument,opentelemetry}_spec.rb, spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
@@ -206,6 +206,12 @@ namespace :spec do
   # rubocop:enable Style/MultilineBlockChain
 
   desc '' # "Explicitly hiding from `rake -T`"
+  RSpec::Core::RakeTask.new(:error_tracking) do |t, args|
+    t.pattern = 'spec/datadog/error_tracking/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:contrib) do |t, args|
     contrib_paths = [
       '*',
@@ -295,15 +301,15 @@ namespace :spec do
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
       t.pattern = 'spec/datadog/appsec/**/*_spec.rb'
-      t.exclude_pattern = 'spec/datadog/appsec/**/{contrib,auto_instrument}/**/*_spec.rb,'\
+      t.exclude_pattern = 'spec/datadog/appsec/**/{integration,contrib,auto_instrument}/**/*_spec.rb,'\
                           ' spec/datadog/appsec/**/{auto_instrument,autoload}_spec.rb'
       t.rspec_opts = args.to_a.join(' ')
     end
 
-    # Datadog AppSec integration specs
+    # Datadog AppSec integration specs (syntetic rails application)
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:integration) do |t, args|
-      t.pattern = 'spec/datadog/appsec/contrib/integration/**/*_spec.rb'
+      t.pattern = 'spec/datadog/appsec/integration/**/*_spec.rb'
       t.rspec_opts = args.to_a.join(' ')
     end
 

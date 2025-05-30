@@ -1,0 +1,25 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Event
+        class MessageBatch < Base
+          @events: Array[Datadog::Core::Telemetry::Event::Base]
+
+          attr_reader events: Array[Datadog::Core::Telemetry::Event::Base]
+
+          def type: () -> "message-batch"
+
+          def initialize: (Array[Datadog::Core::Telemetry::Event::Base] events) -> void
+
+          def payload: () -> untyped
+
+          def ==: (untyped other) -> untyped
+
+          alias eql? ==
+
+          def hash: () -> untyped
+        end
+      end
+    end
+  end
+end

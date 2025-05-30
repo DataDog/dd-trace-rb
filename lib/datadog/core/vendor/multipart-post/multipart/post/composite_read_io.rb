@@ -108,7 +108,7 @@ module Datadog
             end
 
             def respond_to?(meth, include_all = false)
-              @io.respond_to?(meth, include_all) || super(meth, include_all)
+              @io.respond_to?(meth, include_all) || super
             end
           end
         end

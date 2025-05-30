@@ -32,7 +32,7 @@ module Datadog
           def stripped_ip_from_request_headers(headers, ip_headers_to_check: DEFAULT_IP_HEADERS_NAMES)
             ip = ip_header(headers, ip_headers_to_check)
 
-            ip ? ip.to_s : nil
+            ip&.to_s
           end
 
           # @param [String] IP value.
@@ -40,7 +40,7 @@ module Datadog
           # @return [nil] when no valid IP value found.
           def stripped_ip(ip)
             ip = ip_to_ipaddr(ip)
-            ip ? ip.to_s : nil
+            ip&.to_s
           end
 
           private
@@ -52,10 +52,10 @@ module Datadog
             return unless ip
 
             clean_ip = if likely_ipv4?(ip)
-                         strip_ipv4_port(ip)
-                       else
-                         strip_zone_specifier(strip_ipv6_port(ip))
-                       end
+              strip_ipv4_port(ip)
+            else
+              strip_zone_specifier(strip_ipv6_port(ip))
+            end
 
             begin
               IPAddr.new(clean_ip)

@@ -58,6 +58,8 @@ module Datadog
 
       def resource=: (untyped resource) -> untyped
 
+      def get_collector_or_initialize: () { () -> Datadog::ErrorTracking::Collector } -> Datadog::ErrorTracking::Collector
+
       def measure: () { (untyped) -> untyped } -> untyped
 
       def start: (?untyped? start_time) -> self
@@ -67,6 +69,8 @@ module Datadog
       def started?: () -> untyped
 
       def stopped?: () -> untyped
+
+      def root?: () -> bool
 
       def start_time=: (untyped time) -> untyped
 

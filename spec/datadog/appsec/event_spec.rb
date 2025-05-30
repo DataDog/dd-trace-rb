@@ -36,7 +36,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_request) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Request,
-          headers: { 'unknown-header' => 'hello', 'user-agent' => 'Ruby/0.0' },
+          headers: {'unknown-header' => 'hello', 'user-agent' => 'Ruby/0.0'},
           host: 'example.com',
           user_agent: 'Ruby/0.0',
           remote_addr: '127.0.0.1'
@@ -46,7 +46,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_response) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: { 'mystery-header' => '42', 'content-type' => 'text/html' }
+          headers: {'mystery-header' => '42', 'content-type' => 'text/html'}
         )
       end
 
@@ -55,7 +55,7 @@ RSpec.describe Datadog::AppSec::Event do
           events: [1],
           actions: {},
           derivatives: {
-            '_dd.appsec.s.req.headers' => [{ 'host' => [8], 'version' => [8] }]
+            '_dd.appsec.s.req.headers' => [{'host' => [8], 'version' => [8]}]
           },
           timeout: false,
           duration_ns: 0,
@@ -125,7 +125,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_request) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Request,
-          headers: { 'user-agent' => 'Ruby/0.0' },
+          headers: {'user-agent' => 'Ruby/0.0'},
           host: 'example.com',
           user_agent: 'Ruby/0.0',
           remote_addr: '127.0.0.1'
@@ -135,7 +135,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_response) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: { 'content-type' => 'text/html' }
+          headers: {'content-type' => 'text/html'}
         )
       end
 
@@ -157,7 +157,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_request) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Request,
-          headers: { 'user-agent' => 'Ruby/0.0' },
+          headers: {'user-agent' => 'Ruby/0.0'},
           host: 'example.com',
           user_agent: 'Ruby/0.0',
           remote_addr: '127.0.0.1'
@@ -167,7 +167,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_response) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: { 'content-type' => 'text/html' }
+          headers: {'content-type' => 'text/html'}
         )
       end
 
@@ -194,7 +194,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_request) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Request,
-          headers: { 'user-agent' => 'Ruby/0.0' },
+          headers: {'user-agent' => 'Ruby/0.0'},
           host: 'example.com',
           user_agent: 'Ruby/0.0',
           remote_addr: '127.0.0.1'
@@ -204,7 +204,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_response) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: { 'content-type' => 'text/html' }
+          headers: {'content-type' => 'text/html'}
         )
       end
 
@@ -266,7 +266,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_request) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Request,
-          headers: { 'user-agent' => 'Ruby/0.0' },
+          headers: {'user-agent' => 'Ruby/0.0'},
           host: 'example.com',
           user_agent: 'Ruby/0.0',
           remote_addr: '127.0.0.1'
@@ -276,7 +276,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_response) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: { 'content-type' => 'text/html' }
+          headers: {'content-type' => 'text/html'}
         )
       end
 
@@ -284,7 +284,7 @@ RSpec.describe Datadog::AppSec::Event do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
           actions: {},
-          derivatives: { 'dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-1234567890' },
+          derivatives: {'dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-1234567890'},
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0
@@ -346,7 +346,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_request) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Request,
-          headers: { 'user-agent' => 'Ruby/0.0' },
+          headers: {'user-agent' => 'Ruby/0.0'},
           host: 'example.com',
           user_agent: 'Ruby/0.0',
           remote_addr: '127.0.0.1'
@@ -356,7 +356,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:rack_response) do
         instance_double(
           Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: { 'content-type' => 'text/html' }
+          headers: {'content-type' => 'text/html'}
         )
       end
 
@@ -365,7 +365,7 @@ RSpec.describe Datadog::AppSec::Event do
           events: [],
           actions: {},
           derivatives: {
-            '_dd.appsec.s.req.headers' => [{ 'host' => [8], 'version' => [8] }]
+            '_dd.appsec.s.req.headers' => [{'host' => [8], 'version' => [8]}]
           },
           timeout: false,
           duration_ns: 0,
@@ -454,7 +454,7 @@ RSpec.describe Datadog::AppSec::Event do
 
     context 'with block_request action' do
       let(:waf_actions) do
-        { 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }
+        {'block_request' => {'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto'}}
       end
 
       it 'adds appsec.blocked tag to span' do
@@ -467,7 +467,7 @@ RSpec.describe Datadog::AppSec::Event do
 
     context 'with redirect_request action' do
       let(:waf_actions) do
-        { 'redirect_request' => { 'status_code' => '302', 'location' => 'https://datadoghq.com' } }
+        {'redirect_request' => {'status_code' => '302', 'location' => 'https://datadoghq.com'}}
       end
 
       it 'adds appsec.blocked tag to span' do
@@ -499,7 +499,7 @@ RSpec.describe Datadog::AppSec::Event do
 
       context 'with block action' do
         let(:waf_actions) do
-          { 'block_request' => { 'grpc_status_code' => '10', 'status_core' => '403', 'type' => 'auto' } }
+          {'block_request' => {'grpc_status_code' => '10', 'status_core' => '403', 'type' => 'auto'}}
         end
 
         it 'does not add distributed tags but still add appsec span tags' do

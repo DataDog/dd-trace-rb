@@ -4,12 +4,13 @@ require 'datadog'
 require 'datadog/core/workers/runtime_metrics'
 
 RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
-  subject(:worker) { described_class.new(options) }
+  subject(:worker) { described_class.new(telemetry: telemetry, **options) }
 
   let(:metrics) { instance_double(Datadog::Core::Runtime::Metrics, close: nil) }
   let(:options) { { metrics: metrics, enabled: true } }
 
   let(:logger) { logger_allowing_debug }
+  let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
 
   before { allow(metrics).to receive(:flush) }
 
@@ -19,7 +20,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
     it { expect(worker).to be_a_kind_of(Datadog::Core::Workers::Polling) }
 
     context 'by default' do
-      subject(:worker) { described_class.new(logger: logger) }
+      subject(:worker) { described_class.new(logger: logger, telemetry: telemetry) }
 
       it { expect(worker.enabled?).to be false }
       it { expect(worker.loop_base_interval).to eq 10 }

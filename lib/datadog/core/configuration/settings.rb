@@ -18,7 +18,7 @@ module Datadog
     module Configuration
       # Global configuration settings for the Datadog library.
       # @public_api
-      # rubocop:disable Metrics/BlockLength
+      # standard:disable Metrics/BlockLength
       class Settings
         include Base
 
@@ -123,7 +123,7 @@ module Datadog
           # @return [Boolean]
           option :debug do |o|
             o.env [Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED,
-                   Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
             o.default false
             o.type :bool
             o.env_parser do |value|
@@ -137,7 +137,7 @@ module Datadog
             o.after_set do |enabled|
               # Enable rich debug print statements.
               # We do not need to unnecessarily load 'pp' unless in debugging mode.
-              require 'pp' if enabled
+              require 'pp' if enabled # standard:disable Lint/RedundantRequireStatement
             end
           end
 
@@ -454,7 +454,7 @@ module Datadog
               o.after_set do |_, _, precedence|
                 unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                   Core.log_deprecation(key: :experimental_crash_tracking_enabled) do
-                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal '\
+                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal ' \
                     'and no longer does anything. Please remove it from your Datadog.configure block.'
                   end
                 end
@@ -641,11 +641,11 @@ module Datadog
                 val ||= ''
                 # maps OpenTelemetry semantic attributes to Datadog tags
                 key = case key.downcase
-                      when 'deployment.environment' then 'env'
-                      when 'service.version' then 'version'
-                      when 'service.name' then 'service'
-                      else key
-                      end
+                when 'deployment.environment' then 'env'
+                when 'service.version' then 'version'
+                when 'service.name' then 'service'
+                else key
+                end
                 result[key] = val unless key.empty?
               end
             end
@@ -888,6 +888,16 @@ module Datadog
             o.env Core::Telemetry::Ext::ENV_LOG_COLLECTION
             o.default true
           end
+
+          # For internal use only.
+          # Enables telemetry debugging through the Datadog platform.
+          #
+          # @default `false`.
+          # @return [Boolean]
+          option :debug do |o|
+            o.type :bool
+            o.default false
+          end
         end
 
         # Remote configuration
@@ -985,7 +995,7 @@ module Datadog
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings
       end
-      # rubocop:enable Metrics/BlockLength
+      # standard:enable Metrics/BlockLength
     end
   end
 end

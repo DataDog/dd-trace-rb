@@ -12,8 +12,6 @@ module Datadog
 
             def annotate_span_with_response!: (untyped span, untyped response, untyped request_options) -> (nil | untyped)
 
-            def annotate_span_with_error!: (untyped span, untyped error) -> untyped
-
             def set_analytics_sample_rate: (untyped span, untyped request_options) -> (nil | untyped)
 
             private

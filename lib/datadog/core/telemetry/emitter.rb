@@ -16,20 +16,31 @@ module Datadog
 
         # @param transport [Datadog::Core::Telemetry::Transport::Telemetry::Transport]
         #   Transport object that can be used to send telemetry requests
-        def initialize(transport, logger: Datadog.logger)
+        def initialize(transport, logger: Datadog.logger, debug: false)
           @transport = transport
           @logger = logger
+          @debug = !!debug
+        end
+
+        def debug?
+          @debug
         end
 
         # Retrieves and emits a TelemetryRequest object based on the request type specified
         def request(event)
           seq_id = self.class.sequence.next
-          payload = Request.build_payload(event, seq_id)
+          payload = Request.build_payload(event, seq_id, debug: debug?)
           res = @transport.send_telemetry(request_type: event.type, payload: payload)
           logger.debug { "Telemetry sent for event `#{event.type}` (response code: #{res.code})" }
           res
         rescue => e
-          logger.debug { "Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}" }
+          logger.debug {
+            "Unable to send telemetry request for event `#{begin
+              event.type
+            rescue
+              "unknown"
+            end}`: #{e}"
+          }
           Core::Transport::InternalErrorResponse.new(e)
         end
 

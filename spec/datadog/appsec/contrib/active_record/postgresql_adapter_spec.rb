@@ -90,10 +90,10 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
 
     it 'calls waf with correct arguments when querying using .where' do
       expected_db_statement = if PlatformHelpers.jruby?
-                                'SELECT "users".* FROM "users" WHERE "users"."name" = ?'
-                              else
-                                'SELECT "users".* FROM "users" WHERE "users"."name" = $1'
-                              end
+        'SELECT "users".* FROM "users" WHERE "users"."name" = ?'
+      else
+        'SELECT "users".* FROM "users" WHERE "users"."name" = $1'
+      end
 
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
@@ -130,7 +130,7 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [],
-          actions: { 'generate_stack' => { 'stack_id' => 'some-id' } },
+          actions: {'generate_stack' => {'stack_id' => 'some-id'}},
           derivatives: {},
           timeout: false,
           duration_ns: 0,

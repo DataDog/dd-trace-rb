@@ -51,13 +51,13 @@ module Datadog
           def fork
             # If a block is provided, it must be wrapped to trigger callbacks.
             child_block = if block_given?
-                            proc do
-                              AtForkMonkeyPatch.run_at_fork_blocks(:child)
+              proc do
+                AtForkMonkeyPatch.run_at_fork_blocks(:child)
 
-                              # Invoke original block
-                              yield
-                            end
-                          end
+                # Invoke original block
+                yield
+              end
+            end
 
             # Start fork
             # If a block is provided, use the wrapped version.

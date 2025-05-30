@@ -54,7 +54,7 @@ module Datadog
         end
 
         def join(encoded_data)
-          "[#{encoded_data.join(',')}]"
+          "[#{encoded_data.join(",")}]"
         end
       end
 

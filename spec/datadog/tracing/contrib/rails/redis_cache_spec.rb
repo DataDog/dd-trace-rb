@@ -7,7 +7,7 @@ require 'datadog/tracing/contrib/rails/rails_helper'
 # framework to do it for them. So it should work smoothly without
 # including anything.
 # raise 'Redis cannot be loaded for a realistic Rails test' if defined? Redis
-RSpec.describe 'Rails Redis cache' do
+RSpec.describe 'Rails Redis cache', execute_in_fork: Rails.version.to_i >= 8 do
   before(:all) do
     expect(Datadog::Tracing::Contrib::ActiveSupport::Cache::Patcher.patched?).to(
       be_falsey, <<MESSAGE)
@@ -47,7 +47,8 @@ MESSAGE
 
   before do
     Datadog.configure { |c| c.tracing.instrument :redis }
-    Datadog.configure_onto(client_from_driver(driver))
+    # TODO: Do we need this configure_onto?
+    # Datadog.configure_onto(client_from_driver(driver))
   end
 
   let(:driver) do
@@ -203,7 +204,7 @@ MESSAGE
   end
 
   describe '#fetch_multi' do
-    it_behaves_like 'multi reader method', :fetch_multi, true
+    it_behaves_like 'multi reader method', :fetch_multi, Rails.version.to_i < 8
   end
 
   describe '#write' do
@@ -218,7 +219,8 @@ MESSAGE
       expect(redis.name).to eq('redis.command')
       expect(redis.type).to eq('redis')
       expect(redis.resource).to eq('SET')
-      expect(redis.get_tag('redis.raw_command')).to match(/SET custom-key .*ActiveSupport.*/)
+      # the `SET` value can be compressed in binary: e.g. "SET custom-key \x04\x00\x00\x00"
+      expect(redis.get_tag('redis.raw_command')).to start_with('SET custom-key ')
       expect(redis.service).to eq('redis')
       # the following ensures span will be correctly displayed (parent/child of the same trace)
       expect(cache.trace_id).to eq(redis.trace_id)

@@ -7,7 +7,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
   before { allow(Devise).to receive(:mappings).and_return(mappings) }
 
   let(:mappings) do
-    { user: instance_double(Devise::Mapping, name: :user, class_name: 'User') }
+    {user: instance_double(Devise::Mapping, name: :user, class_name: 'User')}
   end
 
   describe '#extract_id' do
@@ -77,8 +77,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
       end
 
       it 'returns id from hash with mixed key types and priorities' do
-        expect(extractor.extract_id(uuid: 1, 'id' => 2)).to eq('2')
-        expect(extractor.extract_id('uuid' => 1, id: 2)).to eq('2')
+        expect(extractor.extract_id(:uuid => 1, 'id' => 2)).to eq('2')
+        expect(extractor.extract_id('uuid' => 1, :id => 2)).to eq('2')
       end
 
       it 'returns nil if none of the possible keys are present' do
@@ -107,7 +107,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
         expect(extractor.extract_id('id' => 2)).to match(/anon_[a-z0-9]{32}/)
         expect(extractor.extract_id(uuid: 3)).to match(/anon_[a-z0-9]{32}/)
         expect(extractor.extract_id('uuid' => 4)).to match(/anon_[a-z0-9]{32}/)
-        expect(extractor.extract_id(uuid: 1, 'id' => 2)).to match(/anon_[a-z0-9]{32}/)
+        expect(extractor.extract_id(:uuid => 1, 'id' => 2)).to match(/anon_[a-z0-9]{32}/)
       end
 
       it 'returns nil if none of the possible keys are present' do
@@ -143,8 +143,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
       end
 
       it 'returns login from hash with mixed key types and priorities' do
-        expect(extractor.extract_login('username' => 'example', login: 'ex@mple.com')).to eq('example')
-        expect(extractor.extract_login(login: 'example', username: 'dotcom', 'email' => 'ex@mple.com'))
+        expect(extractor.extract_login('username' => 'example', :login => 'ex@mple.com')).to eq('example')
+        expect(extractor.extract_login(:login => 'example', :username => 'dotcom', 'email' => 'ex@mple.com'))
           .to eq('ex@mple.com')
       end
 
@@ -196,7 +196,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
         expect(extractor.extract_login(email: 'ex@mple.com')).to match(/anon_[a-z0-9]{32}/)
         expect(extractor.extract_login(login: 'example')).to match(/anon_[a-z0-9]{32}/)
         expect(extractor.extract_login('username' => 'dotcom')).to match(/anon_[a-z0-9]{32}/)
-        expect(extractor.extract_login(login: 'example', 'email' => 'ex@mple.com')).to match(/anon_[a-z0-9]{32}/)
+        expect(extractor.extract_login(:login => 'example', 'email' => 'ex@mple.com')).to match(/anon_[a-z0-9]{32}/)
       end
 
       it 'returns anonymized login from an object responding to one of the methods' do

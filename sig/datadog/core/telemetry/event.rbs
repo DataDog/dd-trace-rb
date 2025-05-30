@@ -1,96 +1,12 @@
 module Datadog
   module Core
     module Telemetry
-      class Event
+      module Event
         extend Core::Utils::Forking
 
         self.@sequence: Datadog::Core::Utils::Sequence
 
         def self.configuration_sequence: () -> Datadog::Core::Utils::Sequence
-
-        class Base
-          def payload: () -> (Hash[Symbol, untyped] | Array[Hash[Symbol, untyped]])
-          def type: -> String
-        end
-
-        class AppStarted < Base
-          TARGET_OPTIONS: Array[String]
-
-          private
-
-          def products: -> Hash[Symbol, untyped]
-
-          def configuration: -> Array[Hash[Symbol, untyped]]
-
-          def agent_transport: (untyped config) -> String
-
-          def conf_value: (String name, untyped value, Integer seq_id, ?String origin) -> Hash[Symbol, untyped]
-
-          def to_value: (Object value) -> Object
-
-          def install_signature: -> Hash[Symbol, Object]
-        end
-
-        class AppDependenciesLoaded < Base
-          private
-
-          def dependencies: -> Array[Hash[Symbol, String]]
-        end
-
-        class AppIntegrationsChange < Base
-          private
-
-          def integrations: -> Array[Hash[Symbol, string]]
-
-          def patch_error: (untyped integration) -> String
-        end
-
-        class AppClientConfigurationChange < Base
-          attr_reader changes: Array[[String, Numeric | bool | String | int]]
-          attr_reader origin: String
-
-          def initialize: (Array[[String, Numeric | bool | String]] changes, String origin) -> void
-
-          def configuration: () -> Array[Hash[Symbol, untyped]]
-        end
-
-        class AppHeartbeat < Base
-        end
-
-        class AppClosing < Base
-        end
-
-        class GenerateMetrics < Base
-          attr_reader namespace: String
-          attr_reader metric_series: Array[Metric::Base]
-
-          def initialize: (String namespace, Array[Metric::Base] metric_series) -> void
-        end
-
-        class Log < Base
-          LEVELS: Hash[Symbol, String]
-
-          LEVELS_STRING: Array[String]
-
-          attr_reader count: Integer
-          attr_reader message: String
-          attr_reader level: String
-          attr_reader stack_trace: String?
-
-          def initialize: (message: String, level: (Symbol|String), ?stack_trace: String?, ?count: Integer) -> void
-
-          def payload: () -> { logs: [Hash[Symbol, (String|Integer)]] }
-        end
-
-        class Distributions < GenerateMetrics
-        end
-
-        class MessageBatch < Base
-          attr_reader events: Array[Datadog::Core::Telemetry::Event::Base]
-          @events: Array[Datadog::Core::Telemetry::Event::Base]
-
-          def initialize: (Array[Datadog::Core::Telemetry::Event::Base] events) -> void
-        end
       end
     end
   end

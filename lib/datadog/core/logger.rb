@@ -28,7 +28,7 @@ module Datadog
 
         if message.nil?
           if block
-            super(severity, message, progname) do
+            super do
               "[#{self.progname}] #{where}#{yield}"
             end
           else
@@ -39,7 +39,7 @@ module Datadog
         end
       end
 
-      alias log add
+      alias_method :log, :add
     end
   end
 end

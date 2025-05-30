@@ -37,6 +37,7 @@ module Datadog
         @exporter = exporter
         @transport = transport
         @profiler_failed = false
+        @stop_requested = false
 
         # Workers::Async::Thread settings
         self.fork_policy = fork_policy
@@ -88,7 +89,7 @@ module Datadog
       end
 
       def work_pending?
-        !profiler_failed && exporter.can_flush?
+        !profiler_failed && exporter.can_flush? && (run_loop? || !stop_requested?)
       end
 
       def reset_after_fork
@@ -138,7 +139,13 @@ module Datadog
           Datadog::Core::Telemetry::Logger.report(e, description: "Unable to report profile")
         end
 
+        @stop_requested = !run_loop?
+
         true
+      end
+
+      def stop_requested?
+        @stop_requested
       end
     end
   end

@@ -58,7 +58,7 @@ module Datadog
                 part = ''
                 part << "--#{boundary}\r\n"
                 part << "Content-ID: #{headers["Content-ID"]}\r\n" if headers["Content-ID"]
-                part << "Content-Disposition: form-data; name=\"#{name.to_s}\"\r\n"
+                part << "Content-Disposition: form-data; name=\"#{name}\"\r\n"
                 part << "Content-Type: #{headers["Content-Type"]}\r\n" if headers["Content-Type"]
                 part << "\r\n"
                 part << "#{value}\r\n"
@@ -76,9 +76,9 @@ module Datadog
               # @param io [IO]
               # @param headers [Hash]
               def initialize(boundary, name, io, headers = {})
-                file_length = io.respond_to?(:length) ?  io.length : File.size(io.local_path)
+                file_length = io.respond_to?(:length) ? io.length : File.size(io.local_path)
                 @head = build_head(boundary, name, io.original_filename, io.content_type, file_length,
-                                  io.respond_to?(:opts) ? io.opts.merge(headers) : headers)
+                  io.respond_to?(:opts) ? io.opts.merge(headers) : headers)
                 @foot = "\r\n"
                 @length = @head.bytesize + file_length + @foot.length
                 @io = CompositeReadIO.new(StringIO.new(@head), io, StringIO.new(@foot))
@@ -98,16 +98,16 @@ module Datadog
 
                 part = ''
                 part << "--#{boundary}\r\n"
-                part << "Content-Disposition: #{content_disposition}; name=\"#{name.to_s}\"; filename=\"#{filename}\"\r\n"
+                part << "Content-Disposition: #{content_disposition}; name=\"#{name}\"; filename=\"#{filename}\"\r\n"
                 part << "Content-Length: #{content_len}\r\n"
                 if content_id = opts.delete("Content-ID")
                   part << "Content-ID: #{content_id}\r\n"
                 end
 
-                if opts["Content-Type"] != nil
-                  part <<  "Content-Type: " + opts["Content-Type"] + "\r\n"
+                part << if !opts["Content-Type"].nil?
+                  "Content-Type: " + opts["Content-Type"] + "\r\n"
                 else
-                  part << "Content-Type: #{type}\r\n"
+                  "Content-Type: #{type}\r\n"
                 end
 
                 part << "Content-Transfer-Encoding: #{trans_encoding}\r\n"

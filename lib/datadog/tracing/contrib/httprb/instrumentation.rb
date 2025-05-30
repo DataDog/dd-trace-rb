@@ -25,7 +25,7 @@ module Datadog
               request_options = datadog_configuration(host)
               client_config = Datadog.configuration_for(self)
 
-              Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+              Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
@@ -119,10 +119,6 @@ module Datadog
             rescue StandardError => e
               logger.error("error preparing span from http.rb response: #{e}, Source: #{e.backtrace}")
               Datadog::Core::Telemetry::Logger.report(e)
-            end
-
-            def annotate_span_with_error!(span, error)
-              span.set_error(error)
             end
 
             def datadog_configuration(host = :default)

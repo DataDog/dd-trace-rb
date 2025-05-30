@@ -1,4 +1,5 @@
 require 'datadog/di'
+require 'datadog/di/code_tracker'
 require "datadog/di/spec_helper"
 
 RSpec.describe Datadog::DI::CodeTracker do

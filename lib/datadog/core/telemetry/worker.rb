@@ -52,10 +52,15 @@ module Datadog
 
         attr_reader :logger
 
+        # Returns true if worker thread is successfully started,
+        # false if worker thread was not started but telemetry is enabled,
+        # nil if telemetry is disabled.
         def start
           return if !enabled? || forked?
 
           # starts async worker
+          # perform should return true if thread was actually started,
+          # false otherwise
           perform
         end
 
@@ -65,10 +70,15 @@ module Datadog
           super
         end
 
+        # Returns true if event was enqueued, nil if not.
+        # While returning false may seem more reasonable, the only reason
+        # for not enqueueing event (presently) is that telemetry is disabled
+        # altogether, and in this case other methods return nil.
         def enqueue(event)
           return if !enabled? || forked?
 
           buffer.push(event)
+          true
         end
 
         def sent_started_event?
@@ -132,6 +142,8 @@ module Datadog
 
         def flush_events(events)
           return if events.empty?
+          # TODO: can this method silently drop events which are
+          # generated prior to the started event being submitted?
           return if !enabled? || !sent_started_event?
 
           events = deduplicate_logs(events)
