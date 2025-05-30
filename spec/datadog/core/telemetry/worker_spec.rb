@@ -24,6 +24,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   let(:emitter) { instance_double(Datadog::Core::Telemetry::Emitter) }
   let(:dependency_collection) { false }
   let(:logger) { logger_allowing_debug }
+  let(:logger) { logger_stderr }
 
   let(:backend_supports_telemetry?) { true }
   let(:response) do
