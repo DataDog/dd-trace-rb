@@ -113,4 +113,87 @@ RSpec.describe 'Telemetry full integration tests' do
       Datadog.send(:reset!)
     end
   end
+
+  context 'when Datadog.configure is used and dynamic instrumentation is enabled' do
+
+    before do
+      Datadog.send(:reset!)
+    end
+
+    let(:ok_response) do
+      double(Datadog::Core::Transport::HTTP::Adapters::Net::Response).tap do |response|
+        expect(response).to receive(:ok?).and_return(true).at_least(:once)
+      end
+    end
+
+    # Ideally this test would start with a completely virgin state and
+    # the first configurtion would be via the auto_instrument require.
+    it 'sends dynamic instrumentation state on each configuration' do
+      events = []
+      allow_any_instance_of(Datadog::Core::Telemetry::Worker).to receive(:send_event) do |_, event|
+        events << event
+        ok_response
+      end
+
+      Datadog.configure do |c|
+        c.telemetry.enabled = true
+        # Reduce noise
+        c.telemetry.dependency_collection = false
+        # dynamic instrumentation is off by default
+      end
+
+      Datadog.send(:components).telemetry.flush
+
+      expect(events.map(&:class)).to eq([
+        Datadog::Core::Telemetry::Event::AppStarted,
+        # AppIntegrationsChange in MessageBatch
+        Datadog::Core::Telemetry::Event::MessageBatch,
+      ])
+
+      event = events[0]
+      expect(event.payload.fetch(:configuration)).to include(
+        name: 'dynamic_instrumentation.enabled',
+        value: false,
+        origin: 'code',
+        seq_id: Integer,
+      )
+
+      events = []
+      allow_any_instance_of(Datadog::Core::Telemetry::Worker).to receive(:send_event) do |_, event|
+        events << event
+        ok_response
+      end
+
+      Datadog.configure do |c|
+        c.telemetry.enabled = true
+        # Reduce noise
+        c.telemetry.dependency_collection = false
+        # Enable DI
+        c.dynamic_instrumentation.enabled = true
+        # Need remote since we are not in production environment
+        c.remote.enabled = true
+        c.dynamic_instrumentation.internal.development = true
+      end
+
+      Datadog.send(:components).telemetry.flush
+
+      expect(events.map(&:class)).to eq([
+        Datadog::Core::Telemetry::Event::SynthAppClientConfigurationChange,
+        # AppIntegrationsChange in MessageBatch
+        Datadog::Core::Telemetry::Event::MessageBatch,
+      ])
+
+      event = events[0]
+      expect(event.payload.fetch(:configuration)).to include(
+        name: 'dynamic_instrumentation.enabled',
+        value: true,
+        origin: 'code',
+        seq_id: Integer,
+      )
+    end
+
+    after do
+      Datadog.send(:reset!)
+    end
+  end
 end
