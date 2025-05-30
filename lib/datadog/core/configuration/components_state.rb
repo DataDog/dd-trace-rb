@@ -8,7 +8,6 @@ module Datadog
         def initialize(components)
           @telemetry_enabled = components.telemetry.enabled
           @remote_started = !!components.remote&.started?
-``
         end
 
         def telemetry_enabled?
