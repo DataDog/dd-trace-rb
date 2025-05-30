@@ -120,6 +120,9 @@ module Datadog
                   payload[:exception] = [e.class.name, e.message]
                   payload[:exception_object] = e
                   raise e
+                ensure
+                  payload[:db_runtime] = db_runtime
+                  payload[:view_runtime] = view_runtime
                 end
               # rubocop:enable Lint/RescueException
               ensure
