@@ -174,7 +174,7 @@ module Datadog
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
-          tracer.shutdown! unless replacement && tracer.eql?(replacement.tracer)
+          tracer.shutdown! unless replacement && tracer.equal?(replacement.tracer)
 
           # Shutdown old profiler
           profiler&.shutdown!
