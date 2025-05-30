@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'agent_settings_resolver'
+require_relative 'components_state'
 require_relative 'ext'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
@@ -8,7 +9,6 @@ require_relative '../logger'
 require_relative '../runtime/metrics'
 require_relative '../telemetry/component'
 require_relative '../workers/runtime_metrics'
-
 require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
@@ -16,7 +16,6 @@ require_relative '../../appsec/component'
 require_relative '../../di/component'
 require_relative '../../error_tracking/component'
 require_relative '../crashtracking/component'
-
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
 
@@ -214,6 +213,14 @@ module Datadog
 
           # TODO: Re-enable this once we have updated libdatadog to 17.1
           # Core::ProcessDiscovery._native_close_tracer_memfd(@process_discovery_fd, @logger) if @process_discovery_fd
+        end
+
+        # Returns the current state of various components.
+        def state
+          ComponentsState.new(
+            telemetry_enabled: telemetry.enabled,
+            remote_started: remote&.started?,
+          )
         end
       end
     end

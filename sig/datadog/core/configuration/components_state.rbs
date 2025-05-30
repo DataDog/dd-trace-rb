@@ -6,7 +6,7 @@ module Datadog
 
         @remote_started: untyped
 
-        def initialize: (untyped components) -> void
+        def initialize: (telemetry_enabled: untyped, remote_started: untyped) -> void
 
         def telemetry_enabled?: () -> untyped
 

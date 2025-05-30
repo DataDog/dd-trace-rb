@@ -5,9 +5,9 @@ module Datadog
     module Configuration
       # Stores the state of component tree when replacing the tree.
       class ComponentsState
-        def initialize(components)
-          @telemetry_enabled = components.telemetry.enabled
-          @remote_started = !!components.remote&.started?
+        def initialize(telemetry_enabled:, remote_started:)
+          @telemetry_enabled = !!telemetry_enabled
+          @remote_started = !!remote_started
         end
 
         def telemetry_enabled?
