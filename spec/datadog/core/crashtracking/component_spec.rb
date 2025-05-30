@@ -192,7 +192,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         end
       end
 
-      let(:crash_report) { JSON.parse(request.body, symbolize_names: true).fetch(:payload).first }
+      let(:parsed_request) { JSON.parse(request.body, symbolize_names: true) }
+      let(:crash_report) { parsed_request.fetch(:payload).first }
       let(:crash_report_message) { JSON.parse(crash_report.fetch(:message), symbolize_names: true) }
       let(:stack_trace) { crash_report_message.fetch(:error).fetch(:stack).fetch(:frames) }
 
@@ -223,10 +224,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             library_name: 'dd-trace-rb',
             library_version: Datadog::VERSION::STRING,
             family: 'ruby',
-            tags: ['tag1:value1', 'tag2:value2'],
+            tags: ['tag1:value1', 'tag2:value2', 'language:ruby-testing-123', 'service:ruby-testing-123'],
           )
           expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
           expect(crash_report_message[:os_info]).to_not be_empty
+          expect(parsed_request.fetch(:application)).to include(
+            service_name: 'ruby-testing-123',
+            language_name: 'ruby-testing-123',
+          )
         end
       end
 
@@ -310,9 +315,11 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
   end
 
   def build_crashtracker(**options)
+    testing_string = 'ruby-testing-123'
     described_class.new(
       agent_base_url: options[:agent_base_url] || 'http://localhost:6006',
-      tags: options[:tags] || { 'tag1' => 'value1', 'tag2' => 'value2' },
+      tags: options[:tags] ||
+        { 'tag1' => 'value1', 'tag2' => 'value2', 'language' => testing_string, 'service' => testing_string },
       path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
       ld_library_path: Libdatadog.ld_library_path,
       logger: options[:logger] || Logger.new($stdout),
