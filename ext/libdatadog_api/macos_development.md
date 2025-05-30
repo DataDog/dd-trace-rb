@@ -18,7 +18,7 @@ mkdir -p my-libdatadog-build/$DD_RUBY_PLATFORM
 ```
 
 5. From inside of the libdatadog repo, build libdatadog into this folder: `./build-profiling-ffi.sh my-libdatadog-build/$DD_RUBY_PLATFORM`
-6. Tell the Ruby where to find libdatadog: `export LIBDATADOG_VENDOR_OVERRIDE=/full/path/to/my-libdatadog-build/` (Notice no platform here)
+6. Tell Ruby where to find libdatadog: `export LIBDATADOG_VENDOR_OVERRIDE=/full/path/to/my-libdatadog-build/` (Notice no platform here)
 7. From dd-trace-rb, run `bundle exec rake clean compile`
 
 If you additionally want to run the profiler test suite, also remember to `export DD_PROFILING_MACOS_TESTING=true` and re-run `rake clean compile`.
