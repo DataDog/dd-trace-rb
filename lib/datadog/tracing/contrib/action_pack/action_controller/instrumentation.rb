@@ -68,6 +68,8 @@ module Datadog
 
                 span.set_tag(Ext::TAG_ROUTE_ACTION, payload.fetch(:action))
                 span.set_tag(Ext::TAG_ROUTE_CONTROLLER, payload.fetch(:controller))
+                span.set_tag(Ext::TAG_VIEW_RUNTIME, payload.fetch(:view_runtime))
+                span.set_tag(Ext::TAG_DB_RUNTIME, payload.fetch(:db_runtime))
 
                 exception = payload[:exception_object]
                 if exception.nil?
@@ -118,6 +120,9 @@ module Datadog
                   payload[:exception] = [e.class.name, e.message]
                   payload[:exception_object] = e
                   raise e
+                ensure
+                  payload[:db_runtime] = db_runtime
+                  payload[:view_runtime] = view_runtime
                 end
               # rubocop:enable Lint/RescueException
               ensure
