@@ -11,7 +11,7 @@ RSpec.describe Datadog::Profiling::Flush do
     let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
     let(:internal_metadata) { {no_signals_workaround_enabled: false} }
     let(:info_json) do
-      JSON.fast_generate(
+      JSON.generate(
         {
           application: {
             start_time: "2024-01-24T11:17:22Z"
