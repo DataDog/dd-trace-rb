@@ -142,4 +142,8 @@ module LogHelpers
       end
     end
   end
+
+  def logger_stderr
+    Logger.new(STDERR, level: :debug)
+  end
 end

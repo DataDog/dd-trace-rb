@@ -23,7 +23,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   let(:metrics_manager) { instance_double(Datadog::Core::Telemetry::MetricsManager, flush!: [], disable!: nil) }
   let(:emitter) { instance_double(Datadog::Core::Telemetry::Emitter) }
   let(:dependency_collection) { false }
-  let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:logger) { logger_allowing_debug }
 
   let(:backend_supports_telemetry?) { true }
   let(:response) do
@@ -39,8 +39,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   before do
-    allow(logger).to receive(:debug).with(any_args)
-
     @received_started = false
     @received_heartbeat = false
 
