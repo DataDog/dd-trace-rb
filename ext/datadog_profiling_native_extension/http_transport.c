@@ -112,8 +112,7 @@ static ddog_prof_ProfileExporter_Result create_exporter(VALUE exporter_configura
 }
 
 static void validate_token(ddog_CancellationToken token, const char *file, int line) {
-  if (token.inner != NULL) return;
-  rb_raise(rb_eRuntimeError, "Unexpected: Validation token was empty at %s:%d", file, line);
+  if (token.inner == NULL) rb_raise(rb_eRuntimeError, "Unexpected: Validation token was empty at %s:%d", file, line);
 }
 
 static VALUE handle_exporter_failure(ddog_prof_ProfileExporter_Result exporter_result) {
