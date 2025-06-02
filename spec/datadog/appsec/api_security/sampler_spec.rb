@@ -19,12 +19,18 @@ RSpec.describe Datadog::AppSec::APISecurity::Sampler do
       example.run
     ensure
       Datadog.configuration.reset!
+      described_class.reset!
     end
 
     context 'when called for the first time' do
       it 'returns a new sampler instance' do
-        expect { described_class.thread_local }.to change { Thread.current.thread_variable_get(:__sampler_key__) }
-          .from(nil).to(be_a(described_class))
+        # NOTE: Isolating the sampler in a separate thread to avoid flakiness
+        thread = Thread.new do
+          expect { described_class.thread_local }.to change { Thread.current.thread_variable_get(:__sampler_key__) }
+            .from(nil).to(be_a(described_class))
+        end
+
+        thread.join
       end
     end
 
