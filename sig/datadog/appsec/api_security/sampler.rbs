@@ -21,15 +21,17 @@ module Datadog
 
         @sample_delay_seconds: Integer
 
-        def self.thread_local: () -> Sampler?
+        def self.thread_local: () -> Sampler
 
-        def self.activate: (Sampler sampler) -> Sampler
-
-        def self.deactivate: () -> void
+        def self.reset!: () -> void
 
         def initialize: (Integer sample_delay) -> void
 
         def sample?: (_Request request, _Response response) -> bool
+
+        private
+
+        def self.sample_delay: () -> Integer
       end
     end
   end

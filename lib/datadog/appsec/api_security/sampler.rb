@@ -16,15 +16,21 @@ module Datadog
 
         class << self
           def thread_local
-            Thread.current.thread_variable_get(THREAD_KEY)
+            sampler = Thread.current.thread_variable_get(THREAD_KEY)
+            return sampler unless sampler.nil?
+
+            Thread.current.thread_variable_set(THREAD_KEY, new(sample_delay))
           end
 
-          def activate(sampler)
-            Thread.current.thread_variable_set(THREAD_KEY, sampler)
-          end
-
-          def deactivate
+          # @api private
+          def reset!
             Thread.current.thread_variable_set(THREAD_KEY, nil)
+          end
+
+          private
+
+          def sample_delay
+            Datadog.configuration.appsec.api_security.sample_delay
           end
         end
 

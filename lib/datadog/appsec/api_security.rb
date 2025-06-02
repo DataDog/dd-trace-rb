@@ -7,3 +7,5 @@ module Datadog
     end
   end
 end
+
+require_relative 'api_security/sampler'
