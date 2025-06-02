@@ -47,15 +47,15 @@ RSpec.describe Datadog::AppSec::APISecurity::LRUCache do
     let(:lru_cache) { described_class.new(3) }
 
     it 'stores a key-value pair' do
-      expect { lru_cache.store(:key, 'value') }.to
-        change { lru_cache[:key] }.from(nil).to('value')
+      expect { lru_cache.store(:key, 'value') }.to change { lru_cache[:key] }
+        .from(nil).to('value')
     end
 
     it 'overwrites existing values' do
       lru_cache.store(:key, 'old-value')
 
-      expect { lru_cache.store(:key, 'new-value') }.to
-        change { lru_cache[:key] }.from('old-value').to('new-value')
+      expect { lru_cache.store(:key, 'new-value') }.to change { lru_cache[:key] }
+        .from('old-value').to('new-value')
     end
 
     context 'when maximum size is reached' do
