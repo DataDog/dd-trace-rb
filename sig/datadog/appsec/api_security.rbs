@@ -1,6 +1,16 @@
 module Datadog
   module AppSec
     module APISecurity
+      interface _Request
+        def env: () -> Hash[String, untyped]
+        def script_name: () -> String?
+        def method: () -> String
+        def path: () -> String
+      end
+
+      interface _Response
+        def status: () -> Integer
+      end
     end
   end
 end
