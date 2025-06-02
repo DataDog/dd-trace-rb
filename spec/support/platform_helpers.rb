@@ -76,7 +76,7 @@ module PlatformHelpers
       before do
         if PlatformHelpers.jruby? && !PlatformHelpers.ruby_version_matches?('>= 2.6')
           # See: https://github.com/rspec/rspec-mocks/issues/1338
-          skip "any_instance expectations are broken on JRuby 9.2"
+          skip 'any_instance expectations are broken on JRuby 9.2'
         end
       end
     end
