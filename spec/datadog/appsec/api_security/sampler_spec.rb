@@ -12,10 +12,7 @@ RSpec.describe Datadog::AppSec::APISecurity::Sampler do
     before { stub_const('Datadog::AppSec::APISecurity::Sampler::THREAD_KEY', :__sampler_key__) }
 
     around do |example|
-      Datadog.configure do |c|
-        c.appsec.api_security.sample_delay = 30
-      end
-
+      Datadog.configure { |c| c.appsec.api_security.sample_delay = 30 }
       example.run
     ensure
       Datadog.configuration.reset!

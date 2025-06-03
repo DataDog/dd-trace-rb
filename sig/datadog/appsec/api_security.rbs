@@ -11,6 +11,10 @@ module Datadog
       interface _Response
         def status: () -> Integer
       end
+
+      def self.sample?: (_Request request, _Response response) -> bool
+
+      def self.sample_trace?: (Tracing::TraceOperation trace) -> bool
     end
   end
 end
