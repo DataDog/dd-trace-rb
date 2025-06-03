@@ -7,9 +7,19 @@ module Datadog
         end
 
         class User < Argument
+          @id: String
+
+          @login: String?
+
+          @session_id: String?
+
           attr_reader id: String
 
-          def initialize: (String id) -> void
+          attr_reader login: String?
+
+          attr_reader session_id: String?
+
+          def initialize: (String id, String? login, String? session_id) -> void
         end
       end
     end

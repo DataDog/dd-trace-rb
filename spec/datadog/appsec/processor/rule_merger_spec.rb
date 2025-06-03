@@ -700,6 +700,19 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
     end
   end
 
+  context 'actions' do
+    it 'overwrites actions with new actions' do
+      actions = [{
+        'id' => 'block',
+        'parameters' => {'location' => 'https://datadoghq.com', 'status_code' => 302},
+        'type' => 'redirect_request'
+      }]
+
+      result = described_class.merge(rules: rules, actions: actions, telemetry: telemetry)
+      expect(result).to include('actions' => actions)
+    end
+  end
+
   context 'processors' do
     it 'merges default processors' do
       result = described_class.merge(rules: rules, telemetry: telemetry)

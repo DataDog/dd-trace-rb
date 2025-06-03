@@ -6,11 +6,44 @@ For generating Datadog APM traces and profiles.
 
 ## Installation
 
-Install [direnv](https://github.com/direnv/direnv) for applying local settings.
+### Configure Datadog API Key and Ruby Version
 
-1. `cp .envrc.sample .envrc` and add your Datadog API key.
-2. `direnv allow` to load the env var.
-3. `docker-compose run --rm app bin/setup`
+`cp .envrc.sample .envrc` and add your Datadog API key.
+If desired, change the Ruby version from the default.
+
+### Load Configuration
+
+Install [direnv](https://github.com/direnv/direnv) for applying local settings,
+then run `direnv allow` to load the env var.
+
+Alternatively you can source the configuration file into your shell
+(`. .envrc`) but this configuration will not be scoped to the integration tests.
+
+### Build Base Images
+
+From the `integration` directory of `dd-trace-rb` (two levels up from this file),
+run `script/build-images` to build the base images. You need to build only
+the base image for the Ruby version you selected (or accepted) in the
+first step above:
+
+```
+script/build-images -v 3.0
+```
+
+However, you can also build images for all Ruby versions:
+
+```
+script/build-images
+```
+
+### Run setup
+
+```
+docker-compose run --rm app bin/setup
+```
+
+Note: if your `docker-compose` command is failing, try `docker compose`
+which is a newer version of it.
 
 ## Running the application
 

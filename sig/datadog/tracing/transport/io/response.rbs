@@ -3,6 +3,8 @@ module Datadog
     module Transport
       module IO
         class Response
+          @result: untyped
+
           include Datadog::Core::Transport::Response
 
           attr_reader result: untyped

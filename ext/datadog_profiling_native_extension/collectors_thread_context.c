@@ -212,7 +212,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread, VALUE allow_exception);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
-static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE reset_monotonic_to_system_state, VALUE allow_exception);
+static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE allow_exception);
 static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
@@ -297,6 +297,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
 static otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key);
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE key);
+static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -321,13 +322,14 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 3);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
-  rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 3);
+  rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 2);
   rb_define_singleton_method(testing_module, "_native_thread_list", _native_thread_list, 0);
   rb_define_singleton_method(testing_module, "_native_per_thread_context", _native_per_thread_context, 1);
   rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
   rb_define_singleton_method(testing_module, "_native_gc_tracking", _native_gc_tracking, 1);
   rb_define_singleton_method(testing_module, "_native_new_empty_thread", _native_new_empty_thread, 0);
   rb_define_singleton_method(testing_module, "_native_sample_skipped_allocation_samples", _native_sample_skipped_allocation_samples, 2);
+  rb_define_singleton_method(testing_module, "_native_system_epoch_time_now_ns", _native_system_epoch_time_now_ns, 1);
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
@@ -551,18 +553,8 @@ static VALUE _native_on_gc_finish(DDTRACE_UNUSED VALUE self, VALUE collector_ins
   return Qtrue;
 }
 
-// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
-// It SHOULD NOT be used for other purposes.
-static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE reset_monotonic_to_system_state, VALUE allow_exception) {
-  ENFORCE_BOOLEAN(reset_monotonic_to_system_state);
+static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE allow_exception) {
   ENFORCE_BOOLEAN(allow_exception);
-
-  thread_context_collector_state *state;
-  TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-
-  if (reset_monotonic_to_system_state == Qtrue) {
-    state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
-  }
 
   if (allow_exception == Qfalse) debug_enter_unsafe_context();
 
@@ -1316,7 +1308,7 @@ static long thread_id_for(VALUE thread) {
 }
 
 VALUE enforce_thread_context_collector_instance(VALUE object) {
-  Check_TypedStruct(object, &thread_context_collector_typed_data);
+  ENFORCE_TYPED_DATA(object, &thread_context_collector_typed_data);
   return object;
 }
 
@@ -2166,4 +2158,14 @@ static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE k
   rb_hash_foreach(hash, safe_lookup_hash_iterate, (VALUE) &state);
 
   return state.result;
+}
+
+static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long system_epoch_time_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns);
+
+  return LONG2NUM(system_epoch_time_ns);
 }

@@ -89,7 +89,7 @@ module Datadog
           trace_id = Helpers.parse_decimal_id(fetcher_object[@trace_id_key])
 
           return unless trace_id
-          return if trace_id <= 0 || trace_id >= Tracing::Utils::EXTERNAL_MAX_ID
+          return if trace_id <= 0 || trace_id > Tracing::Utils::EXTERNAL_MAX_ID
 
           trace_id
         end
@@ -98,7 +98,7 @@ module Datadog
           parent_id = Helpers.parse_decimal_id(fetcher_object[@parent_id_key])
 
           return unless parent_id
-          return if parent_id <= 0 || parent_id >= Tracing::Utils::EXTERNAL_MAX_ID
+          return if parent_id <= 0 || parent_id > Tracing::Utils::EXTERNAL_MAX_ID
 
           parent_id
         end
@@ -116,6 +116,8 @@ module Datadog
         def extract_trace_id!(trace_id, tags)
           return trace_id unless tags
           return trace_id unless (high_order = tags.delete(Tracing::Metadata::Ext::Distributed::TAG_TID))
+          return trace_id unless high_order.size == 16
+          return trace_id unless /\A[0-9a-f]+\z/i.match?(high_order)
 
           Tracing::Utils::TraceId.concatenate(high_order.to_i(16), trace_id)
         end

@@ -8,6 +8,7 @@ module Datadog
 
         type rules = ::Hash[::String, untyped]
         type data = ::Array[::Hash[::String, untyped]]
+        type actions = ::Array[::Hash[::String, untyped]]
         type overrides = ::Array[::Array[::Hash[::String, untyped]]]
         type exclusions = ::Array[::Array[::Hash[::String, untyped]]]
         type custom_rules = ::Array[::Array[::Hash[::String, untyped]]]
@@ -18,6 +19,7 @@ module Datadog
           telemetry: Datadog::Core::Telemetry::Component,
           rules: ::Array[rules],
           ?data: ::Array[data],
+          ?actions: actions,
           ?overrides: overrides,
           ?exclusions: exclusions,
           ?custom_rules: custom_rules,

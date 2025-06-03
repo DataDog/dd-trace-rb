@@ -28,6 +28,7 @@ module Datadog
       # Span attributes
       # NOTE: In the future, we should drop the me
       attr_reader \
+        :logger,
         :end_time,
         :id,
         :name,
@@ -37,10 +38,12 @@ module Datadog
         :start_time,
         :trace_id,
         :type
+
       attr_accessor :links, :status, :span_events
 
       def initialize(
         name,
+        logger: Datadog.logger,
         events: nil,
         on_error: nil,
         parent_id: 0,
@@ -54,6 +57,8 @@ module Datadog
         span_events: nil,
         id: nil
       )
+        @logger = logger
+
         # Ensure dynamically created strings are UTF-8 encoded.
         #
         # All strings created in Ruby land are UTF-8. The only sources of non-UTF-8 string are:
@@ -90,11 +95,17 @@ module Datadog
         set_tags(tags) if tags
 
         # Some other SpanOperation-specific behavior
-        @events = events || Events.new
+        @events = events || Events.new(logger: logger)
         @span = nil
 
-        # Subscribe :on_error event
-        @events.on_error.wrap_default(&on_error) if on_error.is_a?(Proc)
+        if on_error.nil?
+          # Nothing, default error handler is already set up.
+        elsif on_error.is_a?(Proc)
+          # Subscribe :on_error event
+          @events.on_error.wrap_default(&on_error)
+        else
+          logger.warn("on_error argument to SpanOperation ignored because is not a Proc: #{on_error}")
+        end
 
         # Start the span with start time, if given.
         start(start_time) if start_time
@@ -130,6 +141,10 @@ module Datadog
         @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow this to be explicitly set to nil
       end
 
+      def get_collector_or_initialize
+        @collector ||= yield
+      end
+
       def measure
         raise ArgumentError, 'Must provide block to measure!' unless block_given?
         # TODO: Should we just invoke the block and skip tracing instead?
@@ -143,7 +158,7 @@ module Datadog
           begin
             start
           rescue StandardError => e
-            Datadog.logger.debug { "Failed to start span: #{e}" }
+            logger.debug { "Failed to start span: #{e}" }
           ensure
             # We should yield to the provided block when possible, as this
             # block is application code that we don't want to hinder.
@@ -161,7 +176,7 @@ module Datadog
           # Stop the span first, so timing is a more accurate.
           # If the span failed to start, timing may be inaccurate,
           # but this is not really a serious concern.
-          stop
+          stop(exception: e)
 
           # Trigger the on_error event
           events.on_error.publish(self, e)
@@ -202,7 +217,7 @@ module Datadog
       #
       # steep:ignore:start
       # Steep issue fixed in https://github.com/soutaro/steep/pull/1467
-      def stop(stop_time = nil)
+      def stop(stop_time = nil, exception: nil)
         # A span should not be stopped twice. Note that this is not thread-safe,
         # stop is called from multiple threads, a given span might be stopped
         # several times. Again, one should not do this, so this test is more a
@@ -220,7 +235,7 @@ module Datadog
         @duration_end = stop_time.nil? ? duration_marker : nil
 
         # Trigger after_stop event
-        events.after_stop.publish(self)
+        events.after_stop.publish(self, exception)
 
         self
       end
@@ -234,6 +249,10 @@ module Datadog
       # Return whether the duration is stopped or not.
       def stopped?
         !@end_time.nil?
+      end
+
+      def root?
+        parent_id == 0
       end
 
       # for backwards compatibility
@@ -269,7 +288,8 @@ module Datadog
 
       def duration
         return @duration_end - @duration_start if @duration_start && @duration_end
-        return @end_time - @start_time if @start_time && @end_time
+
+        @end_time - @start_time if @start_time && @end_time
       end
 
       def set_error(e)
@@ -289,6 +309,7 @@ module Datadog
           id: @id,
           meta: meta,
           metrics: metrics,
+          metastruct: metastruct,
           name: @name,
           parent_id: @parent_id,
           resource: @resource,
@@ -328,11 +349,14 @@ module Datadog
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', ']') do
+          q.group(2, 'Metrics: [', "]\n") do
             q.breakable
             q.seplist metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
+          end
+          q.group(2, 'Metastruct: [', ']') do
+            metastruct.pretty_print(q)
           end
         end
       end
@@ -344,11 +368,13 @@ module Datadog
         DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
 
         attr_reader \
+          :logger,
           :after_finish,
           :after_stop,
           :before_start
 
-        def initialize(on_error: nil)
+        def initialize(logger: Datadog.logger, on_error: nil)
+          @logger = logger
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
           @before_start = BeforeStart.new
@@ -357,7 +383,7 @@ module Datadog
         # This event is lazily initialized as error paths
         # are normally less common that non-error paths.
         def on_error
-          @on_error ||= OnError.new(DEFAULT_ON_ERROR)
+          @on_error ||= OnError.new(DEFAULT_ON_ERROR, logger: logger)
         end
 
         # Triggered when the span is finished, regardless of error.
@@ -383,9 +409,12 @@ module Datadog
 
         # Triggered when the span raises an error during measurement.
         class OnError
-          def initialize(default)
+          def initialize(default, logger: Datadog.logger)
             @handler = default
+            @logger = logger
           end
+
+          attr_reader :logger
 
           # Call custom error handler but fallback to default behavior on failure.
 
@@ -400,9 +429,9 @@ module Datadog
               begin
                 yield(op, error)
               rescue StandardError => e
-                Datadog.logger.debug do
+                logger.debug do
                   "Custom on_error handler #{@handler} failed, using fallback behavior. \
-                  Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+                  Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
                 end
 
                 original.call(op, error) if original
@@ -414,8 +443,8 @@ module Datadog
             begin
               @handler.call(*args)
             rescue StandardError => e
-              Datadog.logger.debug do
-                "Error in on_error handler '#{@default}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+              logger.debug do
+                "Error in on_error handler '#{@default}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
               end
             end
 
@@ -456,6 +485,7 @@ module Datadog
           id: @id,
           meta: Core::Utils::SafeDup.frozen_or_dup(meta),
           metrics: Core::Utils::SafeDup.frozen_or_dup(metrics),
+          metastruct: Core::Utils::SafeDup.frozen_or_dup(metastruct),
           parent_id: @parent_id,
           resource: @resource,
           service: @service,

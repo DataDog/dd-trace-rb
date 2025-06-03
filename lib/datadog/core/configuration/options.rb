@@ -18,7 +18,7 @@ module Datadog
         module ClassMethods
           def options
             # Allows for class inheritance of option definitions
-            @options ||= superclass <= Options ? superclass.options.dup : {}
+            @options ||= (superclass <= Options) ? superclass.options.dup : {}
           end
 
           protected
@@ -45,7 +45,7 @@ module Datadog
               option_name.to_sym => proc do
                 get_option(option_name)
               end,
-              "#{option_name}=".to_sym => proc do |value|
+              :"#{option_name}=" => proc do |value|
                 set_option(option_name, value)
               end
             }
@@ -117,7 +117,7 @@ module Datadog
           end
 
           def resolved_env(name)
-            return options[name].resolved_env if options.key?(name)
+            options[name].resolved_env if options.key?(name)
           end
 
           def assert_valid_option!(name)

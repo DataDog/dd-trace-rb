@@ -303,7 +303,14 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     rb_raise(rb_eRuntimeError, "Detected consecutive heap allocation recording starts without end.");
   }
 
-  if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate) {
+  if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate ||
+      #ifdef NO_IMEMO_OBJECT_ID
+        // On Ruby 3.5, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
+        RB_BUILTIN_TYPE(new_obj) == RUBY_T_IMEMO
+      #else
+        false
+      #endif
+    ) {
     heap_recorder->active_recording = &SKIPPED_RECORD;
     return;
   }

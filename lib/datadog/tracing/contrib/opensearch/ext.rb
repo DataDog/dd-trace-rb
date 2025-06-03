@@ -13,6 +13,15 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE'
+          ENV_RESOURCE_PATTERN = 'DD_TRACE_OPENSEARCH_RESOURCE_PATTERN'
+          ABSOLUTE_RESOURCE_PATTERN = 'absolute'
+          RELATIVE_RESOURCE_PATTERN = 'relative'
+          VALID_RESOURCE_PATTERNS = [
+            ABSOLUTE_RESOURCE_PATTERN,
+            RELATIVE_RESOURCE_PATTERN
+          ].freeze
+          # Default should be changed to RELATIVE in 3.0 to match the Elasticsearch integration
+          DEFAULT_RESOURCE_PATTERN = ABSOLUTE_RESOURCE_PATTERN
           DEFAULT_PEER_SERVICE_NAME = 'opensearch'
           SPAN_QUERY = 'opensearch.query'
           SPAN_TYPE_QUERY = 'opensearch'

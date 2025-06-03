@@ -35,6 +35,10 @@ namespace :edge do
 
   desc 'Update groups with targeted dependencies'
   task :update do |_t, args|
+    # Naming convention:
+    #
+    # Key: integration name, the same as the name of spec task in Rakefile and MatrixFile
+    # Value: gem name
     allowlist = {
       'stripe' => 'stripe',
       'elasticsearch' => 'elasticsearch',
@@ -42,10 +46,11 @@ namespace :edge do
       'rack' => 'rack',
       'faraday' => 'faraday',
       'excon' => 'excon',
-      'rest-client' => 'rest-client',
+      'rest_client' => 'rest-client',
       'mongodb' => 'mongo',
       'dalli' => 'dalli',
       'redis' => 'redis',
+      'karafka' => 'karafka',
       # Add more integrations here, when they are extracted to its own isolated group
     }
 

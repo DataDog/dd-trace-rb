@@ -1,0 +1,29 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        class TrackingMiddleware
+          WARDEN_KEY: ::String
+
+          SESSION_ID_KEY: ::String
+
+          @app: untyped
+
+          def initialize: (untyped app) -> void
+
+          def call: (untyped env) -> untyped
+
+          private
+
+          # NOTE: can't use ::Warden::Proxy because this gem is not a part of the
+          #       standard bundle
+          def extract_id: (untyped warden) -> ::String?
+
+          def transform: (::String? value) -> ::String?
+
+          def anonymize?: () -> bool
+        end
+      end
+    end
+  end
+end

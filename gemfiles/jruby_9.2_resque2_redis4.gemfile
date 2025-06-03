@@ -25,11 +25,11 @@ gem "webmock", ">= 3.10.0"
 gem "redis", ">= 4.0"
 gem "resque", ">= 2.0"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

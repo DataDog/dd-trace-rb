@@ -7,6 +7,7 @@ require_relative '../../../distributed/datadog_spec'
 require_relative '../../../distributed/none_spec'
 require_relative '../../../distributed/propagation_spec'
 require_relative '../../../distributed/trace_context_spec'
+require_relative '../../../distributed/baggage_spec'
 
 RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
   subject(:propagation) do
@@ -17,9 +18,25 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
     )
   end
 
-  let(:propagation_style_inject) { ['datadog', 'tracecontext'] }
-  let(:propagation_style_extract) { ['datadog', 'tracecontext'] }
+  let(:propagation_style_inject) { ['datadog', 'tracecontext', 'baggage'] }
+  let(:propagation_style_extract) { ['datadog', 'tracecontext', 'baggage'] }
   let(:propagation_extract_first) { false }
+
+  it 'contains default inject propagation styles in its propagation styles list' do
+    expect(propagation.instance_variable_get(:@propagation_styles).keys)
+      .to include(*Datadog.configuration.tracing.propagation_style_inject)
+    Datadog.configuration.tracing.propagation_style_inject.each do |style|
+      expect(propagation.instance_variable_get(:@propagation_styles)[style]).to_not be_nil
+    end
+  end
+
+  it 'contains default extract propagation styles in its propagation styles list' do
+    expect(propagation.instance_variable_get(:@propagation_styles).keys)
+      .to include(*Datadog.configuration.tracing.propagation_style_extract)
+    Datadog.configuration.tracing.propagation_style_extract.each do |style|
+      expect(propagation.instance_variable_get(:@propagation_styles)[style]).to_not be_nil
+    end
+  end
 
   it_behaves_like 'Distributed tracing propagator' do
     subject(:propagator) { propagation }
@@ -79,6 +96,13 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
   context 'for None' do
     it_behaves_like 'None distributed format' do
       before { Datadog.configure { |c| c.tracing.propagation_style = ['none'] } }
+      let(:datadog) { propagation }
+    end
+  end
+
+  context 'for Baggage' do
+    it_behaves_like 'Baggage distributed format' do
+      before { Datadog.configure { |c| c.tracing.propagation_style = ['baggage'] } }
       let(:datadog) { propagation }
     end
   end

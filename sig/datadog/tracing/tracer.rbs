@@ -1,11 +1,22 @@
 module Datadog
   module Tracing
     class Tracer
+      
+      @logger: Core::Logger
+
+      attr_reader logger: Core::Logger
+
       def active_root_span: (?untyped? key) -> Datadog::Tracing::Span
 
-      def active_span: (?untyped? key) -> Datadog::Tracing::Span
+      def active_span: (?untyped? key) -> Datadog::Tracing::SpanOperation
 
       def active_correlation: (?untyped? key) -> Struct[untyped] # Datadog::Correlation::Identifier
+
+      def propagate_sampling_priority?: (upstream_tags: Hash[String, String]) -> bool
+
+      def appsec_enabled: -> bool
+
+      def apm_tracing_enabled: -> bool
     end
   end
 end

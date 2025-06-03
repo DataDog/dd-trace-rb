@@ -25,16 +25,16 @@ module Datadog
               request_options = datadog_configuration(host)
               client_config = Datadog.configuration_for(self)
 
-              Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+              Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
-                  if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(trace)
-                    trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
-                  end
-
-                  if Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
+                  if Tracing::Distributed::PropagationPolicy.enabled?(
+                    pin_config: client_config,
+                    global_config: Datadog.configuration.tracing[:httpclient],
+                    trace: trace
+                  )
                     Contrib::HTTP.inject(trace, req.header)
                   end
 
@@ -111,22 +111,12 @@ module Datadog
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
-            def annotate_span_with_error!(span, error)
-              span.set_error(error)
-            end
-
             def datadog_configuration(host = :default)
               Datadog.configuration.tracing[:httpclient, host]
             end
 
             def analytics_enabled?(request_options)
               Contrib::Analytics.enabled?(request_options[:analytics_enabled])
-            end
-
-            def should_skip_distributed_tracing?(client_config)
-              return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
-
-              !Datadog.configuration.tracing[:httpclient][:distributed_tracing]
             end
 
             def set_analytics_sample_rate(span, request_options)

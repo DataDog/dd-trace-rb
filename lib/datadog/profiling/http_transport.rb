@@ -20,34 +20,16 @@ module Datadog
             [:agent, agent_settings.url].freeze
           end
 
-        status, result = validate_exporter(exporter_configuration)
+        status, result = self.class._native_validate_exporter(exporter_configuration)
 
         raise(ArgumentError, "Failed to initialize transport: #{result}") if status == :error
       end
 
       def export(flush)
-        status, result = do_export(
-          exporter_configuration: exporter_configuration,
-          upload_timeout_milliseconds: @upload_timeout_milliseconds,
-
-          # why "timespec"?
-          # libdatadog represents time using POSIX's struct timespec, see
-          # https://www.gnu.org/software/libc/manual/html_node/Time-Types.html
-          # aka it represents the seconds part separate from the nanoseconds part
-          start_timespec_seconds: flush.start.tv_sec,
-          start_timespec_nanoseconds: flush.start.tv_nsec,
-          finish_timespec_seconds: flush.finish.tv_sec,
-          finish_timespec_nanoseconds: flush.finish.tv_nsec,
-
-          pprof_file_name: flush.pprof_file_name,
-          pprof_data: flush.pprof_data,
-          code_provenance_file_name: flush.code_provenance_file_name,
-          code_provenance_data: flush.code_provenance_data,
-
-          tags_as_array: flush.tags_as_array,
-          internal_metadata_json: flush.internal_metadata_json,
-
-          info_json: flush.info_json
+        status, result = self.class._native_do_export(
+          exporter_configuration,
+          @upload_timeout_milliseconds,
+          flush
         )
 
         if status == :ok
@@ -75,42 +57,6 @@ module Datadog
 
       def agentless?(site, api_key)
         site && api_key && Core::Environment::VariableHelpers.env_to_bool(Profiling::Ext::ENV_AGENTLESS, false)
-      end
-
-      def validate_exporter(exporter_configuration)
-        self.class._native_validate_exporter(exporter_configuration)
-      end
-
-      def do_export(
-        exporter_configuration:,
-        upload_timeout_milliseconds:,
-        start_timespec_seconds:,
-        start_timespec_nanoseconds:,
-        finish_timespec_seconds:,
-        finish_timespec_nanoseconds:,
-        pprof_file_name:,
-        pprof_data:,
-        code_provenance_file_name:,
-        code_provenance_data:,
-        tags_as_array:,
-        internal_metadata_json:,
-        info_json:
-      )
-        self.class._native_do_export(
-          exporter_configuration,
-          upload_timeout_milliseconds,
-          start_timespec_seconds,
-          start_timespec_nanoseconds,
-          finish_timespec_seconds,
-          finish_timespec_nanoseconds,
-          pprof_file_name,
-          pprof_data,
-          code_provenance_file_name,
-          code_provenance_data,
-          tags_as_array,
-          internal_metadata_json,
-          info_json,
-        )
       end
 
       def config_without_api_key

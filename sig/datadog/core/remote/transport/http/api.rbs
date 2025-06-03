@@ -5,14 +5,21 @@ module Datadog
         module HTTP
           module API
             ROOT: "root"
+
             V7: "v0.7"
 
             def self?.defaults: () -> untyped
 
-            class Instance < Datadog::Core::Transport::HTTP::API::Instance
+            class Instance < Core::Transport::HTTP::API::Instance
+              include Config::API::Instance
+
+              include Negotiation::API::Instance
             end
 
-            class Spec < Datadog::Core::Transport::HTTP::API::Spec
+            class Spec < Core::Transport::HTTP::API::Spec
+              include Config::API::Spec
+
+              include Negotiation::API::Spec
             end
           end
         end

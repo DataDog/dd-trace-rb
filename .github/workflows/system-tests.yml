@@ -1,20 +1,28 @@
 name: System Tests
 
-on:
+on: # yamllint disable-line rule:truthy
   push:
     branches:
-    - master
+      - master
+      # A workaround to trigger the workflow for pull requests from forked repository,
+      # which does not have access to secrets.
+      #
+      # This is also useful for testing the workflow without opening a pull request.
+      - tmp/*
   pull_request:
     branches:
-    - master
+      - master
   workflow_dispatch: {}
   schedule:
     - cron: "00 04 * * 2-6"
 
+# Default permissions for all jobs
+permissions: {}
+
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
+  SYSTEM_TESTS_REF: main # Automated: This reference is automatically updated.
 
 jobs:
   changes:
@@ -25,12 +33,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Changes
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes
         with:
           filters: |
             src:
+              - '.github/forced-tests-list.json'
               - '.github/workflows/**'
               - 'lib/**'
               - 'ext/**'
@@ -66,7 +77,8 @@ jobs:
           ref: ${{ env.SYSTEM_TESTS_REF }}
           persist-credentials: false
       - name: Login to Docker Hub
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        continue-on-error: true
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -87,8 +99,11 @@ jobs:
         run: |
           docker image list
       - name: Log in to the Container registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Tag image for CI run
         run: docker tag ${{ matrix.image.internal }} ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Push image for CI run
@@ -164,11 +179,14 @@ jobs:
       - name: Read forced-tests-list.json file
         id: read_forced_tests_list
         run: |
-          echo "FORCED_TESTS_LIST<<EOF" >> $GITHUB_OUTPUT
-          echo "$(cat binaries/dd-trace-rb/.github/forced-tests-list.json)" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            printf "FORCED_TESTS_LIST<<EOF\n"
+            cat binaries/dd-trace-rb/.github/forced-tests-list.json
+            printf "\nEOF\n"
+          } >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        continue-on-error: true
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -182,20 +200,28 @@ jobs:
             docker pull "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}" || true
           done
       - name: Log in to the Container registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: |
           cache_from=()
           for tag in latest; do
             cache_from+=(--cache-from "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:${tag}")
           done
+
           parents="$(cd 'binaries/${{ matrix.library.path }}' && git rev-list --parents -n 1 ${{ github.sha }})"
-          for sha in $parents; do
-            cache_from+=(--cache-from ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha})
+
+          # Use read to properly split the string into an array
+          read -ra parent_shas <<< "$parents"
+          for sha in "${parent_shas[@]}"; do
+            cache_from+=(--cache-from "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}")
           done
+
           echo "cache args: ${cache_from[*]}"
-          ./build.sh --library ${{ matrix.library.name }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args "${cache_from[*]}"
+          ./build.sh --library "${{ matrix.library.name }}" --weblog-variant "${{ matrix.app }}" --images "${{ matrix.image }}" --extra-docker-args "${cache_from[*]}"
       - name: Tag image for CI run
         run: docker tag system_tests/${{ matrix.image }}:latest ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Push image for CI run
@@ -245,7 +271,6 @@ jobs:
           - APPSEC_DISABLED
           - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
-          - APPSEC_STANDALONE
           - APPSEC_BLOCKING
         include:
           - library: ruby
@@ -303,6 +328,12 @@ jobs:
             app: rails70
             scenario: DEBUGGER_PII_REDACTION
           - library: ruby
+            app: rails70
+            scenario: SCA_STANDALONE
+          - library: ruby
+            app: rails70
+            scenario: APPSEC_STANDALONE
+          - library: ruby
             app: rack
             scenario: SAMPLING
           - library: ruby
@@ -336,7 +367,8 @@ jobs:
           ref: ${{ env.SYSTEM_TESTS_REF }}
           persist-credentials: false
       - name: Login to Docker Hub
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        continue-on-error: true
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -359,7 +391,7 @@ jobs:
       - name: List images
         run: |
           docker image list
-      - name: Run scenario
+      - name: Run scenario # zizmor: ignore[template-injection]
         # The last escape sequence check if the JSON string exists,
         # then check if the current scenario is contained in it, then create a string by chaining -F and forced tests.
         # A potential error might come from an empty array in a scenario in the json file.
@@ -367,12 +399,12 @@ jobs:
           ./run.sh ++docker ${{ matrix.scenario }} \
             ${{ env.FORCED_TESTS_LIST && fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario] && format('-F {0}', join(fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario], ' -F ')) || ''}}
         env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
           SYSTEM_TESTS_AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
           SYSTEM_TESTS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
           FORCED_TESTS_LIST: ${{ needs.build-apps.outputs.FORCED_TESTS_LIST }}
       - name: Archive logs
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ always() }}
         with:
           name: system-tests-${{ matrix.library }}-${{ matrix.app }}-${{ matrix.scenario }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
@@ -415,7 +447,7 @@ jobs:
     name: Aggregate (${{ matrix.app }})
     steps:
       - name: Setup python 3.12
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
       - name: Checkout
@@ -425,7 +457,7 @@ jobs:
           ref: ${{ env.SYSTEM_TESTS_REF }}
           persist-credentials: false
       - name: Retrieve logs
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: system-tests-${{ matrix.library }}-${{ matrix.app }}-*-logs-gha${{ github.run_id }}-g${{ github.sha }}
           merge-multiple: true
@@ -433,7 +465,7 @@ jobs:
       - name: Print fancy log report
         run: |
           find logs*
-          python utils/scripts/markdown_logs.py >> $GITHUB_STEP_SUMMARY
+          python utils/scripts/markdown_logs.py >> "$GITHUB_STEP_SUMMARY"
 
   cleanup:
     strategy:
@@ -470,8 +502,11 @@ jobs:
     name: Cleanup (${{ matrix.image }})
     steps:
       - name: Log in to the Container registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
           package-version-ids: "gha${{ github.run_id }}-g${{ github.sha }}"

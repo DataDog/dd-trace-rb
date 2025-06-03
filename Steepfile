@@ -49,8 +49,6 @@ target :datadog do
   ignore 'lib/datadog/appsec/configuration/settings.rb'
   ignore 'lib/datadog/appsec/contrib/'
   ignore 'lib/datadog/appsec/monitor/gateway/watcher.rb'
-  ignore 'lib/datadog/core.rb'
-  ignore 'lib/datadog/core/buffer/random.rb'
   ignore 'lib/datadog/core/buffer/thread_safe.rb'
   ignore 'lib/datadog/core/configuration.rb'
   ignore 'lib/datadog/core/configuration/base.rb'
@@ -67,13 +65,15 @@ target :datadog do
   ignore 'lib/datadog/core/environment/socket.rb'
   ignore 'lib/datadog/core/environment/variable_helpers.rb'
   ignore 'lib/datadog/core/environment/vm_cache.rb'
-  ignore 'lib/datadog/core/error.rb'
   ignore 'lib/datadog/core/metrics/client.rb'
   ignore 'lib/datadog/core/metrics/helpers.rb'
   ignore 'lib/datadog/core/metrics/metric.rb'
   ignore 'lib/datadog/core/metrics/options.rb'
   # steep fails in this file due to https://github.com/soutaro/steep/issues/1231
   ignore 'lib/datadog/core/remote/tie.rb'
+  # steep gets lost in module inclusions
+  ignore 'lib/datadog/core/remote/transport/http/config.rb'
+  ignore 'lib/datadog/core/remote/transport/http/negotiation.rb'
   ignore 'lib/datadog/core/runtime/ext.rb'
   ignore 'lib/datadog/core/runtime/metrics.rb'
   ignore 'lib/datadog/core/transport/http/adapters/net.rb'
@@ -95,6 +95,11 @@ target :datadog do
   ignore 'lib/datadog/di/transport/http/api.rb'
   ignore 'lib/datadog/di/transport/http/diagnostics.rb'
   ignore 'lib/datadog/di/transport/http/input.rb'
+  # steep thinks the type of the class is 'self', whatever that is,
+  # and then complains that this type doesn't have any methods including
+  # language basics like 'send' and 'raise'.
+  ignore 'lib/datadog/di/probe_notifier_worker.rb'
+  ignore 'lib/datadog/error_tracking/configuration/settings.rb'
   ignore 'lib/datadog/kit/appsec/events.rb' # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/kit/identity.rb'      # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/opentelemetry.rb'
@@ -108,7 +113,6 @@ target :datadog do
   ignore 'lib/datadog/profiling/scheduler.rb'
   ignore 'lib/datadog/profiling/tag_builder.rb'
   ignore 'lib/datadog/profiling/tasks/setup.rb'
-  ignore 'lib/datadog/tracing.rb'
   ignore 'lib/datadog/tracing/buffer.rb'
   ignore 'lib/datadog/tracing/client_ip.rb'
   ignore 'lib/datadog/tracing/component.rb'
@@ -116,7 +120,6 @@ target :datadog do
   ignore 'lib/datadog/tracing/configuration/settings.rb'
   ignore 'lib/datadog/tracing/context.rb'
   ignore 'lib/datadog/tracing/contrib/'
-  ignore 'lib/datadog/tracing/correlation.rb'
   ignore 'lib/datadog/tracing/diagnostics/environment_logger.rb'
   ignore 'lib/datadog/tracing/diagnostics/health.rb'
   ignore 'lib/datadog/tracing/distributed/datadog.rb'
@@ -160,6 +163,7 @@ target :datadog do
   library 'zlib'
   library 'time'
   library 'pp'
+  library 'forwardable'
 
   # Load all dependency signatures from the `vendor/rbs` directory
   repo_path 'vendor/rbs'

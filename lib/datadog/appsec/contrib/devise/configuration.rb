@@ -7,19 +7,11 @@ module Datadog
         # A temporary configuration module to accomodate new RFC changes.
         # NOTE: DEV-3 Remove module
         module Configuration
-          MODES_CONVERSION_RULES = {
-            track_user_to_auto_instrumentation: {
-              AppSec::Configuration::Settings::SAFE_TRACK_USER_EVENTS_MODE =>
+          TRACK_USER_EVENTS_CONVERSION_RULES = {
+            AppSec::Configuration::Settings::SAFE_TRACK_USER_EVENTS_MODE =>
               AppSec::Configuration::Settings::ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE,
-              AppSec::Configuration::Settings::EXTENDED_TRACK_USER_EVENTS_MODE =>
+            AppSec::Configuration::Settings::EXTENDED_TRACK_USER_EVENTS_MODE =>
               AppSec::Configuration::Settings::IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
-            }.freeze,
-            auto_instrumentation_to_track_user: {
-              AppSec::Configuration::Settings::ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE =>
-              AppSec::Configuration::Settings::SAFE_TRACK_USER_EVENTS_MODE,
-              AppSec::Configuration::Settings::IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE =>
-              AppSec::Configuration::Settings::EXTENDED_TRACK_USER_EVENTS_MODE
-            }.freeze
           }.freeze
 
           module_function
@@ -44,30 +36,14 @@ module Datadog
             appsec.auto_user_instrumentation.mode
             appsec.track_user_events.mode
 
-            if !appsec.auto_user_instrumentation.options[:mode].default_precedence? &&
-                appsec.track_user_events.options[:mode].default_precedence?
-              return appsec.auto_user_instrumentation.mode
-            end
-
-            if appsec.auto_user_instrumentation.options[:mode].default_precedence?
-              return MODES_CONVERSION_RULES[:track_user_to_auto_instrumentation].fetch(
+            if !appsec.track_user_events.options[:mode].default_precedence? &&
+                appsec.auto_user_instrumentation.options[:mode].default_precedence?
+              return TRACK_USER_EVENTS_CONVERSION_RULES.fetch(
                 appsec.track_user_events.mode, appsec.auto_user_instrumentation.mode
               )
             end
 
-            identification_mode = AppSec::Configuration::Settings::IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
-            if appsec.auto_user_instrumentation.mode == identification_mode ||
-                appsec.track_user_events.mode == AppSec::Configuration::Settings::EXTENDED_TRACK_USER_EVENTS_MODE
-              return identification_mode
-            end
-
-            AppSec::Configuration::Settings::ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE
-          end
-
-          # NOTE: Remove in next version of tracking
-          def track_user_events_mode
-            MODES_CONVERSION_RULES[:auto_instrumentation_to_track_user]
-              .fetch(auto_user_instrumentation_mode, Datadog.configuration.appsec.track_user_events.mode)
+            appsec.auto_user_instrumentation.mode
           end
         end
       end

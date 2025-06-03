@@ -221,19 +221,17 @@ RSpec.describe Datadog::Kit::Identity do
       let(:appsec_active_context) { nil }
 
       context 'when is enabled' do
-        let(:appsec_active_context) do
-          trace = trace_op
-          span = trace.build_span('root')
+        before { Datadog.configuration.appsec.enabled = true }
+        after { Datadog.configuration.reset! }
 
-          Datadog::AppSec::Context.new(trace, span, processor)
-        end
+        let(:span_op) { trace_op.build_span('root') }
+        let(:appsec_active_context) { Datadog::AppSec::Context.new(trace_op, span_op, processor) }
 
-        before do
-          Datadog.configuration.appsec.enabled = true
-        end
-
-        after do
-          Datadog.configuration.reset!
+        it 'sets collection mode to SDK' do
+          trace_op.measure('root') do |_span, _trace|
+            described_class.set_user(trace_op, id: '42')
+            expect(span_op.tags).to include('_dd.appsec.user.collection_mode' => 'sdk')
+          end
         end
 
         it 'instruments the user information to appsec' do

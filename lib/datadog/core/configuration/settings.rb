@@ -18,7 +18,7 @@ module Datadog
     module Configuration
       # Global configuration settings for the Datadog library.
       # @public_api
-      # rubocop:disable Metrics/BlockLength
+      # standard:disable Metrics/BlockLength
       class Settings
         include Base
 
@@ -123,7 +123,7 @@ module Datadog
           # @return [Boolean]
           option :debug do |o|
             o.env [Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED,
-                   Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
             o.default false
             o.type :bool
             o.env_parser do |value|
@@ -137,7 +137,7 @@ module Datadog
             o.after_set do |enabled|
               # Enable rich debug print statements.
               # We do not need to unnecessarily load 'pp' unless in debugging mode.
-              require 'pp' if enabled
+              require 'pp' if enabled # standard:disable Lint/RedundantRequireStatement
             end
           end
 
@@ -456,7 +456,7 @@ module Datadog
               o.after_set do |_, _, precedence|
                 unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                   Core.log_deprecation(key: :experimental_crash_tracking_enabled) do
-                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal '\
+                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal ' \
                     'and no longer does anything. Please remove it from your Datadog.configure block.'
                   end
                 end
@@ -572,6 +572,12 @@ module Datadog
             o.type :bool
           end
 
+          option :experimental_runtime_id_enabled do |o|
+            o.type :bool
+            o.env 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED'
+            o.default false
+          end
+
           option :opts, default: {}, type: :hash
           option :statsd
         end
@@ -621,38 +627,31 @@ module Datadog
           o.type :hash, nilable: true
           o.env [Core::Environment::Ext::ENV_TAGS, Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES]
           o.env_parser do |env_value|
-            values = if env_value.include?(',')
-                       env_value.split(',')
-                     else
-                       env_value.split(' ') # rubocop:disable Style/RedundantArgument
-                     end
-            values.map! do |v|
-              v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+            # Parses a string containing key-value pairs and returns a hash.
+            # Key-value pairs are delimited by ':' OR `=`, and pairs are separated by whitespace, comma, OR BOTH.
+            result = {}
+            unless env_value.nil? || env_value.empty?
+              # falling back to comma as separator
+              sep = env_value.include?(',') ? ',' : ' '
+              # split by separator
+              env_value.split(sep).each do |tag|
+                tag.strip!
+                next if tag.empty?
 
-              v.empty? ? nil : v
-            end
-
-            values.compact!
-            values.each_with_object({}) do |tag, tags|
-              key, value = tag.split(':', 2)
-              if value.nil?
-                # support tags/attributes delimited by the OpenTelemetry separator (`=`)
-                key, value = tag.split('=', 2)
-              end
-              next if value.nil? || value.empty?
-
-              # maps OpenTelemetry semantic attributes to Datadog tags
-              case key.downcase
-              when 'deployment.environment'
-                tags['env'] = value
-              when 'service.version'
-                tags['version'] = value
-              when 'service.name'
-                tags['service'] = value
-              else
-                tags[key] = value
+                # tag by : or = (for OpenTelemetry)
+                key, val = tag.split(/[:=]/, 2).map(&:strip)
+                val ||= ''
+                # maps OpenTelemetry semantic attributes to Datadog tags
+                key = case key.downcase
+                when 'deployment.environment' then 'env'
+                when 'service.version' then 'version'
+                when 'service.name' then 'service'
+                else key
+                end
+                result[key] = val unless key.empty?
               end
             end
+            result
           end
           o.setter do |new_value, old_value|
             raw_tags = new_value || {}
@@ -891,6 +890,16 @@ module Datadog
             o.env Core::Telemetry::Ext::ENV_LOG_COLLECTION
             o.default true
           end
+
+          # For internal use only.
+          # Enables telemetry debugging through the Datadog platform.
+          #
+          # @default `false`.
+          # @return [Boolean]
+          option :debug do |o|
+            o.type :bool
+            o.default false
+          end
         end
 
         # Remote configuration
@@ -960,11 +969,35 @@ module Datadog
           end
         end
 
+        # Tracer specific configuration starting with APM (e.g. DD_APM_TRACING_ENABLED).
+        # @public_api
+        settings :apm do
+          # Tracing as a transport
+          # @public_api
+          settings :tracing do
+            # Enables tracing as transport.
+            # Disabling it will set sampling priority to -1 (FORCE_DROP) on most traces,
+            # (which tells to the agent to drop these traces)
+            # except heartbeat ones (1 per minute) and manually kept ones (sampling priority to 2) (e.g. appsec events)
+            #
+            # This is different than `DD_TRACE_ENABLED`, which completely disables tracing (sends no trace at all),
+            # while this will send heartbeat traces (1 per minute) so that the service is considered alive in the backend.
+            #
+            # @default `DD_APM_TRACING_ENABLED` environment variable, otherwise `true`
+            # @return [Boolean]
+            option :enabled do |o|
+              o.env Configuration::Ext::APM::ENV_TRACING_ENABLED
+              o.default true
+              o.type :bool
+            end
+          end
+        end
+
         # TODO: Tracing should manage its own settings.
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings
       end
-      # rubocop:enable Metrics/BlockLength
+      # standard:enable Metrics/BlockLength
     end
   end
 end

@@ -11,8 +11,8 @@ module Datadog
         # RuleVersionMismatchError
         class RuleVersionMismatchError < StandardError
           def initialize(version1, version2)
-            msg = 'Merging rule files with different version could lead to unkown behaviour. '\
-              "We have receieve two rule files with versions: #{version1}, #{version2}. "\
+            msg = 'Merging rule files with different version could lead to unkown behaviour. ' \
+              "We have receieve two rule files with versions: #{version1}, #{version2}. " \
               'Please validate the configuration is correct and try again.'
             super(msg)
           end
@@ -22,12 +22,12 @@ module Datadog
           # TODO: `processors` and `scanners` are not provided by the caller, consider removing them
           def merge(
             telemetry:,
-            rules:, data: [], overrides: [], exclusions: [], custom_rules: [],
+            rules:, actions: [], data: [], overrides: [], exclusions: [], custom_rules: [],
             processors: nil, scanners: nil
           )
             processors ||= begin
               default_waf_processors
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error("libddwaf rulemerger failed to parse default waf processors. Error: #{e.inspect}")
               telemetry.report(
                 e,
@@ -38,7 +38,7 @@ module Datadog
 
             scanners ||= begin
               default_waf_scanners
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error("libddwaf rulemerger failed to parse default waf scanners. Error: #{e.inspect}")
               telemetry.report(
                 e,
@@ -54,6 +54,7 @@ module Datadog
             combined_exclusions = combine_exclusions(exclusions) if exclusions.any?
             combined_custom_rules = combine_custom_rules(custom_rules) if custom_rules.any?
 
+            combined_rules['actions'] = actions if actions.any?
             combined_rules['rules_data'] = combined_data if combined_data
             combined_rules['rules_override'] = combined_overrides if combined_overrides
             combined_rules['exclusions'] = combined_exclusions if combined_exclusions
@@ -145,7 +146,7 @@ module Datadog
             end
 
             result.each_with_object([]) do |entry, acc|
-              value = { 'value' => entry[0] }
+              value = {'value' => entry[0]}
               value['expiration'] = entry[1] if entry[1]
 
               acc << value

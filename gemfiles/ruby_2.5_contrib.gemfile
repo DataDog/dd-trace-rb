@@ -14,8 +14,6 @@ gem "memory_profiler", "~> 0.9"
 gem "os", "~> 1.1"
 gem "byebug"
 gem "pry"
-gem "pry-nav"
-gem "pry-stack_explorer"
 gem "rake", ">= 12.3"
 gem "rake-compiler", "~> 1.1", ">= 1.1.1"
 gem "rspec", "~> 3.13"
@@ -37,11 +35,11 @@ gem "bunny", "~> 2.19.0"
 gem "sucker_punch"
 gem "que", ">= 1.0.0", "< 2.0.0"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

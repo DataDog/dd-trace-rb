@@ -1,0 +1,37 @@
+module Datadog
+  module ErrorTracking
+    class Component
+      @tracer: Datadog::Tracing::Tracer
+      @instrumented_files: Set[String]?
+
+      @handled_errors_include: Array[String]
+      @filter_function: Proc
+      @handled_exc_tracker: TracePoint
+      @include_path_getter: TracePoint?
+
+      LOCK: Mutex
+
+      attr_accessor handled_exc_tracker: TracePoint
+      attr_accessor module_path_getter: TracePoint?
+      attr_accessor tracer: Datadog::Tracing::Tracer
+      attr_accessor handled_errors_include: Array[String]
+      attr_accessor instrumented_files: Set[String]?
+
+      def self.build: (Datadog::Core::Configuration::Settings, Datadog::Tracing::Tracer, Datadog::Core::Logger) -> Component?
+      def self.environment_supported?: (Datadog::Core::Logger) -> bool
+
+      def initialize: (tracer: Datadog::Tracing::Tracer, handled_errors: String, handled_errors_include: Array[String]) -> void
+
+      def create_exc_tracker_trace_point: (Symbol) -> TracePoint
+
+      def create_script_compiled_trace_point: () -> TracePoint
+      def start: () -> void
+      def shutdown!: () -> void
+
+      private
+      def generate_span_event: (Exception) -> Datadog::Tracing::SpanEvent
+
+      def add_instrumented_file: (String) -> void
+    end
+  end
+end

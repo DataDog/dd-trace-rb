@@ -1,30 +1,42 @@
 module Datadog
   module AppSec
     module Event
-      ALLOWED_REQUEST_HEADERS: untyped
+      interface _RequestInterface
+        def host: () -> ::String?
+        def user_agent: () -> ::String?
+        def remote_addr: () -> ::String?
+        def headers: () -> Enumerable[[::String, ::String]]
+      end
 
-      ALLOWED_RESPONSE_HEADERS: untyped
+      interface _ResponseInterface
+        def headers: () -> Enumerable[[::String, ::String]]
+      end
 
-      MAX_ENCODED_SCHEMA_SIZE: Numeric
-      MIN_SCHEMA_SIZE_FOR_COMPRESSION: Numeric
+      type tags = ::Hash[::String, ::String]
 
-      def self.record: (Tracing::SpanOperation, *untyped events) -> (nil | untyped)
+      DERIVATIVE_SCHEMA_KEY_PREFIX: ::String
 
-      def self.record_via_span: (Tracing::SpanOperation, *untyped events) -> untyped
+      DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE: ::Integer
 
-      def self.build_service_entry_tags: (Array[Hash[::Symbol, untyped]] event_group) -> Hash[::String, untyped]
+      ALLOWED_REQUEST_HEADERS: ::Array[::String]
 
-      def self.tag_and_keep!: (Context scope, WAF::Result waf_result) -> void
+      ALLOWED_RESPONSE_HEADERS: ::Array[::String]
+
+      def self.record: (Context context, ?request: _RequestInterface?, ?response: _ResponseInterface?) -> void
+
+      def self.tag_and_keep!: (Context context, WAF::Result waf_result) -> void
 
       private
 
-      def self.compressed_and_base64_encoded: (untyped value) -> untyped
+      def self.waf_tags: (::Array[untyped]) -> tags
 
-      def self.json_parse: (untyped value) -> untyped
+      def self.request_tags: (_RequestInterface request) -> tags
 
-      def self.gzip: (untyped value) -> untyped
+      def self.response_tags: (_ResponseInterface response) -> tags
 
-      def self.add_distributed_tags: (Tracing::TraceOperation trace) -> void
+      def self.json_parse: (untyped value) -> ::String?
+
+      def self.add_distributed_tags: (::Datadog::Tracing::TraceOperation? trace) -> void
     end
   end
 end

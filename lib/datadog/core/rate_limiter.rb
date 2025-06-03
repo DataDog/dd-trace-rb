@@ -13,13 +13,15 @@ module Datadog
       # to be side-effect free.
       #
       # @return [Boolean] whether a resource conforms with the current limit
-      def allow?(size = 1); end
+      def allow?(size = 1)
+      end
 
       # The effective rate limiting ratio based on
       # recent calls to `allow?`.
       #
       # @return [Float] recent allowance ratio
-      def effective_rate; end
+      def effective_rate
+      end
     end
 
     # Implementation of the Token Bucket metering algorithm

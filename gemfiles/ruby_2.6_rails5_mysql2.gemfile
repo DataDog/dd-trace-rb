@@ -14,8 +14,6 @@ gem "memory_profiler", "~> 0.9"
 gem "os", "~> 1.1"
 gem "byebug"
 gem "pry"
-gem "pry-byebug"
-gem "pry-stack_explorer"
 gem "rake", ">= 10.5"
 gem "rake-compiler", "~> 1.1", ">= 1.1.1"
 gem "rspec", "~> 3.13"
@@ -31,11 +29,11 @@ gem "mysql2", "< 1", platform: :ruby
 gem "sprockets", "< 4"
 gem "lograge", "~> 0.11"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

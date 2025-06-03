@@ -271,4 +271,39 @@ RSpec.describe Datadog::Profiling::Scheduler do
       reset_after_fork
     end
   end
+
+  describe "#stop" do
+    let(:flush) { instance_double(Datadog::Profiling::Flush) }
+    let(:interval) { 1 }
+
+    before { allow(transport).to receive(:export) }
+
+    context "when exporter has data to flush" do
+      before do
+        allow(exporter).to receive(:can_flush?).and_return(true)
+        allow(exporter).to receive(:flush).and_return(flush)
+      end
+
+      after do
+        scheduler.stop(true) if instance_variable_defined?(:@stopped) && !@stopped
+      end
+
+      # This test validates the behavior of the @stop_requested flag.
+      #
+      # Specifically, the looping behavior we get from the core helpers will keep on trying to flush
+      # while work_pending? is true. Because work_pending? used to keep on returning true while
+      # exporter.can_flush? was true, this would cause the loop keep running.
+      #
+      # This was fixed by the introduction of @stop_requested, which ensures that we "remember"
+      # when an export was done but a stop was requested.
+      it "flushes the data and stops the loop" do
+        scheduler.start
+        wait_for { scheduler.run_loop? }.to be true
+
+        @stopped = false
+        expect(scheduler.stop(false, 10)).to be true
+        @stopped = true
+      end
+    end
+  end
 end

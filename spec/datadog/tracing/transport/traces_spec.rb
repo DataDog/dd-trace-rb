@@ -60,7 +60,10 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Response do
 end
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
-  let(:chunker) { described_class.new(encoder, native_events_supported: native_events_supported, max_size: max_size) }
+  let(:logger) { logger_allowing_debug }
+  let(:chunker) do
+    described_class.new(encoder, logger: logger, native_events_supported: native_events_supported, max_size: max_size)
+  end
   let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
   let(:native_events_supported) { double }
   let(:trace_encoder) { Datadog::Tracing::Transport::Traces::Encoder }
@@ -76,16 +79,19 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[0],
+          logger: logger,
           native_events_supported: native_events_supported
         ).and_return('1')
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[1],
+          logger: logger,
           native_events_supported: native_events_supported
         ).and_return('22')
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[2],
+          logger: logger,
           native_events_supported: native_events_supported
         ).and_return('333')
         allow(encoder).to receive(:join) { |arr| arr.join(',') }
@@ -115,7 +121,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
 
         it 'drops all traces except the smallest' do
           is_expected.to eq([['1', 1]])
-          expect(Datadog.logger).to have_lazy_debug_logged(/Payload too large/)
+          expect(logger).to have_lazy_debug_logged(/Payload too large/)
           expect(health_metrics).to have_received(:transport_trace_too_large).with(1).twice
         end
       end
@@ -138,7 +144,9 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
 end
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
-  subject(:transport) { described_class.new(apis, current_api_id) }
+  let(:logger) { logger_allowing_debug }
+
+  subject(:transport) { described_class.new(apis, current_api_id, logger: logger) }
 
   shared_context 'APIs with fallbacks' do
     let(:current_api_id) { :v2 }
@@ -149,8 +157,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       ].with_fallbacks(v2: :v1)
     end
 
-    let(:api_v1) { instance_double(Datadog::Tracing::Transport::HTTP::API::Instance, 'v1', encoder: encoder_v1) }
-    let(:api_v2) { instance_double(Datadog::Tracing::Transport::HTTP::API::Instance, 'v2', encoder: encoder_v2) }
+    let(:api_v1) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::API::Instance, 'v1', encoder: encoder_v1) }
+    let(:api_v2) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::API::Instance, 'v2', encoder: encoder_v2) }
     let(:encoder_v1) { instance_double(Datadog::Core::Encoding::Encoder, 'v1', content_type: 'text/plain') }
     let(:encoder_v2) { instance_double(Datadog::Core::Encoding::Encoder, 'v2', content_type: 'text/csv') }
   end
@@ -192,17 +200,19 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     before do
       allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
         encoder_v1,
+        logger: logger,
         native_events_supported: false
       ).and_return(chunker)
       allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
         encoder_v2,
+        logger: logger,
         native_events_supported: false
       ).and_return(chunker)
 
       allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
 
-      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v1).and_return(client_v1)
-      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v2).and_return(client_v2)
+      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v1, logger: logger).and_return(client_v1)
+      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v2, logger: logger).and_return(client_v2)
       allow(client_v1).to receive(:send_traces_payload).with(request).and_return(response)
       allow(client_v2).to receive(:send_traces_payload).with(request).and_return(response)
 
@@ -283,59 +293,118 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     end
 
     context 'for native span event support by the agent' do
-      context 'on a successful agent info call' do
-        context 'with support not advertised' do
-          let(:native_events_supported) { nil }
-
-          it 'does not encode native span events' do
-            expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
-              encoder_v2,
-              native_events_supported: false
-            ).and_return(chunker)
-            send_traces
+      after do
+        Datadog.configuration.tracing.reset_options!
+      end
+      context 'when native_span_events option is configured' do
+        context 'when set to true' do
+          before do
+            Datadog.configuration.tracing.native_span_events = true
           end
-        end
 
-        context 'with support advertised as supported' do
           let(:native_events_supported) { true }
 
-          it 'encodes native span events' do
+          it 'uses the configured value' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
+              logger: logger,
               native_events_supported: true
             ).and_return(chunker)
+
+            send_traces
+          end
+
+          it 'does not query the agent' do
+            allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).and_return(chunker)
+            expect_any_instance_of(Datadog::Core::Environment::AgentInfo).not_to receive(:fetch)
+
             send_traces
           end
         end
 
-        context 'with support advertised as unsupported' do
+        context 'when set to false' do
+          before do
+            Datadog.configuration.tracing.native_span_events = false
+          end
+
           let(:native_events_supported) { false }
 
-          it 'encodes native span events' do
+          it 'uses the configured value' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
+              logger: logger,
               native_events_supported: false
             ).and_return(chunker)
             send_traces
           end
-        end
 
-        it 'caches the agent result' do
-          transport.send_traces(traces)
-          transport.send_traces(traces)
+          it 'does not query the agent' do
+            allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).and_return(chunker)
+            expect_any_instance_of(Datadog::Core::Environment::AgentInfo).not_to receive(:fetch)
 
-          expect(Datadog.send(:components).agent_info).to have_received(:fetch).once
+            send_traces
+          end
         end
       end
 
-      context 'on an unsuccessful agent info call' do
-        let(:agent_info_response) { nil }
+      context 'when native_span_events option is not configured' do
+        context 'on a successful agent info call' do
+          context 'with support not advertised' do
+            let(:native_events_supported) { nil }
 
-        it 'does not cache the agent result' do
-          transport.send_traces(traces)
-          transport.send_traces(traces)
+            it 'does not encode native span events' do
+              expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+                encoder_v2,
+                logger: logger,
+                native_events_supported: false
+              ).and_return(chunker)
+              send_traces
+            end
+          end
 
-          expect(Datadog.send(:components).agent_info).to have_received(:fetch).twice
+          context 'with support advertised as supported' do
+            let(:native_events_supported) { true }
+
+            it 'encodes native span events' do
+              expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+                encoder_v2,
+                logger: logger,
+                native_events_supported: true
+              ).and_return(chunker)
+              send_traces
+            end
+          end
+
+          context 'with support advertised as unsupported' do
+            let(:native_events_supported) { false }
+
+            it 'encodes native span events' do
+              expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+                encoder_v2,
+                logger: logger,
+                native_events_supported: false
+              ).and_return(chunker)
+              send_traces
+            end
+          end
+
+          it 'caches the agent result' do
+            transport.send_traces(traces)
+            transport.send_traces(traces)
+
+            expect(Datadog.send(:components).agent_info).to have_received(:fetch).once
+          end
+        end
+
+        context 'on an unsuccessful agent info call' do
+          let(:agent_info_response) { nil }
+
+          it 'does not cache the agent result' do
+            transport.send_traces(traces)
+            transport.send_traces(traces)
+
+            expect(Datadog.send(:components).agent_info).to have_received(:fetch).twice
+          end
         end
       end
     end

@@ -3,14 +3,17 @@ name: Lock Dependencies
 # TODO: Make this job mandatory
 # TODO: Make this on workflow_dispatch
 
-on:
+on: # yamllint disable-line rule:truthy
   pull_request:
     branches:
-    - master
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# Default permissions for all jobs
+permissions: {}
 
 jobs:
   dependency:
@@ -20,6 +23,8 @@ jobs:
       changes: ${{ steps.changes.outputs.dependencies }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes
         with:
@@ -62,6 +67,8 @@ jobs:
         BUNDLE_WITHOUT: check
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - run: |
           ruby -v
           gem -v
@@ -69,7 +76,7 @@ jobs:
       - run: bundle install
       - run: bundle exec rake dependency:generate
       - run: bundle exec rake dependency:lock
-      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: lock-dependency-${{ github.run_id }}-${{ matrix.engine.name }}-${{ matrix.engine.version }}
           path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
@@ -84,13 +91,14 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: true # required for `git` operations (commit & push) at later steps
           token: ${{ secrets.GHA_PAT }}
-      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: gemfiles
           pattern: lock-dependency-${{ github.run_id }}-*
           merge-multiple: true
-      - uses: stefanzweifel/git-auto-commit-action@e348103e9026cc0eee72ae06630dbe30c8bf7a79 # v5.1.0
+      - uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5.2.0
         with:
           file_pattern: 'gemfiles/*'
           commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"

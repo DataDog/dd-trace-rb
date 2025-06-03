@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Metadata
+      class Metastruct
+        extend Forwardable
+
+        def []: (String | Symbol key) -> untyped
+
+        def []=: (String | Symbol key, untyped value) -> untyped
+
+        def to_h: () -> ::Hash[String | Symbol, untyped]
+
+        def to_msgpack: (untyped packer) -> void
+
+        def pretty_print: (untyped q) -> void
+      end
+    end
+  end
+end
