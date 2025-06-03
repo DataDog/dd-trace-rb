@@ -55,7 +55,7 @@ jobs:
       - run: git diff --color=always
 
       - name: Create Pull Request
-        if: ${{ github.event.inputs.dry-run == false }}
+        if: ${{ github.event.inputs.dry-run != true }}
         id: cpr
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
@@ -69,6 +69,6 @@ jobs:
           add-paths: |
             .github/
           body: |
-            _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/yoga.yml)
+            _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-system-tests.yml)_
             The PR updates the system tests (Updated to commit: ${{ steps.system-test-ref.outputs.commit }})
             Please review the changes and merge when ready
