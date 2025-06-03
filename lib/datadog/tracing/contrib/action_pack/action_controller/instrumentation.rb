@@ -127,12 +127,8 @@ module Datadog
                   # ActionController::Metal, unless
                   # ActionController::Instrumentation is explicitly included
                   # into the controller class.
-                  if respond_to?(:db_runtime)
-                    payload[:db_runtime] = db_runtime
-                  end
-                  if respond_to?(:view_runtime)
-                    payload[:view_runtime] = view_runtime
-                  end
+                  payload[:db_runtime] = db_runtime if respond_to?(:db_runtime)
+                  payload[:view_runtime] = view_runtime if respond_to?(:view_runtime)
                 end
               # rubocop:enable Lint/RescueException
               ensure
