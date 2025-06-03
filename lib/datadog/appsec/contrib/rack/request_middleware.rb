@@ -100,8 +100,8 @@ module Datadog
               http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
             end
 
-            # TODO: AppSec::ApiSecurity::Sampler.thread_local.sample?(request, response)
-            if AppSec.perform_api_security_check?
+            if APISecurity.sample_trace?(ctx.trace) &&
+                APISecurity.sample?(gateway_request.request, gateway_response.response)
               ctx.events.push(
                 AppSec::SecurityEvent.new(ctx.extract_schema, trace: ctx.trace, span: ctx.span)
               )
