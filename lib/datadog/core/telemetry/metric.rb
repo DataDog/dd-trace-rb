@@ -20,7 +20,7 @@ module Datadog
           end
 
           def id
-            @id ||= "#{type}::#{name}::#{tags.join(',')}"
+            @id ||= "#{type}::#{name}::#{tags.join(",")}"
           end
 
           def track(value)
@@ -47,7 +47,7 @@ module Datadog
               values == other.values && tags == other.tags && common == other.common && type == other.type
           end
 
-          alias eql? ==
+          alias_method :eql?, :==
 
           def hash
             [self.class, name, values, tags, common, type].hash
@@ -88,7 +88,7 @@ module Datadog
             super && interval == other.interval
           end
 
-          alias eql? ==
+          alias_method :eql?, :==
 
           def hash
             [super, interval].hash

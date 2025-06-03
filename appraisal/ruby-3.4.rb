@@ -58,6 +58,52 @@ appraise 'rails71' do
   gem 'rails', '~> 7.1.0'
 end
 
+appraise 'rails8-mysql2' do
+  gem 'rails', '~> 8.0.0'
+  gem 'mysql2', '~> 0.5', platform: :ruby
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-postgres' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-postgres-redis' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'redis', '~> 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-postgres-sidekiq' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sidekiq', '< 8'
+  gem 'lograge', '~> 0.11'
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-semantic-logger' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-trilogy' do
+  gem 'rails', '~> 8.0.0'
+  gem 'trilogy'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
 appraise 'rails-old-redis' do
   # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
   gem 'redis', '< 4'

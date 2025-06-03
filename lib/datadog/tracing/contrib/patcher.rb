@@ -20,8 +20,11 @@ module Datadog
         # @public_api
         module CommonMethods
           attr_accessor \
-            :patch_error_result,
-            :patch_successful
+            :patch_error_result
+
+          def patch_successful
+            !!@patch_successful
+          end
 
           def patch_name
             self.class != Class && self.class != Module ? self.class.name : name
