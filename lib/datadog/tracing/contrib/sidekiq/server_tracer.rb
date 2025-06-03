@@ -61,7 +61,11 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_RETRY_COUNT, job['retry_count'])
               span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
               span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
-              span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Core::Utils::Time.now.utc.to_f - job['enqueued_at'].to_f))
+
+              enqueued_at = job['enqueued_at']
+              # Sidekiq 8.0+ uses Integer milliseconds for enqueued_at; prior versions use Float seconds
+              enqueued_at /= 1000.0 if enqueued_at.is_a?(Integer)
+              span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Core::Utils::Time.now.utc.to_f - enqueued_at.to_f))
 
               args = job['args']
               if args && !args.empty?
