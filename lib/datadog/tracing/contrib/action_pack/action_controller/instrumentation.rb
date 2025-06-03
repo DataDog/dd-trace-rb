@@ -121,8 +121,18 @@ module Datadog
                   payload[:exception_object] = e
                   raise e
                 ensure
-                  payload[:db_runtime] = db_runtime
-                  payload[:view_runtime] = view_runtime
+                  # Database and view runtime are available for controllers
+                  # deriving from ActionController::Base.
+                  # They are not defined on controllers deriving from
+                  # ActionController::Metal, unless
+                  # ActionController::Instrumentation is explicitly included
+                  # into the controller class.
+                  if respond_to?(:db_runtime)
+                    payload[:db_runtime] = db_runtime
+                  end
+                  if respond_to?(:view_runtime)
+                    payload[:view_runtime] = view_runtime
+                  end
                 end
               # rubocop:enable Lint/RescueException
               ensure
