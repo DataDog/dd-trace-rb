@@ -186,6 +186,8 @@ appraise 'contrib' do
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
+  # Note: Sidekiq 8 uses different timestamp formatting compared to prior versions. As long as
+  # versions <8 are supported, make sure there's some CI running both older and newer versions.
   gem 'sidekiq', '~> 8'
   gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
