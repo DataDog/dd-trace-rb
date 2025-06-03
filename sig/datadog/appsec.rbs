@@ -6,9 +6,9 @@ module Datadog
 
     def self.telemetry: () -> Core::Telemetry::Component
 
-    def self.processor: () -> Processor?
+    def self.security_engine: () -> SecurityEngine::Engine?
 
-    def self.reconfigure: (config: ::Hash[::String, untyped], asm_product: ::String, config_path: ::String) -> void
+    def self.reconfigure!: () -> void
 
     def self.reconfigure_lock: () { (?) -> untyped } -> void
 

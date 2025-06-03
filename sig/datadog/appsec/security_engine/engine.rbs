@@ -4,34 +4,37 @@ module Datadog
       class Engine
         @waf_builder: WAF::HandleBuilder
 
-        @diagnostics: untyped
-
         @waf_handle: WAF::Handle
 
-        @addresses: ::Array[::String]
+        @waf_addresses: ::Array[::String]
 
-        DEFAULT_CONFIG_PATH: ::String
-        ASM_PRODUCT_FOR_DEFAULT_CONFIG: ::String
+        @ruleset_version: ::String
 
-        attr_reader diagnostics: untyped
+        DEFAULT_RULES_CONFIG_PATH: ::String
+        TELEMETRY_ACTIONS: ::Array[::Symbol]
+        DIAGNOSTICS_CONFIG_KEYS: ::Array[::String]
 
-        attr_reader addresses: ::Array[::String]
+        attr_reader waf_addresses: ::Array[::String]
 
-        def initialize: (settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> void
+        attr_reader ruleset_version: ::String
 
-        def finalize: () -> void
+        def initialize: (appsec_settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> void
+
+        def finalize!: () -> void
 
         def new_runner: () -> SecurityEngine::Runner
 
-        def reconfigure: (config: ::Hash[::String, untyped], asm_product: ::String, config_path: ::String) -> void
+        def add_or_update_config: (config: ::Hash[::String, untyped], path: ::String) -> void
+
+        def remove_config_at_path: (::String path) -> void
+
+        def reconfigure!: () -> void
 
         private
 
-        def create_waf_builder: (settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> WAF::HandleBuilder
+        def load_default_config: (telemetry: Core::Telemetry::Component, action: ::Symbol) -> void
 
-        def load_default_config: (settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> untyped
-
-        def create_waf_handle: (telemetry: Core::Telemetry::Component) -> WAF::Handle
+        def report_config_errors_via_telemetry: (untyped diagnostics, action: ::Symbol) -> void
       end
     end
   end

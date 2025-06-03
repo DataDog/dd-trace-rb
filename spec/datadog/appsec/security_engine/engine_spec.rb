@@ -3,4 +3,595 @@
 require 'datadog/appsec/spec_helper'
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+  let(:appsec_settings) do
+    settings = Datadog::Core::Configuration::Settings.new
+    settings.appsec.enabled = true
+    settings.appsec
+  end
+
+  before do
+    require 'libddwaf'
+
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+  end
+
+  subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
+
+  describe '.new' do
+    let(:default_ruleset) do
+      Datadog::AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: appsec_settings.ruleset)
+    end
+
+    it 'sets waf_addresses' do
+      expect(engine.waf_addresses).to_not be_empty
+    end
+
+    it 'sets ruleset_version' do
+      expect(engine.ruleset_version).to eq(default_ruleset.dig('metadata', 'rules_version'))
+    end
+
+    context 'when libddwaf handle cannot be initialized' do
+      before do
+        appsec_settings.ruleset = {}
+      end
+
+      it 'reports error though telemetry, prints an error log message and re-raises' do
+        expect(telemetry).to receive(:report).with(
+          Datadog::AppSec::WAF::LibDDWAFError,
+          description: 'AppSec security engine failed to initialize'
+        )
+
+        expect(Datadog.logger).to receive(:error).with(/AppSec security engine failed to initialize/)
+
+        expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
+      end
+    end
+
+    context 'when ruleset has errors' do
+      let(:invalid_ruleset) do
+        {
+          rules: [
+            {
+              id: 'invalid-rule-id'
+            }
+          ]
+        }
+      end
+
+      before do
+        appsec_settings.ruleset = invalid_ruleset
+
+        allow(telemetry).to receive(:inc)
+        allow(telemetry).to receive(:error)
+        allow(telemetry).to receive(:report)
+      end
+
+      it 'reports errors count through telemetry under appsec.waf.config_errors' do
+        expect(telemetry).to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+          'waf.config_errors',
+          1,
+          tags: {
+            waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+            event_rules_version: '',
+            action: 'init',
+            config_key: 'rules',
+            scope: 'item'
+          }
+        )
+
+        expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
+      end
+
+      it 'reports errors through telemetry' do
+        expect(telemetry).to receive(:error).with("missing key 'conditions': [invalid-rule-id]")
+
+        expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
+      end
+    end
+  end
+
+  describe '#finalize!' do
+    it 'finalizes waf builder and waf handle' do
+      expect(engine.instance_variable_get(:@waf_builder)).to receive(:finalize!)
+      expect(engine.instance_variable_get(:@waf_handle)).to receive(:finalize!)
+
+      engine.finalize!
+    end
+
+    it 'resets waf_addresses' do
+      engine.finalize!
+      expect(engine.waf_addresses).to be_empty
+    end
+
+    it 'resets ruleset_version' do
+      engine.finalize!
+      expect(engine.ruleset_version).to be_nil
+    end
+  end
+
+  describe '#new_runner' do
+    it 'returns an instance of SecurityEngine::Runner' do
+      expect(engine.new_runner).to be_a(Datadog::AppSec::SecurityEngine::Runner)
+    end
+
+    context 'when finalized' do
+      it 'raises InstanceFinalizedError' do
+        engine.finalize!
+
+        expect { engine.new_runner }.to raise_error(Datadog::AppSec::WAF::InstanceFinalizedError)
+      end
+    end
+  end
+
+  describe '#add_or_update_config' do
+    let(:custom_rules_config) do
+      {
+        custom_rules: [
+          {
+            conditions: [{
+              operator: 'phrase_match',
+              parameters: {inputs: [{address: 'server.request.method'}], list: ['TEST']}
+            }],
+            id: 'test-custom-rule-id',
+            name: 'Test rule',
+            tags: {category: 'attack_attempt', custom: '1', type: 'custom'},
+            transformers: []
+          }
+        ]
+      }
+    end
+
+    let(:config_path) { 'datadog/603646/ASM/test-custom-rule' }
+
+    it 'returns diagnostics with loaded config identifiers and no errors' do
+      diagnostics = engine.add_or_update_config(config: custom_rules_config, path: config_path)
+
+      aggregate_failures('diagnostics') do
+        expect(diagnostics.dig('custom_rules', 'errors')).to be_empty
+        expect(diagnostics.dig('custom_rules', 'loaded')).to eq(%w[test-custom-rule-id])
+      end
+    end
+
+    context 'when config loading fails with item-level errors' do
+      let(:config_with_invalid_rule) do
+        {
+          custom_rules: [
+            {
+              conditions: [{
+                operator: 'phrase_match',
+                parameters: {inputs: [{address: 'server.request.method'}], list: ['TEST']}
+              }],
+              id: 'test-custom-rule-id',
+              name: 'Test rule',
+              tags: {category: 'attack_attempt', custom: '1', type: 'custom'},
+              transformers: []
+            },
+            {
+              id: 'invalid-rule-one-id'
+            },
+            {
+              id: 'invalid-rule-two-id',
+              conditions: [{
+                operator: 'phrase_match'
+              }]
+            }
+          ]
+        }
+      end
+
+      before do
+        allow(telemetry).to receive(:inc)
+        allow(telemetry).to receive(:error)
+      end
+
+      it 'returns diagnostics with loaded config identifiers and errors for invalid rules' do
+        diagnostics = engine.add_or_update_config(config: config_with_invalid_rule, path: config_path)
+
+        aggregate_failures('diagnostics') do
+          expect(diagnostics.dig('custom_rules', 'failed')).to match(%w[invalid-rule-one-id invalid-rule-two-id])
+          expect(diagnostics.dig('custom_rules', 'loaded')).to eq(%w[test-custom-rule-id])
+
+          expect(diagnostics.dig('custom_rules', 'errors')).to eq({
+            "missing key 'conditions'" => %w[invalid-rule-one-id],
+            "missing key 'parameters'" => %w[invalid-rule-two-id]
+          })
+        end
+      end
+
+      it 'reports item-level errors count through telemetry' do
+        expect(telemetry).to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+          'waf.config_errors',
+          2,
+          tags: {
+            waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+            event_rules_version: engine.ruleset_version,
+            action: 'update',
+            config_key: 'custom_rules',
+            scope: 'item'
+          }
+        )
+
+        engine.add_or_update_config(config: config_with_invalid_rule, path: config_path)
+      end
+
+      it 'reports item-level errors through telemetry' do
+        expect(telemetry).to receive(:error).with("missing key 'conditions': [invalid-rule-one-id]")
+        expect(telemetry).to receive(:error).with("missing key 'parameters': [invalid-rule-two-id]")
+
+        engine.add_or_update_config(config: config_with_invalid_rule, path: config_path)
+      end
+    end
+
+    context 'when config loading fails with top-level error for some config key' do
+      let(:invalid_config) { '' }
+
+      before do
+        allow(telemetry).to receive(:inc)
+        allow(telemetry).to receive(:error)
+      end
+
+      it 'returns diagnostics with loaded config identifiers and errors for invalid rules' do
+        diagnostics = engine.add_or_update_config(config: invalid_config, path: config_path)
+
+        expect(diagnostics.fetch('error')).to eq("invalid configuration type, expected 'map', obtained 'string'")
+      end
+
+      it 'reports top-level error count through telemetry' do
+        expect(telemetry).to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+          'waf.config_errors',
+          1,
+          tags: {
+            waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+            event_rules_version: engine.ruleset_version,
+            action: 'update',
+            scope: 'top-level'
+          }
+        )
+
+        engine.add_or_update_config(config: invalid_config, path: config_path)
+      end
+
+      it 'reports top-level error through telemetry' do
+        expect(telemetry).to receive(:error).with("invalid configuration type, expected 'map', obtained 'string'")
+
+        engine.add_or_update_config(config: invalid_config, path: config_path)
+      end
+    end
+
+    context 'when config loading fails with top-level error for some config key' do
+      let(:invalid_config) { {custom_rules: ''} }
+
+      before do
+        allow(telemetry).to receive(:inc)
+        allow(telemetry).to receive(:error)
+      end
+
+      it 'returns diagnostics with loaded config identifiers and errors for invalid rules' do
+        diagnostics = engine.add_or_update_config(config: invalid_config, path: config_path)
+
+        aggregate_failures('diagnostics') do
+          expect(diagnostics).not_to have_key('error')
+          expect(diagnostics.dig('custom_rules', 'error')).to eq("bad cast, expected 'array', obtained 'string'")
+        end
+      end
+
+      it 'reports top-level error count through telemetry' do
+        expect(telemetry).to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+          'waf.config_errors',
+          1,
+          tags: {
+            waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+            event_rules_version: engine.ruleset_version,
+            action: 'update',
+            config_key: 'custom_rules',
+            scope: 'top-level'
+          }
+        )
+
+        engine.add_or_update_config(config: invalid_config, path: config_path)
+      end
+
+      it 'reports top-level error through telemetry' do
+        expect(telemetry).to receive(:error).with("bad cast, expected 'array', obtained 'string'")
+
+        engine.add_or_update_config(config: invalid_config, path: config_path)
+      end
+    end
+
+    context 'when config path includes ASM_DD' do
+      let(:asm_dd_config) do
+        {
+          version: '2.2',
+          metadata: {
+            rules_version: '1.0.0'
+          },
+          rules: [
+            {
+              id: 'rasp-003-001',
+              name: 'SQL Injection',
+              tags: {
+                type: 'sql_injection',
+                category: 'exploit',
+                module: 'rasp'
+              },
+              conditions: [
+                {
+                  operator: 'sqli_detector',
+                  parameters: {
+                    resource: [{address: 'server.db.statement'}],
+                    params: [{address: 'server.request.query'}],
+                    db_type: [{address: 'server.db.system'}]
+                  }
+                }
+              ],
+              on_match: ['block-sqli']
+            }
+          ],
+          actions: [
+            {
+              id: 'block-sqli',
+              type: 'block',
+              parameters: {
+                status_code: '418',
+                grpc_status_code: '42',
+                type: 'auto'
+              }
+            }
+          ]
+        }
+      end
+
+      let(:config_path) { 'datadog/603646/ASM_DD/latest/config' }
+
+      it 'returns diagnostics with loaded rules identifiers and no errors' do
+        diagnostics = engine.add_or_update_config(config: asm_dd_config, path: config_path)
+
+        aggregate_failures('diagnostics') do
+          expect(diagnostics.dig('rules', 'loaded')).to eq(%w[rasp-003-001])
+          expect(diagnostics.dig('rules', 'errors')).to be_empty
+
+          expect(diagnostics.dig('actions', 'loaded')).to eq(%w[block-sqli])
+          expect(diagnostics.dig('actions', 'errors')).to be_empty
+        end
+      end
+
+      it 'removes default config before adding new config' do
+        expect(engine.instance_variable_get(:@waf_builder))
+          .to receive(:remove_config_at_path).with(described_class::DEFAULT_RULES_CONFIG_PATH)
+
+        engine.add_or_update_config(config: asm_dd_config, path: config_path)
+      end
+
+      it 'updates ruleset_version' do
+        engine.add_or_update_config(config: asm_dd_config, path: config_path)
+
+        expect(engine.ruleset_version).to eq('1.0.0')
+      end
+
+      context 'when adding of config fails' do
+        let(:invalid_config) do
+          {
+            ruleset_version: '1.0.0',
+            rules: ''
+          }
+        end
+
+        before do
+          allow(telemetry).to receive(:inc)
+          allow(telemetry).to receive(:error)
+        end
+
+        it 'reports errors count through telemetry under appsec.waf.config_errors' do
+          expect(telemetry).to receive(:inc).with(
+            Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+            'waf.config_errors',
+            1,
+            tags: {
+              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+              event_rules_version: engine.ruleset_version,
+              action: 'update',
+              config_key: 'rules',
+              scope: 'top-level'
+            }
+          )
+
+          engine.add_or_update_config(config: invalid_config, path: config_path)
+        end
+
+        it 'reports errors through telemetry' do
+          expect(telemetry).to receive(:error).with("bad cast, expected 'array', obtained 'string'")
+
+          engine.add_or_update_config(config: invalid_config, path: config_path)
+        end
+
+        it 'adds default config back' do
+          allow(engine.instance_variable_get(:@waf_builder)).to receive(:add_or_update_config).and_call_original
+
+          expect(engine.instance_variable_get(:@waf_builder))
+            .to receive(:add_or_update_config).with(anything, path: described_class::DEFAULT_RULES_CONFIG_PATH)
+
+          engine.add_or_update_config(config: invalid_config, path: config_path)
+        end
+
+        it 'does not change ruleset_version' do
+          expect { engine.add_or_update_config(config: invalid_config, path: config_path) }
+            .not_to change(engine, :ruleset_version)
+        end
+      end
+    end
+  end
+
+  describe '#remove_config_at_path' do
+    let(:custom_rules_config) do
+      {
+        custom_rules: [
+          {
+            conditions: [{
+              operator: 'phrase_match',
+              parameters: {inputs: [{address: 'server.request.method'}], list: ['TEST']}
+            }],
+            id: 'test-custom-rule-id',
+            name: 'Test rule',
+            tags: {category: 'attack_attempt', custom: '2', type: 'custom'},
+            transformers: []
+          }
+        ]
+      }
+    end
+
+    let(:config_path) { 'datadog/603646/ASM/test-custom-rule' }
+
+    before do
+      engine.add_or_update_config(config: custom_rules_config, path: config_path)
+    end
+
+    it 'returns true for a path for which a config was loaded before' do
+      expect(engine.remove_config_at_path(config_path)).to eq(true)
+    end
+
+    it 'returns false for a path for which a config was not loaded before' do
+      expect(engine.remove_config_at_path('datadog/603646/ASM/something')).to eq(false)
+    end
+
+    context 'when config path includes ASM_DD' do
+      let(:asm_dd_config) do
+        {
+          version: '2.2',
+          metadata: {rules_version: '1.0.0'},
+          rules: [
+            {
+              id: 'rasp-003-001',
+              name: 'SQL Injection',
+              tags: {
+                type: 'sql_injection',
+                category: 'exploit',
+                module: 'rasp'
+              },
+              conditions: [
+                {
+                  operator: 'sqli_detector',
+                  parameters: {
+                    resource: [{address: 'server.db.statement'}],
+                    params: [{address: 'server.request.query'}],
+                    db_type: [{address: 'server.db.system'}]
+                  }
+                }
+              ],
+              on_match: ['block-sqli']
+            }
+          ]
+        }
+      end
+
+      let(:config_path) { 'datadog/603646/ASM_DD/latest/config' }
+
+      before do
+        engine.add_or_update_config(config: asm_dd_config, path: config_path)
+      end
+
+      it 'adds default config back' do
+        expect(engine.instance_variable_get(:@waf_builder)).to(
+          receive(:add_or_update_config)
+            .with(anything, path: described_class::DEFAULT_RULES_CONFIG_PATH)
+            .and_call_original
+        )
+
+        engine.remove_config_at_path(config_path)
+      end
+    end
+  end
+
+  describe '#reconfigure!' do
+    let(:asm_dd_config) do
+      {
+        version: '2.2',
+        metadata: {
+          rules_version: '1.0.0'
+        },
+        rules: [
+          {
+            id: 'rasp-003-001',
+            name: 'SQL Injection',
+            tags: {
+              type: 'sql_injection',
+              category: 'exploit',
+              module: 'rasp'
+            },
+            conditions: [
+              {
+                operator: 'sqli_detector',
+                parameters: {
+                  resource: [{address: 'server.db.statement'}],
+                  params: [{address: 'server.request.query'}],
+                  db_type: [{address: 'server.db.system'}]
+                }
+              }
+            ],
+            on_match: ['block-sqli']
+          }
+        ]
+      }
+    end
+
+    let(:config_path) { 'datadog/603646/ASM_DD/latest/config' }
+
+    before do
+      engine.add_or_update_config(config: asm_dd_config, path: config_path)
+    end
+
+    it 'finalizes old handle' do
+      expect(engine.instance_variable_get(:@waf_handle)).to receive(:finalize!)
+
+      engine.reconfigure!
+    end
+
+    it 'sets @waf_handle to a new handle' do
+      expect { engine.reconfigure! }.to change { engine.instance_variable_get(:@waf_handle) }
+    end
+
+    it 'updates waf_addresses' do
+      expect { engine.reconfigure! }.to change { engine.waf_addresses }
+    end
+
+    context 'when a new handle cannot be build' do
+      let(:asm_dd_config) do
+        {
+          version: '2.2',
+          metadata: {
+            rules_version: '1.0.0'
+          },
+          rules: []
+        }
+      end
+
+      before do
+        allow(telemetry).to receive(:inc)
+        allow(telemetry).to receive(:error)
+        allow(telemetry).to receive(:report)
+      end
+
+      it 'does not change @waf_handle' do
+        expect { engine.reconfigure! }.not_to change { engine.instance_variable_get(:@waf_handle) }
+      end
+
+      it 'does not change waf_addresses' do
+        expect { engine.reconfigure! }.not_to change { engine.waf_addresses }
+      end
+
+      it 'reports error though telemetry' do
+        expect(telemetry).to receive(:report).with(
+          Datadog::AppSec::WAF::LibDDWAFError,
+          description: 'AppSec security engine failed to reconfigure'
+        )
+
+        engine.reconfigure!
+      end
+    end
+  end
 end

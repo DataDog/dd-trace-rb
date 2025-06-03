@@ -61,17 +61,26 @@ module Datadog
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
-            repository.contents.each do |content|
-              parsed_content = parse_content(content)
+            changes.each do |change|
+              content = repository[change.path]
+              next unless content
 
-              Datadog::AppSec.reconfigure(
-                config: parsed_content,
-                asm_product: content.path.product,
-                config_path: content.path.to_s
-              )
+              case change.type
+              when :insert, :update
+                AppSec.security_engine&.add_or_update_config(
+                  config: parse_content(content),
+                  path: change.path.to_s
+                )
 
-              content.applied
+                content.applied
+              when :delete
+                AppSec.security_engine&.remove_config_at_path(change.path.to_s)
+
+                content.applied
+              end
             end
+
+            AppSec.reconfigure!
           end
 
           [receiver]

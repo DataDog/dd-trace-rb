@@ -21,7 +21,7 @@ module Datadog
 
       def initialize: (AppSec::SecurityEngine::Engine security_engine, Core::Telemetry::Component telemetry) -> void
 
-      def reconfigure: (config: ::Hash[::String, untyped], asm_product: ::String, config_path: ::String) -> void
+      def reconfigure!: () -> void
 
       def reconfigure_lock: () { (?) -> void } -> void
 

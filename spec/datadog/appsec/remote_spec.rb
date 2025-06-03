@@ -139,10 +139,28 @@ RSpec.describe Datadog::AppSec::Remote do
 
         let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+        let(:settings) do
+          Datadog::Core::Configuration::Settings.new.tap do |settings|
+            settings.appsec.enabled = true
+          end
+        end
+
+        let(:appsec_component) do
+          Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
+        end
+
+        before do
+          allow(Datadog::AppSec).to receive(:security_engine).and_return(appsec_component.security_engine)
+        end
+
         it 'propagates changes to AppSec' do
-          expect(Datadog::AppSec).to receive(:reconfigure).with(
-            config: JSON.parse(rules), asm_product: 'ASM_DD', config_path: content.path.to_s
+          expect(Datadog::AppSec.security_engine).to receive(:add_or_update_config).with(
+            config: JSON.parse(rules), path: content.path.to_s
           )
+
+          expect(Datadog::AppSec).to receive(:reconfigure!)
 
           receiver.call(repository, transaction)
         end

@@ -43,7 +43,7 @@ module Datadog
           devise_integration = Datadog::AppSec::Contrib::Devise::Integration.new
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
-          security_engine = SecurityEngine::Engine.new(settings: settings.appsec, telemetry: telemetry)
+          security_engine = SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
           new(security_engine: security_engine, telemetry: telemetry)
         rescue
           Datadog.logger.warn('AppSec is disabled, see logged errors above')
@@ -78,9 +78,9 @@ module Datadog
         @mutex = Mutex.new
       end
 
-      def reconfigure(config:, asm_product:, config_path:)
+      def reconfigure!
         @mutex.synchronize do
-          security_engine.reconfigure(config: config, asm_product: asm_product, config_path: config_path)
+          security_engine.reconfigure!
         end
       end
 
@@ -90,7 +90,7 @@ module Datadog
 
       def shutdown!
         @mutex.synchronize do
-          security_engine.finalize
+          security_engine.finalize!
           @security_engine = nil
         end
       end
