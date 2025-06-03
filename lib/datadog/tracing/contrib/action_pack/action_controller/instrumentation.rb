@@ -68,8 +68,12 @@ module Datadog
 
                 span.set_tag(Ext::TAG_ROUTE_ACTION, payload.fetch(:action))
                 span.set_tag(Ext::TAG_ROUTE_CONTROLLER, payload.fetch(:controller))
-                span.set_tag(Ext::TAG_VIEW_RUNTIME, payload.fetch(:view_runtime))
-                span.set_tag(Ext::TAG_DB_RUNTIME, payload.fetch(:db_runtime))
+                if runtime = payload[:view_runtime]
+                  span.set_tag(Ext::TAG_VIEW_RUNTIME, runtime)
+                end
+                if runtime = payload[:db_runtime]
+                  span.set_tag(Ext::TAG_DB_RUNTIME, runtime)
+                end
 
                 exception = payload[:exception_object]
                 if exception.nil?
@@ -127,8 +131,12 @@ module Datadog
                   # ActionController::Metal, unless
                   # ActionController::Instrumentation is explicitly included
                   # into the controller class.
-                  payload[:db_runtime] = db_runtime if respond_to?(:db_runtime)
-                  payload[:view_runtime] = view_runtime if respond_to?(:view_runtime)
+                  if respond_to?(:db_runtime)
+                    payload[:db_runtime] = db_runtime
+                  end
+                  if respond_to?(:view_runtime)
+                    payload[:view_runtime] = view_runtime
+                  end
                 end
               # rubocop:enable Lint/RescueException
               ensure
