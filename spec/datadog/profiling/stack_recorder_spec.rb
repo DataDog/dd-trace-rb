@@ -411,17 +411,20 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
       end
 
+      def introduce_distinct_stacktraces(i, obj)
+        if i.even?
+          sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
+        else # rubocop:disable Lint/DuplicateBranch
+          sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
+        end
+      end
+
       before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
           {"z" => -1, "y" => "-2", "x" => false}, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
-          # Sample allocations with 2 distinct stacktraces
-          if i.even?
-            sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
-          else # rubocop:disable Lint/DuplicateBranch
-            sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
-          end
+          introduce_distinct_stacktraces(i, obj)
           @num_allocations += 1
           GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
         end
@@ -635,6 +638,23 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               heap_profile_build_time_ns: be > 0,
             )
           )
+        end
+
+        it "records stack traces that match the allocations' stack traces" do
+          expect(samples.map(&:locations).uniq.size).to be 2
+        end
+
+        it "records correct stack traces" do
+          unique_heap_stacks = heap_samples.map(&:locations).uniq
+
+          expect(unique_heap_stacks.size).to be 2
+
+          stack1, stack2 = unique_heap_stacks
+          unique_line1 = stack1.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
+          unique_line2 = stack2.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
+
+          expect(stack1.reject { |it| it == unique_line1 }).to eq(stack2.reject { |it| it == unique_line2 })
+          expect(unique_line1.lineno).to be_within(2).of(unique_line2.lineno)
         end
 
         context "with custom heap sample rate configuration" do
@@ -1054,67 +1074,23 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
   end
 
-  describe "Heap_recorder" do
-    context "produces the same hash code for stack-based and location-based keys" do
-      it "with empty stacks" do
-        described_class::Testing._native_check_heap_hashes([])
-      end
+  context "libdatadog managed string storage regression test" do
+    context "when reusing managed string ids across multiple profiles" do
+      it "produces correct profiles" do
+        profile1, profile2 = described_class::Testing._native_test_managed_string_storage_produces_valid_profiles
 
-      it "with single-frame stacks" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", 123]
-          ]
-        )
-      end
+        decoded_profile1 = decode_profile(profile1)
 
-      it "with multi-frame stacks" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", 123],
-            ["another name", "anoter filename", 456],
-          ]
-        )
-      end
+        expect(decoded_profile1.string_table).to include("key", "hello", "world")
+        expect { samples_from_pprof(profile1) }.to_not raise_error
 
-      it "with empty names" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["", "a filename", 123],
-          ]
-        )
-      end
+        # Early versions of the managed string storage in datadog mistakenly omitted the strings from the string table,
+        # see https://github.com/DataDog/libdatadog/pull/896 for details.
 
-      it "with empty filenames" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "", 123],
-          ]
-        )
-      end
+        decoded_profile2 = decode_profile(profile2)
 
-      it "with zero lines" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", 0]
-          ]
-        )
-      end
-
-      it "with negative lines" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", -123]
-          ]
-        )
-      end
-
-      it "with biiiiiiig lines" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", 4_000_000]
-          ]
-        )
+        expect(decoded_profile2.string_table).to include("key", "hello", "world")
+        expect { samples_from_pprof(profile2) }.to_not raise_error
       end
     end
   end
