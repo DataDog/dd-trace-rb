@@ -1136,5 +1136,8 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
 
   VALUE encoded_pprof_2 = from_ddog_prof_EncodedProfile(serialize_result.ok);
 
+  ddog_prof_Profile_drop(&profile.ok);
+  ddog_prof_ManagedStringStorage_drop(string_storage.ok);
+
   return rb_ary_new_from_args(2, encoded_pprof_1, encoded_pprof_2);
 }
