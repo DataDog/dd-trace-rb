@@ -5,7 +5,7 @@ require 'datadog/appsec/api_security/sampler'
 
 RSpec.describe Datadog::AppSec::APISecurity::Sampler do
   let(:sampler) { described_class.new(30) }
-  let(:request) { double('Rack::Request', method: 'GET', env: {}, script_name: '', path: '/api/users') }
+  let(:request) { double('Rack::Request', request_method: 'GET', env: {}, script_name: '', path: '/api/users') }
   let(:response) { double('Rack::Response', status: 200) }
 
   describe '.thread_local' do
@@ -98,7 +98,7 @@ RSpec.describe Datadog::AppSec::APISecurity::Sampler do
     end
 
     context 'with different request/response combinations' do
-      let(:other_request) { double('Rack::Request', method: 'POST', env: {}, script_name: '', path: '/api/users') }
+      let(:other_request) { double('Rack::Request', request_method: 'POST', env: {}, script_name: '', path: '/api/users') }
       let(:other_response) { double('Rack::Response', status: 201) }
 
       it 'treats them as separate entries' do
@@ -108,7 +108,7 @@ RSpec.describe Datadog::AppSec::APISecurity::Sampler do
     end
 
     context 'with same route but different methods' do
-      let(:post_request) { double('Rack::Request', method: 'POST', env: {}, script_name: '', path: '/api/users') }
+      let(:post_request) { double('Rack::Request', request_method: 'POST', env: {}, script_name: '', path: '/api/users') }
 
       it 'treats them as separate entries' do
         expect(sampler.sample?(request, response)).to be(true)
