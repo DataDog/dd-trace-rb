@@ -54,12 +54,19 @@ jobs:
 
       - run: git diff --color=always
 
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Create Pull Request
         if: ${{ github.event.inputs.dry-run != true }}
         id: cpr
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
-          token: ${{ secrets.GHA_PAT }}
+          token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-system-tests
           title: '[🤖] Update System Tests'
           base: master
