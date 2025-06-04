@@ -35,6 +35,9 @@ AllCops:
     - lib/datadog/core/**/*
     - lib/datadog/core.rb
     - spec/datadog/core/**/*
+    - lib/datadog/appsec/**/*
+    - lib/datadog/appsec.rb
+    - spec/datadog/appsec/**/*
   NewCops: disable # Don't allow new cops to be enabled implicitly.
   SuggestExtensions: false # Stop pushing suggestions constantly.
 
