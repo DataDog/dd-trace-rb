@@ -159,7 +159,7 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           expect(payload).to be_a(Hash)
-          expect(payload).to include(:'debugger.snapshot')
+          expect(payload).to include(:"debugger.snapshot")
           snapshot = payload.fetch(:"debugger.snapshot")
           expect(snapshot[:captures]).to be nil
         end
@@ -312,10 +312,10 @@ RSpec.describe 'Instrumentation integration' do
         let(:expected_captures) do
           {
             entry: {arguments: {
-              '@ivar': {type: 'String', value: 'start value'},
+              "@ivar": {type: 'String', value: 'start value'},
             }, throwable: nil},
             return: {arguments: {
-              '@ivar': {type: 'String', value: 'start value'},
+              "@ivar": {type: 'String', value: 'start value'},
               "@return": {type: 'Integer', value: '42'},
             }, throwable: nil},
           }
@@ -364,11 +364,11 @@ RSpec.describe 'Instrumentation integration' do
           let(:expected_captures) do
             {entry: {arguments: {
               arg1: {type: 'String', value: 'hello world'},
-              '@ivar': {type: 'String', value: 'start value'},
+              "@ivar": {type: 'String', value: 'start value'},
             }, throwable: nil},
              return: {arguments: {
-              '@ivar': {type: 'String', value: 'start value'},
-              "@return": {type: 'String', value: 'bye world'},
+               "@ivar": {type: 'String', value: 'start value'},
+               "@return": {type: 'String', value: 'bye world'},
              }, throwable: nil},}
           end
 
@@ -388,10 +388,10 @@ RSpec.describe 'Instrumentation integration' do
 
           let(:expected_captures) do
             {entry: {arguments: {
-              '@ivar': {type: 'String', value: 'start value'},
+              "@ivar": {type: 'String', value: 'start value'},
             }, throwable: nil},
              return: {arguments: {
-              '@ivar': {type: 'String', value: 'altered value'},
+               "@ivar": {type: 'String', value: 'altered value'},
                "@return": {type: 'String', value: 'altered value'},
              }, throwable: nil},}
           end
@@ -679,7 +679,7 @@ RSpec.describe 'Instrumentation integration' do
         let(:expected_captures) do
           {lines: {20 => {locals: {
             a: {type: 'Integer', value: '21'},
-            '@ivar': {type: 'Integer', value: '51'},
+            "@ivar": {type: 'Integer', value: '51'},
             password: {type: 'String', notCapturedReason: 'redactedIdent'},
             redacted: {type: 'Hash', entries: [
               [{type: 'Symbol', value: 'b'}, {type: 'Integer', value: '33'}],

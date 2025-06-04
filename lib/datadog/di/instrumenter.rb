@@ -314,14 +314,12 @@ module Datadog
                 locals = if probe.capture_snapshot?
                   serializer.serialize_vars(Instrumenter.get_local_variables(tp),
                     depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,
-                  )
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
                 end
                 instance_vars = if probe.capture_snapshot?
                   serializer.serialize_vars(Instrumenter.get_instance_variables(tp.self),
                     depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,
-                  )
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
                 end
                 # & is to stop steep complaints, block is always present here.
                 block&.call(probe: probe,

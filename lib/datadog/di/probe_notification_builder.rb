@@ -73,8 +73,7 @@ module Datadog
               return_arguments.update(
                 serializer.serialize_vars(instance_vars,
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,
-                )
+                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
               )
             end
             {
