@@ -42,6 +42,8 @@ module Datadog
         end
 
         def sample?(request, response)
+          return true if @sample_delay_seconds.zero?
+
           key = Zlib.crc32("#{request.request_method}#{RouteExtractor.route_pattern(request)}#{response.status}")
           current_timestamp = Core::Utils::Time.now.to_i
           cached_timestamp = @cache[key] || 0
