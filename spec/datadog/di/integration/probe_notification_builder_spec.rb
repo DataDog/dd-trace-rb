@@ -43,7 +43,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       context 'with snapshot' do
         let(:locals) do
-          double('local variables')
+          double('local variables').tap do |locals|
+            # Adding instance variables to the locals
+            expect(locals).to receive(:merge).and_return(locals)
+          end
         end
 
         let(:captures) do
