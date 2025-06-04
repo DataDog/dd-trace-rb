@@ -13,6 +13,15 @@ RSpec.describe 'Single step instrument', skip: !Process.respond_to?(:fork) do
   it do
     expect_in_fork do
       expect_any_instance_of(Object)
+        .to receive(:require_relative).with('auto_instrument').and_raise(LoadError)
+
+     expect(Datadog::SingleStepInstrument::LOADED).to eq(true)
+    end
+  end
+
+  it do
+    expect_in_fork do
+      expect_any_instance_of(Object)
         .to receive(:require_relative).with('auto_instrument').and_raise(StandardError)
 
       expect do

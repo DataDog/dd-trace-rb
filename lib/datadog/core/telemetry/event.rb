@@ -141,10 +141,18 @@ module Datadog
               split_option = option.split('.')
               list << conf_value(option, to_value(config.dig(*split_option)), seq_id)
             end
-
+            
+            instrumentation_source = if !defined?(Datadog::AutoInstrument::LOADED).nil?
+                                      'manual'
+                                    elsif !defined?(Datadog::SingleStepInstrument::LOADED).nil?
+                                      'ssi'
+                                    else
+                                      "unknown"
+                                    end
             # Add some more custom additional payload values here
             list.push(
               conf_value('tracing.auto_instrument.enabled', !defined?(Datadog::AutoInstrument::LOADED).nil?, seq_id),
+              conf_value('instrumentation_source', instrumentation_source, seq_id),
               conf_value(
                 'tracing.writer_options.buffer_size',
                 to_value(config.tracing.writer_options[:buffer_size]),
