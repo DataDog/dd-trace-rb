@@ -3,10 +3,10 @@ class InstrumentationIntegrationTestClass
     @ivar = 51
   end
 
-  # padding
-  # padding
-  # padding
-  # padding
+  def method_with_no_locals
+    42 # line 7
+  end
+
   # padding
 
   def test_method

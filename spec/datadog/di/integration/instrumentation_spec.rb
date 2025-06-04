@@ -702,20 +702,45 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
         end
 
-        it 'assembles expected notification payload' do
-          expect(diagnostics_transport).to receive(:send_diagnostics)
-          # add_snapshot expectation replaces assertion on send_input
-          probe_manager.add_probe(probe)
-          payload = nil
-          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
-            payload = payload_
-          end
-          expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
-          component.probe_notifier_worker.flush
+        shared_examples 'assembles expected notification payload' do
+          it 'assembles expected notification payload' do
+            expect(diagnostics_transport).to receive(:send_diagnostics)
+            # add_snapshot expectation replaces assertion on send_input
+            probe_manager.add_probe(probe)
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+            expect(InstrumentationIntegrationTestClass.new.public_send(test_method_name)).to eq(42)
+            component.probe_notifier_worker.flush
 
-          expect(payload).to be_a(Hash)
-          captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
-          expect(captures).to eq(expected_captures)
+            expect(payload).to be_a(Hash)
+            captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+            expect(captures).to eq(expected_captures)
+          end
+        end
+
+        let(:test_method_name) { :test_method }
+
+        include_examples 'assembles expected notification payload'
+
+        context 'when there are instance variables but no local variables' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 7,
+              capture_snapshot: true,)
+          end
+
+          let(:expected_captures) do
+            {lines: {7 => {locals: {
+              # Reports instance variables but no locals
+              "@ivar": {type: 'Integer', value: '51'},
+            }}}}
+          end
+
+          let(:test_method_name) { :method_with_no_locals }
+
+          include_examples 'assembles expected notification payload'
         end
       end
 
