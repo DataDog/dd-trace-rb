@@ -6,6 +6,8 @@ require 'datadog/di'
 # For Instrumenter-only tests, use instrumenter_spec.rb in the parent
 # directory.
 
+# rubocop:disable Style/RescueModifier
+
 class InstrumentationSpecTestClass
   def initialize
     @ivar = 'start value'
@@ -870,3 +872,5 @@ RSpec.describe 'Instrumentation integration' do
     end
   end
 end
+
+# rubocop:enable Style/RescueModifier
