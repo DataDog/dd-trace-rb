@@ -64,6 +64,16 @@ RSpec.describe Datadog::AppSec::APISecurity::Sampler do
 
     let(:now) { Time.new(2020, 3, 20, 13, 14, 15) }
 
+    context 'when sample delay is zero' do
+      let(:sampler) { described_class.new(0) }
+
+      it 'always returns true' do
+        expect(sampler.sample?(request, response)).to be(true)
+        expect(sampler.sample?(request, response)).to be(true)
+        expect(sampler.sample?(request, response)).to be(true)
+      end
+    end
+
     context 'when sampling for the first time' do
       it { expect(sampler.sample?(request, response)).to be(true) }
     end
