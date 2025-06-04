@@ -51,7 +51,7 @@ RSpec.describe 'Schema extraction for API security' do
 
     stub_const('ApiController', Class.new(ActionController::Base)).class_eval do
       def users
-        render json: { id: 1, name: 'John', email: 'john@example.com' }
+        render json: {id: 1, name: 'John', email: 'john@example.com'}
       end
     end
 
@@ -120,7 +120,7 @@ RSpec.describe 'Schema extraction for API security' do
     end
 
     context 'when APM sampler rejects the trace' do
-      before { get('/api/users')}
+      before { get('/api/users') }
 
       let(:sampler) { instance_double(Datadog::Tracing::Sampling::Sampler, sample!: false) }
 
