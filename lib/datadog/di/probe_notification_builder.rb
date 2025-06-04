@@ -64,6 +64,19 @@ module Datadog
         # snapshot or vars/args into this method
         captures = if probe.capture_snapshot?
           if probe.method?
+            return_arguments = {
+              "@return": serializer.serialize_value(rv,
+                depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
+            }
+            if instance_vars
+              return_arguments.update(
+                serializer.serialize_vars(instance_vars,
+                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,
+                )
+              )
+            end
             {
               entry: {
                 # standard:disable all
@@ -78,11 +91,7 @@ module Datadog
                 # standard:enable all
               },
               return: {
-                arguments: {
-                  "@return": serializer.serialize_value(rv,
-                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
-                },
+                arguments: return_arguments,
                 throwable: nil,
               },
             }

@@ -385,6 +385,7 @@ RSpec.describe 'Instrumentation integration' do
               '@ivar': {type: 'String', value: 'start value'},
             }, throwable: nil},
              return: {arguments: {
+              '@ivar': {type: 'String', value: 'altered value'},
                "@return": {type: 'String', value: 'altered value'},
              }, throwable: nil},}
           end

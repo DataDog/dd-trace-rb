@@ -161,6 +161,7 @@ module Datadog
               # TODO capture arguments at exit
               # & is to stop steep complaints, block is always present here.
               block&.call(probe: probe, rv: rv, duration: duration, caller_locations: caller_locs,
+                instance_vars: probe.capture_snapshot? ? Instrumenter.get_instance_variables(self) : nil,
                 serialized_entry_args: entry_args)
               rv
             else
