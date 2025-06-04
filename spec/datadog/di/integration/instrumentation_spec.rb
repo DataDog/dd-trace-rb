@@ -9,6 +9,10 @@ require 'datadog/di'
 # rubocop:disable Style/RescueModifier
 
 class InstrumentationSpecTestClass
+  def initialize
+    @ivar = 5389
+  end
+
   def test_method(a = 1)
     42
   end
@@ -151,6 +155,7 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           expect(payload).to be_a(Hash)
+          expect(payload).to include(:'debugger.snapshot')
           snapshot = payload.fetch(:"debugger.snapshot")
           expect(snapshot[:captures]).to be nil
         end
@@ -301,8 +306,10 @@ RSpec.describe 'Instrumentation integration' do
         end
 
         let(:expected_captures) do
-          {entry: {arguments: {}, throwable: nil},
-           return: {arguments: {"@return": {type: 'Integer', value: '42'}}, throwable: nil},}
+          {
+            entry: {arguments: {'@ivar': {type: 'Integer', value: '5389'}}, throwable: nil},
+            return: {arguments: {"@return": {type: 'Integer', value: '42'}}, throwable: nil},
+          }
         end
 
         it 'invokes probe' do
@@ -348,6 +355,7 @@ RSpec.describe 'Instrumentation integration' do
           let(:expected_captures) do
             {entry: {arguments: {
               arg1: {type: 'String', value: 'hello world'},
+              '@ivar': {type: 'Integer', value: '5389'},
             }, throwable: nil},
              return: {arguments: {
                "@return": {type: 'String', value: 'bye world'},

@@ -42,7 +42,8 @@ module Datadog
       # path is the actual path of the instrumented file.
       def build_executed(probe,
         path: nil, rv: nil, duration: nil, caller_locations: nil,
-        locals: nil, args: nil, kwargs: nil, serialized_entry_args: nil)
+        locals: nil, args: nil, kwargs: nil, instance_vars: nil,
+        serialized_entry_args: nil)
         build_snapshot(probe, rv: rv, locals: locals,
           # Actual path of the instrumented file.
           path: path,
@@ -51,7 +52,7 @@ module Datadog
           # this should be all frames for enriched probes and no frames for
           # non-enriched probes?
           caller_locations: caller_locations,
-          args: args, kwargs: kwargs,
+          args: args, kwargs: kwargs, instance_vars: instance_vars,
           serialized_entry_args: serialized_entry_args)
       end
 
