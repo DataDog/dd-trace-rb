@@ -63,8 +63,7 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
 
               enqueued_at = job['enqueued_at']
-              # Sidekiq 8.0+ uses Integer milliseconds for enqueued_at; prior versions use Float seconds
-              enqueued_at /= 1000.0 if enqueued_at.is_a?(Integer)
+              enqueued_at *= Ext::SIDEKIQ_8_SECONDS_PER_INTEGER if enqueued_at.is_a?(Integer)
               span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Core::Utils::Time.now.utc.to_f - enqueued_at.to_f))
 
               args = job['args']
