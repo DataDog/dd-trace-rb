@@ -58,7 +58,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:call_keys) do
-    %i[caller_locations duration probe rv serialized_entry_args]
+    %i[caller_locations duration instance_vars probe rv serialized_entry_args]
   end
 
   shared_context 'with code tracking' do
@@ -858,7 +858,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     let(:call_keys) do
-      %i[caller_locations locals path probe]
+      %i[caller_locations instance_vars locals path probe]
     end
 
     context 'when called without a block' do
