@@ -88,6 +88,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             }, throwable: nil,
           }, return: {
             arguments: {
+              '@ivar': {type: 'Integer', value: '42'},
               :@return => {
                 type: 'NilClass',
                 isNull: true,

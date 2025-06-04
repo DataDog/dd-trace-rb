@@ -311,8 +311,13 @@ RSpec.describe 'Instrumentation integration' do
 
         let(:expected_captures) do
           {
-            entry: {arguments: {'@ivar': {type: 'String', value: 'start value'}}, throwable: nil},
-            return: {arguments: {"@return": {type: 'Integer', value: '42'}}, throwable: nil},
+            entry: {arguments: {
+              '@ivar': {type: 'String', value: 'start value'},
+            }, throwable: nil},
+            return: {arguments: {
+              '@ivar': {type: 'String', value: 'start value'},
+              "@return": {type: 'Integer', value: '42'},
+            }, throwable: nil},
           }
         end
 
@@ -362,7 +367,8 @@ RSpec.describe 'Instrumentation integration' do
               '@ivar': {type: 'String', value: 'start value'},
             }, throwable: nil},
              return: {arguments: {
-               "@return": {type: 'String', value: 'bye world'},
+              '@ivar': {type: 'String', value: 'start value'},
+              "@return": {type: 'String', value: 'bye world'},
              }, throwable: nil},}
           end
 
