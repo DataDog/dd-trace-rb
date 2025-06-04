@@ -1,4 +1,14 @@
 class InstrumentationIntegrationTestClass
+  def initialize
+    @ivar = 51
+  end
+
+  # padding
+  # padding
+  # padding
+  # padding
+  # padding
+
   def test_method
     a = 21
     password = 'password'
@@ -7,10 +17,11 @@ class InstrumentationIntegrationTestClass
     # to be invoked multiple times in CircleCI on Ruby 3.0-3.2 and 3.4
     #if true || password || redacted
     if true
-      a * 2 # line 10
+      a * 2 # line 20
     end
-  end # line 12
+  end # line 22
 
+  # padding
   # padding
   # padding
   # padding
@@ -19,9 +30,10 @@ class InstrumentationIntegrationTestClass
     array = [1]
     array.each do |value|
       value
-    end # line 22
+    end # line 33
   end
 
+  # padding
   # padding
   # padding
   # padding
@@ -29,12 +41,14 @@ class InstrumentationIntegrationTestClass
   def test_method_with_conditional
     if false
       a = 1
-    else # line 32
+    else # line 44
       a = 2
-    end # line 34
+    end # line 46
     a
   end
 
-end # line 38
+end # line 50
 
-# Comment - line 40
+# padding
+
+# Comment - line 54

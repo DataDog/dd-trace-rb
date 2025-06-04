@@ -410,7 +410,7 @@ RSpec.describe 'Instrumentation integration' do
       context 'simple log probe' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 10,
+            file: 'instrumentation_integration_test_class.rb', line_no: 20,
             capture_snapshot: false,)
         end
 
@@ -474,7 +474,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a method' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 12,
+              file: 'instrumentation_integration_test_class.rb', line_no: 22,
               capture_snapshot: false,)
           end
 
@@ -484,7 +484,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a block' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 22,
+              file: 'instrumentation_integration_test_class.rb', line_no: 33,
               capture_snapshot: false,)
           end
 
@@ -554,7 +554,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is else of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 32,
+              file: 'instrumentation_integration_test_class.rb', line_no: 44,
               capture_snapshot: false,)
           end
 
@@ -568,7 +568,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is end of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 34,
+              file: 'instrumentation_integration_test_class.rb', line_no: 46,
               capture_snapshot: false,)
           end
 
@@ -582,7 +582,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line contains a comment (no executable code)' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 40,
+              file: 'instrumentation_integration_test_class.rb', line_no: 50,
               capture_snapshot: false,)
           end
 
@@ -596,7 +596,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is in a loaded file that is not in code tracker' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 22,
+              file: 'instrumentation_integration_test_class.rb', line_no: 33,
               capture_snapshot: false,)
           end
 
@@ -630,12 +630,12 @@ RSpec.describe 'Instrumentation integration' do
       context 'enriched probe' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 10,
+            file: 'instrumentation_integration_test_class.rb', line_no: 20,
             capture_snapshot: true,)
         end
 
         let(:expected_captures) do
-          {lines: {10 => {locals: {
+          {lines: {20 => {locals: {
             a: {type: 'Integer', value: '21'},
             password: {type: 'String', notCapturedReason: 'redactedIdent'},
             redacted: {type: 'Hash', entries: [
@@ -751,7 +751,7 @@ RSpec.describe 'Instrumentation integration' do
           context 'untargeted trace points disabled' do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: 'instrumentation_integration_test_class_4.rb', line_no: 10,)
+                file: 'instrumentation_integration_test_class_4.rb', line_no: 20,)
             end
 
             before do
@@ -787,7 +787,7 @@ RSpec.describe 'Instrumentation integration' do
 
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 10,
+            file: 'instrumentation_integration_test_class.rb', line_no: 20,
             capture_snapshot: false,)
         end
 
