@@ -6,8 +6,6 @@ require 'datadog/di'
 # For Instrumenter-only tests, use instrumenter_spec.rb in the parent
 # directory.
 
-# rubocop:disable Style/RescueModifier
-
 class InstrumentationSpecTestClass
   def initialize
     @ivar = 'start value'
@@ -679,6 +677,7 @@ RSpec.describe 'Instrumentation integration' do
         let(:expected_captures) do
           {lines: {20 => {locals: {
             a: {type: 'Integer', value: '21'},
+            '@ivar': {type: 'Integer', value: '51'},
             password: {type: 'String', notCapturedReason: 'redactedIdent'},
             redacted: {type: 'Hash', entries: [
               [{type: 'Symbol', value: 'b'}, {type: 'Integer', value: '33'}],
@@ -871,5 +870,3 @@ RSpec.describe 'Instrumentation integration' do
     end
   end
 end
-
-# rubocop:enable Style/RescueModifier

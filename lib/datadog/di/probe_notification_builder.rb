@@ -98,7 +98,7 @@ module Datadog
           elsif probe.line?
             {
               lines: locals && {
-                probe.line_no => {locals: locals},
+                probe.line_no => {locals: locals.merge(instance_vars || {})},
               },
             }
           end
