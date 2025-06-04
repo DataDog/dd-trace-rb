@@ -22,7 +22,7 @@ module Datadog
             @quantize = options[:quantize] || configuration[:quantize]
           end
 
-          def call(worker, job, queue)
+          def call(worker, job, queue) # rubocop:disable Metrics/MethodLength
             resource = job_resource(job)
 
             if @distributed_tracing
