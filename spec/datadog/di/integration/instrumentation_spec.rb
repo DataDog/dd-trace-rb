@@ -10,7 +10,7 @@ require 'datadog/di'
 
 class InstrumentationSpecTestClass
   def initialize
-    @ivar = 5389
+    @ivar = 'start value'
   end
 
   def test_method(a = 1)
@@ -19,6 +19,10 @@ class InstrumentationSpecTestClass
 
   def mutating_method(greeting)
     greeting.sub!('hello', 'bye')
+  end
+
+  def ivar_mutating_method
+    @ivar.sub!('start value', 'altered value')
   end
 end
 
@@ -307,7 +311,7 @@ RSpec.describe 'Instrumentation integration' do
 
         let(:expected_captures) do
           {
-            entry: {arguments: {'@ivar': {type: 'Integer', value: '5389'}}, throwable: nil},
+            entry: {arguments: {'@ivar': {type: 'String', value: 'start value'}}, throwable: nil},
             return: {arguments: {"@return": {type: 'Integer', value: '42'}}, throwable: nil},
           }
         end
@@ -355,7 +359,7 @@ RSpec.describe 'Instrumentation integration' do
           let(:expected_captures) do
             {entry: {arguments: {
               arg1: {type: 'String', value: 'hello world'},
-              '@ivar': {type: 'Integer', value: '5389'},
+              '@ivar': {type: 'String', value: 'start value'},
             }, throwable: nil},
              return: {arguments: {
                "@return": {type: 'String', value: 'bye world'},
@@ -365,6 +369,29 @@ RSpec.describe 'Instrumentation integration' do
           it 'captures original argument value at entry' do
             run_test do
               expect(InstrumentationSpecTestClass.new.mutating_method('hello world')).to eq('bye world')
+            end
+          end
+        end
+
+        context 'when instance variable is mutated by method' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              type_name: 'InstrumentationSpecTestClass', method_name: 'ivar_mutating_method',
+              capture_snapshot: true,)
+          end
+
+          let(:expected_captures) do
+            {entry: {arguments: {
+              '@ivar': {type: 'String', value: 'start value'},
+            }, throwable: nil},
+             return: {arguments: {
+               "@return": {type: 'String', value: 'altered value'},
+             }, throwable: nil},}
+          end
+
+          it 'captures original instance variable value at entry' do
+            run_test do
+              expect(InstrumentationSpecTestClass.new.ivar_mutating_method).to eq('altered value')
             end
           end
         end
