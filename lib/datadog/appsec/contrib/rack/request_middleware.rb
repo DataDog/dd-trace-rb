@@ -8,6 +8,7 @@ require_relative 'gateway/response'
 require_relative '../../event'
 require_relative '../../response'
 require_relative '../../processor'
+require_relative '../../api_security'
 require_relative '../../security_event'
 require_relative '../../instrumentation/gateway'
 
@@ -100,8 +101,8 @@ module Datadog
               http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
             end
 
-            if APISecurity.sample_trace?(ctx.trace) &&
-                APISecurity.sample?(gateway_request.request, gateway_response.response)
+            if AppSec::APISecurity.sample_trace?(ctx.trace) &&
+                AppSec::APISecurity.sample?(gateway_request.request, gateway_response.response)
               ctx.events.push(
                 AppSec::SecurityEvent.new(ctx.extract_schema, trace: ctx.trace, span: ctx.span)
               )

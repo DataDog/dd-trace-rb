@@ -11,9 +11,26 @@ RSpec.describe Datadog::AppSec::APISecurity do
 
     before { allow(Datadog::AppSec::APISecurity::Sampler).to receive(:thread_local).and_return(sampler) }
 
-    it 'delegates to thread local sampler' do
-      expect(sampler).to receive(:sample?).with(request, response).and_return(true)
-      expect(described_class.sample?(request, response)).to be(true)
+    context 'when API security is disabled' do
+      around do |example|
+        Datadog.configure { |c| c.appsec.api_security.enabled = false }
+        example.run
+      ensure
+        Datadog.configuration.reset!
+      end
+
+      it { expect(described_class.sample?(request, response)).to be(false) }
+    end
+
+    context 'when API security is enabled' do
+      around do |example|
+        Datadog.configure { |c| c.appsec.api_security.enabled = true }
+        example.run
+      ensure
+        Datadog.configuration.reset!
+      end
+
+      it { expect(described_class.sample?(request, response)).to be(true) }
     end
   end
 

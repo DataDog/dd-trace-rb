@@ -7,6 +7,8 @@ module Datadog
     # A namespace for API Security features.
     module APISecurity
       def self.sample?(request, response)
+        return false unless Datadog.configuration.appsec.api_security.enabled?
+
         Sampler.thread_local.sample?(request, response)
       end
 
