@@ -468,6 +468,20 @@ module Datadog
                 o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
               end
+
+              # Controls which baggage keys are converted into span tags.
+              # When set to an empty string, no baggage keys are converted into span tags.
+              # When set to a comma-separated list of keys, only baggage keys matching one of the exact,
+              # case-sensitive names in this list are added as span tags.
+              # When set to "*", all baggage keys will be converted into span tags.
+              #
+              # @default `DD_TRACE_BAGGAGE_TAG_KEYS` environment variable, otherwise "user.id,session.id,account.id"
+              # @return [String]
+              option :baggage_span_tags do |o|
+                o.type :string
+                o.env Tracing::Configuration::Ext::Distributed::ENV_BAGGAGE_SPAN_TAGS
+                o.default "user.id,session.id,account.id"
+              end
             end
           end
         end

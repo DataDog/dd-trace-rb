@@ -144,6 +144,7 @@ module Datadog
           end
           # Handle baggage after all other styles if present
           extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
+          apply_baggage_to_span!(extracted_trace_digest&.baggage)
 
           extracted_trace_digest
         end
@@ -164,6 +165,34 @@ module Datadog
             @baggage_propagator.extract(data)
           end
         end
+
+        # Apply baggage key-value pairs as span tags
+        # respecting the DD_TRACE_BAGGAGE_TAG_KEYS configuration.
+        def apply_baggage_to_span!(baggage_hash)
+          return if baggage_hash.nil? || baggage_hash.empty?
+
+          # Fetch configuration: which keys to tag
+          raw_config = ENV[ENV_BAGGAGE_SPAN_TAGS] # is this how I get the configuration?
+          config_keys =
+            if raw_config.nil?
+              # Default list: "user.id,session.id,account.id"
+              Set.new(%w[user.id session.id account.id])
+            elsif raw_config.strip == ''
+              # Explicitly disabled
+              return
+            elsif raw_config.strip == '*'
+              # Wildcard: allow all keys
+              :all
+            else
+              Set.new(raw_config.split(',').map(&:strip))
+            end
+
+            # For each key/value pair in the baggage hash:
+            # Check whether the key is included in the configured list of allowed baggage keys (or whether all keys are allowed). 
+            # If the key is not allowed, skip to the next pair.
+            # Construct a tag name by prefixing the baggage key with "baggage."
+            # Ask the span whether it already has a tag with that name. If it does not, set the new tag on the span to the baggage value. 
+            # If the span already has that tag, do nothing (leave the existing tag in place).
 
         def last_datadog_parent_id(headers, tracecontext_tags)
           dd_propagator = @propagation_style_extract.find { |propagator| propagator.is_a?(Datadog) }

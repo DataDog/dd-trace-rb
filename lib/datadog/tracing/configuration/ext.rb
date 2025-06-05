@@ -68,6 +68,8 @@ module Datadog
           EXTRACT_FIRST = 'DD_TRACE_PROPAGATION_EXTRACT_FIRST'
 
           ENV_X_DATADOG_TAGS_MAX_LENGTH = 'DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH'
+
+          ENV_BAGGAGE_SPAN_TAGS = 'DD_TRACE_BAGGAGE_TAG_KEYS'
         end
 
         # @public_api
