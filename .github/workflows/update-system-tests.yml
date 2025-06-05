@@ -27,9 +27,22 @@ jobs:
     name: "Update System Tests"
     runs-on: ubuntu-24.04
     steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          token: ${{ steps.generate-token.outputs.token }}
           persist-credentials: true
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
 
       - name: Checkout System Test
         id: system-test-ref
@@ -40,13 +53,13 @@ jobs:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref || '' }}
 
-      - run: .github/scripts/update_reference.rb
+      - run: .github/scripts/update_reference.sh
         env:
           TARGET: ".github/workflows/system-tests.yml"
           PATTERN: '(\s*SYSTEM_TESTS_REF:\s+)(\S+)(\s+# Automated:.*)'
           REF: ${{ steps.system-test-ref.outputs.commit }}
 
-      - run: .github/scripts/update_reference.rb
+      - run: .github/scripts/update_reference.sh
         env:
           TARGET: ".github/workflows/parametric-tests.yml"
           PATTERN: '(\s*SYSTEM_TESTS_REF:\s+)(\S+)(\s+# Automated:.*)'
@@ -54,28 +67,20 @@ jobs:
 
       - run: git diff --color=always
 
-      - name: Generate GitHub App Token
-        id: generate-token
-        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
       - name: Create Pull Request
         if: ${{ github.event.inputs.dry-run != true }}
-        id: cpr
-        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
-        with:
-          token: ${{ steps.generate-token.outputs.token }}
-          branch: auto-generate/update-system-tests
-          title: '[🤖] Update System Tests'
-          base: master
-          labels: dev/internal
-          commit-message: "[🤖] Update System Tests: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          delete-branch: true
-          add-paths: |
-            .github/
-          body: |
-            _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-system-tests.yml)_
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          git checkout -b auto-generate/update-system-tests
+          git add .github/
+          git commit -m "[🤖] Update System Tests: ${{ github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          git push -f origin auto-generate/update-system-tests
+          gh pr create \
+            --title "[🤖] Update System Tests" \
+            --body "_This is an auto-generated PR from [here](${{ github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-system-tests.yml)_
             The PR updates the system tests (Updated to commit: ${{ steps.system-test-ref.outputs.commit }})
-            Please review the changes and merge when ready
+            Please review the changes and merge when ready" \
+            --base master \
+            --label "dev/internal" \
+            --head auto-generate/update-system-tests
