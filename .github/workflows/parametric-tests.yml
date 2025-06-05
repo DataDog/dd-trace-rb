@@ -15,7 +15,7 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 env:
-  SYSTEM_TESTS_REF: 007f43b50f720be299f0dae27f4fcbabdd623591 # Automated: This reference is automatically updated.
+  SYSTEM_TESTS_REF: 7a9ffeb69dcc4db9a3a443d37536ce3d120fd596 # Automated: This reference is automatically updated.
 
 jobs:
   changes:
