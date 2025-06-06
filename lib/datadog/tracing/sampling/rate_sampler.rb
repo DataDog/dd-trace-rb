@@ -9,6 +9,7 @@ module Datadog
       # {Datadog::Tracing::Sampling::RateSampler} is based on a sample rate.
       class RateSampler < Sampler
         KNUTH_FACTOR = 1111111111111111111
+        UINT64_MODULO = (1 << 64)
 
         # Initialize a {Datadog::Tracing::Sampling::RateSampler}.
         # This sampler keeps a random subset of the traces. Its main purpose is to
@@ -39,7 +40,7 @@ module Datadog
         end
 
         def sample?(trace)
-          ((trace.id * KNUTH_FACTOR) % Tracing::Utils::EXTERNAL_MAX_ID) <= @sampling_id_threshold
+          ((trace.id * KNUTH_FACTOR) % UINT64_MODULO) <= @sampling_id_threshold
         end
 
         def sample!(trace)

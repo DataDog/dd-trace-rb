@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.15.0)
+    datadog (2.17.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 16.0.1.1.0)
+      libdatadog (~> 18.1.0.1.0)
       libddwaf (~> 1.22.0.0.2)
       logger
       msgpack
@@ -52,9 +52,9 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (16.0.1.1.0)
-    libdatadog (16.0.1.1.0-aarch64-linux)
-    libdatadog (16.0.1.1.0-x86_64-linux)
+    libdatadog (18.1.0.1.0)
+    libdatadog (18.1.0.1.0-aarch64-linux)
+    libdatadog (18.1.0.1.0-x86_64-linux)
     libddwaf (1.22.0.0.2)
       ffi (~> 1.0)
     libddwaf (1.22.0.0.2-aarch64-linux)
@@ -64,10 +64,10 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    mime-types (3.6.2)
+    mime-types (3.7.0)
       logger
-      mime-types-data (~> 3.2015)
-    mime-types-data (3.2025.0415)
+      mime-types-data (~> 3.2025, >= 3.2025.0507)
+    mime-types-data (3.2025.0520)
     msgpack (1.8.0)
     mutex_m (0.3.0)
     netrc (0.11.0)

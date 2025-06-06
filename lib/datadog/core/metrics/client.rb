@@ -21,9 +21,10 @@ module Datadog
         extend Options
         extend Helpers
 
-        attr_reader :statsd, :logger
+        attr_reader :statsd, :logger, :telemetry
 
-        def initialize(logger: Datadog.logger, statsd: nil, enabled: true, **_)
+        def initialize(telemetry:, logger: Datadog.logger, statsd: nil, enabled: true, **_)
+          @telemetry = telemetry
           @logger = logger
           @statsd =
             if supported?
@@ -74,10 +75,10 @@ module Datadog
           #
           # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
           options = if dogstatsd_version >= Gem::Version.new('5.2')
-                      { single_thread: true }
-                    else
-                      {}
-                    end
+            {single_thread: true}
+          else
+            {}
+          end
 
           Datadog::Statsd.new(default_hostname, default_port, **options)
         end
@@ -98,11 +99,11 @@ module Datadog
           raise ArgumentError if value.nil?
 
           statsd.count(stat, value, metric_options(options))
-        rescue StandardError => e
+        rescue => e
           logger.error(
             "Failed to send count stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
-          Telemetry::Logger.report(e, description: 'Failed to send count stat')
+          telemetry.report(e, description: 'Failed to send count stat')
         end
 
         def distribution(stat, value = nil, options = nil, &block)
@@ -112,11 +113,11 @@ module Datadog
           raise ArgumentError if value.nil?
 
           statsd.distribution(stat, value, metric_options(options))
-        rescue StandardError => e
+        rescue => e
           logger.error(
             "Failed to send distribution stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
-          Telemetry::Logger.report(e, description: 'Failed to send distribution stat')
+          telemetry.report(e, description: 'Failed to send distribution stat')
         end
 
         def increment(stat, options = nil)
@@ -125,11 +126,11 @@ module Datadog
           options = yield if block_given?
 
           statsd.increment(stat, metric_options(options))
-        rescue StandardError => e
+        rescue => e
           logger.error(
             "Failed to send increment stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
-          Telemetry::Logger.report(e, description: 'Failed to send increment stat')
+          telemetry.report(e, description: 'Failed to send increment stat')
         end
 
         def gauge(stat, value = nil, options = nil, &block)
@@ -139,11 +140,11 @@ module Datadog
           raise ArgumentError if value.nil?
 
           statsd.gauge(stat, value, metric_options(options))
-        rescue StandardError => e
+        rescue => e
           logger.error(
             "Failed to send gauge stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
-          Telemetry::Logger.report(e, description: 'Failed to send gauge stat')
+          telemetry.report(e, description: 'Failed to send gauge stat')
         end
 
         def time(stat, options = nil)
@@ -158,12 +159,12 @@ module Datadog
               finished = Utils::Time.get_time
               distribution(stat, ((finished - start) * 1000), options)
             end
-          rescue StandardError => e
+          rescue => e
             # TODO: Likely to be redundant, since `distribution` handles its own errors.
             logger.error(
               "Failed to send time stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
             )
-            Telemetry::Logger.report(e, description: 'Failed to send time stat')
+            telemetry.report(e, description: 'Failed to send time stat')
           end
         end
 
@@ -172,7 +173,7 @@ module Datadog
         end
 
         def close
-          @statsd.close if @statsd && @statsd.respond_to?(:close)
+          @statsd.close if @statsd&.respond_to?(:close)
         end
 
         private
@@ -184,10 +185,8 @@ module Datadog
             defined?(Datadog::Statsd::VERSION) &&
               Datadog::Statsd::VERSION &&
               Gem::Version.new(Datadog::Statsd::VERSION)
-          ) || (
-            Gem.loaded_specs['dogstatsd-ruby'] &&
-              Gem.loaded_specs['dogstatsd-ruby'].version
-          )
+          ) ||
+            Gem.loaded_specs['dogstatsd-ruby']&.version
         end
 
         IGNORED_STATSD_ONLY_ONCE = Utils::OnlyOnce.new

@@ -36,8 +36,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
   # to make sure specs pass when comparing result ex. expect(result).to be value
   # we ensure that frozen_or_dup returns the same instance
   before do
-    allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |args, _block|
-      args
+    # |args, _block| is not working with arrays
+    allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |*args, &_block|
+      args.first
     end
   end
 
@@ -316,11 +317,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'when type is defined' do
-        context 'type is invalid value' do
+        context 'type is invalid' do
           let(:type) { :nullable_string }
           let(:value) { 'Hello' }
           it 'raise exception' do
-            expect { set }.to raise_exception(ArgumentError)
+            expect { set }.to raise_exception(Datadog::Core::Configuration::Option::InvalidDefinitionError)
           end
         end
 
@@ -689,9 +690,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
     subject(:get) { option.get }
 
     shared_examples_for 'env coercion' do
+      # As we now always set default value, we also need to change default to corresponding type
       context 'when type is defined' do
         context ':hash' do
           let(:type) { :hash }
+          let(:default) { {} }
 
           context 'value with commas' do
             let(:env_value) { 'key1:value1,key2:value2' }
@@ -712,6 +715,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context ':int' do
           let(:type) { :int }
+          let(:default) { 0 }
           let(:env_value) { '1234' }
 
           it 'coerce value' do
@@ -742,6 +746,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context ':float' do
           let(:type) { :float }
+          let(:default) { 0.0 }
           let(:env_value) { '12.34' }
 
           it 'coerce value' do
@@ -758,7 +763,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context ':array' do
           let(:type) { :array }
-
+          let(:default) { [] }
           context 'value with commas' do
             let(:env_value) { '12,34' }
 
@@ -778,7 +783,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context ':bool' do
           let(:type) { :bool }
-
+          let(:default) { false }
           context 'with value 1' do
             let(:env_value) { '1' }
 
@@ -806,6 +811,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context 'invalid type' do
           let(:type) { :invalid_type }
+          let(:default) { '0' }
           let(:env_value) { '1' }
 
           it 'raise exception' do
@@ -823,10 +829,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       it 'passes the env variable value to the env_parser' do
-        expect(context).to receive(:instance_exec) do |*args, &block|
-          expect(args.first).to eq(env_value)
-          expect(block).to eq env_parser
-        end
+        expect(context).to receive(:instance_exec).with(env_value, &env_parser)
 
         get
       end
@@ -863,6 +866,12 @@ RSpec.describe Datadog::Core::Configuration::Option do
         it 'set precedence_set to environment' do
           option.get
           expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
+        end
+
+        it 'falls back to default when unsetting env' do
+          option.get
+          option.unset(described_class::Precedence::ENVIRONMENT)
+          expect(option.get).to eq default
         end
 
         it_behaves_like 'env coercion'
@@ -1055,6 +1064,35 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
 
         it { is_expected.to be(setter_value) }
+      end
+    end
+
+    # Stubbed config files.
+    context 'with local config file' do
+      let(:env) { 'TEST' }
+      let(:setter) { proc { |value| value } }
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
+          { local: { 'TEST' => 'test' } }
+        )
+      end
+
+      it 'uses the local config file' do
+        expect(option.get).to eq 'test'
+      end
+    end
+
+    context 'with fleet config file' do
+      let(:env) { 'TEST' }
+      let(:setter) { proc { |value| value } }
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
+          { fleet: { 'TEST' => 'test' } }
+        )
+      end
+
+      it 'uses the fleet config file' do
+        expect(option.get).to eq 'test'
       end
     end
   end

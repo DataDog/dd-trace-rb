@@ -2,7 +2,8 @@ module Datadog
   module Tracing
     module Sampling
       class RateSampler < Sampler
-        KNUTH_FACTOR: 1111111111111111111
+        KNUTH_FACTOR: Integer
+        UINT64_MODULO: Integer
         def initialize: (?::Float sample_rate, ?decision: untyped?) -> void
 
         def sample_rate: (*untyped _) -> untyped

@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.15.0)
+    datadog (2.17.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 16.0.1.1.0)
+      libdatadog (~> 18.1.0.1.0)
       libddwaf (~> 1.22.0.0.2)
       logger
       msgpack
@@ -13,6 +13,7 @@ GEM
   specs:
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
+    base64 (0.2.0)
     benchmark-ips (2.14.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -32,13 +33,14 @@ GEM
     hashdiff (1.1.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (16.0.1.1.0)
+    libdatadog (18.1.0.1.0)
     libddwaf (1.22.0.0.2-java)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    mongo (2.21.0)
+    mongo (2.21.1)
+      base64
       bson (>= 4.14.1, < 6.0.0)
     msgpack (1.8.0-java)
     os (1.1.4)

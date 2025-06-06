@@ -1,11 +1,14 @@
 require "datadog/di/spec_helper"
 require 'datadog/di'
+require "datadog/di/probe_notifier_worker"
 
 # standard tries to wreck regular expressions in this fiel
 # rubocop:disable Style/PercentLiteralDelimiters
 # rubocop:disable Layout/LineContinuationSpacing
 
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
+  di_test
+
   let(:worker) do
     described_class.new(settings, logger, agent_settings: agent_settings)
   end
@@ -46,6 +49,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     end
 
     http_server.mount_proc('/debugger/v1/input') do |req, res|
+      expect(req.content_type).to eq('application/json')
       payload = JSON.parse(req.body)
       input_payloads << payload
     end

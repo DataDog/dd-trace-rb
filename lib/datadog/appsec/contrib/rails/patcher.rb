@@ -96,27 +96,27 @@ module Datadog
             # find tracer middleware reference in Rails::Configuration::MiddlewareStackProxy
             app.middleware.instance_variable_get(:@operations).each do |operation|
               args = case operation
-                     when Array
-                       # rails 5.2
-                       _op, args = operation
-                       args
-                     when Proc
-                       if operation.binding.local_variables.include?(:args)
-                         # rails 6.0, 6.1
-                         operation.binding.local_variable_get(:args)
-                       else
-                         # rails 7.0 uses ... to pass args
-                         args_getter = Class.new do
-                           def method_missing(_op, *args) # rubocop:disable Style/MissingRespondToMissing
-                             args
-                           end
-                         end.new
-                         operation.call(args_getter)
-                       end
-                     else
-                       # unknown, pass through
-                       []
-                     end
+              when Array
+                # rails 5.2
+                _op, args = operation
+                args
+              when Proc
+                if operation.binding.local_variables.include?(:args)
+                  # rails 6.0, 6.1
+                  operation.binding.local_variable_get(:args)
+                else
+                  # rails 7.0 uses ... to pass args
+                  args_getter = Class.new do
+                    def method_missing(_op, *args) # standard:disable Style/MissingRespondToMissing
+                      args
+                    end
+                  end.new
+                  operation.call(args_getter)
+                end
+              else
+                # unknown, pass through
+                []
+              end
 
               found = true if args.include?(middleware)
             end

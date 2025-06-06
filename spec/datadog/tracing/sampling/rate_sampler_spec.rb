@@ -122,5 +122,30 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
         expect(trace.get_tag('_dd.p.dm')).to be_nil
       end
     end
+
+    context 'with specific trace IDs and 0.5 sample rate' do
+      let(:sample_rate) { 0.5 }
+      let(:trace_expectations) do
+        {
+          12078589664685934330 => false,
+          13794769880582338323 => true,
+          1882305164521835798 => true,
+          5198373796167680436 => false,
+          6272545487220484606 => true,
+          8696342848850656916 => true,
+          18444899399302180860 => false,
+          18444899399302180862 => true,
+          9223372036854775808 => true, # Lands exactly on the sampling threshold 0.5 * MAX_UINT64
+        }
+      end
+
+      it 'produces deterministic sampling results' do
+        trace_expectations.each do |id, expected|
+          trace = Datadog::Tracing::TraceOperation.new(id: id)
+          expect(sampler.sample!(trace)).to eq(expected),
+            "Expected trace ID #{id} to be #{expected ? 'sampled' : 'not sampled'}"
+        end
+      end
+    end
   end
 end

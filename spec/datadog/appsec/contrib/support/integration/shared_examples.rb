@@ -155,7 +155,7 @@ RSpec.shared_examples 'a trace without AppSec events' do
   end
 end
 
-RSpec.shared_examples 'a trace with AppSec events' do |params = { blocking: false }|
+RSpec.shared_examples 'a trace with AppSec events' do |params = {blocking: false}|
   let(:blocking_request) { params[:blocking] }
 
   it do

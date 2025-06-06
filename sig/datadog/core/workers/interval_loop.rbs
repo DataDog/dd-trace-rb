@@ -44,6 +44,8 @@ module Datadog
         private
 
         def perform_loop: () { () -> untyped } -> (nil | untyped)
+	
+	def in_iteration?: () -> (true | false)
 
         def shutdown: () -> untyped
       end

@@ -22,7 +22,7 @@ permissions: {}
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
+  SYSTEM_TESTS_REF: e9fb2335c23a6e6d79ccaf4e993b3dca59649ad5 # Automated: This reference is automatically updated.
 
 jobs:
   changes:
@@ -77,6 +77,7 @@ jobs:
           ref: ${{ env.SYSTEM_TESTS_REF }}
           persist-credentials: false
       - name: Login to Docker Hub
+        continue-on-error: true
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -184,6 +185,7 @@ jobs:
             printf "\nEOF\n"
           } >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
+        continue-on-error: true
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -365,6 +367,7 @@ jobs:
           ref: ${{ env.SYSTEM_TESTS_REF }}
           persist-credentials: false
       - name: Login to Docker Hub
+        continue-on-error: true
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -396,7 +399,7 @@ jobs:
           ./run.sh ++docker ${{ matrix.scenario }} \
             ${{ env.FORCED_TESTS_LIST && fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario] && format('-F {0}', join(fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario], ' -F ')) || ''}}
         env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
           SYSTEM_TESTS_AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
           SYSTEM_TESTS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
           FORCED_TESTS_LIST: ${{ needs.build-apps.outputs.FORCED_TESTS_LIST }}

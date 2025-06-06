@@ -89,7 +89,7 @@ module Datadog
           trace_id = Helpers.parse_decimal_id(fetcher_object[@trace_id_key])
 
           return unless trace_id
-          return if trace_id <= 0 || trace_id >= Tracing::Utils::EXTERNAL_MAX_ID
+          return if trace_id <= 0 || trace_id > Tracing::Utils::EXTERNAL_MAX_ID
 
           trace_id
         end
@@ -98,7 +98,7 @@ module Datadog
           parent_id = Helpers.parse_decimal_id(fetcher_object[@parent_id_key])
 
           return unless parent_id
-          return if parent_id <= 0 || parent_id >= Tracing::Utils::EXTERNAL_MAX_ID
+          return if parent_id <= 0 || parent_id > Tracing::Utils::EXTERNAL_MAX_ID
 
           parent_id
         end

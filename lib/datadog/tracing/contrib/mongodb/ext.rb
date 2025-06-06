@@ -13,6 +13,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_MONGO_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_MONGO_ANALYTICS_SAMPLE_RATE'
+          ENV_JSON_COMMAND = 'DD_TRACE_MONGO_JSON_COMMAND'
           DEFAULT_PEER_SERVICE_NAME = 'mongodb'
           SPAN_COMMAND = 'mongo.cmd'
           SPAN_TYPE_COMMAND = 'mongodb'

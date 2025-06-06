@@ -26,6 +26,8 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
 require 'support/core_helpers'
+require 'support/environment_helpers'
+require 'support/execute_in_fork'
 require 'support/faux_transport'
 require 'support/faux_writer'
 require 'support/loaded_gem'
@@ -38,6 +40,7 @@ require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
 require 'support/test_helpers'
+require 'support/telemetry_helpers'
 require 'support/tracer_helpers'
 require 'support/libdatadog_helpers'
 require 'support/http_server_helpers'
@@ -68,9 +71,11 @@ RSpec.configure do |config|
   config.include LoadedGem::Helpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
+  config.include TelemetryHelpers
   config.include TracerHelpers
   config.include TestHelpers::RSpec::Integration, :integration
   config.include HttpServerHelpers
+  config.extend  PlatformHelpers::ClassMethods
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
@@ -167,6 +172,7 @@ RSpec.configure do |config|
       # Exclude acceptable background threads
       background_threads = Thread.list.reject do |t|
         group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
+        caller = t.instance_variable_defined?(:@caller) && t.instance_variable_get(:@caller) || []
         backtrace = t.backtrace || []
 
         # Current thread
@@ -174,7 +180,7 @@ RSpec.configure do |config|
           # Thread has shut down, but we caught it right as it was still alive
           !t.alive? ||
           # Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
-          (t.respond_to?(:name) && t.name == 'Timeout stdlib thread') ||
+          t.name == 'Timeout stdlib thread' ||
           # JRuby: Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
           t == Timeout.instance_exec { @timeout_thread if defined?(@timeout_thread) } ||
           # Internal JRuby thread
@@ -185,6 +191,8 @@ RSpec.configure do |config|
           t[:WEBrickSocket] ||
           # Rails connection reaper
           backtrace.find { |b| b =~ %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb} } ||
+          # Rails connection reaper in newer Rails are native (no backtrace), but have a consistent call site
+          caller.find { |b| b =~ %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb} } ||
           # Ruby JetBrains debugger
           (t.class.name && t.class.name.include?('DebugThread')) ||
           # Categorized as a known leaky thread
