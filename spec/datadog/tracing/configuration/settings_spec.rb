@@ -887,6 +887,53 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#baggage_span_tags' do
+      subject(:baggage_span_tags) { settings.tracing.baggage_span_tags }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_BAGGAGE_SPAN_TAGS}" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::Distributed::ENV_BAGGAGE_SPAN_TAGS => env_var
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var) { nil }
+
+          it { is_expected.to eq('user.id,session.id,account.id') }
+        end
+
+        context 'is set to empty string' do
+          let(:env_var) { '' }
+
+          it { is_expected.to eq('') }
+        end
+
+        context 'is set to wildcard' do
+          let(:env_var) { '*' }
+
+          it { is_expected.to eq('*') }
+        end
+
+        context 'is set to custom list' do
+          let(:env_var) { 'custom.key,another.key' }
+
+          it { is_expected.to eq('custom.key,another.key') }
+        end
+      end
+    end
+
+    describe '#baggage_span_tags=' do
+      it 'updates the #baggage_span_tags setting' do
+        expect { settings.tracing.baggage_span_tags = 'new.key' }
+          .to change { settings.tracing.baggage_span_tags }
+          .from('user.id,session.id,account.id')
+          .to('new.key')
+      end
+    end
+
     describe '#trace_id_128_bit_generation_enabled' do
       subject { settings.tracing.trace_id_128_bit_generation_enabled }
 
