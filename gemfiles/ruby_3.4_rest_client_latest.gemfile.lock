@@ -4,7 +4,7 @@ PATH
     datadog (2.16.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.22.0.0.2)
+      libddwaf (~> 1.24.1.0.0)
       logger
       msgpack
 
@@ -55,11 +55,11 @@ GEM
     libdatadog (16.0.1.1.0)
     libdatadog (16.0.1.1.0-aarch64-linux)
     libdatadog (16.0.1.1.0-x86_64-linux)
-    libddwaf (1.22.0.0.2)
+    libddwaf (1.24.1.0.0)
       ffi (~> 1.0)
-    libddwaf (1.22.0.0.2-aarch64-linux)
+    libddwaf (1.24.1.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.22.0.0.2-x86_64-linux)
+    libddwaf (1.24.1.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)

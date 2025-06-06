@@ -170,6 +170,7 @@ RSpec.describe 'Rack integration tests' do
         c.appsec.waf_timeout = 10_000_000 # in us
         c.appsec.ip_passlist = appsec_ip_passlist
         c.appsec.ip_denylist = appsec_ip_denylist
+
         c.appsec.user_id_denylist = appsec_user_id_denylist
         c.appsec.ruleset = appsec_ruleset
         c.appsec.api_security.enabled = api_security_enabled
@@ -1029,7 +1030,7 @@ RSpec.describe 'Rack integration tests' do
         context 'without appsec upstream without attack and trace is kept with priority 1' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
@@ -1083,7 +1084,7 @@ RSpec.describe 'Rack integration tests' do
         context 'without upstream appsec propagation with attack and trace is kept with priority 2' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
@@ -1131,7 +1132,7 @@ RSpec.describe 'Rack integration tests' do
         context 'with upstream appsec propagation without attack and trace is propagated as is' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
@@ -1199,7 +1200,7 @@ RSpec.describe 'Rack integration tests' do
         context 'with any upstream propagation with attack and raises trace priority to 2' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
