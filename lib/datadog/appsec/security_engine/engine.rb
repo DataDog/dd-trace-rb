@@ -113,6 +113,8 @@ module Datadog
           AppSec.telemetry.report(e, description: error_message)
 
           if old_waf_handle
+            Datadog.logger.warn("Reverting to the previous configuration")
+
             @waf_handle = old_waf_handle
             @waf_addresses = old_waf_handle.known_addresses
           end

@@ -80,16 +80,46 @@ module Datadog
 
               option :ip_passlist do |o|
                 o.default []
+
+                o.setter do |value|
+                  next value if value.nil? || value.empty?
+
+                  Datadog::Core.log_deprecation(disallowed_next_major: false) do
+                    'ip_passlist setting is deprecated and will be removed in the next release'
+                  end
+
+                  value
+                end
               end
 
               option :ip_denylist do |o|
                 o.type :array
                 o.default []
+
+                o.setter do |value|
+                  next value if value.nil? || value.empty?
+
+                  Datadog::Core.log_deprecation(disallowed_next_major: false) do
+                    'ip_denylist setting is deprecated and will be removed in the next release'
+                  end
+
+                  value
+                end
               end
 
               option :user_id_denylist do |o|
                 o.type :array
                 o.default []
+
+                o.setter do |value|
+                  next value if value.nil? || value.empty?
+
+                  Datadog::Core.log_deprecation(disallowed_next_major: false) do
+                    'user_id_denylist setting is deprecated and will be removed in the next release'
+                  end
+
+                  value
+                end
               end
 
               option :waf_timeout do |o|
