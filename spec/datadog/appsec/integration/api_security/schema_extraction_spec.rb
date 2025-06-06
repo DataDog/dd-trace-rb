@@ -5,6 +5,8 @@ require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
 require 'action_controller/railtie'
+require 'sqlite3'
+require 'active_record'
 require 'datadog/tracing'
 require 'datadog/appsec'
 
@@ -12,6 +14,17 @@ RSpec.describe 'Schema extraction for API security' do
   include Rack::Test::Methods
 
   before do
+    stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
+      klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
+
+      klass.connection.create_table 'users', force: :cascade do |t|
+        t.string :name, null: false
+      end
+
+      # prevent internal sql requests from showing up
+      klass.count
+    end
+
     app = Class.new(Rails::Application) do
       config.root = __dir__
       config.secret_key_base = 'test-secret-key-base'
@@ -40,6 +53,32 @@ RSpec.describe 'Schema extraction for API security' do
 
       config.appsec.enabled = true
       config.appsec.instrument :rails
+      config.appsec.instrument :active_record
+
+      config.appsec.ruleset = {
+        rules: [
+          {
+            id: 'rasp-003-001',
+            name: 'SQL Injection',
+            tags: {
+              type: 'sql_injection',
+              category: 'exploit',
+              module: 'rasp'
+            },
+            conditions: [
+              {
+                operator: 'sqli_detector',
+                parameters: {
+                  resource: [{address: 'server.db.statement'}],
+                  params: [{address: 'server.request.query'}],
+                  db_type: [{address: 'server.db.system'}]
+                }
+              }
+            ],
+            on_match: ['block']
+          }
+        ]
+      }
 
       config.remote.enabled = false
     end
@@ -47,11 +86,19 @@ RSpec.describe 'Schema extraction for API security' do
     app.initialize!
     app.routes.draw do
       get '/api/users', to: 'api#users'
+      get '/api/search', to: 'api#search'
     end
 
     stub_const('ApiController', Class.new(ActionController::Base)).class_eval do
       def users
         render json: {id: 1, name: 'John', email: 'john@example.com'}
+      end
+
+      def search
+        users = User.find_by_sql(
+          "SELECT * FROM users WHERE name = '#{params[:name]}'"
+        )
+        render json: users
       end
     end
 
@@ -105,8 +152,8 @@ RSpec.describe 'Schema extraction for API security' do
     it 'extracts schema and adds to span tags' do
       expect(response).to be_ok
       expect(http_service_entry_span.tags).to include(
-        '_dd.appsec.s.req.headers' => a_kind_of(String),
-        '_dd.appsec.s.res.headers' => a_kind_of(String),
+        match(%r{_dd.appsec.s.req.*}),
+        match(%r{_dd.appsec.s.res.*})
       )
     end
   end
@@ -126,8 +173,10 @@ RSpec.describe 'Schema extraction for API security' do
 
       it 'does not extract schema' do
         expect(response).to be_ok
-        expect(http_service_entry_span.tags).to_not have_key('_dd.appsec.s.req.headers')
-        expect(http_service_entry_span.tags).to_not have_key('_dd.appsec.s.res.headers')
+        expect(http_service_entry_span.tags).to_not include(
+          match(%r{_dd.appsec.s.req.*}),
+          match(%r{_dd.appsec.s.res.*})
+        )
       end
     end
 
@@ -142,8 +191,10 @@ RSpec.describe 'Schema extraction for API security' do
 
       it 'does not extract schema' do
         expect(response).to be_ok
-        expect(http_service_entry_span.tags).to_not have_key('_dd.appsec.s.req.headers')
-        expect(http_service_entry_span.tags).to_not have_key('_dd.appsec.s.res.headers')
+        expect(http_service_entry_span.tags).to_not include(
+          match(%r{_dd.appsec.s.req.*}),
+          match(%r{_dd.appsec.s.res.*})
+        )
       end
     end
   end
@@ -160,8 +211,10 @@ RSpec.describe 'Schema extraction for API security' do
 
     it 'does not extract schema' do
       expect(response).to be_ok
-      expect(http_service_entry_span.tags).to_not have_key('_dd.appsec.s.req.headers')
-      expect(http_service_entry_span.tags).to_not have_key('_dd.appsec.s.res.headers')
+      expect(http_service_entry_span.tags).to_not include(
+        match(%r{_dd.appsec.s.req.*}),
+        match(%r{_dd.appsec.s.res.*})
+      )
     end
   end
 
@@ -178,12 +231,29 @@ RSpec.describe 'Schema extraction for API security' do
 
     let(:sampler) { instance_double(Datadog::Tracing::Sampling::Sampler, sample!: false) }
 
-    it 'extracts schema even if request is not sampled by tracing sampler' do
+    it 'extracts request and response schema even if tracer is not sampling' do
       expect(response).to be_ok
       expect(http_service_entry_span.tags).to include(
-        '_dd.appsec.s.req.headers' => a_kind_of(String),
-        '_dd.appsec.s.res.headers' => a_kind_of(String),
+        match(%r{_dd.appsec.s.req.*}),
+        match(%r{_dd.appsec.s.res.*})
       )
+    end
+  end
+
+  context 'when SQL injection is attempted' do
+    before do
+      Datadog.configure do |config|
+        config.appsec.api_security.enabled = true
+        config.appsec.api_security.sample_delay = 30
+      end
+
+      get('/api/search', {'name' => "Bob'; OR 1=1"})
+    end
+
+    it 'blocks the request and extracts only request schema' do
+      expect(response).to be_forbidden
+      expect(http_service_entry_span.tags).to include(match(%r{_dd.appsec.s.req.*}))
+      expect(http_service_entry_span.tags).not_to include(match(%r{_dd.appsec.s.res.*}))
     end
   end
 end
