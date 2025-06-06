@@ -7,14 +7,19 @@ RSpec.describe Datadog::AppSec::Context do
   let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
   let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:settings) do
+    Datadog::Core::Configuration::Settings.new.tap do |settings|
+      settings.appsec.enabled = true
+    end
+  end
   let(:security_engine) do
-    Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: Datadog.configuration.appsec, telemetry: telemetry)
+    Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
   end
   let(:waf_runner) { security_engine.new_runner }
   let(:context) { described_class.new(trace, span, waf_runner) }
 
   before do
-    Datadog::AppSec::Component.build_appsec_component(Datadog.configuration, telemetry: telemetry)
+    Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
   end
 
   after do
