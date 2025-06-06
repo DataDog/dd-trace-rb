@@ -101,8 +101,23 @@ module Datadog
               http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
             end
 
-            if AppSec::APISecurity.sample_trace?(ctx.trace) &&
-                AppSec::APISecurity.sample?(gateway_request.request, gateway_response.response)
+            # NOTE: This is not optimal, but in the current implementation
+            #       `gateway_response` is a container to dispatch response event
+            #       and in case of interruption it suppose to be `nil`.
+            #
+            #       `http_response` is a real response object in both cases, but
+            #       to save us some computations, we will use already pre-computed
+            #       `gateway_response` instead of re-creating it.
+            #
+            # WARNING: This part will be refactored.
+            tmp_response = if interrupt_params
+              Gateway::Response.new(http_response[2], http_response[0], http_response[1], context: ctx)
+            else
+              gateway_response
+            end
+
+            if AppSec::APISecurity.enabled? && AppSec::APISecurity.sample_trace?(ctx.trace) &&
+                AppSec::APISecurity.sample?(gateway_request.request, tmp_response.response)
               ctx.events.push(
                 AppSec::SecurityEvent.new(ctx.extract_schema, trace: ctx.trace, span: ctx.span)
               )
