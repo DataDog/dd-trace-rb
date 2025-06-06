@@ -219,13 +219,13 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
     # end
     #
     # example = Example.new
-    # puts JSON.fast_generate(example)
+    # puts JSON.generate(example)
     #
     # require 'oj'
     # require 'active_support/core_ext/object/json'
     # Oj.mimic_JSON()
     #
-    # puts JSON.fast_generate(example)
+    # puts JSON.generate(example)
     # ```
     #
     # Incorrect output:

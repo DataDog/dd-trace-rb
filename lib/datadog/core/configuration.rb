@@ -235,16 +235,14 @@ module Datadog
         end
 
         COMPONENTS_WRITE_LOCK.synchronize do
-          begin
-            yield write_components
-          rescue ThreadError => e
-            logger_without_components.error(
-              'Detected deadlock during datadog initialization. ' \
-              'Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
-              "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
-            )
-            nil
-          end
+          yield write_components
+        rescue ThreadError => e
+          logger_without_components.error(
+            'Detected deadlock during datadog initialization. ' \
+            'Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
+            "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
+          )
+          nil
         end
       end
 
@@ -267,12 +265,14 @@ module Datadog
         components = Components.new(settings)
 
         # Carry over state from existing components to the new ones.
-        # Currently, if we already started the remote component (which
-        # happens after a request goes through installed Rack middleware),
-        # we will start the new remote component as well.
-        old_state = {
-          remote_started: old.remote&.started?,
-        }
+        # Currently:
+        # 1. If we already started the remote component (which
+        #    happens after a request goes through installed Rack middleware),
+        #    we will start the new remote component as well.
+        # 2. If telemetry has been enabled and is enabled in the new
+        #    component tree, we send AppConfigurationChange event instead
+        #    of AppStarted event.
+        old_state = old.state
 
         old.shutdown!(components)
         components.startup!(settings, old_state: old_state)

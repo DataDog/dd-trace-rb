@@ -89,10 +89,16 @@ jobs:
     needs: lock
     runs-on: ubuntu-22.04
     steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: true # required for `git` operations (commit & push) at later steps
-          token: ${{ secrets.GHA_PAT }}
+          token: ${{ steps.generate-token.outputs.token }}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: gemfiles

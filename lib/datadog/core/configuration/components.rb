@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'agent_settings_resolver'
+require_relative 'components_state'
 require_relative 'ext'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
@@ -8,7 +9,6 @@ require_relative '../logger'
 require_relative '../runtime/metrics'
 require_relative '../telemetry/component'
 require_relative '../workers/runtime_metrics'
-
 require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
@@ -16,7 +16,6 @@ require_relative '../../appsec/component'
 require_relative '../../di/component'
 require_relative '../../error_tracking/component'
 require_relative '../crashtracking/component'
-
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
 
@@ -30,7 +29,7 @@ module Datadog
 
           def build_health_metrics(settings, logger, telemetry)
             settings = settings.health_metrics
-            options = { enabled: settings.enabled }
+            options = {enabled: settings.enabled}
             options[:statsd] = settings.statsd unless settings.statsd.nil?
 
             Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
@@ -44,7 +43,7 @@ module Datadog
           end
 
           def build_runtime_metrics(settings, logger, telemetry)
-            options = { enabled: settings.runtime_metrics.enabled }
+            options = {enabled: settings.runtime_metrics.enabled}
             options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
             options[:services] = [settings.service] unless settings.service.nil?
             options[:experimental_runtime_id_enabled] = settings.runtime_metrics.experimental_runtime_id_enabled
@@ -135,6 +134,8 @@ module Datadog
 
         # Starts up components
         def startup!(settings, old_state: nil)
+          telemetry.start(old_state&.telemetry_enabled?)
+
           if settings.profiling.enabled
             if profiler
               profiler.start
@@ -145,7 +146,7 @@ module Datadog
             end
           end
 
-          if settings.remote.enabled && old_state&.[](:remote_started)
+          if settings.remote.enabled && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
             # through the installed Rack middleware which started the remote).
@@ -163,20 +164,20 @@ module Datadog
         # and avoid tearing down parts still in use.
         def shutdown!(replacement = nil)
           # Shutdown remote configuration
-          remote.shutdown! if remote
+          remote&.shutdown!
 
           # Shutdown DI after remote, since remote config triggers DI operations.
           dynamic_instrumentation&.shutdown!
 
           # Decommission AppSec
-          appsec.shutdown! if appsec
+          appsec&.shutdown!
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
-          tracer.shutdown! unless replacement && tracer == replacement.tracer
+          tracer.shutdown! unless replacement && tracer.equal?(replacement.tracer)
 
           # Shutdown old profiler
-          profiler.shutdown! unless profiler.nil?
+          profiler&.shutdown!
 
           # Shutdown workers
           runtime_metrics.stop(true, close_metrics: false)
@@ -194,24 +195,32 @@ module Datadog
             health_metrics.statsd
           ].compact.uniq
 
-          new_statsd =  if replacement
-                          [
-                            replacement.runtime_metrics.metrics.statsd,
-                            replacement.health_metrics.statsd
-                          ].compact.uniq
-                        else
-                          []
-                        end
+          new_statsd = if replacement
+            [
+              replacement.runtime_metrics.metrics.statsd,
+              replacement.health_metrics.statsd
+            ].compact.uniq
+          else
+            []
+          end
 
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          # enqueue closing event before stopping telemetry so it will be send out on shutdown
-          telemetry.emit_closing! unless replacement
-          telemetry.stop!
+          # enqueue closing event before stopping telemetry so it will be sent out on shutdown
+          telemetry.emit_closing! unless replacement&.telemetry&.enabled
+          telemetry.shutdown!
 
           # TODO: Re-enable this once we have updated libdatadog to 17.1
           # Core::ProcessDiscovery._native_close_tracer_memfd(@process_discovery_fd, @logger) if @process_discovery_fd
+        end
+
+        # Returns the current state of various components.
+        def state
+          ComponentsState.new(
+            telemetry_enabled: telemetry.enabled,
+            remote_started: remote&.started?,
+          )
         end
       end
     end

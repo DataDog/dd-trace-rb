@@ -58,4 +58,11 @@ RSpec.shared_context 'Rails base application' do
       middleware.each { |m| config.middleware.use m }
     end
   end
+
+  around do |example|
+    # Workaround for a `pg` gem bug on Mac, when the process forks: https://github.com/ged/ruby-pg/issues/538
+    ClimateControl.modify('PGGSSENCMODE' => 'disable') do
+      example.run
+    end
+  end
 end

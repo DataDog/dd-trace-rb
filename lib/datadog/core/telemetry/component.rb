@@ -16,6 +16,8 @@ module Datadog
     module Telemetry
       # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
       # Note: Telemetry does not spawn its worker thread in fork processes, thus no telemetry is sent in forked processes.
+      #
+      # @api private
       class Component
         attr_reader :enabled, :logger, :transport, :worker
 
@@ -40,7 +42,7 @@ module Datadog
         end
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
-        def initialize( # rubocop: disable Metrics/MethodLength
+        def initialize( # standard:disable Metrics/MethodLength
           settings:,
           agent_settings:,
           logger:,
@@ -60,25 +62,25 @@ module Datadog
           return unless @enabled
 
           @transport = if settings.telemetry.agentless_enabled
-                         agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
-                           settings,
-                           host_prefix: 'instrumentation-telemetry-intake',
-                           url_override: settings.telemetry.agentless_url_override,
-                           url_override_source: 'c.telemetry.agentless_url_override',
-                           logger: logger,
-                         )
-                         Telemetry::Transport::HTTP.agentless_telemetry(
-                           agent_settings: agent_settings,
-                           logger: logger,
-                           # api_key should have already validated to be
-                           # not nil by +build+ method above.
-                           api_key: settings.api_key,
-                         )
-                       else
-                         Telemetry::Transport::HTTP.agent_telemetry(
-                           agent_settings: agent_settings, logger: logger,
-                         )
-                       end
+            agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
+              settings,
+              host_prefix: 'instrumentation-telemetry-intake',
+              url_override: settings.telemetry.agentless_url_override,
+              url_override_source: 'c.telemetry.agentless_url_override',
+              logger: logger,
+            )
+            Telemetry::Transport::HTTP.agentless_telemetry(
+              agent_settings: agent_settings,
+              logger: logger,
+              # api_key should have already validated to be
+              # not nil by +build+ method above.
+              api_key: settings.api_key,
+            )
+          else
+            Telemetry::Transport::HTTP.agent_telemetry(
+              agent_settings: agent_settings, logger: logger,
+            )
+          end
 
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
@@ -94,8 +96,6 @@ module Datadog
             logger: logger,
             shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
           )
-
-          @worker.start
         end
 
         def disable!
@@ -103,10 +103,25 @@ module Datadog
           @worker&.enabled = false
         end
 
-        def stop!
+        def start(initial_event_is_change = false)
+          return if !@enabled
+
+          initial_event = if initial_event_is_change
+            Event::SynthAppClientConfigurationChange.new
+          else
+            Event::AppStarted.new
+          end
+
+          @worker.start(initial_event)
+        end
+
+        def shutdown!
           return if @stopped
 
-          @worker&.stop(true)
+          if defined?(@worker)
+            @worker&.stop(true)
+          end
+
           @stopped = true
         end
 
