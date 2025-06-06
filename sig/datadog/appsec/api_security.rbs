@@ -1,6 +1,22 @@
 module Datadog
   module AppSec
     module APISecurity
+      interface _Request
+        def env: () -> Hash[String, untyped]
+        def script_name: () -> String?
+        def request_method: () -> String
+        def path: () -> String
+      end
+
+      interface _Response
+        def status: () -> Integer
+      end
+
+      def self.enabled?: () -> bool
+
+      def self.sample?: (_Request request, _Response response) -> bool
+
+      def self.sample_trace?: (Tracing::TraceOperation trace) -> bool
     end
   end
 end
