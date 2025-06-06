@@ -41,7 +41,8 @@ module Datadog
           end
 
           def execute_multiplex(*args, multiplex:, **kwargs)
-            trace(proc { super }, 'execute_multiplex', multiplex_resource(multiplex), multiplex: multiplex) do |span|
+            trace(proc { super }, 'execute_multiplex', multiplex_resource(multiplex), multiplex: multiplex) do |span, trace|
+              trace.resource = multiplex_resource_with_type(multiplex)
               span.set_tag('graphql.source', "Multiplex[#{multiplex.queries.map(&:query_string).join(', ')}]")
             end
           end
@@ -51,7 +52,7 @@ module Datadog
               proc { super },
               'execute',
               query.selected_operation_name,
-              lambda { |span|
+              lambda { |span, _|
                 span.set_tag('graphql.source', query.query_string)
                 span.set_tag('graphql.operation.type', query.selected_operation.operation_type)
                 if query.selected_operation_name
@@ -64,7 +65,7 @@ module Datadog
                   span.set_tag("graphql.variables.#{key}", value)
                 end
               },
-              ->(span) { add_query_error_events(span, query.context.errors) },
+              ->(span, _) { add_query_error_events(span, query.context.errors) },
               query: query,
             )
           end
@@ -160,7 +161,7 @@ module Datadog
               type: 'graphql',
               resource: resource,
               service: config[:service_name]
-            ) do |span|
+            ) do |span, trace|
               if Contrib::Analytics.enabled?(config[:analytics_enabled])
                 Contrib::Analytics.set_sample_rate(span, config[:analytics_sample_rate])
               end
@@ -169,14 +170,14 @@ module Datadog
               raise 'Please provide either `before` or a block, but not both' if before && before_block
 
               if (before_callable = before || before_block)
-                before_callable.call(span)
+                before_callable.call(span, trace)
               end
 
               prepare_span(trace_key, kwargs, span) if @has_prepare_span
 
               ret = callable.call
 
-              after.call(span) if after
+              after.call(span, trace) if after
 
               ret
             end
@@ -192,6 +193,21 @@ module Datadog
             else
               operations
             end
+          end
+
+          def multiplex_resource_with_type(multiplex)
+            return nil unless multiplex
+
+            multiplex.queries.map do |query|
+              selected_op = query.selected_operation
+              if selected_op
+                op_type = selected_op.operation_type
+                op_name = selected_op.name || fallback_transaction_name(query.context) || "anonymous"
+                "#{op_type} #{op_name}"
+              else
+                "anonymous"
+              end
+            end.join('/') # The best join char that is a valid tag: https://docs.datadoghq.com/getting_started/tagging/#define-tags
           end
 
           # Create a Span Event for each error that occurs at query level.
