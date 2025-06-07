@@ -5,8 +5,7 @@ require 'msgpack'
 require 'spec_helper'
 require 'datadog/core/process_discovery'
 
-# TODO: Re-enable this once we have updated libdatadog to 17.1
-RSpec.xdescribe Datadog::Core::ProcessDiscovery do
+RSpec.describe Datadog::Core::ProcessDiscovery do
   describe '.get_and_store_metadata' do
     context 'when libdatadog API is not available' do
       it 'returns nil' do
