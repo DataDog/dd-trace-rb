@@ -21,9 +21,26 @@ concurrency:
 permissions: {}
 
 jobs:
-  run:
-    runs-on: ubuntu-22.04
-    permissions: {}
+  build:
+    name: build
+    runs-on: ubuntu-24.04
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    outputs:
+      lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
+      cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Prepare bundle cache
+        id: bundle-cache
+        uses: ./.github/actions/bundle-cache
+
+  rubocop:
+    name: rubocop/lint
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -33,6 +50,5 @@ jobs:
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
-
       - name: Check for missing documentation
         run: bundle exec ruby .github/scripts/check_config_doc.rb
