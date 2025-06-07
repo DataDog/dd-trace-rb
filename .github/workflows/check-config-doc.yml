@@ -13,23 +13,26 @@ on: # yamllint disable-line rule:truthy
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Default permissions for all jobs
 permissions: {}
 
 jobs:
-  build:
+  run:
     runs-on: ubuntu-22.04
     permissions: {}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-
-#      - name: Set up Ruby
-#        uses: ruby/setup-ruby@13e7a03dc3ac6c3798f4570bfead2aed4d96abfb # v1.244.0
-#        with:
-#          ruby-version: "3.4"
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
 
       - name: Check for missing documentation
-        run: ruby .github/scripts/check_config_doc.rb
+        run: bundle exec ruby .github/scripts/check_config_doc.rb
