@@ -34,7 +34,7 @@ module Datadog
 
         def load_default_config: (telemetry: Core::Telemetry::Component, action: ::Symbol) -> void
 
-        def report_config_errors_via_telemetry: (untyped diagnostics, action: ::Symbol) -> void
+        def report_config_errors_via_telemetry: (untyped diagnostics, action: ::Symbol, telemetry: Core::Telemetry::Component) -> void
       end
     end
   end

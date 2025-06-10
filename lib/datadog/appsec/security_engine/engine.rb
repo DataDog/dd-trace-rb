@@ -69,7 +69,7 @@ module Datadog
           @waf_builder.add_or_update_config(config, path: path).tap do |diagnostics|
             @ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
 
-            report_config_errors_via_telemetry(diagnostics, action: :update)
+            report_config_errors_via_telemetry(diagnostics, action: :update, telemetry: AppSec.telemetry)
 
             # we need to load default config if diagnostics contains top-level error for rules or processors
             if @is_ruleset_update &&
@@ -126,7 +126,7 @@ module Datadog
           config = AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: @default_ruleset)
 
           # deprecated - ip and user id denylists should be configured via RC
-          config['data'] ||= AppSec::Processor::RuleLoader.load_data(
+          config['rules_data'] ||= AppSec::Processor::RuleLoader.load_data(
             ip_denylist: @default_ip_denylist,
             user_id_denylist: @default_user_id_denylist
           )
@@ -137,11 +137,11 @@ module Datadog
           @waf_builder.add_or_update_config(config, path: DEFAULT_RULES_CONFIG_PATH).tap do |diagnostics|
             @ruleset_version = diagnostics['ruleset_version']
 
-            report_config_errors_via_telemetry(diagnostics, action: action)
+            report_config_errors_via_telemetry(diagnostics, action: action, telemetry: telemetry)
           end
         end
 
-        def report_config_errors_via_telemetry(diagnostics, action:)
+        def report_config_errors_via_telemetry(diagnostics, action:, telemetry:)
           raise ArgumentError, 'action must be one of TELEMETRY_ACTIONS' unless TELEMETRY_ACTIONS.include?(action)
 
           common_tags = {
@@ -151,12 +151,12 @@ module Datadog
           }
 
           if diagnostics['error']
-            AppSec.telemetry.inc(
+            telemetry.inc(
               Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.config_errors', 1,
               tags: common_tags.merge(scope: 'top-level')
             )
 
-            AppSec.telemetry.error(diagnostics['error'])
+            telemetry.error(diagnostics['error'])
           end
 
           diagnostics.each do |config_key, config_diagnostics|
@@ -164,18 +164,18 @@ module Datadog
             next if !config_diagnostics.key?('error') && config_diagnostics.fetch('errors', []).empty?
 
             if config_diagnostics['error']
-              AppSec.telemetry.error(config_diagnostics['error'])
+              telemetry.error(config_diagnostics['error'])
 
-              AppSec.telemetry.inc(
+              telemetry.inc(
                 Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.config_errors', 1,
                 tags: common_tags.merge(config_key: config_key, scope: 'top-level')
               )
             elsif config_diagnostics['errors']
               config_diagnostics['errors'].each do |error, config_ids|
-                AppSec.telemetry.error("#{error}: [#{config_ids.join(",")}]")
+                telemetry.error("#{error}: [#{config_ids.join(",")}]")
               end
 
-              AppSec.telemetry.inc(
+              telemetry.inc(
                 Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.config_errors', config_diagnostics['errors'].count,
                 tags: common_tags.merge(config_key: config_key, scope: 'item')
               )

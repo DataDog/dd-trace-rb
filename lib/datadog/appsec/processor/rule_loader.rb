@@ -41,17 +41,16 @@ module Datadog
 
           def load_data(ip_denylist: [], user_id_denylist: [])
             data = []
-            data << [denylist_data('blocked_ips', ip_denylist)] if ip_denylist.any?
-            data << [denylist_data('blocked_users', user_id_denylist)] if user_id_denylist.any?
+            data << denylist_data('blocked_ips', ip_denylist) if ip_denylist.any?
+            data << denylist_data('blocked_users', user_id_denylist) if user_id_denylist.any?
 
             data
           end
 
           def load_exclusions(ip_passlist: [])
-            exclusions = []
-            exclusions << [passlist_exclusions(ip_passlist)] if ip_passlist.any?
+            return [] if ip_passlist.empty?
 
-            exclusions
+            passlist_exclusions(ip_passlist)
           end
 
           private
