@@ -9,15 +9,23 @@ require 'sqlite3'
 require 'active_record'
 require 'datadog/tracing'
 require 'datadog/appsec'
+require 'devise'
 
 RSpec.describe 'Schema extraction for API security' do
   include Rack::Test::Methods
 
   before do
-    stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
+    # NOTE: Due to the legacy code in AppSec component we always patch Devise
+    #       and this is a minimalistic workaround to trigger the patching and
+    #       have it configured properly.
+    Devise.send(:remove_const, :Engine)
+    load File.join(Gem.loaded_specs['devise'].full_gem_path, 'lib/devise/rails.rb')
+    Devise.setup { |config| config.parent_controller = 'ActionController::Base' }
+
+    stub_const('Product', Class.new(ActiveRecord::Base)).tap do |klass|
       klass.establish_connection({adapter: 'sqlite3', database: ':memory:'})
 
-      klass.connection.create_table 'users', force: :cascade do |t|
+      klass.connection.create_table 'products', force: :cascade do |t|
         t.string :name, null: false
       end
 
@@ -48,8 +56,9 @@ RSpec.describe 'Schema extraction for API security' do
     Datadog.configure do |config|
       config.tracing.enabled = true
       config.tracing.sampler = sampler
-      config.apm.tracing.enabled = true
       config.tracing.instrument :rails
+
+      config.apm.tracing.enabled = true
 
       config.appsec.enabled = true
       config.appsec.instrument :rails
@@ -85,20 +94,20 @@ RSpec.describe 'Schema extraction for API security' do
 
     app.initialize!
     app.routes.draw do
-      get '/api/users', to: 'api#users'
+      get '/api/products', to: 'api#products'
       get '/api/search', to: 'api#search'
     end
 
     stub_const('ApiController', Class.new(ActionController::Base)).class_eval do
-      def users
-        render json: {id: 1, name: 'John', email: 'john@example.com'}
+      def products
+        render json: {id: 1, name: 'Widget', price: 29.99}
       end
 
       def search
-        users = User.find_by_sql(
-          "SELECT * FROM users WHERE name = '#{params[:name]}'"
+        products = Product.find_by_sql(
+          "SELECT * FROM products WHERE name = '#{params[:name]}'"
         )
-        render json: users
+        render json: products
       end
     end
 
@@ -114,6 +123,7 @@ RSpec.describe 'Schema extraction for API security' do
 
     Datadog.configuration.reset!
     Datadog.registry[:rack].reset_configuration!
+
     Datadog::AppSec::RateLimiter.reset!
     Datadog::AppSec::APISecurity::Sampler.reset!
 
@@ -146,7 +156,7 @@ RSpec.describe 'Schema extraction for API security' do
         config.appsec.api_security.sample_delay = 30
       end
 
-      get('/api/users')
+      get('/api/products')
     end
 
     it 'extracts schema and adds to span tags' do
@@ -167,7 +177,7 @@ RSpec.describe 'Schema extraction for API security' do
     end
 
     context 'when APM sampler rejects the trace' do
-      before { get('/api/users') }
+      before { get('/api/products') }
 
       let(:sampler) { instance_double(Datadog::Tracing::Sampling::Sampler, sample!: false) }
 
@@ -184,7 +194,7 @@ RSpec.describe 'Schema extraction for API security' do
       before do
         allow_any_instance_of(Datadog::AppSec::APISecurity::Sampler).to receive(:sample?).and_return(false)
 
-        get('/api/users')
+        get('/api/products')
       end
 
       let(:sampler) { instance_double(Datadog::Tracing::Sampling::Sampler, sample!: true) }
@@ -206,7 +216,7 @@ RSpec.describe 'Schema extraction for API security' do
         config.appsec.api_security.sample_delay = 30
       end
 
-      get('/api/users')
+      get('/api/products')
     end
 
     it 'does not extract schema' do
@@ -226,7 +236,7 @@ RSpec.describe 'Schema extraction for API security' do
         config.appsec.api_security.sample_delay = 30
       end
 
-      get('/api/users')
+      get('/api/products')
     end
 
     let(:sampler) { instance_double(Datadog::Tracing::Sampling::Sampler, sample!: false) }
@@ -247,7 +257,7 @@ RSpec.describe 'Schema extraction for API security' do
         config.appsec.api_security.sample_delay = 30
       end
 
-      get('/api/search', {'name' => "Bob'; OR 1=1"})
+      get('/api/search', {'name' => "Widget'; OR 1=1"})
     end
 
     it 'blocks the request and extracts only request schema' do
