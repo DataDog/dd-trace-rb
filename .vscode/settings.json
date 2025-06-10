@@ -3,8 +3,5 @@
     "*.gemfile": "ruby",
     "Matrixfile": "ruby",
     "Dockerfile*": "dockerfile",
-    "__locale": "c",
-    "string": "c",
-    "string_view": "c"
   }
 }
