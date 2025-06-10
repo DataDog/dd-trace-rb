@@ -101,8 +101,8 @@ static VALUE _native_configurator_get(VALUE self) {
       selected_hash = fleet_config_hash;
     }
 
-    ddog_CStr name = ddog_library_config_name_to_env(config.name);
-    rb_hash_aset(selected_hash, rb_str_new(name.ptr, name.length), rb_str_new(config.value.ptr, config.value.length));
+    // ddog_CStr name = ddog_library_config_name_to_env(config.name);
+    rb_hash_aset(selected_hash, rb_utf8_str_new_cstr(config.name.ptr), rb_utf8_str_new_cstr(config.value.ptr));
   }
 
   VALUE result = rb_hash_new();
