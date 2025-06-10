@@ -618,7 +618,7 @@ static ddog_prof_StringId intern_string_or_raise(locked_profile_slot locked_prof
   return result.ok;
 }
 
-static ddog_prof_LabelId label_intern_success_or_raise(locked_profile_slot locked_profile, ddog_prof_LabelId_Result result) {
+static ddog_prof_LabelId intern_label_success_or_raise(locked_profile_slot locked_profile, ddog_prof_LabelId_Result result) {
   if (result.tag == DDOG_PROF_LABEL_ID_RESULT_ERR_GENERATIONAL_ID_LABEL_ID) {
     sampler_unlock_active_profile(locked_profile);
     rb_raise(rb_eArgError, "Failed to intern label: %"PRIsVALUE, get_error_details_and_drop(&result.err));
@@ -633,12 +633,13 @@ static ddog_prof_LabelSetId intern_labels_or_raise(locked_profile_slot locked_pr
     ddog_prof_Label label = labels.ptr[i];
     ddog_prof_StringId key_id = intern_string_or_raise(locked_profile, label.key);
 
-    if (label.str.len > 0) {
-      ddog_prof_StringId val_id = intern_string_or_raise(locked_profile, label.str);
-      label_ids[i] = label_intern_success_or_raise(locked_profile, ddog_prof_Profile_intern_label_str(&locked_profile.data->profile, key_id, val_id));
-    } else {
-      label_ids[i] = label_intern_success_or_raise(locked_profile, ddog_prof_Profile_intern_label_num(&locked_profile.data->profile, key_id, label.num));
-    }
+    label_ids[i] =
+      intern_label_success_or_raise(
+        locked_profile,
+        label.str.len > 0 ?
+          ddog_prof_Profile_intern_label_str(&locked_profile.data->profile, key_id, intern_string_or_raise(locked_profile, label.str)) :
+          ddog_prof_Profile_intern_label_num(&locked_profile.data->profile, key_id, label.num)
+      );
   }
 
   ddog_prof_LabelSetId_Result result =
@@ -654,6 +655,7 @@ static ddog_prof_LabelSetId intern_labels_or_raise(locked_profile_slot locked_pr
 
 static ddog_prof_StackTraceId intern_locations_or_raise(locked_profile_slot locked_profile, ddog_prof_Slice_Location locations) {
   ddog_prof_LocationId location_ids[locations.len];
+
   for (size_t i = 0; i < locations.len; i++) {
     ddog_prof_Location location = locations.ptr[i];
 
