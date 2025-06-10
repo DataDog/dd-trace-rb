@@ -46,7 +46,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Patcher do
         described_class.patch
       end
 
-      context "when the Lograge logger does not use tagged logging" do
+      context 'when the Lograge logger does not use tagged logging' do
         before do
           logger = ActiveSupport::Logger.new(File::NULL)
           allow(::Lograge).to receive(:logger).and_return(logger)
