@@ -341,6 +341,12 @@ int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, 
   if (heap_recorder == NULL) {
     return 0;
   }
+  if (heap_recorder->active_recording == &SKIPPED_RECORD) {
+    // Short circuit, in this case there's nothing to be done
+    heap_recorder->active_recording = NULL;
+    return 0;
+  }
+
 
   int exception_state;
   end_heap_allocation_args args = {
@@ -369,6 +375,7 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
   heap_recorder->active_recording = NULL;
 
   if (active_recording == &SKIPPED_RECORD) { // special marker when we decided to skip due to sampling
+    // Note: Remember to update the short circuit in end_heap_allocation_recording_with_rb_protect if this logic changes
     return Qnil;
   }
 
