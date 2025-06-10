@@ -43,6 +43,9 @@ module Datadog
       def hook: (Probe probe) { (?) -> untyped } -> void
 
       def unhook: (Probe probe) -> void
+      
+      def self.get_local_variables: (TracePoint trace_point) -> Hash[untyped, untyped]
+      def self.get_instance_variables: (Object self) -> Hash[untyped, untyped]
 
       private
 

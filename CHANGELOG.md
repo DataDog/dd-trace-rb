@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [2.17.0] - 2025-06-02
+
+### Added
+
+* Tracing: Add support for Rails 8.0. ([#4455][])
+
+### Changed
+
+* Core: Improve tracer error reporting when agent responds with error responses to remote configuration requests ([#4669][])
+* Core: Profiling: Upgrade libdatadog dependency to version 18.1 ([#4577][])
+* Dynamic Instrumentation: Improve UI reporting of application and host status ([#4678][])
+* Tracing: Mark AWS integration spans as errored when AWS requests fail ([#4672][])
+
+### Fixed
+
+* Error Tracking: remove error tracking support on Ruby 2.6 ([#4665][])
+* Profiling: Fix profiling scheduler reporting corner case during shutdown ([#4679][])
+* Tracing: Fix: The `on_error` warning for HTTP instrumentations ([#4673][])
+
 ## [2.16.0] - 2025-05-19
 
 ### Added
@@ -3222,7 +3241,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.16.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.17.0...master
+[2.17.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.16.0...v2.17.0
 [2.16.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.15.0...v2.16.0
 [2.15.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.14.0...v2.15.0
 [2.14.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.13.0...v2.14.0
@@ -4734,6 +4754,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4426]: https://github.com/DataDog/dd-trace-rb/issues/4426
 [#4433]: https://github.com/DataDog/dd-trace-rb/issues/4433
 [#4437]: https://github.com/DataDog/dd-trace-rb/issues/4437
+[#4455]: https://github.com/DataDog/dd-trace-rb/issues/4455
 [#4473]: https://github.com/DataDog/dd-trace-rb/issues/4473
 [#4493]: https://github.com/DataDog/dd-trace-rb/issues/4493
 [#4497]: https://github.com/DataDog/dd-trace-rb/issues/4497
@@ -4752,6 +4773,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4568]: https://github.com/DataDog/dd-trace-rb/issues/4568
 [#4573]: https://github.com/DataDog/dd-trace-rb/issues/4573
 [#4575]: https://github.com/DataDog/dd-trace-rb/issues/4575
+[#4577]: https://github.com/DataDog/dd-trace-rb/issues/4577
 [#4580]: https://github.com/DataDog/dd-trace-rb/issues/4580
 [#4581]: https://github.com/DataDog/dd-trace-rb/issues/4581
 [#4590]: https://github.com/DataDog/dd-trace-rb/issues/4590
@@ -4767,6 +4789,12 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4644]: https://github.com/DataDog/dd-trace-rb/issues/4644
 [#4653]: https://github.com/DataDog/dd-trace-rb/issues/4653
 [#4656]: https://github.com/DataDog/dd-trace-rb/issues/4656
+[#4665]: https://github.com/DataDog/dd-trace-rb/issues/4665
+[#4669]: https://github.com/DataDog/dd-trace-rb/issues/4669
+[#4672]: https://github.com/DataDog/dd-trace-rb/issues/4672
+[#4673]: https://github.com/DataDog/dd-trace-rb/issues/4673
+[#4678]: https://github.com/DataDog/dd-trace-rb/issues/4678
+[#4679]: https://github.com/DataDog/dd-trace-rb/issues/4679
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

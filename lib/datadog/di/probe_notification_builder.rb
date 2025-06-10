@@ -39,39 +39,50 @@ module Datadog
       end
 
       # Duration is in seconds.
+      # path is the actual path of the instrumented file.
       def build_executed(probe,
-        trace_point: nil, rv: nil, duration: nil, caller_locations: nil,
-        args: nil, kwargs: nil, serialized_entry_args: nil)
-        snapshot = if probe.line? && probe.capture_snapshot?
-          if trace_point.nil?
-            raise "Cannot create snapshot because there is no trace point"
-          end
-          get_local_variables(trace_point)
-        end
-        # TODO check how many stack frames we should be keeping/sending,
-        # this should be all frames for enriched probes and no frames for
-        # non-enriched probes?
-        build_snapshot(probe, rv: rv, snapshot: snapshot,
+        path: nil, rv: nil, duration: nil, caller_locations: nil,
+        locals: nil, args: nil, kwargs: nil, instance_vars: nil,
+        serialized_entry_args: nil)
+        build_snapshot(probe, rv: rv, locals: locals,
           # Actual path of the instrumented file.
-          path: trace_point&.path,
-          duration: duration, caller_locations: caller_locations, args: args, kwargs: kwargs,
+          path: path,
+          duration: duration,
+          # TODO check how many stack frames we should be keeping/sending,
+          # this should be all frames for enriched probes and no frames for
+          # non-enriched probes?
+          caller_locations: caller_locations,
+          args: args, kwargs: kwargs, instance_vars: instance_vars,
           serialized_entry_args: serialized_entry_args)
       end
 
-      def build_snapshot(probe, rv: nil, snapshot: nil, path: nil,
-        duration: nil, caller_locations: nil, args: nil, kwargs: nil,
+      def build_snapshot(probe, rv: nil, locals: nil, path: nil,
+        duration: nil, caller_locations: nil,
+        args: nil, kwargs: nil, instance_vars: nil,
         serialized_entry_args: nil)
         # TODO also verify that non-capturing probe does not pass
         # snapshot or vars/args into this method
         captures = if probe.capture_snapshot?
           if probe.method?
+            return_arguments = {
+              "@return": serializer.serialize_value(rv,
+                depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
+            }
+            if instance_vars
+              return_arguments.update(
+                serializer.serialize_vars(instance_vars,
+                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
+              )
+            end
             {
               entry: {
                 # standard:disable all
                 arguments: if serialized_entry_args
                   serialized_entry_args
                 else
-                  (args || kwargs) && serializer.serialize_args(args, kwargs,
+                  (args || kwargs) && serializer.serialize_args(args, kwargs, instance_vars,
                     depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                     attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
                 end,
@@ -79,20 +90,14 @@ module Datadog
                 # standard:enable all
               },
               return: {
-                arguments: {
-                  "@return": serializer.serialize_value(rv,
-                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
-                },
+                arguments: return_arguments,
                 throwable: nil,
               },
             }
           elsif probe.line?
             {
-              lines: snapshot && {
-                probe.line_no => {locals: serializer.serialize_vars(snapshot,
-                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)},
+              lines: locals && {
+                probe.line_no => {locals: locals.merge(instance_vars || {})},
               },
             }
           end
@@ -192,21 +197,6 @@ module Datadog
 
       def timestamp_now
         (Core::Utils::Time.now.to_f * 1000).to_i
-      end
-
-      def get_local_variables(trace_point)
-        # binding appears to be constructed on access, therefore
-        # 1) we should attempt to cache it and
-        # 2) we should not call +binding+ until we actually need variable values.
-        binding = trace_point.binding
-
-        # steep hack - should never happen
-        return {} unless binding
-
-        binding.local_variables.each_with_object({}) do |name, map|
-          value = binding.local_variable_get(name)
-          map[name] = value
-        end
       end
 
       def active_trace

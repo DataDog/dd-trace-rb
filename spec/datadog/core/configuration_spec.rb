@@ -8,11 +8,16 @@ require 'datadog/tracing/tracer'
 
 RSpec.describe Datadog::Core::Configuration do
   let(:default_log_level) { ::Logger::INFO }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:telemetry) do
+    instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+      allow(telemetry).to receive(:start)
+      allow(telemetry).to receive(:enabled).and_return(false)
+    end
+  end
   let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
   before do
-    allow(telemetry).to receive(:stop!)
+    allow(telemetry).to receive(:shutdown!)
     allow(telemetry).to receive(:emit_closing!)
     allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
     allow(Datadog::Core::Remote::Component).to receive(:build)
@@ -42,6 +47,8 @@ RSpec.describe Datadog::Core::Configuration do
           end
 
           it do
+            #expect(@original_components.telemetry).to receive(:enabled)
+
             # Components should have changed
             expect { configure }
               .to change { test_class.send(:components) }
@@ -58,7 +65,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             expect(new_components)
               .to have_received(:startup!)
-              .with(test_class.configuration, old_state: { remote_started: nil })
+              .with(test_class.configuration, old_state: an_instance_of(Datadog::Core::Configuration::ComponentsState))
               .ordered
 
             expect(new_components).to_not have_received(:shutdown!)

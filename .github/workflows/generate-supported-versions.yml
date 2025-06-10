@@ -28,11 +28,18 @@ jobs:
 
       - run: git diff
 
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
-          token: ${{ secrets.GHA_PAT }}
+          token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-supported-versions
           title: '[🤖] Update Supported Versions'
           base: master

@@ -487,7 +487,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be 10 }
+            it { is_expected.to be 1 }
           end
 
           context 'is defined as 100' do
@@ -502,7 +502,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'updates the #experimental_heap_sample_rate setting' do
           expect { settings.profiling.advanced.experimental_heap_sample_rate = 100 }
             .to change { settings.profiling.advanced.experimental_heap_sample_rate }
-            .from(10)
+            .from(1)
             .to(100)
         end
       end

@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module Configuration
+      class ComponentsState
+        @telemetry_enabled: untyped
+
+        @remote_started: untyped
+
+        def initialize: (telemetry_enabled: untyped, remote_started: untyped) -> void
+
+        def telemetry_enabled?: () -> untyped
+
+        def remote_started?: () -> untyped
+      end
+    end
+  end
+end

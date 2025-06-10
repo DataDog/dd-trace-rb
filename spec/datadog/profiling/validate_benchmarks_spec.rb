@@ -18,6 +18,7 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
     "profiling_sample_loop_v2",
     "profiling_sample_serialize",
     "profiling_sample_gvl",
+    "profiling_string_storage_intern",
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|
