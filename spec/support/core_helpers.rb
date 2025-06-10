@@ -15,8 +15,12 @@ module CoreHelpers
   #   expect { subject }.to_not log_deprecation(include('no_longer_deprecated_option'))
   RSpec::Matchers.define :log_deprecation do |message_matcher|
     match(notify_expectation_failures: true) do |block|
-      expect(::Datadog::Core).to receive(:log_deprecation).with(any_args) do |&message_block|
+      expectation = expect(::Datadog::Core).to receive(:log_deprecation).with(any_args) do |&message_block|
         expect(message_block.call).to match(message_matcher) if message_matcher
+      end
+
+      @recorded_customizations&.each do |customization|
+        customization.playback_onto(expectation)
       end
 
       block.call
@@ -43,6 +47,19 @@ module CoreHelpers
     def supports_value_expectations?
       false
     end
+
+    # Add support for `once`, `at_least`, and other chained matchers from `RSpec::Mocks::Matchers::Receive`
+    own_methods = (instance_methods - superclass.instance_methods)
+    ::RSpec::Mocks::MessageExpectation.public_instance_methods(false).each do |method|
+      next if own_methods.include?(method)
+
+      define_method(method) do |*args, &block|
+        @recorded_customizations ||= []
+        @recorded_customizations << ::RSpec::Mocks::Matchers::ExpectationCustomization.new(method, args, block)
+        self
+      end
+      ruby2_keywords(method) if respond_to?(:ruby2_keywords, true)
+    end
   end
 
   module ClassMethods
@@ -50,6 +67,27 @@ module CoreHelpers
       unless ENV['TEST_DATADOG_INTEGRATION']
         before(:all) do
           skip 'Set TEST_DATADOG_INTEGRATION=1 in environment to run this test'
+        end
+      end
+    end
+
+    # Positional and keyword arguments are both accepted to make the method
+    # work on Ruby 2.5/2.6 and 2.7+. In practice only one type of arguments
+    # should be used in any given call.
+    def with_env(*args, **opts)
+      if args.any? && opts.any? # rubocop:disable Style/IfUnlessModifier
+        raise ArgumentError, 'Do not pass both args and opts'
+      end
+
+      around do |example|
+        if args.any?
+          ClimateControl.modify(*args) do
+            example.run
+          end
+        else
+          ClimateControl.modify(**opts) do
+            example.run
+          end
         end
       end
     end

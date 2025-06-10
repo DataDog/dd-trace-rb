@@ -46,6 +46,23 @@ module Datadog
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
             end
+
+            option :resource_pattern do |o|
+              o.type :string
+              o.env Ext::ENV_RESOURCE_PATTERN
+              o.default Ext::DEFAULT_RESOURCE_PATTERN
+              o.setter do |value|
+                next value if Ext::VALID_RESOURCE_PATTERNS.include?(value)
+
+                Datadog.logger.warn(
+                  "Invalid resource pattern: #{value}. " \
+                  "Supported values are: #{Ext::VALID_RESOURCE_PATTERNS.join(' | ')}. " \
+                  "Using default value: #{Ext::DEFAULT_RESOURCE_PATTERN}."
+                )
+
+                Ext::DEFAULT_RESOURCE_PATTERN
+              end
+            end
           end
         end
       end

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../../core/transport/http/api/instance'
+require_relative '../../../core/transport/http/api/spec'
 require_relative 'client'
 
 module Datadog
@@ -16,55 +18,26 @@ module Datadog
           end
 
           module API
-            module Instance
+            class Instance < Core::Transport::HTTP::API::Instance
               def send_diagnostics(env)
-                raise DiagnosticsNotSupportedError, spec unless spec.is_a?(Diagnostics::API::Spec)
+                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new('diagnostics', self) unless spec.is_a?(Diagnostics::API::Spec)
 
                 spec.send_diagnostics(env) do |request_env|
                   call(request_env)
                 end
               end
-
-              class DiagnosticsNotSupportedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'Diagnostics not supported for this API!'
-                end
-              end
             end
 
-            module Spec
+            class Spec < Core::Transport::HTTP::API::Spec
               attr_accessor :diagnostics
 
               def send_diagnostics(env, &block)
-                raise NoDiagnosticsEndpointDefinedError, self if diagnostics.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('diagnostics', self) if diagnostics.nil?
 
                 diagnostics.call(env, &block)
               end
-
-              class NoDiagnosticsEndpointDefinedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'No diagnostics endpoint is defined for API specification!'
-                end
-              end
             end
 
-            # Endpoint for negotiation
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               attr_reader :encoder
 
@@ -79,7 +52,7 @@ module Datadog
                 )
                 env.form = {'event' => event_payload}
 
-                super(env, &block)
+                super
               end
             end
           end

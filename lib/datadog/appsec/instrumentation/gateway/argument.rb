@@ -8,12 +8,17 @@ module Datadog
         class Argument; end # rubocop:disable Lint/EmptyClass
 
         # Gateway User argument
+        # NOTE: This class is a subject of elimination and will be removed when
+        #       the event system is refactored.
         class User < Argument
-          attr_reader :id
+          attr_reader :id, :login, :session_id
 
-          def initialize(id)
+          def initialize(id, login = nil, session_id = nil)
             super()
+
             @id = id
+            @login = login
+            @session_id = session_id
           end
         end
       end

@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Utils
+      module Truncation
+        def self?.truncate_in_middle: (String string, Integer max_prefix_length, Integer max_suffix_length) -> ::String
+      end
+    end
+  end
+end

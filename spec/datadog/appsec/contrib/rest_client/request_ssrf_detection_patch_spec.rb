@@ -57,7 +57,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SSRF,
           {},
-          { 'server.io.net.url' => 'http://example.com/success' },
+          {'server.io.net.url' => 'http://example.com/success'},
           Datadog.configuration.appsec.waf_timeout
         )
       )

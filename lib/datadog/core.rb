@@ -11,6 +11,14 @@ module Datadog
   # for higher-level features.
   module Core
     extend Core::Deprecations
+
+    LIBDATADOG_API_FAILURE =
+      begin
+        require "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
+        nil
+      rescue LoadError => e
+        e.message
+      end
   end
 
   extend Core::Extensions

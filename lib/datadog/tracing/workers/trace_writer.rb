@@ -26,14 +26,10 @@ module Datadog
           @logger = options[:logger] || Datadog.logger
 
           transport_options = options.fetch(:transport_options, {})
-
-          if options.key?(:agent_settings)
-            @agent_settings = options[:agent_settings]
-            transport_options = transport_options.merge(agent_settings: @agent_settings)
-          end
+          @agent_settings = options[:agent_settings]
 
           @transport = options.fetch(:transport) do
-            Datadog::Tracing::Transport::HTTP.default(**transport_options)
+            Datadog::Tracing::Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
           end
         end
         # rubocop:enable Lint/MissingSuper

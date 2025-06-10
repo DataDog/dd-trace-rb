@@ -11,17 +11,17 @@ module Datadog
         class << self
           using Core::Utils::Hash::Refinement
 
-          def build_payload(event, seq_id)
+          def build_payload(event, seq_id, api_version: 'v2', debug: false)
             hash = {
-              api_version: Http::Ext::API_VERSION,
+              api_version: api_version,
               application: application,
-              debug: false,
+              debug: debug,
               host: host,
               payload: event.payload,
               request_type: event.type,
               runtime_id: Core::Environment::Identity.id,
               seq_id: seq_id,
-              tracer_time: Time.now.to_i,
+              tracer_time: Core::Utils::Time.now.to_i,
             }
             hash.compact!
             hash

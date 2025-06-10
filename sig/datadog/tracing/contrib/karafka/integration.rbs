@@ -1,0 +1,22 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Karafka
+        class Integration
+          include Contrib::Integration
+          MINIMUM_VERSION: untyped
+
+          def self.version: () -> ::Gem::Version?
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+
+          def new_configuration: () -> Karafka::Configuration::Settings
+
+          def patcher: () -> Patcher
+        end
+      end
+    end
+  end
+end

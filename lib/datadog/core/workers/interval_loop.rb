@@ -21,7 +21,18 @@ module Datadog
         # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
-            perform_loop { super(*args) }
+            perform_loop do
+              @in_iteration = true
+              begin
+                super(*args)
+              ensure
+                @in_iteration = false
+              end
+            end
+          end
+
+          def in_iteration?
+            defined?(@in_iteration) && @in_iteration
           end
         end
 

@@ -43,15 +43,17 @@ module Datadog
           # We set the value to a conservative 5 MiB, in case network speed is slow.
           DEFAULT_MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
 
-          attr_reader :encoder, :max_size
+          attr_reader :encoder, :max_size, :logger
 
           #
           # Single traces larger than +max_size+ will be discarded.
           #
           # @param encoder [Datadog::Core::Encoding::Encoder]
+          # @param logger [Datadog::Core::Logger]
           # @param max_size [String] maximum acceptable payload size
-          def initialize(encoder, native_events_supported:, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
+          def initialize(encoder, logger:, native_events_supported:, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
             @encoder = encoder
+            @logger = logger
             @native_events_supported = native_events_supported
             @max_size = max_size
           end
@@ -78,11 +80,16 @@ module Datadog
           private
 
           def encode_one(trace)
-            encoded = Encoder.encode_trace(encoder, trace, native_events_supported: @native_events_supported)
+            encoded = Encoder.encode_trace(
+              encoder,
+              trace,
+              logger: logger,
+              native_events_supported: @native_events_supported
+            )
 
             if encoded.size > max_size
               # This single trace is too large, we can't flush it
-              Datadog.logger.debug { "Dropping trace. Payload too large: '#{trace.inspect}'" }
+              logger.debug { "Dropping trace. Payload too large: '#{trace.inspect}'" }
               Datadog.health_metrics.transport_trace_too_large(1)
 
               return nil
@@ -96,7 +103,7 @@ module Datadog
         module Encoder
           module_function
 
-          def encode_trace(encoder, trace, native_events_supported:)
+          def encode_trace(encoder, trace, logger:, native_events_supported:)
             # Format the trace for transport
             TraceFormatter.format!(trace)
 
@@ -106,7 +113,7 @@ module Datadog
             # Encode the trace
             encoder.encode(serializable_trace).tap do |encoded|
               # Print the actual serialized trace, since the encoder can change make non-trivial changes
-              Datadog.logger.debug { "Flushing trace: #{encoder.decode(encoded)}" }
+              logger.debug { "Flushing trace: #{encoder.decode(encoded)}" }
             end
           end
         end
@@ -117,11 +124,12 @@ module Datadog
         # batches of traces into smaller chunks and handles
         # API version downgrade handshake.
         class Transport
-          attr_reader :client, :apis, :default_api, :current_api_id
+          attr_reader :client, :apis, :default_api, :current_api_id, :logger
 
-          def initialize(apis, default_api)
+          def initialize(apis, default_api, logger: Datadog.logger)
             @apis = apis
             @default_api = default_api
+            @logger = logger
 
             change_api!(default_api)
           end
@@ -130,6 +138,7 @@ module Datadog
             encoder = current_api.encoder
             chunker = Datadog::Tracing::Transport::Traces::Chunker.new(
               encoder,
+              logger: logger,
               native_events_supported: native_events_supported?
             )
 
@@ -190,7 +199,7 @@ module Datadog
             raise UnknownApiVersionError, api_id unless apis.key?(api_id)
 
             @current_api_id = api_id
-            @client = HTTP::Client.new(current_api)
+            @client = HTTP::Client.new(current_api, logger: logger)
           end
 
           # Queries the agent for native span events serialization support.
@@ -198,6 +207,14 @@ module Datadog
           def native_events_supported?
             return @native_events_supported if defined?(@native_events_supported)
 
+            # Check for an explicit override
+            option = Datadog.configuration.tracing.native_span_events
+            unless option.nil?
+              @native_events_supported = option
+              return option
+            end
+
+            # Otherwise, check for agent support, to ensure a configuration-less setup.
             if (res = Datadog.send(:components).agent_info.fetch)
               @native_events_supported = res.span_events == true
             else

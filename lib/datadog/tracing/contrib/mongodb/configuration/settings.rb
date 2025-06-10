@@ -48,6 +48,14 @@ module Datadog
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
             end
+
+            # Serializes the command to JSON format, which is the desired format for the agent and Datadog UI.
+            # Setting this to false is deprecated and does not have any advantages.
+            option :json_command do |o|
+              o.type :bool
+              o.env Ext::ENV_JSON_COMMAND
+              o.default false
+            end
           end
         end
       end

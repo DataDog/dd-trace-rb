@@ -30,11 +30,11 @@ gem "redis", ">= 4.2.5"
 gem "sprockets", "< 4"
 gem "lograge", "~> 0.11"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

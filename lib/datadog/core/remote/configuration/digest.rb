@@ -29,13 +29,13 @@ module Datadog
           class << self
             def hexdigest(type, data)
               d = case type
-                  when :sha256
-                    ::Digest::SHA256.new
-                  when :sha512
-                    ::Digest::SHA512.new
-                  else
-                    raise InvalidHashTypeError, type
-                  end
+              when :sha256
+                ::Digest::SHA256.new
+              when :sha512
+                ::Digest::SHA512.new
+              else
+                raise InvalidHashTypeError, type
+              end
 
               while (buf = data.read(DIGEST_CHUNK))
                 d.update(buf)

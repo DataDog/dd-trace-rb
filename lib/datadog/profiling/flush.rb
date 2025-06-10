@@ -9,10 +9,9 @@ module Datadog
       attr_reader \
         :start,
         :finish,
-        :pprof_file_name,
-        :pprof_data, # gzipped pprof bytes
+        :encoded_profile,
         :code_provenance_file_name,
-        :code_provenance_data, # gzipped json bytes
+        :code_provenance_data,
         :tags_as_array,
         :internal_metadata_json,
         :info_json
@@ -20,8 +19,7 @@ module Datadog
       def initialize(
         start:,
         finish:,
-        pprof_file_name:,
-        pprof_data:,
+        encoded_profile:,
         code_provenance_file_name:,
         code_provenance_data:,
         tags_as_array:,
@@ -30,12 +28,11 @@ module Datadog
       )
         @start = start
         @finish = finish
-        @pprof_file_name = pprof_file_name
-        @pprof_data = pprof_data
+        @encoded_profile = encoded_profile
         @code_provenance_file_name = code_provenance_file_name
         @code_provenance_data = code_provenance_data
         @tags_as_array = tags_as_array
-        @internal_metadata_json = JSON.fast_generate(internal_metadata)
+        @internal_metadata_json = JSON.generate(internal_metadata)
         @info_json = info_json
       end
     end

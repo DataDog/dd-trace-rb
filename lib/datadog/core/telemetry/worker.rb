@@ -17,8 +17,6 @@ module Datadog
         DEFAULT_BUFFER_MAX_SIZE = 1000
         APP_STARTED_EVENT_RETRIES = 10
 
-        TELEMETRY_STARTED_ONCE = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
-
         def initialize(
           heartbeat_interval_seconds:,
           metrics_aggregation_interval_seconds:,
@@ -48,14 +46,25 @@ module Datadog
           @buffer_size = buffer_size
 
           self.buffer = buffer_klass.new(@buffer_size)
+
+          @initial_event_once = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
         end
 
         attr_reader :logger
+        attr_reader :initial_event_once
+        attr_reader :initial_event
 
-        def start
+        # Returns true if worker thread is successfully started,
+        # false if worker thread was not started but telemetry is enabled,
+        # nil if telemetry is disabled.
+        def start(initial_event)
           return if !enabled? || forked?
 
+          @initial_event = initial_event
+
           # starts async worker
+          # perform should return true if thread was actually started,
+          # false otherwise
           perform
         end
 
@@ -65,18 +74,60 @@ module Datadog
           super
         end
 
+        # Returns true if event was enqueued, nil if not.
+        # While returning false may seem more reasonable, the only reason
+        # for not enqueueing event (presently) is that telemetry is disabled
+        # altogether, and in this case other methods return nil.
         def enqueue(event)
           return if !enabled? || forked?
 
           buffer.push(event)
+          true
         end
 
-        def sent_started_event?
-          TELEMETRY_STARTED_ONCE.success?
+        def sent_initial_event?
+          initial_event_once.success?
         end
 
-        def failed_to_start?
-          TELEMETRY_STARTED_ONCE.failed?
+        def failed_initial_event?
+          initial_event_once.failed?
+        end
+
+        def need_initial_event?
+          !sent_initial_event? && !failed_initial_event?
+        end
+
+        # Wait for the worker to send out all events that have already
+        # been queued, up to 15 seconds. Returns whether all events have
+        # been flushed.
+        #
+        # @api private
+        def flush
+          return true unless enabled? || !run_loop?
+
+          started = Utils::Time.get_time
+          loop do
+            # The AppStarted event is triggered by the worker itself,
+            # from the worker thread. As such the main thread has no way
+            # to delay itself until that event is queued and we need some
+            # way to wait until that event is sent out to assert on it in
+            # the test suite. Check the run once flag which *should*
+            # indicate the event has been queued (at which point our queue
+            # depth check should waint until it's sent).
+            # This is still a hack because the flag can be overridden
+            # either way with or without the event being sent out.
+            # Note that if the AppStarted sending fails, this check
+            # will return false and flushing will be blocked until the
+            # 15 second timeout.
+            # Note that the first wait interval between telemetry event
+            # sending is 10 seconds, the timeout needs to be strictly
+            # greater than that.
+            return true if buffer.empty? && !in_iteration? && sent_initial_event?
+
+            sleep 0.5
+
+            return false if Utils::Time.get_time - started > 15
+          end
         end
 
         private
@@ -84,11 +135,26 @@ module Datadog
         def perform(*events)
           return if !enabled? || forked?
 
-          started! unless sent_started_event?
+          if need_initial_event?
+            started!
+            unless sent_initial_event?
+              # We still haven't succeeded in sending the started event,
+              # which will make flush_events do nothing - but the events
+              # given to us as the parameter have already been removed
+              # from the queue.
+              # Put the events back to the front of the queue to not
+              # lose them.
+              buffer.unshift(*events)
+              return
+            end
+          end
 
           metric_events = @metrics_manager.flush!
           events = [] if events.nil?
-          flush_events(events + metric_events)
+          events += metric_events
+          if events.any?
+            flush_events(events)
+          end
 
           @current_ticks += 1
           return if @current_ticks < @ticks_per_heartbeat
@@ -98,9 +164,6 @@ module Datadog
         end
 
         def flush_events(events)
-          return if events.empty?
-          return if !enabled? || !sent_started_event?
-
           events = deduplicate_logs(events)
 
           logger.debug { "Sending #{events&.count} telemetry events" }
@@ -108,7 +171,7 @@ module Datadog
         end
 
         def heartbeat!
-          return if !enabled? || !sent_started_event?
+          return if !enabled? || !sent_initial_event?
 
           send_event(Event::AppHeartbeat.new)
         end
@@ -116,25 +179,28 @@ module Datadog
         def started!
           return unless enabled?
 
-          if failed_to_start?
-            logger.debug('Telemetry app-started event exhausted retries, disabling telemetry worker')
-            disable!
-            return
-          end
-
-          TELEMETRY_STARTED_ONCE.run do
-            res = send_event(Event::AppStarted.new)
+          initial_event_once.run do
+            res = send_event(initial_event)
 
             if res.ok?
-              logger.debug('Telemetry app-started event is successfully sent')
+              logger.debug { "Telemetry initial event (#{initial_event.type}) is successfully sent" }
 
-              send_event(Event::AppDependenciesLoaded.new) if @dependency_collection
+              # TODO Dependencies loaded event should probably check for new
+              # dependencies and send the new ones.
+              # System tests demand only one instance of this event per
+              # dependency.
+              send_event(Event::AppDependenciesLoaded.new) if @dependency_collection && initial_event.class.eql?(Telemetry::Event::AppStarted) # standard:disable Style/ClassEqualityComparison:
 
               true
             else
-              logger.debug('Error sending telemetry app-started event, retry after heartbeat interval...')
+              logger.debug("Error sending telemetry initial event (#{initial_event.type}), retry after heartbeat interval...")
               false
             end
+          end
+
+          if failed_initial_event?
+            logger.debug { "Telemetry initial event (#{initial_event.type}) exhausted retries, disabling telemetry worker" }
+            disable!
           end
         end
 

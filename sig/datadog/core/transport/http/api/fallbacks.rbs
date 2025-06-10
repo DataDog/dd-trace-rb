@@ -4,6 +4,8 @@ module Datadog
       module HTTP
         module API
           module Fallbacks
+            @fallbacks: untyped
+
             def fallbacks: () -> untyped
 
             def with_fallbacks: (untyped fallbacks) -> untyped

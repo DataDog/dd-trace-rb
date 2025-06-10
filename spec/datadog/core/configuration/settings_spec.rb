@@ -8,6 +8,7 @@ require 'datadog/core/environment/ext'
 require 'datadog/core/runtime/ext'
 require 'datadog/core/utils/time'
 require 'datadog/profiling/ext'
+require_relative 'settings_shared_examples'
 
 RSpec.describe Datadog::Core::Configuration::Settings do
   subject(:settings) { described_class.new(options) }
@@ -16,26 +17,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
   around do |example|
     ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
-  end
-
-  shared_examples_for 'a binary setting with' do |env_variable:, default:|
-    context "when #{env_variable}" do
-      around { |example| ClimateControl.modify(env_variable => environment) { example.run } }
-
-      context 'is not defined' do
-        let(:environment) { nil }
-
-        it { is_expected.to be default }
-      end
-
-      [true, false].each do |value|
-        context "is defined as #{value}" do
-          let(:environment) { value.to_s }
-
-          it { is_expected.to be value }
-        end
-      end
-    end
   end
 
   describe '#api_key' do
@@ -506,7 +487,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be 10 }
+            it { is_expected.to be 1 }
           end
 
           context 'is defined as 100' do
@@ -521,7 +502,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'updates the #experimental_heap_sample_rate setting' do
           expect { settings.profiling.advanced.experimental_heap_sample_rate = 100 }
             .to change { settings.profiling.advanced.experimental_heap_sample_rate }
-            .from(10)
+            .from(1)
             .to(100)
         end
       end
@@ -1095,11 +1076,20 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it { is_expected.to include('a' => '1', 'b' => '2') }
 
         context 'with an invalid tag' do
-          ['', 'a', ':', ',', 'a:'].each do |invalid_tag|
+          ['', ':', ','].each do |invalid_tag|
             context "when tag is #{invalid_tag.inspect}" do
               let(:env_tags) { invalid_tag }
 
               it { is_expected.to eq({}) }
+            end
+          end
+        end
+
+        context 'with no seperator' do
+          ['key', 'key:', 'key: '].each do |tag|
+            context "when tag is #{tag.inspect}" do
+              let(:env_tags) { tag }
+              it { is_expected.to eq({ 'key' => '' }) }
             end
           end
         end
@@ -1854,6 +1844,24 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         expect { settings.crashtracking.enabled = false }
           .to change { settings.crashtracking.enabled }
           .from(true).to(false)
+      end
+    end
+  end
+
+  describe '#apm' do
+    describe '#tracing' do
+      describe '#enabled' do
+        subject(:apm_tracing_enabled) { settings.apm.tracing.enabled }
+
+        it_behaves_like 'a binary setting with', env_variable: 'DD_APM_TRACING_ENABLED', default: true
+      end
+
+      describe '#enabled=' do
+        it 'updates the #enabled setting' do
+          expect { settings.apm.tracing.enabled = false }
+            .to change { settings.apm.tracing.enabled }
+            .from(true).to(false)
+        end
       end
     end
   end

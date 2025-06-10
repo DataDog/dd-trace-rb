@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe Datadog::Tracing::Contrib do
-  root = Gem::Specification.find_by_name('datadog').gem_dir
+  root = Gem.loaded_specs['datadog'].gem_dir
 
   # Our module names are camelized directory name with some exceptions
   mapping = {
@@ -52,7 +52,8 @@ RSpec.describe Datadog::Tracing::Contrib do
     'sneakers' => 'Sneakers',
     'stripe' => 'Stripe',
     'sucker_punch' => 'SuckerPunch',
-    'trilogy' => 'Trilogy'
+    'trilogy' => 'Trilogy',
+    'karafka' => 'Karafka'
   }
 
   Dir.chdir("#{root}/lib/datadog/tracing/contrib") do |pwd|

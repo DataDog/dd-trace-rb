@@ -34,7 +34,8 @@ end
 class SpyTransport < Datadog::Tracing::Transport::HTTP::Client
   attr_reader :helper_sent
 
-  def initialize(*)
+  def initialize(logger:)
+    @logger = logger
     @helper_sent = { 200 => {}, 500 => {} }
     @helper_mutex = Mutex.new
     @helper_error_mode = false
@@ -47,6 +48,7 @@ class SpyTransport < Datadog::Tracing::Transport::HTTP::Client
         [Datadog::Tracing::Transport::Traces::Encoder.encode_trace(
           @helper_encoder,
           trace,
+          logger: logger,
           native_events_supported: true
         )]
       )

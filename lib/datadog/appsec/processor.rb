@@ -82,7 +82,7 @@ module Datadog
         @diagnostics = e.diagnostics if e.diagnostics
 
         false
-      rescue StandardError => e
+      rescue => e
         Datadog.logger.error do
           "libddwaf failed to initialize, error: #{e.inspect}"
         end

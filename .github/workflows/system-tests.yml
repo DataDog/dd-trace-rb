@@ -22,7 +22,7 @@ permissions: {}
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
+  SYSTEM_TESTS_REF: e9fb2335c23a6e6d79ccaf4e993b3dca59649ad5 # Automated: This reference is automatically updated.
 
 jobs:
   changes:
@@ -41,6 +41,7 @@ jobs:
         with:
           filters: |
             src:
+              - '.github/forced-tests-list.json'
               - '.github/workflows/**'
               - 'lib/**'
               - 'ext/**'
@@ -76,7 +77,8 @@ jobs:
           ref: ${{ env.SYSTEM_TESTS_REF }}
           persist-credentials: false
       - name: Login to Docker Hub
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        continue-on-error: true
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -97,7 +99,7 @@ jobs:
         run: |
           docker image list
       - name: Log in to the Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -183,7 +185,8 @@ jobs:
             printf "\nEOF\n"
           } >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        continue-on-error: true
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -197,7 +200,7 @@ jobs:
             docker pull "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}" || true
           done
       - name: Log in to the Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -268,7 +271,6 @@ jobs:
           - APPSEC_DISABLED
           - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
-          - APPSEC_STANDALONE
           - APPSEC_BLOCKING
         include:
           - library: ruby
@@ -326,6 +328,12 @@ jobs:
             app: rails70
             scenario: DEBUGGER_PII_REDACTION
           - library: ruby
+            app: rails70
+            scenario: SCA_STANDALONE
+          - library: ruby
+            app: rails70
+            scenario: APPSEC_STANDALONE
+          - library: ruby
             app: rack
             scenario: SAMPLING
           - library: ruby
@@ -359,7 +367,8 @@ jobs:
           ref: ${{ env.SYSTEM_TESTS_REF }}
           persist-credentials: false
       - name: Login to Docker Hub
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        continue-on-error: true
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -390,12 +399,12 @@ jobs:
           ./run.sh ++docker ${{ matrix.scenario }} \
             ${{ env.FORCED_TESTS_LIST && fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario] && format('-F {0}', join(fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario], ' -F ')) || ''}}
         env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
           SYSTEM_TESTS_AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
           SYSTEM_TESTS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
           FORCED_TESTS_LIST: ${{ needs.build-apps.outputs.FORCED_TESTS_LIST }}
       - name: Archive logs
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ always() }}
         with:
           name: system-tests-${{ matrix.library }}-${{ matrix.app }}-${{ matrix.scenario }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
@@ -438,7 +447,7 @@ jobs:
     name: Aggregate (${{ matrix.app }})
     steps:
       - name: Setup python 3.12
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
       - name: Checkout
@@ -448,7 +457,7 @@ jobs:
           ref: ${{ env.SYSTEM_TESTS_REF }}
           persist-credentials: false
       - name: Retrieve logs
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: system-tests-${{ matrix.library }}-${{ matrix.app }}-*-logs-gha${{ github.run_id }}-g${{ github.sha }}
           merge-multiple: true
@@ -493,7 +502,7 @@ jobs:
     name: Cleanup (${{ matrix.image }})
     steps:
       - name: Log in to the Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}

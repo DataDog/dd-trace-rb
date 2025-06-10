@@ -49,7 +49,7 @@ jobs:
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
         run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
-      - uses: ruby/setup-ruby@bbda85882f33075a3727c01e3c8d0de0be6146ce # v1.224.0
+      - uses: ruby/setup-ruby@13e7a03dc3ac6c3798f4570bfead2aed4d96abfb # v1.244.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically

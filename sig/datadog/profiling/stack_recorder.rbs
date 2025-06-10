@@ -27,7 +27,7 @@ module Datadog
       type serialized_profile_data = [
         ::Time, # Start
         ::Time, # Finish
-        String, # Serialized PProf
+        Datadog::Profiling::EncodedProfile, # Serialized PProf
         ::Hash[::Symbol, untyped], # Hash
       ]
 

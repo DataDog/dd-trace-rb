@@ -15,10 +15,11 @@ module Datadog
         module HTTP
           # Routes, encodes, and sends tracer data to the trace agent via HTTP.
           class Client
-            attr_reader :api
+            attr_reader :api, :logger
 
-            def initialize(api)
+            def initialize(api, logger: Datadog.logger)
               @api = api
+              @logger = logger
             end
 
             def send_request(request, &block)
@@ -27,12 +28,12 @@ module Datadog
 
               # Get responses from API
               yield(api, env)
-            rescue StandardError => e
+            rescue => e
               message =
                 "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
                   "Location: #{Array(e.backtrace).first}"
 
-              Datadog.logger.debug(message)
+              logger.debug(message)
 
               Datadog::Core::Transport::InternalErrorResponse.new(e)
             end

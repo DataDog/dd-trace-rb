@@ -54,7 +54,7 @@ module Datadog
 
           span_id = Helpers.parse_hex_id(parts[1]) if parts.length > 1
           # Return early if this propagation is not valid
-          return if span_id.nil? || span_id <= 0 || span_id >= Tracing::Utils::EXTERNAL_MAX_ID
+          return if span_id.nil? || span_id <= 0 || span_id > Tracing::Utils::EXTERNAL_MAX_ID
 
           sampling_priority = Helpers.parse_decimal_id(parts[2]) if parts.length > 2
 

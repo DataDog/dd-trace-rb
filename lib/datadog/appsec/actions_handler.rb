@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'actions_handler/serializable_backtrace'
+
 module Datadog
   module AppSec
     # this module encapsulates functions for handling actions that libddawf returns
@@ -19,9 +21,29 @@ module Datadog
         throw(Datadog::AppSec::Ext::INTERRUPT, action_params)
       end
 
-      def generate_stack(_action_params); end
+      def generate_stack(action_params)
+        return unless Datadog.configuration.appsec.stack_trace.enabled
 
-      def generate_schema(_action_params); end
+        stack_id = action_params['stack_id']
+        return unless stack_id
+
+        active_span = AppSec.active_context&.span
+        return unless active_span
+
+        event_category = Ext::EXPLOIT_PREVENTION_EVENT_CATEGORY
+        tag_key = Ext::TAG_METASTRUCT_STACK_TRACE
+
+        existing_stack_data = active_span.get_metastruct_tag(tag_key).dup || {event_category => []}
+        max_stack_traces = Datadog.configuration.appsec.stack_trace.max_stack_traces
+        return if max_stack_traces != 0 && existing_stack_data[event_category].count >= max_stack_traces
+
+        backtrace = SerializableBacktrace.new(locations: Array(caller_locations), stack_id: stack_id)
+        existing_stack_data[event_category] << backtrace
+        active_span.set_metastruct_tag(tag_key, existing_stack_data)
+      end
+
+      def generate_schema(_action_params)
+      end
     end
   end
 end

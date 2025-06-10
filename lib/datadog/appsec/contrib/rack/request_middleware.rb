@@ -4,9 +4,12 @@ require 'json'
 
 require_relative 'gateway/request'
 require_relative 'gateway/response'
-require_relative '../../instrumentation/gateway'
-require_relative '../../processor'
+
+require_relative '../../event'
 require_relative '../../response'
+require_relative '../../processor'
+require_relative '../../security_event'
+require_relative '../../instrumentation/gateway'
 
 require_relative '../../../tracing/client_ip'
 require_relative '../../../tracing/contrib/rack/header_collection'
@@ -36,7 +39,7 @@ module Datadog
             @rack_headers = {}
           end
 
-          # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
+          # rubocop:disable Metrics/MethodLength
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
@@ -97,20 +100,13 @@ module Datadog
               http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
             end
 
-            if AppSec.api_security_enabled?
-              ctx.events << {
-                trace: ctx.trace,
-                span: ctx.span,
-                waf_result: ctx.extract_schema,
-              }
+            if AppSec.perform_api_security_check?
+              ctx.events.push(
+                AppSec::SecurityEvent.new(ctx.extract_schema, trace: ctx.trace, span: ctx.span)
+              )
             end
 
-            ctx.events.each do |e|
-              e[:response] ||= gateway_response
-              e[:request]  ||= gateway_request
-            end
-
-            AppSec::Event.record(ctx.span, *ctx.events)
+            AppSec::Event.record(ctx, request: gateway_request, response: gateway_response)
 
             http_response
           ensure
@@ -119,7 +115,7 @@ module Datadog
               Datadog::AppSec::Context.deactivate
             end
           end
-          # rubocop:enable Metrics/AbcSize,Metrics/MethodLength
+          # rubocop:enable Metrics/MethodLength
 
           private
 
@@ -143,6 +139,7 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
+          # standard:disable Metrics/MethodLength
           def add_appsec_tags(processor, context)
             span = context.span
             trace = context.trace
@@ -150,8 +147,6 @@ module Datadog
             return unless trace && span
 
             span.set_metric(Datadog::AppSec::Ext::TAG_APPSEC_ENABLED, 1)
-            # We add this tag when ASM standalone is enabled to make sure we don't bill APM
-            span.set_metric(Datadog::AppSec::Ext::TAG_APM_ENABLED, 0) if Datadog.configuration.appsec.standalone.enabled
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
@@ -179,7 +174,9 @@ module Datadog
               end
             end
           end
+          # standard:enable Metrics/MethodLength
 
+          # standard:disable Metrics/MethodLength
           def add_request_tags(context, env)
             span = context.span
 
@@ -202,6 +199,7 @@ module Datadog
               )
             end
           end
+          # standard:enable Metrics/MethodLength
 
           def to_rack_header(header)
             @rack_headers[header] ||= Datadog::Tracing::Contrib::Rack::Header.to_rack_header(header)

@@ -52,6 +52,17 @@ module Datadog
     # (however, Probe instances can be replaced by OpenStruct instances
     # providing the same interface with not much effort).
     #
+    # Instrumenter (this class) is responsible for building snapshots.
+    # This is because to capture values on method entry, those values need to
+    # be duplicated or serialized into immutable values to prevent their
+    # modification by the instrumented method. Therefore this class must
+    # do at least some serialization/snapshot building and to keep the code
+    # well-encapsulated, all serialization/snapshot building should thus be
+    # initiated from this class rather than downstream code.
+    #
+    # As a consequence of Instrumenter building snapshots, it should not
+    # expose TracePoint objects to any downstream code.
+    #
     # @api private
     class Instrumenter
       def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
@@ -111,7 +122,8 @@ module Datadog
               # Arguments may be mutated by the method, therefore
               # they need to be serialized prior to method invocation.
               entry_args = if probe.capture_snapshot?
-                serializer.serialize_args(args, kwargs,
+                instance_vars = Instrumenter.get_instance_variables(self)
+                serializer.serialize_args(args, kwargs, instance_vars,
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
@@ -149,6 +161,7 @@ module Datadog
               # TODO capture arguments at exit
               # & is to stop steep complaints, block is always present here.
               block&.call(probe: probe, rv: rv, duration: duration, caller_locations: caller_locs,
+                instance_vars: probe.capture_snapshot? ? Instrumenter.get_instance_variables(self) : nil,
                 serialized_entry_args: entry_args)
               rv
             else
@@ -298,8 +311,20 @@ module Datadog
               probe.file == tp.path || probe.file_matches?(tp.path)
             )
               if rate_limiter.nil? || rate_limiter.allow?
+                locals = if probe.capture_snapshot?
+                  serializer.serialize_vars(Instrumenter.get_local_variables(tp),
+                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
+                end
+                instance_vars = if probe.capture_snapshot?
+                  serializer.serialize_vars(Instrumenter.get_instance_variables(tp.self),
+                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
+                end
                 # & is to stop steep complaints, block is always present here.
-                block&.call(probe: probe, trace_point: tp, caller_locations: caller_locations)
+                block&.call(probe: probe,
+                  locals: locals, instance_vars: instance_vars,
+                  path: tp.path, caller_locations: caller_locations)
               end
             end
           rescue => exc
@@ -368,6 +393,31 @@ module Datadog
         else
           # TODO add test coverage for this path
           logger.debug { "di: unknown probe type to unhook: #{probe}" }
+        end
+      end
+
+      class << self
+        def get_instance_variables(object)
+          {}.tap do |hash|
+            object.instance_variables.each do |var|
+              hash[var] = object.instance_variable_get(var)
+            end
+          end
+        end
+
+        def get_local_variables(trace_point)
+          # binding appears to be constructed on access, therefore
+          # 1) we should attempt to cache it and
+          # 2) we should not call +binding+ until we actually need variable values.
+          binding = trace_point.binding
+
+          # steep hack - should never happen
+          return {} unless binding
+
+          binding.local_variables.each_with_object({}) do |name, map|
+            value = binding.local_variable_get(name)
+            map[name] = value
+          end
         end
       end
 

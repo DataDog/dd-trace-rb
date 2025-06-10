@@ -24,13 +24,13 @@ module Datadog
           persistent_data.reject! do |_, v|
             next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
 
-            v.nil? ? true : v.empty?
+            v.nil? || v.empty?
           end
 
           ephemeral_data.reject! do |_, v|
             next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
 
-            v.nil? ? true : v.empty?
+            v.nil? || v.empty?
           end
 
           _code, result = try_run(persistent_data, ephemeral_data, timeout)
@@ -42,7 +42,7 @@ module Datadog
             return Result::Error.new(duration_ext_ns: stop_ns - start_ns)
           end
 
-          klass = result.status == :match ? Result::Match : Result::Ok
+          klass = (result.status == :match) ? Result::Match : Result::Ok
           klass.new(
             events: result.events,
             actions: result.actions,

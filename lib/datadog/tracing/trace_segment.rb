@@ -34,7 +34,8 @@ module Datadog
         :sampling_decision_maker,
         :sampling_priority,
         :service,
-        :profiling_enabled
+        :profiling_enabled,
+        :apm_tracing_enabled
 
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
@@ -58,7 +59,8 @@ module Datadog
         service: nil,
         tags: nil,
         metrics: nil,
-        profiling_enabled: nil
+        profiling_enabled: nil,
+        apm_tracing_enabled: nil
       )
         @id = id
         @root_span_id = root_span_id
@@ -85,6 +87,7 @@ module Datadog
         @sampling_priority = sampling_priority || sampling_priority_tag
         @service = Core::Utils::SafeDup.frozen_or_dup(service || service_tag)
         @profiling_enabled = profiling_enabled
+        @apm_tracing_enabled = apm_tracing_enabled
       end
       # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Metrics/CyclomaticComplexity
@@ -128,8 +131,7 @@ module Datadog
       end
 
       def sampled?
-        sampling_priority == Sampling::Ext::Priority::AUTO_KEEP \
-          || sampling_priority == Sampling::Ext::Priority::USER_KEEP
+        [Sampling::Ext::Priority::AUTO_KEEP, Sampling::Ext::Priority::USER_KEEP].include?(sampling_priority)
       end
 
       # Returns the high order part of the trace id as a hexadecimal string; the most significant 64 bits.

@@ -3,10 +3,12 @@ require "datadog/profiling/collectors/thread_context"
 
 RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   before do
+    @clean_threads_required = false
     skip_if_profiling_not_supported(self)
 
+    @clean_threads_required = true
     [t1, t2, t3].each { ready_queue.pop }
-    expect(Thread.list).to include(Thread.main, t1, t2, t3)
+    expect(Thread.list).to include(t1, t2, t3)
   end
 
   let(:recorder) do
@@ -60,9 +62,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   after do
-    [t1, t2, t3].each do |thread|
-      thread.kill
-      thread.join
+    if @clean_threads_required
+      [t1, t2, t3].each do |thread|
+        thread.kill
+        thread.join
+      end
     end
   end
 
@@ -78,12 +82,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gc_finish(cpu_and_wall_time_collector)
   end
 
-  def sample_after_gc(reset_monotonic_to_system_state: false, allow_exception: false)
-    described_class::Testing._native_sample_after_gc(
-      cpu_and_wall_time_collector,
-      reset_monotonic_to_system_state,
-      allow_exception,
-    )
+  def sample_after_gc(allow_exception: false)
+    described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector, allow_exception)
   end
 
   def sample_allocation(weight:, new_object: Object.new)
@@ -129,6 +129,31 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
     described_class::Testing
       ._native_apply_delta_to_cpu_time_at_previous_sample_ns(cpu_and_wall_time_collector, thread, delta_ns)
+  end
+
+  # What's the deal with the `profiler_system_epoch_time_now_ns`? Internally the profiler uses a monotonic clock
+  # when measuring wall-time, and then needs to turn it into system time.
+  #
+  # Since there's no way (that I know of) to get both a monotonic and a system clock timestamp at once, our
+  # conversion code gets both in sequence and then uses that for the conversions.
+  #
+  # For a while in our tests, we were using `Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)` directly, but
+  # this caused a bunch of flakiness since sometimes the conversion was slightly off from the measurements we got
+  # when reading the system clock directly.
+  #
+  # To solve this flakiness once and for all, the tests were changed to **use the same clock source** as the profiler,
+  # thus guaranteeing that if we get a timestamp here (call it t1), and then call the profiler and it gets a timestamp
+  # (call it t2), that t2 >= t1 (and vice-versa).
+  #
+  # Just in case, we still expect any timestamp output by the profiler to very close to the system clock,
+  # which is why there's that extra expectation there. (To avoid us missing any bugs if the system clock code
+  # in the profiler is ever changed.)
+
+  def profiler_system_epoch_time_now_ns
+    result = described_class::Testing._native_system_epoch_time_now_ns(cpu_and_wall_time_collector)
+    ten_seconds_ns = 10 * 1e9
+    expect(result).to be_within(ten_seconds_ns).of(Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now))
+    result
   end
 
   # This method exists only so we can look for its name in the stack trace in a few tests
@@ -1134,9 +1159,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         let(:timeline_enabled) { true }
 
         it "includes a end_timestamp_ns containing epoch time in every sample" do
-          time_before = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+          time_before = profiler_system_epoch_time_now_ns
           sample
-          time_after = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+          time_after = profiler_system_epoch_time_now_ns
 
           expect(samples.first.labels).to include(end_timestamp_ns: be_between(time_before, time_after))
         end
@@ -1150,9 +1175,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             @previous_sample_timestamp_ns = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
 
-            @time_before_gvl_waiting = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            @time_before_gvl_waiting = profiler_system_epoch_time_now_ns
             on_gvl_waiting(t1)
-            @time_after_gvl_waiting = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            @time_after_gvl_waiting = profiler_system_epoch_time_now_ns
 
             @gvl_waiting_at = gvl_waiting_at_for(t1)
 
@@ -1172,9 +1197,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           it "records a second sample to represent the time spent Waiting for GVL" do
-            time_before_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            time_before_sample = profiler_system_epoch_time_now_ns
             sample
-            time_after_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            time_after_sample = profiler_system_epoch_time_now_ns
 
             second_sample = samples_for_thread(samples, t1, expected_size: 2).last
 
@@ -1216,12 +1241,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           def sample_and_check(expected_state:)
             monotonic_time_before_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
-            time_before_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            time_before_sample = profiler_system_epoch_time_now_ns
             monotonic_time_sanity_check = Datadog::Core::Utils::Time.get_time(:nanosecond)
 
             sample
 
-            time_after_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            time_after_sample = profiler_system_epoch_time_now_ns
             monotonic_time_after_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
 
             expect(monotonic_time_after_sample).to be >= monotonic_time_sanity_check
@@ -1528,9 +1553,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       before do
         on_gc_start
-        @time_before = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+        @time_before = profiler_system_epoch_time_now_ns
         on_gc_finish
-        @time_after = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+        @time_after = profiler_system_epoch_time_now_ns
       end
 
       context "when called more than once in a row" do
@@ -1605,7 +1630,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         it "creates a Garbage Collection sample using the timestamp set by on_gc_finish, converted to epoch ns" do
-          sample_after_gc(reset_monotonic_to_system_state: true)
+          sample_after_gc
 
           expect(gc_sample.labels.fetch(:end_timestamp_ns)).to be_between(@time_before, @time_after)
         end
