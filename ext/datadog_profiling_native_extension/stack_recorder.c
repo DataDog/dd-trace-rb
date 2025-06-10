@@ -652,21 +652,7 @@ static ddog_prof_LabelSetId intern_labels_or_raise(locked_profile_slot locked_pr
   return result.ok;
 }
 
-static ddog_prof_MappingId empty_mapping_or_raise(locked_profile_slot locked_profile, ddog_prof_StringId empty_string) {
-  ddog_prof_MappingId_Result result =
-    ddog_prof_Profile_intern_mapping(&locked_profile.data->profile, 0, 0, 0, empty_string, empty_string);
-
-  if (result.tag == DDOG_PROF_MAPPING_ID_RESULT_ERR_GENERATIONAL_ID_MAPPING_ID) {
-    sampler_unlock_active_profile(locked_profile);
-    rb_raise(rb_eArgError, "Failed to intern mapping: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
-
-  return result.ok;
-}
-
 static ddog_prof_StackTraceId intern_locations_or_raise(locked_profile_slot locked_profile, ddog_prof_Slice_Location locations, ddog_prof_StringId empty_string) {
-  ddog_prof_MappingId empty_mapping = empty_mapping_or_raise(locked_profile, empty_string);
-
   ddog_prof_LocationId location_ids[locations.len];
   for (size_t i = 0; i < locations.len; i++) {
     ddog_prof_Location location = locations.ptr[i];
@@ -675,8 +661,7 @@ static ddog_prof_StackTraceId intern_locations_or_raise(locked_profile_slot lock
       &locked_profile.data->profile,
       intern_string_or_raise(locked_profile, location.function.name),
       /* system_name: */ empty_string,
-      intern_string_or_raise(locked_profile, location.function.filename),
-      0 // Start line, never set
+      intern_string_or_raise(locked_profile, location.function.filename)
     );
 
     if (function_result.tag == DDOG_PROF_FUNCTION_ID_RESULT_ERR_GENERATIONAL_ID_FUNCTION_ID) {
@@ -686,7 +671,6 @@ static ddog_prof_StackTraceId intern_locations_or_raise(locked_profile_slot lock
 
     ddog_prof_LocationId_Result location_result = ddog_prof_Profile_intern_location(
       &locked_profile.data->profile,
-      empty_mapping,
       function_result.ok,
       0,
       location.line
@@ -701,7 +685,7 @@ static ddog_prof_StackTraceId intern_locations_or_raise(locked_profile_slot lock
   }
 
   ddog_prof_StackTraceId_Result result =
-    ddog_prof_Profile_intern_stacktrace(&locked_profile.data->profile, (ddog_prof_Slice_GenerationalIdLocationId) {.ptr = location_ids, .len = locations.len});
+    ddog_prof_Profile_intern_stacktrace(&locked_profile.data->profile, (ddog_prof_Slice_LocationId) {.ptr = location_ids, .len = locations.len});
 
   if (result.tag == DDOG_PROF_STACK_TRACE_ID_RESULT_ERR_GENERATIONAL_ID_STACK_TRACE_ID) {
     sampler_unlock_active_profile(locked_profile);
@@ -747,7 +731,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     }
   }
 
-  ddog_prof_StringId empty_string = intern_string_or_raise(active_slot, DDOG_CHARSLICE_C(""));
+  ddog_prof_StringId empty_string = INTERNED_EMPTY_STRING;
   ddog_prof_LabelSetId label_set = intern_labels_or_raise(active_slot, labels.labels);
   ddog_prof_StackTraceId stack_trace = intern_locations_or_raise(active_slot, locations, empty_string);
 
