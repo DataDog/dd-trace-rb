@@ -153,7 +153,11 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   end
 
   let(:sessions_controller) do
-    stub_const('TestSessionsController', Class.new(Devise::SessionsController))
+    stub_const('TestSessionsController', Class.new(Devise::SessionsController)).class_eval do
+      def new
+        render plain: '<login-form>'
+      end
+    end
   end
 
   let(:user_model) do
@@ -323,6 +327,10 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     let(:sessions_controller) do
       stub_const('TestSessionsController', Class.new(Devise::SessionsController)).class_eval do
+        def new
+          render plain: '<login-form>'
+        end
+
         def create
           Datadog::Kit::AppSec::Events.track_login_success(
             Datadog::Tracing.active_trace,
@@ -361,7 +369,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     it 'tracks login failure event' do
       expect(response).to be_unprocessable
-      expect(response.body).to match(%r{<form .* action="/users/sign_in" .*>})
+      expect(response.body).to match(%r{<login-form>})
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
@@ -409,7 +417,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     it 'tracks login failure event' do
       expect(response).to be_unprocessable
-      expect(response.body).to match(%r{<form .* action="/users/sign_in" .*>})
+      expect(response.body).to match(%r{<login-form>})
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
@@ -459,6 +467,10 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     let(:sessions_controller) do
       stub_const('TestSessionsController', Class.new(Devise::SessionsController)).class_eval do
+        def new
+          render plain: '<login-form>'
+        end
+
         def create
           Datadog::Kit::AppSec::Events.track_login_failure(
             Datadog::Tracing.active_trace,
@@ -475,7 +487,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     it 'tracks login failure event with SDK overrides' do
       expect(response).to be_unprocessable
-      expect(response.body).to match(%r{<form .* action="/users/sign_in" .*>})
+      expect(response.body).to match(%r{<login-form>})
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
