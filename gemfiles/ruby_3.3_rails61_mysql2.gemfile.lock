@@ -94,6 +94,7 @@ GEM
     extlz4 (0.3.3)
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-arm64-darwin)
+    ffi (1.17.2-x86_64-linux-gnu)
     globalid (1.1.0)
       activesupport (>= 5.0)
     google-protobuf (3.23.1)
@@ -109,9 +110,12 @@ GEM
       addressable (>= 2.4)
     libdatadog (18.1.0.1.0)
     libdatadog (18.1.0.1.0-aarch64-linux)
+    libdatadog (18.1.0.1.0-x86_64-linux)
     libddwaf (1.24.1.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.24.1.0.0-arm64-darwin)
+      ffi (~> 1.0)
+    libddwaf (1.24.1.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     lograge (0.14.0)
@@ -131,7 +135,6 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mini_mime (1.1.2)
-    mini_portile2 (2.8.9)
     minitest (5.18.0)
     msgpack (1.8.0)
     mysql2 (0.5.5)
@@ -145,10 +148,11 @@ GEM
     net-smtp (0.3.3)
       net-protocol
     nio4r (2.5.9)
-    nokogiri (1.16.7)
-      mini_portile2 (~> 2.8.2)
-      racc (~> 1.4)
     nokogiri (1.16.7-aarch64-linux)
+      racc (~> 1.4)
+    nokogiri (1.16.7-arm64-darwin)
+      racc (~> 1.4)
+    nokogiri (1.16.7-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
     pp (0.6.2)
@@ -258,6 +262,7 @@ GEM
 PLATFORMS
   aarch64-linux
   arm64-darwin-24
+  x86_64-linux
 
 DEPENDENCIES
   benchmark-ips (~> 2.8)
