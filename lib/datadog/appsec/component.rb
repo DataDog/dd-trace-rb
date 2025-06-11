@@ -33,7 +33,7 @@ module Datadog
           end
 
           require_libddwaf(telemetry: telemetry)
-          Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && settings.waf_debug
+          Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && settings.appsec.waf_debug
 
           # We want to always instrument user events when AppSec is enabled.
           # There could be cases in which users use the DD_APPSEC_ENABLED Env variable to
