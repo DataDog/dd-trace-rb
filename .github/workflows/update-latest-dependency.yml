@@ -96,6 +96,7 @@ jobs:
           labels: dev/internal, integrations
           commit-message: "[🤖] Update Latest Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
+          sign-commits: true
           body: |
             _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
 
