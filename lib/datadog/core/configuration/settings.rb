@@ -574,7 +574,7 @@ module Datadog
 
           option :experimental_runtime_id_enabled do |o|
             o.type :bool
-            o.env ['DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED', 'DD_TRACE_RUNTIME_ID_ENABLED']
+            o.env ['DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED', 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED']
             o.default false
           end
 
