@@ -593,7 +593,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
-        it "aren't lost when they happen concurrently with a long serialization" do
+        it "tracks allocations that happen concurrently with a long serialization" do
           described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
           test_num_allocated_object = 123

@@ -1,7 +1,7 @@
 module Datadog
   module Profiling
     class StackRecorder
-      @no_concurrent_synchronize_mutex: ::Thread::Mutex
+      @no_concurrent_serialize_mutex: ::Thread::Mutex
 
       def initialize: (
         cpu_time_enabled: bool,

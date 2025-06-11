@@ -11,6 +11,7 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Checking code quality](#checking-code-quality)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
+     - [Community pull requests](#community-pull-requests)
 
 ## Setting up
 
@@ -359,4 +360,49 @@ $ docker run \
    -w /app \
    ruby:latest \
    ./spec/datadog/tracing/contrib/grpc/support/gen_proto.sh
+```
+
+### Community pull requests
+
+> [!NOTE]
+> This is relevant for **internal** use only.
+
+To trigger CI for community PRs, you need to clone the PR branch locally and
+push it to the `dd-trace-rb` repository. Here's how to do it using [GitHub CLI](https://cli.github.com/):
+
+```console
+$ gh pr checkout 9999
+From github.com:DataDog/dd-trace-rb
+ * [new ref]               refs/pull/9999/head -> some-branch
+Switched to branch 'some-branch'
+```
+
+Next, push that branch to the `dd-trace-rb` repository with an arbitrary name.
+For example, use `community/pr-9999`:
+
+```console
+$ git push origin HEAD:community/pr-9999
+Enumerating objects: 45, done.
+Counting objects: 100% (42/42), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (25/25), done.
+Writing objects: 100% (25/25), 7.41 KiB | 7.41 MiB/s, done.
+Total 25 (delta 17), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (17/17), completed with 15 local objects.
+remote:
+remote: Create a pull request for 'community/pr-9999' on GitHub by visiting:
+remote:      https://github.com/DataDog/dd-trace-rb/pull/new/community/pr-9999
+remote:
+To github.com:DataDog/dd-trace-rb.git
+ * [new branch]            some-branch -> community/pr-9999
+```
+
+Finally, create a draft PR with a clear title indicating this is a trigger PR
+that **should not** be merged:
+
+```console
+$ gh pr create --draft --head community/pr-9999 --title "[IGNORE] Community PR 9999" --body ":warning: DO NOT MERGE :warning:"
+Creating pull request for community/pr-9999 into master in DataDog/dd-trace-rb
+
+https://github.com/DataDog/dd-trace-rb/pull/0000
 ```
