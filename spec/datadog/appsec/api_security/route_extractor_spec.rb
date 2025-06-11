@@ -107,15 +107,19 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
 
     context 'when multiple framework routes are present' do
       context 'when Sinatra and Grape routes are present' do
+        let(:route_info) do
+          double('Grape::Router::Route', pattern: double('Grape::Router::Pattern', origin: '/grape/route'))
+        end
+
         before do
           allow(request).to receive(:env).and_return({
             'sinatra.route' => 'GET /sinatra/route',
-            'grape.routing_args' => {route_info: double('Grape::Router::Route')}
+            'grape.routing_args' => {route_info: route_info}
           })
         end
 
-        it 'returns Sinatra route' do
-          expect(described_class.route_pattern(request)).to eq('/sinatra/route')
+        it 'returns Grape route' do
+          expect(described_class.route_pattern(request)).to eq('/grape/route')
         end
       end
 
