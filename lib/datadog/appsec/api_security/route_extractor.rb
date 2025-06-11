@@ -33,11 +33,11 @@ module Datadog
         #
         # WARNING: This method works only *after* the request has been routed.
         def self.route_pattern(request)
-          if request.env.key?(SINATRA_ROUTE_KEY)
-            pattern = request.env[SINATRA_ROUTE_KEY].split(SINATRA_ROUTE_SEPARATOR, 2)[1]
-            "#{request.script_name}#{pattern}"
-          elsif request.env.key?(GRAPE_ROUTE_KEY)
+          if request.env.key?(GRAPE_ROUTE_KEY)
             pattern = request.env[GRAPE_ROUTE_KEY][:route_info]&.pattern&.origin
+            "#{request.script_name}#{pattern}"
+          elsif request.env.key?(SINATRA_ROUTE_KEY)
+            pattern = request.env[SINATRA_ROUTE_KEY].split(SINATRA_ROUTE_SEPARATOR, 2)[1]
             "#{request.script_name}#{pattern}"
           elsif request.env.key?(RAILS_ROUTE_KEY)
             request.env[RAILS_ROUTE_KEY].delete_suffix(RAILS_FORMAT_SUFFIX)
