@@ -226,7 +226,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       end
     end
 
-    context 'when config loading fails with top-level error for some config key' do
+    context 'when config loading fails with top-level error' do
       let(:invalid_config) { '' }
 
       before do
@@ -552,11 +552,11 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
     end
 
     it 'sets @waf_handle to a new handle' do
-      expect { engine.reconfigure! }.to change { engine.instance_variable_get(:@waf_handle) }
+      expect { engine.reconfigure! }.to(change { engine.instance_variable_get(:@waf_handle) })
     end
 
     it 'updates waf_addresses' do
-      expect { engine.reconfigure! }.to change { engine.waf_addresses }
+      expect { engine.reconfigure! }.to(change { engine.waf_addresses })
     end
 
     context 'when a new handle cannot be build' do
@@ -577,11 +577,11 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       end
 
       it 'does not change @waf_handle' do
-        expect { engine.reconfigure! }.not_to change { engine.instance_variable_get(:@waf_handle) }
+        expect { engine.reconfigure! }.not_to(change { engine.instance_variable_get(:@waf_handle) })
       end
 
       it 'does not change waf_addresses' do
-        expect { engine.reconfigure! }.not_to change { engine.waf_addresses }
+        expect { engine.reconfigure! }.not_to(change { engine.waf_addresses })
       end
 
       it 'reports error though telemetry' do

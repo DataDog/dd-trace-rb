@@ -15,35 +15,6 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
   let(:ip_denylist) { [] }
   let(:user_id_denylist) { [] }
 
-  before do
-    Datadog.configure do |c|
-      c.tracing.enabled = true
-
-      c.appsec.enabled = true
-      c.appsec.instrument :rack
-
-      c.appsec.waf_timeout = 10_000_000 # in us
-      c.appsec.ip_passlist = ip_passlist
-      c.appsec.ip_denylist = ip_denylist
-      c.appsec.user_id_denylist = user_id_denylist
-      c.appsec.ruleset = sqli_blocking_ruleset
-      c.appsec.api_security.enabled = false
-      c.appsec.api_security.sample_rate = 0.0
-
-      c.remote.enabled = false
-    end
-
-    # NOTE: Don't reach the agent in any way
-    allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
-    allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
-      .and_return(true)
-  end
-
-  after do
-    Datadog.configuration.reset!
-    Datadog.registry[:rack].reset_configuration!
-  end
-
   let(:sqli_blocking_ruleset) do
     {
       'version' => '2.2',
@@ -87,6 +58,35 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
     end
 
     stack.to_app
+  end
+
+  before do
+    Datadog.configure do |c|
+      c.tracing.enabled = true
+
+      c.appsec.enabled = true
+      c.appsec.instrument :rack
+
+      c.appsec.waf_timeout = 10_000_000 # in us
+      c.appsec.ip_passlist = ip_passlist
+      c.appsec.ip_denylist = ip_denylist
+      c.appsec.user_id_denylist = user_id_denylist
+      c.appsec.ruleset = sqli_blocking_ruleset
+      c.appsec.api_security.enabled = false
+      c.appsec.api_security.sample_rate = 0.0
+
+      c.remote.enabled = false
+    end
+
+    # NOTE: Don't reach the agent in any way
+    allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
+    allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
+      .and_return(true)
+  end
+
+  after do
+    Datadog.configuration.reset!
+    Datadog.registry[:rack].reset_configuration!
   end
 
   subject(:response) { last_response }
