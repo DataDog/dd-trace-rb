@@ -53,31 +53,27 @@ RSpec.describe Datadog::AppSec::APISecurity do
         Datadog.configuration.reset!
       end
 
+      before { allow(trace).to receive(:priority_sampled?).and_return(false) }
+
       it { expect(described_class.sample_trace?(trace)).to be(true) }
     end
 
     context 'when running in normal mode' do
       around do |example|
-        Datadog.configure do |c|
-          c.apm.tracing.enabled = true
-          c.tracing.sampler = sampler
-        end
-
+        Datadog.configure { |c| c.apm.tracing.enabled = true }
         example.run
       ensure
         Datadog.configuration.reset!
       end
 
-      let(:sampler) { instance_double(Datadog::Tracing::Sampling::PrioritySampler) }
-
-      context 'when sampler allows trace' do
-        before { allow(sampler).to receive(:sample!).with(trace).and_return(true) }
+      context 'when trace is priority sampled' do
+        before { allow(trace).to receive(:priority_sampled?).and_return(true) }
 
         it { expect(described_class.sample_trace?(trace)).to be(true) }
       end
 
-      context 'when sampler rejects trace' do
-        before { allow(sampler).to receive(:sample!).with(trace).and_return(false) }
+      context 'when trace is not priority sampled' do
+        before { allow(trace).to receive(:priority_sampled?).and_return(false) }
 
         it { expect(described_class.sample_trace?(trace)).to be(false) }
       end
