@@ -176,10 +176,11 @@ RSpec.describe 'Schema extraction for API security' do
       end
     end
 
-    context 'when APM sampler rejects the trace' do
-      before { get('/api/products') }
-
-      let(:sampler) { instance_double(Datadog::Tracing::Sampling::Sampler, sample!: false) }
+    context 'when trace is not priority sampled' do
+      before do
+        allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(false)
+        get('/api/products')
+      end
 
       it 'does not extract schema' do
         expect(response).to be_ok
@@ -239,14 +240,34 @@ RSpec.describe 'Schema extraction for API security' do
       get('/api/products')
     end
 
-    let(:sampler) { instance_double(Datadog::Tracing::Sampling::Sampler, sample!: false) }
+    context 'when trace is not priority sampled' do
+      before do
+        allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(false)
+        get('/api/products')
+      end
 
-    it 'extracts request and response schema even if tracer is not sampling' do
-      expect(response).to be_ok
-      expect(http_service_entry_span.tags).to include(
-        match(%r{_dd.appsec.s.req.*}),
-        match(%r{_dd.appsec.s.res.*})
-      )
+      it 'extracts request and response schema even if tracer is not sampling' do
+        expect(response).to be_ok
+        expect(http_service_entry_span.tags).to include(
+          match(%r{_dd.appsec.s.req.*}),
+          match(%r{_dd.appsec.s.res.*})
+        )
+      end
+    end
+
+    context 'when trace is priority sampled' do
+      before do
+        allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(true)
+        get('/api/products')
+      end
+
+      it 'extracts request and response schema even if tracer is not sampling' do
+        expect(response).to be_ok
+        expect(http_service_entry_span.tags).to include(
+          match(%r{_dd.appsec.s.req.*}),
+          match(%r{_dd.appsec.s.res.*})
+        )
+      end
     end
   end
 

@@ -15,9 +15,8 @@ module Datadog
       end
 
       def self.sample_trace?(trace)
-        return true unless Datadog.configuration.apm.tracing.enabled
-
-        Datadog.send(:components).tracer.sampler.sample!(trace)
+        # NOTE: Reads as "if trace is priority sampled or if in standalone mode"
+        trace.priority_sampled? || !Datadog.configuration.apm.tracing.enabled
       end
     end
   end
