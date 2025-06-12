@@ -6,6 +6,8 @@
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
 
+static bool first_init = true;
+
 // Used to report Ruby VM crashes.
 // Once initialized, segfaults will be reported automatically using libdatadog.
 
@@ -62,7 +64,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     // "Process.kill('SEGV', Process.pid)" gets run.
     //
     // This actually changed in libdatadog 14, so I could see no issues with `create_alt_stack = true`, but not
-    // overridding what Ruby set up seems a saner default to keep anyway.
+    // overriding what Ruby set up seems a saner default to keep anyway.
     .create_alt_stack = false,
     .use_alt_stack = true,
     .endpoint = endpoint,
@@ -92,8 +94,13 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   ddog_VoidResult result =
     action == start_action ?
-      ddog_crasht_init(config, receiver_config, metadata) :
+      (first_init ?
+        ddog_crasht_init(config, receiver_config, metadata) :
+        ddog_crasht_reconfigure(config, receiver_config, metadata)
+      ) :
       ddog_crasht_update_on_fork(config, receiver_config, metadata);
+
+  first_init = false;
 
   // Clean up before potentially raising any exceptions
   ddog_Vec_Tag_drop(tags);
@@ -108,7 +115,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 }
 
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
-  ddog_VoidResult result = ddog_crasht_shutdown();
+  ddog_VoidResult result = ddog_crasht_disable();
 
   if (result.tag == DDOG_VOID_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to stop the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));

@@ -32,7 +32,7 @@ module Datadog
         @code_provenance_file_name = code_provenance_file_name
         @code_provenance_data = code_provenance_data
         @tags_as_array = tags_as_array
-        @internal_metadata_json = JSON.fast_generate(internal_metadata)
+        @internal_metadata_json = JSON.generate(internal_metadata)
         @info_json = info_json
       end
     end

@@ -286,6 +286,10 @@ RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
         )
       end
 
+      # See https://github.com/sidekiq/sidekiq/blob/aee9da68706536fcacbaad069794644f027c3278/Changes.md?plain=1#L37
+      let(:sidekiq_7_wrapper) { 'ActiveJob::QueueAdapters::SidekiqAdapter::JobWrapper' }
+      let(:sidekiq_8_wrapper) { 'Sidekiq::ActiveJob::Wrapper' }
+
       it 'has correct Sidekiq span' do
         worker.perform_later
 
@@ -295,7 +299,7 @@ RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
 
         expect(span.name).to eq('sidekiq.job')
         expect(span.resource).to eq('EmptyJob')
-        expect(span.get_tag('sidekiq.job.wrapper')).to eq('ActiveJob::QueueAdapters::SidekiqAdapter::JobWrapper')
+        expect(span.get_tag('sidekiq.job.wrapper')).to eq(sidekiq_7_wrapper).or eq(sidekiq_8_wrapper)
         expect(span.get_tag('sidekiq.job.id')).to match(/[0-9a-f]{24}/)
         expect(span.get_tag('sidekiq.job.retry')).to eq('true')
         expect(span.get_tag('sidekiq.job.queue')).to eq('default')

@@ -5,12 +5,9 @@ require 'datadog/core/telemetry/metric'
 
 RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
   let(:id) { double('seq_id') }
-  let(:event) { event_class.new }
+  let(:event) { described_class.new }
 
-  subject(:payload) { event.payload }
-
-  let(:event_class) { described_class }
-  let(:event) { event_class.new(namespace, metrics) }
+  let(:event) { described_class.new(namespace, metrics) }
 
   let(:namespace) { 'general' }
   let(:metric_name) { 'request_count' }
@@ -21,19 +18,23 @@ RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
 
   let(:expected_metric_series) { [metric.to_h] }
 
-  it do
-    is_expected.to eq(
-      {
-        namespace: namespace,
-        series: expected_metric_series
-      }
-    )
+  describe '.payload' do
+    subject(:payload) { event.payload }
+
+    it do
+      is_expected.to eq(
+        {
+          namespace: namespace,
+          series: expected_metric_series
+        }
+      )
+    end
   end
 
   it 'all events to be the same' do
     events =     [
-      event_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
-      event_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
+      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
+      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
     ]
 
     expect(events.uniq).to have(1).item
@@ -41,10 +42,10 @@ RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
 
   it 'all events to be different' do
     events =     [
-      event_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
-      event_class.new('nospace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
-      event_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '2' })]),
-      event_class.new('namespace', []),
+      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
+      described_class.new('nospace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
+      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '2' })]),
+      described_class.new('namespace', []),
 
     ]
 

@@ -92,7 +92,8 @@ module Datadog
             path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
             ld_library_path: ld_library_path,
             tags_as_array: tags.to_a,
-            upload_timeout_seconds: 1
+            # @ivoanjo: On my machine this needs to be > 5 seconds, and seems to work with 10; the extra 15 is extra margin
+            upload_timeout_seconds: 15,
           )
           logger.debug("Crash tracking action: #{action} successful")
         rescue => e

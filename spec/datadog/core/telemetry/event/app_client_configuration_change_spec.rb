@@ -4,12 +4,9 @@ require 'datadog/core/telemetry/event/app_client_configuration_change'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
   let(:id) { double('seq_id') }
-  let(:event) { event_class.new }
+  let(:event) { described_class.new }
 
-  subject(:payload) { event.payload }
-
-  let(:event_class) { described_class }
-  let(:event) { event_class.new(changes, origin) }
+  let(:event) { described_class.new(changes, origin) }
   let(:changes) { { name => value } }
   let(:origin) { double('origin') }
   let(:name) { 'key' }
@@ -19,39 +16,47 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
     allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
   end
 
-  it 'has a list of client configurations' do
-    is_expected.to eq(
-      configuration: [{
-        name: name,
-        value: value,
-        origin: origin,
-        seq_id: id
-      }]
-    )
-  end
+  describe '.payload' do
+    subject(:payload) { event.payload }
 
-  context 'with env_var state configuration' do
-    before do
-      Datadog.configure do |c|
-        c.appsec.sca_enabled = false
-      end
+    it 'has a list of client configurations' do
+      is_expected.to eq(
+        configuration: [{
+          name: name,
+          value: value,
+          origin: origin,
+          seq_id: id
+        }]
+      )
     end
 
-    it 'includes sca enablement configuration' do
-      is_expected.to eq(
-        configuration:
-        [
-          { name: name, value: value, origin: origin, seq_id: id },
-          { name: 'appsec.sca_enabled', value: false, origin: 'code', seq_id: id }
-        ]
-      )
+    context 'with env_var state configuration' do
+      before do
+        Datadog.configure do |c|
+          c.appsec.sca_enabled = false
+        end
+      end
+
+      after do
+        Datadog.configuration.reset!
+      end
+
+      it 'includes sca enablement configuration' do
+        is_expected.to eq(
+          configuration:
+          [
+            { name: name, value: value, origin: origin, seq_id: id },
+            { name: 'appsec.sca_enabled', value: false, origin: 'code', seq_id: id }
+          ]
+        )
+      end
     end
   end
 
   it 'all events to be the same' do
     events =     [
-      event_class.new({ 'key' => 'value' }, 'origin'),
-      event_class.new({ 'key' => 'value' }, 'origin'),
+      described_class.new({ 'key' => 'value' }, 'origin'),
+      described_class.new({ 'key' => 'value' }, 'origin'),
     ]
 
     expect(events.uniq).to have(1).item
@@ -59,11 +64,11 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
 
   it 'all events to be different' do
     events =     [
-      event_class.new({ 'key' => 'value' }, 'origin'),
-      event_class.new({ 'key' => 'value' }, 'origin2'),
-      event_class.new({ 'key' => 'value2' }, 'origin'),
-      event_class.new({ 'key2' => 'value' }, 'origin'),
-      event_class.new({}, 'origin'),
+      described_class.new({ 'key' => 'value' }, 'origin'),
+      described_class.new({ 'key' => 'value' }, 'origin2'),
+      described_class.new({ 'key' => 'value2' }, 'origin'),
+      described_class.new({ 'key2' => 'value' }, 'origin'),
+      described_class.new({}, 'origin'),
     ]
 
     expect(events.uniq).to eq(events)
