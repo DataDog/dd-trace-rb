@@ -11,7 +11,7 @@ require 'datadog/tracing'
 require 'datadog/appsec'
 require 'devise'
 
-RSpec.describe 'Schema extraction for API security' do
+RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
   include Rack::Test::Methods
 
   before do
