@@ -71,8 +71,8 @@ module Datadog
         else
           error_message = result
 
-          Datadog.logger.error("Failed to serialize profiling data: #{error_message}")
-          Datadog::Core::Telemetry::Logger.error("Failed to serialize profiling data")
+          Datadog.logger.warn("Failed to serialize profiling data: #{error_message}")
+          Datadog::Core::Telemetry::Logger.error("Failed to serialize profiling data: #{error_message}")
 
           nil
         end

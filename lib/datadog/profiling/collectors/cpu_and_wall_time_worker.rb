@@ -33,6 +33,9 @@ module Datadog
             Datadog.logger.warn(
               "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!"
             )
+            Datadog::Core::Telemetry::Logger.error(
+              "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!"
+            )
           end
 
           self.class._native_initialize(
@@ -77,6 +80,7 @@ module Datadog
                 "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
               )
               on_failure_proc&.call
+              Datadog::Core::Telemetry::Logger.report(e, description: "CpuAndWallTimeWorker thread error: #{e.message}")
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
             @worker_thread.thread_variable_set(:fork_safe, true)
