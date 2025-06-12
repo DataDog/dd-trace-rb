@@ -538,6 +538,8 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
   // happen while holding on to the GVL.
+  // NOTE: While rare, it's possible for the GVL to be released inside this function (see comments on `heap_recorder_update`)
+  // and thus don't assume this is an "atomic" step -- other threads may get some running time in the meanwhile.
   heap_recorder_prepare_iteration(state->heap_recorder);
   long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
 

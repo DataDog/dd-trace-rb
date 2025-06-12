@@ -69,7 +69,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: true # required for `git` operations (commit & push) at later steps
+          persist-credentials: false
 
       - name: Download artifacts for all runtimes
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -96,6 +96,7 @@ jobs:
           labels: dev/internal, integrations
           commit-message: "[🤖] Update Latest Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
+          sign-commits: true
           body: |
             _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
 
