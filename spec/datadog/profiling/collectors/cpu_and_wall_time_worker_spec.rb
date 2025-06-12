@@ -161,6 +161,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       it do
         expect(Datadog.logger).to receive(:warn).with(/GVL profiling is not supported/)
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report)
         proc_called = Queue.new
 
         cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
