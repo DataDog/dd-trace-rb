@@ -50,6 +50,8 @@ module Datadog
           "Detected issue with profiler (#{failed_component} component), stopping profiling. " \
           "See previous log messages for details."
         )
+        Datadog::Core::Telemetry::Logger
+          .error("Detected issue with profiler (#{failed_component} component), stopping profiling")
 
         # We explicitly not stop the crash tracker in this situation, under the assumption that, if a component failed,
         # we're operating in a degraded state and crash tracking may still be helpful.
