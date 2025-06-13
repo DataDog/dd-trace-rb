@@ -212,21 +212,16 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     describe '#ip_passlist' do
-      subject(:ip_passlist) { settings.appsec.ip_passlist }
-
-      context 'default value' do
-        it { is_expected.to eq [] }
+      it 'returns default value' do
+        expect(settings.appsec.ip_passlist).to eq([])
       end
     end
 
     describe '#ip_passlist=' do
-      subject(:set_appsec_ip_passlist) { settings.appsec.ip_passlist = appsec_ip_passlist }
-
       context 'when given a value' do
-        let(:appsec_ip_passlist) { ['1.1.1.1'] }
-
         it 'sets the value' do
-          set_appsec_ip_passlist
+          settings.appsec.ip_passlist = ['1.1.1.1']
+
           expect(settings.appsec.ip_passlist).to eq(['1.1.1.1'])
         end
 
@@ -235,7 +230,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
 
         it 'logs a deprecation warning when set to a non-default value' do
-          expect { set_appsec_ip_passlist }.to log_deprecation(
+          expect { settings.appsec.ip_passlist = ['1.1.1.1'] }.to log_deprecation(
             'ip_passlist setting is deprecated and will be removed in the next release'
           )
         end
@@ -243,21 +238,16 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     describe '#ip_denylist' do
-      subject(:ip_denylist) { settings.appsec.ip_denylist }
-
-      context 'default value' do
-        it { is_expected.to eq [] }
+      it 'returns default value' do
+        expect(settings.appsec.ip_denylist).to eq([])
       end
     end
 
     describe '#ip_denylist=' do
-      subject(:set_appsec_ip_denylist) { settings.appsec.ip_denylist = appsec_ip_denylist }
-
       context 'when given a value' do
-        let(:appsec_ip_denylist) { ['1.1.1.1'] }
-
         it 'sets the value' do
-          set_appsec_ip_denylist
+          settings.appsec.ip_denylist = ['1.1.1.1']
+
           expect(settings.appsec.ip_denylist).to eq(['1.1.1.1'])
         end
 
@@ -266,7 +256,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
 
         it 'logs a deprecation warning when set to a non-default value' do
-          expect { set_appsec_ip_denylist }.to log_deprecation(
+          expect { settings.appsec.ip_denylist = ['1.1.1.1'] }.to log_deprecation(
             'ip_denylist setting is deprecated and will be removed in the next release'
           )
         end
@@ -274,21 +264,16 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     describe '#user_id_denylist' do
-      subject(:user_id_denylist) { settings.appsec.user_id_denylist }
-
-      context 'default value' do
-        it { is_expected.to eq [] }
+      it 'returns default value' do
+        expect(settings.appsec.user_id_denylist).to eq([])
       end
     end
 
     describe '#user_id_denylist=' do
-      subject(:set_appsec_user_id_denylist) { settings.appsec.user_id_denylist = appsec_user_id_denylist }
-
       context 'when given a value' do
-        let(:appsec_user_id_denylist) { ['1'] }
-
         it 'sets the value' do
-          set_appsec_user_id_denylist
+          settings.appsec.user_id_denylist = ['1']
+
           expect(settings.appsec.user_id_denylist).to eq(['1'])
         end
 
@@ -297,7 +282,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
 
         it 'logs a deprecation warning when set to a non-default value' do
-          expect { set_appsec_user_id_denylist }.to log_deprecation(
+          expect { settings.appsec.user_id_denylist = ['1'] }.to log_deprecation(
             'user_id_denylist setting is deprecated and will be removed in the next release'
           )
         end

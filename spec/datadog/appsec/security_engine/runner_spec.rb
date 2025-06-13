@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
+require 'libddwaf'
+
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_loader'
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
-  before do
-    require 'libddwaf'
-  end
-
   let(:waf_context) { instance_double(Datadog::AppSec::WAF::Context) }
 
   subject(:runner) { described_class.new(waf_context) }

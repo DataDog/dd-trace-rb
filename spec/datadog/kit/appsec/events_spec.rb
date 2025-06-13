@@ -2,6 +2,8 @@
 
 require 'spec_helper'
 
+require 'libddwaf'
+
 require 'datadog/tracing/trace_operation'
 require 'datadog/kit/appsec/events'
 
@@ -22,7 +24,6 @@ RSpec.describe Datadog::Kit::AppSec::Events do
     let(:appsec_span) { trace_op.build_span('root') }
 
     before do
-      Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
       allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
     end
 

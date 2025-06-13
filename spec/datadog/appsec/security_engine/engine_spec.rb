@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'libddwaf'
+
 require 'datadog/appsec/spec_helper'
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
@@ -12,8 +14,6 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
   end
 
   before do
-    require 'libddwaf'
-
     allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
   end
 

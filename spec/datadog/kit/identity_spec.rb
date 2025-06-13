@@ -2,6 +2,8 @@ require 'spec_helper'
 
 require 'time'
 
+require 'libddwaf'
+
 require 'datadog/tracing/trace_operation'
 require 'datadog/kit/identity'
 
@@ -222,11 +224,9 @@ RSpec.describe Datadog::Kit::Identity do
         Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
       end
       let(:waf_runner) { security_engine.new_runner }
-      let(:appsec_span) { trace_op.build_span('root') }
       let(:appsec_active_context) { nil }
 
       before do
-        Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
         allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
       end
 

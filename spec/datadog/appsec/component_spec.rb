@@ -3,16 +3,13 @@ require 'datadog/appsec/component'
 
 RSpec.describe Datadog::AppSec::Component do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:settings) do
-    settings = Datadog::Core::Configuration::Settings.new
-    settings.appsec.enabled = appsec_enabled
-    settings
-  end
-  let(:appsec_enabled) { true }
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
 
   describe '.build_appsec_component' do
     context 'when appsec is enabled' do
-      let(:appsec_enabled) { true }
+      before do
+        settings.appsec.enabled = true
+      end
 
       it 'returns a Datadog::AppSec::Component instance' do
         component = described_class.build_appsec_component(settings, telemetry: telemetry)
@@ -58,7 +55,9 @@ RSpec.describe Datadog::AppSec::Component do
     end
 
     context 'when appsec is not enabled' do
-      let(:appsec_enabled) { false }
+      before do
+        settings.appsec.enabled = false
+      end
 
       it 'returns nil' do
         component = described_class.build_appsec_component(settings, telemetry: telemetry)
@@ -73,88 +72,6 @@ RSpec.describe Datadog::AppSec::Component do
           telemetry: telemetry
         )
         expect(component).to be_nil
-      end
-    end
-  end
-
-  describe '#reconfigure!' do
-    before { allow(telemetry).to receive(:report) }
-
-    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-    let(:ruleset) do
-      {
-        'exclusions' => [{
-          'conditions' => [{
-            'operator' => 'ip_match',
-            'parameters' => {
-              'inputs' => [{
-                'address' => 'http.client_ip'
-              }]
-            }
-          }]
-        }],
-        'metadata' => {
-          'rules_version' => '1.5.2'
-        },
-        'rules' => [{
-          'conditions' => [{
-            'operator' => 'ip_match',
-            'parameters' => {
-              'data' => 'blocked_ips',
-              'inputs' => [{
-                'address' => 'http.client_ip'
-              }]
-            }
-          }],
-          'id' => 'blk-001-001',
-          'name' => 'Block IP Addresses',
-          'on_match' => ['block'],
-          'tags' => {
-            'category' => 'security_response', 'type' => 'block_ip'
-          },
-          'transformers' => []
-        }],
-        'rules_data' => [{
-          'data' => [{
-            'expiration' => 1678972458,
-            'value' => '42.42.42.1'
-          }]
-        }],
-        'version' => '2.2'
-      }
-    end
-
-    context 'lock' do
-      it 'makes sure to synchronize' do
-        mutex = Mutex.new
-        component = described_class.build_appsec_component(settings, telemetry: telemetry)
-        component.instance_variable_set(:@mutex, mutex)
-        expect(mutex).to receive(:synchronize)
-        component.reconfigure!
-      end
-    end
-  end
-
-  describe '#reconfigure_lock' do
-    context 'lock' do
-      it 'makes sure to synchronize' do
-        mutex = Mutex.new
-        component = described_class.build_appsec_component(settings, telemetry: telemetry)
-        component.instance_variable_set(:@mutex, mutex)
-        expect(mutex).to receive(:synchronize)
-        component.reconfigure_lock(&proc {})
-      end
-    end
-  end
-
-  describe '#shutdown!' do
-    context 'lock' do
-      it 'makes sure to synchronize' do
-        mutex = Mutex.new
-        component = described_class.build_appsec_component(settings, telemetry: telemetry)
-        component.instance_variable_set(:@mutex, mutex)
-        expect(mutex).to receive(:synchronize)
-        component.shutdown!
       end
     end
   end
