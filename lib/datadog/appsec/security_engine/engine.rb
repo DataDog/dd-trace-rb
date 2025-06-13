@@ -7,7 +7,7 @@ module Datadog
       # It also rebuilds WAF handle from the WAF builder when configuration changes.
       class Engine
         DEFAULT_RULES_CONFIG_PATH = 'ASM_DD/default'
-        TELEMETRY_ACTIONS = %i[init update].freeze
+        TELEMETRY_ACTIONS = %w[init update].freeze
         DIAGNOSTICS_CONFIG_KEYS = %w[
           rules
           custom_rules
@@ -37,7 +37,7 @@ module Datadog
             }
           )
 
-          load_default_config(telemetry: telemetry, action: :init)
+          load_default_config(telemetry: telemetry, action: 'init')
 
           @waf_handle = @waf_builder.build_handle
           @waf_addresses = @waf_handle.known_addresses
@@ -71,14 +71,14 @@ module Datadog
           diagnostics = @waf_builder.add_or_update_config(config, path: path)
 
           @ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
-          report_config_errors_via_telemetry(diagnostics, action: :update, telemetry: AppSec.telemetry)
+          report_config_errors_via_telemetry(diagnostics, action: 'update', telemetry: AppSec.telemetry)
 
           # we need to load default config if diagnostics contains top-level error for rules or processors
           if @is_ruleset_update &&
               (diagnostics.key?('error') ||
               diagnostics.dig('rules', 'error') ||
               diagnostics.dig('processors', 'errors'))
-            load_default_config(telemetry: AppSec.telemetry, action: :update)
+            load_default_config(telemetry: AppSec.telemetry, action: 'update')
           end
 
           diagnostics
@@ -93,7 +93,7 @@ module Datadog
           result = @waf_builder.remove_config_at_path(path)
 
           if result && path != DEFAULT_RULES_CONFIG_PATH && path.include?('ASM_DD')
-            load_default_config(telemetry: AppSec.telemetry, action: :update)
+            load_default_config(telemetry: AppSec.telemetry, action: 'update')
           end
 
           result
@@ -153,7 +153,7 @@ module Datadog
           common_tags = {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
             event_rules_version: diagnostics.fetch('ruleset_version', @ruleset_version).to_s,
-            action: action.to_s
+            action: action
           }
 
           if diagnostics['error']
