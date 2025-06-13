@@ -85,8 +85,8 @@ module Datadog
                   next value if value.nil? || value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
-                    'ip_passlist setting is deprecated and will be removed in the next release, ' \
-                    'please configure it using Remote Configuration'
+                    'The ip_passlist setting is deprecated and will be removed in the next release. ' \
+                    'Please migrate this configuration to your service settings via the Datadog UI'
                   end
 
                   value
@@ -101,8 +101,8 @@ module Datadog
                   next value if value.nil? || value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
-                    'ip_denylist setting is deprecated and will be removed in the next release' \
-                    'please configure it using Remote Configuration'
+                    'The ip_denylist setting is deprecated and will be removed in the next release. ' \
+                    'Please migrate this configuration to your service settings via the Datadog UI'
                   end
 
                   value
@@ -117,8 +117,8 @@ module Datadog
                   next value if value.nil? || value.empty?
 
                   Datadog::Core.log_deprecation(disallowed_next_major: false) do
-                    'user_id_denylist setting is deprecated and will be removed in the next release' \
-                    'please configure it using Remote Configuration'
+                    'The user_id_denylist setting is deprecated and will be removed in the next release. ' \
+                    'Please migrate this configuration to your service settings via the Datadog UI'
                   end
 
                   value
