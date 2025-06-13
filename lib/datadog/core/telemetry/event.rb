@@ -149,10 +149,15 @@ module Datadog
                                     else
                                       "unknown"
                                     end
+            # Track ssi configurations
+            list.push(
+              conf_value('instrumentation_source', instrumentation_source, seq_id),
+              conf_value('DD_INJECTION_ENABLED', ENV['DD_INJECTION_ENABLED'], seq_id),
+              conf_value('DD_INJECT_FORCE', ENV['DD_INJECT_FORCE'] , seq_id),
+            )
             # Add some more custom additional payload values here
             list.push(
               conf_value('tracing.auto_instrument.enabled', !defined?(Datadog::AutoInstrument::LOADED).nil?, seq_id),
-              conf_value('instrumentation_source', instrumentation_source, seq_id),
               conf_value(
                 'tracing.writer_options.buffer_size',
                 to_value(config.tracing.writer_options[:buffer_size]),
