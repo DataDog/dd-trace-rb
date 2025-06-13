@@ -49,10 +49,23 @@ RSpec.describe Datadog::AppSec::Remote do
 
   describe '.receivers' do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+    let(:security_engine) { instance_double(Datadog::AppSec::SecurityEngine) }
 
     context 'remote configuration disabled' do
       before do
-        expect(described_class).to receive(:remote_features_enabled?).and_return(false)
+        allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
+        allow(described_class).to receive(:remote_features_enabled?).and_return(false)
+      end
+
+      it 'returns empty array' do
+        expect(described_class.receivers(telemetry)).to eq([])
+      end
+    end
+
+    context 'security engine is not initialized' do
+      before do
+        allow(Datadog::AppSec).to receive(:security_engine).and_return(nil)
+        allow(described_class).to receive(:remote_features_enabled?).and_return(true)
       end
 
       it 'returns empty array' do
@@ -62,7 +75,8 @@ RSpec.describe Datadog::AppSec::Remote do
 
     context 'remote configuration enabled' do
       before do
-        expect(described_class).to receive(:remote_features_enabled?).and_return(true)
+        allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
+        allow(described_class).to receive(:remote_features_enabled?).and_return(true)
       end
 
       it 'returns receivers' do
