@@ -71,7 +71,7 @@ module Datadog
           diagnostics = @waf_builder.add_or_update_config(config, path: path)
 
           @ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
-          report_config_errors_via_telemetry(diagnostics, action: 'update', telemetry: AppSec.telemetry)
+          report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
 
           # we need to load default config if diagnostics contains top-level error for rules or processors
           if @is_ruleset_update &&
@@ -142,12 +142,12 @@ module Datadog
           diagnostics = @waf_builder.add_or_update_config(config, path: DEFAULT_RULES_CONFIG_PATH)
 
           @ruleset_version = diagnostics['ruleset_version']
-          report_config_errors_via_telemetry(diagnostics, action: action, telemetry: telemetry)
+          report_configuration_diagnostics(diagnostics, action: action, telemetry: telemetry)
 
           diagnostics
         end
 
-        def report_config_errors_via_telemetry(diagnostics, action:, telemetry:)
+        def report_configuration_diagnostics(diagnostics, action:, telemetry:)
           raise ArgumentError, 'action must be one of TELEMETRY_ACTIONS' unless TELEMETRY_ACTIONS.include?(action)
 
           common_tags = {
