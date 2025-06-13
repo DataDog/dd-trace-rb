@@ -1,12 +1,12 @@
 require 'fileutils'
 
-namespace :rbs do  # rubocop:disable Metrics/BlockLength
+namespace :rbs do
   task :stale do |_task, args|
     glob = args.to_a.map { |g| /\.rbs$/.match?(g) ? g : "#{g}/**/*.rbs" }
     glob = ['sig/**/*.rbs'] if glob.empty?
 
     stale = Dir[*glob].reject do |sig|
-      next if !/^sig\//.match?(sig) # rubocop:disable Style/RegexpLiteral
+      next if !/^sig\//.match?(sig)
       next if !/\.rbs$/.match?(sig)
 
       lib = sig.sub(/^sig/, 'lib').sub(/\.rbs$/, '.rb')
@@ -46,7 +46,7 @@ namespace :rbs do  # rubocop:disable Metrics/BlockLength
     glob = ['lib/**/*.rb'] if glob.empty?
 
     missing = Dir[*glob].reject do |lib|
-      next if !/^lib\//.match?(lib) # rubocop:disable Style/RegexpLiteral
+      next if !/^lib\//.match?(lib)
       next if !/\.rb$/.match?(lib)
 
       sig = lib.sub(/^lib/, 'sig').sub(/\.rb$/, '.rbs')
@@ -85,7 +85,7 @@ namespace :rbs do  # rubocop:disable Metrics/BlockLength
     glob = ['sig/**/*.rbs'] if glob.empty?
 
     stale = Dir[*glob].reject do |sig|
-      next if !/^sig\//.match?(sig) # rubocop:disable Style/RegexpLiteral
+      next if !/^sig\//.match?(sig)
       next if !/\.rbs$/.match?(sig)
 
       lib = sig.sub(/^sig/, 'lib').sub(/\.rbs$/, '.rb')
@@ -115,7 +115,7 @@ namespace :rbs do  # rubocop:disable Metrics/BlockLength
     glob = ['lib/**/*.rb'] if glob.empty?
 
     Dir[*glob].each do |lib|
-      next if !/^lib\//.match?(lib) # rubocop:disable Style/RegexpLiteral
+      next if !/^lib\//.match?(lib)
       next if !/\.rb$/.match?(lib)
 
       sig = lib.sub(/^lib/, 'sig').sub(/\.rb$/, '.rbs')
