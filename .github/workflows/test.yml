@@ -116,7 +116,7 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     container:
-      image: datadog/ci
+      image: datadog/ci:v3.7.1
       credentials:
         username: "${{ secrets.DOCKERHUB_USERNAME }}"
         password: "${{ secrets.DOCKERHUB_TOKEN }}"
