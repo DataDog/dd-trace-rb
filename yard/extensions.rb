@@ -45,7 +45,7 @@ YARD::Parser::SourceParser.after_parse_list do
 
       if obj.has_tag?('public_api')
         log.warn(
-          "The @public_api tag should be added to modules and classes only: #{obj.files.join(':')}.\n" \
+          "The @public_api tag should be added to modules and classes only: #{obj.files.join(":")}.\n" \
           'Please move the tag to the encompassing module or class. ' \
           'You can hide non-public methods, attributes, and constants with the `@!visibility private` directive.'
         )
@@ -120,7 +120,7 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
     YARD
 
     statement.block.last.each do |node|
-      parse_block(node, :namespace => generated_class)
+      parse_block(node, namespace: generated_class)
     end
   end
 end

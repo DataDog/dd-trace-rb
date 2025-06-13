@@ -16,20 +16,13 @@ ignore:
 
   # This disables standardrb for the rest of dd-trace-rb
   # except those products: profiling, appsec.
-  - .pryrc
-  - .simplecov
-  - Appraisals
   - datadog.gemspec
-  - Gemfile
   - Rakefile
-  - Steepfile
   - appraisal/**/**
   - benchmarks/**/**
   - gemfiles/**/**
   - integration/**/**
   - lib-injection/**/**
-  - ext/libdatadog_extconf_helpers.rb
-  - ext/libdatadog_api/**/**
   - lib/*
   - lib/datadog/*
   - lib/datadog/core/vendor/**/**
@@ -38,13 +31,8 @@ ignore:
   - lib/datadog/tracing/**/**
   - spec/*
   - spec/datadog/*
-  - spec/datadog/benchmark/**/**
   - spec/datadog/core/**/**
   - spec/datadog/di/integration/*_test_class*.rb
-  - spec/datadog/kit/**/**
   - spec/datadog/opentelemetry/**/**
   - spec/datadog/tracing/**/**
   - spec/support/**/**
-  - tasks/**/**
-  - tools/**/**
-  - yard/**/**

@@ -36,7 +36,7 @@ RSpec.describe 'Gem loading' do
 
   context 'timing' do
     let(:program) do
-      <<-'RUBY'
+      <<-RUBY
       require 'benchmark'
       bm = Benchmark.measure do
         require 'datadog'
@@ -58,7 +58,7 @@ RSpec.describe 'Gem loading' do
     end
 
     def run_ruby
-      output = super()
+      output = super
 
       before, after = output.split
       after.to_i - before.to_i

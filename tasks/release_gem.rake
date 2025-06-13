@@ -5,7 +5,7 @@ Rake::Task["build"].enhance do
 end
 
 desc 'Checks executed before gem is built'
-task :'build:pre_check' do
+task :"build:pre_check" do
   require 'rspec'
   RSpec.world.reset # If any other tests ran before, flushes them
   ret = RSpec::Core::Runner.run(['spec/datadog/release_gem_spec.rb'])
@@ -13,7 +13,7 @@ task :'build:pre_check' do
 end
 
 desc 'Checks executed after gem is built'
-task :'build:after_check' do
+task :"build:after_check" do
   require 'rspec'
   RSpec.world.reset # If any other tests ran before, flushes them
   ret = RSpec::Core::Runner.run(['spec/datadog/gem_packaging_spec.rb'])
@@ -21,7 +21,7 @@ task :'build:after_check' do
 end
 
 desc 'Create a new indexed repository'
-task :'release:gem' do
+task :"release:gem" do
   raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
   # load existing deployed gems
   sh "aws s3 cp --exclude 'docs/*' --recursive s3://#{S3_BUCKET}/#{S3_DIR}/ ./rubygems/"

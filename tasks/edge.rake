@@ -24,8 +24,8 @@ namespace :edge do
 
       Bundler.with_unbundled_env do
         output, = Open3.capture2e(
-          { 'BUNDLE_GEMFILE' => gemfile.to_s },
-          "bundle lock --update=#{gemspec_runtime_dependencies.map(&:name).join(' ')}"
+          {'BUNDLE_GEMFILE' => gemfile.to_s},
+          "bundle lock --update=#{gemspec_runtime_dependencies.map(&:name).join(" ")}"
         )
 
         puts output
@@ -65,7 +65,7 @@ namespace :edge do
         gemfile = AppraisalConversion.to_bundle_gemfile(group)
 
         Bundler.with_unbundled_env do
-          output, = Open3.capture2e({ 'BUNDLE_GEMFILE' => gemfile.to_s }, "bundle lock --update=#{gem}")
+          output, = Open3.capture2e({'BUNDLE_GEMFILE' => gemfile.to_s}, "bundle lock --update=#{gem}")
 
           puts output
         end

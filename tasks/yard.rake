@@ -1,4 +1,3 @@
-
 if Gem.loaded_specs["yard"]
   require 'yard'
 else

@@ -4,7 +4,7 @@ require 'benchmark/ips'
 require 'datadog'
 require 'mysql2'
 
-RSpec.describe 'SQL comment propagation', :order => :defined do
+RSpec.describe 'SQL comment propagation', order: :defined do
   before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
 
   describe 'with `mysql2' do
@@ -96,7 +96,7 @@ RSpec.describe 'SQL comment propagation', :order => :defined do
           it do
             test_client = Class.new(Mysql2::Client) do
               def query(sql, options = {})
-                super(sql, options)
+                super
               end
             end
 

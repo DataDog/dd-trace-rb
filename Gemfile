@@ -8,4 +8,4 @@
 # If you are not familiar with handling multiple Ruby versions. It is recommended
 # to used `docker compose` for development, which already handles the Ruby version for you.
 
-eval_gemfile("#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION.split('.').take(2).join('.')}.gemfile")
+eval_gemfile("#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION.split(".").take(2).join(".")}.gemfile")
