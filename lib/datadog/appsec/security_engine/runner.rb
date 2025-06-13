@@ -54,7 +54,7 @@ module Datadog
           @mutex.unlock
         end
 
-        def finalize
+        def finalize!
           @waf_context.finalize!
         end
 

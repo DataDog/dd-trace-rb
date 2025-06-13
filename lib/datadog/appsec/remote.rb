@@ -58,10 +58,11 @@ module Datadog
 
         def receivers(telemetry)
           return [] unless remote_features_enabled?
-          return [] unless AppSec.security_engine
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
+            next unless AppSec.security_engine
+
             changes.each do |change|
               content = repository[change.path]
               next unless content

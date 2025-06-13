@@ -62,17 +62,6 @@ RSpec.describe Datadog::AppSec::Remote do
       end
     end
 
-    context 'security engine is not initialized' do
-      before do
-        allow(Datadog::AppSec).to receive(:security_engine).and_return(nil)
-        allow(described_class).to receive(:remote_features_enabled?).and_return(true)
-      end
-
-      it 'returns empty array' do
-        expect(described_class.receivers(telemetry)).to eq([])
-      end
-    end
-
     context 'remote configuration enabled' do
       before do
         allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)

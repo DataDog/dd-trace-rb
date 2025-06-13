@@ -21,7 +21,7 @@ module Datadog
         end
 
         def deactivate
-          active&.finalize
+          active&.finalize!
         ensure
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = nil
         end
@@ -66,8 +66,8 @@ module Datadog
         Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
       end
 
-      def finalize
-        @waf_runner.finalize
+      def finalize!
+        @waf_runner.finalize!
       end
     end
   end

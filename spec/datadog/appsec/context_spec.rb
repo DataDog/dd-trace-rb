@@ -67,7 +67,7 @@ RSpec.describe Datadog::AppSec::Context do
     context 'when active context is set' do
       before do
         described_class.activate(context)
-        expect(context).to receive(:finalize).and_call_original
+        expect(context).to receive(:finalize!).and_call_original
       end
 
       it 'unsets the active context' do
@@ -78,7 +78,7 @@ RSpec.describe Datadog::AppSec::Context do
     context 'when error happen during deactivation' do
       before do
         described_class.activate(context)
-        expect(context).to receive(:finalize).and_raise(RuntimeError.new('Ooops'))
+        expect(context).to receive(:finalize!).and_raise(RuntimeError.new('Ooops'))
       end
 
       it 'raises underlying exception and unsets the active context' do

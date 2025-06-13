@@ -16,7 +16,7 @@ module Datadog
 
         def run: (input_data persistent_data, input_data ephemeral_data, ?::Integer timeout) -> SecurityEngine::result
 
-        def finalize: () -> void
+        def finalize!: () -> void
 
         private
 
