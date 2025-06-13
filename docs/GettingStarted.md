@@ -2717,7 +2717,7 @@ Datadog.configure do |c|
 
   # Optionally, you can configure runtime metrics to generate an additional `runtime-id` tag
   # on the generated metrics, which allows you to filter metrics at the individual process level.
-  # You can also set DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED=true to configure this.
+  # You can also set DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED=true to configure this.
   c.runtime_metrics.experimental_runtime_id_enabled = true
 
   # Optionally, you can configure the Statsd instance used for sending runtime metrics.
