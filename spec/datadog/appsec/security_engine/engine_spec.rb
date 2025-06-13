@@ -63,9 +63,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       before do
         appsec_settings.ruleset = invalid_ruleset
 
-        allow(telemetry).to receive(:inc)
-        allow(telemetry).to receive(:error)
-        allow(telemetry).to receive(:report)
+        allow(telemetry).to receive(:inc).once
+        allow(telemetry).to receive(:error).once
+        allow(telemetry).to receive(:report).once
       end
 
       it 'reports errors count through telemetry under appsec.waf.config_errors' do
@@ -147,7 +147,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
     let(:config_path) { 'datadog/603646/ASM/test-custom-rule' }
 
     it 'returns diagnostics with loaded config identifiers and no errors' do
-      diagnostics = engine.add_or_update_config(custom_rules_config, path: config_path)
+      diagnostics = engine.add_or_update_config(custom_rules_config, path: 'datadog/603646/ASM/test-custom-rule')
 
       aggregate_failures('diagnostics') do
         expect(diagnostics.dig('custom_rules', 'errors')).to be_empty
@@ -227,15 +227,13 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
     end
 
     context 'when config loading fails with top-level error' do
-      let(:invalid_config) { '' }
-
       before do
         allow(telemetry).to receive(:inc)
         allow(telemetry).to receive(:error)
       end
 
       it 'returns diagnostics with loaded config identifiers and errors for invalid rules' do
-        diagnostics = engine.add_or_update_config(invalid_config, path: config_path)
+        diagnostics = engine.add_or_update_config('', path: config_path)
 
         expect(diagnostics.fetch('error')).to eq("invalid configuration type, expected 'map', obtained 'string'")
       end
@@ -253,13 +251,13 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           }
         )
 
-        engine.add_or_update_config(invalid_config, path: config_path)
+        engine.add_or_update_config('', path: config_path)
       end
 
       it 'reports top-level error through telemetry' do
         expect(telemetry).to receive(:error).with("invalid configuration type, expected 'map', obtained 'string'")
 
-        engine.add_or_update_config(invalid_config, path: config_path)
+        engine.add_or_update_config('', path: config_path)
       end
     end
 
