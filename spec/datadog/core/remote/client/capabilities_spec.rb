@@ -11,10 +11,6 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
-  before do
-    capabilities
-  end
-
   shared_examples 'matches tracing capabilities only' do
     it 'matches tracing capabilities only' do
       expect(capabilities.base64_capabilities).to eq('IABwAA==')
@@ -61,10 +57,16 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
 
     context 'when enabled' do
+      let(:security_engine) { instance_double(Datadog::AppSec::SecurityEngine) }
+
       let(:settings) do
         settings = Datadog::Core::Configuration::Settings.new
         settings.appsec.enabled = true
         settings
+      end
+
+      before do
+        allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
       end
 
       it 'register capabilities, products, and receivers' do
