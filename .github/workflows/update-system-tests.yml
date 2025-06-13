@@ -1,5 +1,11 @@
 name: Update System Tests
 
+# To run this workflow manually, use the following command:
+#  `gh workflow run "Update System Tests"`
+#
+# with additional arguments:
+#  `gh workflow run "Update System Tests" -f ref=<your-ref>`
+
 on: # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 0 * * 0' # Every Sunday at midnight
@@ -29,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Checkout System Test
         id: system-test-ref
@@ -62,7 +68,7 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Create Pull Request
-        if: ${{ github.event.inputs.dry-run != true }}
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         id: cpr
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
