@@ -1,8 +1,5 @@
 name: Lock Dependencies
 
-# TODO: Make this job mandatory
-# TODO: Make this on workflow_dispatch
-
 on: # yamllint disable-line rule:truthy
   pull_request:
     branches:
@@ -18,7 +15,7 @@ permissions: {}
 jobs:
   dependency:
     name: Dependency changes
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       changes: ${{ steps.changes.outputs.dependencies }}
     steps:
@@ -31,7 +28,7 @@ jobs:
           filters: .github/dependency_filters.yml
 
   lock:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: dependency
     if: ${{ needs.dependency.outputs.changes == 'true' }}
     strategy:
@@ -82,12 +79,10 @@ jobs:
           path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
           retention-days: 1
 
-  # TODO: Change token to trigger workflow automation
-  # > New commit by GITHUB_TOKEN does not trigger workflow automation to prevent infinite loop
   commit:
     name: Commit changes
     needs: lock
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Generate GitHub App Token
         id: generate-token
@@ -104,10 +99,16 @@ jobs:
           path: gemfiles
           pattern: lock-dependency-${{ github.run_id }}-*
           merge-multiple: true
-      - uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5.2.0
+      - run: git diff --color=always
+      - name: Commit changes
+        uses: planetscale/ghcommit-action@6a383e778f6620afde4bf4b45069d3c6983c1ae2 # v0.2.15
         with:
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref }}
           file_pattern: 'gemfiles/*'
           commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
   complete:
     name: Lock Dependencies (complete)

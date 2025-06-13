@@ -46,6 +46,7 @@ jobs:
           labels: dev/internal, integrations
           commit-message: "Test creating supported versions"
           delete-branch: true
+          sign-commits: true
           body: |
             This is a PR to update the table for supported integration versions.
             The supported versions markdown is generated from the minimum and maximum tested versions of each integration,
