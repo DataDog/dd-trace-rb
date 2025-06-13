@@ -58,6 +58,7 @@ Style:
     - "spec/datadog/kit/**/**"
     - "spec/datadog/profiling*"
     - "spec/datadog/profiling/**/*"
+    - "yard/**/*.rb"
 
 Layout:
   Exclude:
@@ -77,6 +78,7 @@ Layout:
     - "spec/datadog/kit/**/**"
     - "spec/datadog/profiling/*"
     - "spec/datadog/profiling/**/**"
+    - "yard/**/*.rb"
 
 Layout/LineLength:
   Max: 124
