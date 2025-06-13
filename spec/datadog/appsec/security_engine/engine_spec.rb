@@ -95,10 +95,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
 
   describe '#finalize!' do
     it 'finalizes waf builder and waf handle' do
-      expect(engine.instance_variable_get(:@waf_builder)).to receive(:finalize!)
-      expect(engine.instance_variable_get(:@waf_handle)).to receive(:finalize!)
-
       engine.finalize!
+
+      expect { engine.new_runner }.to raise_error(Datadog::AppSec::WAF::InstanceFinalizedError)
     end
 
     it 'resets waf_addresses' do
