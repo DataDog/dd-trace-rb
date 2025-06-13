@@ -68,14 +68,11 @@ module Datadog
 
               case change.type
               when :insert, :update
-                AppSec.security_engine.add_or_update_config(
-                  config: parse_content(content),
-                  path: change.path.to_s
-                )
+                AppSec.security_engine.add_or_update_config(parse_content(content), path: change.path.to_s) # steep:ignore
 
                 content.applied
               when :delete
-                AppSec.security_engine.remove_config_at_path(change.path.to_s)
+                AppSec.security_engine.remove_config_at_path(change.path.to_s) # steep:ignore
 
                 content.applied
               end

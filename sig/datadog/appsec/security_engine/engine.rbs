@@ -24,7 +24,7 @@ module Datadog
 
         def new_runner: () -> SecurityEngine::Runner
 
-        def add_or_update_config: (config: ::Hash[::String, untyped], path: ::String) -> void
+        def add_or_update_config: (::Hash[::String, untyped] config, path: ::String) -> void
 
         def remove_config_at_path: (::String path) -> void
 

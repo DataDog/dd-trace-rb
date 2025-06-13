@@ -171,7 +171,7 @@ RSpec.describe Datadog::AppSec::Remote do
 
         it 'propagates changes to AppSec' do
           expect(Datadog::AppSec.security_engine).to receive(:add_or_update_config).with(
-            config: JSON.parse(rules), path: content.path.to_s
+            JSON.parse(rules), path: content.path.to_s
           )
 
           expect(Datadog::AppSec).to receive(:reconfigure!)

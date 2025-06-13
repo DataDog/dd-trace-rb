@@ -62,7 +62,7 @@ module Datadog
           SecurityEngine::Runner.new(@waf_handle.build_context)
         end
 
-        def add_or_update_config(config:, path:)
+        def add_or_update_config(config, path:)
           @is_ruleset_update = path.include?('ASM_DD')
 
           # default config has to be removed when adding an ASM_DD config
