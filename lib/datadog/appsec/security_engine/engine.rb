@@ -24,6 +24,8 @@ module Datadog
 
         def initialize(appsec_settings:, telemetry:)
           @default_ruleset = appsec_settings.ruleset
+
+          # NOTE: replace appsec_settings argument with default_ruleset when removing these deprecated settings
           @default_ip_denylist = appsec_settings.ip_denylist
           @default_user_id_denylist = appsec_settings.user_id_denylist
           @default_ip_passlist = appsec_settings.ip_passlist
