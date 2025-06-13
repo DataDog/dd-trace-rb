@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Run Ensure CI Success
-        uses: DataDog/ensure-ci-success@727e7fe39ae2e1ce7ea336ec85a7369ab0731754 # v2.1.1
+        uses: DataDog/ensure-ci-success@4a4b720e881d965254a9de2a4f14d1ec0c3d0d7c # v2.2.0
         with:
           # How long to wait before we start checking the job status
           # GitHub's API has a limit, so this helps avoid making too many calls
