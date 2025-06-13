@@ -8,7 +8,7 @@ name: Update System Tests
 
 on: # yamllint disable-line rule:truthy
   schedule:
-    - cron: '0 0 * * 0' # Every Sunday at midnight
+    - cron: '0 0 * * *' # Prepare a pull request every day.
   workflow_dispatch:
     inputs:
       ref:
