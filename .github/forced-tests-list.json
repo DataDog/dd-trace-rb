@@ -1,3 +1,5 @@
 {
-  
+    "PARAMETRIC": [
+        "tests/parametric/test_process_discovery.py"
+    ]
 }
