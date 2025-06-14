@@ -92,7 +92,7 @@ module Datadog
             return if value.nil?
             return value.to_s unless anonymize?
 
-            Anonymizer.anonimyze(value.to_s)
+            Anonymizer.anonymize(value.to_s)
           end
 
           def anonymize?
