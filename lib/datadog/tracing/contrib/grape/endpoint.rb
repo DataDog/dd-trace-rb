@@ -99,7 +99,8 @@ module Datadog
                 request_method = endpoint.options.fetch(:method).first
                 path = endpoint_expand_path(endpoint)
 
-                trace.resource = span.resource
+                trace.resource = span.resource unless trace.resource_override?
+
 
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
