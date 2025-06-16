@@ -1,7 +1,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <ruby.h>
-#include <datadog/common.h>
+#include <datadog/library-config.h>
 
 #include "datadog_ruby_common.h"
 
