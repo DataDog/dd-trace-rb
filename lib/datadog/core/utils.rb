@@ -66,6 +66,13 @@ module Datadog
         placeholder
       end
 
+      def self.encode_tags(hash)
+        # Make sure everything is an utf-8 string, to avoid encoding issues in downstream
+        hash.each_with_object({}) do |(key, value), h|
+          h[utf8_encode(key)] = utf8_encode(value)
+        end
+      end
+
       # @!visibility private
       def self.without_warnings
         # This is typically used when monkey patching functions such as
