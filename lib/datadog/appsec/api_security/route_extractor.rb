@@ -9,6 +9,7 @@ module Datadog
         SINATRA_ROUTE_SEPARATOR = ' '
         GRAPE_ROUTE_KEY = 'grape.routing_args'
         RAILS_ROUTE_KEY = 'action_dispatch.route_uri_pattern'
+        RAILS_ROUTES_KEY = 'action_dispatch.routes'
         RAILS_FORMAT_SUFFIX = '(.:format)'
 
         # HACK: We rely on the fact that each contrib will modify `request.env`
@@ -27,9 +28,12 @@ module Datadog
         #         uses `grape.routing_args` with a hash with a `:route_info` key
         #         that contains a `Grape::Router::Route` object that contains
         #         `Grape::Router::Pattern` object with an `origin` method
-        #       Rails
+        #       Rails < 7.1 (slow path)
+        #         uses `action_dispatch.routes` to store `ActionDispatch::Routing::RouteSet`
+        #         which can recognize requests
+        #       Rails > 7.1 (fast path)
         #         uses `action_dispatch.route_uri_pattern` with a string like
-        #           "/users/:id(.:format)"
+        #         "/users/:id(.:format)"
         #
         # WARNING: This method works only *after* the request has been routed.
         def self.route_pattern(request)
@@ -41,6 +45,13 @@ module Datadog
             "#{request.script_name}#{pattern}"
           elsif request.env.key?(RAILS_ROUTE_KEY)
             request.env[RAILS_ROUTE_KEY].delete_suffix(RAILS_FORMAT_SUFFIX)
+          elsif request.env.key?(RAILS_ROUTES_KEY)
+            pattern = request.env[RAILS_ROUTES_KEY].router
+              .recognize(request) { |route, _| break route.path.spec.to_s }
+
+            # NOTE: If rails can't recognize the request, we are going to fallback
+            #       to generic request path
+            (pattern || request.path).delete_suffix(RAILS_FORMAT_SUFFIX)
           else
             request.path
           end
