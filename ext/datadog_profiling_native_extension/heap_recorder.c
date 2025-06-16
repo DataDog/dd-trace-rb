@@ -310,6 +310,10 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
       #else
         false
       #endif
+      // If we got really unlucky and an allocation showed up during an update (because it triggered an allocation
+      // directly OR because the GVL got released in the middle of an update), let's skip this sample as well.
+      // See notes on `heap_recorder_update` for details.
+      || heap_recorder->updating
     ) {
     heap_recorder->active_recording = &SKIPPED_RECORD;
     return;
@@ -341,6 +345,12 @@ int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, 
   if (heap_recorder == NULL) {
     return 0;
   }
+  if (heap_recorder->active_recording == &SKIPPED_RECORD) {
+    // Short circuit, in this case there's nothing to be done
+    heap_recorder->active_recording = NULL;
+    return 0;
+  }
+
 
   int exception_state;
   end_heap_allocation_args args = {
@@ -369,6 +379,7 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
   heap_recorder->active_recording = NULL;
 
   if (active_recording == &SKIPPED_RECORD) { // special marker when we decided to skip due to sampling
+    // Note: Remember to update the short circuit in end_heap_allocation_recording_with_rb_protect if this logic changes
     return Qnil;
   }
 
@@ -388,15 +399,28 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
   heap_recorder_update(heap_recorder, /* full_update: */ false);
 }
 
+// NOTE: This function needs and assumes it gets called with the GVL being held.
+//       But importantly **some of the operations inside `st_object_record_update` may cause a thread switch**,
+//       so we can't assume a single update happens in a single "atomic" step -- other threads may get some running time
+//       in the meanwhile.
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update) {
   if (heap_recorder->updating) {
-    if (full_update) rb_raise(rb_eRuntimeError, "BUG: full_update should not be triggered during another update");
-
-    // If we try to update while another update is still running, short-circuit.
-    // NOTE: This runs while holding the GVL. But since updates may be triggered from GC activity, there's still
-    //       a chance for updates to be attempted concurrently if scheduling gods so determine.
-    heap_recorder->stats_lifetime.updates_skipped_concurrent++;
-    return;
+    if (full_update) {
+      // There's another thread that's already doing an update :(
+      //
+      // Because there's a lock on the `StackRecorder` (see @no_concurrent_serialize_mutex) then it's not possible that
+      // the other update is a full update.
+      // Thus we expect is happening is that the GVL got released by the other thread in the middle of a non-full update
+      // and the scheduler thread decided now was a great time to serialize the profile.
+      //
+      // So, let's yield the time on the current thread until Ruby goes back to the other thread doing the update and
+      // it finishes cleanly.
+      while (heap_recorder->updating) { rb_thread_schedule(); }
+    } else {
+      // Non-full updates are optional, so let's walk away
+      heap_recorder->stats_lifetime.updates_skipped_concurrent++;
+      return;
+    }
   }
 
   if (heap_recorder->object_records_snapshot != NULL) {
@@ -584,6 +608,7 @@ static int st_object_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t v
   return ST_DELETE;
 }
 
+// NOTE: Some operations inside this function can cause the GVL to be released! Plan accordingly.
 static int st_object_record_update(st_data_t key, st_data_t value, st_data_t extra_arg) {
   long obj_id = (long) key;
   object_record *record = (object_record*) value;
@@ -609,7 +634,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
     return ST_CONTINUE;
   }
 
-  if (!ruby_ref_from_id(LONG2NUM(obj_id), &ref)) {
+  if (!ruby_ref_from_id(LONG2NUM(obj_id), &ref)) { // Note: This function call can cause the GVL to be released
     // Id no longer associated with a valid ref. Need to delete this object record!
     on_committed_object_record_cleanup(recorder, record);
     recorder->stats_last_update.objects_dead++;
@@ -625,7 +650,8 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
   ) {
     // if we were asked to update sizes and this object was not already seen as being frozen,
     // update size again.
-    record->object_data.size = ruby_obj_memsize_of(ref);
+    record->object_data.size = ruby_obj_memsize_of(ref); // Note: This function call can cause the GVL to be released... maybe?
+                                                         //       (With T_DATA for instance, since it can be a custom method supplied by extensions)
     // Check if it's now frozen so we skip a size update next time
     record->object_data.is_frozen = RB_OBJ_FROZEN(ref);
   }

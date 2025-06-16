@@ -40,13 +40,13 @@ jobs:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref || '' }}
 
-      - run: .github/scripts/update_reference.rb
+      - run: .github/scripts/update_reference.sh
         env:
           TARGET: ".github/workflows/system-tests.yml"
           PATTERN: '(\s*SYSTEM_TESTS_REF:\s+)(\S+)(\s+# Automated:.*)'
           REF: ${{ steps.system-test-ref.outputs.commit }}
 
-      - run: .github/scripts/update_reference.rb
+      - run: .github/scripts/update_reference.sh
         env:
           TARGET: ".github/workflows/parametric-tests.yml"
           PATTERN: '(\s*SYSTEM_TESTS_REF:\s+)(\S+)(\s+# Automated:.*)'
@@ -71,11 +71,12 @@ jobs:
           title: '[🤖] Update System Tests'
           base: master
           labels: dev/internal
-          commit-message: "[🤖] Update System Tests: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          commit-message: "[🤖] Update System Tests: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
+          sign-commits: true
           add-paths: |
             .github/
           body: |
-            _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-system-tests.yml)_
+            _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-system-tests.yml)_
             The PR updates the system tests (Updated to commit: ${{ steps.system-test-ref.outputs.commit }})
             Please review the changes and merge when ready
