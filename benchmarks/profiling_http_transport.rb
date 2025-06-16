@@ -25,7 +25,7 @@ class ProfilerHttpTransportBenchmark
     start_fake_webserver
 
     @transport = Datadog::Profiling::HttpTransport.new(
-      agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+      agent_settings: Datadog::Core::Configuration::AgentSettings.new(
         adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
         uds_path: nil,
         ssl: false,
