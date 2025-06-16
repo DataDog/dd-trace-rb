@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/transport/http/adapters/net'
-require 'datadog/core/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings'
 
 RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
   subject(:adapter) { described_class.new(agent_settings) }

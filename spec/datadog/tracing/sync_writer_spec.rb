@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'datadog/core/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings'
 require 'datadog/tracing/pipeline'
 require 'datadog/tracing/pipeline/span_filter'
 require 'datadog/tracing/span'
