@@ -241,6 +241,29 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
     end
   end
 
+  context 'when user is authenticated and mode is anonymization' do
+    before do
+      allow(Datadog::AppSec::Contrib::Devise::Configuration).to receive(:auto_user_instrumentation_mode)
+        .and_return('anonymization')
+
+      user = User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      login_as(user)
+    end
+
+    it 'allows authenticated user to visit public page and tracks it with anonymized user id' do
+      get('/public')
+
+      expect(response).to be_ok
+      expect(response.body).to eq('This is public page')
+
+      expect(http_service_entry_span.tags).to include(
+        'usr.id' => match(%r{anon_[a-z0-9]{32}}),
+        '_dd.appsec.usr.id' => match(%r{anon_[a-z0-9]{32}}),
+        '_dd.appsec.user.collection_mode' => 'anonymization'
+      )
+    end
+  end
+
   context 'when user is authenticated and customer already uses SDK to set user' do
     before do
       user = User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
