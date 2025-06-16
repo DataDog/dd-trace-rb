@@ -52,7 +52,7 @@ namespace :steep do
           $stdout.write("\n")
 
           $stdout.write('|')
-          $stdout.write(hrow.values.map { |v| v =~ /^\d+$/ ? '--:' : ':--' }.join('|'))
+          $stdout.write(hrow.values.map { |v| /^\d+$/.match?(v) ? '--:' : ':--' }.join('|'))
           $stdout.write('|')
           $stdout.write("\n")
         end
@@ -82,4 +82,4 @@ namespace :steep do
   end
 end
 
-task :typecheck => :'steep:check'
+task typecheck: :"steep:check"

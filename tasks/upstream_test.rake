@@ -1,12 +1,13 @@
 DATADOG_PATH = File.expand_path('..', __dir__)
 TMP_DIR = File.join(DATADOG_PATH, 'tmp')
 BASE_CLONE_DIR = "#{TMP_DIR}/upstream/"
+OTEL_GIT_COMMIT = '48eb8367c2eee15cc59d4f83ee137a9b931695fc'
 
 desc "Run instrumented gems' original test suites with datadog enabled"
 namespace :upstream do
   # Executes block in the context of a GitHub repository
   def with_repository(user, repository, commit, setup = nil)
-    dir = File.join(BASE_CLONE_DIR,"#{repository}-#{commit}")
+    dir = File.join(BASE_CLONE_DIR, "#{repository}-#{commit}")
     unless File.exist?(dir)
       mkdir_p(BASE_CLONE_DIR)
       sh "curl -sL https://github.com/#{user}/#{repository}/archive/#{commit}.tar.gz | tar xz -C #{BASE_CLONE_DIR}"
@@ -16,7 +17,7 @@ namespace :upstream do
         # with the repository's environment.
         Bundler.with_unbundled_env do
           # One-time setup operations for a cloned repository
-          setup.call if setup
+          setup&.call
         end
       end
     end
@@ -33,19 +34,17 @@ namespace :upstream do
   # Install this `datadog` repository into the cloned project.
   def add_datadog_to_gemfile(path)
     File.write(path, <<-GEMFILE, mode: 'a+')
-      gem 'datadog', path: '#{Pathname.new(DATADOG_PATH).relative_path_from(Dir.pwd).to_s}'
+      gem 'datadog', path: '#{Pathname.new(DATADOG_PATH).relative_path_from(Dir.pwd)}'
     GEMFILE
   end
 
   # OpenTelemetry Ruby
   # https://github.com/open-telemetry/opentelemetry-ruby
   namespace :opentelemetry do
-    OTEL_GIT_COMMIT = '48eb8367c2eee15cc59d4f83ee137a9b931695fc'
-
     require 'climate_control'
 
     # One-time setup
-    setup = ->() do
+    setup = -> do
       Dir.chdir('api') do
         add_datadog_to_gemfile('Gemfile')
 
@@ -70,7 +69,7 @@ namespace :upstream do
     end
 
     def skipped_tests_opt(example_names)
-      skipped_tests = example_names.map{|example| Regexp.escape(example)}.join('|')
+      skipped_tests = example_names.map { |example| Regexp.escape(example) }.join('|')
       skipped_tests.empty? ? '' : "-e='/(#{skipped_tests})/'"
     end
 
@@ -114,10 +113,9 @@ namespace :upstream do
         'accepts comma separated list with preceeding or trailing spaces as an environment variable',
       ]
 
-
       with_repository('open-telemetry', 'opentelemetry-ruby', OTEL_GIT_COMMIT, setup) do
         Dir.chdir('sdk') do
-          ClimateControl.modify('TESTOPTS' => skipped_tests_opt(skipped_tests)) do\
+          ClimateControl.modify('TESTOPTS' => skipped_tests_opt(skipped_tests)) do
             sh 'bundle exec rake test'
           end
         end
