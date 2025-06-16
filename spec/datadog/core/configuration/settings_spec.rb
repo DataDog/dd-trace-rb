@@ -874,6 +874,57 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
+    describe '#experimental_runtime_id_enabled' do
+      subject(:experimental_runtime_id_enabled) { settings.runtime_metrics.experimental_runtime_id_enabled }
+
+      let(:primary_env_var) { 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED' }
+      let(:fallback_env_var) { 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED' }
+
+      around do |example|
+        ClimateControl.modify(
+          primary_env_var => primary_enabled,
+          fallback_env_var => fallback_enabled
+        ) do
+          example.run
+        end
+      end
+
+      context 'by default' do
+        let(:primary_enabled) { nil }
+        let(:fallback_enabled) { nil }
+
+        it { is_expected.to be false }
+      end
+
+      context 'when only the primary env var DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED is set to true' do
+        let(:primary_enabled) { 'true' }
+        let(:fallback_enabled) { nil }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when only the fallback env var DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED is set to true' do
+        let(:primary_enabled) { nil }
+        let(:fallback_enabled) { 'true' }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when both env vars are set to true' do
+        let(:primary_enabled) { 'true' }
+        let(:fallback_enabled) { 'true' }
+
+        it { is_expected.to be true }
+      end
+
+      context "when primary env var is false and fallback is true" do
+        let(:primary_enabled) { 'false' }
+        let(:fallback_enabled) { 'true' }
+
+        it { is_expected.to be false }
+      end
+    end
+
     describe '#opts' do
       subject(:opts) { settings.runtime_metrics.opts }
 
