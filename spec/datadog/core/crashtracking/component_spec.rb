@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
   describe '.build' do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
     let(:agent_settings) do
-      instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings)
+      instance_double(Datadog::Core::Configuration::AgentSettings)
     end
     let(:tags) { { 'tag1' => 'value1' } }
     let(:agent_base_url) { 'agent_base_url' }

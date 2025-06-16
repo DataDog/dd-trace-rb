@@ -60,7 +60,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       let(:timeout_seconds) { nil }
 
       let(:agent_settings) do
-        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+        Datadog::Core::Configuration::AgentSettings.new(
           adapter: adapter,
           ssl: ssl,
           hostname: hostname,
