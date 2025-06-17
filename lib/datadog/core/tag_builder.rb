@@ -24,7 +24,7 @@ module Datadog
           'library_version' => Environment::Identity.gem_datadog_version,
           'git.repository_url' => Environment::Git.git_repository_url,
           'git.commit.sha' => Environment::Git.git_commit_sha,
-        }.compact!.freeze
+        }.compact.freeze
       end
 
       def self.tags(settings)

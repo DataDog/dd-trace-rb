@@ -84,6 +84,8 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
     describe 'source code integration' do
       context 'when git environment is available' do
         before do
+          Datadog::Core::TagBuilder.reset_for_tests
+
           allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(
             'git_repository_url'
           )
