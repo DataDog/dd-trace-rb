@@ -31,7 +31,7 @@ struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
-static inline ddog_CharSlice filename_for_cfunc(ddog_CharSlice last_ruby_frame_filename, void *function, bool native_filenames_enabled);
+static void set_file_info_for_cfunc(ddog_CharSlice *filename_slice, int *line, ddog_CharSlice last_ruby_frame_filename, int last_ruby_line, void *function, bool native_filenames_enabled);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
@@ -262,12 +262,15 @@ void sample_thread(
       VALUE name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
 
       name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
-      filename_slice = filename_for_cfunc(
+
+      set_file_info_for_cfunc(
+        &filename_slice,
+        &line,
         last_ruby_frame_filename,
+        last_ruby_line,
         buffer->stack_buffer[i].as.native_frame.function,
         native_filenames_enabled
       );
-      line = last_ruby_line;
     }
 
     maybe_trim_template_random_ids(&name_slice, &filename_slice);
@@ -342,7 +345,8 @@ void sample_thread(
   );
 }
 
-static inline ddog_CharSlice filename_for_cfunc(ddog_CharSlice last_ruby_frame_filename, void *function, bool native_filenames_enabled) {
+static void set_file_info_for_cfunc(ddog_CharSlice *filename_slice, int *line, ddog_CharSlice last_ruby_frame_filename, int last_ruby_line, void *function, bool native_filenames_enabled) {
+    *line = last_ruby_line;
   #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
     if (native_filenames_enabled) {
       Dl_info info;
@@ -358,11 +362,12 @@ static inline ddog_CharSlice filename_for_cfunc(ddog_CharSlice last_ruby_frame_f
         }
       #endif
       if (native_filename && native_filename[0] != '\0') {
-        return (ddog_CharSlice) {.ptr = native_filename, .len = strlen(native_filename)};
+        *filename_slice = (ddog_CharSlice) {.ptr = native_filename, .len = strlen(native_filename)};
+        return;
       }
     }
   #endif
-  return last_ruby_frame_filename;
+  *filename_slice = last_ruby_frame_filename;
 }
 
 // Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
