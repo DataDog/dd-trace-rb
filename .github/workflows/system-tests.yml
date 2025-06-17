@@ -486,8 +486,8 @@ jobs:
               image_name="${image%%,*}"
               image_internal="${image##*,}"
 
-              docker pull ${{ env.REPO }}/system-tests/${image_name}:gha${{ github.run_id }}-g${{ github.sha }}
-              docker tag ${{ env.REPO }}/system-tests/${image_name}:gha${{ github.run_id }}-g${{ github.sha }} "${image_internal}"
+              docker pull "${{ env.REPO }}/system-tests/${image_name}:gha${{ github.run_id }}-g${{ github.sha }}"
+              docker tag "${{ env.REPO }}/system-tests/${image_name}:gha${{ github.run_id }}-g${{ github.sha }}" "${image_internal}"
           done
       - name: Pull app image
         run: |
