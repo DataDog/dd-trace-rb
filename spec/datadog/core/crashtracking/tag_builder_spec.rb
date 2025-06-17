@@ -86,10 +86,10 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
         before do
           Datadog::Core::TagBuilder.reset_for_tests
 
-          allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(
+          expect(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(
             'git_repository_url'
           )
-          allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return('git_commit_sha')
+          expect(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return('git_commit_sha')
         end
 
         it 'includes the git repository URL and commit SHA' do
@@ -103,8 +103,8 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
         before do
           Datadog::Core::TagBuilder.reset_for_tests
 
-          allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(nil)
-          allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(nil)
+          expect(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(nil)
+          expect(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(nil)
         end
 
         it 'includes the git repository URL and commit SHA' do
