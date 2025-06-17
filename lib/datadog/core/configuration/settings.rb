@@ -549,9 +549,9 @@ module Datadog
             # native code. Setting to `false` will make the profiler fall back to default Ruby stack trace behavior (only show .rb files).
             #
             # @default true
-            option :native_extension_filenames do |o|
+            option :native_filenames do |o|
               o.type :bool
-              o.env 'DD_PROFILING_NATIVE_EXTENSION_FILENAMES'
+              o.env 'DD_PROFILING_NATIVE_FILENAMES'
               o.default true
             end
           end
