@@ -9,9 +9,12 @@ module Datadog
         module ActionDispatch
           # Instrumentation for ActionDispatch components
           module Instrumentation
+            SCRIPT_NAME_KEY = 'SCRIPT_NAME'
+            FORMAT_SUFFIX = '(.:format)'
+
             module_function
 
-            def set_http_route_tags(route_spec, script_name)
+            def set_http_route_tags(route_spec, route_path)
               return unless Tracing.enabled?
 
               return unless route_spec
@@ -19,10 +22,10 @@ module Datadog
               request_trace = Tracing.active_trace
               return unless request_trace
 
-              request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, route_spec.to_s.gsub(/\(.:format\)\z/, ''))
+              request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, route_spec)
 
-              if script_name && !script_name.empty?
-                request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, script_name)
+              if route_path && !route_path.empty?
+                request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, route_path)
               end
             end
 
@@ -40,16 +43,17 @@ module Datadog
               # Instrumentation for ActionDispatch::Journey::Router for Rails versions older than 7.1
               module Router
                 def find_routes(req)
-                  result = super
-
                   # result is an array of [match, parameters, route] tuples
-                  routes = result.map(&:last)
+                  result = super
+                  result.each do |_, _, route|
+                    next unless Instrumentation.dispatcher_route?(route)
 
-                  routes.each do |route|
-                    if Instrumentation.dispatcher_route?(route)
-                      Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME'])
-                      break
-                    end
+                    http_route = route.path.spec.to_s
+                    http_route.delete_suffix!(FORMAT_SUFFIX)
+
+                    Instrumentation.set_http_route_tags(http_route, req.env[SCRIPT_NAME_KEY])
+
+                    break
                   end
 
                   result
@@ -62,7 +66,10 @@ module Datadog
                 def find_routes(req)
                   super do |match, parameters, route|
                     if Instrumentation.dispatcher_route?(route)
-                      Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME'])
+                      http_route = route.path.spec.to_s
+                      http_route.delete_suffix!(FORMAT_SUFFIX)
+
+                      Instrumentation.set_http_route_tags(http_route, req.env[SCRIPT_NAME_KEY])
                     end
 
                     yield [match, parameters, route]
