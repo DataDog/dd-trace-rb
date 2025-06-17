@@ -84,6 +84,7 @@ RSpec.describe Datadog::Profiling::Component do
             timeline_enabled: :timeline_enabled_config,
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
             otel_context_enabled: false,
+            native_filenames_enabled: false,
           )
 
           build_profiler_component

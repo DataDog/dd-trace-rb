@@ -10,6 +10,7 @@ module Datadog
           timeline_enabled: bool,
           waiting_for_gvl_threshold_ns: ::Integer,
           otel_context_enabled: (::Symbol? | bool),
+          native_filenames_enabled: bool,
         ) -> void
 
         def self._native_initialize: (
@@ -21,6 +22,7 @@ module Datadog
           timeline_enabled: bool,
           waiting_for_gvl_threshold_ns: ::Integer,
           otel_context_enabled: (::Symbol? | bool),
+          native_filenames_enabled: bool,
         ) -> void
 
         def inspect: () -> ::String

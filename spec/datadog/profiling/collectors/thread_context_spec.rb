@@ -48,6 +48,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:gvl_waiting_enabled_empty_magic_value) { 2**62 - 1 }
   let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
   let(:otel_context_enabled) { false }
+  let(:native_filenames_enabled) { false }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -58,6 +59,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       timeline_enabled: timeline_enabled,
       waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
+      native_filenames_enabled: native_filenames_enabled,
     )
   end
 

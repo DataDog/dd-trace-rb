@@ -131,6 +131,10 @@ end
 
 have_func "malloc_stats"
 
+# Used to get native filenames (dladdr1 is preferred, so we only check for the other if not available)
+# Note it's possible none are available
+have_func("dladdr1") || have_func("dladdr")
+
 # On Ruby 3.5, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
 $defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "3.5"
 
