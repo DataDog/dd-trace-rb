@@ -645,10 +645,18 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       describe '#experimental_crash_tracking_enabled=' do
+        before { allow(Datadog::Core).to receive(:log_deprecation) }
+
         it 'updates the #experimental_crash_tracking_enabled setting' do
           expect { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
             .to change { settings.profiling.advanced.experimental_crash_tracking_enabled }
             .from(nil).to(true)
+        end
+
+        it "logs a warning informing customers this no longer does anything" do
+          expect(Datadog::Core).to receive(:log_deprecation)
+
+          settings.profiling.advanced.experimental_crash_tracking_enabled = false
         end
       end
 
@@ -816,6 +824,21 @@ RSpec.describe Datadog::Core::Configuration::Settings do
               .from(:both)
               .to(false)
           end
+        end
+      end
+
+      describe '#native_extension_filenames' do
+        subject(:native_extension_filenames) { settings.profiling.advanced.native_extension_filenames }
+
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_NATIVE_EXTENSION_FILENAMES', default: true
+      end
+
+      describe '#native_extension_filenames=' do
+        it 'updates the #native_extension_filenames setting' do
+          expect { settings.profiling.advanced.native_extension_filenames = false }
+            .to change { settings.profiling.advanced.native_extension_filenames }
+            .from(true)
+            .to(false)
         end
       end
     end

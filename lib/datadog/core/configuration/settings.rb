@@ -544,6 +544,16 @@ module Datadog
               o.env 'DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED'
               o.default true
             end
+
+            # Controls if the profiler should use native filenames for frames in stack traces for functions implemented using
+            # native code. Setting to `false` will make the profiler fall back to default Ruby stack trace behavior (only show .rb files).
+            #
+            # @default true
+            option :native_extension_filenames do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_NATIVE_EXTENSION_FILENAMES'
+              o.default true
+            end
           end
 
           # @public_api
