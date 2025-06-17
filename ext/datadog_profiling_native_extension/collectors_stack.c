@@ -11,8 +11,6 @@
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
-static VALUE missing_string = Qnil;
-
 // Used as scratch space during sampling
 struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
   uint16_t max_frames;
@@ -23,6 +21,7 @@ struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
+static inline ddog_CharSlice filename_for_cfunc(ddog_CharSlice last_ruby_frame_filename);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
@@ -39,9 +38,6 @@ void collectors_stack_init(VALUE profiling_module) {
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
-
-  missing_string = rb_str_new2("");
-  rb_global_variable(&missing_string);
 }
 
 typedef struct {
@@ -211,7 +207,7 @@ void sample_thread(
   // on the stack that is below (e.g. directly or indirectly has called) the native method.
   // Thus, we keep that frame here to able to replicate that behavior.
   // (This is why we also iterate the sampling buffers backwards below -- so that it's easier to keep the last_ruby_frame_filename)
-  VALUE last_ruby_frame_filename = Qnil;
+  ddog_CharSlice last_ruby_frame_filename = DDOG_CHARSLICE_C("");
   int last_ruby_line = 0;
 
   ddog_prof_Label *state_label = labels.state_label;
@@ -230,27 +226,26 @@ void sample_thread(
   }
 
   for (int i = captured_frames - 1; i >= 0; i--) {
-    VALUE name, filename;
+    ddog_CharSlice name_slice, filename_slice;
     int line;
 
     if (buffer->stack_buffer[i].is_ruby_frame) {
-      name = rb_iseq_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
-      filename = rb_iseq_path(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      VALUE name = rb_iseq_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      VALUE filename = rb_iseq_path(buffer->stack_buffer[i].as.ruby_frame.iseq);
+
+      name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
+      filename_slice = NIL_P(filename) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename);
       line = buffer->stack_buffer[i].as.ruby_frame.line;
 
-      last_ruby_frame_filename = filename;
+      last_ruby_frame_filename = filename_slice;
       last_ruby_line = line;
     } else {
-      name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
-      filename = last_ruby_frame_filename;
+      VALUE name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
+
+      name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
+      filename_slice = filename_for_cfunc(last_ruby_frame_filename);
       line = last_ruby_line;
     }
-
-    name = NIL_P(name) ? missing_string : name;
-    filename = NIL_P(filename) ? missing_string : filename;
-
-    ddog_CharSlice name_slice = char_slice_from_ruby_string(name);
-    ddog_CharSlice filename_slice = char_slice_from_ruby_string(filename);
 
     maybe_trim_template_random_ids(&name_slice, &filename_slice);
 
@@ -322,6 +317,10 @@ void sample_thread(
     values,
     labels
   );
+}
+
+static inline ddog_CharSlice filename_for_cfunc(ddog_CharSlice last_ruby_frame_filename) {
+  return last_ruby_frame_filename;
 }
 
 // Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
