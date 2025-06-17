@@ -32,7 +32,7 @@ module Datadog
 
         private
 
-        def load_default_config: (action: ::String, telemetry: Core::Telemetry::Component) -> void
+        def load_default_config: (telemetry: Core::Telemetry::Component) -> void
 
         def report_configuration_diagnostics: (untyped diagnostics, action: ::String, telemetry: Core::Telemetry::Component) -> void
       end

@@ -37,7 +37,8 @@ module Datadog
             }
           )
 
-          load_default_config(telemetry: telemetry, action: 'init')
+          diagnostics = load_default_config(telemetry: telemetry)
+          report_configuration_diagnostics(diagnostics, action: 'init', telemetry: telemetry)
 
           @waf_handle = @waf_builder.build_handle
           @waf_addresses = @waf_handle.known_addresses
@@ -78,7 +79,8 @@ module Datadog
               (diagnostics.key?('error') ||
               diagnostics.dig('rules', 'error') ||
               diagnostics.dig('processors', 'errors'))
-            load_default_config(telemetry: AppSec.telemetry, action: 'update')
+            diagnostics = load_default_config(telemetry: AppSec.telemetry)
+            report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
           end
 
           diagnostics
@@ -93,7 +95,8 @@ module Datadog
           result = @waf_builder.remove_config_at_path(path)
 
           if result && path != DEFAULT_RULES_CONFIG_PATH && path.include?('ASM_DD')
-            load_default_config(telemetry: AppSec.telemetry, action: 'update')
+            diagnostics = load_default_config(telemetry: AppSec.telemetry)
+            report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
           end
 
           result
@@ -127,7 +130,7 @@ module Datadog
 
         private
 
-        def load_default_config(action:, telemetry:)
+        def load_default_config(telemetry:)
           config = AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: @default_ruleset)
 
           # deprecated - ip and user id denylists should be configured via RC
@@ -140,9 +143,7 @@ module Datadog
           config['exclusions'] ||= AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: @default_ip_passlist)
 
           diagnostics = @waf_builder.add_or_update_config(config, path: DEFAULT_RULES_CONFIG_PATH)
-
           @ruleset_version = diagnostics['ruleset_version']
-          report_configuration_diagnostics(diagnostics, action: action, telemetry: telemetry)
 
           diagnostics
         end
