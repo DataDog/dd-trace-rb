@@ -2,13 +2,13 @@ module Datadog
   module Core
     module Environment
       module VariableHelpers
-        extend ::Datadog::Core::Environment::VariableHelpers
+        extend self
 
-        def env_to_bool: (untyped var, ?untyped? default) -> untyped
+        def env_to_bool: ((String | Array[String]) var, ?untyped default, ?deprecation_warning: bool) -> untyped
 
         private
 
-        def decode_array: (untyped var) -> untyped
+        def decode_array: ((String | Array[String]) var, bool deprecation_warning) -> String?
       end
     end
   end

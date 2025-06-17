@@ -2,13 +2,11 @@ module Datadog
   module Core
     module Environment
       module Platform
-        def self?.hostname: () -> (untyped | nil)
-        def self?.kernel_name: () -> untyped
-        def self?.kernel_release: () -> (untyped | untyped | nil)
-        def self?.kernel_version: () -> (untyped | nil)
-        def self?.architecture: -> string?
-        def self?.release: -> string?
-        def self?.system: -> string?
+        def self?.architecture: () -> String
+        def self?.hostname: () -> String?
+        def self?.kernel_name: () -> String
+        def self?.kernel_release: () -> String?
+        def self?.kernel_version: () -> String?
       end
     end
   end

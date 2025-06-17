@@ -9,9 +9,9 @@ module Datadog
 
         def encode: (untyped obj) -> String
 
-        def join: (Array[untyped] encoded_data) -> String
+        def join: (Array[String] encoded_data) -> String
 
-        def decode: (String obj)-> untyped
+        def decode: (String obj) -> untyped
       end
 
       # Encoder for the JSON format
@@ -24,9 +24,9 @@ module Datadog
 
         def self?.encode: (untyped obj) -> String
 
-        def self?.join: (Array[untyped] encoded_data) -> String
+        def self?.join: (Array[String] encoded_data) -> String
 
-        def self?.decode: (String obj)-> untyped
+        def self?.decode: (String obj) -> untyped
       end
 
       # Encoder for the Msgpack format
@@ -39,9 +39,9 @@ module Datadog
 
         def self?.encode: (untyped obj) -> String
 
-        def self?.join: (Array[untyped] encoded_data) -> String
+        def self?.join: (Array[String] encoded_data) -> String
 
-        def self?.decode: (String obj)-> untyped
+        def self?.decode: (String obj) -> untyped
       end
     end
   end
