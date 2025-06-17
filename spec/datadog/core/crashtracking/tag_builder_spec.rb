@@ -101,6 +101,8 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
 
       context 'when git environment is not available' do
         before do
+          Datadog::Core::TagBuilder.reset_for_tests
+
           allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(nil)
           allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(nil)
         end
