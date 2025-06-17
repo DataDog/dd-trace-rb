@@ -31,7 +31,15 @@ struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
-static void set_file_info_for_cfunc(ddog_CharSlice *filename_slice, int *line, ddog_CharSlice last_ruby_frame_filename, int last_ruby_line, void *function, bool native_filenames_enabled);
+static void set_file_info_for_cfunc(
+  ddog_CharSlice *filename_slice,
+  int *line,
+  ddog_CharSlice last_ruby_frame_filename,
+  int last_ruby_line,
+  void *function,
+  bool native_filenames_enabled,
+  st_table *native_filenames_cache
+);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
@@ -59,6 +67,7 @@ typedef struct {
   ddog_prof_Location *locations;
   sampling_buffer *buffer;
   bool native_filenames_enabled;
+  st_table *native_filenames_cache;
 } native_sample_args;
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
@@ -144,6 +153,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .locations = locations,
     .buffer = buffer,
     .native_filenames_enabled = native_filenames_enabled == Qtrue,
+    .native_filenames_cache = st_init_numtable(),
   };
 
   return rb_ensure(native_sample_do, (VALUE) &args_struct, native_sample_ensure, (VALUE) &args_struct);
@@ -166,7 +176,8 @@ static VALUE native_sample_do(VALUE args) {
       args_struct->recorder_instance,
       args_struct->values,
       args_struct->labels,
-      args_struct->native_filenames_enabled
+      args_struct->native_filenames_enabled,
+      args_struct->native_filenames_cache
     );
   }
 
@@ -178,6 +189,7 @@ static VALUE native_sample_ensure(VALUE args) {
 
   ruby_xfree(args_struct->locations);
   sampling_buffer_free(args_struct->buffer);
+  st_free_table(args_struct->native_filenames_cache);
 
   return Qtrue;
 }
@@ -199,7 +211,8 @@ void sample_thread(
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
-  bool native_filenames_enabled
+  bool native_filenames_enabled,
+  st_table *native_filenames_cache
 ) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
@@ -269,7 +282,8 @@ void sample_thread(
         last_ruby_frame_filename,
         last_ruby_line,
         buffer->stack_buffer[i].as.native_frame.function,
-        native_filenames_enabled
+        native_filenames_enabled,
+        native_filenames_cache
       );
     }
 
@@ -345,21 +359,20 @@ void sample_thread(
   );
 }
 
-static void set_file_info_for_cfunc(ddog_CharSlice *filename_slice, int *line, ddog_CharSlice last_ruby_frame_filename, int last_ruby_line, void *function, bool native_filenames_enabled) {
-  #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+#if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+  static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache);
+
+  static void set_file_info_for_cfunc(
+    ddog_CharSlice *filename_slice,
+    int *line,
+    ddog_CharSlice last_ruby_frame_filename,
+    int last_ruby_line,
+    void *function,
+    bool native_filenames_enabled,
+    st_table *native_filenames_cache
+  ) {
     if (native_filenames_enabled) {
-      Dl_info info;
-      const char *native_filename = NULL;
-      #ifdef HAVE_DLADDR1
-        struct link_map *extra_info = NULL;
-        if (dladdr1(function, &info, (void **) &extra_info, RTLD_DL_LINKMAP) != 0 && extra_info != NULL) {
-          native_filename = extra_info->l_name != NULL ? extra_info->l_name : info.dli_fname;
-        }
-      #elif defined(HAVE_DLADDR)
-        if (dladdr(function, &info) != 0) {
-          native_filename = info.dli_fname;
-        }
-      #endif
+      const char *native_filename = get_or_compute_native_filename(function, native_filenames_cache);
       if (native_filename && native_filename[0] != '\0') {
         *filename_slice = (ddog_CharSlice) {.ptr = native_filename, .len = strlen(native_filename)};
         // Explicitly set the line to 0 as it has no meaning on a native library (e.g. an .so is built of many source files)
@@ -368,10 +381,60 @@ static void set_file_info_for_cfunc(ddog_CharSlice *filename_slice, int *line, d
         return;
       }
     }
-  #endif
-  *filename_slice = last_ruby_frame_filename;
-  *line = last_ruby_line;
-}
+
+    *filename_slice = last_ruby_frame_filename;
+    *line = last_ruby_line;
+  }
+
+  // `native_filenames_cache` is used to cache native filename lookup results (Map[void *function_pointer, char *filename])
+  //
+  // Caching this information is safe because there's no API in Ruby to "unrequire" a native extension. Thus, if we see a
+  // frame on the **Ruby** stack with a given `function`, then that `function` was registered with the Ruby VM and
+  // belongs to a Ruby extension, so a lot of other bad things would happen if it was dlclosed.
+  static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache) {
+    const char *cached_filename = NULL;
+    st_lookup(native_filenames_cache, (st_data_t) function, (st_data_t *) &cached_filename);
+    if (cached_filename != NULL) return cached_filename;
+
+    Dl_info info;
+    const char *native_filename = NULL;
+    #ifdef HAVE_DLADDR1
+      struct link_map *extra_info = NULL;
+      if (dladdr1(function, &info, (void **) &extra_info, RTLD_DL_LINKMAP) != 0 && extra_info != NULL) {
+        native_filename = extra_info->l_name != NULL ? extra_info->l_name : info.dli_fname;
+      }
+    #elif defined(HAVE_DLADDR)
+      if (dladdr(function, &info) != 0) {
+        native_filename = info.dli_fname;
+      }
+    #endif
+
+    // We explicitly use an empty string here so as to cache lookups that somehow "failed". Otherwise we would keep trying them every time.
+    if (native_filename == NULL) native_filename = "";
+
+    // An st_table is what Ruby uses for its own hashtables. This allows us to get an easy estimate of the size of the cache:
+    // `ObjectSpace.memsize_of((0..100000).map { |it| [it, nil] }.to_h)` => 4194400 bytes as of Ruby 3.2 so that seems reasonable?
+    if (st_table_size(native_filenames_cache) >= 100000) {
+      st_clear(native_filenames_cache);
+    }
+
+    st_insert(native_filenames_cache, (st_data_t) function, (st_data_t) native_filename);
+    return native_filename;
+  }
+#else
+  static void set_file_info_for_cfunc(
+    ddog_CharSlice *filename_slice,
+    int *line,
+    ddog_CharSlice last_ruby_frame_filename,
+    int last_ruby_line,
+    DDTRACE_UNUSED void *function,
+    DDTRACE_UNUSED bool native_filenames_enabled,
+    DDTRACE_UNUSED st_table *native_filenames_cache
+  ) {
+    *filename_slice = last_ruby_frame_filename;
+    *line = last_ruby_line;
+  }
+#endif
 
 // Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
 // names such as:
