@@ -1,9 +1,7 @@
 #include <ruby.h>
 #include <ruby/debug.h>
 #include "extconf.h"
-#include "helpers.h"
-#include "libdatadog_helpers.h"
-#include "ruby_helpers.h"
+#include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
 #include "collectors_stack.h"
