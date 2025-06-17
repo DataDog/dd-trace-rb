@@ -346,7 +346,6 @@ void sample_thread(
 }
 
 static void set_file_info_for_cfunc(ddog_CharSlice *filename_slice, int *line, ddog_CharSlice last_ruby_frame_filename, int last_ruby_line, void *function, bool native_filenames_enabled) {
-    *line = last_ruby_line;
   #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
     if (native_filenames_enabled) {
       Dl_info info;
@@ -363,11 +362,15 @@ static void set_file_info_for_cfunc(ddog_CharSlice *filename_slice, int *line, d
       #endif
       if (native_filename && native_filename[0] != '\0') {
         *filename_slice = (ddog_CharSlice) {.ptr = native_filename, .len = strlen(native_filename)};
+        // Explicitly set the line to 0 as it has no meaning on a native library (e.g. an .so is built of many source files)
+        // and anyway often that debug info is not available.
+        *line = 0;
         return;
       }
     }
   #endif
   *filename_slice = last_ruby_frame_filename;
+  *line = last_ruby_line;
 }
 
 // Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
