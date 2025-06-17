@@ -24,8 +24,16 @@ class ProfilerHttpTransportBenchmark
     @port = 6006
     start_fake_webserver
 
+    agent_settings_cls = begin
+      Datadog::Core::Configuration::AgentSettings
+    rescue NameError
+      # Compatibility branch, delete after
+      # https://github.com/DataDog/dd-trace-rb/pull/4741 is merged.
+      Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings
+    end
+
     @transport = Datadog::Profiling::HttpTransport.new(
-      agent_settings: Datadog::Core::Configuration::AgentSettings.new(
+      agent_settings: agent_settings_cls.new(
         adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
         uds_path: nil,
         ssl: false,
