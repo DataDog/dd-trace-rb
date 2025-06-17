@@ -25,6 +25,8 @@ module Datadog
           native_filenames_enabled: bool,
         ) -> void
 
+        def self._native_filenames_available?: () -> bool
+
         def inspect: () -> ::String
 
         def self._native_inspect: (Datadog::Profiling::Collectors::ThreadContext collector_instance) -> ::String
@@ -36,6 +38,8 @@ module Datadog
         private
 
         def safely_extract_context_key_from: (untyped tracer) -> ::Symbol?
+
+        def validate_native_filenames: (bool native_filenames_enabled) -> bool
       end
     end
   end

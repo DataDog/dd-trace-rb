@@ -34,7 +34,7 @@ module Datadog
             timeline_enabled: timeline_enabled,
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             otel_context_enabled: otel_context_enabled,
-            native_filenames_enabled: native_filenames_enabled,
+            native_filenames_enabled: validate_native_filenames(native_filenames_enabled),
           )
         end
 
@@ -84,6 +84,17 @@ module Datadog
 
           context = provider.instance_variable_get(:@context)
           context&.instance_variable_get(:@key)
+        end
+
+        def validate_native_filenames(native_filenames_enabled)
+          if native_filenames_enabled && !self.class._native_filenames_available?
+            Datadog.logger.debug(
+              "Native filenames are enabled, but the required dladdr API was not available. Disabling native filenames."
+            )
+            false
+          else
+            native_filenames_enabled
+          end
         end
       end
     end

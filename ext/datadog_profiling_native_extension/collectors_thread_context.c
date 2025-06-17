@@ -11,6 +11,7 @@
 #include "stack_recorder.h"
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
+#include "extconf.h"
 
 // Used to trigger sampling of threads, based on external "events", such as:
 // * periodic timer for cpu-time and wall-time
@@ -300,6 +301,7 @@ static otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key)
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE key);
 static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
+static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -320,6 +322,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_filenames_available?", _native_filenames_available, 0);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 3);
   rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 3);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
@@ -2175,4 +2178,12 @@ static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE c
   long system_epoch_time_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns);
 
   return LONG2NUM(system_epoch_time_ns);
+}
+
+static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self) {
+  #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+    return Qtrue;
+  #else
+    return Qfalse;
+  #endif
 }
