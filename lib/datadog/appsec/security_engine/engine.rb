@@ -127,7 +127,7 @@ module Datadog
 
         private
 
-        def load_default_config(telemetry:, action:)
+        def load_default_config(action:, telemetry:)
           config = AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: @default_ruleset)
 
           # deprecated - ip and user id denylists should be configured via RC
