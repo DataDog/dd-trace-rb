@@ -18,10 +18,19 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:raw_reference_stack) { stacks.fetch(:reference) }
   let(:reference_stack) { convert_reference_stack(raw_reference_stack) }
   let(:gathered_stack) { stacks.fetch(:gathered) }
+  let(:native_filenames_enabled) { false }
 
   def sample(thread, recorder_instance, metric_values_hash, labels_array, **options)
     numeric_labels_array = []
-    described_class::Testing._native_sample(thread, recorder_instance, metric_values_hash, labels_array, numeric_labels_array, **options)
+    described_class::Testing._native_sample(
+      thread,
+      recorder_instance,
+      metric_values_hash,
+      labels_array,
+      numeric_labels_array,
+      native_filenames_enabled: native_filenames_enabled,
+      **options,
+    )
   end
 
   # This spec explicitly tests the main thread because an unpatched rb_profile_frames returns one more frame in the
@@ -229,6 +238,25 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       it "matches the Ruby backtrace API" do
         expect(gathered_stack).to eq reference_stack
       end
+
+      context "when native filenames are enabled" do
+        let(:native_filenames_enabled) { true }
+
+        it "matches the Ruby backtrace API after the 4th frame" do
+          expect(gathered_stack[3..-1]).to eq reference_stack[3..-1]
+        end
+
+        it "includes the real native filename for the top frames" do
+          expect(gathered_stack[0..2]).to contain_exactly(
+            # We expect the native filename for sleep to be inside the Ruby VM -- either in the ruby binary or the libruby library
+            # Note that this may not apply everywhere (e.g. you can rename your Ruby), but it seems sane enough to require this when running tests
+            have_attributes(base_label: "sleep", path: end_with("/ruby").or(include("libruby.so")), lineno: 0),
+            have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
+            # Bigdecimal is a native extension shipped separately from Ruby
+            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+          )
+        end
+      end
     end
 
     context "when sampling a thread calling super into a native method" do
@@ -251,6 +279,26 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       it "matches the Ruby backtrace API" do
         expect(gathered_stack).to eq reference_stack
+      end
+
+      context "when native filenames are enabled" do
+        let(:native_filenames_enabled) { true }
+
+        it "matches the Ruby backtrace API after the 5th frame" do
+          expect(gathered_stack[4..-1]).to eq reference_stack[4..-1]
+        end
+
+        it "includes the real native filename for the top frames" do
+          expect(gathered_stack[0..3]).to contain_exactly(
+            # Same as in the BigDecimal test above
+            have_attributes(base_label: "sleep", path: end_with("/ruby").or(include("libruby.so")), lineno: 0),
+            have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
+            # Bigdecimal is a native extension shipped separately from Ruby
+            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            # This is the frame in module_calling_super.save_rounding_mode (the one that calls super)
+            have_attributes(base_label: "save_rounding_mode", path: __FILE__, lineno: be_positive),
+          )
+        end
       end
     end
 
