@@ -812,7 +812,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     context "when there is a failure during serialization" do
       before do
-        allow(Datadog.logger).to receive(:error)
+        allow(Datadog.logger).to receive(:warn)
         allow(Datadog::Core::Telemetry::Logger).to receive(:error)
 
         # Real failures in serialization are hard to trigger, so we're using a mock failure instead
@@ -822,13 +822,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it { is_expected.to be nil }
 
       it "logs an error message" do
-        expect(Datadog.logger).to receive(:error).with(/test error message/)
+        expect(Datadog.logger).to receive(:warn).with(/test error message/)
 
         serialize
       end
 
       it "sends a telemetry log" do
-        expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to serialize profiling data")
+        expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(/Failed to serialize profiling data/)
 
         serialize
       end
