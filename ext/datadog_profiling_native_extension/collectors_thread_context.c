@@ -1004,7 +1004,8 @@ static void trigger_sample_for_thread(
       .state_label = state_label,
       .end_timestamp_ns = end_timestamp_ns,
       .is_gvl_waiting_state = is_gvl_waiting_state,
-    }
+    },
+    state->native_filenames_enabled
   );
 }
 

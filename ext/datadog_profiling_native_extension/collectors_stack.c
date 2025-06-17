@@ -21,7 +21,7 @@ struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
-static inline ddog_CharSlice filename_for_cfunc(ddog_CharSlice last_ruby_frame_filename);
+static inline ddog_CharSlice filename_for_cfunc(ddog_CharSlice last_ruby_frame_filename, bool native_filenames_enabled);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
@@ -48,6 +48,7 @@ typedef struct {
   VALUE thread;
   ddog_prof_Location *locations;
   sampling_buffer *buffer;
+  bool native_filenames_enabled;
 } native_sample_args;
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
@@ -69,10 +70,15 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   VALUE max_frames = rb_hash_lookup2(options, ID2SYM(rb_intern("max_frames")), INT2NUM(400));
   VALUE in_gc = rb_hash_lookup2(options, ID2SYM(rb_intern("in_gc")), Qfalse);
   VALUE is_gvl_waiting_state = rb_hash_lookup2(options, ID2SYM(rb_intern("is_gvl_waiting_state")), Qfalse);
+  VALUE native_filenames_enabled = rb_hash_lookup2(options, ID2SYM(rb_intern("native_filenames_enabled")), Qfalse);
 
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
   ENFORCE_TYPE(numeric_labels_array, T_ARRAY);
+  ENFORCE_TYPE(max_frames, T_FIXNUM);
+  ENFORCE_BOOLEAN(in_gc);
+  ENFORCE_BOOLEAN(is_gvl_waiting_state);
+  ENFORCE_BOOLEAN(native_filenames_enabled);
 
   VALUE zero = INT2NUM(0);
   VALUE heap_sample = rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("heap_sample"), Qfalse);
@@ -127,6 +133,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .thread = thread,
     .locations = locations,
     .buffer = buffer,
+    .native_filenames_enabled = native_filenames_enabled == Qtrue,
   };
 
   return rb_ensure(native_sample_do, (VALUE) &args_struct, native_sample_ensure, (VALUE) &args_struct);
@@ -148,7 +155,8 @@ static VALUE native_sample_do(VALUE args) {
       args_struct->buffer,
       args_struct->recorder_instance,
       args_struct->values,
-      args_struct->labels
+      args_struct->labels,
+      args_struct->native_filenames_enabled
     );
   }
 
@@ -180,7 +188,8 @@ void sample_thread(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  sample_labels labels
+  sample_labels labels,
+  bool native_filenames_enabled
 ) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
@@ -243,7 +252,7 @@ void sample_thread(
       VALUE name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
 
       name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
-      filename_slice = filename_for_cfunc(last_ruby_frame_filename);
+      filename_slice = filename_for_cfunc(last_ruby_frame_filename, native_filenames_enabled);
       line = last_ruby_line;
     }
 
@@ -319,7 +328,7 @@ void sample_thread(
   );
 }
 
-static inline ddog_CharSlice filename_for_cfunc(ddog_CharSlice last_ruby_frame_filename) {
+static inline ddog_CharSlice filename_for_cfunc(ddog_CharSlice last_ruby_frame_filename, bool native_filenames_enabled) {
   return last_ruby_frame_filename;
 }
 
