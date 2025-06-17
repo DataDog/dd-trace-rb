@@ -28,8 +28,10 @@ module Datadog
       end
 
       def self.tags(settings)
-        # Note that user tags get overwritten by our tags.
-        settings.tags.merge(fixed_environment_tags).merge(
+        # Note that user tags get overwritten by our tags, and also
+        # that user tags do not get compacted (nil values are sent as
+        # empty strings).
+        settings.tags.merge(fixed_environment_tags).merge({
           # Hostname can possibly change during application runtime.
           'host' => Environment::Socket.hostname,
           # Runtime ID changes upon a fork.
@@ -40,7 +42,7 @@ module Datadog
           'env' => settings.env,
           'service' => settings.service,
           'version' => settings.version,
-        ).compact
+        }.compact)
       end
     end
   end
