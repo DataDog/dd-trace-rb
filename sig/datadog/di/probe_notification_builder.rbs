@@ -34,6 +34,8 @@ module Datadog
       def active_span: () -> Datadog::Tracing::SpanOperation?
 
       def tags: () -> untyped
+      
+      def serialized_tags: () -> untyped
     end
   end
 end
