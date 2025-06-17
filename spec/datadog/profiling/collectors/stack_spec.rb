@@ -1,6 +1,8 @@
 require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/stack"
 
+require "bigdecimal"
+
 # This file has a few lines that cannot be broken because we want some things to have the same line number when looking
 # at their stack traces. Hence, we disable Rubocop's complaints here.
 #
@@ -211,6 +213,44 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       it "matches the Ruby backtrace API AND has a sleeping frame at the top of the stack" do
         expect(gathered_stack).to eq reference_stack
         expect(reference_stack.first.base_label).to eq "sleep"
+      end
+    end
+
+    context "when sampling a thread inside BigDecimal" do
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
+          BigDecimal.save_rounding_mode do
+            ready_queue << true
+            sleep
+          end
+        end
+      end
+
+      it "matches the Ruby backtrace API" do
+        expect(gathered_stack).to eq reference_stack
+      end
+    end
+
+    context "when sampling a thread calling super into a native method" do
+      let(:module_calling_super) do
+        Module.new do
+          def save_rounding_mode # rubocop:disable Lint/UselessMethodDefinition
+            super
+          end
+        end
+      end
+      let(:patched_big_decimal) { BigDecimal.dup.tap { |it| it.singleton_class.prepend(module_calling_super) } }
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
+          patched_big_decimal.save_rounding_mode do
+            ready_queue << true
+            sleep
+          end
+        end
+      end
+
+      it "matches the Ruby backtrace API" do
+        expect(gathered_stack).to eq reference_stack
       end
     end
 
