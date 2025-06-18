@@ -49,6 +49,9 @@ module Datadog
             pattern = request.env[RAILS_ROUTES_KEY].router
               .recognize(request) { |route, _| break route.path.spec.to_s }
 
+            # NOTE: If rails is unable to recognize request it returns empty Array
+            pattern = nil if pattern&.empty?
+
             # NOTE: If rails can't recognize the request, we are going to fallback
             #       to generic request path
             (pattern || request.path).delete_suffix(RAILS_FORMAT_SUFFIX)

@@ -91,6 +91,19 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
 
         it { expect(described_class.route_pattern(request)).to eq('/api/v1/users/:id/posts/:post_id') }
       end
+
+      context 'when Rails router cannot recognize request' do
+        before do
+          allow(request).to receive(:env).and_return({'action_dispatch.routes' => route_set})
+          allow(request).to receive(:path).and_return('/unmatched/route')
+          allow(router).to receive(:recognize).with(request).and_return([])
+        end
+
+        let(:router) { double('ActionDispatch::Routing::RouteSet::Router') }
+        let(:route_set) { double('ActionDispatch::Routing::RouteSet', router: router) }
+
+        it { expect(described_class.route_pattern(request)).to eq('/unmatched/route') }
+      end
     end
 
     context 'when Rack routing is present' do
