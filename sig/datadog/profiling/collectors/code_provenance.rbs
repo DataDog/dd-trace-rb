@@ -2,7 +2,7 @@ module Datadog
   module Profiling
     module Collectors
       class CodeProvenance
-        def initialize: (?standard_library_path: String) -> void
+        def initialize: (?standard_library_path: String, ?ruby_native_filename: String?) -> void
         def refresh: (?loaded_files: Array[String], ?loaded_specs: Array[Gem::Specification]) -> self
         def generate_json: () -> ::String
 
@@ -19,7 +19,12 @@ module Datadog
         def record_loaded_files: (Array[String]) -> void
 
         class Library
-          def initialize: (kind: String, name: String, version: String, path: String) -> void
+          @kind: String
+          @name: String
+          @version: String
+          @paths: Array[String]
+
+          def initialize: (kind: String, name: String, version: String, path: String, ?extra_path: String?) -> void
 
           def kind: -> String
           def name: -> String

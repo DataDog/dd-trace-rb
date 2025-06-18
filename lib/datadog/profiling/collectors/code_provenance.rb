@@ -14,7 +14,10 @@ module Datadog
       #
       # This class acts both as a collector (collecting data) as well as a recorder (records/serializes it)
       class CodeProvenance
-        def initialize(standard_library_path: RbConfig::CONFIG.fetch("rubylibdir"))
+        def initialize(
+          standard_library_path: RbConfig::CONFIG.fetch("rubylibdir"),
+          ruby_native_filename: Datadog::Profiling::Collectors::Stack._native_ruby_native_filename
+        )
           @libraries_by_name = {}
           @libraries_by_path = {}
           @seen_files = Set.new
@@ -26,6 +29,7 @@ module Datadog
               name: "stdlib",
               version: RUBY_VERSION,
               path: standard_library_path,
+              extra_path: ruby_native_filename,
             )
           )
         end
@@ -106,11 +110,12 @@ module Datadog
         class Library
           attr_reader :kind, :name, :version
 
-          def initialize(kind:, name:, version:, path:)
+          def initialize(kind:, name:, version:, path:, extra_path: nil)
+            extra_path = nil if extra_path&.empty?
             @kind = kind.freeze
             @name = name.dup.freeze
             @version = version.to_s.dup.freeze
-            @paths = [path.dup.freeze].freeze
+            @paths = [path.dup.freeze, extra_path.dup.freeze].compact.freeze
             freeze
           end
 

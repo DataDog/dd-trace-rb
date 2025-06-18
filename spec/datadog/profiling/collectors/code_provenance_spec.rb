@@ -4,7 +4,9 @@ require "json"
 require "yaml"
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
-  subject(:code_provenance) { described_class.new }
+  subject(:code_provenance) { described_class.new(ruby_native_filename: ruby_native_filename) }
+
+  let(:ruby_native_filename) { "" }
 
   let(:generate_result) do
     JSON.parse(code_provenance.generate_json, symbolize_names: true).fetch(:v1)
@@ -73,6 +75,21 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
         version: "is_loaded_version",
         paths: contain_exactly("/is_loaded/"),
       )
+    end
+
+    context "when a native ruby filename is provided" do
+      let(:ruby_native_filename) { "/some/path/to/libruby.so.1.2.3" }
+
+      it "records the native ruby filename" do
+        refresh
+
+        expect(generate_result).to include(
+          kind: "standard library",
+          name: "stdlib",
+          version: RUBY_VERSION.to_s,
+          paths: contain_exactly(start_with("/"), ruby_native_filename),
+        )
+      end
     end
 
     it "returns self" do
