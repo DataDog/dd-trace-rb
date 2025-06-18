@@ -800,6 +800,34 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  describe "_native_filenames_available?" do
+    context "on linux", if: PlatformHelpers.linux? do
+      it "returns true" do
+        expect(described_class._native_filenames_available?).to be true
+      end
+    end
+
+    context "on non-linux", if: !PlatformHelpers.linux? do
+      it "returns false" do
+        expect(described_class._native_filenames_available?).to be false
+      end
+    end
+  end
+
+  describe "_native_ruby_native_filename" do
+    context "on linux", if: PlatformHelpers.linux? do
+      it "returns the correct filename" do
+        expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(include("libruby.so"))
+      end
+    end
+
+    context "on non-linux", if: !PlatformHelpers.linux? do
+      it "returns nil" do
+        expect(described_class._native_ruby_native_filename).to be nil
+      end
+    end
+  end
+
   def convert_reference_stack(raw_reference_stack)
     raw_reference_stack.map do |location|
       ProfileHelpers::Frame.new(location.base_label, location.path, location.lineno).freeze

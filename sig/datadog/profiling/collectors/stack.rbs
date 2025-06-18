@@ -3,6 +3,8 @@ module Datadog
     module Collectors
       class Stack
         def self._native_filenames_available?: () -> bool
+
+        def self._native_ruby_native_filename: () -> ::String?
       end
     end
   end

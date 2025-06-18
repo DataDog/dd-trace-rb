@@ -29,6 +29,7 @@ struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
 };
 
 static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self);
+static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self);
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
@@ -60,6 +61,7 @@ void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_stack_class = rb_define_class_under(collectors_module, "Stack", rb_cObject);
 
   rb_define_singleton_method(collectors_stack_class, "_native_filenames_available?", _native_filenames_available, 0);
+  rb_define_singleton_method(collectors_stack_class, "_native_ruby_native_filename", _native_ruby_native_filename, 0);
 
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
@@ -88,6 +90,10 @@ static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self) {
   #else
     return Qfalse;
   #endif
+}
+
+static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self) {
+  return ruby_native_filename != NULL ? rb_utf8_str_new_cstr(ruby_native_filename) : Qnil;
 }
 
 typedef struct {
