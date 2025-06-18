@@ -16,7 +16,7 @@ module Datadog
 
       def self.sample_trace?(trace)
         # NOTE: Reads as "if trace is priority sampled or if in standalone mode"
-        trace.priority_sampled? || !Datadog.configuration.apm.tracing.enabled
+        trace&.priority_sampled? || !Datadog.configuration.apm.tracing.enabled
       end
     end
   end

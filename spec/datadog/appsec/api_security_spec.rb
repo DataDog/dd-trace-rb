@@ -56,6 +56,10 @@ RSpec.describe Datadog::AppSec::APISecurity do
       before { allow(trace).to receive(:priority_sampled?).and_return(false) }
 
       it { expect(described_class.sample_trace?(trace)).to be(true) }
+
+      context 'when trace is not present' do
+        it { expect(described_class.sample_trace?(nil)).to be(true) }
+      end
     end
 
     context 'when running in normal mode' do
@@ -76,6 +80,10 @@ RSpec.describe Datadog::AppSec::APISecurity do
         before { allow(trace).to receive(:priority_sampled?).and_return(false) }
 
         it { expect(described_class.sample_trace?(trace)).to be(false) }
+      end
+
+      context 'when trace is not present' do
+        it { expect(described_class.sample_trace?(nil)).to be(false) }
       end
     end
   end
