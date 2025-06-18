@@ -58,6 +58,24 @@ RSpec.describe Datadog::AppSec::APISecurity::LRUCache do
         .from('old-value').to('new-value')
     end
 
+    context 'when cache is full and an existing key is updated' do
+      it 'does not remove other entries' do
+        lru_cache.store(:key2, 'value2')
+        lru_cache.store(:key3, 'value3')
+        lru_cache.store(:key1, 'value1')
+
+        lru_cache.store(:key1, 'new-value1')
+        lru_cache.store(:key3, 'new-value3')
+        lru_cache.store(:key2, 'new-value2')
+
+        aggregate_failures 'verifying LRU cache contents' do
+          expect(lru_cache[:key1]).to eq('new-value1')
+          expect(lru_cache[:key2]).to eq('new-value2')
+          expect(lru_cache[:key3]).to eq('new-value3')
+        end
+      end
+    end
+
     context 'when maximum size is reached' do
       it 'evicts the least recently used item' do
         lru_cache.store(:key1, 'value1')
