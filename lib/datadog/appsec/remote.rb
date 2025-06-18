@@ -79,6 +79,9 @@ module Datadog
               end
             end
 
+            # This is subject to change - we need to remove the reconfiguration mutex
+            # and track usages of each WAF handle instead, so that we know when an old
+            # WAF handle can be finalized.
             AppSec.reconfigure!
           end
 

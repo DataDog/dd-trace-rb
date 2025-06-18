@@ -387,10 +387,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       end
 
       it 'removes default config before adding new config' do
-        expect(engine.instance_variable_get(:@waf_builder))
-          .to receive(:remove_config_at_path).with(described_class::DEFAULT_RULES_CONFIG_PATH)
-
         engine.add_or_update_config(asm_dd_config, path: 'datadog/603646/ASM_DD/latest/config')
+        engine.reconfigure!
+
+        expect(engine.waf_addresses).to match_array(%w[server.db.statement server.request.query server.db.system])
       end
 
       it 'updates ruleset_version' do
@@ -436,12 +436,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         end
 
         it 'adds default config back' do
-          allow(engine.instance_variable_get(:@waf_builder)).to receive(:add_or_update_config).and_call_original
-
-          expect(engine.instance_variable_get(:@waf_builder))
-            .to receive(:add_or_update_config).with(anything, path: described_class::DEFAULT_RULES_CONFIG_PATH)
-
-          engine.add_or_update_config(invalid_config, path: 'datadog/603646/ASM_DD/latest/config')
+          expect do
+            engine.add_or_update_config(invalid_config, path: 'datadog/603646/ASM_DD/latest/config')
+            engine.reconfigure!
+          end.not_to change(engine, :waf_addresses)
         end
 
         it 'does not change ruleset_version' do
@@ -485,47 +483,75 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
     end
 
     context 'when config path includes ASM_DD' do
-      let(:asm_dd_config) do
-        {
-          version: '2.2',
-          metadata: {rules_version: '1.0.0'},
-          rules: [
-            {
-              id: 'rasp-003-001',
-              name: 'SQL Injection',
-              tags: {
-                type: 'sql_injection',
-                category: 'exploit',
-                module: 'rasp'
-              },
-              conditions: [
-                {
-                  operator: 'sqli_detector',
-                  parameters: {
-                    resource: [{address: 'server.db.statement'}],
-                    params: [{address: 'server.request.query'}],
-                    db_type: [{address: 'server.db.system'}]
-                  }
-                }
-              ],
-              on_match: ['block-sqli']
-            }
-          ]
-        }
-      end
-
-      before do
-        engine.add_or_update_config(asm_dd_config, path: 'datadog/603646/ASM_DD/latest/config')
-      end
-
       it 'adds default config back' do
-        expect(engine.instance_variable_get(:@waf_builder)).to(
-          receive(:add_or_update_config)
-            .with(anything, path: described_class::DEFAULT_RULES_CONFIG_PATH)
-            .and_call_original
-        )
+        appsec_settings.ruleset = {
+          version: '2.2',
+          metadata: {rules_version: '1.0.1'},
+          rules: [{
+            id: 'rasp-934-100',
+            name: 'Server-side request forgery exploit',
+            tags: {
+              type: 'ssrf',
+              category: 'vulnerability_trigger',
+              module: 'rasp'
+            },
+            conditions: [
+              {
+                parameters: {
+                  resource: [{address: 'server.io.net.url'}],
+                  params: [
+                    {address: 'server.request.query'},
+                    {address: 'server.request.body'},
+                    {address: 'server.request.path_params'}
+                  ]
+                },
+                operator: 'ssrf_detector'
+              }
+            ],
+            on_match: ['stack_trace']
+          }]
+        }
+        engine = described_class.new(appsec_settings: appsec_settings, telemetry: telemetry)
 
-        engine.remove_config_at_path('datadog/603646/ASM_DD/latest/config')
+        engine.add_or_update_config(
+          {
+            version: '2.2',
+            metadata: {rules_version: '1.0.0'},
+            rules: [
+              {
+                id: 'rasp-003-001',
+                name: 'SQL Injection',
+                tags: {
+                  type: 'sql_injection',
+                  category: 'exploit',
+                  module: 'rasp'
+                },
+                conditions: [
+                  {
+                    operator: 'sqli_detector',
+                    parameters: {
+                      resource: [{address: 'server.db.statement'}],
+                      params: [{address: 'server.request.query'}],
+                      db_type: [{address: 'server.db.system'}]
+                    }
+                  }
+                ],
+                on_match: ['block-sqli']
+              }
+            ]
+          },
+          path: 'datadog/603646/ASM_DD/latest/config'
+        )
+        engine.reconfigure!
+
+        expect do
+          engine.remove_config_at_path('datadog/603646/ASM_DD/latest/config')
+          engine.reconfigure!
+        end.to(
+          change(engine, :waf_addresses)
+            .from(match_array(%w[server.db.statement server.request.query server.db.system]))
+            .to(match_array(%w[server.io.net.url server.request.query server.request.body server.request.path_params]))
+        )
       end
     end
   end
@@ -572,10 +598,6 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       expect(engine.instance_variable_get(:@waf_handle)).to receive(:finalize!)
 
       engine.reconfigure!
-    end
-
-    it 'sets @waf_handle to a new handle' do
-      expect { engine.reconfigure! }.to(change { engine.instance_variable_get(:@waf_handle) })
     end
 
     it 'updates waf_addresses' do
