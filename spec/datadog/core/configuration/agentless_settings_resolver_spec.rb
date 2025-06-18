@@ -46,7 +46,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
       expect(resolver.send(:configured_uds_path)).to be nil
 
       expect(resolved).to eq(
-        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+        Datadog::Core::Configuration::AgentSettings.new(
           adapter: :net_http,
           hostname: 'test-host-prefix.test.dog',
           port: 443,
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
         expect(resolver.send(:configured_uds_path)).to be nil
 
         expect(resolved).to eq(
-          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+          Datadog::Core::Configuration::AgentSettings.new(
             adapter: :net_http,
             hostname: 'foo.bar',
             port: 443,
@@ -112,7 +112,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
           expect(resolver.send(:configured_uds_path)).to eq '/var/run/test.sock'
 
           expect(resolved).to eq(
-            Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+            Datadog::Core::Configuration::AgentSettings.new(
               adapter: :unix,
               hostname: nil,
               port: nil,
@@ -153,7 +153,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
         expect(resolver.send(:configured_uds_path)).to be nil
 
         expect(resolved).to eq(
-          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+          Datadog::Core::Configuration::AgentSettings.new(
             adapter: :net_http,
             hostname: 'foo.bar',
             port: 80,
@@ -170,7 +170,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
     shared_examples 'uses the overridden timeout' do
       it 'uses the overridden timeout' do
         expect(resolved).to eq(
-          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+          Datadog::Core::Configuration::AgentSettings.new(
             adapter: :net_http,
             hostname: 'test-host-prefix.test.dog',
             port: 443,

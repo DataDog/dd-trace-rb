@@ -79,7 +79,7 @@ module Datadog
         trace_state: nil,
         trace_state_unknown_fields: nil,
         remote_parent: false,
-        tracer: nil,
+        tracer: nil, # DEV-3.0: deprecated, remove in 3.0
         baggage: nil
       )
         @logger = logger
@@ -106,7 +106,6 @@ module Datadog
         @apm_tracing_enabled = apm_tracing_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
-        @tracer = tracer
         @baggage = baggage
 
         # Generic tags
@@ -329,7 +328,7 @@ module Datadog
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
-        @tracer&.sample_trace(self) unless sampling_priority
+        events.trace_propagated.publish(self)
 
         TraceDigest.new(
           span_id: span_id,
@@ -399,12 +398,14 @@ module Datadog
         attr_reader \
           :span_before_start,
           :span_finished,
-          :trace_finished
+          :trace_finished,
+          :trace_propagated
 
         def initialize
           @span_before_start = SpanBeforeStart.new
           @span_finished = SpanFinished.new
           @trace_finished = TraceFinished.new
+          @trace_propagated = TracePropagated.new
         end
 
         # Triggered before a span starts.
@@ -418,6 +419,13 @@ module Datadog
         class SpanFinished < Tracing::Event
           def initialize
             super(:span_finished)
+          end
+        end
+
+        #  Triggered when trace is being propagated between applications or contexts
+        class TracePropagated < Tracing::Event
+          def initialize
+            super(:trace_propagated)
           end
         end
 
