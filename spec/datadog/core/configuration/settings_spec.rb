@@ -827,16 +827,16 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#native_filenames' do
-        subject(:native_filenames) { settings.profiling.advanced.native_filenames }
+      describe '#native_filenames_enabled' do
+        subject(:native_filenames_enabled) { settings.profiling.advanced.native_filenames_enabled }
 
-        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_NATIVE_FILENAMES', default: true
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_NATIVE_FILENAMES_ENABLED', default: true
       end
 
-      describe '#native_filenames=' do
-        it 'updates the #native_filenames setting' do
-          expect { settings.profiling.advanced.native_filenames = false }
-            .to change { settings.profiling.advanced.native_filenames }
+      describe '#native_filenames_enabled=' do
+        it 'updates the #native_filenames_enabled setting' do
+          expect { settings.profiling.advanced.native_filenames_enabled = false }
+            .to change { settings.profiling.advanced.native_filenames_enabled }
             .from(true)
             .to(false)
         end
