@@ -37,10 +37,6 @@ module Datadog
           self
         end
 
-        def generate
-          seen_libraries
-        end
-
         def generate_json
           JSON.generate(v1: seen_libraries.to_a)
         end

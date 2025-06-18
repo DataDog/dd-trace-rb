@@ -1,9 +1,14 @@
 require "datadog/profiling/collectors/code_provenance"
 require "json-schema"
+require "json"
 require "yaml"
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
   subject(:code_provenance) { described_class.new }
+
+  let(:generate_result) do
+    JSON.parse(code_provenance.generate_json, symbolize_names: true).fetch(:v1)
+  end
 
   describe "#refresh" do
     subject(:refresh) { code_provenance.refresh }
@@ -11,25 +16,25 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
     it "records libraries that are currently loaded" do
       refresh
 
-      expect(code_provenance.generate).to include(
-        have_attributes(
+      expect(generate_result).to include(
+        {
           kind: "standard library",
           name: "stdlib",
           version: RUBY_VERSION.to_s,
-          path: start_with("/"),
-        ),
-        have_attributes(
+          paths: contain_exactly(start_with("/")),
+        },
+        {
           kind: "library",
           name: "datadog",
           version: Datadog::VERSION::STRING,
-          path: start_with("/"),
-        ),
-        have_attributes(
+          paths: contain_exactly(start_with("/")),
+        },
+        {
           kind: "library",
           name: "rspec-core",
           version: start_with("3."), # This will one day need to be bumped for RSpec 4
-          path: start_with("/"),
-        )
+          paths: contain_exactly(start_with("/")),
+        },
       )
     end
 
@@ -37,7 +42,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
       refresh
 
       current_file_directory = __dir__
-      datadog_gem_root_directory = code_provenance.generate.find { |lib| lib.name == "datadog" }.path
+      datadog_gem_root_directory = generate_result.find { |lib| lib.fetch(:name) == "datadog" }.fetch(:paths).first
 
       expect(current_file_directory).to start_with(datadog_gem_root_directory)
     end
@@ -61,12 +66,12 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
         ],
       )
 
-      expect(code_provenance.generate).to have(1).item
-      expect(code_provenance.generate.first).to have_attributes(
+      expect(generate_result).to have(1).item
+      expect(generate_result.first).to match(
+        kind: "library",
         name: "is_loaded",
         version: "is_loaded_version",
-        path: "/is_loaded/",
-        kind: "library",
+        paths: contain_exactly("/is_loaded/"),
       )
     end
 
@@ -97,16 +102,14 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           ],
         )
 
-        expect(code_provenance.generate).to have(1).item
-        expect(code_provenance.generate.first).to have_attributes(name: "byebug")
+        expect(generate_result).to have(1).item
+        expect(generate_result.first).to match(hash_including(name: "byebug"))
       end
     end
   end
 
   describe "#generate_json" do
-    before do
-      code_provenance.refresh
-    end
+    before { code_provenance.refresh }
 
     let(:code_provenance_schema) do
       %(
@@ -163,25 +166,25 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
     end
 
     it "renders the list of loaded libraries as json" do
-      expect(JSON.parse(code_provenance.generate_json).fetch("v1")).to include(
-        hash_including(
-          "name" => "stdlib",
-          "kind" => "standard library",
-          "version" => RUBY_VERSION.to_s,
-          "paths" => include(start_with("/")),
-        ),
-        hash_including(
-          "name" => "datadog",
-          "kind" => "library",
-          "version" => Datadog::VERSION::STRING,
-          "paths" => include(start_with("/")),
-        ),
-        hash_including(
-          "name" => "rspec-core",
-          "kind" => "library",
-          "version" => start_with("3."), # This will one day need to be bumped for RSpec 4
-          "paths" => include(start_with("/")),
-        )
+      expect(generate_result).to include(
+        {
+          name: "stdlib",
+          kind: "standard library",
+          version: RUBY_VERSION.to_s,
+          paths: include(start_with("/")),
+        },
+        {
+          name: "datadog",
+          kind: "library",
+          version: Datadog::VERSION::STRING,
+          paths: include(start_with("/")),
+        },
+        {
+          name: "rspec-core",
+          kind: "library",
+          version: start_with("3."), # This will one day need to be bumped for RSpec 4
+          paths: include(start_with("/")),
+        },
       )
     end
 

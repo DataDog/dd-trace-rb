@@ -4,7 +4,6 @@ module Datadog
       class CodeProvenance
         def initialize: (?standard_library_path: String) -> void
         def refresh: (?loaded_files: Array[String], ?loaded_specs: Array[Gem::Specification]) -> self
-        def generate: () -> Set[Library]
         def generate_json: () -> ::String
 
         private
