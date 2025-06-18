@@ -48,5 +48,5 @@ runs:
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
-    # - run: bundle check
-    #   shell: bash
+    - run: bundle check --verbose
+      shell: bash

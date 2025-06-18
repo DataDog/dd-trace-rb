@@ -26,5 +26,5 @@ runs:
       key: "${{ inputs.cache-key }}"
       path: "/usr/local/bundle"
 
-  # - run: bundle check
-  #   shell: bash
+  - run: bundle check --verbose
+    shell: bash
