@@ -31,6 +31,8 @@ module Datadog
         end
 
         def store(key, value)
+          return @store[key] = value if @store.delete(key)
+
           # NOTE: evict the oldest entry if store reached the maximum allowed size
           @store.shift if @store.size >= @max_size
           @store[key] = value
