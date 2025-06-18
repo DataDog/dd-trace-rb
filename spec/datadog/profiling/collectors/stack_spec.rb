@@ -225,12 +225,15 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
     end
 
-    context "when sampling a thread inside BigDecimal" do
+    context "when sampling a thread with native frames" do
       let(:do_in_background_thread) do
         proc do |ready_queue|
-          BigDecimal.save_rounding_mode do
-            ready_queue << true
-            sleep
+          catch do
+            BigDecimal.save_rounding_mode do
+              @expected_line = __LINE__ + 2 # Sleep
+              ready_queue << true
+              sleep
+            end
           end
         end
       end
@@ -242,18 +245,22 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       context "when native filenames are enabled" do
         let(:native_filenames_enabled) { true }
 
-        it "matches the Ruby backtrace API after the 4th frame" do
-          expect(gathered_stack[3..-1]).to eq reference_stack[3..-1]
+        it "matches the Ruby backtrace API after the 6th frame" do
+          expect(gathered_stack[5..-1]).to eq reference_stack[5..-1]
         end
 
         it "includes the real native filename for the top frames" do
-          expect(gathered_stack[0..2]).to contain_exactly(
-            # We expect the native filename for sleep to be inside the Ruby VM -- either in the ruby binary or the libruby library
-            # Note that this may not apply everywhere (e.g. you can rename your Ruby), but it seems sane enough to require this when running tests
-            have_attributes(base_label: "sleep", path: end_with("/ruby").or(include("libruby.so")), lineno: 0),
-            have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
+          expect(gathered_stack[0..4]).to contain_exactly(
+            # Sleep is expected to be native BUT since it's at the top of the stack we don't replace the path or lineno
+            # (see comment on `set_file_info_for_cfunc` for why)
+            have_attributes(base_label: "sleep", path: __FILE__, lineno: @expected_line),
+            have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: @expected_line),
             # Bigdecimal is a native extension shipped separately from Ruby
             have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
+            # We expect the native filename for catch to be inside the Ruby VM -- either in the ruby binary or the libruby library
+            # Note that this may not apply everywhere (e.g. you can rename your Ruby), but it seems sane enough to require this when running tests
+            have_attributes(base_label: "catch", path: end_with("/ruby").or(include("libruby.so")), lineno: 0),
           )
         end
       end
@@ -290,8 +297,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
         it "includes the real native filename for the top frames" do
           expect(gathered_stack[0..3]).to contain_exactly(
-            # Same as in the BigDecimal test above
-            have_attributes(base_label: "sleep", path: end_with("/ruby").or(include("libruby.so")), lineno: 0),
+            have_attributes(base_label: "sleep", path: __FILE__, lineno: be_positive),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # Bigdecimal is a native extension shipped separately from Ruby
             have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),

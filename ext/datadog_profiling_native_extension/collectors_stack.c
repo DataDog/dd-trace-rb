@@ -38,6 +38,7 @@ static void set_file_info_for_cfunc(
   ddog_CharSlice last_ruby_frame_filename,
   int last_ruby_line,
   void *function,
+  bool top_of_the_stack,
   bool native_filenames_enabled,
   st_table *native_filenames_cache
 );
@@ -291,6 +292,7 @@ void sample_thread(
   for (int i = captured_frames - 1; i >= 0; i--) {
     ddog_CharSlice name_slice, filename_slice;
     int line;
+    bool top_of_the_stack = i == 0;
 
     if (buffer->stack_buffer[i].is_ruby_frame) {
       VALUE name = rb_iseq_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
@@ -313,6 +315,7 @@ void sample_thread(
         last_ruby_frame_filename,
         last_ruby_line,
         buffer->stack_buffer[i].as.native_frame.function,
+        top_of_the_stack,
         native_filenames_enabled,
         native_filenames_cache
       );
@@ -320,7 +323,6 @@ void sample_thread(
 
     maybe_trim_template_random_ids(&name_slice, &filename_slice);
 
-    bool top_of_the_stack = i == 0;
 
     // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
     if (top_of_the_stack && only_wall_time) {
@@ -397,12 +399,23 @@ void sample_thread(
     ddog_CharSlice last_ruby_frame_filename,
     int last_ruby_line,
     void *function,
+    bool top_of_the_stack,
     bool native_filenames_enabled,
     st_table *native_filenames_cache
   ) {
     if (native_filenames_enabled) {
       const char *native_filename = get_or_compute_native_filename(function, native_filenames_cache);
-      if (native_filename && native_filename[0] != '\0') {
+      if (native_filename && native_filename[0] != '\0' &&
+        // Using the ruby_native_filename at the top of the stack has a weird effect on the "top methods" table because
+        // e.g. we don't have classnames for methods. This is especially visible in the allocations profile, e.g.
+        // what a surprise, you're telling me "libruby.so:new" is the top method always?
+        //
+        // Until we have a better way of dealing with that, we don't do this replacement for the top frame.
+        //
+        // Also, dladdr is expected to always return the same pointer to the ruby_native_filename, so that's why we're
+        // comparing only pointer values and not the string contents.
+        (native_filename != ruby_native_filename || !top_of_the_stack)
+      ) {
         *filename_slice = (ddog_CharSlice) {.ptr = native_filename, .len = strlen(native_filename)};
         // Explicitly set the line to 0 as it has no meaning on a native library (e.g. an .so is built of many source files)
         // and anyway often that debug info is not available.
@@ -457,6 +470,7 @@ void sample_thread(
     ddog_CharSlice last_ruby_frame_filename,
     int last_ruby_line,
     DDTRACE_UNUSED void *function,
+    DDTRACE_UNUSED bool top_of_the_stack,
     DDTRACE_UNUSED bool native_filenames_enabled,
     DDTRACE_UNUSED st_table *native_filenames_cache
   ) {
