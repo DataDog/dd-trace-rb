@@ -28,6 +28,7 @@ struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
   frame_info *stack_buffer;
 };
 
+static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self);
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
@@ -40,6 +41,7 @@ static void set_file_info_for_cfunc(
   bool native_filenames_enabled,
   st_table *native_filenames_cache
 );
+static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
@@ -49,13 +51,42 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
 extern VALUE rb_iseq_path(const VALUE);
 extern VALUE rb_iseq_base_label(const VALUE);
 
+// NULL if dladdr is not available or we weren't able to get the native filename for the Ruby VM
+static const char *ruby_native_filename = NULL;
+
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_stack_class = rb_define_class_under(collectors_module, "Stack", rb_cObject);
+
+  rb_define_singleton_method(collectors_stack_class, "_native_filenames_available?", _native_filenames_available, 0);
+
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
+
+  #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+  // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
+  // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
+  //
+  // Small note: Creating/deleting the cache is a bit awkward here, but it seems like a bigger footgun to allow
+  // `get_or_compute_native_filename` to run without a cache, since we never expect that to happen during sampling. So it seems
+  // like a reasonable trade-off to force callers to always figure that out.
+  st_table *temporary_cache = st_init_numtable();
+  const char *native_filename = get_or_compute_native_filename(rb_ary_new, temporary_cache);
+  if (native_filename != NULL && native_filename[0] != '\0') {
+    ruby_native_filename = native_filename;
+  }
+  st_free_table(temporary_cache);
+  #endif
+}
+
+static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self) {
+  #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+    return ruby_native_filename != NULL ? Qtrue : Qfalse;
+  #else
+    return Qfalse;
+  #endif
 }
 
 typedef struct {
@@ -360,8 +391,6 @@ void sample_thread(
 }
 
 #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
-  static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache);
-
   static void set_file_info_for_cfunc(
     ddog_CharSlice *filename_slice,
     int *line,

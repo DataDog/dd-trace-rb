@@ -2,6 +2,7 @@ module Datadog
   module Profiling
     module Collectors
       class Stack
+        def self._native_filenames_available?: () -> bool
       end
     end
   end

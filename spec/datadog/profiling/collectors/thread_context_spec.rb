@@ -178,7 +178,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       let(:native_filenames_enabled) { true }
 
       before do
-        allow(described_class).to receive(:_native_filenames_available?).and_return(false)
+        allow(Datadog::Profiling::Collectors::Stack).to receive(:_native_filenames_available?).and_return(false)
         allow(Datadog.logger).to receive(:debug)
       end
 

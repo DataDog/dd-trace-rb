@@ -87,7 +87,7 @@ module Datadog
         end
 
         def validate_native_filenames(native_filenames_enabled)
-          if native_filenames_enabled && !self.class._native_filenames_available?
+          if native_filenames_enabled && !Datadog::Profiling::Collectors::Stack._native_filenames_available?
             Datadog.logger.debug(
               "Native filenames are enabled, but the required dladdr API was not available. Disabling native filenames."
             )
