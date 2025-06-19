@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../core/remote/dispatcher'
-require_relative 'processor/rule_merger'
 require_relative 'processor/rule_loader'
 
 module Datadog
@@ -57,74 +56,37 @@ module Datadog
           remote_features_enabled? ? ASM_PRODUCTS : []
         end
 
-        # rubocop:disable Metrics/MethodLength
-        # rubocop:disable Metrics/CyclomaticComplexity
         def receivers(telemetry)
           return [] unless remote_features_enabled?
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
-          # rubocop:disable Metrics/BlockLength
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
+            next unless AppSec.security_engine
+
             changes.each do |change|
-              Datadog.logger.debug { "remote config change: '#{change.path}'" }
-            end
+              content = repository[change.path]
+              next unless content
 
-            rules = []
-            custom_rules = []
-            data = []
-            overrides = []
-            exclusions = []
-            actions = []
+              case change.type
+              when :insert, :update
+                AppSec.security_engine.add_or_update_config(parse_content(content), path: change.path.to_s) # steep:ignore
 
-            repository.contents.each do |content|
-              parsed_content = parse_content(content)
+                content.applied
+              when :delete
+                AppSec.security_engine.remove_config_at_path(change.path.to_s) # steep:ignore
 
-              case content.path.product
-              when 'ASM_DD'
-                rules << parsed_content
-              when 'ASM_DATA'
-                data << parsed_content['rules_data'] if parsed_content['rules_data']
-              when 'ASM'
-                overrides << parsed_content['rules_override'] if parsed_content['rules_override']
-                exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
-                custom_rules << parsed_content['custom_rules'] if parsed_content['custom_rules']
-                actions.concat(parsed_content['actions']) if parsed_content['actions']
+                content.applied
               end
             end
 
-            if rules.empty?
-              settings_rules = AppSec::Processor::RuleLoader.load_rules(
-                telemetry: telemetry,
-                ruleset: Datadog.configuration.appsec.ruleset
-              )
-
-              raise NoRulesError, 'no default rules available' unless settings_rules
-
-              rules = [settings_rules]
-            end
-
-            ruleset = AppSec::Processor::RuleMerger.merge(
-              rules: rules,
-              data: data,
-              actions: actions,
-              overrides: overrides,
-              exclusions: exclusions,
-              custom_rules: custom_rules,
-              telemetry: telemetry
-            )
-
-            Datadog::AppSec.reconfigure(ruleset: ruleset, telemetry: telemetry)
-
-            repository.contents.each do |content|
-              content.applied if ASM_PRODUCTS.include?(content.path.product)
-            end
+            # This is subject to change - we need to remove the reconfiguration mutex
+            # and track usages of each WAF handle instead, so that we know when an old
+            # WAF handle can be finalized.
+            AppSec.reconfigure!
           end
-          # rubocop:enable Metrics/BlockLength
 
           [receiver]
         end
-        # rubocop:enable Metrics/MethodLength
-        # rubocop:enable Metrics/CyclomaticComplexity
 
         private
 
