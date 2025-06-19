@@ -11,9 +11,34 @@ require 'datadog/appsec'
 RSpec.describe 'Blocking with deny and pass list configuration' do
   include Rack::Test::Methods
 
-  let(:ip_passlist) { [] }
-  let(:ip_denylist) { [] }
-  let(:user_id_denylist) { [] }
+  before do
+    Datadog.configure do |c|
+      c.tracing.enabled = true
+
+      c.appsec.enabled = true
+      c.appsec.instrument :rack
+
+      c.appsec.waf_timeout = 10_000_000 # in us
+      c.appsec.ip_passlist = []
+      c.appsec.ip_denylist = []
+      c.appsec.user_id_denylist = []
+      c.appsec.ruleset = sqli_blocking_ruleset
+      c.appsec.api_security.enabled = false
+      c.appsec.api_security.sample_rate = 0.0
+
+      c.remote.enabled = false
+    end
+
+    # NOTE: Don't reach the agent in any way
+    allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
+    allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
+      .and_return(true)
+  end
+
+  after do
+    Datadog.configuration.reset!
+    Datadog.registry[:rack].reset_configuration!
+  end
 
   let(:sqli_blocking_ruleset) do
     {
@@ -60,35 +85,6 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
     stack.to_app
   end
 
-  before do
-    Datadog.configure do |c|
-      c.tracing.enabled = true
-
-      c.appsec.enabled = true
-      c.appsec.instrument :rack
-
-      c.appsec.waf_timeout = 10_000_000 # in us
-      c.appsec.ip_passlist = ip_passlist
-      c.appsec.ip_denylist = ip_denylist
-      c.appsec.user_id_denylist = user_id_denylist
-      c.appsec.ruleset = sqli_blocking_ruleset
-      c.appsec.api_security.enabled = false
-      c.appsec.api_security.sample_rate = 0.0
-
-      c.remote.enabled = false
-    end
-
-    # NOTE: Don't reach the agent in any way
-    allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
-    allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
-      .and_return(true)
-  end
-
-  after do
-    Datadog.configuration.reset!
-    Datadog.registry[:rack].reset_configuration!
-  end
-
   subject(:response) { last_response }
 
   context 'when deny and pass lists are not set' do
@@ -98,10 +94,12 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
   end
 
   context 'when deny and pass lists are set' do
-    let(:ip_denylist) { ['1.2.3.4'] }
-    let(:ip_passlist) { ['1.2.3.4'] }
-
     before do
+      Datadog.configure do |c|
+        c.appsec.ip_denylist = ['1.2.3.4']
+        c.appsec.ip_passlist = ['1.2.3.4']
+      end
+
       get('/test', {q: '1 OR 1;'}, {'HTTP_X_FORWARDED_FOR' => '1.2.3.4'})
     end
 
@@ -109,9 +107,9 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
   end
 
   context 'when pass list is set' do
-    let(:ip_passlist) { ['1.2.3.4'] }
-
     before do
+      Datadog.configure { |c| c.appsec.ip_passlist = ['1.2.3.4'] }
+
       get('/test', {q: '1 OR 1;'}, {'HTTP_X_FORWARDED_FOR' => '1.2.3.4'})
     end
 
@@ -119,10 +117,12 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
   end
 
   context 'when deny and pass lists are set and body contains SQLi' do
-    let(:ip_denylist) { ['1.2.3.4'] }
-    let(:ip_passlist) { ['1.2.3.4'] }
-
     before do
+      Datadog.configure do |c|
+        c.appsec.ip_denylist = ['1.2.3.4']
+        c.appsec.ip_passlist = ['1.2.3.4']
+      end
+
       body = {statement: <<~SQL}
         -- select count(*) from accounts where account_number is null
         select count(*) from payments where created_at >= '2025-03-01' and created_at < '2025-03-08'

@@ -63,12 +63,10 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
             before do
               allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
               allow(Datadog.configuration.appsec).to receive(:enabled).and_return(true)
-              allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
             end
 
             let(:trace) { Datadog::Tracing::TraceOperation.new(tags: { '_dd.p.ts' => '02' }) }
             let(:result) { described_class.enabled?(trace: trace) }
-            let(:security_engine) { instance_double(Datadog::AppSec::SecurityEngine) }
 
             it { expect(result).to be true }
           end

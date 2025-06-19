@@ -7,6 +7,7 @@ require_relative 'gateway/response'
 
 require_relative '../../event'
 require_relative '../../response'
+require_relative '../../processor'
 require_relative '../../security_event'
 require_relative '../../instrumentation/gateway'
 
@@ -45,7 +46,7 @@ module Datadog
             boot = Datadog::Core::Remote::Tie.boot
             Datadog::Core::Remote::Tie::Tracing.tag(boot, active_span)
 
-            security_engine = nil
+            processor = nil
             ready = false
             ctx = nil
 
@@ -55,11 +56,11 @@ module Datadog
             return @app.call(env) if active_context(env)
 
             Datadog::AppSec.reconfigure_lock do
-              security_engine = Datadog::AppSec.security_engine
+              processor = Datadog::AppSec.processor
 
-              if security_engine
+              if !processor.nil? && processor.ready?
                 ctx = Datadog::AppSec::Context.activate(
-                  Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner)
+                  Datadog::AppSec::Context.new(active_trace, active_span, processor)
                 )
 
                 env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
@@ -71,7 +72,7 @@ module Datadog
 
             return @app.call(env) unless ready
 
-            add_appsec_tags(security_engine, ctx)
+            add_appsec_tags(processor, ctx)
             add_request_tags(ctx, env)
 
             http_response = nil
@@ -139,7 +140,7 @@ module Datadog
           end
 
           # standard:disable Metrics/MethodLength
-          def add_appsec_tags(security_engine, context)
+          def add_appsec_tags(processor, context)
             span = context.span
             trace = context.trace
 
@@ -149,15 +150,20 @@ module Datadog
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
-            if security_engine.ruleset_version
-              span.set_tag('_dd.appsec.event_rules.version', security_engine.ruleset_version)
+            if processor.diagnostics
+              diagnostics = processor.diagnostics
+
+              span.set_tag('_dd.appsec.event_rules.version', diagnostics['ruleset_version'])
 
               unless @oneshot_tags_sent
                 # Small race condition, but it's inoccuous: worst case the tags
                 # are sent a couple of times more than expected
                 @oneshot_tags_sent = true
 
-                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(security_engine.waf_addresses))
+                span.set_tag('_dd.appsec.event_rules.loaded', diagnostics['rules']['loaded'].size.to_f)
+                span.set_tag('_dd.appsec.event_rules.error_count', diagnostics['rules']['failed'].size.to_f)
+                span.set_tag('_dd.appsec.event_rules.errors', JSON.dump(diagnostics['rules']['errors']))
+                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(processor.addresses))
 
                 # Ensure these tags reach the backend
                 trace.keep!

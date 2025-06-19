@@ -23,59 +23,54 @@ module Datadog
       RESULT_CODE: { ddwaf_err_internal: :err_internal, ddwaf_err_invalid_object: :err_invalid_object, ddwaf_err_invalid_argument: :err_invalid_argument, ddwaf_ok: :ok, ddwaf_match: :match }
 
       module LibDDWAF
+        class Error < StandardError
+          @diagnostics: untyped
+
+          attr_reader diagnostics: untyped
+
+          def initialize: (untyped msg, ?diagnostics: untyped?) -> void
+        end
+
         class Object
         end
 
         DDWAF_RUN_TIMEOUT: untyped
       end
 
-      class Error < StandardError
-      end
+      class Handle
+        @config: untyped
 
-      class InstanceFinalizedError < Error
-      end
+        @handle_obj: untyped
 
-      class ConversionError < Error
-      end
+        @diagnostics: untyped
 
-      class LibDDWAFError < Error
+        @valid: untyped
+
+        attr_reader handle_obj: untyped
+
         attr_reader diagnostics: untyped
 
-        def initialize: (::String msg, ?diagnostics: untyped?) -> void
-      end
+        attr_reader config: untyped
 
-      class HandleBuilder
-        @builder_ptr: ::FFI::Pointer
+        def initialize: (untyped rule, ?limits: ::Hash[untyped, untyped], ?obfuscator: ::Hash[untyped, untyped]) -> void
 
-        def initialize: (?limits: ::Hash[::Symbol, ::Integer], ?obfuscator: ::Hash[::Symbol, ::String]) -> void
+        def finalize: () -> untyped
 
-        def finalize!: () -> void
+        def required_addresses: () -> (::Array[untyped] | untyped)
 
-        def build_handle: () -> Handle
-
-        def add_or_update_config: (untyped config, path: ::String) -> untyped
-
-        def remove_config_at_path: (::String path) -> bool
+        def merge: (untyped data) -> untyped
 
         private
 
-        def ensure_pointer_presence!: () -> void
-      end
+        def new_from_handle: (untyped handle_object, untyped diagnostics, untyped config) -> untyped
 
-      class Handle
-        @handle_ptr: ::FFI::Pointer
+        def validate!: () -> untyped
 
-        def initialize: (::FFI::Pointer handle_ptr) -> void
+        def invalidate!: () -> untyped
 
-        def finalize!: () -> void
+        def valid?: () -> untyped
 
-        def build_context: () -> Context
-
-        def known_addresses: () -> ::Array[::String?]
-
-        private
-
-        def ensure_pointer_presence!: () -> void
+        def valid!: () -> (nil | untyped)
       end
 
       class Result
@@ -107,27 +102,35 @@ module Datadog
       end
 
       class Context
-        @context_ptr: ::FFI::Pointer
+        @context_obj: untyped
 
-        @retained: Array[untyped]
+        @valid: untyped
 
-        RESULT_CODE: ::Hash[::Symbol, ::Symbol]
+        @retained: untyped
 
-        def initialize: (::FFI::Pointer context_ptr) -> void
+        attr_reader context_obj: untyped
 
-        def finalize!: () -> void
+        def initialize: (untyped handle) -> void
 
-        def run: (WAF::data persistent_data, WAF::data ephemeral_data, ?::Integer timeout) -> Result
+        def finalize: () -> untyped
+
+        def run: (untyped persistent_data, untyped ephemeral_data, ?untyped timeout) -> untyped
 
         private
 
-        def ensure_pointer_presence!: () -> void
+        def validate!: () -> untyped
 
-        def retained: () -> Array[untyped]
+        def invalidate!: () -> untyped
 
-        def retain: (top object) -> void
+        def valid?: () -> untyped
 
-        def release: (top object) -> void
+        def valid!: () -> (nil | untyped)
+
+        def retained: () -> untyped
+
+        def retain: (untyped object) -> untyped
+
+        def release: (untyped object) -> untyped
       end
     end
   end

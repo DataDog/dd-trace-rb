@@ -9,7 +9,7 @@ RSpec.describe Datadog::AppSec::Event do
 
     let(:security_engine) do
       instance_double(
-        Datadog::AppSec::SecurityEngine::Engine,
+        Datadog::AppSec::Processor,
         new_runner: instance_double(Datadog::AppSec::SecurityEngine::Runner)
       )
     end
