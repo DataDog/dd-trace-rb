@@ -15,7 +15,7 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 env:
-  SYSTEM_TESTS_REF: e9fb2335c23a6e6d79ccaf4e993b3dca59649ad5 # Automated: This reference is automatically updated.
+  SYSTEM_TESTS_REF: d7eb2324250f9999ae31213219273b420cb244c6 # Automated: Can be updated by .github/workflows/update-system-tests.yml
 
 jobs:
   changes:
@@ -24,7 +24,7 @@ jobs:
     outputs:
       changes: ${{ steps.changes.outputs.src }}
       FORCED_TESTS_LIST: ${{ steps.read_forced_tests_list.outputs.FORCED_TESTS_LIST }}
-      ST_REF: ${{ steps.read_forced_tests_list.outputs.ST_REF }}
+      ST_REF: ${{ steps.outputs_branch.outputs.ST_REF }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

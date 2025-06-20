@@ -20,6 +20,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       double('settings').tap do |settings|
         allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
         allow(settings).to receive(:service).and_return('fake service')
+        allow(settings).to receive(:env).and_return('fake env')
+        allow(settings).to receive(:version).and_return('fake version')
+        allow(settings).to receive(:tags).and_return({})
       end
     end
 
