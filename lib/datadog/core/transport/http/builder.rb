@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/agent_settings_resolver'
+require_relative '../../configuration/agent_settings'
 require_relative 'adapters/registry'
 require_relative 'api/map'
 
@@ -21,7 +21,7 @@ module Datadog
             :default_headers,
             :logger
 
-          def initialize(api_instance_class:, logger:)
+          def initialize(api_instance_class:, logger: Datadog.logger)
             # Global settings
             @default_adapter = nil
             @default_headers = {}
@@ -41,19 +41,19 @@ module Datadog
 
           def adapter(config, *args, **kwargs)
             @default_adapter = case config
-                               when Core::Configuration::AgentSettingsResolver::AgentSettings
-                                 registry_klass = REGISTRY.get(config.adapter)
-                                 raise UnknownAdapterError, config.adapter if registry_klass.nil?
+            when Core::Configuration::AgentSettings
+              registry_klass = REGISTRY.get(config.adapter)
+              raise UnknownAdapterError, config.adapter if registry_klass.nil?
 
-                                 registry_klass.build(config)
-                               when Symbol
-                                 registry_klass = REGISTRY.get(config)
-                                 raise UnknownAdapterError, config if registry_klass.nil?
+              registry_klass.build(config)
+            when Symbol
+              registry_klass = REGISTRY.get(config)
+              raise UnknownAdapterError, config if registry_klass.nil?
 
-                                 registry_klass.new(*args, **kwargs)
-                               else
-                                 config
-                               end
+              registry_klass.new(*args, **kwargs)
+            else
+              config
+            end
           end
 
           def headers(values = {})
@@ -88,7 +88,7 @@ module Datadog
           def to_transport(klass)
             raise NoDefaultApiError if @default_api.nil?
 
-            klass.new(to_api_instances, @default_api, logger)
+            klass.new(to_api_instances, @default_api, logger: logger)
           end
 
           def to_api_instances

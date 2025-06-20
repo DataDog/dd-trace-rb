@@ -20,7 +20,7 @@ module Datadog
           end
 
           def id
-            @id ||= "#{type}::#{name}::#{tags.join(',')}"
+            @id ||= "#{type}::#{name}::#{tags.join(",")}"
           end
 
           def track(value)
@@ -47,7 +47,7 @@ module Datadog
               values == other.values && tags == other.tags && common == other.common && type == other.type
           end
 
-          alias eql? ==
+          alias_method :eql?, :==
 
           def hash
             [self.class, name, values, tags, common, type].hash
@@ -88,7 +88,7 @@ module Datadog
             super && interval == other.interval
           end
 
-          alias eql? ==
+          alias_method :eql?, :==
 
           def hash
             [super, interval].hash
@@ -108,9 +108,9 @@ module Datadog
             value = value.to_i
 
             if values.empty?
-              values << [Time.now.to_i, value]
+              values << [Core::Utils::Time.now.to_i, value]
             else
-              values[0][0] = Time.now.to_i
+              values[0][0] = Core::Utils::Time.now.to_i
               values[0][1] += value
             end
             nil
@@ -129,9 +129,9 @@ module Datadog
 
           def track(value)
             if values.empty?
-              values << [Time.now.to_i, value]
+              values << [Core::Utils::Time.now.to_i, value]
             else
-              values[0][0] = Time.now.to_i
+              values[0][0] = Core::Utils::Time.now.to_i
               values[0][1] = value
             end
             nil
@@ -155,7 +155,7 @@ module Datadog
 
           def track(value = 1.0)
             @value += value
-            @values = [[Time.now.to_i, @value / interval]]
+            @values = [[Core::Utils::Time.now.to_i, @value / interval]]
             nil
           end
         end

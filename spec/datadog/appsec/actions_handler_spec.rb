@@ -5,19 +5,19 @@ require 'datadog/appsec/spec_helper'
 RSpec.describe Datadog::AppSec::ActionsHandler do
   describe '.handle' do
     let(:generate_stack_action) do
-      { 'generate_stack' => { 'stack_id' => 'foo' } }
+      {'generate_stack' => {'stack_id' => 'foo'}}
     end
 
     let(:generate_schema_action) do
-      { 'generate_schema' => {} }
+      {'generate_schema' => {}}
     end
 
     let(:redirect_request_action) do
-      { 'redirect_request' => { 'status_code' => '303', 'location' => 'http://example.com' } }
+      {'redirect_request' => {'status_code' => '303', 'location' => 'http://example.com'}}
     end
 
     let(:block_request_action) do
-      { 'block_request' => { 'status_code' => '403', 'type' => 'auto' } }
+      {'block_request' => {'status_code' => '403', 'type' => 'auto'}}
     end
 
     it 'calls generate_stack with action parameters' do
@@ -99,7 +99,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
   end
 
   describe '.generate_stack' do
-    let(:action_params) { { 'stack_id' => 'test-stack-id' } }
+    let(:action_params) { {'stack_id' => 'test-stack-id'} }
     let(:active_span) { Datadog::Tracing::Span.new('test-span') }
     let(:active_context) { instance_double(Datadog::AppSec::Context, span: active_span) }
 
@@ -116,7 +116,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       it 'adds serializable stack trace' do
         expect(active_span).to receive(:set_metastruct_tag).with(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          { 'exploit' => [instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)] }
+          {'exploit' => [instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)]}
         )
 
         described_class.generate_stack(action_params)
@@ -127,14 +127,14 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       before do
         active_span.set_metastruct_tag(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          { 'exploit' => [1] }
+          {'exploit' => [1]}
         )
       end
 
       it 'adds new stack trace to existing stack trace' do
         expect(active_span).to receive(:set_metastruct_tag).with(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          { 'exploit' => [1, instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)] }
+          {'exploit' => [1, instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)]}
         )
 
         described_class.generate_stack(action_params)
@@ -145,7 +145,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       before do
         active_span.set_metastruct_tag(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          { 'exploit' => [1, 2] }
+          {'exploit' => [1, 2]}
         )
       end
 
@@ -161,14 +161,14 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
 
         active_span.set_metastruct_tag(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          { 'exploit' => [1, 2] }
+          {'exploit' => [1, 2]}
         )
       end
 
       it 'adds new stack trace to existing stack trace' do
         expect(active_span).to receive(:set_metastruct_tag).with(
           Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
-          { 'exploit' => [1, 2, instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)] }
+          {'exploit' => [1, 2, instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)]}
         )
 
         described_class.generate_stack(action_params)

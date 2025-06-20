@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'datadog/core/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings'
 require 'datadog/tracing/pipeline'
 require 'datadog/tracing/pipeline/span_filter'
 require 'datadog/tracing/span'
@@ -27,7 +27,7 @@ RSpec.describe Datadog::Tracing::SyncWriter do
 
     context 'given :agent_settings' do
       let(:options) { { agent_settings: agent_settings, logger: logger } }
-      let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings) }
+      let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
       let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
 
       before do

@@ -62,7 +62,7 @@ end
 RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
   let(:logger) { logger_allowing_debug }
   let(:chunker) do
-    described_class.new(encoder, logger, native_events_supported: native_events_supported, max_size: max_size)
+    described_class.new(encoder, logger: logger, native_events_supported: native_events_supported, max_size: max_size)
   end
   let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
   let(:native_events_supported) { double }
@@ -79,19 +79,19 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[0],
-          logger,
+          logger: logger,
           native_events_supported: native_events_supported
         ).and_return('1')
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[1],
-          logger,
+          logger: logger,
           native_events_supported: native_events_supported
         ).and_return('22')
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[2],
-          logger,
+          logger: logger,
           native_events_supported: native_events_supported
         ).and_return('333')
         allow(encoder).to receive(:join) { |arr| arr.join(',') }
@@ -146,7 +146,7 @@ end
 RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
   let(:logger) { logger_allowing_debug }
 
-  subject(:transport) { described_class.new(apis, current_api_id, logger) }
+  subject(:transport) { described_class.new(apis, current_api_id, logger: logger) }
 
   shared_context 'APIs with fallbacks' do
     let(:current_api_id) { :v2 }
@@ -200,19 +200,19 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     before do
       allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
         encoder_v1,
-        logger,
+        logger: logger,
         native_events_supported: false
       ).and_return(chunker)
       allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
         encoder_v2,
-        logger,
+        logger: logger,
         native_events_supported: false
       ).and_return(chunker)
 
       allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
 
-      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v1, logger).and_return(client_v1)
-      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v2, logger).and_return(client_v2)
+      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v1, logger: logger).and_return(client_v1)
+      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v2, logger: logger).and_return(client_v2)
       allow(client_v1).to receive(:send_traces_payload).with(request).and_return(response)
       allow(client_v2).to receive(:send_traces_payload).with(request).and_return(response)
 
@@ -307,7 +307,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           it 'uses the configured value' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
-              logger,
+              logger: logger,
               native_events_supported: true
             ).and_return(chunker)
 
@@ -332,7 +332,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           it 'uses the configured value' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
-              logger,
+              logger: logger,
               native_events_supported: false
             ).and_return(chunker)
             send_traces
@@ -355,7 +355,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             it 'does not encode native span events' do
               expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
                 encoder_v2,
-                logger,
+                logger: logger,
                 native_events_supported: false
               ).and_return(chunker)
               send_traces
@@ -368,7 +368,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             it 'encodes native span events' do
               expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
                 encoder_v2,
-                logger,
+                logger: logger,
                 native_events_supported: true
               ).and_return(chunker)
               send_traces
@@ -381,7 +381,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
             it 'encodes native span events' do
               expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
                 encoder_v2,
-                logger,
+                logger: logger,
                 native_events_supported: false
               ).and_return(chunker)
               send_traces

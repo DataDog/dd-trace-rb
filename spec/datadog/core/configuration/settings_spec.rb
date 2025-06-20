@@ -8,26 +8,7 @@ require 'datadog/core/environment/ext'
 require 'datadog/core/runtime/ext'
 require 'datadog/core/utils/time'
 require 'datadog/profiling/ext'
-
-RSpec.shared_examples_for 'a binary setting with' do |env_variable:, default:|
-  context "when #{env_variable}" do
-    around { |example| ClimateControl.modify(env_variable => environment) { example.run } }
-
-    context 'is not defined' do
-      let(:environment) { nil }
-
-      it { is_expected.to be default }
-    end
-
-    [true, false].each do |value|
-      context "is defined as #{value}" do
-        let(:environment) { value.to_s }
-
-        it { is_expected.to be value }
-      end
-    end
-  end
-end
+require_relative 'settings_shared_examples'
 
 RSpec.describe Datadog::Core::Configuration::Settings do
   subject(:settings) { described_class.new(options) }
@@ -506,7 +487,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be 10 }
+            it { is_expected.to be 1 }
           end
 
           context 'is defined as 100' do
@@ -521,7 +502,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'updates the #experimental_heap_sample_rate setting' do
           expect { settings.profiling.advanced.experimental_heap_sample_rate = 100 }
             .to change { settings.profiling.advanced.experimental_heap_sample_rate }
-            .from(10)
+            .from(1)
             .to(100)
         end
       end
@@ -890,6 +871,57 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.runtime_metrics.enabled }
           .from(false)
           .to(true)
+      end
+    end
+
+    describe '#experimental_runtime_id_enabled' do
+      subject(:experimental_runtime_id_enabled) { settings.runtime_metrics.experimental_runtime_id_enabled }
+
+      let(:primary_env_var) { 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED' }
+      let(:fallback_env_var) { 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED' }
+
+      around do |example|
+        ClimateControl.modify(
+          primary_env_var => primary_enabled,
+          fallback_env_var => fallback_enabled
+        ) do
+          example.run
+        end
+      end
+
+      context 'by default' do
+        let(:primary_enabled) { nil }
+        let(:fallback_enabled) { nil }
+
+        it { is_expected.to be false }
+      end
+
+      context 'when only the primary env var DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED is set to true' do
+        let(:primary_enabled) { 'true' }
+        let(:fallback_enabled) { nil }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when only the fallback env var DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED is set to true' do
+        let(:primary_enabled) { nil }
+        let(:fallback_enabled) { 'true' }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when both env vars are set to true' do
+        let(:primary_enabled) { 'true' }
+        let(:fallback_enabled) { 'true' }
+
+        it { is_expected.to be true }
+      end
+
+      context "when primary env var is false and fallback is true" do
+        let(:primary_enabled) { 'false' }
+        let(:fallback_enabled) { 'true' }
+
+        it { is_expected.to be false }
       end
     end
 

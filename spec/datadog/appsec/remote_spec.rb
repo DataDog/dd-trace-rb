@@ -20,7 +20,7 @@ RSpec.describe Datadog::AppSec::Remote do
       end
 
       it 'returns capabilities' do
-        expect(described_class.capabilities).to eq([4, 128, 16, 32, 64, 8, 256, 512, 1024])
+        expect(described_class.capabilities).to eq([4, 128, 16, 32, 64, 8, 256, 512, 1024, 8_388_608, 2_097_152])
       end
     end
   end
@@ -116,7 +116,7 @@ RSpec.describe Datadog::AppSec::Remote do
               'custom' => {
                 'v' => 1,
               },
-              'hashes' => { 'sha256' => Digest::SHA256.hexdigest(rules.to_json) },
+              'hashes' => {'sha256' => Digest::SHA256.hexdigest(rules.to_json)},
               'length' => rules.to_s.length
             }
           )
@@ -197,7 +197,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 'custom' => {
                   'v' => 1,
                 },
-                'hashes' => { 'sha256' => Digest::SHA256.hexdigest(data.to_json) },
+                'hashes' => {'sha256' => Digest::SHA256.hexdigest(data.to_json)},
                 'length' => data.to_s.length
               }
             )
@@ -319,7 +319,7 @@ RSpec.describe Datadog::AppSec::Remote do
               end
 
               let(:data) do
-                { 'actions' => actions }
+                {'actions' => actions}
               end
 
               it 'pass the right values to RuleMerger' do

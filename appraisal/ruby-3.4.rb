@@ -58,6 +58,52 @@ appraise 'rails71' do
   gem 'rails', '~> 7.1.0'
 end
 
+appraise 'rails8-mysql2' do
+  gem 'rails', '~> 8.0.0'
+  gem 'mysql2', '~> 0.5', platform: :ruby
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-postgres' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-postgres-redis' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'redis', '~> 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-postgres-sidekiq' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sidekiq', '~> 8'
+  gem 'lograge', '~> 0.11'
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-semantic-logger' do
+  gem 'rails', '~> 8.0.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'rails_semantic_logger', '~> 4.0'
+  gem 'net-smtp'
+end
+
+appraise 'rails8-trilogy' do
+  gem 'rails', '~> 8.0.0'
+  gem 'trilogy'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
 appraise 'rails-old-redis' do
   # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
   gem 'redis', '< 4'
@@ -97,6 +143,7 @@ build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
+build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('devise', min: '3.2.1')
 
 appraise 'relational_db' do
@@ -134,13 +181,14 @@ appraise 'contrib' do
   gem 'concurrent-ruby'
   # Temporarily disable for Ruby 3.4: No binaries causing build time takes more than 10 minutes
   # gem 'grpc', '>= 1.38.0', platform: :ruby
-
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
-  gem 'sidekiq', '~> 7'
+  # Note: Sidekiq 8 uses different timestamp formatting compared to prior versions. As long as
+  # versions <8 are supported, make sure there's some CI running both older and newer versions.
+  gem 'sidekiq', '~> 8'
   gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'

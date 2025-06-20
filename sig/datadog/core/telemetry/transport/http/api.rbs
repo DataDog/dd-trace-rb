@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Transport
+        module HTTP
+          module API
+            AGENT_TELEMETRY: "agent_telemetry"
+
+            AGENTLESS_TELEMETRY: "agentless_telemetry"
+
+            def self?.defaults: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

@@ -11,7 +11,7 @@ require 'opensearch'
 require 'datadog/tracing/contrib/opensearch/integration'
 
 RSpec.describe 'OpenSearch instrumentation' do
-  let(:configuration_options) { {} }
+  let(:configuration_options) { { resource_pattern: 'absolute' } }
   let(:base_url) { "http://#{host}:#{port}" }
   let(:host) { ENV.fetch('TEST_OPENSEARCH_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_OPENSEARCH_PORT', '9200').to_i }
@@ -100,6 +100,24 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_metric('http.response.content_length')).to be_a(Float)
       expect(span.resource).to eq("DELETE #{base_url}/ruby-test-index")
     end
+
+    it 'sets the correct span resource when the resource name uses the relative path' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
+      end
+      delete_indices
+
+      expect(span.resource).to eq('DELETE /ruby-test-index')
+    end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
+      end
+      delete_indices
+
+      expect(span.resource).to eq("DELETE #{base_url}/ruby-test-index")
+    end
   end
 
   context 'creating an index' do
@@ -148,6 +166,24 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.resource).to eq("PUT #{base_url}/ruby-test-index")
       expect(span.service).to eq('opensearch')
     end
+
+    it 'sets the correct span resource when the resource name uses the relative path' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
+      end
+      create_indices
+
+      expect(span.resource).to eq('PUT /ruby-test-index')
+    end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
+      end
+      create_indices
+
+      expect(span.resource).to eq("PUT #{base_url}/ruby-test-index")
+    end
   end
 
   context 'adding a document to the index' do
@@ -178,6 +214,24 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_tag('opensearch.body')).to eq('{"title":"?","director":"?","year":"?"}')
       expect(span.get_tag('opensearch.params')).to eq('{"refresh":true}')
       expect(span.get_metric('http.response.content_length')).to be_a(Float)
+      expect(span.resource).to eq("PUT #{base_url}/ruby-test-index/_doc/?")
+    end
+
+    it 'sets the correct span resource when the resource name uses the relative path' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
+      end
+      index
+
+      expect(span.resource).to eq('PUT /ruby-test-index/_doc/?')
+    end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
+      end
+      index
+
       expect(span.resource).to eq("PUT #{base_url}/ruby-test-index/_doc/?")
     end
   end
@@ -234,6 +288,24 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_metric('http.response.content_length')).to be_a(Float)
       expect(span.resource).to eq("POST #{base_url}/ruby-test-index/_search")
     end
+
+    it 'sets the correct span resource when the resource name uses the relative path' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
+      end
+      search
+
+      expect(span.resource).to eq('POST /ruby-test-index/_search')
+    end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
+      end
+      search
+
+      expect(span.resource).to eq("POST #{base_url}/ruby-test-index/_search")
+    end
   end
 
   context 'deleting indexed document' do
@@ -273,6 +345,24 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_metric('http.response.content_length')).to be_a(Float)
       expect(span.resource).to eq("DELETE #{base_url}/ruby-test-index/_doc/?")
     end
+
+    it 'sets the correct span resource when the resource name uses the relative path' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
+      end
+      delete
+
+      expect(span.resource).to eq('DELETE /ruby-test-index/_doc/?')
+    end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
+      end
+      delete
+
+      expect(span.resource).to eq("DELETE #{base_url}/ruby-test-index/_doc/?")
+    end
   end
 
   context 'when opensearch client throws an error' do
@@ -306,6 +396,24 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.name).to eq('opensearch.query')
       expect(span.resource).to eq("PUT #{base_url}/ruby-test-index")
       expect(span.service).to eq('opensearch')
+    end
+
+    it 'sets the correct span resource when the resource name uses the relative path' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
+      end
+      expect { test_error }.to raise_error(OpenSearch::Transport::Transport::Errors::BadRequest)
+
+      expect(span.resource).to eq('PUT /ruby-test-index')
+    end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
+      end
+      expect { test_error }.to raise_error(OpenSearch::Transport::Transport::Errors::BadRequest)
+
+      expect(span.resource).to eq("PUT #{base_url}/ruby-test-index")
     end
   end
 end

@@ -23,7 +23,7 @@ module Datadog
         # This isn't something we expect to happen normally, but because it would break the assumptions of the
         # C-level mutexes (that there is a single serializer thread), we add it here as an extra safeguard against it
         # accidentally happening.
-        @no_concurrent_synchronize_mutex = Mutex.new
+        @no_concurrent_serialize_mutex = Mutex.new
 
         self.class._native_initialize(
           self_instance: self,
@@ -60,14 +60,14 @@ module Datadog
       end
 
       def serialize
-        status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_serialize(self) }
+        status, result = @no_concurrent_serialize_mutex.synchronize { self.class._native_serialize(self) }
 
         if status == :ok
-          start, finish, encoded_pprof, profile_stats = result
+          start, finish, encoded_profile, profile_stats = result
 
           Datadog.logger.debug { "Encoded profile covering #{start.iso8601} to #{finish.iso8601}" }
 
-          [start, finish, encoded_pprof, profile_stats]
+          [start, finish, encoded_profile, profile_stats]
         else
           error_message = result
 
@@ -79,12 +79,12 @@ module Datadog
       end
 
       def serialize!
-        status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_serialize(self) }
+        status, result = @no_concurrent_serialize_mutex.synchronize { self.class._native_serialize(self) }
 
         if status == :ok
-          _start, _finish, encoded_pprof = result
+          _start, _finish, encoded_profile = result
 
-          encoded_pprof
+          encoded_profile
         else
           error_message = result
 

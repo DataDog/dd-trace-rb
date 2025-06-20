@@ -1114,6 +1114,27 @@ end
 | --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
 | `enabled` | `DD_TRACE_KAFKA_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
+### Karafka
+
+The karafka integration provides tracing of the `karafka` gem.
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'karafka'
+require 'datadog'
+
+Datadog.configure do |c|
+  c.tracing.instrument :karafka, **options
+end
+
+```
+`options` are the following keyword arguments:
+
+| Key                   | Env Var                  | Type   | Description                                         | Default |
+| --------------------- | ------------------------ | ------ | --------------------------------------------------- | ------- |
+| `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.        | `true`  |
+| `distributed_tracing` |                          | `Bool` | Enables [distributed tracing](#distributed-tracing). | `false` |
+
 ### MongoDB
 
 The integration traces any `Command` that is sent from the [MongoDB Ruby Driver](https://github.com/mongodb/mongo-ruby-driver) to a MongoDB cluster. By extension, Object Document Mappers (ODM) such as Mongoid are automatically instrumented if they use the official Ruby driver. To activate the integration, simply:
@@ -1123,7 +1144,7 @@ require 'mongo'
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :mongo, **options
+  c.tracing.instrument :mongo, json_command: true, **options
 end
 
 # Create a MongoDB client and use it as usual
@@ -1143,6 +1164,7 @@ Datadog.configure_onto(client, **options)
 | `service_name` | `DD_TRACE_MONGO_SERVICE_NAME` | `String` | Name of application running the `mongo` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)   | `mongodb`                                        |
 | `peer_service` | `DD_TRACE_MONGO_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                        | `nil`                                            |
 | `quantize`     |                               | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
+| `json_command` | `DD_TRACE_MONGO_JSON_COMMAND` | `Bool` | (Recommended) Serialize the MongoDB command as JSON, which enables full support for introspection in the Datadog App. | `false` |
 
 **Configuring trace settings per connection**
 
@@ -1272,9 +1294,10 @@ client.cluster.health
 | Key            | Env Var                            | Type     | Description                                                                                                                                                                                    | Default      |
 | -------------- | ---------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | `enabled` | `DD_TRACE_OPENSEARCH_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name` | `DD_TRACE_OPENSEARCH_SERVICE_NAME` | `String` | Name of application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `opensearch` |
-| `peer_service` | `DD_TRACE_OPENSEARCH_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                           | `nil`        |
-| `quantize`     |                                    | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.    | `{}`         |
+| `service_name` | `DD_TRACE_OPENSEARCH_SERVICE_NAME` | `String` | Name of the application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details.](#additional-configuration) | `opensearch` |
+| `peer_service` | `DD_TRACE_OPENSEARCH_PEER_SERVICE` | `String` | Name of the external service that the application connects to. | `nil` |
+| `resource_pattern` | `DD_TRACE_OPENSEARCH_RESOURCE_PATTERN` | `String` | `absolute` or `relative` depending on whether the resource name should be set to the full or relative URL path. | `absolute` |
+| `quantize` |  | `Hash` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize, `:all` to skip quantization, or `:exclude` with an Array of keys to exclude entirely. | `{}` |
 
 ### Postgres
 
@@ -1515,7 +1538,8 @@ end
 | ------------ | -------------- | -------------- |
 | 2.5          |                | 4.2 - 6.1      |
 | 2.6 - 2.7    | 9.2 - 9.3      | 5.0 - 6.1      |
-| 3.0 - 3.2    | 9.4            | 6.1            |
+| 3.0 - 3.1    | 9.4            | 6.1 - 7.1      |
+| 3.2 - 3.4    |                | 6.1 - 8.0      |
 
 ### Rake
 
@@ -2693,7 +2717,7 @@ Datadog.configure do |c|
 
   # Optionally, you can configure runtime metrics to generate an additional `runtime-id` tag
   # on the generated metrics, which allows you to filter metrics at the individual process level.
-  # You can also set DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED=true to configure this.
+  # You can also set DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED=true to configure this.
   c.runtime_metrics.experimental_runtime_id_enabled = true
 
   # Optionally, you can configure the Statsd instance used for sending runtime metrics.
@@ -2742,6 +2766,41 @@ If you run into issues with profiling, please check the [Profiler Troubleshootin
 When profiling [Resque](https://github.com/resque/resque) jobs, you should set the `RUN_AT_EXIT_HOOKS=1` option described in the [Resque](https://github.com/resque/resque/blob/v2.0.0/docs/HOOKS.md#worker-hooks) documentation.
 
 Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
+
+### Error Tracking
+
+`datadog` can automatically report handled errors. The errors are attached through span events to the span in which they are handled. They are also directly reported to Error Tracking.
+
+#### Requirements
+
+- Ruby 2.7+. JRuby and TruffleRuby are not supported.
+- Datadog Ruby gem (`datadog`) v2.16.0+.
+
+#### Configuration
+
+You can enable automatic reporting of handled errors using the following environment variables:
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_ERROR_TRACKING_HANDLED_ERRORS` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user, third_party, all`. | `nil` |
+| `DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` | `Array[String]` | A comma-separated list of paths, file names, or gem names whose handled errors should be reported. See [Include Format](#include-format) for details. <br><br>Ruby 3.3 or later: the location where the error was rescued is matched.<br>Ruby 3.2 or earlier: the location where the error was raised is matched.  | `[]` |
+
+Alternatively, set error tracking parameters inside a `Datadog.configure` block with the following settings:
+
+| Setting | Type | Description | Default |
+|---|---|---|---|
+| `c.error_tracking.handled_errors` | `String` | Report handled errors from user code, third-party gems, or both. Accepted values are: `user, third_party, all`. | `nil` |
+| `c.error_tracking.handled_errors_include` | `Array[String]` | A comma-separated list of paths, file names, or gem names whose handled errors should be reported. See [Include Format](#include-format) for details. <br><br>Ruby 3.3 or later: the location where the error was rescued is matched.<br>Ruby 3.2 or earlier: the location where the error was raised is matched.  | `[]` |
+
+#### Include format
+
+`DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE` environment variable or the `c.error_tracking.handled_errors_include` setting should specify one or more of the following:
+- A file name: For example, `main` to instrument `main.rb`.
+- A folder name: For example, `subdir` to instrument every Ruby file in folders named `subdir`.
+- Gem name: For example, `rails` to instruments every Ruby file in the *rails* gem **and** any project subfolder named `rails`.
+- Absolute path: For example, `/app/lib/mypackage/main.rb` to instrument that file, or `/app/lib/mypackage/` to instrument every Ruby file in that folder.
+- Relative path: For example, for a program running in the `app` directory, use `./lib/mypackage/main.rb` to instrument the `main.rb` file, or`./lib/mypackage/` to instrument every Ruby file in that folder.
+
 
 ## Known issues and suggested configurations
 

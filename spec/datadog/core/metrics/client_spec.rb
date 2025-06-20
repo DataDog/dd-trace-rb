@@ -7,9 +7,10 @@ RSpec.describe Datadog::Core::Metrics::Client do
   include_context 'metrics'
 
   let(:logger) { Logger.new($stderr) }
+  let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
   let(:options) { { statsd: statsd } }
 
-  subject(:metrics) { described_class.new(logger: logger, **options) }
+  subject(:metrics) { described_class.new(telemetry: telemetry, logger: logger, **options) }
   after { metrics.close }
 
   it { is_expected.to have_attributes(statsd: statsd) }
@@ -19,7 +20,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
       expect(logger).to receive(:error).with(
         /Failed to send #{action} stat/
       )
-      expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(
+      expect(telemetry).to receive(:report).with(
         a_kind_of(StandardError),
         description: "Failed to send #{action} stat"
       )
@@ -758,6 +759,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
       context 'which raises an error' do
         before do
           expect(statsd).to receive(:distribution).and_raise(StandardError)
+          expect(telemetry).to receive(:report)
           expect(logger).to receive(:error)
         end
 

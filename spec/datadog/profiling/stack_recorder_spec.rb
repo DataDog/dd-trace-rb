@@ -1,6 +1,8 @@
 require "datadog/profiling/spec_helper"
 require "datadog/profiling/stack_recorder"
 
+require "objspace"
+
 RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported(self) }
 
@@ -238,6 +240,21 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
+      context "when requesting multiple serializations of empty profiles" do
+        it "correctly sets the profile start timestamp in libdatadog" do
+          # The `start` timestamp returned is tracked locally by us. This test validates that the actual profile
+          # matches it, e.g. that we're passing it along correctly to libdatadog.
+          start_timestamps = []
+          4.times do
+            start, _, profile = stack_recorder.serialize
+            expect(decode_profile(profile).time_nanos).to eq(Datadog::Core::Utils::Time.as_utc_epoch_ns(start))
+
+            start_timestamps << start
+          end
+          expect(start_timestamps.sort).to eq(start_timestamps) # No later timestamp should come before an earlier one
+        end
+      end
+
       it "returns stats reporting no recorded samples" do
         expect(profile_stats).to match(
           hash_including(
@@ -305,21 +322,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(labels).to eq(label_a: "value_a", label_b: "value_b")
       end
 
-      it "encodes a single empty mapping" do
-        expect(decoded_profile.mapping.size).to be 1
-
-        expect(decoded_profile.mapping.first).to have_attributes(
-          id: 1,
-          memory_start: 0,
-          memory_limit: 0,
-          file_offset: 0,
-          filename: 0,
-          build_id: 0,
-          has_functions: false,
-          has_filenames: false,
-          has_line_numbers: false,
-          has_inline_frames: false,
-        )
+      it "does not emit any mappings" do
+        expect(decoded_profile.mapping).to be_empty
       end
 
       it "returns stats reporting one recorded sample" do
@@ -331,25 +335,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             heap_profile_build_time_ns: be >= 0,
           )
         )
-      end
-    end
-
-    context "when sample is invalid" do
-      context "because the local root span id is being defined using a string instead of as a number" do
-        let(:metric_values) { {"cpu-time" => 123, "cpu-samples" => 456, "wall-time" => 789} }
-
-        it do
-          # We're using `_native_sample` here to test the behavior of `record_sample` in `stack_recorder.c`
-          expect do
-            Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-              Thread.current,
-              stack_recorder,
-              metric_values,
-              {"local root span id" => "incorrect", "state" => "unknown"}.to_a,
-              [],
-            )
-          end.to raise_error(ArgumentError)
-        end
       end
     end
 
@@ -426,17 +411,20 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
       end
 
+      def introduce_distinct_stacktraces(i, obj)
+        if i.even?
+          sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
+        else # rubocop:disable Lint/DuplicateBranch
+          sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
+        end
+      end
+
       before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
           {"z" => -1, "y" => "-2", "x" => false}, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
-          # Sample allocations with 2 distinct stacktraces
-          if i.even?
-            sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
-          else # rubocop:disable Lint/DuplicateBranch
-            sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
-          end
+          introduce_distinct_stacktraces(i, obj)
           @num_allocations += 1
           GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
         end
@@ -605,7 +593,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
-        it "aren't lost when they happen concurrently with a long serialization" do
+        it "tracks allocations that happen concurrently with a long serialization" do
           described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
           test_num_allocated_object = 123
@@ -652,13 +640,31 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           )
         end
 
+        it "records stack traces that match the allocations' stack traces" do
+          expect(samples.map(&:locations).uniq.size).to be 2
+        end
+
+        it "records correct stack traces" do
+          unique_heap_stacks = heap_samples.map(&:locations).uniq
+
+          expect(unique_heap_stacks.size).to be 2
+
+          stack1, stack2 = unique_heap_stacks
+          unique_line1 = stack1.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
+          unique_line2 = stack2.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
+
+          expect(stack1.reject { |it| it == unique_line1 }).to eq(stack2.reject { |it| it == unique_line2 })
+          expect(unique_line1.lineno).to be_within(2).of(unique_line2.lineno)
+        end
+
         context "with custom heap sample rate configuration" do
           let(:heap_sample_every) { 2 }
 
           it "only keeps track of some allocations" do
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
-            expect(heap_samples.size).to eq(1)
+            expect(heap_samples.size)
+              .to eq(1), "Expected one heap sample, got #{heap_samples.size}; heap_samples is #{heap_samples}"
 
             heap_sample = heap_samples.first
             expect(heap_sample.labels[:"allocation class"]).to eq("Array")
@@ -725,6 +731,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
 
               stack_recorder.serialize
+
+              GC.enable
+              GC.start
+
+              # Sanity check: All the objects should've been garbage collected
+              @object_ids.map do |object_id|
+                expect { ObjectSpace._id2ref(object_id) }.to raise_error(RangeError)
+              end
 
               # Older objects are only cleared at serialization time
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
@@ -851,11 +865,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     subject(:serialize!) { stack_recorder.serialize! }
 
     context "when serialization succeeds" do
+      let(:encoded_profile) { instance_double(Datadog::Profiling::EncodedProfile, _native_bytes: "serialized-data") }
+
       before do
-        expect(described_class).to receive(:_native_serialize).and_return([:ok, %w[start finish serialized-data]])
+        expect(described_class)
+          .to receive(:_native_serialize).and_return([:ok, [:dummy_start, :dummy_finish, encoded_profile]])
       end
 
-      it { is_expected.to eq("serialized-data") }
+      it { is_expected.to be encoded_profile }
     end
 
     context "when serialization fails" do
@@ -1057,67 +1074,23 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
   end
 
-  describe "Heap_recorder" do
-    context "produces the same hash code for stack-based and location-based keys" do
-      it "with empty stacks" do
-        described_class::Testing._native_check_heap_hashes([])
-      end
+  context "libdatadog managed string storage regression test" do
+    context "when reusing managed string ids across multiple profiles" do
+      it "produces correct profiles" do
+        profile1, profile2 = described_class::Testing._native_test_managed_string_storage_produces_valid_profiles
 
-      it "with single-frame stacks" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", 123]
-          ]
-        )
-      end
+        decoded_profile1 = decode_profile(profile1)
 
-      it "with multi-frame stacks" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", 123],
-            ["another name", "anoter filename", 456],
-          ]
-        )
-      end
+        expect(decoded_profile1.string_table).to include("key", "hello", "world")
+        expect { samples_from_pprof(profile1) }.to_not raise_error
 
-      it "with empty names" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["", "a filename", 123],
-          ]
-        )
-      end
+        # Early versions of the managed string storage in datadog mistakenly omitted the strings from the string table,
+        # see https://github.com/DataDog/libdatadog/pull/896 for details.
 
-      it "with empty filenames" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "", 123],
-          ]
-        )
-      end
+        decoded_profile2 = decode_profile(profile2)
 
-      it "with zero lines" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", 0]
-          ]
-        )
-      end
-
-      it "with negative lines" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", -123]
-          ]
-        )
-      end
-
-      it "with biiiiiiig lines" do
-        described_class::Testing._native_check_heap_hashes(
-          [
-            ["a name", "a filename", 4_000_000]
-          ]
-        )
+        expect(decoded_profile2.string_table).to include("key", "hello", "world")
+        expect { samples_from_pprof(profile2) }.to_not raise_error
       end
     end
   end

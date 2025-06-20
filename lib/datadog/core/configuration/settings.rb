@@ -18,7 +18,7 @@ module Datadog
     module Configuration
       # Global configuration settings for the Datadog library.
       # @public_api
-      # rubocop:disable Metrics/BlockLength
+      # standard:disable Metrics/BlockLength
       class Settings
         include Base
 
@@ -123,7 +123,7 @@ module Datadog
           # @return [Boolean]
           option :debug do |o|
             o.env [Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED,
-                   Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
             o.default false
             o.type :bool
             o.env_parser do |value|
@@ -137,7 +137,7 @@ module Datadog
             o.after_set do |enabled|
               # Enable rich debug print statements.
               # We do not need to unnecessarily load 'pp' unless in debugging mode.
-              require 'pp' if enabled
+              require 'pp' if enabled # standard:disable Lint/RedundantRequireStatement
             end
           end
 
@@ -313,7 +313,7 @@ module Datadog
 
             # Can be used to enable/disable the collection of heap profiles.
             #
-            # This feature is alpha and disabled by default
+            # This feature is in preview and disabled by default. Requires Ruby 3.1+.
             #
             # @warn To enable heap profiling you are required to also enable allocation profiling.
             #
@@ -326,12 +326,12 @@ module Datadog
 
             # Can be used to enable/disable the collection of heap size profiles.
             #
-            # This feature is alpha and enabled by default when heap profiling is enabled.
+            # This feature is in preview and by default is enabled whenever heap profiling is enabled.
             #
-            # @warn To enable heap size profiling you are required to also enable allocation and heap profiling.
+            # @warn Heap size profiling depends on allocation and heap profiling, so they must be enabled as well.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise
-            # whatever the value of DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED is.
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise it
+            # follows the value of `experimental_heap_enabled`.
             option :experimental_heap_size_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED'
@@ -341,17 +341,19 @@ module Datadog
             # Can be used to configure the heap sampling rate: a heap sample will be collected for every x allocation
             # samples.
             #
-            # The lower the value, the more accuracy in heap tracking but the bigger the overhead. In particular, a
-            # value of 1 will track ALL allocations samples for heap profiles.
+            # The higher the value, the less accuracy in heap tracking but the smaller the overhead.
+            #
+            # If you needed to tweak this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>,
+            # so we can fix it!
             #
             # The effective heap sampling rate in terms of allocations (not allocation samples) can be calculated via
             # effective_heap_sample_rate = allocation_sample_rate * heap_sample_rate.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `10`.
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `1`.
             option :experimental_heap_sample_rate do |o|
               o.type :int
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE'
-              o.default 10
+              o.default 1
             end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
@@ -454,7 +456,7 @@ module Datadog
               o.after_set do |_, _, precedence|
                 unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                   Core.log_deprecation(key: :experimental_crash_tracking_enabled) do
-                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal '\
+                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal ' \
                     'and no longer does anything. Please remove it from your Datadog.configure block.'
                   end
                 end
@@ -572,7 +574,7 @@ module Datadog
 
           option :experimental_runtime_id_enabled do |o|
             o.type :bool
-            o.env 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED'
+            o.env ['DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED', 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED']
             o.default false
           end
 
@@ -641,11 +643,11 @@ module Datadog
                 val ||= ''
                 # maps OpenTelemetry semantic attributes to Datadog tags
                 key = case key.downcase
-                      when 'deployment.environment' then 'env'
-                      when 'service.version' then 'version'
-                      when 'service.name' then 'service'
-                      else key
-                      end
+                when 'deployment.environment' then 'env'
+                when 'service.version' then 'version'
+                when 'service.name' then 'service'
+                else key
+                end
                 result[key] = val unless key.empty?
               end
             end
@@ -888,6 +890,16 @@ module Datadog
             o.env Core::Telemetry::Ext::ENV_LOG_COLLECTION
             o.default true
           end
+
+          # For internal use only.
+          # Enables telemetry debugging through the Datadog platform.
+          #
+          # @default `false`.
+          # @return [Boolean]
+          option :debug do |o|
+            o.type :bool
+            o.default false
+          end
         end
 
         # Remote configuration
@@ -985,7 +997,7 @@ module Datadog
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings
       end
-      # rubocop:enable Metrics/BlockLength
+      # standard:enable Metrics/BlockLength
     end
   end
 end

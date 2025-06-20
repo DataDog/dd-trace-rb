@@ -85,7 +85,7 @@ RSpec.describe Datadog::AppSec::Context do
     context 'when multiple same matching runs were made within a single context' do
       let!(:run_results) do
         persistent_data = {
-          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
+          'server.request.headers.no_cookies' => {'user-agent' => 'Nessus SOAP'}
         }
 
         Array.new(3) { context.run_waf(persistent_data, {}, 1_000_000) }
@@ -104,9 +104,9 @@ RSpec.describe Datadog::AppSec::Context do
 
     context 'when multiple different matching runs were made within a single context' do
       let!(:run_results) do
-        persistent_data_1 = { 'server.request.query' => { 'q' => '1 OR 1;' } }
+        persistent_data_1 = {'server.request.query' => {'q' => '1 OR 1;'}}
         persistent_data_2 = {
-          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
+          'server.request.headers.no_cookies' => {'user-agent' => 'Nessus SOAP'}
         }
 
         [
@@ -131,7 +131,7 @@ RSpec.describe Datadog::AppSec::Context do
       before { allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry) }
 
       let(:persistent_data) do
-        { 'server.request.query' => { 'q' => "1' OR 1=1;" } }
+        {'server.request.query' => {'q' => "1' OR 1=1;"}}
       end
       let(:ephemeral_data) do
         {
@@ -160,7 +160,7 @@ RSpec.describe Datadog::AppSec::Context do
         Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0)
       end
       let(:persistent_data) do
-        { 'server.request.query' => { 'q' => "1' OR 1=1;" } }
+        {'server.request.query' => {'q' => "1' OR 1=1;"}}
       end
       let(:ephemeral_data) do
         {
@@ -180,7 +180,7 @@ RSpec.describe Datadog::AppSec::Context do
   describe '#extract_schema' do
     it 'calls the waf runner with specific addresses' do
       expect_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:run)
-        .with({ 'waf.context.processor' => { 'extract-schema' => true } }, {})
+        .with({'waf.context.processor' => {'extract-schema' => true}}, {})
         .and_call_original
 
       expect(context.extract_schema).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Ok)

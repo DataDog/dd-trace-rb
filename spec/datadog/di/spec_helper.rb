@@ -91,35 +91,7 @@ module DIHelpers
     end
 
     def instance_double_agent_settings
-      instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings)
-    end
-
-    def expect_lazy_log(logger, meth, expected_msg)
-      expect(logger).to receive(meth) do |&block|
-        if expected_msg.is_a?(String)
-          expect(block.call).to eq(expected_msg)
-        else
-          expect(block.call).to match(expected_msg)
-        end
-      end
-    end
-
-    def expect_lazy_log_many(logger, meth, *expectations)
-      if expectations.empty?
-        raise ArgumentError, "Must have at least one expectation"
-      end
-      expect(logger).to receive(meth).exactly(expectations.length).times do |&block|
-        expected_msg = expectations.shift
-        case expected_msg
-        when String
-          expect(block.call).to eq(expected_msg)
-        when Regexp
-          expect(block.call).to match(expected_msg)
-        when nil
-          value = block.call
-          fail "Logger #{logger} #{meth} called without an expectation set: #{value}"
-        end
-      end
+      instance_double(Datadog::Core::Configuration::AgentSettings)
     end
   end
 end

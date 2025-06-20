@@ -1,0 +1,50 @@
+module Datadog
+  module Core
+    module Configuration
+      class AgentlessSettingsResolver < AgentSettingsResolver
+        @host_prefix: untyped
+
+        @url_override: untyped
+
+        @url_override_source: untyped
+
+        @configured_hostname: untyped
+
+        @configured_port: untyped
+
+        @configured_ssl: untyped
+
+        @parsed_url: untyped
+        def self.call: (untyped settings, host_prefix: untyped, ?url_override: untyped?, ?url_override_source: untyped?, ?logger: untyped) -> untyped
+
+        private
+
+        attr_reader host_prefix: untyped
+
+        attr_reader url_override: untyped
+
+        attr_reader url_override_source: untyped
+
+        def initialize: (untyped settings, host_prefix: untyped, ?url_override: untyped?, ?url_override_source: untyped?, ?logger: untyped) -> void
+
+        def hostname: () -> (nil | untyped)
+
+        def configured_hostname: () -> untyped
+
+        def configured_port: () -> untyped
+        def ssl?: () -> (untyped | false | true)
+        def configured_ssl: () -> untyped
+
+        def port: () -> (untyped | nil | 443)
+
+        def mixed_http_and_uds: () -> false
+
+        def configured_uds_path: () -> untyped
+
+        def can_use_uds?: () -> untyped
+
+        def parsed_url: () -> untyped
+      end
+    end
+  end
+end

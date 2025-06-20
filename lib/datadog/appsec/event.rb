@@ -1,181 +1,142 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'zlib'
-
 require_relative 'rate_limiter'
-require_relative '../core/utils/base64'
+require_relative 'compressed_json'
 
 module Datadog
   module AppSec
     # AppSec event
     module Event
+      DERIVATIVE_SCHEMA_KEY_PREFIX = '_dd.appsec.s.'
+      DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE = 25000
       ALLOWED_REQUEST_HEADERS = %w[
-        X-Forwarded-For
-        X-Client-IP
-        X-Real-IP
-        X-Forwarded
-        X-Cluster-Client-IP
-        Forwarded-For
-        Forwarded
-        Via
-        True-Client-IP
-        Content-Length
-        Content-Type
-        Content-Encoding
-        Content-Language
-        Host
-        User-Agent
-        Accept
-        Accept-Encoding
-        Accept-Language
-      ].map!(&:downcase).freeze
+        x-forwarded-for
+        x-client-ip
+        x-real-ip
+        x-forwarded
+        x-cluster-client-ip
+        forwarded-for
+        forwarded
+        via
+        true-client-ip
+        content-length
+        content-type
+        content-encoding
+        content-language
+        host
+        user-agent
+        accept
+        accept-encoding
+        accept-language
+      ].freeze
 
       ALLOWED_RESPONSE_HEADERS = %w[
-        Content-Length
-        Content-Type
-        Content-Encoding
-        Content-Language
-      ].map!(&:downcase).freeze
+        content-length
+        content-type
+        content-encoding
+        content-language
+      ].freeze
 
-      MAX_ENCODED_SCHEMA_SIZE = 25000
-      # For more information about this number
-      # please check https://github.com/DataDog/dd-trace-rb/pull/3177#issuecomment-1747221082
-      MIN_SCHEMA_SIZE_FOR_COMPRESSION = 260
-
-      # Record events for a trace
-      #
-      # This is expected to be called only once per trace for the rate limiter
-      # to properly apply
       class << self
-        def record(span, *events)
-          # ensure rate limiter is called only when there are events to record
-          return if events.empty? || span.nil?
-
-          Datadog::AppSec::RateLimiter.thread_local.limit do
-            record_via_span(span, *events)
-          end
-        end
-
-        def record_via_span(span, *events)
-          events.group_by { |e| e[:trace] }.each do |trace, event_group|
-            unless trace
-              Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
-              next
-            end
-
-            trace.keep!
-            trace.set_tag(
-              Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-              Datadog::Tracing::Sampling::Ext::Decision::ASM
-            )
-
-            # prepare and gather tags to apply
-            service_entry_tags = build_service_entry_tags(event_group)
-
-            # apply tags to service entry span
-            service_entry_tags.each do |key, value|
-              span.set_tag(key, value)
-            end
-          end
-        end
-
-        # rubocop:disable Metrics/MethodLength
-        def build_service_entry_tags(event_group)
-          waf_events = []
-          entry_tags = event_group.each_with_object({ '_dd.origin' => 'appsec' }) do |event, tags|
-            # TODO: assume HTTP request context for now
-            if (request = event[:request])
-              request.headers.each do |header, value|
-                tags["http.request.headers.#{header}"] = value if ALLOWED_REQUEST_HEADERS.include?(header.downcase)
-              end
-
-              tags['http.host'] = request.host
-              tags['http.useragent'] = request.user_agent
-              tags['network.client.ip'] = request.remote_addr
-            end
-
-            if (response = event[:response])
-              response.headers.each do |header, value|
-                tags["http.response.headers.#{header}"] = value if ALLOWED_RESPONSE_HEADERS.include?(header.downcase)
-              end
-            end
-
-            waf_result = event[:waf_result]
-            # accumulate triggers
-            waf_events += waf_result.events
-
-            waf_result.derivatives.each do |key, value|
-              parsed_value = json_parse(value)
-              next unless parsed_value
-
-              parsed_value_size = parsed_value.size
-
-              schema_value = if parsed_value_size >= MIN_SCHEMA_SIZE_FOR_COMPRESSION
-                               compressed_and_base64_encoded(parsed_value)
-                             else
-                               parsed_value
-                             end
-              next unless schema_value
-
-              if schema_value.size >= MAX_ENCODED_SCHEMA_SIZE
-                Datadog.logger.debug do
-                  "Schema key: #{key} exceeds the max size value. It will not be included as part of the span tags"
-                end
-                next
-              end
-
-              tags[key] = schema_value
-            end
-
-            tags
-          end
-
-          appsec_events = json_parse({ triggers: waf_events })
-          entry_tags['_dd.appsec.json'] = appsec_events if appsec_events
-          entry_tags
-        end
-        # rubocop:enable Metrics/MethodLength
-
         def tag_and_keep!(context, waf_result)
           # We want to keep the trace in case of security event
-          context.trace.keep! if context.trace
+          context.trace&.keep!
 
           if context.span
-            context.span.set_tag('appsec.blocked', 'true') if waf_result.actions.key?('block_request')
+            if waf_result.actions.key?('block_request') || waf_result.actions.key?('redirect_request')
+              context.span.set_tag('appsec.blocked', 'true')
+            end
+
             context.span.set_tag('appsec.event', 'true')
           end
 
           add_distributed_tags(context.trace)
         end
 
+        def record(context, request: nil, response: nil)
+          return if context.events.empty? || context.span.nil?
+
+          Datadog::AppSec::RateLimiter.thread_local.limit do
+            context.events.group_by(&:trace).each do |trace, event_group|
+              unless trace
+                next Datadog.logger.debug do
+                  "AppSec: Cannot record event group with #{event_group.count} events because it has no trace"
+                end
+              end
+
+              if event_group.any? { |event| event.attack? || event.schema? }
+                trace.keep!
+                trace[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = Tracing::Sampling::Ext::Decision::ASM
+
+                context.span['_dd.origin'] = 'appsec'
+                context.span.set_tags(request_tags(request)) if request
+                context.span.set_tags(response_tags(response)) if response
+              end
+
+              context.span.set_tags(waf_tags(event_group))
+            end
+          end
+        end
+
         private
 
-        def compressed_and_base64_encoded(value)
-          Datadog::Core::Utils::Base64.strict_encode64(gzip(value))
-        rescue TypeError => e
-          Datadog.logger.debug do
-            "Failed to compress and encode value when populating AppSec::Event. Error: #{e.message}"
+        def request_tags(request)
+          tags = {}
+
+          tags['http.host'] = request.host if request.host
+          tags['http.useragent'] = request.user_agent if request.user_agent
+          tags['network.client.ip'] = request.remote_addr if request.remote_addr
+
+          request.headers.each_with_object(tags) do |(name, value), memo|
+            next unless ALLOWED_REQUEST_HEADERS.include?(name)
+
+            memo["http.request.headers.#{name}"] = value
           end
-          nil
         end
 
+        def response_tags(response)
+          response.headers.each_with_object({}) do |(name, value), memo|
+            next unless ALLOWED_RESPONSE_HEADERS.include?(name)
+
+            memo["http.response.headers.#{name}"] = value
+          end
+        end
+
+        def waf_tags(security_events)
+          triggers = []
+
+          tags = security_events.each_with_object({}) do |security_event, memo|
+            triggers.concat(security_event.waf_result.events)
+
+            security_event.waf_result.derivatives.each do |key, value|
+              next memo[key] = value unless key.start_with?(DERIVATIVE_SCHEMA_KEY_PREFIX)
+
+              value = CompressedJson.dump(value)
+              next if value.nil?
+
+              if value.size >= DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE
+                Datadog.logger.debug { "AppSec: Schema key '#{key}' will not be included into span tags due to it's size" }
+                next
+              end
+
+              memo[key] = value
+            end
+          end
+
+          tags['_dd.appsec.json'] = json_parse({triggers: triggers}) unless triggers.empty?
+          tags
+        end
+
+        # NOTE: Handling of Encoding::UndefinedConversionError is added as a quick fix to
+        #       the issue between Ruby encoded strings and libddwaf produced events and now
+        #       is under investigation.
         def json_parse(value)
           JSON.dump(value)
-        rescue ArgumentError => e
-          Datadog.logger.debug do
-            "Failed to parse value to JSON when populating AppSec::Event. Error: #{e.message}"
-          end
-          nil
-        end
+        rescue ArgumentError, Encoding::UndefinedConversionError, JSON::JSONError => e
+          AppSec.telemetry.report(e, description: 'AppSec: Failed to convert value into JSON')
 
-        def gzip(value)
-          sio = StringIO.new
-          # For an in depth comparison of Zlib options check https://github.com/DataDog/dd-trace-rb/pull/3177#issuecomment-1747215473
-          gz = Zlib::GzipWriter.new(sio, Zlib::BEST_SPEED, Zlib::DEFAULT_STRATEGY)
-          gz.write(value)
-          gz.close
-          sio.string
+          nil
         end
 
         # Propagate to downstream services the information that the current distributed trace is

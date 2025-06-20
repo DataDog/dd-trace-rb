@@ -8,7 +8,6 @@ module Datadog
         include Core::Workers::IntervalLoop
         include Core::Workers::Queue
 
-        TELEMETRY_STARTED_ONCE: Datadog::Core::Utils::OnlyOnceSuccessful
         APP_STARTED_EVENT_RETRIES: 10
         DEFAULT_BUFFER_MAX_SIZE: 1000
 
@@ -23,18 +22,24 @@ module Datadog
         @logger: ::Logger
         
         attr_reader logger: ::Logger
+        attr_reader initial_event: Telemetry::Event::Base
+	attr_reader initial_event_once: Datadog::Core::Utils::OnlyOnceSuccessful
 
         def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?shutdown_timeout: Float | Integer, ?buffer_size: Integer, dependency_collection: bool, logger: ::Logger) -> void
 
-        def start: () -> void
+        def start: (Telemetry::Event::Base initial_event) -> void
 
-        def sent_started_event?: () -> bool
+        def sent_initial_event?: () -> bool
 
-        def failed_to_start?: () -> bool
+        def failed_initial_event?: () -> bool
+
+        def need_initial_event?: () -> bool
 
         def enqueue: (Event::Base event) -> void
 
         def dequeue: () -> Array[Event::Base]
+	
+	def flush: () -> (true | false)
 
         private
 
@@ -46,11 +51,11 @@ module Datadog
 
         def flush_events: (Array[Event::Base] events) -> void
 
-        def send_event: (Event::Base event) -> (Http::Adapters::Net::Response | Telemetry::Http::InternalErrorResponse)
+        def send_event: (Event::Base event) -> (Core::Transport::HTTP::Adapters::Net::Response | Core::Transport::InternalErrorResponse)
 
         def disable!: () -> void
 
-        def disable_on_not_found!: ((Http::Adapters::Net::Response | Telemetry::Http::InternalErrorResponse) response) -> void
+        def disable_on_not_found!: ((Core::Transport::HTTP::Adapters::Net::Response | Core::Transport::InternalErrorResponse) response) -> void
 
         def buffer_klass: () -> untyped
       end

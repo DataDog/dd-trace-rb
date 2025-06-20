@@ -1,0 +1,19 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Event
+        class AppIntegrationsChange < Base
+          def type: () -> "app-integrations-change"
+
+          def payload: () -> { integrations: untyped }
+
+          private
+
+          def integrations: -> Array[Hash[Symbol, string]]
+
+          def patch_error: (untyped integration) -> String
+        end
+      end
+    end
+  end
+end

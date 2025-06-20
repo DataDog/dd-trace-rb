@@ -51,7 +51,7 @@ module Datadog
           # @param encoder [Datadog::Core::Encoding::Encoder]
           # @param logger [Datadog::Core::Logger]
           # @param max_size [String] maximum acceptable payload size
-          def initialize(encoder, logger, native_events_supported:, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
+          def initialize(encoder, logger:, native_events_supported:, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
             @encoder = encoder
             @logger = logger
             @native_events_supported = native_events_supported
@@ -80,7 +80,12 @@ module Datadog
           private
 
           def encode_one(trace)
-            encoded = Encoder.encode_trace(encoder, trace, logger, native_events_supported: @native_events_supported)
+            encoded = Encoder.encode_trace(
+              encoder,
+              trace,
+              logger: logger,
+              native_events_supported: @native_events_supported
+            )
 
             if encoded.size > max_size
               # This single trace is too large, we can't flush it
@@ -98,7 +103,7 @@ module Datadog
         module Encoder
           module_function
 
-          def encode_trace(encoder, trace, logger, native_events_supported:)
+          def encode_trace(encoder, trace, logger:, native_events_supported:)
             # Format the trace for transport
             TraceFormatter.format!(trace)
 
@@ -121,7 +126,7 @@ module Datadog
         class Transport
           attr_reader :client, :apis, :default_api, :current_api_id, :logger
 
-          def initialize(apis, default_api, logger)
+          def initialize(apis, default_api, logger: Datadog.logger)
             @apis = apis
             @default_api = default_api
             @logger = logger
@@ -133,7 +138,7 @@ module Datadog
             encoder = current_api.encoder
             chunker = Datadog::Tracing::Transport::Traces::Chunker.new(
               encoder,
-              logger,
+              logger: logger,
               native_events_supported: native_events_supported?
             )
 
@@ -194,7 +199,7 @@ module Datadog
             raise UnknownApiVersionError, api_id unless apis.key?(api_id)
 
             @current_api_id = api_id
-            @client = HTTP::Client.new(current_api, logger)
+            @client = HTTP::Client.new(current_api, logger: logger)
           end
 
           # Queries the agent for native span events serialization support.

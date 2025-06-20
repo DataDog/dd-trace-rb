@@ -16,9 +16,9 @@ module Datadog
 
       def build_errored: (Probe probe, Exception exception) -> Hash[Symbol,untyped]
 
-      def build_executed: (Probe probe, ?trace_point: TracePoint, ?rv: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
+      def build_executed: (Probe probe, ?instance_vars: untyped?, ?rv: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
 
-      def build_snapshot: (Probe probe, ?rv: untyped?, ?snapshot: untyped?, ?path: String?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
+      def build_snapshot: (Probe probe, ?rv: untyped?, ?locals: untyped?, ?path: String?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?instance_vars: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
 
       def build_status: (Probe probe, message: untyped, status: untyped) -> Hash[Symbol,untyped]
 
@@ -32,6 +32,10 @@ module Datadog
       
       def active_trace: () -> Datadog::Tracing::TraceSegment?
       def active_span: () -> Datadog::Tracing::SpanOperation?
+
+      def tags: () -> untyped
+      
+      def serialized_tags: () -> untyped
     end
   end
 end

@@ -4,6 +4,7 @@ require 'uri'
 
 require_relative 'settings'
 require_relative 'ext'
+require_relative 'agent_settings'
 require_relative '../transport/ext'
 
 module Datadog
@@ -19,49 +20,6 @@ module Datadog
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
       class AgentSettingsResolver
-        # Immutable container for the resulting settings
-        class AgentSettings
-          attr_reader :adapter, :ssl, :hostname, :port, :uds_path, :timeout_seconds
-
-          def initialize(adapter: nil, ssl: nil, hostname: nil, port: nil, uds_path: nil, timeout_seconds: nil)
-            @adapter = adapter
-            @ssl = ssl
-            @hostname = hostname
-            @port = port
-            @uds_path = uds_path
-            @timeout_seconds = timeout_seconds
-            freeze
-          end
-
-          def url
-            case adapter
-            when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-              hostname = self.hostname
-              hostname = "[#{hostname}]" if hostname =~ IPV6_REGEXP
-              "#{ssl ? 'https' : 'http'}://#{hostname}:#{port}/"
-            when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
-              "unix://#{uds_path}"
-            else
-              raise ArgumentError, "Unexpected adapter: #{adapter}"
-            end
-          end
-
-          def ==(other)
-            self.class == other.class &&
-              adapter == other.adapter &&
-              ssl == other.ssl &&
-              hostname == other.hostname &&
-              port == other.port &&
-              uds_path == other.uds_path &&
-              timeout_seconds == other.timeout_seconds
-          end
-        end
-
-        # IPv6 regular expression from
-        # https://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses
-        # Does not match IPv4 addresses.
-        IPV6_REGEXP = /\A(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\z)/.freeze # rubocop:disable Layout/LineLength
-
         def self.call(settings, logger: Datadog.logger)
           new(settings, logger: logger).send(:call)
         end
@@ -158,7 +116,7 @@ module Datadog
               value: settings.agent.timeout_seconds,
             ),
             try_parsing_as_integer(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} "\
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} " \
                 'environment variable',
               value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS],
             )
@@ -338,13 +296,13 @@ module Datadog
           log_warning(
             'Configuration mismatch: values differ between ' \
             "#{detected_configurations_in_priority_order
-              .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(' and ')}" \
+              .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(" and ")}" \
             ". Using #{detected_configurations_in_priority_order.first.value.inspect} and ignoring other configuration."
           )
         end
 
         def log_warning(message)
-          logger.warn(message) if logger
+          logger&.warn(message)
         end
 
         def http_scheme?(uri)

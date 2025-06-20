@@ -149,6 +149,7 @@ module Datadog
       require_relative 'profiling/collectors/thread_context'
       require_relative 'profiling/stack_recorder'
       require_relative 'profiling/exporter'
+      require_relative 'profiling/encoded_profile'
       require_relative 'profiling/flush'
       require_relative 'profiling/scheduler'
       require_relative 'profiling/tasks/setup'
