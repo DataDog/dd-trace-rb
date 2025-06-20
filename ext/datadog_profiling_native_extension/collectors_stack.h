@@ -32,6 +32,7 @@ void record_placeholder_stack(
   sample_labels labels,
   ddog_CharSlice placeholder_stack
 );
+void prepare_sample_thread(VALUE thread, sampling_buffer *buffer);
 
 uint16_t sampling_buffer_check_max_frames(int max_frames);
 void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, ddog_prof_Location *locations);

@@ -248,12 +248,11 @@ void sample_thread(
   bool native_filenames_enabled,
   st_table *native_filenames_cache
 ) {
-  int captured_frames = ddtrace_rb_profile_frames(
-    thread,
-    0 /* stack starting depth */,
-    buffer->max_frames,
-    buffer->stack_buffer
-  );
+  // If we already prepared a sample, we use it below; if not, we prepare it now.
+  if (!buffer->pending_sample) prepare_sample_thread(thread, buffer);
+
+  buffer->pending_sample = false;
+  int captured_frames = buffer->pending_sample_result;
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);
@@ -596,6 +595,11 @@ void record_placeholder_stack(
     values,
     labels
   );
+}
+
+void prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
+  buffer->pending_sample = true;
+  buffer->pending_sample_result = ddtrace_rb_profile_frames(thread, 0, buffer->max_frames, buffer->stack_buffer);
 }
 
 uint16_t sampling_buffer_check_max_frames(int max_frames) {

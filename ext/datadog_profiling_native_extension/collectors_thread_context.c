@@ -125,6 +125,7 @@ typedef struct {
   ddog_prof_Location *locations;
   uint16_t max_frames;
   // Hashmap <Thread Object, per_thread_context>
+  // Note: Be very careful when mutating this map, as it gets read e.g. in the middle of GC and signal handlers.
   st_table *hash_map_per_thread_context;
   // Datadog::Profiling::StackRecorder instance
   VALUE recorder_instance;
@@ -303,6 +304,7 @@ static otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key)
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE key);
 static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
+static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -335,6 +337,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_new_empty_thread", _native_new_empty_thread, 0);
   rb_define_singleton_method(testing_module, "_native_sample_skipped_allocation_samples", _native_sample_skipped_allocation_samples, 2);
   rb_define_singleton_method(testing_module, "_native_system_epoch_time_now_ns", _native_system_epoch_time_now_ns, 1);
+  rb_define_singleton_method(testing_module, "_native_prepare_sample_inside_signal_handler", _native_prepare_sample_inside_signal_handler, 1);
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
@@ -1459,6 +1462,26 @@ static VALUE thread_list(thread_context_collector_state *state) {
   return result;
 }
 
+// Inside a signal handler, we don't want to do the whole work of recording a sample, but we only record the stack of
+// the current thread.
+//
+// Assumptions for this function are same as for `thread_context_collector_sample` except that this function is
+// expected to be called from a signal handler and to be async-signal-safe.
+//
+// Also, no allocation (Ruby or malloc) can happen.
+void thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance) {
+  thread_context_collector_state *state;
+  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
+  // This should never fail the the above check passes
+  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  VALUE current_thread = rb_thread_current();
+  per_thread_context *thread_context = get_context_for(current_thread, state);
+  if (thread_context == NULL) return;
+
+  prepare_sample_thread(current_thread, &thread_context->sampling_buffer);
+}
+
 void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -2191,4 +2214,9 @@ static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE c
   long system_epoch_time_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns);
 
   return LONG2NUM(system_epoch_time_ns);
+}
+
+static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+  thread_context_collector_prepare_sample_inside_signal_handler(collector_instance);
+  return Qtrue;
 }
