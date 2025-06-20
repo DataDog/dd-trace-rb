@@ -1,5 +1,8 @@
 #include <ruby.h>
 #include <ruby/debug.h>
+#include <ruby/st.h>
+
+#include "extconf.h" // This is needed for the HAVE_DLADDR and friends below
 
 // For dladdr/dladdr1
 #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
@@ -12,7 +15,6 @@
   #endif
 #endif
 
-#include "extconf.h"
 #include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
