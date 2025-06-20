@@ -16,7 +16,7 @@ class ProfilerSampleLoopBenchmark
     @recorder = Datadog::Profiling::StackRecorder.for_testing
   end
 
-  def thread_with_very_deep_stack(depth: 500)
+  def thread_with_very_deep_stack(depth: 450)
     deep_stack = proc do
       if caller.size <= depth
         deep_stack.call
@@ -28,7 +28,7 @@ class ProfilerSampleLoopBenchmark
     Thread.new { deep_stack.call }.tap { |t| t.name = "Deep stack #{depth}" }
   end
 
-  def thread_with_very_deep_stack_and_native_frames(depth: 500)
+  def thread_with_very_deep_stack_and_native_frames(depth: 450)
     deep_stack = proc do
       catch do
         if caller.size <= depth
