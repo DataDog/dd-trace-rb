@@ -210,7 +210,7 @@ typedef struct {
 
 static void thread_context_collector_typed_data_mark(void *state_ptr);
 static void thread_context_collector_typed_data_free(void *state_ptr);
-static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument);
+static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t value_thread_context, DDTRACE_UNUSED st_data_t _argument);
 static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
@@ -416,9 +416,15 @@ static void thread_context_collector_typed_data_free(void *state_ptr) {
 }
 
 // Mark Ruby thread references we keep as keys in hash_map_per_thread_context
-static int hash_map_per_thread_context_mark(st_data_t key_thread, DDTRACE_UNUSED st_data_t _value, DDTRACE_UNUSED st_data_t _argument) {
+static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t value_thread_context, DDTRACE_UNUSED st_data_t _argument) {
   VALUE thread = (VALUE) key_thread;
+  per_thread_context *thread_context = (per_thread_context *) value_thread_context;
+
   rb_gc_mark(thread);
+  if (sampling_buffer_needs_marking(&thread_context->sampling_buffer)) {
+    sampling_buffer_mark(&thread_context->sampling_buffer);
+  }
+
   return ST_CONTINUE;
 }
 

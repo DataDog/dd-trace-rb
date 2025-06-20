@@ -610,6 +610,8 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, dd
   buffer->max_frames = max_frames;
   buffer->locations = locations;
   buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
+  buffer->pending_sample = false;
+  buffer->pending_sample_result = 0;
 }
 
 void sampling_buffer_free(sampling_buffer *buffer) {
@@ -623,4 +625,18 @@ void sampling_buffer_free(sampling_buffer *buffer) {
   buffer->max_frames = 0;
   buffer->locations = NULL;
   buffer->stack_buffer = NULL;
+  buffer->pending_sample = false;
+  buffer->pending_sample_result = 0;
+}
+
+void sampling_buffer_mark(sampling_buffer *buffer) {
+  if (!sampling_buffer_needs_marking(buffer)) {
+    rb_bug("sampling_buffer_mark called with no pending sample. `sampling_buffer_needs_marking` should be used before calling mark.");
+  }
+
+  for (int i = 0; i < buffer->pending_sample_result; i++) {
+    if (buffer->stack_buffer[i].is_ruby_frame) {
+      rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.iseq);
+    }
+  }
 }
