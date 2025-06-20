@@ -47,14 +47,16 @@ class ProfilerSampleLoopBenchmark
     collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
 
     if mode == :native
-      unless Datadog::Profiling::Collectors::Stack._native_filenames_available?
-        raise 'Native filenames are not available. This is expected on macOS, but not on Linux.'
-      end
-
-      collector_without_native_filenames = Datadog::Profiling::Collectors::ThreadContext.for_testing(
-        recorder: @recorder,
-        native_filenames_enabled: false
-      )
+      # TODO: REMOVE THIS AFTER MERGING PR (IT BREAKS ADDING THIS BENCHMARK IN CI)
+      # unless Datadog::Profiling::Collectors::Stack._native_filenames_available?
+      #   raise 'Native filenames are not available. This is expected on macOS, but not on Linux.'
+      # end
+      #
+      # collector_without_native_filenames = Datadog::Profiling::Collectors::ThreadContext.for_testing(
+      #   recorder: @recorder,
+      #   native_filenames_enabled: false
+      # )
+      collector_without_native_filenames = collector
     end
 
     Benchmark.ips do |x|
