@@ -74,6 +74,9 @@ We also recommend that you share in your description:
 
 For more information on common topics such as debugging locally, or how to write new integrations, check out [our development guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md). If at any point you have a question or need assistance with your pull request, feel free to mention a project member! We're always happy to help contributors with their pull requests.
 
+If your pull request fails a check that doesn't seem to be related to your change,
+retry the check a few times to see if it resolves. If it doesn't, open an issue on the repo.
+
 ## Final word
 
 Many thanks to all of our contributors, and looking forward to seeing you on Github! :tada:
