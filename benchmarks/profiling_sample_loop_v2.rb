@@ -17,29 +17,29 @@ class ProfilerSampleLoopBenchmark
   end
 
   def thread_with_very_deep_stack(depth: 500)
-    deep_stack = proc do |n|
-      if n > 0
-        deep_stack.call(n - 1)
+    deep_stack = proc do
+      if caller.size <= depth
+        deep_stack.call
       else
         sleep
       end
     end
 
-    Thread.new { deep_stack.call(depth) }.tap { |t| t.name = "Deep stack #{depth}" }
+    Thread.new { deep_stack.call }.tap { |t| t.name = "Deep stack #{depth}" }
   end
 
   def thread_with_very_deep_stack_and_native_frames(depth: 500)
-    deep_stack = proc do |n|
+    deep_stack = proc do
       catch do
-        if n > 0
-          deep_stack.call(n - 1)
+        if caller.size <= depth
+          deep_stack.call
         else
           sleep
         end
       end
     end
 
-    Thread.new { deep_stack.call(depth) }.tap { |t| t.name = "Deep stack #{depth}" }
+    Thread.new { deep_stack.call }.tap { |t| t.name = "Deep stack #{depth}" }
   end
 
   def run_benchmark(mode: :ruby)
