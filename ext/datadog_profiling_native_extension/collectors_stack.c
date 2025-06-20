@@ -23,13 +23,6 @@
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
-// Used as scratch space during sampling
-struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
-  uint16_t max_frames;
-  ddog_prof_Location *locations;
-  frame_info *stack_buffer;
-};
-
 static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self);
 static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self);
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
@@ -180,7 +173,8 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   int max_frames_requested = sampling_buffer_check_max_frames(NUM2INT(max_frames));
 
   ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
-  sampling_buffer *buffer = sampling_buffer_new(max_frames_requested, locations);
+  sampling_buffer buffer;
+  sampling_buffer_initialize(&buffer, max_frames_requested, locations);
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
@@ -191,7 +185,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label, .is_gvl_waiting_state = is_gvl_waiting_state == Qtrue},
     .thread = thread,
     .locations = locations,
-    .buffer = buffer,
+    .buffer = &buffer,
     .native_filenames_enabled = native_filenames_enabled == Qtrue,
     .native_filenames_cache = st_init_numtable(),
   };
@@ -610,24 +604,23 @@ uint16_t sampling_buffer_check_max_frames(int max_frames) {
   return max_frames;
 }
 
-sampling_buffer *sampling_buffer_new(uint16_t max_frames, ddog_prof_Location *locations) {
+void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, ddog_prof_Location *locations) {
   sampling_buffer_check_max_frames(max_frames);
-
-  // Note: never returns NULL; if out of memory, it calls the Ruby out-of-memory handlers
-  sampling_buffer* buffer = ruby_xcalloc(1, sizeof(sampling_buffer));
 
   buffer->max_frames = max_frames;
   buffer->locations = locations;
   buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
-
-  return buffer;
 }
 
 void sampling_buffer_free(sampling_buffer *buffer) {
-  if (buffer == NULL) rb_raise(rb_eArgError, "sampling_buffer_free called with NULL buffer");
+  if (buffer->max_frames == 0 || buffer->locations == NULL || buffer->stack_buffer == NULL) {
+    rb_raise(rb_eArgError, "sampling_buffer_free called with invalid buffer");
+  }
 
-  // buffer->locations are owned by whoever called sampling_buffer_new, not us
   ruby_xfree(buffer->stack_buffer);
+  // Note: buffer->locations are owned by whoever called sampling_buffer_initialize, not by the buffer itself
 
-  ruby_xfree(buffer);
+  buffer->max_frames = 0;
+  buffer->locations = NULL;
+  buffer->stack_buffer = NULL;
 }

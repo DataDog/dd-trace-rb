@@ -177,7 +177,7 @@ typedef struct {
 
 // Tracks per-thread state
 typedef struct {
-  sampling_buffer *sampling_buffer;
+  sampling_buffer sampling_buffer;
   char thread_id[THREAD_ID_LIMIT_CHARS];
   ddog_CharSlice thread_id_char_slice;
   char thread_invoke_location[THREAD_INVOKE_LOCATION_LIMIT_CHARS];
@@ -611,7 +611,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
       /* thread_being_sampled: */ thread,
       /* stack_from_thread: */ thread,
       thread_context,
-      thread_context->sampling_buffer,
+      &thread_context->sampling_buffer,
       current_cpu_time_ns,
       current_monotonic_wall_time_ns
     );
@@ -629,7 +629,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
     /* stack_from_thread: */ profiler_overhead_stack_thread,
     current_thread_context,
     // Here we use the overhead thread's sampling buffer so as to not invalidate the cache in the buffer of the thread being sampled
-    get_or_create_context_for(profiler_overhead_stack_thread, state)->sampling_buffer,
+    &get_or_create_context_for(profiler_overhead_stack_thread, state)->sampling_buffer,
     cpu_time_now_ns(current_thread_context),
     monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
   );
@@ -1078,7 +1078,7 @@ static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
 }
 
 static void initialize_context(VALUE thread, per_thread_context *thread_context, thread_context_collector_state *state) {
-  thread_context->sampling_buffer = sampling_buffer_new(state->max_frames, state->locations);
+  sampling_buffer_initialize(&thread_context->sampling_buffer, state->max_frames, state->locations);
 
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
@@ -1135,7 +1135,7 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context,
 }
 
 static void free_context(per_thread_context* thread_context) {
-  sampling_buffer_free(thread_context->sampling_buffer);
+  sampling_buffer_free(&thread_context->sampling_buffer);
   free(thread_context); // See "note on calloc vs ruby_xcalloc use" in heap_recorder.c
 }
 
@@ -1532,7 +1532,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     /* thread: */  current_thread,
     /* stack_from_thread: */ current_thread,
     thread_context,
-    thread_context->sampling_buffer,
+    &thread_context->sampling_buffer,
     (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1, .heap_sample = true},
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
@@ -1958,7 +1958,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       /* thread_being_sampled: */ current_thread,
       /* stack_from_thread: */ current_thread,
       thread_context,
-      thread_context->sampling_buffer,
+      &thread_context->sampling_buffer,
       cpu_time_for_thread,
       current_monotonic_wall_time_ns
     );
