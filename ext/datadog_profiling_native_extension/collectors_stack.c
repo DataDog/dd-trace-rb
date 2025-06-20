@@ -464,7 +464,8 @@ void sample_thread(
 
     // An st_table is what Ruby uses for its own hashtables. This allows us to get an easy estimate of the size of the cache:
     // `ObjectSpace.memsize_of((0..100000).map { |it| [it, nil] }.to_h)` => 4194400 bytes as of Ruby 3.2 so that seems reasonable?
-    if (st_table_size(native_filenames_cache) >= 100000) {
+    // Note: `st_table_size()` is available from Ruby 3.2+ but not before
+    if (native_filenames_cache->num_entries >= 100000) {
       st_clear(native_filenames_cache);
     }
 
