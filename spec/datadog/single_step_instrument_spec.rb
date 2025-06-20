@@ -24,6 +24,20 @@ end
 
 RSpec.describe 'LOADED variable' do
   subject(:single_step_instrument) { load 'datadog/single_step_instrument.rb' }
+
+  before do
+    # Store the original state if needed
+    @original_loaded = defined?(Datadog::SingleStepInstrument::LOADED) ? Datadog::SingleStepInstrument::LOADED : nil
+  end
+
+  after do
+    # Remove the constant to clean up
+    Datadog::SingleStepInstrument.send(:remove_const, :LOADED) if defined?(Datadog::SingleStepInstrument::LOADED)
+
+    # If the entire module was created by the load, remove it too
+    Datadog.send(:remove_const, :SingleStepInstrument) if defined?(Datadog::SingleStepInstrument)
+  end
+
   it do
     single_step_instrument
     expect(Datadog::SingleStepInstrument::LOADED).to eq(true)
