@@ -15,7 +15,7 @@ RSpec.describe 'Single step instrument', skip: !Process.respond_to?(:fork) do
       expect_any_instance_of(Object)
         .to receive(:require_relative).with('auto_instrument').and_raise(LoadError)
 
-     expect(Datadog::SingleStepInstrument::LOADED).to eq(true)
+      expect(Datadog::SingleStepInstrument::LOADED).to eq(true)
     end
   end
 
