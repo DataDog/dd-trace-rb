@@ -23,13 +23,6 @@
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
-// Used as scratch space during sampling
-struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
-  uint16_t max_frames;
-  ddog_prof_Location *locations;
-  frame_info *stack_buffer;
-};
-
 static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self);
 static VALUE _native_ruby_native_filename(DDTRACE_UNUSED VALUE self);
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
@@ -180,7 +173,8 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   int max_frames_requested = sampling_buffer_check_max_frames(NUM2INT(max_frames));
 
   ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
-  sampling_buffer *buffer = sampling_buffer_new(max_frames_requested, locations);
+  sampling_buffer buffer;
+  sampling_buffer_initialize(&buffer, max_frames_requested, locations);
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
@@ -191,7 +185,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label, .is_gvl_waiting_state = is_gvl_waiting_state == Qtrue},
     .thread = thread,
     .locations = locations,
-    .buffer = buffer,
+    .buffer = &buffer,
     .native_filenames_enabled = native_filenames_enabled == Qtrue,
     .native_filenames_cache = st_init_numtable(),
   };
@@ -254,12 +248,11 @@ void sample_thread(
   bool native_filenames_enabled,
   st_table *native_filenames_cache
 ) {
-  int captured_frames = ddtrace_rb_profile_frames(
-    thread,
-    0 /* stack starting depth */,
-    buffer->max_frames,
-    buffer->stack_buffer
-  );
+  // If we already prepared a sample, we use it below; if not, we prepare it now.
+  if (!buffer->pending_sample) prepare_sample_thread(thread, buffer);
+
+  buffer->pending_sample = false;
+  int captured_frames = buffer->pending_sample_result;
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);
@@ -604,30 +597,50 @@ void record_placeholder_stack(
   );
 }
 
+void prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
+  buffer->pending_sample = true;
+  buffer->pending_sample_result = ddtrace_rb_profile_frames(thread, 0, buffer->max_frames, buffer->stack_buffer);
+}
+
 uint16_t sampling_buffer_check_max_frames(int max_frames) {
   if (max_frames < 5) rb_raise(rb_eArgError, "Invalid max_frames: value must be >= 5");
   if (max_frames > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
   return max_frames;
 }
 
-sampling_buffer *sampling_buffer_new(uint16_t max_frames, ddog_prof_Location *locations) {
+void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, ddog_prof_Location *locations) {
   sampling_buffer_check_max_frames(max_frames);
-
-  // Note: never returns NULL; if out of memory, it calls the Ruby out-of-memory handlers
-  sampling_buffer* buffer = ruby_xcalloc(1, sizeof(sampling_buffer));
 
   buffer->max_frames = max_frames;
   buffer->locations = locations;
   buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
-
-  return buffer;
+  buffer->pending_sample = false;
+  buffer->pending_sample_result = 0;
 }
 
 void sampling_buffer_free(sampling_buffer *buffer) {
-  if (buffer == NULL) rb_raise(rb_eArgError, "sampling_buffer_free called with NULL buffer");
+  if (buffer->max_frames == 0 || buffer->locations == NULL || buffer->stack_buffer == NULL) {
+    rb_raise(rb_eArgError, "sampling_buffer_free called with invalid buffer");
+  }
 
-  // buffer->locations are owned by whoever called sampling_buffer_new, not us
   ruby_xfree(buffer->stack_buffer);
+  // Note: buffer->locations are owned by whoever called sampling_buffer_initialize, not by the buffer itself
 
-  ruby_xfree(buffer);
+  buffer->max_frames = 0;
+  buffer->locations = NULL;
+  buffer->stack_buffer = NULL;
+  buffer->pending_sample = false;
+  buffer->pending_sample_result = 0;
+}
+
+void sampling_buffer_mark(sampling_buffer *buffer) {
+  if (!sampling_buffer_needs_marking(buffer)) {
+    rb_bug("sampling_buffer_mark called with no pending sample. `sampling_buffer_needs_marking` should be used before calling mark.");
+  }
+
+  for (int i = 0; i < buffer->pending_sample_result; i++) {
+    if (buffer->stack_buffer[i].is_ruby_frame) {
+      rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.iseq);
+    }
+  }
 }
