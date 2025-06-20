@@ -109,13 +109,14 @@ module Datadog
             elsif !defined?(Datadog::SingleStepInstrument::LOADED).nil?
               'ssi'
             else
-              "unknown"
+              'unknown'
             end
+            inject_force = Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false)
             # Track ssi configurations
             list.push(
               conf_value('instrumentation_source', instrumentation_source, seq_id),
-              conf_value('DD_INJECTION_ENABLED', ENV['DD_INJECTION_ENABLED'], seq_id),
-              conf_value('DD_INJECT_FORCE', ENV['DD_INJECT_FORCE'] , seq_id),
+              conf_value('DD_INJECT_FORCE', inject_force , seq_id),
+              conf_value('DD_INJECTION_ENABLED', ENV['DD_INJECTION_ENABLED'] || '', seq_id),
             )
 
             # Add some more custom additional payload values here
