@@ -1,0 +1,40 @@
+module Datadog
+  module AppSec
+    class Processor
+      type rule = bool | ::Integer | ::String | ::Hash[::String, rule] | ::Array[rule]
+      type ruleset = ::Hash[::String, rule]
+
+      @telemetry: Core::Telemetry::Component
+
+      @diagnostics: WAF::LibDDWAF::Object?
+
+      @addresses: ::Array[::String]
+
+      @handle: WAF::Handle
+
+      attr_reader diagnostics: WAF::LibDDWAF::Object?
+
+      attr_reader addresses: ::Array[::String]
+
+      def initialize: (ruleset: ruleset, telemetry: Core::Telemetry::Component) -> void
+
+      def ready?: () -> bool
+
+      def finalize: () -> void
+
+      def new_runner: () -> SecurityEngine::Runner
+
+      private
+
+      def require_libddwaf: () -> bool
+
+      def libddwaf_provides_waf?: () -> bool
+
+      def create_waf_handle: (Core::Configuration::Settings::_AppSec settings, ruleset ruleset) -> bool
+
+      def libddwaf_platform: () -> ::String
+
+      def ruby_platforms: () -> ::Array[::String]
+    end
+  end
+end

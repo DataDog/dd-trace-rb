@@ -1,29 +1,22 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
+require 'datadog/appsec/processor'
 require 'datadog/appsec/processor/rule_loader'
+require 'datadog/appsec/processor/rule_merger'
 
 RSpec.describe Datadog::AppSec::Context do
   let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
   let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:settings) do
-    Datadog::Core::Configuration::Settings.new.tap do |settings|
-      settings.appsec.enabled = true
-    end
-  end
-  let(:security_engine) do
-    Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
-  end
-  let(:waf_runner) { security_engine.new_runner }
-  let(:context) { described_class.new(trace, span, waf_runner) }
 
-  before do
-    Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
-  end
+  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry) }
+  let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry) }
+  let(:context) { described_class.new(trace, span, processor) }
 
   after do
     described_class.deactivate
+    processor.finalize
   end
 
   describe '.active' do
@@ -48,7 +41,7 @@ RSpec.describe Datadog::AppSec::Context do
     context 'when active context is already set' do
       before { described_class.activate(context) }
 
-      subject(:activate_context) { described_class.activate(described_class.new(trace, span, waf_runner)) }
+      subject(:activate_context) { described_class.activate(described_class.new(trace, span, processor)) }
 
       it 'raises an error and does not change the active context' do
         expect { activate_context }.to raise_error(Datadog::AppSec::Context::ActiveContextError)
@@ -67,7 +60,7 @@ RSpec.describe Datadog::AppSec::Context do
     context 'when active context is set' do
       before do
         described_class.activate(context)
-        expect(context).to receive(:finalize!).and_call_original
+        expect(context).to receive(:finalize).and_call_original
       end
 
       it 'unsets the active context' do
@@ -78,7 +71,7 @@ RSpec.describe Datadog::AppSec::Context do
     context 'when error happen during deactivation' do
       before do
         described_class.activate(context)
-        expect(context).to receive(:finalize!).and_raise(RuntimeError.new('Ooops'))
+        expect(context).to receive(:finalize).and_raise(RuntimeError.new('Ooops'))
       end
 
       it 'raises underlying exception and unsets the active context' do
@@ -196,7 +189,7 @@ RSpec.describe Datadog::AppSec::Context do
 
   describe '#export_metrics' do
     context 'when span is not present' do
-      let(:context) { described_class.new(trace, nil, waf_runner) }
+      let(:context) { described_class.new(trace, nil, processor) }
 
       it 'does not export metrics' do
         expect(Datadog::AppSec::Metrics::Exporter).not_to receive(:export_waf_metrics)

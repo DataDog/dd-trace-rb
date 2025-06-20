@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'security_engine/engine'
-require_relative 'security_engine/runner'
+require_relative 'processor'
+require_relative 'processor/rule_merger'
 require_relative 'processor/rule_loader'
 require_relative 'actions_handler'
 
@@ -32,8 +32,7 @@ module Datadog
             return
           end
 
-          require_libddwaf(telemetry: telemetry)
-          Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && settings.appsec.waf_debug
+          processor = create_processor(settings, telemetry)
 
           # We want to always instrument user events when AppSec is enabled.
           # There could be cases in which users use the DD_APPSEC_ENABLED Env variable to
@@ -43,44 +42,67 @@ module Datadog
           devise_integration = Datadog::AppSec::Contrib::Devise::Integration.new
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
-          security_engine = SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
-          new(security_engine: security_engine, telemetry: telemetry)
-        rescue
-          Datadog.logger.warn('AppSec is disabled, see logged errors above')
-
-          nil
+          new(processor, telemetry)
         end
 
         private
 
-        def require_libddwaf(telemetry:)
-          require('libddwaf')
-        rescue LoadError => e
-          libddwaf_platform = Gem.loaded_specs['libddwaf']&.platform || 'unknown'
-          ruby_platforms = Gem.platforms.map(&:to_s)
+        def create_processor(settings, telemetry)
+          rules = AppSec::Processor::RuleLoader.load_rules(
+            telemetry: telemetry,
+            ruleset: settings.appsec.ruleset
+          )
+          return nil unless rules
 
-          error_message = "libddwaf failed to load - installed platform: #{libddwaf_platform}, " \
-            "ruby platforms: #{ruby_platforms}"
+          data = AppSec::Processor::RuleLoader.load_data(
+            ip_denylist: settings.appsec.ip_denylist,
+            user_id_denylist: settings.appsec.user_id_denylist,
+          )
 
-          Datadog.logger.error("#{error_message}, error #{e.inspect}")
-          telemetry.report(e, description: error_message)
+          exclusions = AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: settings.appsec.ip_passlist)
 
-          raise e
+          # NOTE: This is a temporary solution before the RuleMerger refactoring
+          #       with new RemoteConfig setup
+          processors = rules['processors']
+          scanners = rules['scanners']
+
+          ruleset = AppSec::Processor::RuleMerger.merge(
+            rules: [rules],
+            data: data,
+            scanners: scanners,
+            processors: processors,
+            exclusions: exclusions,
+            telemetry: telemetry
+          )
+
+          processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
+          return nil unless processor.ready?
+
+          processor
         end
       end
 
-      attr_reader :security_engine, :telemetry
+      attr_reader :processor, :telemetry
 
-      def initialize(security_engine:, telemetry:)
-        @security_engine = security_engine
+      def initialize(processor, telemetry)
+        @processor = processor
         @telemetry = telemetry
 
         @mutex = Mutex.new
       end
 
-      def reconfigure!
+      def reconfigure(ruleset:, telemetry:)
         @mutex.synchronize do
-          security_engine.reconfigure!
+          new_processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
+
+          if new_processor&.ready?
+            old_processor = @processor
+
+            @telemetry = telemetry
+            @processor = new_processor
+
+            old_processor&.finalize
+          end
         end
       end
 
@@ -90,8 +112,10 @@ module Datadog
 
       def shutdown!
         @mutex.synchronize do
-          security_engine.finalize!
-          @security_engine = nil
+          if processor&.ready?
+            processor.finalize
+            @processor = nil
+          end
         end
       end
     end

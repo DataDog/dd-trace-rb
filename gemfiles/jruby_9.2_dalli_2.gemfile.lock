@@ -4,7 +4,7 @@ PATH
     datadog (2.17.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
-      libddwaf (~> 1.24.1.0.0)
+      libddwaf (~> 1.22.0.0.2)
       logger
       msgpack
 
@@ -33,7 +33,7 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (18.1.0.1.0)
-    libddwaf (1.24.1.0.0-java)
+    libddwaf (1.22.0.0.2-java)
       ffi (~> 1.0)
     logger (1.6.6)
     memory_profiler (0.9.14)

@@ -1,14 +1,25 @@
 # frozen_string_literal: true
 
-require 'libddwaf'
-
 require 'datadog/appsec/spec_helper'
+require 'datadog/appsec/processor'
 require 'datadog/appsec/processor/rule_loader'
+require 'datadog/appsec/processor/rule_merger'
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
+  before do
+    # NOTE: This is an intermediate step and will be removed
+    rules = Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry)
+    ruleset = Datadog::AppSec::Processor::RuleMerger.merge(rules: [rules], telemetry: telemetry)
+    Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry)
+
+    allow(Datadog::AppSec::WAF::Context).to receive(:new).and_return(waf_context)
+  end
+
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:waf_handle) { instance_double(Datadog::AppSec::WAF::Handle) }
   let(:waf_context) { instance_double(Datadog::AppSec::WAF::Context) }
 
-  subject(:runner) { described_class.new(waf_context) }
+  subject(:runner) { described_class.new(waf_handle, telemetry: telemetry) }
 
   describe '#run' do
     context 'when keys contain values to clean' do
@@ -27,7 +38,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'removes keys with nil values' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {'addr.b' => 'b'}, 1_000)
-          .and_return(result)
+          .and_return([result.status, result])
 
         runner.run({'addr.a' => 'a', 'addr.aa' => nil}, {'addr.b' => 'b', 'addr.bb' => nil}, 1_000)
       end
@@ -35,7 +46,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'removes keys with empty strings' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {'addr.b' => 'b'}, 1_000)
-          .and_return(result)
+          .and_return([result.status, result])
 
         runner.run({'addr.a' => 'a', 'addr.aa' => ''}, {'addr.b' => 'b', 'addr.bb' => ''}, 1_000)
       end
@@ -43,7 +54,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'removes keys with empty arrays' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => ['a']}, {'addr.b' => ['b']}, 1_000)
-          .and_return(result)
+          .and_return([result.status, result])
 
         runner.run({'addr.a' => ['a'], 'addr.aa' => []}, {'addr.b' => ['b'], 'addr.bb' => []}, 1_000)
       end
@@ -51,7 +62,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'removes keys with empty hashes' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => {'a' => '1'}}, {'addr.b' => {'b' => '2'}}, 1_000)
-          .and_return(result)
+          .and_return([result.status, result])
 
         runner.run({'addr.a' => {'a' => '1'}, 'addr.aa' => {}}, {'addr.b' => {'b' => '2'}, 'addr.bb' => {}}, 1_000)
       end
@@ -59,7 +70,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       it 'does not remove keys with boolean values' do
         expect(waf_context).to receive(:run)
           .with({'addr.a' => 'a', 'addr.aa' => true}, {'addr.b' => 'b', 'addr.bb' => false}, 1_000)
-          .and_return(result)
+          .and_return([result.status, result])
 
         runner.run({'addr.a' => 'a', 'addr.aa' => true}, {'addr.b' => 'b', 'addr.bb' => false}, 1_000)
       end
@@ -69,7 +80,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       before do
         allow(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {}, 1_000)
-          .and_return(waf_result)
+          .and_return([waf_result.status, waf_result])
       end
 
       let(:waf_result) do
@@ -104,7 +115,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       before do
         allow(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {}, 1_000)
-          .and_return(waf_result)
+          .and_return([waf_result.status, waf_result])
       end
 
       let(:waf_result) do
@@ -135,7 +146,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       before do
         allow(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {}, 1_000)
-          .and_return(waf_result)
+          .and_return([waf_result.status, waf_result])
       end
 
       let(:waf_result) do
@@ -143,7 +154,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       end
 
       it 'sends telemetry error' do
-        expect(Datadog::AppSec.telemetry).to receive(:error)
+        expect(telemetry).to receive(:error)
           .with(/libddwaf:[\d.]+ method:ddwaf_run execution error: :err_invalid_object/)
 
         runner.run({'addr.a' => 'a'}, {}, 1_000)
@@ -154,17 +165,17 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       before do
         allow(waf_context).to receive(:run)
           .with({'addr.a' => 'a'}, {}, 1_000)
-          .and_raise(Datadog::AppSec::WAF::LibDDWAFError, 'Could not convert persistent data')
+          .and_raise(Datadog::AppSec::WAF::LibDDWAF::Error, 'Could not convert persistent data')
       end
 
       let(:run_result) { runner.run({'addr.a' => 'a'}, {}, 1_000) }
 
       it 'sends telemetry report' do
-        expect(Datadog::AppSec.telemetry).to receive(:error)
+        expect(telemetry).to receive(:error)
           .with(/libddwaf:[\d.]+ method:ddwaf_run execution error: :err_internal/)
 
-        expect(Datadog::AppSec.telemetry).to receive(:report)
-          .with(kind_of(Datadog::AppSec::WAF::LibDDWAFError), description: 'libddwaf-rb internal low-level error')
+        expect(telemetry).to receive(:report)
+          .with(kind_of(Datadog::AppSec::WAF::LibDDWAF::Error), description: 'libddwaf-rb internal low-level error')
 
         expect(run_result).to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error)
         expect(run_result.duration_ext_ns).to be > 0
