@@ -182,7 +182,13 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
       include_context 'HTTP server'
 
-      let(:request) { messages.first }
+      # TODO: Unclear if we actually want the change that causes this to be needed on the libdatadog side.
+      # Still being discussed -- we either want it and remove only the comment, or don't want it and remove the
+      # comment + this change.
+      let(:request) do
+        wait(15).for { messages }.to_not be_empty
+        messages.first
+      end
 
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
       let(:fork_expectations) do
@@ -200,23 +206,19 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       # NOTE: If any of these tests seem flaky, the `upload_timeout_seconds` may need to be raised (or otherwise
       # we need to tweak libdatadog to not need such high timeouts).
 
-      [:fiddle, :signal].each do |trigger|
-        it "reports crashes via http when app crashes with #{trigger}" do
+      [
+        [:fiddle, "rb_fiddle_free", proc { Fiddle.free(42) }],
+        [:signal, "rb_f_kill", proc { Process.kill("SEGV", Process.pid) }],
+      ].each do |trigger_name, function, trigger|
+        it "reports crashes via http when app crashes with #{trigger_name}" do
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
             crash_tracker = build_crashtracker(agent_base_url: agent_base_url)
             crash_tracker.start
-
-            if trigger == :fiddle
-              Fiddle.free(42)
-            else
-              Process.kill('SEGV', Process.pid)
-            end
+            trigger.call
           end
 
-          expect(stack_trace).to_not be_empty
+          expect(stack_trace).to match(array_including(hash_including(function: function)))
           expect(stack_trace.size).to be > 10
-          expect(stack_trace.first)
-            .to match(hash_including(path: /libdatadog/)).or match(hash_including(file: /libdatadog/))
 
           expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
 
