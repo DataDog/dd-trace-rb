@@ -7,8 +7,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     skip_if_profiling_not_supported(self)
 
     @clean_threads_required = true
-    [t1, t2, t3].each { ready_queue.pop }
-    expect(Thread.list).to include(t1, t2, t3)
+    testing_threads.each { ready_queue.pop }
+    expect(Thread.list).to include(*testing_threads)
   end
 
   let(:recorder) do
@@ -35,6 +35,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sleep
     end
   end
+  let(:profiler_overhead_thread_placeholder) do
+    Thread.new(ready_queue) do |ready_queue|
+      def self.overhead_placeholder(queue)
+        queue << true
+        sleep
+      end
+
+      overhead_placeholder(ready_queue)
+    end
+  end
+  let(:testing_threads) { [t1, t2, t3, profiler_overhead_thread_placeholder] }
   let(:max_frames) { 123 }
 
   let(:pprof_result) { recorder.serialize! }
@@ -65,14 +76,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   after do
     if @clean_threads_required
-      [t1, t2, t3].each do |thread|
+      testing_threads.each do |thread|
         thread.kill
         thread.join
       end
     end
   end
 
-  def sample(profiler_overhead_stack_thread: Thread.current, allow_exception: false)
+  def sample(profiler_overhead_stack_thread: profiler_overhead_thread_placeholder, allow_exception: false)
     described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread, allow_exception)
   end
 
