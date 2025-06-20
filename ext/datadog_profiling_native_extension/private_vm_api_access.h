@@ -28,7 +28,7 @@ typedef struct frame_info {
       int line;
     } ruby_frame;
     struct {
-      VALUE caching_cme; // For caching validation/invalidation only
+      VALUE caching_cme; // For caching validation/invalidation only (does not need marking)
       ID method_id;
     } native_frame;
   } as;

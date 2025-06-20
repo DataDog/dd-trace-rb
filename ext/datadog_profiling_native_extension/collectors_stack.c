@@ -504,7 +504,7 @@ void sampling_buffer_free(sampling_buffer *buffer) {
 // The key difference is that it gets written to in the profiler signal handler (as the name indicates) by whatever
 // thread was active.
 // Thus (and unlike the sampling_buffer):
-// 1. It needs marking, as Ruby may decide to GC in between it was collected and when we can process it
+// 1. It needs marking, as Ruby may decide to GC in between when it was collected and when we can process it
 // 2. It contains data from different threads, rather than being always reused by the same one
 
 typedef struct {
