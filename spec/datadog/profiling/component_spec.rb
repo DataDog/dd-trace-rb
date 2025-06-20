@@ -69,12 +69,16 @@ RSpec.describe Datadog::Profiling::Component do
           dummy_stack_recorder = instance_double(Datadog::Profiling::StackRecorder, "dummy_stack_recorder")
           allow(Datadog::Profiling::StackRecorder).to receive(:new).and_return(dummy_stack_recorder)
 
-          expect(settings.profiling.advanced).to receive(:max_frames).and_return(:max_frames_config)
+          expect(settings.profiling.advanced)
+            .to receive(:max_frames).and_return(:max_frames_config)
           expect(settings.profiling.advanced)
             .to receive(:timeline_enabled).at_least(:once).and_return(:timeline_enabled_config)
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
-          expect(settings.profiling.advanced).to receive(:waiting_for_gvl_threshold_ns).and_return(:threshold_ns_config)
+          expect(settings.profiling.advanced)
+            .to receive(:waiting_for_gvl_threshold_ns).and_return(:threshold_ns_config)
+          expect(settings.profiling.advanced)
+            .to receive(:native_filenames_enabled).and_return(:native_filenames_enabled_config)
 
           expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
             recorder: dummy_stack_recorder,
@@ -84,6 +88,7 @@ RSpec.describe Datadog::Profiling::Component do
             timeline_enabled: :timeline_enabled_config,
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
             otel_context_enabled: false,
+            native_filenames_enabled: :native_filenames_enabled_config,
           )
 
           build_profiler_component

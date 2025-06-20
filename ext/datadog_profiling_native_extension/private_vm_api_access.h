@@ -28,6 +28,7 @@ typedef struct {
     struct {
       VALUE caching_cme; // For caching only
       ID method_id;
+      void *function;
     } native_frame;
   } as;
   bool is_ruby_frame : 1;

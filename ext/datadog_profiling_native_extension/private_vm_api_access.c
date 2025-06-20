@@ -569,6 +569,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
                 stack_buffer[i].as.native_frame.caching_cme = (VALUE)cme;
                 stack_buffer[i].as.native_frame.method_id = cme->def->original_id;
+                stack_buffer[i].as.native_frame.function = cme->def->body.cfunc.func;
                 stack_buffer[i].is_ruby_frame = false;
                 i++;
             }
