@@ -579,7 +579,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     return;
   }
 
-  // We implicitly assume there can be no concurrent nor nested calls to handle_sampling_signal because
+  // We assume there can be no concurrent nor nested calls to handle_sampling_signal because
   // a) we get triggered using SIGPROF, and the docs state a second SIGPROF will not interrupt an existing one (see sigaction docs on sa_mask)
   // b) we validate we are in the thread that has the global VM lock; if a different thread gets a signal, it will return early
   //    because it will not have the global VM lock
@@ -1040,8 +1040,7 @@ void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused) {
 
   state->stats.simulated_signal_delivery++;
 
-  // @ivoanjo: We could instead directly call sample_from_postponed_job, but I chose to go through the signal handler
-  // so that the simulated case is as close to the original one as well (including any metrics increases, etc).
+  // `handle_sampling_signal` does a few things extra on top of `sample_from_postponed_job` so that's why we don't shortcut here
   handle_sampling_signal(0, NULL, NULL);
 
   return NULL; // Unused
