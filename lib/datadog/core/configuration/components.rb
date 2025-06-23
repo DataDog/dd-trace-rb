@@ -210,7 +210,7 @@ module Datadog
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
 
-          Core::ProcessDiscovery._native_close_tracer_memfd(@process_discovery_fd, @logger) if @process_discovery_fd
+          @process_discovery_fd&.shutdown!
         end
 
         # Returns the current state of various components.

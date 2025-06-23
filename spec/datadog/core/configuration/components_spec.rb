@@ -28,7 +28,6 @@ require 'datadog/core/transport/http/adapters/net'
 RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
 
-  # Using a double does not give access to superclass methods like debug
   let(:logger) do
     instance_double(Datadog::Core::Logger).tap do |logger|
       allow(logger).to receive(:debug)
