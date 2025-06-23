@@ -2,6 +2,6 @@
   "files.associations": {
     "*.gemfile": "ruby",
     "Matrixfile": "ruby",
-    "Dockerfile*": "dockerfile",
+    "Dockerfile*": "dockerfile"
   }
 }
