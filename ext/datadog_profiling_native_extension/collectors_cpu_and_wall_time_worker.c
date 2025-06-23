@@ -590,6 +590,21 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
   state->stats.signal_handler_enqueued_sample++;
 
+  bool sample_from_signal_handler =
+    true /* TODO: state->sample_from_signal_handler_enabled*/ &&
+    // It's not a great idea to sample during GC, since we'll be getting and following references from the VM
+    // and during GC they may be in-flux/not correctly accounted for
+    !rb_during_gc() && // TODO: We still have bias during GC -- can we maybe do better? (very visible with biasexample.rb)
+    // Don't sample if we're already in the middle of processing a sample
+    !state->during_sample;
+
+  if (sample_from_signal_handler) {
+    // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
+    // until the postponed job below gets run.
+    // TODO: Look into also including the current wall-time and cpu clocks (also be careful about errno in that case)
+    thread_context_collector_prepare_sample_inside_signal_handler(state->thread_context_collector_instance);
+  }
+
   #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
     rb_postponed_job_trigger(sample_from_postponed_job_handle);
   #else
