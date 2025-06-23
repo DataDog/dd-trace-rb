@@ -168,8 +168,8 @@ publish-to-ghcr:
     - export GHCR_TOKEN=$(aws ssm get-parameter --region us-east-1 --name ci.$CI_PROJECT_NAME.gh_ghcr_token --with-decryption --query "Parameter.Value" --out text)
     - echo $GHCR_TOKEN | docker login ghcr.io/datadog --username uploader --password-stdin
     - crane copy ${INTERNAL_K8S_REGISTRY_BASE}/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID}
-    - crane tag ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${CI_COMMIT_SHA}
-    - crane tag ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID}-g${CI_COMMIT_SHA}
+    - crane copy ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${CI_COMMIT_SHA}
+    - crane copy ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID}-g${CI_COMMIT_SHA}
     - if [[ "$CI_COMMIT_BRANCH" == "master" ]]; then crane tag ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:latest_snapshot; fi
 
 # Currently, the job is implemented with polling mechanism.
