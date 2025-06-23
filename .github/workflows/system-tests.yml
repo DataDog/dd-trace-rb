@@ -22,7 +22,7 @@ permissions: {}
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: appsec-57872-enable-api-security # Automated: This reference is automatically updated.
+  SYSTEM_TESTS_REF: a8d5055e91531faf069e784b6810ec28cdc284a1 # Automated: This reference is automatically updated.
 
 jobs:
   changes:
