@@ -122,7 +122,11 @@ typedef struct {
   // Others
 
   // Used to detect/avoid nested sampling, e.g. when on_newobj_event gets triggered by a memory allocation
-  // that happens during another sample.
+  // that happens during another sample, or when the signal handler gets triggered while we're already in the middle of
+  // sampling.
+  //
+  // @ivoanjo: Right now we always sample inside `safely_call`; if that ever changes, this flag may need to become
+  // volatile/atomic/have some barriers to ensure it's visible during e.g. signal handlers.
   bool during_sample;
 
   #ifndef NO_GVL_INSTRUMENTATION
@@ -1173,10 +1177,6 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
     &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
   );
 
-  // @ivoanjo: Strictly speaking, this is not needed because Ruby should not call the same tracepoint while a previous
-  // invocation is still pending, (e.g. it wouldn't call `on_newobj_event` while it's already running), but I decided
-  // to keep this here for consistency -- every call to the thread context (other than the special gc calls which are
-  // defined as not being able to allocate) sets this.
   state->during_sample = true;
 
   // Rescue against any exceptions that happen during sampling
