@@ -595,6 +595,8 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     // It's not a great idea to sample during GC, since we'll be getting and following references from the VM
     // and during GC they may be in-flux/not correctly accounted for
     !rb_during_gc() && // TODO: We still have bias during GC -- can we maybe do better? (very visible with biasexample.rb)
+    // TODO2: Actually it may be ok to do this during GC. After all, VALUEs we record here are certainly not going to
+    // be collected -- they're live on the stack. To revisit later.
     // Don't sample if we're already in the middle of processing a sample
     !state->during_sample;
 
