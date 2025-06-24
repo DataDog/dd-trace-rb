@@ -158,10 +158,23 @@ module Datadog
           message: probe.template && evaluate_template(probe.template,
             duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
+          ddtags: serialized_tags,
         }
       end
 
       private
+
+      def tags
+        Core::TagBuilder.tags(settings).merge(
+          debugger_version: Core::Environment::Identity.gem_datadog_version,
+        )
+      end
+
+      def serialized_tags
+        tags.map do |key, value|
+          "#{key}:#{value}"
+        end.join(',')
+      end
 
       def build_status(probe, message:, status:)
         {

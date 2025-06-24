@@ -1,8 +1,16 @@
 name: Update System Tests
 
+# To run this workflow manually, use the following command:
+#  `gh workflow run "Update System Tests"`
+#
+# with additional arguments:
+#  `gh workflow run "Update System Tests" -f ref=<your-ref>`
+
 on: # yamllint disable-line rule:truthy
   schedule:
     - cron: '0 0 * * 0' # Every Sunday at midnight
+  repository_dispatch:
+    types: [update-system-tests]
   workflow_dispatch:
     inputs:
       ref:
@@ -29,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Checkout System Test
         id: system-test-ref
@@ -38,7 +46,8 @@ jobs:
           repository: "DataDog/system-tests"
           path: system-tests
           persist-credentials: false
-          ref: ${{ github.event.inputs.ref || '' }}
+          # Use ref from repository_dispatch payload if available, otherwise from workflow_dispatch
+          ref: ${{ github.event.client_payload.ref || github.event.inputs.ref || '' }}
 
       - run: .github/scripts/update_reference.sh
         env:
@@ -62,7 +71,8 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Create Pull Request
-        if: ${{ github.event.inputs.dry-run != true }}
+        # Skip PR creation if dry-run is true (from either trigger type)
+        if: ${{ github.event.inputs.dry-run != 'true' && github.event.client_payload.dry-run != 'true' }}
         id: cpr
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
@@ -70,13 +80,20 @@ jobs:
           branch: auto-generate/update-system-tests
           title: '[🤖] Update System Tests'
           base: master
-          sign-commits: true
           labels: dev/internal
           commit-message: "[🤖] Update System Tests: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
+          sign-commits: true
           add-paths: |
             .github/
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-system-tests.yml)_
             The PR updates the system tests (Updated to commit: ${{ steps.system-test-ref.outputs.commit }})
+
+            **Trigger Information:**
+            - Event: ${{ github.event_name }}
+            - Triggered by: ${{ github.event.client_payload.triggered_by || 'Manual/Scheduled' }}
+            - Source repo: ${{ github.event.client_payload.source_repo || 'N/A' }}
+            - Source commit: ${{ github.event.client_payload.source_commit || 'N/A' }}
+
             Please review the changes and merge when ready

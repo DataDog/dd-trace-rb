@@ -311,10 +311,25 @@ module Datadog
               end
 
               settings :api_security do
+                define_method(:enabled?) { get_option(:enabled) }
+
                 option :enabled do |o|
                   o.type :bool
                   o.env 'DD_EXPERIMENTAL_API_SECURITY_ENABLED'
                   o.default false
+                end
+
+                # NOTE: Unfortunately, we have to go with Float due to other libs
+                #       setup, even tho we don't plan to support sub-second delays.
+                #
+                # WARNING: The value will be converted to Integer.
+                option :sample_delay do |o|
+                  o.type :float
+                  o.env 'DD_API_SECURITY_SAMPLE_DELAY'
+                  o.default 30
+                  o.setter do |value|
+                    value.to_i
+                  end
                 end
 
                 option :sample_rate do |o|
