@@ -35,46 +35,100 @@ RSpec.describe 'Rack integration tests' do
 
   let(:crs_942_100) do
     {
-      'version' => '2.2',
-      'metadata' => {
-        'rules_version' => '1.4.1'
+      version: '2.2',
+      metadata: {
+        rules_version: '1.4.1'
       },
-      'rules' => [
+      rules: [
         {
-          'id' => 'crs-942-100',
-          'name' => 'SQL Injection Attack Detected via libinjection',
-          'tags' => {
-            'type' => 'sql_injection',
-            'crs_id' => '942100',
-            'category' => 'attack_attempt'
+          id: 'crs-942-100',
+          name: 'SQL Injection Attack Detected via libinjection',
+          tags: {
+            type: 'sql_injection',
+            crs_id: '942100',
+            category: 'attack_attempt'
           },
-          'conditions' => [
+          conditions: [
             {
-              'parameters' => {
-                'inputs' => [
+              parameters: {
+                inputs: [
                   {
-                    'address' => 'server.request.query'
+                    address: 'server.request.query'
                   },
                   {
-                    'address' => 'server.request.body'
+                    address: 'server.request.body'
                   },
                   {
-                    'address' => 'server.request.path_params'
+                    address: 'server.request.path_params'
                   },
                   {
-                    'address' => 'grpc.server.request.message'
+                    address: 'grpc.server.request.message'
                   }
                 ]
               },
-              'operator' => 'is_sqli'
+              operator: 'is_sqli'
             }
           ],
-          'transformers' => [
+          transformers: [
             'removeNulls'
           ],
-          'on_match' => [
-            'block'
+          on_match: [
+            'block',
+            'extract_schema'
           ]
+        },
+      ],
+      processors: [
+        {
+          id: 'extract-content',
+          generator: 'extract_schema',
+          conditions: [
+            {
+              operator: 'equals',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'waf.context.processor',
+                    key_path: [
+                      'extract-schema'
+                    ]
+                  }
+                ],
+                type: 'boolean',
+                value: true
+              }
+            }
+          ],
+          parameters: {
+            mappings: [
+              {
+                inputs: [
+                  {
+                    address: 'server.request.query'
+                  }
+                ],
+                output: '_dd.appsec.s.req.query'
+              },
+              {
+                inputs: [
+                  {
+                    address: 'server.request.body'
+                  }
+                ],
+                output: '_dd.appsec.s.req.body'
+              },
+              {
+                inputs: [
+                  {
+                    address: 'server.request.path_params'
+                  }
+                ],
+                output: '_dd.appsec.s.req.params'
+              },
+            ]
+          },
+          evaluate: false,
+          output: true
         },
       ]
     }
@@ -82,20 +136,20 @@ RSpec.describe 'Rack integration tests' do
 
   let(:nfd_000_002) do
     {
-      'version' => '2.2',
-      'metadata' => {
-        'rules_version' => '1.4.1'
+      version: '2.2',
+      metadata: {
+        rules_version: '1.4.1'
       },
-      'rules' => [
+      rules: [
         {
-          :id => 'nfd-000-002',
-          :name => 'Detect failed attempt to fetch readme files',
-          :tags => {
+          id: 'nfd-000-002',
+          name: 'Detect failed attempt to fetch readme files',
+          tags: {
             type: 'security_scanner',
             category: 'attack_attempt',
             confidence: '1'
           },
-          :conditions => [
+          conditions: [
             {
               operator: 'match_regex',
               parameters: {
@@ -125,10 +179,47 @@ RSpec.describe 'Rack integration tests' do
               }
             }
           ],
-          :transformers => [],
-          'on_match' => [
+          transformers: [],
+          on_match: [
             'block'
           ]
+        },
+      ],
+      processors: [
+        {
+          id: 'extract-content',
+          generator: 'extract_schema',
+          conditions: [
+            {
+              operator: 'equals',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'waf.context.processor',
+                    key_path: [
+                      'extract-schema'
+                    ]
+                  }
+                ],
+                type: 'boolean',
+                value: true
+              }
+            }
+          ],
+          parameters: {
+            mappings: [
+              {
+                inputs: [
+                  {
+                    address: 'server.request.uri.raw'
+                  }
+                ],
+                output: '_dd.appsec.s.req.uri.raw'
+              }
+            ]
+          },
+          evaluate: false,
+          output: true
         },
       ]
     }
@@ -170,6 +261,7 @@ RSpec.describe 'Rack integration tests' do
         c.appsec.waf_timeout = 10_000_000 # in us
         c.appsec.ip_passlist = appsec_ip_passlist
         c.appsec.ip_denylist = appsec_ip_denylist
+
         c.appsec.user_id_denylist = appsec_user_id_denylist
         c.appsec.ruleset = appsec_ruleset
         c.appsec.api_security.enabled = api_security_enabled
@@ -1035,7 +1127,7 @@ RSpec.describe 'Rack integration tests' do
         context 'without appsec upstream without attack and trace is kept with priority 1' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
@@ -1089,7 +1181,7 @@ RSpec.describe 'Rack integration tests' do
         context 'without upstream appsec propagation with attack and trace is kept with priority 2' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
@@ -1137,7 +1229,7 @@ RSpec.describe 'Rack integration tests' do
         context 'with upstream appsec propagation without attack and trace is propagated as is' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
@@ -1205,7 +1297,7 @@ RSpec.describe 'Rack integration tests' do
         context 'with any upstream propagation with attack and raises trace priority to 2' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
