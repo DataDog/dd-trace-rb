@@ -79,7 +79,15 @@ module Datadog
           loaded_specs.each do |spec|
             next if libraries_by_name.key?(spec.name)
 
-            record_library(Library.new(kind: "library", name: spec.name, version: spec.version, path: spec.gem_dir))
+            record_library(
+              Library.new(
+                kind: "library",
+                name: spec.name,
+                version: spec.version,
+                path: spec.gem_dir,
+                extra_path: (spec.extension_dir if spec.extensions.any?),
+              )
+            )
             recorded_library = true
           end
 
