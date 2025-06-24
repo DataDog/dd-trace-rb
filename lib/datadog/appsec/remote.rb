@@ -65,17 +65,15 @@ module Datadog
 
             changes.each do |change|
               content = repository[change.path]
-              next unless content
+              next unless content || change.type == :delete
 
               case change.type
               when :insert, :update
                 AppSec.security_engine.add_or_update_config(parse_content(content), path: change.path.to_s) # steep:ignore
 
-                content.applied
+                content.applied # steep:ignore
               when :delete
                 AppSec.security_engine.remove_config_at_path(change.path.to_s) # steep:ignore
-
-                content.applied
               end
             end
 

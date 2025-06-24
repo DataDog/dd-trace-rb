@@ -56,7 +56,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
     end
 
     it 'sets waf_addresses' do
-      expect(engine.waf_addresses).to_not be_empty
+      expect(engine.waf_addresses).to match_array(%w[server.db.statement server.request.query server.db.system])
     end
 
     it 'sets ruleset_version' do
