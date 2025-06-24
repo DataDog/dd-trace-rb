@@ -70,7 +70,6 @@ module Datadog
           remove_config_at_path(DEFAULT_RULES_CONFIG_PATH) if @is_ruleset_update
 
           diagnostics = @waf_builder.add_or_update_config(config, path: path)
-
           @ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
           report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
 
