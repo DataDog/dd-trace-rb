@@ -54,6 +54,12 @@ module Datadog
           def ruleset=: (String | Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
 
           def block: () -> _AppSecBlock
+
+          def ip_passlist: () -> ::Array[::String]
+
+          def ip_denylist: () -> ::Array[::String]
+
+          def user_id_denylist: () -> ::Array[::String]
         end
 
         interface _AppSecBlock

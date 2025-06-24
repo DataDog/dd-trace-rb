@@ -37,7 +37,7 @@ module Datadog
 
       def export_metrics: () -> void
 
-      def finalize: () -> void
+      def finalize!: () -> void
     end
   end
 end
