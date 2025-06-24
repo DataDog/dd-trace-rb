@@ -4,6 +4,8 @@ require "json"
 require "yaml"
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
+  before { skip_if_profiling_not_supported(self) }
+
   subject(:code_provenance) { described_class.new(ruby_native_filename: ruby_native_filename) }
 
   let(:ruby_native_filename) { "" }
