@@ -34,9 +34,10 @@ module Datadog
             #
             # The downside is: this leaves us unable to report telemetry during component initialization.
             components = Datadog.send(:components, allow_initialization: false)
+            telemetry = components&.telemetry
 
-            if components&.telemetry
-              components.telemetry
+            if telemetry
+              telemetry
             else
               Datadog.logger.warn(
                 'Failed to send telemetry before components initialization or within components lifecycle'
