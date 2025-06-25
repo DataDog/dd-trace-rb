@@ -12,7 +12,7 @@ RSpec.describe 'Adapters::Net tracing integration tests' do
   subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings) }
 
   let(:agent_settings) do
-    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+    Datadog::Core::Configuration::AgentSettings.new(
       adapter: nil,
       ssl: false,
       uds_path: nil,
