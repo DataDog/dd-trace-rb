@@ -9,7 +9,7 @@ module Datadog
       @exporter_configuration: exporter_configuration_array
 
       def initialize: (
-        agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+        agent_settings: Datadog::Core::Configuration::AgentSettings,
         site: ::String?,
         api_key: ::String?,
         upload_timeout_seconds: ::Integer,

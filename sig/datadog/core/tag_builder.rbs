@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module TagBuilder
+      self.@fixed_environment_tags: untyped
+
+      def self.fixed_environment_tags: () -> untyped
+
+      def self.tags: (untyped settings) -> untyped
+    end
+  end
+end

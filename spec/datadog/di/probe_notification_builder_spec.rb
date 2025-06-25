@@ -17,6 +17,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     double("settings").tap do |settings|
       allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
       allow(settings).to receive(:service).and_return('test service')
+      allow(settings).to receive(:env).and_return('test env')
+      allow(settings).to receive(:version).and_return('test version')
+      allow(settings).to receive(:tags).and_return({})
     end
   end
 
@@ -187,6 +190,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             stack: nil,
             timestamp: Integer,
           },
+          ddtags: String,
           message: "hello world",
           service: 'test service',
           timestamp: Integer,
@@ -235,6 +239,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             stack: nil,
             timestamp: Integer,
           },
+          ddtags: String,
           message: nil,
           service: 'test service',
           timestamp: Integer,
@@ -297,6 +302,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             stack: nil,
             timestamp: Integer,
           },
+          ddtags: String,
           message: nil,
           service: 'test service',
           timestamp: Integer,

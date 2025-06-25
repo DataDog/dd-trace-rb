@@ -156,6 +156,22 @@ deploy_to_reliability_env:
   needs:
     - save_versions
 
+publish-to-ghcr:
+  extends: .base-packaging-job
+  needs:
+    - job: create-multiarch-lib-injection-image
+  rules:
+    - if: $SKIP_SHARED_PIPELINE == "true"
+      when: never
+    - when: on_success
+  script:
+    - export GHCR_TOKEN=$(aws ssm get-parameter --region us-east-1 --name ci.$CI_PROJECT_NAME.gh_ghcr_token --with-decryption --query "Parameter.Value" --out text)
+    - echo $GHCR_TOKEN | docker login ghcr.io/datadog --username uploader --password-stdin
+    - crane copy ${INTERNAL_K8S_REGISTRY_BASE}/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID}
+    - crane copy ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${CI_COMMIT_SHA}
+    - crane copy ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID}-g${CI_COMMIT_SHA}
+    - if [[ "$CI_COMMIT_BRANCH" == "master" ]]; then crane tag ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:glci${CI_PIPELINE_ID} ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:latest_snapshot; fi
+
 # Currently, the job is implemented with polling mechanism.
 #
 # Due to the constraints of Github workflow dispatch endpoint, it does not return the workflow run id.
@@ -163,9 +179,25 @@ deploy_to_reliability_env:
 #
 # We fetch the latest workflow runs from vaccine then match against the run name, polling until we find it.
 vaccine:
-  image: $DOCKER_REGISTRY/docker:20.10.13
+  image: registry.ddbuild.io/images/dd-octo-sts-ci-base:v68058725-73f34e7-2025.06-1
   tags: ["arch:amd64"]
   stage: vaccine
-  needs: [create-multiarch-lib-injection-image]
-  script: |
-    .gitlab/scripts/vaccine.sh master "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
+  needs: [create-multiarch-lib-injection-image, publish-to-ghcr]
+
+  id_tokens:
+    DDOCTOSTS_ID_TOKEN:
+      aud: dd-octo-sts
+
+  before_script:
+    # Get a token
+    - dd-octo-sts version
+    # - dd-octo-sts debug --scope DataDog/vaccine --policy dd-trace-rb.dispatch # Uncomment to debug
+    - dd-octo-sts token --scope DataDog/vaccine --policy dd-trace-rb.dispatch > token.txt
+
+  script:
+    - export GITHUB_TOKEN=$(cat token.txt)
+    - .gitlab/scripts/vaccine.sh master "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
+
+  after_script:
+    # Revoke the token after usage
+    - dd-octo-sts revoke -t $(cat token.txt)

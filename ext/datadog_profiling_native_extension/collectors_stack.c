@@ -340,6 +340,7 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
   if (filename_slice->len < 3 || memcmp(filename_slice->ptr + filename_slice->len - 3, ".rb", 3) == 0) return;
 
   if (name_slice->len > 1024) return;
+  if (name_slice->len == 0) return;
 
   int pos = ((int) name_slice->len) - 1;
 
