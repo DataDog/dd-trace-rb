@@ -86,6 +86,45 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
             ],
             on_match: ['block']
           }
+        ],
+        processors: [
+          {
+            id: 'extract-content',
+            generator: 'extract_schema',
+            conditions: [
+              {
+                operator: 'equals',
+                parameters: {
+                  inputs: [
+                    {
+                      address: 'waf.context.processor',
+                      key_path: ['extract-schema']
+                    }
+                  ],
+                  type: 'boolean',
+                  value: true
+                }
+              }
+            ],
+            parameters: {
+              mappings: [
+                {
+                  inputs: [{ address: 'server.request.query' }],
+                  output: '_dd.appsec.s.req.query'
+                },
+                {
+                  inputs: [{ address: 'server.request.body' }],
+                  output: '_dd.appsec.s.req.body'
+                },
+                {
+                  inputs: [{ address: 'server.request.path_params' }],
+                  output: '_dd.appsec.s.req.params'
+                }
+              ]
+            },
+            evaluate: false,
+            output: true
+          },
         ]
       }
 
