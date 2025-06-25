@@ -1472,7 +1472,7 @@ static VALUE thread_list(thread_context_collector_state *state) {
 void thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance) {
   thread_context_collector_state *state;
   if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
-  // This should never fail the the above check passes
+  // This should never fail if the above check passes
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE current_thread = rb_thread_current();
