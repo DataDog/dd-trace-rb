@@ -182,11 +182,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
       include_context 'HTTP server'
 
-      # TODO: Unclear if we actually want the change that causes this to be needed on the libdatadog side.
-      # Still being discussed -- we either want it and remove only the comment, or don't want it and remove the
-      # comment + this change.
       let(:request) do
-        wait(15).for { messages }.to_not be_empty
         messages.first
       end
 
