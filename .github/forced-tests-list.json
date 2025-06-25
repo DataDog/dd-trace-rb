@@ -1,3 +1,6 @@
 {
-  
+    "PARAMETRIC": [
+        "tests/parametric/test_config_consistency.py::Test_Stable_Config_Default",
+        "tests/parametric/test_process_discovery.py"
+    ]
 }

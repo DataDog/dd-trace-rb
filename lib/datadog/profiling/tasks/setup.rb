@@ -19,6 +19,7 @@ module Datadog
               "Profiler extensions unavailable. Cause: #{e.class.name} #{e.message} " \
               "Location: #{Array(e.backtrace).first}"
             end
+            Datadog::Core::Telemetry::Logger.report(e, description: "Profiler extensions unavailable")
           end
         end
 
@@ -33,6 +34,7 @@ module Datadog
               "Error during post-fork hooks. Cause: #{e.class.name} #{e.message} " \
               "Location: #{Array(e.backtrace).first}"
             end
+            Datadog::Core::Telemetry::Logger.report(e, description: "Error during post-fork hooks")
           end
         end
       end
