@@ -251,6 +251,8 @@ RSpec.describe 'Rack integration tests' do
 
             c.appsec.enabled = appsec_enabled
             c.appsec.waf_timeout = 10_000_000 # in us
+            c.appsec.api_security.enabled = api_security_enabled
+            c.appsec.api_security.sample_delay = api_security_sample.to_i
             c.appsec.instrument :rack
           end
         end
