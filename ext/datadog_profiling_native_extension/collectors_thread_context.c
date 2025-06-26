@@ -11,6 +11,7 @@
 #include "stack_recorder.h"
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
+#include "extconf.h"
 
 // Used to trigger sampling of threads, based on external "events", such as:
 // * periodic timer for cpu-time and wall-time
@@ -153,6 +154,10 @@ typedef struct {
   // Qtrue serves as a marker we've not yet extracted it; when we try to extract it, we set it to an object if
   // successful and Qnil if not.
   VALUE otel_current_span_key;
+  // Used to enable native filenames in stack traces
+  bool native_filenames_enabled;
+  // Used to cache native filename lookup results (Map[void *function_pointer, char *filename])
+  st_table *native_filenames_cache;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -405,6 +410,8 @@ static void thread_context_collector_typed_data_free(void *state_ptr) {
   // ...and then the map
   st_free_table(state->hash_map_per_thread_context);
 
+  st_free_table(state->native_filenames_cache);
+
   ruby_xfree(state);
 }
 
@@ -440,6 +447,8 @@ static VALUE _native_new(VALUE klass) {
   state->thread_list_buffer = thread_list_buffer;
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
+  state->native_filenames_enabled = false;
+  state->native_filenames_cache = st_init_numtable();
   state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   state->otel_context_source = OTEL_CONTEXT_SOURCE_UNKNOWN;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
@@ -474,11 +483,13 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
   VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
   VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
+  VALUE native_filenames_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("native_filenames_enabled")));
 
   ENFORCE_TYPE(max_frames, T_FIXNUM);
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
+  ENFORCE_BOOLEAN(native_filenames_enabled);
 
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -490,6 +501,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->timeline_enabled = (timeline_enabled == Qtrue);
+  state->native_filenames_enabled = (native_filenames_enabled == Qtrue);
   if (otel_context_enabled == Qfalse || otel_context_enabled == Qnil) {
     state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   } else if (otel_context_enabled == ID2SYM(rb_intern("only"))) {
@@ -998,7 +1010,9 @@ static void trigger_sample_for_thread(
       .state_label = state_label,
       .end_timestamp_ns = end_timestamp_ns,
       .is_gvl_waiting_state = is_gvl_waiting_state,
-    }
+    },
+    state->native_filenames_enabled,
+    state->native_filenames_cache
   );
 }
 
@@ -1141,6 +1155,9 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
+  rb_str_concat(result, rb_sprintf(" native_filenames_enabled=%"PRIsVALUE, state->native_filenames_enabled ? Qtrue : Qfalse));
+  // Note: `st_table_size()` is available from Ruby 3.2+ but not before
+  rb_str_concat(result, rb_sprintf(" native_filenames_cache_size=%zu", state->native_filenames_cache->num_entries));
   rb_str_concat(result, rb_sprintf(" otel_context_enabled=%d", state->otel_context_enabled));
   rb_str_concat(result, rb_sprintf(
     " time_converter_state={.system_epoch_ns_reference=%ld, .delta_to_epoch_ns=%ld}",

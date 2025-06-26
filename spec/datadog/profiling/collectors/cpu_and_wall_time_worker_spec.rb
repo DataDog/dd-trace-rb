@@ -702,7 +702,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             .find { |s| s.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" }
 
         expect(allocation_sample.values).to include("alloc-samples": test_num_allocated_object)
-        expect(allocation_sample.locations.first.lineno).to eq allocation_line
+        # For Ruby 3.5 onwards, new is inlined into the bytecode of the caller and there's no "new"
+        # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
+        expect((RUBY_VERSION >= "3.5.0") ? allocation_sample.locations[0] : allocation_sample.locations[1])
+          .to match(have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: allocation_line))
       end
 
       context "with dynamic_sampling_rate_enabled" do
@@ -900,24 +903,21 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         current_method_name = caller_locations(0, 1).first.base_label
 
-        test_struct_heap_sample = lambda { |sample|
-          first_frame = sample.locations.first
-          first_frame.lineno == allocation_line &&
-            first_frame.path == __FILE__ &&
-            (
-              first_frame.base_label == "new" ||
-              # From Ruby 3.5 onwards, new is inlined into the bytecode of the caller and there's no "new"
-              # frame, see https://github.com/ruby/ruby/pull/13080
-              (RUBY_VERSION >= "3.5.0" && first_frame.base_label == current_method_name)
-            ) &&
-            sample.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" &&
-            (sample.values[:"heap-live-samples"] || 0) > 0
-        }
-
         # We can't just use find here because samples might have different gc age labels
         # if a gc happens to run in the middle of this test. Thus, we'll have to sum up
         # together the values of all matching samples.
-        relevant_samples = samples_from_pprof(recorder.serialize!).select(&test_struct_heap_sample)
+        relevant_samples = samples_from_pprof(recorder.serialize!).select do |sample|
+          # From Ruby 3.5 onwards, new is inlined into the bytecode of the caller and there's no "new"
+          # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
+          allocation_trigger_frame = (RUBY_VERSION >= "3.5.0") ? sample.locations[0] : sample.locations[1]
+          next unless allocation_trigger_frame
+
+          allocation_trigger_frame.lineno == allocation_line &&
+            allocation_trigger_frame.path == __FILE__ &&
+            allocation_trigger_frame.base_label == current_method_name &&
+            sample.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" &&
+            (sample.values[:"heap-live-samples"] || 0) > 0
+        end
 
         total_samples = relevant_samples.map { |sample| sample.values[:"heap-live-samples"] || 0 }.reduce(:+)
         total_size = relevant_samples.map { |sample| sample.values[:"heap-live-size"] || 0 }.reduce(:+)

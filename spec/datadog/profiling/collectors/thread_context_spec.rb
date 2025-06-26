@@ -48,6 +48,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:gvl_waiting_enabled_empty_magic_value) { 2**62 - 1 }
   let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
   let(:otel_context_enabled) { false }
+  let(:native_filenames_enabled) { false }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -58,6 +59,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       timeline_enabled: timeline_enabled,
       waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
+      native_filenames_enabled: native_filenames_enabled,
     )
   end
 
@@ -170,6 +172,27 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     it "sets the waiting_for_gvl_threshold_ns to the provided value" do
       # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
       expect(cpu_and_wall_time_collector.inspect).to include("global_waiting_for_gvl_threshold_ns=222333444")
+    end
+
+    context "when native filenames are enabled but feature is not available" do
+      let(:native_filenames_enabled) { true }
+
+      before do
+        allow(Datadog::Profiling::Collectors::Stack).to receive(:_native_filenames_available?).and_return(false)
+        allow(Datadog.logger).to receive(:debug)
+      end
+
+      it "disables native filenames" do
+        expect(described_class).to receive(:_native_initialize).with(hash_including(native_filenames_enabled: false))
+
+        cpu_and_wall_time_collector
+      end
+
+      it "logs a debug message" do
+        expect(Datadog.logger).to receive(:debug).with(/Disabling native filenames/)
+
+        cpu_and_wall_time_collector
+      end
     end
   end
 
