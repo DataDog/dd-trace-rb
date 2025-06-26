@@ -37,7 +37,7 @@ module Datadog
             Datadog.logger.debug("Successfully reported profiling data")
             true
           else
-            Datadog.logger.error(
+            Datadog.logger.warn(
               "Failed to report profiling data (#{config_without_api_key}): " \
               "server returned unexpected HTTP #{result} status code"
             )
@@ -47,7 +47,7 @@ module Datadog
             false
           end
         else
-          Datadog.logger.error("Failed to report profiling data (#{config_without_api_key}): #{result}")
+          Datadog.logger.warn("Failed to report profiling data (#{config_without_api_key}): #{result}")
           Datadog::Core::Telemetry::Logger.error("Failed to report profiling data")
           false
         end

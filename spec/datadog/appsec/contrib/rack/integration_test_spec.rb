@@ -173,11 +173,15 @@ RSpec.describe 'Rack integration tests' do
         c.appsec.user_id_denylist = appsec_user_id_denylist
         c.appsec.ruleset = appsec_ruleset
         c.appsec.api_security.enabled = api_security_enabled
-        c.appsec.api_security.sample_rate = api_security_sample
+        c.appsec.api_security.sample_delay = api_security_sample.to_i
 
         c.remote.enabled = remote_enabled
       end
     end
+
+    allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
+    allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
+      .and_return(true)
   end
 
   after do
@@ -247,6 +251,8 @@ RSpec.describe 'Rack integration tests' do
 
             c.appsec.enabled = appsec_enabled
             c.appsec.waf_timeout = 10_000_000 # in us
+            c.appsec.api_security.enabled = api_security_enabled
+            c.appsec.api_security.sample_delay = api_security_sample.to_i
             c.appsec.instrument :rack
           end
         end

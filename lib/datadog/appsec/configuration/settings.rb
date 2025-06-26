@@ -311,12 +311,28 @@ module Datadog
               end
 
               settings :api_security do
+                define_method(:enabled?) { get_option(:enabled) }
+
                 option :enabled do |o|
                   o.type :bool
-                  o.env 'DD_EXPERIMENTAL_API_SECURITY_ENABLED'
-                  o.default false
+                  o.env 'DD_API_SECURITY_ENABLED'
+                  o.default true
                 end
 
+                # NOTE: Unfortunately, we have to go with Float due to other libs
+                #       setup, even tho we don't plan to support sub-second delays.
+                #
+                # WARNING: The value will be converted to Integer.
+                option :sample_delay do |o|
+                  o.type :float
+                  o.env 'DD_API_SECURITY_SAMPLE_DELAY'
+                  o.default 30
+                  o.setter do |value|
+                    value.to_i
+                  end
+                end
+
+                # DEV-3.0: Remove `api_security.sample_rate` option
                 option :sample_rate do |o|
                   o.type :float
                   o.env 'DD_API_SECURITY_REQUEST_SAMPLE_RATE'
@@ -324,6 +340,15 @@ module Datadog
                   o.setter do |value|
                     value = 1 if value > 1
                     SampleRate.new(value)
+                  end
+                  o.after_set do |_, _, precedence|
+                    next if precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+
+                    Core.log_deprecation(key: :appsec_api_security_sample_rate) do
+                      'The appsec.api_security.sample_rate setting is deprecated. ' \
+                      'Please remove it from your Datadog.configure block and use ' \
+                      'appsec.api_security.sample_delay instead.'
+                    end
                   end
                 end
               end
