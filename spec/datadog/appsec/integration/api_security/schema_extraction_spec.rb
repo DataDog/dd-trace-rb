@@ -64,6 +64,8 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
       config.appsec.instrument :rails
       config.appsec.instrument :active_record
 
+      config.appsec.api_security.sample_delay = 0
+
       config.appsec.ruleset = {
         rules: [
           {
@@ -86,6 +88,71 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
             ],
             on_match: ['block']
           }
+        ],
+        processors: [
+          {
+            id: "extract-content",
+            generator: "extract_schema",
+            parameters: {
+              mappings: [
+                {
+                  inputs: [{address: "server.request.body"}],
+                  output: "_dd.appsec.s.req.body"
+                },
+                {
+                  inputs: [{address: "server.request.cookies"}],
+                  output: "_dd.appsec.s.req.cookies"
+                },
+                {
+                  inputs: [{address: "server.request.query"}],
+                  output: "_dd.appsec.s.req.query"
+                },
+                {
+                  inputs: [{address: "server.request.path_params"}],
+                  output: "_dd.appsec.s.req.params"
+                },
+                {
+                  inputs: [{address: "server.response.body"}],
+                  output: "_dd.appsec.s.res.body"
+                }
+              ]
+            },
+            evaluate: false,
+            output: true
+          },
+          {
+            id: "extract-headers",
+            generator: "extract_schema",
+            conditions: [
+              {
+                operator: "equals",
+                parameters: {
+                  inputs: [
+                    {
+                      address: "waf.context.processor",
+                      key_path: ["extract-schema"]
+                    }
+                  ],
+                  type: "boolean",
+                  value: true
+                }
+              }
+            ],
+            parameters: {
+              mappings: [
+                {
+                  inputs: [{address: "server.request.headers.no_cookies"}],
+                  output: "_dd.appsec.s.req.headers"
+                },
+                {
+                  inputs: [{address: "server.response.headers.no_cookies"}],
+                  output: "_dd.appsec.s.res.headers"
+                }
+              ]
+            },
+            evaluate: false,
+            output: true
+          },
         ]
       }
 
@@ -155,6 +222,8 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
         config.appsec.api_security.enabled = true
         config.appsec.api_security.sample_delay = 30
       end
+
+      allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(true)
 
       get('/api/products')
     end

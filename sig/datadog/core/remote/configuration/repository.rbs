@@ -134,6 +134,8 @@ module Datadog
               attr_reader previous: Configuration::Content
 
               def initialize: (untyped path, Configuration::Content previous) -> void
+
+              def type: () -> ::Symbol
             end
 
             class Inserted
@@ -142,6 +144,8 @@ module Datadog
               attr_reader content: Configuration::Content
 
               def initialize: (Configuration::Path path, Configuration::Content content) -> void
+
+              def type: () -> ::Symbol
             end
 
             class Updated
@@ -152,6 +156,8 @@ module Datadog
               attr_reader previous: Configuration::Content
 
               def initialize: (Configuration::Path path, Configuration::Content content, Configuration::Content previous) -> void
+
+              def type: () -> ::Symbol
             end
           end
         end
