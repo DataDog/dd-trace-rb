@@ -7,8 +7,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     skip_if_profiling_not_supported(self)
 
     @clean_threads_required = true
-    [t1, t2, t3].each { ready_queue.pop }
-    expect(Thread.list).to include(t1, t2, t3)
+    testing_threads.each { ready_queue.pop }
+    expect(Thread.list).to include(*testing_threads)
   end
 
   let(:recorder) do
@@ -35,6 +35,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sleep
     end
   end
+  let(:profiler_overhead_thread_placeholder) do
+    Thread.new(ready_queue) do |ready_queue|
+      def self.overhead_placeholder(queue)
+        queue << true
+        sleep
+      end
+
+      overhead_placeholder(ready_queue)
+    end
+  end
+  let(:testing_threads) { [t1, t2, t3, profiler_overhead_thread_placeholder] }
   let(:max_frames) { 123 }
 
   let(:pprof_result) { recorder.serialize! }
@@ -65,14 +76,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   after do
     if @clean_threads_required
-      [t1, t2, t3].each do |thread|
+      testing_threads.each do |thread|
         thread.kill
         thread.join
       end
     end
   end
 
-  def sample(profiler_overhead_stack_thread: Thread.current, allow_exception: false)
+  def sample(profiler_overhead_stack_thread: profiler_overhead_thread_placeholder, allow_exception: false)
     described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread, allow_exception)
   end
 
@@ -131,6 +142,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
     described_class::Testing
       ._native_apply_delta_to_cpu_time_at_previous_sample_ns(cpu_and_wall_time_collector, thread, delta_ns)
+  end
+
+  def prepare_sample_inside_signal_handler
+    described_class::Testing._native_prepare_sample_inside_signal_handler(cpu_and_wall_time_collector)
   end
 
   # What's the deal with the `profiler_system_epoch_time_now_ns`? Internally the profiler uses a monotonic clock
@@ -1194,7 +1209,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             skip_if_gvl_profiling_not_supported(self)
 
             sample # trigger context creation
-            samples_from_pprof(recorder.serialize!) # flush sample
+            recorder.serialize! # flush sample
 
             @previous_sample_timestamp_ns = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
 
@@ -2024,6 +2039,55 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(samples.first.labels).to include(state: "waiting for gvl")
         end
+      end
+    end
+  end
+
+  describe "#prepare_sample_inside_signal_handler" do
+    let(:timeline_enabled) { true } # Not strictly needed but disables aggregation which makes it easier to analyze results
+    let(:trigger_context_creation) { true }
+
+    def prepare_and_sample
+      sample if trigger_context_creation
+
+      prepare_sample_inside_signal_handler
+      recorder.serialize! # ensure there are no samples recorded
+
+      sample
+    end
+
+    it "samples the stack into the sampling_buffer" do
+      prepare_and_sample
+
+      result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+
+      # Because the sample was prepared inside the `_native_prepare_sample_inside_signal_handler`, that should be
+      # the method at the top of the stack, even though the sample was only recorded later, inside
+      # `sample` -> `_native_sample`.
+      expect(result.locations.first).to have_attributes(base_label: "_native_prepare_sample_inside_signal_handler")
+    end
+
+    it "only uses the recorded stack once" do
+      prepare_and_sample
+      sample
+
+      results = samples_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+
+      expect(results).to contain_exactly(
+        have_attributes(locations: include(have_attributes(base_label: "_native_prepare_sample_inside_signal_handler"))),
+        have_attributes(locations: include(have_attributes(base_label: "_native_sample")))
+      )
+    end
+
+    context "when context did not exist" do
+      let(:trigger_context_creation) { false }
+
+      it "does not sample the stack" do
+        prepare_and_sample
+
+        result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+
+        expect(result.locations.first).to have_attributes(base_label: "_native_sample")
       end
     end
   end

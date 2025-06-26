@@ -660,13 +660,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               trigger_simulated_signal_delivery_attempts: trigger_sample_attempts,
               simulated_signal_delivery: trigger_sample_attempts,
               signal_handler_enqueued_sample: trigger_sample_attempts,
-              # @ivoanjo: A flaky test run was reported for this assertion -- a case where `trigger_sample_attempts` was 1
-              # but `postponed_job_success` was 0 (on Ruby 2.6).
-              # See https://app.circleci.com/pipelines/github/DataDog/dd-trace-rb/11866/workflows/08660eeb-0746-4675-87fd-33d473a3f479/jobs/445903
-              # At the time, the test didn't print the full `stats` contents, so it's unclear to me if the test failed
-              # because the postponed job API returned something other than success, or if something else entirely happened.
-              # If/when it happens again, hopefully the extra debugging + this info helps out with the investigation.
-              postponed_job_success: trigger_sample_attempts,
             )
           ),
           "**If you see this test flaking, please report it to @ivoanjo!**\n\n" \
@@ -1272,10 +1265,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
           signal_handler_wrong_thread: 0,
-          postponed_job_skipped_already_existed: 0,
-          postponed_job_success: 0,
-          postponed_job_full: 0,
-          postponed_job_unknown_result: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
           cpu_skipped: 0,
