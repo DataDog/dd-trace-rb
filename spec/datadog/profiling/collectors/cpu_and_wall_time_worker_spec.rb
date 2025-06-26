@@ -161,6 +161,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       it do
         expect(Datadog.logger).to receive(:warn).with(/GVL profiling is not supported/)
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report)
         proc_called = Queue.new
 
         cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
@@ -568,7 +569,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     context "when all threads are sleeping (no thread holds the Global VM Lock)" do
       let(:options) { {dynamic_sampling_rate_enabled: false} }
 
-      before { expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/) }
+      before do
+        expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
+        expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(/dynamic sampling rate disabled/)
+      end
 
       it "is able to sample even when all threads are sleeping" do
         start
@@ -1052,6 +1056,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "calls the on_failure_proc" do
         expect(described_class).to receive(:_native_sampling_loop).and_raise(StandardError.new("Simulated error"))
         expect(Datadog.logger).to receive(:warn)
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report)
 
         proc_called = Queue.new
 

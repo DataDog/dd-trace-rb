@@ -4,6 +4,8 @@ require "json"
 require "yaml"
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
+  before { skip_if_profiling_not_supported(self) }
+
   subject(:code_provenance) { described_class.new(ruby_native_filename: ruby_native_filename) }
 
   let(:ruby_native_filename) { "" }
@@ -29,7 +31,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           kind: "library",
           name: "datadog",
           version: Datadog::VERSION::STRING,
-          paths: contain_exactly(start_with("/")),
+          paths: contain_exactly(start_with("/"), include("extensions").and(include(RUBY_PLATFORM))),
         },
         {
           kind: "library",
@@ -37,6 +39,22 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           version: start_with("3."), # This will one day need to be bumped for RSpec 4
           paths: contain_exactly(start_with("/")),
         },
+      )
+    end
+
+    it "includes the native extension directory for gems with native extensions" do
+      refresh
+
+      expect(generate_result.find { |it| it[:name] == "msgpack" }).to include(
+        {
+          kind: "library",
+          name: "msgpack",
+          version: MessagePack::VERSION,
+          paths: contain_exactly(
+            satisfy { |it| it.start_with?(Gem.dir) && !it.include?("extensions") },
+            include("extensions").and(include(RUBY_PLATFORM)),
+          ),
+        }
       )
     end
 
@@ -57,13 +75,15 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
             Gem::Specification,
             name: "not_loaded",
             version: "not_loaded_version",
-            gem_dir: "/not_loaded/"
+            gem_dir: "/not_loaded/",
+            extensions: [],
           ),
           instance_double(
             Gem::Specification,
             name: "is_loaded",
             version: "is_loaded_version",
-            gem_dir: "/is_loaded/"
+            gem_dir: "/is_loaded/",
+            extensions: [],
           )
         ],
       )
@@ -108,13 +128,15 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
               Gem::Specification,
               name: "datadog",
               version: "1.2.3",
-              gem_dir: "/dd-trace-rb"
+              gem_dir: "/dd-trace-rb",
+              extensions: [],
             ),
             instance_double(
               Gem::Specification,
               name: "byebug",
               version: "4.5.6",
-              gem_dir: "/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3"
+              gem_dir: "/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3",
+              extensions: [],
             )
           ],
         )

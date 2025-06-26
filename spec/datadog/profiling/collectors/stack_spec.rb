@@ -245,6 +245,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       context "when native filenames are enabled" do
         let(:native_filenames_enabled) { true }
 
+        before do
+          skip('Native filenames are only available on Linux') unless described_class._native_filenames_available?
+        end
+
         it "matches the Ruby backtrace API after the 6th frame" do
           expect(gathered_stack[5..-1]).to eq reference_stack[5..-1]
         end
@@ -290,6 +294,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       context "when native filenames are enabled" do
         let(:native_filenames_enabled) { true }
+
+        before do
+          skip('Native filenames are only available on Linux') unless described_class._native_filenames_available?
+        end
 
         it "matches the Ruby backtrace API after the 5th frame" do
           expect(gathered_stack[4..-1]).to eq reference_stack[4..-1]
