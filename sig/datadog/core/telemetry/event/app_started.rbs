@@ -9,7 +9,7 @@ module Datadog
 
           private
 
-          def products: -> Hash[Symbol, untyped]
+          def products: -> Hash[Symbol, Hash[Symbol, Hash[Symbol, String | Integer] | bool | nil]]
 
           TARGET_OPTIONS: Array[String]
           def configuration: -> Array[Hash[Symbol, untyped]]
@@ -21,6 +21,8 @@ module Datadog
           def to_value: (Object value) -> Object
 
           def install_signature: -> Hash[Symbol, Object]
+
+          def get_telemetry_origin: (untyped config, String config_path) -> String
         end
       end
     end
