@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module AwsLambdaRic
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_lambda_runner: () -> untyped
+
+          def self?.patch_lambda_handler: () -> untyped
+        end
+      end
+    end
+  end
+end
