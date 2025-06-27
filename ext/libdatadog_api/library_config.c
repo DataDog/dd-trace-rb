@@ -120,22 +120,43 @@ static VALUE _native_configurator_get(VALUE self) {
 
   VALUE local_config_hash = rb_hash_new();
   VALUE fleet_config_hash = rb_hash_new();
+
+  static const char *local_config_id = NULL;
+  static const char *fleet_config_id = NULL;
   for (uintptr_t i = 0; i < config_vec->len; i++) {
     ddog_LibraryConfig config = config_vec->ptr[i];
     VALUE selected_hash;
     if (config.source == DDOG_LIBRARY_CONFIG_SOURCE_LOCAL_STABLE_CONFIG) {
       selected_hash = local_config_hash;
+      if (local_config_id == NULL) {
+        local_config_id = config.config_id.ptr;
+      }
     }
     else {
       selected_hash = fleet_config_hash;
+      if (fleet_config_id == NULL) {
+        fleet_config_id = config.config_id.ptr;
+      }
     }
 
     rb_hash_aset(selected_hash, rb_utf8_str_new_cstr(config.name.ptr), rb_utf8_str_new_cstr(config.value.ptr));
   }
 
+  VALUE local_hash = rb_hash_new();
+  if (local_config_id != NULL) {
+    rb_hash_aset(local_hash, ID2SYM(rb_intern("id")), rb_utf8_str_new_cstr(local_config_id));
+  }
+  rb_hash_aset(local_hash, ID2SYM(rb_intern("config")), local_config_hash);
+
+  VALUE fleet_hash = rb_hash_new();
+  if (fleet_config_id != NULL) {
+    rb_hash_aset(fleet_hash, ID2SYM(rb_intern("id")), rb_utf8_str_new_cstr(fleet_config_id));
+  }
+  rb_hash_aset(fleet_hash, ID2SYM(rb_intern("config")), fleet_config_hash);
+
   VALUE result = rb_hash_new();
-  rb_hash_aset(result, ID2SYM(rb_intern("local")), local_config_hash);
-  rb_hash_aset(result, ID2SYM(rb_intern("fleet")), fleet_config_hash);
+  rb_hash_aset(result, ID2SYM(rb_intern("local")), local_hash);
+  rb_hash_aset(result, ID2SYM(rb_intern("fleet")), fleet_hash);
 
   RB_GC_GUARD(config_vec_rb);
   return result;

@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 RSpec.describe Datadog::Core::Configuration::StableConfig do
+  before do
+    Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
+  end
+
   describe '#extract_configuration' do
     context 'when libdatadog API is not available' do
       it 'returns an empty hash' do
@@ -33,14 +37,13 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
 
       after do
         FileUtils.rm_rf('/tmp/datadog-agent')
-        Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
       end
 
       it 'returns the configuration' do
         expect(described_class.configuration).to eq(
           {
-            local: {"DD_LOGS_INJECTION" => "false"},
-            fleet: {"DD_APPSEC_ENABLED" => "true"},
+            local: {id: "12345", config: {"DD_LOGS_INJECTION" => "false"}},
+            fleet: {id: "56789", config: {"DD_APPSEC_ENABLED" => "true"}},
           }
         )
       end
