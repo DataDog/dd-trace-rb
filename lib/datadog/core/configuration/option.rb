@@ -22,7 +22,7 @@ module Datadog
           # Represents an Option precedence level.
           # Each precedence has a `numeric` value; higher values means higher precedence.
           # `name` is for inspection purposes only.
-          Value = Struct.new(:numeric, :name) do
+          Value = Struct.new(:numeric, :name, :telemetry_origin) do
             include Comparable
 
             def <=>(other)
@@ -33,22 +33,22 @@ module Datadog
           end
 
           # Remote configuration provided through the Datadog app.
-          REMOTE_CONFIGURATION = Value.new(5, :remote_configuration).freeze
+          REMOTE_CONFIGURATION = Value.new(5, :remote_configuration, 'remote_config').freeze
 
           # Configuration provided in Ruby code, in this same process
-          PROGRAMMATIC = Value.new(4, :programmatic).freeze
+          PROGRAMMATIC = Value.new(4, :programmatic, 'code').freeze
 
           # Configuration provided by fleet managed stable config
-          FLEET_STABLE = Value.new(3, :fleet_stable).freeze
+          FLEET_STABLE = Value.new(3, :fleet_stable, 'fleet_stable_config').freeze
 
           # Configuration provided via environment variable
-          ENVIRONMENT = Value.new(2, :environment).freeze
+          ENVIRONMENT = Value.new(2, :environment, 'env_var').freeze
 
           # Configuration provided by local stable config file
-          LOCAL_STABLE = Value.new(1, :local_stable).freeze
+          LOCAL_STABLE = Value.new(1, :local_stable, 'local_stable_config').freeze
 
           # Configuration that comes from default values
-          DEFAULT = Value.new(0, :default).freeze
+          DEFAULT = Value.new(0, :default, 'default').freeze
 
           # All precedences, sorted from highest to lowest
           LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, FLEET_STABLE, ENVIRONMENT, LOCAL_STABLE, DEFAULT].sort.reverse.freeze

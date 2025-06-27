@@ -10,7 +10,7 @@ module Datadog
         @value_per_precedence: ::Hash[Precedence::Value, untyped]
 
         attr_reader definition: Configuration::OptionDefinition
-        attr_reader precedence_set: Configuration::OptionDefinition
+        attr_reader precedence_set: Precedence::Value
 
         module Precedence
           REMOTE_CONFIGURATION: Value
@@ -21,9 +21,10 @@ module Datadog
           DEFAULT: Value
           LIST: [Value]
 
-          class Value < ::Struct[[int, Symbol]]
+          class Value < ::Struct[[int, Symbol, String]]
             attr_reader numeric: int
             attr_reader name: Symbol
+            attr_reader telemetry_origin: String
           end
         end
 
