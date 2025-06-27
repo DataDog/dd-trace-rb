@@ -156,7 +156,7 @@ RSpec.describe 'Telemetry full integration tests' do
       expect(event.payload.fetch(:configuration)).to include(
         name: 'dynamic_instrumentation.enabled',
         value: false,
-        origin: 'code',
+        origin: 'default',
         seq_id: Integer,
       )
 
