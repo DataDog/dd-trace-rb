@@ -309,7 +309,7 @@ module Datadog
         end
 
         def set_customer_stable_config_value
-          customer_config = StableConfig.configuration[:local]
+          customer_config = StableConfig.configuration.dig(:local, :config)
           return if customer_config.nil?
 
           value, resolved_env = get_value_and_resolved_env_from(customer_config, source: 'local stable config')
@@ -317,7 +317,7 @@ module Datadog
         end
 
         def set_fleet_stable_config_value
-          fleet_config = StableConfig.configuration[:fleet]
+          fleet_config = StableConfig.configuration.dig(:fleet, :config)
           return if fleet_config.nil?
 
           value, resolved_env = get_value_and_resolved_env_from(fleet_config, source: 'fleet stable config')
