@@ -104,6 +104,15 @@ module Datadog
               list << conf_value(option, to_value(config.dig(*split_option)), seq_id)
             end
 
+            instrumentation_source = defined?(Datadog::SingleStepInstrument::LOADED) ? 'ssi' : 'manual'
+            inject_force = Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false)
+            # Track ssi configurations
+            list.push(
+              conf_value('instrumentation_source', instrumentation_source, seq_id),
+              conf_value('DD_INJECT_FORCE', inject_force , seq_id),
+              conf_value('DD_INJECTION_ENABLED', ENV['DD_INJECTION_ENABLED'] || '', seq_id),
+            )
+
             # Add some more custom additional payload values here
             list.push(
               conf_value('tracing.auto_instrument.enabled', !defined?(Datadog::AutoInstrument::LOADED).nil?, seq_id),
