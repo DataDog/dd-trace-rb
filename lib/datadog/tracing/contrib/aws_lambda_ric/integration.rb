@@ -21,9 +21,7 @@ module Datadog
           end
 
           def self.version
-            if Gem.loaded_specs['aws_lambda_ric']
-              Gem.loaded_specs['aws_lambda_ric'].version
-            end
+            Gem.loaded_specs['aws_lambda_ric'].version if Gem.loaded_specs['aws_lambda_ric']
           end
 
           def self.loaded?

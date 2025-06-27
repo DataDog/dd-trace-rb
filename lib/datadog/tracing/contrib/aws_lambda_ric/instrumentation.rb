@@ -71,9 +71,7 @@ module Datadog
               return unless @lambda_span
 
               # Add any additional tags or metadata before finishing
-              if @lambda_user_code_args
-                @lambda_span.set_tag('lambda.user_code_args', @lambda_user_code_args.to_json)
-              end
+              @lambda_span.set_tag('lambda.user_code_args', @lambda_user_code_args.to_json) if @lambda_user_code_args
 
               if @lambda_call_handler_args
                 @lambda_span.set_tag('lambda.call_handler.request', @lambda_call_handler_args[:request].to_json)
