@@ -6,6 +6,8 @@ module Datadog
       def self.fixed_environment_tags: () -> untyped
 
       def self.tags: (untyped settings) -> untyped
+
+      def self.serialize_tags: (untyped tags) -> untyped
     end
   end
 end

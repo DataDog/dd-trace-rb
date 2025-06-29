@@ -183,7 +183,15 @@ module Datadog
       end
 
       def do_send_snapshot(batch)
-        snapshot_transport.send_input(batch)
+        snapshot_transport.send_input(batch, tags)
+      end
+
+      def tags
+        # DEV: The tags could be cached but they need to be recreated
+        # when process forks (since the child receives new runtime IDs).
+        Core::TagBuilder.tags(settings).merge(
+          'debugger_version' => Core::Environment::Identity.gem_datadog_version,
+        )
       end
 
       [

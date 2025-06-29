@@ -46,6 +46,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
       instance_double(
         Datadog::Core::Transport::HTTP::Env,
         path: path,
+        query: nil,
         body: body,
         headers: headers,
         form: form

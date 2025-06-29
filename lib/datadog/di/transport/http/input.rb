@@ -53,6 +53,16 @@ module Datadog
                 # Encode body & type
                 env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
                 env.body = env.request.parcel.data
+                env.query = {
+                  # DEV: In theory we could serialize the tags here
+                  # rather than requiring them to be pre-serialized.
+                  # In practice the tags should be relatively static
+                  # (they would change when process forks, and hostname
+                  # could change at any time but probably we should ignore
+                  # those changes), therefore serializing the tags
+                  # every time would be wasteful.
+                  ddtags: env.request.serialized_tags,
+                }
 
                 super
               end

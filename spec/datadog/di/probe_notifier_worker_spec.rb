@@ -5,12 +5,25 @@ require 'logger'
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
   di_test
 
+  before(:all) do
+    # The tests in this file assert on generated payloads which may include
+    # SCM tags.
+    Datadog::Core::Environment::Git.reset_for_tests
+    Datadog::Core::TagBuilder.reset_for_tests
+  end
+
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
     allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
     # Reduce to 1 to have the test run faster
     allow(settings.dynamic_instrumentation.internal).to receive(:min_send_interval).and_return(1)
     allow(settings.dynamic_instrumentation.internal).to receive(:snapshot_queue_capacity).and_return(10)
+
+    # ddtags
+    allow(settings).to receive(:tags).and_return({})
+    allow(settings).to receive(:env)
+    allow(settings).to receive(:service)
+    allow(settings).to receive(:version)
   end
 
   let(:agent_settings) do
@@ -94,13 +107,31 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
     describe '#add_snapshot' do
       let(:snapshot) do
-        {hello: 'world'}
+        {hello: 'world'}.freeze
+      end
+
+      let(:expected_tags) do
+        {
+          'debugger_version' => String,
+          'host' => String,
+          'language' => 'ruby',
+          'library_version' => String,
+          'process_id' => String,
+          'runtime' => 'ruby',
+          'runtime-id' => String,
+          'runtime_engine' => String,
+          'runtime_platform' => String,
+          'runtime_version' => String,
+        }
       end
 
       it 'sends the snapshot' do
         expect(worker.send(:snapshot_queue)).to be_empty
 
-        expect(input_transport).to receive(:send_input).once.with([snapshot])
+        expect(input_transport).to receive(:send_input).once do |snapshots, tags|
+          expect(snapshots).to eq([snapshot])
+          expect(tags).to match(expected_tags)
+        end
 
         worker.add_snapshot(snapshot)
 
@@ -113,7 +144,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         it 'sends two batches' do
           expect(worker.send(:snapshot_queue)).to be_empty
 
-          expect(input_transport).to receive(:send_input).once.with([snapshot])
+          expect(input_transport).to receive(:send_input).once do |snapshots, tags|
+            expect(snapshots).to eq([snapshot])
+            expect(tags).to match(expected_tags)
+          end
 
           worker.add_snapshot(snapshot)
           sleep 0.1
@@ -126,7 +160,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           # with the remaining two in the queue
           expect(worker.send(:snapshot_queue)).to eq([snapshot, snapshot])
 
-          expect(input_transport).to receive(:send_input).once.with([snapshot, snapshot])
+          expect(input_transport).to receive(:send_input).once do |snapshots, tags|
+            expect(snapshots).to eq([snapshot, snapshot])
+            expect(tags).to match(expected_tags)
+          end
 
           worker.flush
           expect(worker.send(:snapshot_queue)).to eq([])
