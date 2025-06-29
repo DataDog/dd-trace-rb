@@ -58,7 +58,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       # We do not need to assert on everything in tags - this is done in
       # unit tests elsewhere.
       expect(tags).to include('language:ruby')
-      expect(tags).to include("debugger_version:#{Gem.loaded_specs['datadog'].version}")
+      expect(tags).to include("debugger_version:#{Gem.loaded_specs["datadog"].version}")
 
       input_payloads << {body: payload, tags: tags}
     end
