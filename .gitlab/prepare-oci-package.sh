@@ -13,7 +13,7 @@ fi
 
 ## Obtain injector source
 
-injector_repo="https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/datadog-injector-rb.git"
+injector_repo="https://github.com/DataDog/datadog-injector-rb.git"
 injector_ref="lloeki/injector" # TODO: pin to an injector release
 injector_path="${HOME}/datadog-injector-rb"
 
