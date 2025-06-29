@@ -1,0 +1,54 @@
+name: Check for missing documentation for library configuration options
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - master
+      # A workaround to trigger the workflow for pull requests from forked repository,
+      # which does not have access to secrets.
+      #
+      # This is also useful for testing the workflow without opening a pull request.
+      - tmp/*
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-24.04
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    outputs:
+      lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
+      cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Prepare bundle cache
+        id: bundle-cache
+        uses: ./.github/actions/bundle-cache
+
+  rubocop:
+    name: rubocop/lint
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+      - name: Check for missing documentation
+        run: bundle exec ruby .github/scripts/check_config_doc.rb
