@@ -6,6 +6,11 @@ require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/client'
 
 RSpec.describe Datadog::Core::Remote::Client do
+  before(:all) do
+    Datadog::Core::Environment::Git.reset_for_tests
+    Datadog::Core::TagBuilder.reset_for_tests
+  end
+
   shared_context 'HTTP connection stub' do
     before do
       request_class = ::Net::HTTP::Post
