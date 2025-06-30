@@ -98,7 +98,7 @@ GEM
     spoon (0.0.6)
       ffi
     warning (1.5.0)
-    waterdrop (2.8.4)
+    waterdrop (2.8.5)
       karafka-core (>= 2.4.9, < 3.0.0)
       karafka-rdkafka (>= 0.19.2)
       zeitwerk (~> 2.3)
