@@ -314,13 +314,9 @@ module Datadog
           'exception.type' => exc.type,
           'exception.message' => exc.message,
           'exception.stacktrace' => exc.backtrace,
-        }.merge(attributes)
+        }.merge!(attributes)
 
-        span_event = SpanEvent.new(
-          'exception',
-          attributes: event_attributes,
-        )
-        @span_events << span_event
+        @span_events << SpanEvent.new('exception', attributes: event_attributes)
       end
 
       # Return a string representation of the span.

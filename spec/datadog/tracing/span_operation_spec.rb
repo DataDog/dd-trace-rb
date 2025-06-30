@@ -1004,12 +1004,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     let(:error) { StandardError.new('test error').tap { |e| e.set_backtrace(['this is a backtrace']) } }
 
     it 'creates a span event' do
-      begin
-        raise error
-      rescue => e
-        span_op.record_exception(e)
-        span_op.record_exception(e)
-      end
+      span_op.record_exception(error)
+      span_op.record_exception(error)
 
       expect(span_op.span_events.length).to eq(2)
       expect(span_op.span_events[0]).to have_attributes(
@@ -1033,11 +1029,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     end
 
     it 'provides custom attributes' do
-      begin
-        raise error
-      rescue => e
-        span_op.record_exception(e, attributes: { 'custom_attr' => 'value' })
-      end
+      span_op.record_exception(error, attributes: { 'custom_attr' => 'value' })
 
       expect(span_op.span_events.last).to have_attributes(
         name: 'exception',
@@ -1054,23 +1046,19 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     it 'provides invalid custom attributes' do
       allow(Datadog.logger).to receive(:warn)
 
-      begin
-        raise error
-      rescue => e
-        span_op.record_exception(
-          e,
-          attributes: {
-            'custom_attr' => 'value',
-            'custom_attr2' => { foo: 'bar' },
-            'custom_attr3' => [[1]],
-            'custom_attr4' => [1, 'foo'],
-            'custom_attr5' => 2 << 65,
-            'custom_attr6' => -2 << 65,
-            'custom_attr7' => Float::NAN,
-            'custom_attr8' => Float::INFINITY
-          }
-        )
-      end
+      span_op.record_exception(
+        error,
+        attributes: {
+          'custom_attr' => 'value',
+          'custom_attr2' => { foo: 'bar' },
+          'custom_attr3' => [[1]],
+          'custom_attr4' => [1, 'foo'],
+          'custom_attr5' => 2 << 65,
+          'custom_attr6' => -2 << 65,
+          'custom_attr7' => Float::NAN,
+          'custom_attr8' => Float::INFINITY
+        }
+      )
 
       expect(span_op.span_events[0].attributes.keys.length).to eq(4)
       expect(span_op.span_events[0]).to have_attributes(
