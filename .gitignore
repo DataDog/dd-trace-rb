@@ -15,9 +15,8 @@
 TODO
 ext/**/skipped_reason.txt
 .cursor/
-
-# Used by dotenv library to load environment variables.
-# .env
+.cache/
+compile_commands.json
 
 ## Documentation cache and generated files:
 /.yardoc/
