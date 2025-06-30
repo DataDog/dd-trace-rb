@@ -2,6 +2,8 @@
 
 require 'spec_helper'
 
+require 'libddwaf'
+
 require 'datadog/tracing/trace_operation'
 require 'datadog/kit/appsec/events'
 
@@ -9,16 +11,24 @@ RSpec.describe Datadog::Kit::AppSec::Events do
   let(:trace_op) { Datadog::Tracing::TraceOperation.new }
 
   shared_context 'uses AppSec context' do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |settings|
+        settings.appsec.enabled = true
+      end
+    end
+    let(:security_engine) do
+      Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
+    end
+    let(:waf_runner) { security_engine.new_runner }
+    let(:appsec_span) { trace_op.build_span('root') }
+
     before do
-      allow(processor).to receive(:new_runner).and_return(instance_double(Datadog::AppSec::SecurityEngine::Runner))
       allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
     end
 
-    let(:processor) { instance_double(Datadog::AppSec::Processor) }
-    let(:appsec_span) { trace_op.build_span('root') }
-
     context 'when is present' do
-      let(:appsec_active_context) { Datadog::AppSec::Context.new(trace_op, appsec_span, processor) }
+      let(:appsec_active_context) { Datadog::AppSec::Context.new(trace_op, appsec_span, waf_runner) }
 
       it 'sets tags on AppSec span' do
         event
