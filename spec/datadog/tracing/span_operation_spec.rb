@@ -1036,7 +1036,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       begin
         raise error
       rescue => e
-        span_op.record_exception(e, attributes: { custom_attr: 'value' })
+        span_op.record_exception(e, attributes: { 'custom_attr' => 'value' })
       end
 
       expect(span_op.span_events.last).to have_attributes(
@@ -1060,14 +1060,14 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         span_op.record_exception(
           e,
           attributes: {
-            custom_attr: 'value',
-            custom_attr2: { foo: 'bar' },
-            custom_attr3: [[1]],
-            custom_attr4: [1, 'foo'],
-            custom_attr5: 2 << 65,
-            custom_attr6: -2 << 65,
-            custom_attr7: Float::NAN,
-            custom_attr8: Float::INFINITY
+            'custom_attr' => 'value',
+            'custom_attr2' => { foo: 'bar' },
+            'custom_attr3' => [[1]],
+            'custom_attr4' => [1, 'foo'],
+            'custom_attr5' => 2 << 65,
+            'custom_attr6' => -2 << 65,
+            'custom_attr7' => Float::NAN,
+            'custom_attr8' => Float::INFINITY
           }
         )
       end

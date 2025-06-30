@@ -294,7 +294,7 @@ You can record multiple exceptions during the lifetime of a span.
 # e.g: recording an exception in the active span
 rescue => e
   current_span = Datadog::Tracing.active_span
-  current_span&.record_exception(e, attributes: { foo: "bar" })
+  current_span&.record_exception(e, attributes: { "foo" => "bar" })
 end
 ```
 
