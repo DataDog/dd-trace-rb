@@ -257,7 +257,7 @@ module Datadog
             # @type var option: Core::Configuration::Option
             parent_setting = config.dig(*split_option)
             option = parent_setting.send(:resolve_option, option_name.to_sym)
-            option.precedence_set&.telemetry_origin || 'unknown'
+            option.precedence_set&.origin || 'unknown'
           end
         end
       end

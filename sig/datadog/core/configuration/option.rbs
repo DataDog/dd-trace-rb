@@ -24,7 +24,7 @@ module Datadog
           class Value < ::Struct[[int, Symbol, String]]
             attr_reader numeric: int
             attr_reader name: Symbol
-            attr_reader telemetry_origin: String
+            attr_reader origin: String
           end
         end
 

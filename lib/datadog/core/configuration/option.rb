@@ -22,7 +22,7 @@ module Datadog
           # Represents an Option precedence level.
           # Each precedence has a `numeric` value; higher values means higher precedence.
           # `name` is for inspection purposes only.
-          Value = Struct.new(:numeric, :name, :telemetry_origin) do
+          Value = Struct.new(:numeric, :name, :origin) do
             include Comparable
 
             def <=>(other)
