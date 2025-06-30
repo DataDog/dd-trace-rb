@@ -37,6 +37,7 @@ module Datadog
               }
             end
 
+            # DEV: This seems unnecessary (we send the state of sca_enabled for each remote config change)
             unless config.dig('appsec', 'sca_enabled').nil?
               res << {
                 name: 'appsec.sca_enabled',

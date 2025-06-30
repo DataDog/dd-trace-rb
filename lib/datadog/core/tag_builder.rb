@@ -44,6 +44,13 @@ module Datadog
           'version' => settings.version,
         }.compact)
       end
+
+      def self.serialize_tags(tags)
+        # DEV: Should there be some sort of escaping done here?
+        tags.map do |key, value|
+          "#{key}:#{value}"
+        end.join(',')
+      end
     end
   end
 end

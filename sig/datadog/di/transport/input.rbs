@@ -7,6 +7,11 @@ module Datadog
         end
 
         class Request < Datadog::Core::Transport::Request
+          @serialized_tags: untyped
+
+          attr_reader serialized_tags: untyped
+
+          def initialize: (untyped parcel, untyped serialized_tags) -> void
         end
 
         class Transport
@@ -30,7 +35,7 @@ module Datadog
 
           def current_api: () -> untyped
 
-          def send_input: (untyped payload) -> untyped
+          def send_input: (untyped payload, untyped tags) -> untyped
         end
       end
     end
