@@ -37,7 +37,7 @@ module Datadog
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
         template: nil, capture_snapshot: false, max_capture_depth: nil,
-        max_capture_attribute_count: nil,
+        max_capture_attribute_count: nil, condition: nil,
         rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
         # combinations, in order to not do them in subsequent code.
@@ -67,6 +67,7 @@ module Datadog
         @capture_snapshot = !!capture_snapshot
         @max_capture_depth = max_capture_depth
         @max_capture_attribute_count = max_capture_attribute_count
+        @condition = condition
 
         # These checks use instance methods that have more complex logic
         # than checking a single argument value. To avoid duplicating
@@ -89,6 +90,9 @@ module Datadog
       attr_reader :type_name
       attr_reader :method_name
       attr_reader :template
+
+      # The compiled condition for the probe, as a String.
+      attr_reader :condition
 
       # Configured maximum capture depth. Can be nil in which case
       # the global default will be used.

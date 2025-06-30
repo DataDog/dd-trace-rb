@@ -1,0 +1,21 @@
+module Datadog
+  module DI
+    module EL
+      class Context
+        @locals: untyped
+
+        @target: untyped
+
+        def initialize: (locals: untyped, target: untyped) -> void
+
+        attr_reader locals: untyped
+
+        attr_reader target: untyped
+
+        def fetch: (untyped var_name) -> (nil | untyped)
+
+        def fetch_ivar: (untyped var_name) -> untyped
+      end
+    end
+  end
+end

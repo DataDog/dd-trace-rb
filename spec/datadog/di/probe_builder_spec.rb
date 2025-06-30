@@ -134,6 +134,40 @@ RSpec.describe Datadog::DI::ProbeBuilder do
       end
     end
 
+    context 'when conditions are given' do
+      let(:rc_probe_spec) do
+        {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe",
+         "version" => 0,
+         "type" => "LOG_PROBE",
+         "language" => "python",
+         "where" => {"sourceFile" => "aaa", "lines" => [4]},
+         "when" => {
+           "dsl" => "contains(value, \"StringLiteral\")",
+           "json" => {
+             "contains" => [
+               {
+                 "ref" => "value"
+               },
+               "StringLiteral"
+             ]
+           }
+         },
+         "tags" => [],
+         "template" => "In aaa, line 1",
+         "segments" => [{"str" => "In aaa, line 1"}],
+         "captureSnapshot" => true,
+         "capture" => {"maxReferenceDepth" => 3},
+         "sampling" => {"snapshotsPerSecond" => 5000},
+         "evaluateAt" => "EXIT"}
+      end
+
+      it "condition on probe is the compiled condition" do
+        expect(probe.condition).to eq Datadog::DI::EL::Expression.new(
+          "contains(ref('value'), (\"StringLiteral\"))"
+        )
+      end
+    end
+
     context "empty input" do
       let(:rc_probe_spec) { {} }
 
