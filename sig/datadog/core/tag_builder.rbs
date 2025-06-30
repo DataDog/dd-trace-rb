@@ -1,13 +1,13 @@
 module Datadog
   module Core
     module TagBuilder
-      self.@fixed_environment_tags: untyped
+      self.@fixed_environment_tags: Hash[String, String]
 
-      def self.fixed_environment_tags: () -> untyped
+      def self.fixed_environment_tags: () -> Hash[String, String]
 
-      def self.tags: (untyped settings) -> untyped
+      def self.tags: (untyped settings) -> Hash[String, String]
 
-      def self.serialize_tags: (untyped tags) -> untyped
+      def self.serialize_tags: (Hash[String, String] tags) -> String
     end
   end
 end
