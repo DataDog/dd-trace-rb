@@ -1,0 +1,36 @@
+- name: isEmpty
+  ast:
+    isEmpty:
+      ref: var
+      
+  compiled: "is_empty(ref('var'), 'var')"
+  
+  eval:
+    - locals:
+        var: hello
+      result: false
+
+- name: isUndefined
+  ast:
+    isUndefined:
+      ref: var
+      
+  compiled: "is_undefined(ref('var'), 'var')"
+  
+  eval:
+    - name: string
+      locals:
+        var: hello
+      result: false
+  
+  eval:
+    - name: empty string
+      locals:
+        var: ""
+      result: false
+  
+  eval:
+    - name: nil
+      locals:
+        var:
+      result: true

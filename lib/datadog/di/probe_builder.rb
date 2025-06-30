@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "probe"
+require_relative 'el'
 
 module Datadog
   module DI
@@ -39,6 +40,7 @@ module Datadog
           max_capture_depth: config["capture"]&.[]("maxReferenceDepth"),
           max_capture_attribute_count: config["capture"]&.[]("maxFieldCount"),
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
+          condition: (cond = config.dig('when', 'json')) && EL::Compiler.new.compile(cond), # steep:ignore
         )
       rescue KeyError => exc
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc}: #{config}"
