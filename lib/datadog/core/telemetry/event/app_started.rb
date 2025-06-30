@@ -220,13 +220,14 @@ module Datadog
           # - `app.config`: only applies to .NET
           # - `default`: set when the user has not set any configuration for the key (defaults to a value)
           # - `unknown`: set for cases where it is difficult/not possible to determine the source of a config.
-          def conf_value(name, value, seq_id, origin = 'code')
-            {
-              name: name,
-              value: value,
-              origin: origin,
-              seq_id: seq_id,
-            }
+          def conf_value(name, value, seq_id, origin)
+            result = {name: name, value: value, origin: origin, seq_id: seq_id}
+            if origin == 'fleet_stable_config'
+              result[:config_id] = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
+            elsif origin == 'local_stable_config'
+              result[:config_id] = Core::Configuration::StableConfig.configuration.dig(:local, :id)
+            end
+            result
           end
 
           def to_value(value)
