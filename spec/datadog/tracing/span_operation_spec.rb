@@ -1084,7 +1084,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         }
       )
       expect(Datadog.logger).to have_received(:warn).with(
-        'Attribute custom_attr2 must be a string, number, boolean, or array: {:foo=>"bar"}.'
+        /Attribute custom_attr2 must be a string, number, boolean, or array: \{.*foo.*bar.*\}./
       )
       expect(Datadog.logger).to have_received(:warn).with(
         'Attribute custom_attr3 must be a string, number, or boolean: [[1]].'
