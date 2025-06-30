@@ -104,7 +104,7 @@ module Datadog
               list << conf_value(option, to_value(config.dig(*split_option)), seq_id)
             end
 
-            instrumentation_source = defined?(Datadog::SingleStepInstrument::LOADED) ? 'ssi' : 'manual'
+            instrumentation_source = Datadog.const_defined?(:SingleStepInstrument, false) && Datadog::SingleStepInstrument.const_defined?(:LOADED, false) ? 'ssi' : 'manual'
             inject_force = Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false)
             # Track ssi configurations
             list.push(
