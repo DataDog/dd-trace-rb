@@ -5,7 +5,7 @@ require 'logger'
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
   di_test
 
-  before(:all) do
+  before do
     # The tests in this file assert on generated payloads which may include
     # SCM tags.
     Datadog::Core::Environment::Git.reset_for_tests

@@ -6,11 +6,6 @@ require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/client'
 
 RSpec.describe Datadog::Core::Remote::Client do
-  before(:all) do
-    Datadog::Core::Environment::Git.reset_for_tests
-    Datadog::Core::TagBuilder.reset_for_tests
-  end
-
   shared_context 'HTTP connection stub' do
     before do
       request_class = ::Net::HTTP::Post
@@ -500,6 +495,11 @@ RSpec.describe Datadog::Core::Remote::Client do
     end
 
     describe '#payload' do
+      before do
+        Datadog::Core::Environment::Git.reset_for_tests
+        Datadog::Core::TagBuilder.reset_for_tests
+      end
+
       context 'no sync errors' do
         let(:response_code) { 200 }
         include_context 'Client dispatches changes'
