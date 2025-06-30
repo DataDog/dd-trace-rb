@@ -121,21 +121,21 @@ static VALUE _native_configurator_get(VALUE self) {
   VALUE local_config_hash = rb_hash_new();
   VALUE fleet_config_hash = rb_hash_new();
 
-  static const char *local_config_id = NULL;
-  static const char *fleet_config_id = NULL;
+  static ddog_CString local_config_id = {.ptr = NULL, .length = 0};
+  static ddog_CString fleet_config_id = {.ptr = NULL, .length = 0};
   for (uintptr_t i = 0; i < config_vec->len; i++) {
     ddog_LibraryConfig config = config_vec->ptr[i];
     VALUE selected_hash;
     if (config.source == DDOG_LIBRARY_CONFIG_SOURCE_LOCAL_STABLE_CONFIG) {
       selected_hash = local_config_hash;
-      if (local_config_id == NULL) {
-        local_config_id = config.config_id.ptr;
+      if (local_config_id.ptr == NULL) {
+        local_config_id = config.config_id;
       }
     }
     else {
       selected_hash = fleet_config_hash;
-      if (fleet_config_id == NULL) {
-        fleet_config_id = config.config_id.ptr;
+      if (fleet_config_id.ptr == NULL) {
+        fleet_config_id = config.config_id;
       }
     }
 
@@ -143,14 +143,16 @@ static VALUE _native_configurator_get(VALUE self) {
   }
 
   VALUE local_hash = rb_hash_new();
-  if (local_config_id != NULL) {
-    rb_hash_aset(local_hash, ID2SYM(rb_intern("id")), rb_utf8_str_new_cstr(local_config_id));
+  if (local_config_id.ptr != NULL) {
+    VALUE local_id = local_config_id.length > 0 ? rb_utf8_str_new_cstr(local_config_id.ptr) : Qnil;
+    rb_hash_aset(local_hash, ID2SYM(rb_intern("id")), local_id);
   }
   rb_hash_aset(local_hash, ID2SYM(rb_intern("config")), local_config_hash);
 
   VALUE fleet_hash = rb_hash_new();
-  if (fleet_config_id != NULL) {
-    rb_hash_aset(fleet_hash, ID2SYM(rb_intern("id")), rb_utf8_str_new_cstr(fleet_config_id));
+  if (fleet_config_id.ptr != NULL) {
+    VALUE fleet_id = fleet_config_id.length > 0 ? rb_utf8_str_new_cstr(fleet_config_id.ptr) : Qnil;
+    rb_hash_aset(fleet_hash, ID2SYM(rb_intern("id")), fleet_id);
   }
   rb_hash_aset(fleet_hash, ID2SYM(rb_intern("config")), fleet_config_hash);
 

@@ -17,35 +17,88 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
 
   describe '#configuration', skip: !LibdatadogHelpers.supported? do
     context 'when libdatadog API is available' do
-      before do
-        FileUtils.mkdir_p('/tmp/datadog-agent/managed/datadog-agent/stable')
-        # local config
-        File.write(
-          '/tmp/datadog-agent/application_monitoring.yaml',
-          "config_id: 12345\napm_configuration_default:\n  DD_LOGS_INJECTION: false\n")
-        # fleet config
-        File.write(
-          '/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml',
-          "config_id: 56789\napm_configuration_default:\n  DD_APPSEC_ENABLED: true\n")
+      context 'with config_id' do
+        before do
+          FileUtils.mkdir_p('/tmp/datadog-agent/managed/datadog-agent/stable')
+          # local config
+          File.write(
+            '/tmp/datadog-agent/application_monitoring.yaml',
+            <<-YAML
+            config_id: 12345
+            apm_configuration_default:
+              DD_LOGS_INJECTION: false
+            YAML
+          )
+          # fleet config
+          File.write(
+            '/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml',
+            <<-YAML
+            config_id: 56789
+            apm_configuration_default:
+              DD_APPSEC_ENABLED: true
+            YAML
+          )
 
-        allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
-          Datadog::Core::Configuration::StableConfig::Configurator.new.
-            with_local_path('/tmp/datadog-agent/application_monitoring.yaml').
-            with_fleet_path('/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml').get
-        )
+          allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
+            Datadog::Core::Configuration::StableConfig::Configurator.new.
+              with_local_path('/tmp/datadog-agent/application_monitoring.yaml').
+              with_fleet_path('/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml').get
+          )
+        end
+
+        after do
+          FileUtils.rm_rf('/tmp/datadog-agent')
+        end
+
+        it 'returns the configuration' do
+          expect(described_class.configuration).to eq(
+            {
+              local: {id: "12345", config: {"DD_LOGS_INJECTION" => "false"}},
+              fleet: {id: "56789", config: {"DD_APPSEC_ENABLED" => "true"}}
+            }
+          )
+        end
       end
 
-      after do
-        FileUtils.rm_rf('/tmp/datadog-agent')
-      end
+      context 'without config_id' do
+        before do
+          FileUtils.mkdir_p('/tmp/datadog-agent/managed/datadog-agent/stable')
+          # local config
+          File.write(
+            '/tmp/datadog-agent/application_monitoring.yaml',
+            <<-YAML
+            apm_configuration_default:
+              DD_LOGS_INJECTION: false
+            YAML
+          )
+          # fleet config
+          File.write(
+            '/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml',
+            <<-YAML
+            apm_configuration_default:
+              DD_APPSEC_ENABLED: true
+            YAML
+          )
 
-      it 'returns the configuration' do
-        expect(described_class.configuration).to eq(
-          {
-            local: {id: "12345", config: {"DD_LOGS_INJECTION" => "false"}},
-            fleet: {id: "56789", config: {"DD_APPSEC_ENABLED" => "true"}},
-          }
-        )
+          allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
+            Datadog::Core::Configuration::StableConfig::Configurator.new.
+              with_local_path('/tmp/datadog-agent/application_monitoring.yaml').
+              with_fleet_path('/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml').get
+          )
+        end
+
+        after do
+          FileUtils.rm_rf('/tmp/datadog-agent')
+        end
+
+        it 'returns the configuration' do
+          expect(described_class.configuration).to eq(
+            {
+              local: {id: nil, config: {"DD_LOGS_INJECTION" => "false"}},
+              fleet: {id: nil, config: {"DD_APPSEC_ENABLED" => "true"}}
+            }
+          )
+        end
       end
     end
   end
