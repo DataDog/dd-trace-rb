@@ -297,6 +297,32 @@ module Datadog
         set_error_tags(e)
       end
 
+      # Record an exception during the execution of this span. Multiple exceptions
+      # can be recorded on a span.
+      #
+      # @param [Exception] exception The exception to record
+      # @param [optional Hash{String => String, Numeric, Boolean, Array<String, Numeric, Boolean>}]
+      #   attributes One or more key:value pairs, where the keys must be
+      #   strings and the values may be (array of) string, boolean or numeric
+      #   type.
+      #
+      # @return [void]
+      def record_exception(exception, attributes: {})
+        exc = Core::Error.build_from(exception)
+
+        event_attributes = {
+          'exception.type' => exc.type,
+          'exception.message' => exc.message,
+          'exception.stacktrace' => exc.backtrace,
+        }.merge(attributes)
+
+        span_event = SpanEvent.new(
+          'exception',
+          attributes: event_attributes,
+        )
+        @span_events << span_event
+      end
+
       # Return a string representation of the span.
       def to_s
         "SpanOperation(name:#{@name},sid:#{@id},tid:#{@trace_id},pid:#{@parent_id})"

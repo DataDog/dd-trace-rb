@@ -999,6 +999,107 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
     end
   end
+
+  describe '#record_exception' do
+    let(:error) { StandardError.new('test error').tap { |e| e.set_backtrace(['this is a backtrace']) } }
+
+    it 'creates a span event' do
+      begin
+        raise error
+      rescue => e
+        span_op.record_exception(e)
+        span_op.record_exception(e)
+      end
+
+      expect(span_op.span_events.length).to eq(2)
+      expect(span_op.span_events[0]).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+        }
+      )
+      expect(span_op.span_events[1]).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+        }
+      )
+    end
+
+    it 'provides custom attributes' do
+      begin
+        raise error
+      rescue => e
+        span_op.record_exception(e, attributes: { custom_attr: 'value' })
+      end
+
+      expect(span_op.span_events.last).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+          'custom_attr' => 'value'
+        }
+      )
+    end
+
+    it 'provides invalid custom attributes' do
+      allow(Datadog.logger).to receive(:warn)
+
+      begin
+        raise error
+      rescue => e
+        span_op.record_exception(
+          e,
+          attributes: {
+            custom_attr: 'value',
+            custom_attr2: { foo: 'bar' },
+            custom_attr3: [[1]],
+            custom_attr4: [1, 'foo'],
+            custom_attr5: 2 << 65,
+            custom_attr6: -2 << 65,
+            custom_attr7: Float::NAN,
+            custom_attr8: Float::INFINITY
+          }
+        )
+      end
+
+      expect(span_op.span_events[0].attributes.keys.length).to eq(4)
+      expect(span_op.span_events[0]).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+          'custom_attr' => 'value'
+        }
+      )
+      expect(Datadog.logger).to have_received(:warn).with(
+        'Attribute custom_attr2 must be a string, number, boolean, or array: {:foo=>"bar"}.'
+      )
+      expect(Datadog.logger).to have_received(:warn).with(
+        'Attribute custom_attr3 must be a string, number, or boolean: [[1]].'
+      )
+      expect(Datadog.logger).to have_received(:warn).with('Attribute custom_attr4 array must be homogenous: [1, "foo"].')
+      expect(Datadog.logger).to have_received(:warn).with(
+        "Attribute custom_attr5 must be within the range of a signed 64-bit integer: #{2 << 65}."
+      )
+      expect(Datadog.logger).to have_received(:warn).with(
+        "Attribute custom_attr6 must be within the range of a signed 64-bit integer: #{-(2 << 65)}."
+      )
+      expect(Datadog.logger).to have_received(:warn).with('Attribute custom_attr7 must be a finite number: NaN.')
+      expect(Datadog.logger).to have_received(:warn).with('Attribute custom_attr8 must be a finite number: Infinity.')
+    end
+  end
 end
 
 RSpec.describe Datadog::Tracing::SpanOperation::Events do
