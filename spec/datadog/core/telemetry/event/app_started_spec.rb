@@ -76,6 +76,10 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         end
       end
 
+      after do
+        Datadog.configuration.reset!
+      end
+
       it 'contains expected install signature' do
         expect(event.payload[:install_signature]).to eq(expected_install_signature)
       end
@@ -157,6 +161,10 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           c.tracing.analytics.enabled = true
           c.appsec.sca_enabled = false
         end
+      end
+
+      after do
+        Datadog.configuration.reset!
       end
 
       it 'reports set configuration' do
