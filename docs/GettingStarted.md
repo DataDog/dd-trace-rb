@@ -288,7 +288,7 @@ current_span = Datadog::Tracing.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
 
-You can record an exception in the current span. It will add the recorded exception as a span event.
+You can record an exception in the current span. It adds the recorded exception as a span event.
 You can record multiple exceptions during the lifetime of a span.
 ```ruby
 # e.g: recording an exception in the active span

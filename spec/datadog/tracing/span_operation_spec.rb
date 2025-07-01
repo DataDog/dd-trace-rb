@@ -1029,7 +1029,11 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     end
 
     it 'provides custom attributes' do
-      span_op.record_exception(error, attributes: { 'custom_attr' => 'value' })
+      span_op.record_exception(
+        error,
+        attributes: { 'custom_attr1' => 'value',
+                      custom_attr2: 'value' }
+      )
 
       expect(span_op.span_events.last).to have_attributes(
         name: 'exception',
@@ -1038,7 +1042,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           'exception.message' => 'test error',
           'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
 ',
-          'custom_attr' => 'value'
+          'custom_attr1' => 'value',
+          'custom_attr2' => 'value'
         }
       )
     end
