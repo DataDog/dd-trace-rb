@@ -17,13 +17,16 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
 
   describe '#configuration', skip: !LibdatadogHelpers.supported? do
     context 'when libdatadog API is available' do
+      let(:tmpdir) { Dir.mktmpdir }
       context 'with config_id' do
         before do
-          FileUtils.mkdir_p('/tmp/datadog-agent/managed/datadog-agent/stable')
+          Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
+
+          FileUtils.mkdir_p(File.join(tmpdir, 'managed/datadog-agent/stable'))
           # local config
           File.write(
-            '/tmp/datadog-agent/application_monitoring.yaml',
-            <<-YAML
+            File.join(tmpdir, 'application_monitoring.yaml'),
+            <<~YAML
             config_id: 12345
             apm_configuration_default:
               DD_LOGS_INJECTION: false
@@ -31,8 +34,8 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           )
           # fleet config
           File.write(
-            '/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml',
-            <<-YAML
+            File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml'),
+            <<~YAML
             config_id: 56789
             apm_configuration_default:
               DD_APPSEC_ENABLED: true
@@ -41,13 +44,13 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
 
           allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
             Datadog::Core::Configuration::StableConfig::Configurator.new.
-              with_local_path('/tmp/datadog-agent/application_monitoring.yaml').
-              with_fleet_path('/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml').get
+              with_local_path(File.join(tmpdir, 'application_monitoring.yaml')).
+              with_fleet_path(File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')).get
           )
         end
 
         after do
-          FileUtils.rm_rf('/tmp/datadog-agent')
+          FileUtils.remove_entry_secure(tmpdir)
         end
 
         it 'returns the configuration' do
@@ -61,20 +64,23 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       end
 
       context 'without config_id' do
+        let(:tmpdir) { Dir.mktmpdir }
         before do
-          FileUtils.mkdir_p('/tmp/datadog-agent/managed/datadog-agent/stable')
+          Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
+
+          FileUtils.mkdir_p(File.join(tmpdir, 'managed/datadog-agent/stable'))
           # local config
           File.write(
-            '/tmp/datadog-agent/application_monitoring.yaml',
-            <<-YAML
+            File.join(tmpdir, 'application_monitoring.yaml'),
+            <<~YAML
             apm_configuration_default:
               DD_LOGS_INJECTION: false
             YAML
           )
           # fleet config
           File.write(
-            '/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml',
-            <<-YAML
+            File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml'),
+            <<~YAML
             apm_configuration_default:
               DD_APPSEC_ENABLED: true
             YAML
@@ -82,13 +88,13 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
 
           allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
             Datadog::Core::Configuration::StableConfig::Configurator.new.
-              with_local_path('/tmp/datadog-agent/application_monitoring.yaml').
-              with_fleet_path('/tmp/datadog-agent/managed/datadog-agent/stable/application_monitoring.yaml').get
+              with_local_path(File.join(tmpdir, 'application_monitoring.yaml')).
+              with_fleet_path(File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')).get
           )
         end
 
         after do
-          FileUtils.rm_rf('/tmp/datadog-agent')
+          FileUtils.remove_entry_secure(tmpdir)
         end
 
         it 'returns the configuration' do

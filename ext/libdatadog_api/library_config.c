@@ -121,8 +121,8 @@ static VALUE _native_configurator_get(VALUE self) {
   VALUE local_config_hash = rb_hash_new();
   VALUE fleet_config_hash = rb_hash_new();
 
-  static ddog_CString local_config_id = {.ptr = NULL, .length = 0};
-  static ddog_CString fleet_config_id = {.ptr = NULL, .length = 0};
+  ddog_CString local_config_id = {.ptr = NULL, .length = 0};
+  ddog_CString fleet_config_id = {.ptr = NULL, .length = 0};
   for (uintptr_t i = 0; i < config_vec->len; i++) {
     ddog_LibraryConfig config = config_vec->ptr[i];
     VALUE selected_hash;
