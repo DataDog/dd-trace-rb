@@ -84,9 +84,7 @@ module Datadog
           # @return [Numeric, nil] tracer sample rate configured
           def sample_rate
             sampler = Datadog.configuration.tracing.sampler
-            unless sampler
-              return Datadog.configuration.tracing.sampling.default_rate rescue nil
-            end
+            return Datadog.configuration.tracing.sampling.default_rate rescue nil unless sampler
 
             sampler.sample_rate(nil) rescue nil
           end
@@ -99,10 +97,7 @@ module Datadog
           # @return [Hash, nil] sample rules configured
           def sampling_rules
             sampler = Datadog.configuration.tracing.sampler
-
-            unless sampler
-              return Datadog.configuration.tracing.sampling.rules rescue nil
-            end
+            return Datadog.configuration.tracing.sampling.rules rescue nil unless sampler
 
             return nil unless sampler.is_a?(Tracing::Sampling::PrioritySampler) &&
               sampler.priority_sampler.is_a?(Tracing::Sampling::RuleSampler)
