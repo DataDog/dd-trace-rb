@@ -212,7 +212,6 @@ RSpec.describe 'DI integration from remote config' do
         stack: Array,
         timestamp: Integer,
       },
-      ddtags: String,
       ddsource: 'dd_debugger',
       duration: Integer,
       host: nil,

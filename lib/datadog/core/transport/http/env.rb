@@ -32,6 +32,14 @@ module Datadog
             self[:path] = value
           end
 
+          def query
+            self[:query]
+          end
+
+          def query=(value)
+            self[:query] = value
+          end
+
           def body
             self[:body]
           end
