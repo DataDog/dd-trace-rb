@@ -84,7 +84,9 @@ module Datadog
           # @return [Numeric, nil] tracer sample rate configured
           def sample_rate
             sampler = Datadog.configuration.tracing.sampler
-            return nil unless sampler
+            unless sampler
+              return Datadog.configuration.tracing.sampling.default_rate rescue nil
+            end
 
             sampler.sample_rate(nil) rescue nil
           end
@@ -97,6 +99,11 @@ module Datadog
           # @return [Hash, nil] sample rules configured
           def sampling_rules
             sampler = Datadog.configuration.tracing.sampler
+
+            unless sampler
+              return Datadog.configuration.tracing.sampling.rules rescue nil
+            end
+
             return nil unless sampler.is_a?(Tracing::Sampling::PrioritySampler) &&
               sampler.priority_sampler.is_a?(Tracing::Sampling::RuleSampler)
 
@@ -109,6 +116,8 @@ module Datadog
                 sample_rate: rule.sampler.sample_rate(nil)
               }
             end.compact
+          rescue
+            nil
           end
 
           # Concatenated list of integrations activated, with their gem version.
