@@ -32,9 +32,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       ['tracing.partial_flush.min_spans_threshold', 500],
       ['tracing.report_hostname', false],
       ['tracing.sampling.rate_limit', 100],
-      ['instrumentation_source', 'manual'],
-      ['DD_INJECT_FORCE', false],
-      ['DD_INJECTION_ENABLED', ''],
       # ['tracing.writer_options.buffer_size', 123], # not reported by default
       # ['tracing.writer_options.flush_interval', 456], # not reported by default
       # ['logger.instance', 'MyLogger'], # not reported by default
@@ -182,6 +179,9 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           { name: 'logger.instance', origin: 'code', seq_id: id, value: 'MyLogger' },
           { name: 'logger.level', origin: 'code', seq_id: id, value: 0 },
           { name: 'appsec.sca_enabled', origin: 'code', seq_id: id, value: false },
+          { name: 'instrumentation_source', origin: 'code', seq_id: id, value: 'manual' },
+          { name: 'DD_INJECT_FORCE', origin: 'code', seq_id: id, value: false },
+          { name: 'DD_INJECTION_ENABLED', origin: 'code', seq_id: id, value: '' },
         )
       end
     end

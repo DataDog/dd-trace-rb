@@ -164,7 +164,8 @@ module Datadog
 
             instrumentation_source =
               if Datadog.const_defined?(:SingleStepInstrument, false) &&
-                 Datadog::SingleStepInstrument.const_defined?(:LOADED, false)
+                Datadog::SingleStepInstrument.const_defined?(:LOADED, false) &&
+                Datadog::SingleStepInstrument::LOADED
                 'ssi'
               else
                 'manual'
