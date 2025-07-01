@@ -35,7 +35,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       ['instrumentation_source', 'manual'],
       ['DD_INJECT_FORCE', false],
       ['DD_INJECTION_ENABLED', ''],
-      ['tracing.auto_instrument.enabled', false],
       # ['tracing.writer_options.buffer_size', 123], # not reported by default
       # ['tracing.writer_options.flush_interval', 456], # not reported by default
       # ['logger.instance', 'MyLogger'], # not reported by default
