@@ -26,6 +26,7 @@ typedef struct {
       VALUE iseq; // Needs marking if kept around
       void *caching_pc; // For caching validation/invalidation only (does not need marking)
       int line;
+      VALUE current_bytecode;
     } ruby_frame;
     struct {
       VALUE caching_cme; // For caching validation/invalidation only (does not need marking)

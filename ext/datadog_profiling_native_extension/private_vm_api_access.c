@@ -375,6 +375,15 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 }
 #pragma GCC diagnostic pop
 
+static VALUE current_bytecode(const rb_iseq_t *iseq, const VALUE *pc) {
+  if (iseq == NULL || pc == NULL) return -1; // TODO: Can we rely on these existing?
+
+  ptrdiff_t n = pc - ISEQ_BODY(iseq)->iseq_encoded;
+  VALUE bytecode = *pc;
+
+  return bytecode;
+}
+
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
@@ -546,6 +555,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
             #else // Ruby < 3.1
               stack_buffer[i].as.ruby_frame.line = calc_lineno(cfp->iseq, cfp->pc);
             #endif
+
+            stack_buffer[i].as.ruby_frame.current_bytecode = current_bytecode(cfp->iseq, cfp->pc);
 
             stack_buffer[i].is_ruby_frame = true;
             i++;

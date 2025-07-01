@@ -303,6 +303,9 @@ void sample_thread(
       filename_slice = NIL_P(filename) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename);
       line = buffer->stack_buffer[i].as.ruby_frame.line;
 
+      fprintf(stderr, "Thread %p frame %d: %s:%s:%d (%p)\n",
+        thread, i, name_slice.ptr, filename_slice.ptr, line, buffer->stack_buffer[i].as.ruby_frame.current_bytecode);
+
       last_ruby_frame_filename = filename_slice;
       last_ruby_line = line;
     } else {
