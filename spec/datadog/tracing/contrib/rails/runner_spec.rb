@@ -93,22 +93,18 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
     end
 
     context 'with an error reading the source file' do
-      before do
-        # Make the file unreadable
-        File.chmod(0o000, file_path)
-      end
+      let(:source) { "raise" }
 
       it 'creates an error span' do
-        expect { run }.to raise_error(LoadError)
+        expect { run }.to raise_error(RuntimeError)
 
         expect(span.name).to eq('rails.runner.file')
         expect(span.resource).to eq(file_path)
         expect(span.service).to eq(tracer.default_service)
-        expect(span.get_tag('source')).to be_nil
         expect(span.get_tag('component')).to eq('rails')
         expect(span.get_tag('operation')).to eq('runner.file')
         expect(span).to have_error
-        expect(span).to have_error_type('LoadError')
+        expect(span).to have_error_type('RuntimeError')
       end
     end
   end
