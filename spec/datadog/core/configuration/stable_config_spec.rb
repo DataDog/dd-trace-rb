@@ -16,47 +16,55 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
   end
 
   describe '#configuration', skip: !LibdatadogHelpers.supported? do
+    let(:tmpdir) { Dir.mktmpdir }
+    before do
+      FileUtils.mkdir_p(File.join(tmpdir, 'managed/datadog-agent/stable'))
+      # local config
+      File.write(
+        File.join(tmpdir, 'application_monitoring.yaml'),
+        local_config_content
+      )
+      # fleet config
+      File.write(
+        File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml'),
+        fleet_config_content
+      )
+
+      test_configurator = Datadog::Core::Configuration::StableConfig::Configurator.new
+      Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
+        test_configurator,
+        File.join(tmpdir, 'application_monitoring.yaml')
+      )
+      Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
+        test_configurator,
+        File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')
+      )
+
+      allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
+        test_configurator.get
+      )
+    end
+
+    after do
+      FileUtils.remove_entry_secure(tmpdir)
+    end
+
     context 'when libdatadog API is available' do
-      let(:tmpdir) { Dir.mktmpdir }
       context 'with config_id' do
-        before do
-          FileUtils.mkdir_p(File.join(tmpdir, 'managed/datadog-agent/stable'))
-          # local config
-          File.write(
-            File.join(tmpdir, 'application_monitoring.yaml'),
-            <<~YAML
-            config_id: 12345
-            apm_configuration_default:
-              DD_LOGS_INJECTION: false
-            YAML
-          )
-          # fleet config
-          File.write(
-            File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml'),
-            <<~YAML
-            config_id: 56789
-            apm_configuration_default:
-              DD_APPSEC_ENABLED: true
-            YAML
-          )
-
-          test_configurator = Datadog::Core::Configuration::StableConfig::Configurator.new
-          Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
-            test_configurator,
-            File.join(tmpdir, 'application_monitoring.yaml')
-          )
-          Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
-            test_configurator,
-            File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')
-          )
-
-          allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
-            test_configurator.get
-          )
+        let(:local_config_content) do
+          <<~YAML
+          config_id: 12345
+          apm_configuration_default:
+            DD_LOGS_INJECTION: false
+          YAML
         end
 
-        after do
-          FileUtils.remove_entry_secure(tmpdir)
+        let(:fleet_config_content) do
+          <<~YAML
+          config_id: 56789
+          apm_configuration_default:
+            DD_APPSEC_ENABLED: true
+          YAML
         end
 
         it 'returns the configuration' do
@@ -70,43 +78,18 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       end
 
       context 'without config_id' do
-        let(:tmpdir) { Dir.mktmpdir }
-        before do
-          FileUtils.mkdir_p(File.join(tmpdir, 'managed/datadog-agent/stable'))
-          # local config
-          File.write(
-            File.join(tmpdir, 'application_monitoring.yaml'),
-            <<~YAML
-            apm_configuration_default:
-              DD_LOGS_INJECTION: false
-            YAML
-          )
-          # fleet config
-          File.write(
-            File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml'),
-            <<~YAML
-            apm_configuration_default:
-              DD_APPSEC_ENABLED: true
-            YAML
-          )
-
-          test_configurator = Datadog::Core::Configuration::StableConfig::Configurator.new
-          Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
-            test_configurator,
-            File.join(tmpdir, 'application_monitoring.yaml')
-          )
-          Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
-            test_configurator,
-            File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')
-          )
-
-          allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
-            test_configurator.get
-          )
+        let(:local_config_content) do
+          <<~YAML
+          apm_configuration_default:
+            DD_LOGS_INJECTION: false
+          YAML
         end
 
-        after do
-          FileUtils.remove_entry_secure(tmpdir)
+        let(:fleet_config_content) do
+          <<~YAML
+          apm_configuration_default:
+            DD_APPSEC_ENABLED: true
+          YAML
         end
 
         it 'returns the configuration' do
