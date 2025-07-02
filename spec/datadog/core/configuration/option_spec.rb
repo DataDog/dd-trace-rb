@@ -1073,7 +1073,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       let(:setter) { proc { |value| value } }
       before do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
-          { local: { 'TEST' => 'test' } }
+          { local: { id: '12345', config: { 'TEST' => 'test' } } }
         )
       end
 
@@ -1087,7 +1087,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       let(:setter) { proc { |value| value } }
       before do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
-          { fleet: { 'TEST' => 'test' } }
+          { fleet: { id: '56789', config: { 'TEST' => 'test' } } }
         )
       end
 
