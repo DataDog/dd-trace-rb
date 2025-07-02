@@ -1,0 +1,129 @@
+name: System Tests - Official
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - master
+      # A workaround to trigger the workflow for pull requests from forked repository,
+      # which does not have access to secrets.
+      #
+      # This is also useful for testing the workflow without opening a pull request.
+      - tmp/*
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch: {}
+  schedule:
+    - cron: "00 04 * * 2-6"
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  changes:
+    name: Changes
+    # temporary condition to test official workflow
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.head_ref == 'cbeauchesne/system-tests-official')
+    runs-on: ubuntu-24.04
+    outputs:
+      changes: ${{ steps.changes.outputs.src }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: changes
+        with:
+          filters: |
+            src:
+              - '.github/forced-tests-list.json'
+              - '.github/workflows/**'
+              - 'lib/**'
+              - 'ext/**'
+              - '*.gemspec'
+              - 'Gemfile'
+              - '*.gemfile'
+              - 'lib-injection/**'
+              - 'tasks/**'
+
+  build:
+    needs:
+      - changes
+    if: ${{ needs.changes.outputs.changes == 'true' }}
+    runs-on: ubuntu-22.04
+    name: Build artifact
+    permissions:
+      packages: write
+    steps:
+      - name: Checkout DataDog/dd-trace-rb
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: DataDog/dd-trace-rb
+          fetch-depth: 2
+          persist-credentials: false
+          path: packaged/dd-trace-rb
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dd-trace-rb  # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
+          path: packaged
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - weblogs: ""  # All of them
+            scenarios: DEFAULT,EVERYTHING_DISABLED,APPSEC_BLOCKING_FULL_DENYLIST,APPSEC_REQUEST_BLOCKING,APPSEC_BLOCKING,GRAPHQL_APPSEC
+          - weblogs: rack,rails70
+            scenarios: |
+              APPSEC_API_SECURITY,
+              APPSEC_AUTO_EVENTS_EXTENDED,
+              APPSEC_CORRUPTED_RULES,
+              APPSEC_CUSTOM_OBFUSCATION,
+              APPSEC_CUSTOM_RULES,
+              APPSEC_LOW_WAF_TIMEOUT,
+              APPSEC_MISSING_RULES,
+              APPSEC_RATE_LIMITER,
+              APPSEC_RULES_MONITORING_WITH_ERRORS,
+              APPSEC_STANDALONE,
+              CROSSED_TRACING_LIBRARIES,
+              DEBUGGER_PII_REDACTION,
+              DEBUGGER_PROBES_SNAPSHOT,
+              DEBUGGER_PROBES_STATUS,
+              INTEGRATIONS,
+              PROFILING,
+              REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD,
+              REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE,
+              REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES,
+              REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE,
+              SAMPLING,
+              SCA_STANDALONE,
+              TELEMETRY_APP_STARTED_PRODUCTS_DISABLED,
+              TELEMETRY_DEPENDENCY_LOADED_TEST_FOR_DEPENDENCY_COLLECTION_DISABLED,
+              TELEMETRY_LOG_GENERATION_DISABLED,
+              TELEMETRY_METRIC_GENERATION_DISABLED
+    needs:
+      - build
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@main
+    secrets: inherit  # zizmor: ignore[secrets-inherit]
+    permissions:
+      contents: read
+      packages: write
+    with:
+      library: ruby
+      binaries_artifact: dd-trace-rb
+      desired_execution_time: 300  # 5 minutes
+      scenarios: ${{ matrix.scenarios }}
+      weblogs: ${{ matrix.weblogs }}
+      skip_empty_scenarios: true
+      ref: main
+
+  complete:
+    name: System Tests (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - test
+    steps:
+      - run: echo "DONE!"
