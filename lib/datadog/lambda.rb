@@ -1,31 +1,21 @@
 # frozen_string_literal: true
 
-require 'aws_lambda_ric/lambda_handler'
-
 module Datadog
   # Lambda module streamlines instrumenting AWS Lambda functions with Datadog.
   module Lambda
-    def self.handler(event:, context:)
-      begin
-        env_handler = ENV['DD_LAMBDA_HANDLER']
-        raise 'DD_LAMBDA_HANDLER is not set, Datadog will not work as expected' if env_handler.nil?
-
-        @lambda_handler = LambdaHandler.new(env_handler: env_handler)
-        require @lambda_handler.handler_file_name
-
-        configure_apm do |c|
-          c.tracing.instrument :aws
-        end
-
-        @lambda_handler.call_handler(request: event, context: context)
-      rescue Exception => e # rubocop:disable Lint/RescueException
-        raise e
-      end
-    end
-
     def self.configure_apm
-      require_relative 'datadog/tracing'
-      require_relative 'datadog/tracing/transport/io'
+      # Load tracing
+      require_relative 'tracing'
+      require_relative 'tracing/contrib'
+
+      # Load other products (must follow tracing)
+      require_relative 'profiling'
+      require_relative 'appsec'
+      require_relative 'di'
+      require_relative 'error_tracking'
+      require_relative 'kit'
+
+      require_relative 'tracing/transport/io'
 
       # Needed to keep trace flushes on a single line
       $stdout.sync = true
@@ -38,7 +28,7 @@ module Datadog
         # end
         c.tags = { "_dd.origin": 'lambda' }
         # Enable AWS SDK instrumentation
-        c.tracing.instrument :aws if trace_managed_services?
+        # c.tracing.instrument :aws if trace_managed_services?
 
         yield(c) if block_given?
       end
