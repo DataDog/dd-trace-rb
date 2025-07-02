@@ -223,9 +223,11 @@ module Datadog
           def conf_value(name, value, seq_id, origin)
             result = {name: name, value: value, origin: origin, seq_id: seq_id}
             if origin == 'fleet_stable_config'
-              result[:config_id] = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
+              fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
+              result[:config_id] = fleet_id if fleet_id
             elsif origin == 'local_stable_config'
-              result[:config_id] = Core::Configuration::StableConfig.configuration.dig(:local, :id)
+              local_id = Core::Configuration::StableConfig.configuration.dig(:local, :id)
+              result[:config_id] = local_id if local_id
             end
             result
           end
