@@ -125,8 +125,8 @@ static VALUE _native_configurator_get(VALUE self) {
 
   bool local_config_id_set = false;
   bool fleet_config_id_set = false;
-  VALUE local_config_id = Qnil;
-  VALUE fleet_config_id = Qnil;
+  VALUE local_hash = rb_hash_new();
+  VALUE fleet_hash = rb_hash_new();
   for (uintptr_t i = 0; i < config_vec->len; i++) {
     ddog_LibraryConfig config = config_vec->ptr[i];
     VALUE selected_hash;
@@ -135,7 +135,7 @@ static VALUE _native_configurator_get(VALUE self) {
       if (!local_config_id_set) {
         local_config_id_set = true;
         if (config.config_id.length > 0) {
-          local_config_id = rb_utf8_str_new_cstr(config.config_id.ptr);
+          rb_hash_aset(local_hash, ID2SYM(rb_intern("id")), rb_utf8_str_new_cstr(config.config_id.ptr));
         }
       }
     }
@@ -144,7 +144,7 @@ static VALUE _native_configurator_get(VALUE self) {
       if (!fleet_config_id_set) {
         fleet_config_id_set = true;
         if (config.config_id.length > 0) {
-          fleet_config_id = rb_utf8_str_new_cstr(config.config_id.ptr);
+          rb_hash_aset(fleet_hash, ID2SYM(rb_intern("id")), rb_utf8_str_new_cstr(config.config_id.ptr));
         }
       }
     }
@@ -152,16 +152,7 @@ static VALUE _native_configurator_get(VALUE self) {
     rb_hash_aset(selected_hash, rb_utf8_str_new_cstr(config.name.ptr), rb_utf8_str_new_cstr(config.value.ptr));
   }
 
-  VALUE local_hash = rb_hash_new();
-  if (local_config_id != Qnil) {
-    rb_hash_aset(local_hash, ID2SYM(rb_intern("id")), local_config_id);
-  }
   rb_hash_aset(local_hash, ID2SYM(rb_intern("config")), local_config_hash);
-
-  VALUE fleet_hash = rb_hash_new();
-  if (fleet_config_id != Qnil) {
-    rb_hash_aset(fleet_hash, ID2SYM(rb_intern("id")), fleet_config_id);
-  }
   rb_hash_aset(fleet_hash, ID2SYM(rb_intern("config")), fleet_config_hash);
 
   VALUE result = rb_hash_new();
