@@ -162,19 +162,18 @@ module Datadog
               )
             end
 
-            instrumentation_source =
-              if Datadog.const_defined?(:SingleStepInstrument, false) &&
+            instrumentation_source = if Datadog.const_defined?(:SingleStepInstrument, false) &&
                 Datadog::SingleStepInstrument.const_defined?(:LOADED, false) &&
                 Datadog::SingleStepInstrument::LOADED
-                'ssi'
-              else
-                'manual'
-              end
+              'ssi'
+            else
+              'manual'
+            end
             inject_force = Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false)
             # Track ssi configurations
             list.push(
               conf_value('instrumentation_source', instrumentation_source, seq_id),
-              conf_value('DD_INJECT_FORCE', inject_force , seq_id),
+              conf_value('DD_INJECT_FORCE', inject_force, seq_id),
               conf_value('DD_INJECTION_ENABLED', ENV['DD_INJECTION_ENABLED'] || '', seq_id),
             )
 
