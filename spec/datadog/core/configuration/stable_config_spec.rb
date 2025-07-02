@@ -19,12 +19,10 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
     let(:tmpdir) { Dir.mktmpdir }
     before do
       FileUtils.mkdir_p(File.join(tmpdir, 'managed/datadog-agent/stable'))
-      # local config
       File.write(
         File.join(tmpdir, 'application_monitoring.yaml'),
         local_config_content
       )
-      # fleet config
       File.write(
         File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml'),
         fleet_config_content
