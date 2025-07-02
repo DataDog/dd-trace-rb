@@ -1,3 +1,9 @@
 {
-  
+    "PARAMETRIC": [
+        "tests/parametric/test_config_consistency.py::Test_Stable_Config_Default::test_config_precedence",
+        "tests/parametric/test_config_consistency.py::Test_Stable_Config_Default::test_invalid_files",
+        "tests/parametric/test_config_consistency.py::Test_Stable_Config_Default::test_unknown_key_skipped",
+        "tests/parametric/test_config_consistency.py::Test_Stable_Config_Default::test_default_config",
+        "tests/parametric/test_process_discovery.py"
+    ]
 }

@@ -53,6 +53,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
+        expect(span).not_to have_error
         expect(span.service).to eq('aws')
         expect(span.type).to eq('http')
         expect(span.resource).to eq('sts.get_access_key_info')
@@ -130,6 +131,31 @@ RSpec.describe 'AWS instrumentation' do
 
       it 'returns an unmodified response' do
         expect(list_buckets.buckets.map(&:name)).to eq(['bucket1'])
+      end
+    end
+
+    context 'when the client runs and the API returns an error' do
+      subject(:list_buckets) { client.list_buckets }
+
+      let(:client) { ::Aws::S3::Client.new(stub_responses: true) }
+
+      before do
+        client.stub_responses(
+          :list_buckets,
+          status_code: 500,
+          body: 'test body with 500 error',
+          headers: {}
+        )
+      end
+
+      it 'generates an errored span' do
+        expect do
+          list_buckets
+        end.to raise_error(Aws::S3::Errors::Http500Error)
+        # The Http500Error instance does not contain the body of the
+        # response.
+        expect(span).to have_error
+        expect(span.tags['http.status_code']).to eq('500')
       end
     end
 

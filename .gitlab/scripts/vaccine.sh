@@ -70,9 +70,13 @@ log_and_run() {
     run "${cmd[@]}"
 }
 
-# obtain GitHub vaccine token from vault
+# obtain GitHub token from environment variable
 get_vaccine_token() {
-    vault kv get -field=vaccine-token kv/k8s/gitlab-runner/dd-trace-rb/github-token
+    if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+        echo "Error: GITHUB_TOKEN environment variable is not set" >&2
+        exit 1
+    fi
+    echo "${GITHUB_TOKEN}"
 }
 
 # get current commit SHA

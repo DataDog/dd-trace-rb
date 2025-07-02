@@ -28,14 +28,23 @@ require 'datadog/core/transport/http/adapters/net'
 RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
 
-  let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:logger) do
+    instance_double(Datadog::Core::Logger).tap do |logger|
+      allow(logger).to receive(:debug)
+    end
+  end
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
   let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings, logger: logger) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:telemetry) do
+    instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+      allow(telemetry).to receive(:start)
+      allow(telemetry).to receive(:enabled).and_return(false)
+    end
+  end
 
   let(:environment_logger_extra) { { hello: 123, world: '456' } }
 
@@ -1127,6 +1136,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '#shutdown!' do
+    before do
+      allow(telemetry).to receive(:emit_closing!)
+    end
+
     subject(:shutdown!) { components.shutdown!(replacement) }
 
     context 'given no replacement' do
@@ -1143,7 +1156,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(components.runtime_metrics.metrics.statsd).to receive(:close)
         expect(components.health_metrics.statsd).to receive(:close)
         expect(components.telemetry).to receive(:emit_closing!)
-        expect(components.telemetry).to receive(:stop!)
+        expect(components.telemetry).to receive(:shutdown!)
 
         shutdown!
       end
@@ -1161,7 +1174,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
         let(:statsd) { instance_double(::Datadog::Statsd) }
-        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
         before do
           allow(replacement).to receive(:tracer).and_return(tracer)
@@ -1188,7 +1200,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)
           expect(components.health_metrics.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
-          expect(components.telemetry).to receive(:stop!)
+          expect(components.telemetry).to receive(:shutdown!)
 
           shutdown!
         end
@@ -1207,7 +1219,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
               .with(true, close_metrics: false)
             expect(components.health_metrics.statsd).to receive(:close)
             expect(components.remote).to receive(:shutdown!)
-            expect(components.telemetry).to receive(:stop!)
+            expect(components.telemetry).to receive(:shutdown!)
 
             shutdown!
           end
@@ -1227,7 +1239,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)
           expect(components.health_metrics.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
-          expect(components.telemetry).to receive(:stop!)
+          expect(components.telemetry).to receive(:shutdown!)
 
           shutdown!
         end
@@ -1246,7 +1258,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
           expect(components.health_metrics.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
-          expect(components.telemetry).to receive(:stop!)
+          expect(components.telemetry).to receive(:shutdown!)
 
           shutdown!
         end
@@ -1266,7 +1278,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
           expect(components.health_metrics.statsd).to_not receive(:close)
           expect(components.remote).to receive(:shutdown!)
-          expect(components.telemetry).to receive(:stop!)
+          expect(components.telemetry).to receive(:shutdown!)
 
           shutdown!
         end

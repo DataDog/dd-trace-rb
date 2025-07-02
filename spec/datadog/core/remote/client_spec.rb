@@ -495,6 +495,11 @@ RSpec.describe Datadog::Core::Remote::Client do
     end
 
     describe '#payload' do
+      before do
+        Datadog::Core::Environment::Git.reset_for_tests
+        Datadog::Core::TagBuilder.reset_for_tests
+      end
+
       context 'no sync errors' do
         let(:response_code) { 200 }
         include_context 'Client dispatches changes'

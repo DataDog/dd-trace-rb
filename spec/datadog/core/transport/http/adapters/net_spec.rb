@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/transport/http/adapters/net'
-require 'datadog/core/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings'
 
 RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
   subject(:adapter) { described_class.new(agent_settings) }
@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
   let(:ssl) { false }
   let(:proxy_addr) { nil } # We currently disable proxy for transport HTTP requests
   let(:agent_settings) do
-    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+    Datadog::Core::Configuration::AgentSettings.new(
       adapter: nil,
       ssl: ssl,
       uds_path: nil,
@@ -46,6 +46,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
       instance_double(
         Datadog::Core::Transport::HTTP::Env,
         path: path,
+        query: nil,
         body: body,
         headers: headers,
         form: form
