@@ -116,8 +116,8 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
         it 'returns the configuration' do
           expect(described_class.configuration).to eq(
             {
-              local: {id: nil, config: {"DD_LOGS_INJECTION" => "false"}},
-              fleet: {id: nil, config: {"DD_APPSEC_ENABLED" => "true"}}
+              local: {config: {"DD_LOGS_INJECTION" => "false"}},
+              fleet: {config: {"DD_APPSEC_ENABLED" => "true"}}
             }
           )
         end
