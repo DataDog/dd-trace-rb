@@ -42,10 +42,18 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
             YAML
           )
 
+          test_configurator = Datadog::Core::Configuration::StableConfig::Configurator.new
+          Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
+            test_configurator,
+            File.join(tmpdir, 'application_monitoring.yaml')
+          )
+          Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
+            test_configurator,
+            File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')
+          )
+
           allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
-            Datadog::Core::Configuration::StableConfig::Configurator.new.
-              with_local_path(File.join(tmpdir, 'application_monitoring.yaml')).
-              with_fleet_path(File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')).get
+            test_configurator.get
           )
         end
 
@@ -86,10 +94,18 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
             YAML
           )
 
+          test_configurator = Datadog::Core::Configuration::StableConfig::Configurator.new
+          Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
+            test_configurator,
+            File.join(tmpdir, 'application_monitoring.yaml')
+          )
+          Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
+            test_configurator,
+            File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')
+          )
+
           allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
-            Datadog::Core::Configuration::StableConfig::Configurator.new.
-              with_local_path(File.join(tmpdir, 'application_monitoring.yaml')).
-              with_fleet_path(File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')).get
+            test_configurator.get
           )
         end
 

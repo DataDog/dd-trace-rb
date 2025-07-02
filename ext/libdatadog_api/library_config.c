@@ -7,9 +7,9 @@
 static VALUE _native_configurator_new(VALUE klass);
 static VALUE _native_configurator_get(VALUE self);
 
-// Used for testing
-static VALUE _native_configurator_with_local_path(VALUE self, VALUE path);
-static VALUE _native_configurator_with_fleet_path(VALUE self, VALUE path);
+// Used for testing in RSpec
+static VALUE _native_configurator_with_local_path(DDTRACE_UNUSED VALUE _self, VALUE rb_configurator, VALUE path);
+static VALUE _native_configurator_with_fleet_path(DDTRACE_UNUSED VALUE _self, VALUE rb_configurator, VALUE path);
 
 static VALUE config_vec_class = Qnil;
 
@@ -56,8 +56,10 @@ void library_config_init(VALUE core_module) {
   rb_define_alloc_func(configurator_class, _native_configurator_new);
   rb_define_method(configurator_class, "get", _native_configurator_get, 0);
 
-  rb_define_method(configurator_class, "with_local_path", _native_configurator_with_local_path, 1);
-  rb_define_method(configurator_class, "with_fleet_path", _native_configurator_with_fleet_path, 1);
+  // Used for testing in RSpec
+  VALUE testing_module = rb_define_module_under(stable_config_module, "Testing");
+  rb_define_singleton_method(testing_module, "with_local_path", _native_configurator_with_local_path, 2);
+  rb_define_singleton_method(testing_module, "with_fleet_path", _native_configurator_with_fleet_path, 2);
 
   rb_undef_alloc_func(config_vec_class); // It cannot be created from Ruby code and only serves as an intermediate object for the Ruby GC
 }
@@ -70,26 +72,26 @@ static VALUE _native_configurator_new(VALUE klass) {
   return TypedData_Wrap_Struct(klass, &configurator_typed_data, configurator);
 }
 
-static VALUE _native_configurator_with_local_path(VALUE self, VALUE path) {
+static VALUE _native_configurator_with_local_path(DDTRACE_UNUSED VALUE _self, VALUE rb_configurator, VALUE path) {
   ddog_Configurator *configurator;
-  TypedData_Get_Struct(self, ddog_Configurator, &configurator_typed_data, configurator);
+  TypedData_Get_Struct(rb_configurator, ddog_Configurator, &configurator_typed_data, configurator);
 
   ENFORCE_TYPE(path, T_STRING);
 
   ddog_library_configurator_with_local_path(configurator, cstr_from_ruby_string(path));
 
-  return self;
+  return Qnil;
 }
 
-static VALUE _native_configurator_with_fleet_path(VALUE self, VALUE path) {
+static VALUE _native_configurator_with_fleet_path(DDTRACE_UNUSED VALUE _self, VALUE rb_configurator, VALUE path) {
   ddog_Configurator *configurator;
-  TypedData_Get_Struct(self, ddog_Configurator, &configurator_typed_data, configurator);
+  TypedData_Get_Struct(rb_configurator, ddog_Configurator, &configurator_typed_data, configurator);
 
   ENFORCE_TYPE(path, T_STRING);
 
   ddog_library_configurator_with_fleet_path(configurator, cstr_from_ruby_string(path));
 
-  return self;
+  return Qnil;
 }
 
 static VALUE _native_configurator_get(VALUE self) {
