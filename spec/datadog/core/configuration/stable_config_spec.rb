@@ -18,24 +18,23 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
   describe '#configuration', skip: !LibdatadogHelpers.supported? do
     let(:tmpdir) { Dir.mktmpdir }
     before do
-      FileUtils.mkdir_p(File.join(tmpdir, 'managed/datadog-agent/stable'))
       File.write(
-        File.join(tmpdir, 'application_monitoring.yaml'),
+        File.join(tmpdir, 'local_config.yaml'),
         local_config_content
       )
       File.write(
-        File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml'),
+        File.join(tmpdir, 'fleet_config.yaml'),
         fleet_config_content
       )
 
       test_configurator = Datadog::Core::Configuration::StableConfig::Configurator.new
       Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
         test_configurator,
-        File.join(tmpdir, 'application_monitoring.yaml')
+        File.join(tmpdir, 'local_config.yaml')
       )
       Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
         test_configurator,
-        File.join(tmpdir, 'managed/datadog-agent/stable/application_monitoring.yaml')
+        File.join(tmpdir, 'fleet_config.yaml')
       )
 
       allow(Datadog::Core::Configuration::StableConfig).to receive(:extract_configuration).and_return(
