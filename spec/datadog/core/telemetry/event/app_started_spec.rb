@@ -183,6 +183,44 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       end
     end
 
+    context 'with stable config' do
+      context 'with config id' do
+        before do
+          allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
+            {
+              fleet: { id: '12345', config: { 'DD_APPSEC_ENABLED' => 'true' } },
+              local: { id: '56789', config: { 'DD_LOGS_INJECTION' => 'false' } },
+            }
+          )
+        end
+
+        it 'reports config id' do
+          expect(event.payload[:configuration]).to include(
+            { name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true, config_id: '12345' },
+            { name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false, config_id: '56789' },
+          )
+        end
+
+        context 'without config id' do
+          before do
+            allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
+              {
+                fleet: { config: { 'DD_APPSEC_ENABLED' => 'true' } },
+                local: { config: { 'DD_LOGS_INJECTION' => 'false' } }
+              }
+            )
+          end
+
+          it 'does not report config id' do
+            expect(event.payload[:configuration]).to include(
+              { name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true },
+              { name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false },
+            )
+          end
+        end
+      end
+    end
+
     context 'with nil configurations' do
       before do
         Datadog.configure do |c|
