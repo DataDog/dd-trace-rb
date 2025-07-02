@@ -37,6 +37,7 @@ module Datadog
         @exporter = exporter
         @transport = transport
         @profiler_failed = false
+        @stop_requested = false
 
         # Workers::Async::Thread settings
         self.fork_policy = fork_policy
@@ -67,6 +68,7 @@ module Datadog
           "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
         )
         on_failure_proc&.call
+        Datadog::Core::Telemetry::Logger.report(e, description: "Profiling::Scheduler thread error")
         raise
       ensure
         Datadog.logger.debug("#flush was interrupted or failed before it could complete") if interrupted
@@ -88,7 +90,7 @@ module Datadog
       end
 
       def work_pending?
-        !profiler_failed && exporter.can_flush?
+        !profiler_failed && exporter.can_flush? && (run_loop? || !stop_requested?)
       end
 
       def reset_after_fork
@@ -132,13 +134,19 @@ module Datadog
         begin
           transport.export(flush)
         rescue => e
-          Datadog.logger.error(
+          Datadog.logger.warn(
             "Unable to report profile. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
           )
           Datadog::Core::Telemetry::Logger.report(e, description: "Unable to report profile")
         end
 
+        @stop_requested = !run_loop?
+
         true
+      end
+
+      def stop_requested?
+        @stop_requested
       end
     end
   end

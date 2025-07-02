@@ -15,8 +15,6 @@ module Datadog
 
             def annotate_span_with_response!: (untyped span, untyped response, untyped request_options) -> (nil | untyped)
 
-            def annotate_span_with_error!: (untyped span, untyped error) -> untyped
-
             def datadog_configuration: (?::Symbol host) -> untyped
 
             def analytics_enabled?: (untyped request_options) -> untyped

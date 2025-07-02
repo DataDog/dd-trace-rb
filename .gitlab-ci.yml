@@ -8,7 +8,7 @@ stages:
   - benchmarks
 
 include:
-  - remote: https://gitlab-templates.ddbuild.io/libdatadog/include/one-pipeline.yml
+  - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
 
 variables:
@@ -163,9 +163,25 @@ deploy_to_reliability_env:
 #
 # We fetch the latest workflow runs from vaccine then match against the run name, polling until we find it.
 vaccine:
-  image: $DOCKER_REGISTRY/docker:20.10.13
+  image: registry.ddbuild.io/images/dd-octo-sts-ci-base:v68058725-73f34e7-2025.06-1
   tags: ["arch:amd64"]
   stage: vaccine
   needs: [create-multiarch-lib-injection-image]
-  script: |
-    .gitlab/scripts/vaccine.sh master "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
+
+  id_tokens:
+    DDOCTOSTS_ID_TOKEN:
+      aud: dd-octo-sts
+
+  before_script:
+    # Get a token
+    - dd-octo-sts version
+    # - dd-octo-sts debug --scope DataDog/vaccine --policy dd-trace-rb.dispatch # Uncomment to debug
+    - dd-octo-sts token --scope DataDog/vaccine --policy dd-trace-rb.dispatch > token.txt
+
+  script:
+    - export GITHUB_TOKEN=$(cat token.txt)
+    - .gitlab/scripts/vaccine.sh master "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
+
+  after_script:
+    # Revoke the token after usage
+    - dd-octo-sts revoke -t $(cat token.txt)

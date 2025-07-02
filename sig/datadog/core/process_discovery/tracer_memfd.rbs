@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    class ProcessDiscovery
+      class TracerMemfd
+        attr_accessor logger: Datadog::Core::Logger
+
+        def shutdown!: () -> void
+      end
+    end
+  end
+end

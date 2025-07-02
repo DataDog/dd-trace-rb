@@ -17,7 +17,7 @@ module Datadog
 
           module_function
 
-          def get_request_start(env, now = Time.now.utc)
+          def get_request_start(env, now = Core::Utils::Time.now.utc)
             header = env[REQUEST_START] || env[QUEUE_START]
             return unless header
 

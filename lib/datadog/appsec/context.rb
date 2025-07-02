@@ -9,6 +9,7 @@ module Datadog
     class Context
       ActiveContextError = Class.new(StandardError)
 
+      # TODO: add delegators for active trace span
       attr_reader :trace, :span, :events
 
       class << self
@@ -20,7 +21,7 @@ module Datadog
         end
 
         def deactivate
-          active&.finalize
+          active&.finalize!
         ensure
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = nil
         end
@@ -30,12 +31,11 @@ module Datadog
         end
       end
 
-      def initialize(trace, span, security_engine)
+      def initialize(trace, span, waf_runner)
         @trace = trace
         @span = span
         @events = []
-        @security_engine = security_engine
-        @waf_runner = security_engine.new_runner
+        @waf_runner = waf_runner
         @metrics = Metrics::Collector.new
       end
 
@@ -56,7 +56,7 @@ module Datadog
       end
 
       def extract_schema
-        @waf_runner.run({ 'waf.context.processor' => { 'extract-schema' => true } }, {})
+        @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
       end
 
       def export_metrics
@@ -66,8 +66,8 @@ module Datadog
         Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
       end
 
-      def finalize
-        @waf_runner.finalize
+      def finalize!
+        @waf_runner.finalize!
       end
     end
   end

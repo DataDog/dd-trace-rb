@@ -2,6 +2,13 @@ module Datadog
   module Tracing
     module Transport
       class TraceFormatter
+        @trace: untyped
+
+        @root_span: untyped
+        @first_span: untyped
+
+        @found_root_span: untyped
+
         attr_reader root_span: untyped
 
         attr_reader first_span: untyped
@@ -11,7 +18,6 @@ module Datadog
         def self.format!: (untyped trace) -> untyped
 
         def initialize: (untyped trace) -> void
-
         def format!: () -> (nil | untyped)
 
         def set_resource!: () -> (nil | untyped)
@@ -41,6 +47,8 @@ module Datadog
         def tag_sampling_priority!: () -> (nil | untyped)
 
         def tag_high_order_trace_id!: () -> (nil | untyped)
+
+        def tag_profiling_enabled!: () -> (nil | untyped)
 
         def tag_git_repository_url!: () -> (nil | untyped)
 

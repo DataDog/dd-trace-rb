@@ -1,15 +1,9 @@
 # frozen_string_literal: true
 
-require 'uri'
-
-require_relative '../../core/environment/container'
-require_relative '../../core/environment/ext'
-require_relative '../../core/transport/ext'
 require_relative 'diagnostics'
 require_relative 'input'
 require_relative 'http/api'
 require_relative '../../core/transport/http'
-require_relative '../../../datadog/version'
 
 module Datadog
   module DI
@@ -22,10 +16,12 @@ module Datadog
         # Pass a block to override any settings.
         def diagnostics(
           agent_settings:,
+          logger:,
           api_version: nil,
           headers: nil
         )
           Core::Transport::HTTP.build(api_instance_class: Diagnostics::API::Instance,
+            logger: logger,
             agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
             apis = API.defaults
 
@@ -40,10 +36,12 @@ module Datadog
         # Pass a block to override any settings.
         def input(
           agent_settings:,
+          logger:,
           api_version: nil,
           headers: nil
         )
           Core::Transport::HTTP.build(api_instance_class: Input::API::Instance,
+            logger: logger,
             agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
             apis = API.defaults
 

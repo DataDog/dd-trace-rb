@@ -1,12 +1,24 @@
 module Datadog
   module Tracing
-    def self.continue_trace!: (TraceDigest) ? { (untyped) -> untyped } -> untyped
-
-    def self.active_trace: -> TraceSegment?
-    def self.active_span: -> SpanOperation?
-
-    def self.enabled?: -> bool
-
     type on_error = ^(SpanOperation span_op, Exception error) -> void
+
+    def self.trace: (untyped name, ?continue_from: untyped?, ?on_error: untyped?, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?, ?id: untyped?) { (?) -> untyped } -> untyped
+    def self.continue_trace!: (TraceDigest digest) ?{ (?) -> untyped } -> untyped
+    def self.logger: () -> untyped
+    def self.active_trace: () -> TraceSegment?
+    def self.active_span: () -> SpanOperation?
+    def self.keep!: () -> untyped
+    def self.reject!: () -> untyped
+    def self.correlation: () -> Correlation::Identifier
+    def self.log_correlation: () -> ("" | untyped)
+    def self.baggage: () -> untyped
+    def self.shutdown!: () -> (nil | untyped)
+    def self.before_flush: (*untyped processors) { (?) -> untyped } -> untyped
+    def self.enabled?: () -> bool
+
+    private
+    def self.components: () -> untyped
+
+    def self.tracer: () -> untyped
   end
 end

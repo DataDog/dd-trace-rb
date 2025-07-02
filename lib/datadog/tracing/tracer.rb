@@ -273,7 +273,7 @@ module Datadog
       # Sample a span, tagging the trace as appropriate.
       def sample_trace(trace_op)
         begin
-          @sampler.sample!(trace_op)
+          @sampler.sample!(trace_op) if trace_op.sampling_priority.nil?
         rescue StandardError => e
           SAMPLE_TRACE_LOG_ONLY_ONCE.run do
             logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
@@ -342,6 +342,7 @@ module Datadog
                                 digest.trace_sampling_priority
                               end
           TraceOperation.new(
+            logger: logger,
             hostname: hostname,
             profiling_enabled: profiling_enabled,
             apm_tracing_enabled: apm_tracing_enabled,
@@ -359,6 +360,7 @@ module Datadog
           )
         else
           TraceOperation.new(
+            logger: logger,
             hostname: hostname,
             profiling_enabled: profiling_enabled,
             apm_tracing_enabled: apm_tracing_enabled,
@@ -376,7 +378,12 @@ module Datadog
           event_span_op.service ||= @default_service
         end
 
+        events.trace_propagated.subscribe do |event_trace_op|
+          sample_trace(event_trace_op)
+        end
+
         events.span_finished.subscribe do |event_span, event_trace_op|
+          sample_trace(trace_op) if event_trace_op.sampling_priority.nil?
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
         end
@@ -410,12 +417,13 @@ module Datadog
       )
         trace = _trace || start_trace(continue_from: continue_from)
 
-        events = SpanOperation::Events.new
+        events = SpanOperation::Events.new(logger: logger)
 
         if block
           # Ignore start time if a block has been given
           trace.measure(
             name,
+            logger: logger,
             events: events,
             on_error: on_error,
             resource: resource,
@@ -429,6 +437,7 @@ module Datadog
           # Return the new span
           span = trace.build_span(
             name,
+            logger: logger,
             events: events,
             on_error: on_error,
             resource: resource,
@@ -512,7 +521,6 @@ module Datadog
 
       # Flush finished spans from the trace buffer, send them to writer.
       def flush_trace(trace_op)
-        sample_trace(trace_op) unless trace_op.sampling_priority
         begin
           trace = @trace_flush.consume!(trace_op)
           write(trace) if trace && !trace.empty?
@@ -541,10 +549,10 @@ module Datadog
 
       # TODO: Make these dummy objects singletons to preserve memory.
       def skip_trace(name)
-        span = SpanOperation.new(name)
+        span = SpanOperation.new(name, logger: logger)
 
         if block_given?
-          trace = TraceOperation.new
+          trace = TraceOperation.new(logger: logger)
           yield(span, trace)
         else
           span
@@ -555,11 +563,15 @@ module Datadog
       # the upstream tags and the configuration.
       # We should always propagate if APM is enabled.
       #
-      # e.g.: upstream tags containing dd.p.appsec, and appsec is enabled, return true.
-      # DEV: dd.p.appsec will be replaced by dd.p.ts in APM disablement 2.0, which will be a bitmask.
+      # e.g.: upstream tags containing dd.p.ts: 02, and appsec is enabled, return true.
       def propagate_sampling_priority?(upstream_tags:)
         return true if apm_tracing_enabled
-        return appsec_enabled if upstream_tags&.key?(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT)
+
+        if upstream_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE)
+          appsec_bit = upstream_tags[Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE].to_i(16) &
+            Datadog::AppSec::Ext::PRODUCT_BIT
+          return appsec_enabled if appsec_bit != 0
+        end
 
         false
       end
@@ -579,7 +591,7 @@ module Datadog
       # Other products (like ASM) can then set the sampling priority of their traces to `MANUAL_KEEP`,
       # effectively allowing standalone products to work without APM.
       def apm_tracing_enabled
-        @apm_tracing_enabled ||= !Datadog.configuration.appsec.standalone.enabled
+        @apm_tracing_enabled ||= Datadog.configuration.apm.tracing.enabled
       end
     end
   end

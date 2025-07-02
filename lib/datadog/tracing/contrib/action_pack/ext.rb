@@ -16,6 +16,8 @@ module Datadog
           TAG_OPERATION_CONTROLLER = 'controller'
           TAG_ROUTE_ACTION = 'rails.route.action'
           TAG_ROUTE_CONTROLLER = 'rails.route.controller'
+          TAG_DB_RUNTIME = 'rails.db.runtime'
+          TAG_VIEW_RUNTIME = 'rails.view.runtime'
         end
       end
     end

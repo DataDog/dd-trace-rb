@@ -4,9 +4,12 @@ require 'json'
 
 require_relative 'gateway/request'
 require_relative 'gateway/response'
-require_relative '../../instrumentation/gateway'
-require_relative '../../processor'
+
+require_relative '../../event'
 require_relative '../../response'
+require_relative '../../api_security'
+require_relative '../../security_event'
+require_relative '../../instrumentation/gateway'
 
 require_relative '../../../tracing/client_ip'
 require_relative '../../../tracing/contrib/rack/header_collection'
@@ -36,14 +39,14 @@ module Datadog
             @rack_headers = {}
           end
 
-          # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
+          # rubocop:disable Metrics/MethodLength
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
             boot = Datadog::Core::Remote::Tie.boot
             Datadog::Core::Remote::Tie::Tracing.tag(boot, active_span)
 
-            processor = nil
+            security_engine = nil
             ready = false
             ctx = nil
 
@@ -53,11 +56,11 @@ module Datadog
             return @app.call(env) if active_context(env)
 
             Datadog::AppSec.reconfigure_lock do
-              processor = Datadog::AppSec.processor
+              security_engine = Datadog::AppSec.security_engine
 
-              if !processor.nil? && processor.ready?
+              if security_engine
                 ctx = Datadog::AppSec::Context.activate(
-                  Datadog::AppSec::Context.new(active_trace, active_span, processor)
+                  Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner)
                 )
 
                 env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
@@ -69,7 +72,7 @@ module Datadog
 
             return @app.call(env) unless ready
 
-            add_appsec_tags(processor, ctx)
+            add_appsec_tags(security_engine, ctx)
             add_request_tags(ctx, env)
 
             http_response = nil
@@ -97,20 +100,29 @@ module Datadog
               http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
             end
 
-            if AppSec.api_security_enabled?
-              ctx.events << {
-                trace: ctx.trace,
-                span: ctx.span,
-                waf_result: ctx.extract_schema,
-              }
+            # NOTE: This is not optimal, but in the current implementation
+            #       `gateway_response` is a container to dispatch response event
+            #       and in case of interruption it suppose to be `nil`.
+            #
+            #       `http_response` is a real response object in both cases, but
+            #       to save us some computations, we will use already pre-computed
+            #       `gateway_response` instead of re-creating it.
+            #
+            # WARNING: This part will be refactored.
+            tmp_response = if interrupt_params
+              Gateway::Response.new(http_response[2], http_response[0], http_response[1], context: ctx)
+            else
+              gateway_response
             end
 
-            ctx.events.each do |e|
-              e[:response] ||= gateway_response
-              e[:request]  ||= gateway_request
+            if AppSec::APISecurity.enabled? && AppSec::APISecurity.sample_trace?(ctx.trace) &&
+                AppSec::APISecurity.sample?(gateway_request.request, tmp_response.response)
+              ctx.events.push(
+                AppSec::SecurityEvent.new(ctx.extract_schema, trace: ctx.trace, span: ctx.span)
+              )
             end
 
-            AppSec::Event.record(ctx.span, *ctx.events)
+            AppSec::Event.record(ctx, request: gateway_request, response: gateway_response)
 
             http_response
           ensure
@@ -119,7 +131,7 @@ module Datadog
               Datadog::AppSec::Context.deactivate
             end
           end
-          # rubocop:enable Metrics/AbcSize,Metrics/MethodLength
+          # rubocop:enable Metrics/MethodLength
 
           private
 
@@ -143,7 +155,8 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
-          def add_appsec_tags(processor, context)
+          # standard:disable Metrics/MethodLength
+          def add_appsec_tags(security_engine, context)
             span = context.span
             trace = context.trace
 
@@ -153,20 +166,15 @@ module Datadog
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
-            if processor.diagnostics
-              diagnostics = processor.diagnostics
-
-              span.set_tag('_dd.appsec.event_rules.version', diagnostics['ruleset_version'])
+            if security_engine.ruleset_version
+              span.set_tag('_dd.appsec.event_rules.version', security_engine.ruleset_version)
 
               unless @oneshot_tags_sent
                 # Small race condition, but it's inoccuous: worst case the tags
                 # are sent a couple of times more than expected
                 @oneshot_tags_sent = true
 
-                span.set_tag('_dd.appsec.event_rules.loaded', diagnostics['rules']['loaded'].size.to_f)
-                span.set_tag('_dd.appsec.event_rules.error_count', diagnostics['rules']['failed'].size.to_f)
-                span.set_tag('_dd.appsec.event_rules.errors', JSON.dump(diagnostics['rules']['errors']))
-                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(processor.addresses))
+                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(security_engine.waf_addresses))
 
                 # Ensure these tags reach the backend
                 trace.keep!
@@ -177,7 +185,9 @@ module Datadog
               end
             end
           end
+          # standard:enable Metrics/MethodLength
 
+          # standard:disable Metrics/MethodLength
           def add_request_tags(context, env)
             span = context.span
 
@@ -200,6 +210,7 @@ module Datadog
               )
             end
           end
+          # standard:enable Metrics/MethodLength
 
           def to_rack_header(header)
             @rack_headers[header] ||= Datadog::Tracing::Contrib::Rack::Header.to_rack_header(header)

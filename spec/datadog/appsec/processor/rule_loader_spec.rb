@@ -10,9 +10,9 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
           {
             'id' => 1,
             'name' => 'Rule 1',
-            'tags' => { 'type' => 'flow1' },
+            'tags' => {'type' => 'flow1'},
             'conditions' => [
-              { 'operation' => 'match_regex', 'parameters' => { 'inputs' => ['value2'], 'regex' => 'rule1' } },
+              {'operation' => 'match_regex', 'parameters' => {'inputs' => ['value2'], 'regex' => 'rule1'}},
             ],
             'action' => 'record',
           }
@@ -66,7 +66,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
           description: 'libddwaf ruleset failed to load'
         )
 
-        expect(rules).to be_nil
+        expect { rules }.to raise_error(Errno::ENOENT)
       end
     end
 
@@ -97,7 +97,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
           description: 'libddwaf ruleset failed to load'
         )
 
-        expect(rules).to be_nil
+        expect { rules }.to raise_error(JSON::ParserError)
       end
     end
   end
@@ -120,7 +120,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
         it 'returns data information' do
           expect(data).to_not be_nil
           expect(data.size).to eq 1
-          rules_data = data[0][0]
+          rules_data = data[0]
 
           expect(rules_data).to_not be_nil
           expect(rules_data['id']).to eq 'blocked_ips'
@@ -142,7 +142,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
         it 'returns data information' do
           expect(data).to_not be_nil
           expect(data.size).to eq 1
-          rules_data = data[0][0]
+          rules_data = data[0]
 
           expect(rules_data).to_not be_nil
           expect(rules_data['id']).to eq 'blocked_users'

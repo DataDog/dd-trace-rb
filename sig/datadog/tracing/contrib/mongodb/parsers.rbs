@@ -8,7 +8,7 @@ module Datadog
 
         DEFAULT_OPTIONS: { exclude: untyped, show: untyped }
         PLACEHOLDER: "?"
-        def self?.query_builder: (untyped command_name, untyped database_name, untyped command) -> untyped
+        def self?.query_builder: (untyped command_name, untyped database_name, untyped command) -> Hash[untyped, untyped]
 
         def self?.quantization_options: () -> untyped
 

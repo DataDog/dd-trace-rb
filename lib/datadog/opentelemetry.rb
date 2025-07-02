@@ -30,7 +30,7 @@ module Datadog
 
     # Use `Datadog.logger` as the default logger
     def logger
-      @logger ||= ::Datadog.logger
+      ::Datadog.logger
     end
 
     ::OpenTelemetry.singleton_class.prepend(self)

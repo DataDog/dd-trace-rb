@@ -35,17 +35,17 @@ RSpec.describe Datadog::Core::Transport::HTTP do
       end
     end
 
-    context 'when Datadog.configuration.appsec.standalone.enabled' do
-      before { expect(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(asm_standalone_enabled) }
+    context 'when Datadog.configuration.apm.tracing.enabled' do
+      before { expect(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(apm_tracing_enabled) }
 
-      context 'is true' do
-        let(:asm_standalone_enabled) { true }
+      context 'is false' do
+        let(:apm_tracing_enabled) { false }
 
         it { is_expected.to include(Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS => 'yes') }
       end
 
-      context 'is false' do
-        let(:asm_standalone_enabled) { false }
+      context 'is true' do
+        let(:apm_tracing_enabled) { true }
 
         it { is_expected.to_not include(Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS) }
       end

@@ -13,18 +13,18 @@ module Datadog
 
         # @return [String] ISA of host; `uname -m`
         def architecture
-          Identity.lang_version >= '2.2' ? Etc.uname[:machine] : Gem::Platform.local.cpu
+          (Identity.lang_version >= '2.2') ? Etc.uname[:machine] : Gem::Platform.local.cpu
         end
 
         # @return [String] name of host; `uname -n`
         def hostname
-          Identity.lang_version >= '2.2' ? Etc.uname[:nodename] : nil
+          (Identity.lang_version >= '2.2') ? Etc.uname[:nodename] : nil
         end
 
         # System name, normally `Linux` or `Darwin` (but 'Mac OS X' on JRuby);
         # @return [String] name of kernel; `uname -s`.
         def kernel_name
-          Identity.lang_version >= '2.2' ? Etc.uname[:sysname] : Gem::Platform.local.os.capitalize
+          (Identity.lang_version >= '2.2') ? Etc.uname[:sysname] : Gem::Platform.local.os.capitalize
         end
 
         # @return [String] kernel release; `uname -r`

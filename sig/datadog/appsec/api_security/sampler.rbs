@@ -1,0 +1,27 @@
+module Datadog
+  module AppSec
+    module APISecurity
+      class Sampler
+        THREAD_KEY: Symbol
+
+        MAX_CACHE_SIZE: Integer
+
+        @cache: LRUCache
+
+        @sample_delay_seconds: Integer
+
+        def self.thread_local: () -> Sampler
+
+        def self.reset!: () -> void
+
+        def initialize: (Integer sample_delay) -> void
+
+        def sample?: (_Request request, _Response response) -> bool
+
+        private
+
+        def self.sample_delay: () -> Integer
+      end
+    end
+  end
+end

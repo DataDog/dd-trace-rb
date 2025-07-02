@@ -8,7 +8,7 @@ require 'datadog/tracing/flush'
 require 'datadog/tracing/sampling/priority_sampler'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
-require 'datadog/core/configuration/settings_spec'
+require_relative '../../core/configuration/settings_shared_examples'
 
 RSpec.describe Datadog::Tracing::Configuration::Settings do
   # TODO: Core::Configuration::Settings directly extends Tracing::Configuration::Settings
@@ -944,7 +944,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context 'is not defined' do
           let(:env_var) { nil }
 
-          it { is_expected.to eq(false) }
+          it { is_expected.to eq(true) }
         end
 
         context 'is `true`' do
@@ -964,10 +964,10 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     describe '#trace_id_128_bit_logging_enabled=' do
       it 'updates the #trace_id_128_bit_logging_enabled setting' do
         expect do
-          settings.tracing.trace_id_128_bit_logging_enabled = true
+          settings.tracing.trace_id_128_bit_logging_enabled = false
         end.to change { settings.tracing.trace_id_128_bit_logging_enabled }
-          .from(false)
-          .to(true)
+          .from(true)
+          .to(false)
       end
     end
 

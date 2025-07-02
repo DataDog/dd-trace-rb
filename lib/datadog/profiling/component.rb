@@ -96,6 +96,7 @@ module Datadog
           timeline_enabled: timeline_enabled,
           waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
           otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
+          native_filenames_enabled: settings.profiling.advanced.native_filenames_enabled,
         )
       end
 
@@ -221,13 +222,14 @@ module Datadog
         end
 
         unless allocation_profiling_enabled
-          raise ArgumentError, "Heap profiling requires allocation profiling to be enabled"
+          logger.warn(
+            "Heap profiling was requested but allocation profiling is not enabled. " \
+            "Heap profiling has been disabled."
+          )
+          return false
         end
 
-        logger.warn(
-          "Enabled experimental heap profiling: heap_sample_rate=#{heap_sample_rate}. This is experimental, not " \
-          "recommended, and will increase overhead!"
-        )
+        logger.debug("Enabled heap profiling: heap_sample_rate=#{heap_sample_rate}")
 
         true
       end
@@ -236,10 +238,6 @@ module Datadog
         heap_size_profiling_enabled = settings.profiling.advanced.experimental_heap_size_enabled
 
         return false unless heap_profiling_enabled && heap_size_profiling_enabled
-
-        logger.warn(
-          "Enabled experimental heap size profiling. This is experimental, not recommended, and will increase overhead!"
-        )
 
         true
       end

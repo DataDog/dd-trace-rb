@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Support
+        def fully_loaded?: (Module base_module, Symbol constant) -> bool
+      end
+    end
+  end
+end

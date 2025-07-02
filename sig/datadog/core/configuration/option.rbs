@@ -10,17 +10,21 @@ module Datadog
         @value_per_precedence: ::Hash[Precedence::Value, untyped]
 
         attr_reader definition: Configuration::OptionDefinition
-        attr_reader precedence_set: Configuration::OptionDefinition
+        attr_reader precedence_set: Precedence::Value
 
         module Precedence
           REMOTE_CONFIGURATION: Value
           PROGRAMMATIC: Value
+          FLEET_STABLE: Value
+          ENVIRONMENT: Value
+          LOCAL_STABLE: Value
           DEFAULT: Value
           LIST: [Value]
 
-          class Value < ::Struct[[int, Symbol]]
+          class Value < ::Struct[[int, Symbol, String]]
             attr_reader numeric: int
             attr_reader name: Symbol
+            attr_reader origin: String
           end
         end
 
@@ -50,7 +54,15 @@ module Datadog
 
         def context_eval: () { () -> untyped } -> untyped
 
-        def set_value_from_env_or_default: () -> untyped
+        def set_default_value: () -> void
+
+        def set_env_value: () -> void
+
+        def set_customer_stable_config_value: () -> void
+
+        def set_fleet_stable_config_value: () -> void
+
+        def get_value_and_resolved_env_from: (Hash[String, String] env_vars, ?source: String) -> [Hash[String, String] | Array[String] | String | Integer | Float | bool, String | nil]
       end
     end
   end

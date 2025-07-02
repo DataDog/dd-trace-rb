@@ -29,8 +29,8 @@ module Datadog
         # Helper function that delegates to Builder.new
         # but is under HTTP namespace so that client code requires this file
         # to get the adapters configured, and not the builder directly.
-        def build(api_instance_class:, agent_settings:, api_version: nil, headers: nil, &block)
-          Builder.new(api_instance_class: api_instance_class) do |transport|
+        def build(api_instance_class:, agent_settings:, logger: Datadog.logger, api_version: nil, headers: nil, &block)
+          Builder.new(api_instance_class: api_instance_class, logger: logger) do |transport|
             transport.adapter(agent_settings)
             transport.headers(default_headers)
 
@@ -62,7 +62,7 @@ module Datadog
               headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id
             end
             # TODO: inject configuration rather than reading from global here
-            if Datadog.configuration.appsec.standalone.enabled
+            unless Datadog.configuration.apm.tracing.enabled
               # Sending this header to the agent will disable metrics computation (and billing) on the agent side
               # by pretending it has already been done on the library side.
               headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS] = 'yes'

@@ -1,15 +1,18 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/emitter'
+require 'datadog/core/telemetry/transport/http'
+require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Core::Telemetry::Emitter do
-  subject(:emitter) { described_class.new(http_transport: http_transport) }
-  let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
-  let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
+  subject(:emitter) { described_class.new(transport, logger: logger) }
+  let(:logger) { logger_allowing_debug }
+  let(:transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
+  let(:response) { double(Datadog::Core::Transport::HTTP::Adapters::Net::Response) }
   let(:response_ok) { true }
 
   before do
-    allow(http_transport).to receive(:request).and_return(response)
+    allow(transport).to receive(:send_telemetry).and_return(response)
     emitter.class.sequence.reset!
   end
 
@@ -19,7 +22,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
   describe '#initialize' do
     it { is_expected.to be_a_kind_of(described_class) }
-    it { expect(emitter.http_transport).to be(http_transport) }
+    it { expect(emitter.transport).to be(transport) }
 
     it 'seq_id begins with 1' do
       original_seq_id = emitter.class.sequence.instance_variable_get(:@current)
@@ -33,22 +36,13 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
     let(:request_type) { double('request_type') }
     let(:payload) { { foo: 'bar' } }
 
-    before do
-      logger = double(Datadog::Core::Logger)
-      allow(logger).to receive(:debug)
-      allow(Datadog).to receive(:logger).and_return(logger)
-    end
-
     context 'when event' do
       context 'is invalid' do
         let(:event) { 'Not an event' }
 
         it do
+          expect_lazy_log(logger, :debug, /Unable to send telemetry request/)
           request
-
-          expect(Datadog.logger).to have_received(:debug) do |message|
-            expect(message).to include('Unable to send telemetry request')
-          end
         end
       end
 
@@ -69,16 +63,12 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
         context 'when call is not successful and debug logging is enabled' do
           let(:response) do
-            Datadog::Core::Telemetry::Http::InternalErrorResponse.new(StandardError.new('Failed call'))
+            Datadog::Core::Transport::InternalErrorResponse.new(StandardError.new('Failed call'))
           end
 
           it 'logs the request correctly' do
-            log_message = nil
-            expect(Datadog.logger).to receive(:debug) { |&message| log_message = message.call }
-
+            expect_lazy_log(logger, :debug, 'Telemetry sent for event')
             request
-
-            expect(log_message).to match('Telemetry sent for event')
           end
         end
       end
@@ -92,22 +82,22 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
       let(:payload) { { foo: 'bar' } }
 
       it 'creates a telemetry event with data' do
-        allow(Datadog::Core::Telemetry::Request).to receive(:build_payload).with(event, 1).and_return(payload)
+        allow(Datadog::Core::Telemetry::Request).to receive(:build_payload).with(event, 1, debug: false).and_return(payload)
 
         request
 
-        expect(http_transport).to have_received(:request).with(request_type: request_type, payload: '{"foo":"bar"}')
+        expect(transport).to have_received(:send_telemetry).with(request_type: request_type, payload: { foo: 'bar' })
       end
     end
   end
 
   describe 'when initialized multiple times' do
-    let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
+    let(:transport) { double(Datadog::Core::Telemetry::Transport::Telemetry::Transport) }
 
     context 'sequence is stored' do
       it do
-        emitter_first = described_class.new(http_transport: http_transport)
-        emitter_second = described_class.new(http_transport: http_transport)
+        emitter_first = described_class.new(transport)
+        emitter_second = described_class.new(transport)
         expect(emitter_first.class.sequence).to be(emitter_second.class.sequence)
       end
     end

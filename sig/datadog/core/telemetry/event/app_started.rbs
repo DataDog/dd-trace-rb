@@ -1,0 +1,30 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Event
+        class AppStarted < Base
+          def type: () -> "app-started"
+
+          def payload: () -> { products: untyped, configuration: untyped, install_signature: untyped }
+
+          private
+
+          def products: -> Hash[Symbol, Hash[Symbol, Hash[Symbol, String | Integer] | bool | nil]]
+
+          TARGET_OPTIONS: Array[String]
+          def configuration: -> Array[Hash[Symbol, untyped]]
+
+          def agent_transport: (untyped config) -> String
+
+          def conf_value: (String name, untyped value, Integer seq_id, String origin) -> Hash[Symbol, untyped]
+
+          def to_value: (Object value) -> Object
+
+          def install_signature: -> Hash[Symbol, Object]
+
+          def get_telemetry_origin: (untyped config, String config_path) -> String
+        end
+      end
+    end
+  end
+end

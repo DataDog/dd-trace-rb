@@ -33,7 +33,7 @@ module Datadog
 
         # OpenTelemetry SDK stores span event timestamps in nanoseconds (not seconds).
         # We will do the same here to avoid unnecessary conversions and inconsistencies.
-        @time_unix_nano = time_unix_nano || (Time.now.to_r * 1_000_000_000).to_i
+        @time_unix_nano = time_unix_nano || (Core::Utils::Time.now.to_r * 1_000_000_000).to_i
       end
 
       # Converts the span event into a hash to be used by with the span tag serialization

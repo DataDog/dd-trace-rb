@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.12.2)
-      datadog-ruby_core_source (~> 3.4)
-      libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.21.0.0.1)
+    datadog (2.17.0)
+      datadog-ruby_core_source (~> 3.4, >= 3.4.1)
+      libdatadog (~> 18.1.0.1.0)
+      libddwaf (~> 1.24.1.0.0)
       logger
       msgpack
 
@@ -21,7 +21,7 @@ GEM
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    datadog-ruby_core_source (3.4.0)
+    datadog-ruby_core_source (3.4.1)
     date (3.4.1)
     debug (1.10.0)
       irb (~> 1.10)
@@ -34,8 +34,8 @@ GEM
     ethon (0.16.0)
       ffi (>= 1.15.0)
     extlz4 (0.3.4)
-    ffi (1.17.1-aarch64-linux-gnu)
-    ffi (1.17.1-x86_64-linux-gnu)
+    ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-x86_64-linux-gnu)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
@@ -57,16 +57,16 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (16.0.1.1.0-aarch64-linux)
-    libdatadog (16.0.1.1.0-x86_64-linux)
-    libddwaf (1.21.0.0.1-aarch64-linux)
+    libdatadog (18.1.0.1.0-aarch64-linux)
+    libdatadog (18.1.0.1.0-x86_64-linux)
+    libddwaf (1.24.1.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.21.0.0.1-x86_64-linux)
+    libddwaf (1.24.1.0.0-x86_64-linux)
       ffi (~> 1.0)
     llhttp-ffi (0.3.1)
       ffi-compiler (~> 1.0)
       rake (~> 13.0)
-    logger (1.6.6)
+    logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     msgpack (1.8.0)

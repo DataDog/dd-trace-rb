@@ -37,6 +37,8 @@ module Datadog
 
           private
 
+          def resolve_option: (Symbol name) -> Option
+
           def add_option: (untyped name) -> untyped
 
           def assert_valid_option!: (untyped name) -> untyped

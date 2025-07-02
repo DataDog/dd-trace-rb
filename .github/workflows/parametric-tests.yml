@@ -14,12 +14,17 @@ on: # yamllint disable-line rule:truthy
 # Default permissions for all jobs
 permissions: {}
 
+env:
+  SYSTEM_TESTS_REF: 41b4d2ab45583fd444d37032e94dcd471d81388c # Automated: Can be updated by .github/workflows/update-system-tests.yml
+
 jobs:
   changes:
     name: Changes
     runs-on: ubuntu-24.04
     outputs:
       changes: ${{ steps.changes.outputs.src }}
+      FORCED_TESTS_LIST: ${{ steps.read_forced_tests_list.outputs.FORCED_TESTS_LIST }}
+      ST_REF: ${{ steps.outputs_branch.outputs.ST_REF }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -31,6 +36,7 @@ jobs:
         with:
           filters: |
             src:
+              - '.github/forced-tests-list.json'
               - '.github/workflows/**'
               - 'lib/**'
               - 'ext/**'
@@ -39,6 +45,20 @@ jobs:
               - '*.gemfile'
               - 'lib-injection/**'
               - 'tasks/**'
+      - name: Read forced-tests-list.json file
+        id: read_forced_tests_list
+        run: |
+          {
+            printf "FORCED_TESTS_LIST<<EOF\n"
+            cat .github/forced-tests-list.json
+            printf "\nEOF\n"
+          } >> "$GITHUB_OUTPUT"
+      # This may feel useless but we cannot access env in `with` block in parametric job, while we can access needs.changes.output
+      - name: Outputs branch
+        id: outputs_branch
+        env:
+          SYSTEM_TESTS_REF: ${{ env.SYSTEM_TESTS_REF }}
+        run: echo "ST_REF=${SYSTEM_TESTS_REF}" >> "$GITHUB_OUTPUT"
 
   build-artifacts:
     needs:
@@ -54,23 +74,43 @@ jobs:
           persist-credentials: false
           path: binaries/dd-trace-rb/
       - name: Upload artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: system_tests_binaries
           path: binaries/
 
   parametric:
+    name: Parametric Tests (with force tests)
     needs:
       - build-artifacts
       - changes
-    if: ${{ needs.changes.outputs.changes == 'true' }}
-    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+    if: ${{ needs.changes.outputs.changes == 'true' && needs.changes.outputs.FORCED_TESTS_LIST && !(fromJSON(needs.changes.outputs.FORCED_TESTS_LIST)['PARAMETRIC'] == null) }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
+    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+
     with:
       library: ruby
       binaries_artifact: system_tests_binaries
       job_count: 8
       job_matrix: "[1,2,3,4,5,6,7,8]"
+      ref: ${{ needs.changes.outputs.ST_REF }}
+      force_execute_tests: ${{ toJSON(fromJSON(needs.changes.outputs.FORCED_TESTS_LIST)['PARAMETRIC'])}}
+
+  parametric-without-force-tests:
+    name: Parametric Tests (without force tests)
+    needs:
+      - build-artifacts
+      - changes
+    if: ${{ needs.changes.outputs.changes == 'true' && !(needs.changes.outputs.FORCED_TESTS_LIST && !(fromJSON(needs.changes.outputs.FORCED_TESTS_LIST)['PARAMETRIC'] == null)) }}
+    secrets: inherit # zizmor: ignore[secrets-inherit]
+    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+
+    with:
+      library: ruby
+      binaries_artifact: system_tests_binaries
+      job_count: 8
+      job_matrix: "[1,2,3,4,5,6,7,8]"
+      ref: ${{ needs.changes.outputs.ST_REF }}
 
   complete:
     name: Parametric Tests (complete)

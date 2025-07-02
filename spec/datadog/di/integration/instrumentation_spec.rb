@@ -9,12 +9,20 @@ require 'datadog/di'
 # rubocop:disable Style/RescueModifier
 
 class InstrumentationSpecTestClass
+  def initialize
+    @ivar = 'start value'
+  end
+
   def test_method(a = 1)
     42
   end
 
   def mutating_method(greeting)
     greeting.sub!('hello', 'bye')
+  end
+
+  def ivar_mutating_method
+    @ivar.sub!('start value', 'altered value')
   end
 end
 
@@ -151,6 +159,7 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           expect(payload).to be_a(Hash)
+          expect(payload).to include(:"debugger.snapshot")
           snapshot = payload.fetch(:"debugger.snapshot")
           expect(snapshot[:captures]).to be nil
         end
@@ -301,8 +310,15 @@ RSpec.describe 'Instrumentation integration' do
         end
 
         let(:expected_captures) do
-          {entry: {arguments: {}, throwable: nil},
-           return: {arguments: {"@return": {type: 'Integer', value: '42'}}, throwable: nil},}
+          {
+            entry: {arguments: {
+              "@ivar": {type: 'String', value: 'start value'},
+            }, throwable: nil},
+            return: {arguments: {
+              "@ivar": {type: 'String', value: 'start value'},
+              "@return": {type: 'Integer', value: '42'},
+            }, throwable: nil},
+          }
         end
 
         it 'invokes probe' do
@@ -348,8 +364,10 @@ RSpec.describe 'Instrumentation integration' do
           let(:expected_captures) do
             {entry: {arguments: {
               arg1: {type: 'String', value: 'hello world'},
+              "@ivar": {type: 'String', value: 'start value'},
             }, throwable: nil},
              return: {arguments: {
+               "@ivar": {type: 'String', value: 'start value'},
                "@return": {type: 'String', value: 'bye world'},
              }, throwable: nil},}
           end
@@ -357,6 +375,30 @@ RSpec.describe 'Instrumentation integration' do
           it 'captures original argument value at entry' do
             run_test do
               expect(InstrumentationSpecTestClass.new.mutating_method('hello world')).to eq('bye world')
+            end
+          end
+        end
+
+        context 'when instance variable is mutated by method' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              type_name: 'InstrumentationSpecTestClass', method_name: 'ivar_mutating_method',
+              capture_snapshot: true,)
+          end
+
+          let(:expected_captures) do
+            {entry: {arguments: {
+              "@ivar": {type: 'String', value: 'start value'},
+            }, throwable: nil},
+             return: {arguments: {
+               "@ivar": {type: 'String', value: 'altered value'},
+               "@return": {type: 'String', value: 'altered value'},
+             }, throwable: nil},}
+          end
+
+          it 'captures original instance variable value at entry' do
+            run_test do
+              expect(InstrumentationSpecTestClass.new.ivar_mutating_method).to eq('altered value')
             end
           end
         end
@@ -410,7 +452,7 @@ RSpec.describe 'Instrumentation integration' do
       context 'simple log probe' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 10,
+            file: 'instrumentation_integration_test_class.rb', line_no: 20,
             capture_snapshot: false,)
         end
 
@@ -474,7 +516,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a method' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 12,
+              file: 'instrumentation_integration_test_class.rb', line_no: 22,
               capture_snapshot: false,)
           end
 
@@ -484,7 +526,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a block' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 22,
+              file: 'instrumentation_integration_test_class.rb', line_no: 33,
               capture_snapshot: false,)
           end
 
@@ -554,7 +596,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is else of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 32,
+              file: 'instrumentation_integration_test_class.rb', line_no: 44,
               capture_snapshot: false,)
           end
 
@@ -568,7 +610,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is end of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 34,
+              file: 'instrumentation_integration_test_class.rb', line_no: 46,
               capture_snapshot: false,)
           end
 
@@ -582,7 +624,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line contains a comment (no executable code)' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 40,
+              file: 'instrumentation_integration_test_class.rb', line_no: 50,
               capture_snapshot: false,)
           end
 
@@ -596,7 +638,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is in a loaded file that is not in code tracker' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 22,
+              file: 'instrumentation_integration_test_class.rb', line_no: 33,
               capture_snapshot: false,)
           end
 
@@ -630,13 +672,14 @@ RSpec.describe 'Instrumentation integration' do
       context 'enriched probe' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 10,
+            file: 'instrumentation_integration_test_class.rb', line_no: 20,
             capture_snapshot: true,)
         end
 
         let(:expected_captures) do
-          {lines: {10 => {locals: {
+          {lines: {20 => {locals: {
             a: {type: 'Integer', value: '21'},
+            "@ivar": {type: 'Integer', value: '51'},
             password: {type: 'String', notCapturedReason: 'redactedIdent'},
             redacted: {type: 'Hash', entries: [
               [{type: 'Symbol', value: 'b'}, {type: 'Integer', value: '33'}],
@@ -659,20 +702,45 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
         end
 
-        it 'assembles expected notification payload' do
-          expect(diagnostics_transport).to receive(:send_diagnostics)
-          # add_snapshot expectation replaces assertion on send_input
-          probe_manager.add_probe(probe)
-          payload = nil
-          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
-            payload = payload_
-          end
-          expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
-          component.probe_notifier_worker.flush
+        shared_examples 'assembles expected notification payload' do
+          it 'assembles expected notification payload' do
+            expect(diagnostics_transport).to receive(:send_diagnostics)
+            # add_snapshot expectation replaces assertion on send_input
+            probe_manager.add_probe(probe)
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+            expect(InstrumentationIntegrationTestClass.new.public_send(test_method_name)).to eq(42)
+            component.probe_notifier_worker.flush
 
-          expect(payload).to be_a(Hash)
-          captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
-          expect(captures).to eq(expected_captures)
+            expect(payload).to be_a(Hash)
+            captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+            expect(captures).to eq(expected_captures)
+          end
+        end
+
+        let(:test_method_name) { :test_method }
+
+        include_examples 'assembles expected notification payload'
+
+        context 'when there are instance variables but no local variables' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 7,
+              capture_snapshot: true,)
+          end
+
+          let(:expected_captures) do
+            {lines: {7 => {locals: {
+              # Reports instance variables but no locals
+              "@ivar": {type: 'Integer', value: '51'},
+            }}}}
+          end
+
+          let(:test_method_name) { :method_with_no_locals }
+
+          include_examples 'assembles expected notification payload'
         end
       end
 
@@ -751,7 +819,7 @@ RSpec.describe 'Instrumentation integration' do
           context 'untargeted trace points disabled' do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: 'instrumentation_integration_test_class_4.rb', line_no: 10,)
+                file: 'instrumentation_integration_test_class_4.rb', line_no: 20,)
             end
 
             before do
@@ -787,7 +855,7 @@ RSpec.describe 'Instrumentation integration' do
 
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 10,
+            file: 'instrumentation_integration_test_class.rb', line_no: 20,
             capture_snapshot: false,)
         end
 

@@ -57,10 +57,10 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.12.2)
-      datadog-ruby_core_source (~> 3.4)
-      libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.21.0.0.1)
+    datadog (2.17.0)
+      datadog-ruby_core_source (~> 3.4, >= 3.4.1)
+      libdatadog (~> 18.1.0.1.0)
+      libddwaf (~> 1.24.1.0.0)
       logger
       msgpack
 
@@ -81,15 +81,15 @@ GEM
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.4.0)
+    datadog-ruby_core_source (3.4.1)
     diff-lcs (1.5.0)
     digest (3.1.1)
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
     erubis (2.7.0)
     extlz4 (0.3.4)
-    ffi (1.17.1-aarch64-linux-gnu)
-    ffi (1.17.1-x86_64-linux-gnu)
+    ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-x86_64-linux-gnu)
     globalid (0.4.2)
       activesupport (>= 4.2.0)
     google-protobuf (3.19.1)
@@ -100,13 +100,13 @@ GEM
     io-wait (0.3.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (16.0.1.1.0-aarch64-linux)
-    libdatadog (16.0.1.1.0-x86_64-linux)
-    libddwaf (1.21.0.0.1-aarch64-linux)
+    libdatadog (18.1.0.1.0-aarch64-linux)
+    libdatadog (18.1.0.1.0-x86_64-linux)
+    libddwaf (1.24.1.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.21.0.0.1-x86_64-linux)
+    libddwaf (1.24.1.0.0-x86_64-linux)
       ffi (~> 1.0)
-    logger (1.6.6)
+    logger (1.7.0)
     loofah (2.22.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)

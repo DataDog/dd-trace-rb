@@ -171,7 +171,7 @@ module Datadog
       attr_reader :last_sent
 
       def status_transport
-        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings)
+        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings, logger: logger)
       end
 
       def do_send_status(batch)
@@ -179,11 +179,19 @@ module Datadog
       end
 
       def snapshot_transport
-        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings)
+        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger)
       end
 
       def do_send_snapshot(batch)
-        snapshot_transport.send_input(batch)
+        snapshot_transport.send_input(batch, tags)
+      end
+
+      def tags
+        # DEV: The tags could be cached but they need to be recreated
+        # when process forks (since the child receives new runtime IDs).
+        Core::TagBuilder.tags(settings).merge(
+          'debugger_version' => Core::Environment::Identity.gem_datadog_version,
+        )
       end
 
       [
@@ -225,20 +233,6 @@ module Datadog
           # Worker could be not running if the process forked - check and
           # start it again in this case.
           start
-        end
-
-        # Determine how much longer the worker thread should sleep
-        # so as not to send in less than min send interval since the last send.
-        # Important: this method must be called when @lock is held.
-        #
-        # Returns the time remaining to sleep.
-        def set_sleep_remaining
-          now = Core::Utils::Time.get_time
-          @sleep_remaining = if last_sent
-            [last_sent + min_send_interval - now, 0].max
-          else
-            0
-          end
         end
 
         public "add_#{event_type}"
@@ -285,6 +279,20 @@ module Datadog
           @lock.synchronize do
             @io_in_progress = false
           end
+        end
+      end
+
+      # Determine how much longer the worker thread should sleep
+      # so as not to send in less than min send interval since the last send.
+      # Important: this method must be called when @lock is held.
+      #
+      # Returns the time remaining to sleep.
+      def set_sleep_remaining
+        now = Core::Utils::Time.get_time
+        @sleep_remaining = if last_sent
+          [last_sent + min_send_interval - now, 0].max
+        else
+          0
         end
       end
 

@@ -11,19 +11,17 @@ module Datadog
 
       private
 
-      def self.incompatible_ffi_version?: () -> bool
-
-      def self.create_processor: (Core::Configuration::Settings settings, Core::Telemetry::Component telemetry) -> Processor?
+      def require_libddwaf: (telemetry: Core::Telemetry::Component) -> void
 
       public
 
-      attr_reader processor: Processor?
+      attr_reader security_engine: AppSec::SecurityEngine::Engine?
 
       attr_reader telemetry: Core::Telemetry::Component
 
-      def initialize: (Processor processor, Core::Telemetry::Component telemetry) -> void
+      def initialize: (AppSec::SecurityEngine::Engine security_engine, Core::Telemetry::Component telemetry) -> void
 
-      def reconfigure: (ruleset: Processor::RuleMerger::rules, telemetry: Core::Telemetry::Component) -> void
+      def reconfigure!: () -> void
 
       def reconfigure_lock: () { (?) -> void } -> void
 

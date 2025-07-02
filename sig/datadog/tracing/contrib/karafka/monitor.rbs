@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Karafka
+        module Monitor
+          @job_types_cache: untyped
+
+          TRACEABLE_EVENTS: ::Array["worker.processed"]
+
+          def instrument: (string event_id, ?untyped payload) { (?) -> untyped } -> untyped
+
+          private
+
+          def fetch_job_type: (string job_class) -> void
+        end
+      end
+    end
+  end
+end

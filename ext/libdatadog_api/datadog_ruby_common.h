@@ -27,6 +27,9 @@
 #define ENFORCE_BOOLEAN(value) \
   { if (RB_UNLIKELY(value != Qtrue && value != Qfalse)) raise_unexpected_type(value, ADD_QUOTES(value), "true or false", __FILE__, __LINE__, __func__); }
 
+#define ENFORCE_TYPED_DATA(value, type) \
+  { if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), "TypedData of type " ADD_QUOTES(type), __FILE__, __LINE__, __func__); }
+
 NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name));
 
 // Helper to retrieve Datadog::VERSION::STRING
@@ -36,6 +39,13 @@ static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   ENFORCE_TYPE(string, T_STRING);
   ddog_CharSlice char_slice = {.ptr = RSTRING_PTR(string), .len = RSTRING_LEN(string)};
   return char_slice;
+}
+
+static inline VALUE log_warning(VALUE warning) {
+  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  VALUE logger = rb_funcall(datadog_module, rb_intern("logger"), 0);
+
+  return rb_funcall(logger, rb_intern("warn"), 1, warning);
 }
 
 __attribute__((warn_unused_result))

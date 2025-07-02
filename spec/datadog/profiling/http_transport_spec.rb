@@ -26,7 +26,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   end
 
   let(:agent_settings) do
-    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+    Datadog::Core::Configuration::AgentSettings.new(
       adapter: adapter,
       uds_path: uds_path,
       ssl: ssl,
@@ -48,8 +48,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     Datadog::Profiling::Flush.new(
       start: start,
       finish: finish,
-      pprof_file_name: pprof_file_name,
-      pprof_data: pprof_data,
+      encoded_profile: encoded_profile,
       code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
@@ -57,17 +56,18 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       info_json: info_json,
     )
   end
-  let(:start_timestamp) { "2022-02-07T15:59:53.987654321Z" }
-  let(:end_timestamp) { "2023-11-11T16:00:00.123456789Z" }
-  let(:start) { Time.iso8601(start_timestamp) }
-  let(:finish) { Time.iso8601(end_timestamp) }
-  let(:pprof_file_name) { "the_pprof_file_name.pprof" }
-  let(:pprof_data) { "the_pprof_data" }
+  let(:serialize_result) { Datadog::Profiling::StackRecorder.for_testing.serialize }
+  let(:start) { serialize_result[0] }
+  let(:finish) { serialize_result[1] }
+  let(:encoded_profile) { serialize_result[2] }
+  let(:start_timestamp) { start.iso8601(9) }
+  let(:end_timestamp) { finish.iso8601(9) }
+  let(:pprof_file_name) { "profile.pprof" }
   let(:code_provenance_file_name) { "the_code_provenance_file_name.json" }
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
   let(:info_json) do
-    JSON.fast_generate(
+    JSON.generate(
       {
         application: {
           start_time: "2024-01-24T11:17:22Z"
@@ -186,31 +186,12 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     subject(:export) { http_transport.export(flush) }
 
     it "calls the native export method with the data from the flush" do
-      # Manually converted from the lets above :)
       upload_timeout_milliseconds = 10_000
-      start_timespec_seconds = 1644249593
-      start_timespec_nanoseconds = 987654321
-      finish_timespec_seconds = 1699718400
-      finish_timespec_nanoseconds = 123456789
-
-      internal_metadata_json = '{"no_signals_workaround_enabled":true}'
-
-      info_json = '{"application":{"start_time":"2024-01-24T11:17:22Z"},"runtime":{"engine":"ruby"}}'
 
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
         upload_timeout_milliseconds,
-        start_timespec_seconds,
-        start_timespec_nanoseconds,
-        finish_timespec_seconds,
-        finish_timespec_nanoseconds,
-        pprof_file_name,
-        pprof_data,
-        code_provenance_file_name,
-        code_provenance_data,
-        tags_as_array,
-        internal_metadata_json,
-        info_json,
+        flush,
       ).and_return([:ok, 200])
 
       export
@@ -219,6 +200,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     context "when successful" do
       before do
         expect(described_class).to receive(:_native_do_export).and_return([:ok, 200])
+        serialize_result # Trigger the serialization
       end
 
       it "logs a debug message" do
@@ -234,12 +216,12 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       context "with a http status code" do
         before do
           expect(described_class).to receive(:_native_do_export).and_return([:ok, 500])
-          allow(Datadog.logger).to receive(:error)
+          allow(Datadog.logger).to receive(:warn)
           allow(Datadog::Core::Telemetry::Logger).to receive(:error)
         end
 
         it "logs an error message" do
-          expect(Datadog.logger).to receive(:error).with(
+          expect(Datadog.logger).to receive(:warn).with(
             "Failed to report profiling data (agent: http://192.168.0.1:12345/): " \
             "server returned unexpected HTTP 500 status code"
           )
@@ -261,12 +243,12 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       context "with a failure without an http status code" do
         before do
           expect(described_class).to receive(:_native_do_export).and_return([:error, "Some error message"])
-          allow(Datadog.logger).to receive(:error)
+          allow(Datadog.logger).to receive(:warn)
           allow(Datadog::Core::Telemetry::Logger).to receive(:error)
         end
 
         it "logs an error message" do
-          expect(Datadog.logger).to receive(:error)
+          expect(Datadog.logger).to receive(:warn)
             .with("Failed to report profiling data (agent: http://192.168.0.1:12345/): Some error message")
 
           export
@@ -293,43 +275,18 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
   context "integration testing" do
     shared_context "HTTP server" do
-      let(:server) do
-        WEBrick::HTTPServer.new(
-          Port: 0,
-          Logger: log,
-          AccessLog: access_log,
-          StartCallback: -> { init_signal.push(1) }
-        )
+      http_server do |http_server|
+        http_server.mount_proc('/', &server_proc)
       end
       let(:hostname) { "127.0.0.1" }
-      let(:log) { WEBrick::Log.new($stderr, WEBrick::Log::WARN) }
-      let(:access_log_buffer) { StringIO.new }
-      let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
       let(:server_proc) do
         proc do |req, res|
           messages << req.tap { req.body } # Read body, store message before socket closes.
           res.body = "{}"
         end
       end
-      let(:init_signal) { Queue.new }
 
       let(:messages) { [] }
-
-      before do
-        server.mount_proc("/", &server_proc)
-        @server_thread = Thread.new { server.start }
-        init_signal.pop
-      end
-
-      after do
-        unless RSpec.current_example.skipped?
-          # When the test is skipped, server has not been initialized and @server_thread would be nil; thus we only
-          # want to touch them when the test actually run, otherwise we would cause the server to start (incorrectly)
-          # and join to be called on a nil @server_thread
-          server.shutdown
-          @server_thread.join
-        end
-      end
     end
 
     include_context "HTTP server"
@@ -337,9 +294,25 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     let(:request) { messages.first }
 
     let(:hostname) { "127.0.0.1" }
-    let(:port) { server[:Port] }
+    let(:port) { http_server_port }
+
+    let!(:encoded_profile_bytes) { encoded_profile._native_bytes }
 
     shared_examples "correctly reports profiling data" do
+      let(:expected_data_in_payload) {
+        {
+          "attachments" => contain_exactly(pprof_file_name, code_provenance_file_name),
+          "tags_profiler" => start_with("tag_a:value_a,tag_b:value_b,runtime_platform:#{RUBY_PLATFORM.split("-").first}"),
+          "start" => start_timestamp,
+          "end" => end_timestamp,
+          "family" => "ruby",
+          "version" => "4",
+          "endpoint_counts" => nil,
+          "internal" => hash_including("no_signals_workaround_enabled" => true),
+          "info" => info_string_keys,
+        }
+      }
+
       it "correctly reports profiling data" do
         success = http_transport.export(flush)
 
@@ -356,17 +329,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
 
-        expect(event_data).to match(
-          "attachments" => contain_exactly(pprof_file_name, code_provenance_file_name),
-          "tags_profiler" => "tag_a:value_a,tag_b:value_b",
-          "start" => start_timestamp,
-          "end" => end_timestamp,
-          "family" => "ruby",
-          "version" => "4",
-          "endpoint_counts" => nil,
-          "internal" => {"no_signals_workaround_enabled" => true},
-          "info" => info_string_keys,
-        )
+        expect(event_data).to match(expected_data_in_payload)
       end
 
       it "reports the payload as lz4-compressed files, that get automatically compressed by libdatadog" do
@@ -378,7 +341,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
         # The pprof data is compressed in the datadog serializer, nothing to do
-        expect(body.fetch(pprof_file_name)).to eq pprof_data
+        expect(body.fetch(pprof_file_name)).to eq encoded_profile_bytes
         # This one needs to be compressed
         expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
       end
@@ -405,56 +368,30 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
 
-        expect(event_data).to eq(
-          "attachments" => [pprof_file_name],
-          "tags_profiler" => "tag_a:value_a,tag_b:value_b",
-          "start" => start_timestamp,
-          "end" => end_timestamp,
-          "family" => "ruby",
-          "version" => "4",
-          "endpoint_counts" => nil,
-          "internal" => {"no_signals_workaround_enabled" => true},
-          "info" => info_string_keys,
-        )
+        expect(event_data).to match(expected_data_in_payload.merge("attachments" => [pprof_file_name]))
 
         expect(body[code_provenance_file_name]).to be nil
       end
     end
 
     context "via unix domain socket" do
-      let(:temporary_directory) { Dir.mktmpdir }
-      let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
-      let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
-      let(:server) do
-        server = WEBrick::HTTPServer.new(
-          DoNotListen: true,
-          Logger: log,
-          AccessLog: access_log,
-          StartCallback: -> { init_signal.push(1) }
-        )
-        server.listeners << unix_domain_socket
-        server
+      define_http_server_uds do |http_server|
+        http_server.mount_proc('/', &server_proc)
       end
       let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
-      let(:uds_path) { socket_path }
-
-      after do
-        FileUtils.remove_entry(temporary_directory)
-      rescue Errno::ENOENT => _e
-        # Do nothing, it's ok
-      end
+      let(:uds_path) { uds_socket_path }
 
       include_examples "correctly reports profiling data"
     end
 
     context "when agent is down" do
       before do
-        server.shutdown
+        http_server.shutdown
         @server_thread.join
       end
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:error).with(/error trying to connect/)
+        expect(Datadog.logger).to receive(:warn).with(/ddog_prof_Exporter_send failed/)
         expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to report profiling data")
 
         http_transport.export(flush)
@@ -466,7 +403,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:server_proc) { proc { sleep 0.05 } }
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:error).with(/timed out/)
+        expect(Datadog.logger).to receive(:warn).with(/timed out/)
         expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to report profiling data")
 
         http_transport.export(flush)
@@ -477,7 +414,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:server_proc) { proc { |_req, res| res.status = 418 } }
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:error).with(/unexpected HTTP 418/)
+        expect(Datadog.logger).to receive(:warn).with(/unexpected HTTP 418/)
         expect(Datadog::Core::Telemetry::Logger)
           .to receive(:error).with("Failed to report profiling data: unexpected HTTP 418 status code")
 
@@ -489,7 +426,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:server_proc) { proc { |_req, res| res.status = 503 } }
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:error).with(/unexpected HTTP 503/)
+        expect(Datadog.logger).to receive(:warn).with(/unexpected HTTP 503/)
         expect(Datadog::Core::Telemetry::Logger)
           .to receive(:error).with("Failed to report profiling data: unexpected HTTP 503 status code")
 
@@ -513,7 +450,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
 
-        expect(event_data["tags_profiler"]).to eq "valid1:valid1,valid2:valid2"
+        expect(event_data["tags_profiler"]).to start_with("valid1:valid1,valid2:valid2,runtime_platform:")
       end
 
       it "logs a warning" do
