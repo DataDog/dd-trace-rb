@@ -20,8 +20,6 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       let(:tmpdir) { Dir.mktmpdir }
       context 'with config_id' do
         before do
-          Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
-
           FileUtils.mkdir_p(File.join(tmpdir, 'managed/datadog-agent/stable'))
           # local config
           File.write(
@@ -74,8 +72,6 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       context 'without config_id' do
         let(:tmpdir) { Dir.mktmpdir }
         before do
-          Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
-
           FileUtils.mkdir_p(File.join(tmpdir, 'managed/datadog-agent/stable'))
           # local config
           File.write(
