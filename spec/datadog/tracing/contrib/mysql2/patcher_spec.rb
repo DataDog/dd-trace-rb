@@ -146,7 +146,7 @@ RSpec.describe 'Mysql2::Client patcher' do
             query
 
             expect(span.get_tag('db.instance')).to be_nil
-            expect(span.get_tag('mysql2.db.name')).to eq('')
+            expect(span.get_tag('mysql2.db.name')).to be_nil
           end
         end
       end

@@ -93,10 +93,10 @@ module Datadog
               return if database.nil? || database.empty?
 
               span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, database)
+              span.set_tag(Ext::TAG_DB_NAME, database)
             end
 
             def set_span_tags(span, query_options)
-              span.set_tag(Ext::TAG_DB_NAME, query_options[:database])
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, query_options[:host])
