@@ -1,0 +1,17 @@
+{
+  "supportedConfigurations": {
+    "OTEL_TRACES_SAMPLER_ARG": {
+      "version": ["A"]
+    },
+    "DD_TRACE_SAMPLING_RULES": {
+      "version": ["A"]
+    },
+    "DD_SPAN_SAMPLING_RULES_FILE": {
+      "version": ["A"]
+    },
+    "DD_PROFILING_GVL_ENABLED": {
+      "version": ["A"],
+      "deprecated": ["DD_PROFILING_PREVIEW_GVL_ENABLED"]
+    }
+  }
+}
