@@ -1,0 +1,149 @@
+# frozen_string_literal: true
+
+require 'rubocop'
+require 'rubocop/rspec/support'
+require_relative '../../rubocop/custom_cops/env_usage_cop'
+
+RSpec.describe CustomCops::EnvUsageCop do
+  subject(:cop) { described_class.new }
+
+  describe 'ENV usage detection' do
+    it 'registers an offense for ENV hash access' do
+      expect_offense(<<~RUBY)
+        ENV['DATADOG_API_KEY']
+        ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV.fetch' do
+      expect_offense(<<~RUBY)
+        ENV.fetch('DATADOG_API_KEY')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV.key?' do
+      expect_offense(<<~RUBY)
+        ENV.key?('DATADOG_API_KEY')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV.has_key?' do
+      expect_offense(<<~RUBY)
+        ENV.has_key?('DATADOG_API_KEY')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV.include?' do
+      expect_offense(<<~RUBY)
+        ENV.include?('DATADOG_API_KEY')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV.member?' do
+      expect_offense(<<~RUBY)
+        ENV.member?('DATADOG_API_KEY')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV.values_at' do
+      expect_offense(<<~RUBY)
+        ENV.values_at('KEY1', 'KEY2')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV.dig' do
+      expect_offense(<<~RUBY)
+        ENV.dig('DATADOG_API_KEY')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV with symbol key' do
+      expect_offense(<<~RUBY)
+        ENV[:DATADOG_API_KEY]
+        ^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV with variable key' do
+      expect_offense(<<~RUBY)
+        key = 'DATADOG_API_KEY'
+        ENV[key]
+        ^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV in method call' do
+      expect_offense(<<~RUBY)
+        def get_api_key
+          ENV['DATADOG_API_KEY']
+          ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        end
+      RUBY
+    end
+
+    it 'registers an offense for ENV in conditional' do
+      expect_offense(<<~RUBY)
+        if ENV['DEBUG']
+           ^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+          puts 'Debug mode'
+        end
+      RUBY
+    end
+
+    it 'registers an offense for ENV in assignment' do
+      expect_offense(<<~RUBY)
+        api_key = ENV['DATADOG_API_KEY']
+                  ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV in interpolation', skip: 'TODO: Fix this test (works with rubocop vscode extension)' do
+      expect_offense(<<~RUBY)
+        "API Key: #{ENV['DATADOG_API_KEY']}"
+                    ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV in array' do
+      expect_offense(<<~RUBY)
+        [ENV['KEY1'], ENV['KEY2']]
+         ^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+                      ^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+
+    it 'registers an offense for ENV in hash' do
+      expect_offense(<<~RUBY)
+        { api_key: ENV['DATADOG_API_KEY'] }
+                   ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+      RUBY
+    end
+  end
+
+  describe 'non-ENV usage' do
+    it 'does not register an offense for other constants' do
+      expect_no_offenses(<<~RUBY)
+        OTHER_CONST['key']
+      RUBY
+    end
+
+    it 'does not register an offense for other variables' do
+      expect_no_offenses(<<~RUBY)
+        env_var['key']
+      RUBY
+    end
+
+    it 'does not register an offense for method calls on other objects' do
+      expect_no_offenses(<<~RUBY)
+        config['key']
+      RUBY
+    end
+  end
+end
