@@ -5,15 +5,17 @@ require 'datadog/tracing/contrib/rack/trace_proxy_middleware'
 RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
   describe '#call' do
     let(:service) { 'nginx' }
+    let(:env) { double('ENV') }
+
+    before do
+      expect(Datadog::Tracing::Contrib::Rack::QueueTime).to receive(:get_request_start).with(env).and_return(timestamp)
+    end
 
     context 'when given timestamp' do
       let(:timestamp) { Time.now.utc }
 
       context 'when request_queuing: true' do
         it 'behaves like request_queuing: :exclude_request' do
-          env = double
-          expect(Datadog::Tracing::Contrib::Rack::QueueTime).to receive(:get_request_start).with(env).and_return(timestamp)
-
           result = described_class.call(env, request_queuing: true, web_service_name: service) { :success }
 
           expect(result).to eq :success
@@ -41,13 +43,25 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
           expect(queue_span.get_tag('span.kind')).to eq('proxy')
           expect(queue_span).to be_measured
         end
+
+        context 'when the request fails' do
+          it 'finishes the spans even if an exception is raised' do
+            expect do
+              described_class.call(env, request_queuing: true, web_service_name: service) { raise 'error' }
+            end.to raise_error('error')
+
+            expect(spans).to have(2).items
+            queue_span, request_span = spans
+            expect(request_span).to be_root_span
+            expect(queue_span.parent_id).to eq(request_span.id)
+            expect(request_span).to be_finished
+            expect(queue_span).to be_finished
+          end
+        end
       end
 
       context 'when request_queuing: false' do
         it 'does not create spans' do
-          env = double
-          allow(Datadog::Tracing::Contrib::Rack::QueueTime).to receive(:get_request_start).with(env).and_return(timestamp)
-
           result = described_class.call(env, request_queuing: false, web_service_name: service) { :success }
 
           expect(result).to eq :success
@@ -57,14 +71,11 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       end
     end
 
-    context 'when given withouht timestamp' do
+    context 'when given without timestamp' do
       let(:timestamp) { nil }
 
       context 'when request_queuing: true' do
         it 'does not create spans' do
-          env = double
-          expect(Datadog::Tracing::Contrib::Rack::QueueTime).to receive(:get_request_start).with(env).and_return(timestamp)
-
           result = described_class.call(env, request_queuing: true, web_service_name: service) { :success }
 
           expect(result).to eq :success
@@ -75,9 +86,6 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
 
       context 'when request_queuing: false' do
         it 'does not create spans' do
-          env = double
-          allow(Datadog::Tracing::Contrib::Rack::QueueTime).to receive(:get_request_start).with(env).and_return(timestamp)
-
           result = described_class.call(env, request_queuing: false, web_service_name: service) { :success }
 
           expect(result).to eq :success
