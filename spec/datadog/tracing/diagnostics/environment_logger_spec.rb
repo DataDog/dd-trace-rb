@@ -234,5 +234,76 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         it { is_expected.to include agent_error: include('msg') }
       end
     end
+
+    describe '#sample_rate' do
+      subject(:sample_rate) { described_class.sample_rate }
+      let(:default_rate) { 0.5 }
+
+      context 'when sampler is nil' do
+        before do
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(nil)
+          allow(Datadog.configuration.tracing.sampling).to receive(:default_rate).and_return(default_rate)
+        end
+
+        it { is_expected.to eq(0.5) }
+      end
+
+      context 'when accessing default_rate raises an error' do
+        before do
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(nil)
+          allow(Datadog.configuration.tracing.sampling).to receive(:default_rate).and_raise(StandardError)
+        end
+
+        it { is_expected.to be_nil }
+      end
+
+      context 'when sampler raises error' do
+        before do
+          sampler = double('sampler')
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(sampler)
+          allow(sampler).to receive(:sample_rate).with(nil).and_raise(StandardError)
+        end
+
+        it { is_expected.to be_nil }
+      end
+    end
+
+    describe '#sampling_rules' do
+      subject(:sampling_rules_result) { described_class.sampling_rules }
+      let(:sampling_rules) { [{ service: 'my-ruby-app', sample_rate: 0.5 }] }
+
+      context 'when sampler is nil' do
+        before do
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(nil)
+          allow(Datadog.configuration.tracing.sampling).to receive(:rules).and_return(sampling_rules)
+        end
+
+        it 'returns rules from configuration' do
+          sampling_rules_result.each do |rule|
+            expect(rule[:service]).to eq('my-ruby-app')
+            expect(rule[:sample_rate]).to eq(0.5)
+          end
+        end
+      end
+
+      context 'when accessing rules raises an error' do
+        before do
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(nil)
+          allow(Datadog.configuration.tracing.sampling).to receive(:rules).and_raise(StandardError)
+        end
+
+        it { is_expected.to be_nil }
+      end
+
+      context 'when sampler processing raises error' do
+        before do
+          sampler = double('sampler')
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(sampler)
+          allow(sampler).to receive(:is_a?).with(Datadog::Tracing::Sampling::PrioritySampler).and_raise(StandardError)
+        end
+
+        it { is_expected.to be_nil }
+      end
+    end
   end
 end
