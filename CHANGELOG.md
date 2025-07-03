@@ -26,7 +26,7 @@ Tracing: Add support for `DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED` to tag runtime 
 ### Fixed
 
 * AppSec: Fix authenticated users tracking in anonymization mode for Devise ([#4731][])
-* Dynamic Instrumentation: Fix source code display in live debugger ([#4743][])
+* Dynamic Instrumentation: Fix source code display in dynamic instrumentation/live debugger ([#4743][])
 * Profiling: Fix profiler stopping due to bug in heap profiling serialization ([#4721][])
 
 ## [2.17.0] - 2025-06-02
