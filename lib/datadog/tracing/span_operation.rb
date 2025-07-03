@@ -316,7 +316,7 @@ module Datadog
           'exception.stacktrace' => exc.backtrace,
         }
 
-        @span_events << SpanEvent.new('exception', attributes: event_attributes.merge(attributes))
+        @span_events << SpanEvent.new('exception', attributes: event_attributes.merge!(attributes)) # steep:ignore
       end
 
       # Return a string representation of the span.
