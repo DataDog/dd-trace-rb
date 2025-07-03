@@ -138,6 +138,17 @@ RSpec.describe 'Mysql2::Client patcher' do
           let(:peer_service_val) { database }
           let(:peer_service_source) { 'mysql2.db.name' }
         end
+
+        context 'and the database name is empty' do
+          let(:database) { '' }
+
+          it 'does not set database name related tags' do
+            query
+
+            expect(span.get_tag('db.instance')).to be_nil
+            expect(span.get_tag('mysql2.db.name')).to eq('')
+          end
+        end
       end
 
       context 'when a failed query is made' do

@@ -47,7 +47,7 @@ module Datadog
 
                 tag_database_instance(span, query_options[:database])
 
-                set_span_tags(span, options)
+                set_span_tags(span, query_options)
 
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
