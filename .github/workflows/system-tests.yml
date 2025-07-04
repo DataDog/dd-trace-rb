@@ -22,7 +22,7 @@ permissions: {}
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: bdd462533169d3ae2d6e47a3d455e9f8553d80a3 # Automated: This reference is automatically updated.
+  SYSTEM_TESTS_REF: 316900e2a7466555951a341e6f2bedd4bf261097 # Automated: This reference is automatically updated.
 
 jobs:
   changes:
