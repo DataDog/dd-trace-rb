@@ -86,7 +86,6 @@ module Datadog
             Datadog.logger.error(e.message)
             Datadog::Core::Telemetry::Logger.report(e)
           end
-          # rubocop:enable Metrics/AbcSize
 
           def handle_response(span, env, options)
             span.set_error(["Error #{env[:status]}", env[:body]]) if options[:error_status_codes].include? env[:status]
@@ -100,6 +99,8 @@ module Datadog
             Datadog.logger.error(e.message)
             Datadog::Core::Telemetry::Logger.report(e)
           end
+
+          # rubocop:enable Metrics/AbcSize
 
           def propagate!(trace, span, env)
             Contrib::HTTP.inject(trace, env[:request_headers])

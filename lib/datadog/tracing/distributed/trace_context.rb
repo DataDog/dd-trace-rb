@@ -148,7 +148,7 @@ module Datadog
 
         # @see https://www.w3.org/TR/trace-context/#tracestate-header
         def build_tracestate(digest)
-          tracestate = String.new('dd=')
+          tracestate = +'dd='
           tracestate << last_dd_parent_id(digest)
           tracestate << "s:#{digest.trace_sampling_priority};" if digest.trace_sampling_priority
           tracestate << "o:#{serialize_origin(digest.trace_origin)};" if digest.trace_origin
@@ -350,7 +350,7 @@ module Datadog
               tags ||= {}
               tags["#{Tracing::Metadata::Ext::Distributed::TAGS_PREFIX}#{key}"] = value
             else
-              unknown_fields ||= String.new
+              unknown_fields ||= +''
               unknown_fields << pair
               unknown_fields << ';'
             end
