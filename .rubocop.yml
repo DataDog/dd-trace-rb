@@ -1,6 +1,5 @@
 inherit_from:
   - .rubocop_todo.yml
-  - .customcops.yml
 
 require:
   - rubocop-packaging

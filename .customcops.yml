@@ -6,6 +6,6 @@ CustomCops/EnvUsageCop:
   Enabled: true
   Description: 'Prevents direct usage of ENV to access environment variables'
   Include:
-    - "lib/**/*.rb"
+    - "lib/**/*"
   Exclude:
     - "lib/datadog/core/configuration/config_helper.rb"
