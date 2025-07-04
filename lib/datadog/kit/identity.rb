@@ -75,9 +75,6 @@ module Datadog
             end
           end
         end
-        # rubocop:enable Metrics/AbcSize
-        # rubocop:enable Metrics/PerceivedComplexity
-        # rubocop:enable Metrics/CyclomaticComplexity
 
         private
 

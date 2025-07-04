@@ -329,6 +329,7 @@ module Datadog
         @provider.context(key)
       end
 
+      # rubocop:disable Metrics/MethodLength
       def build_trace(digest = nil)
         # Resolve hostname if configured
         hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
