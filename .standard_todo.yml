@@ -23,12 +23,10 @@ ignore:
   - gemfiles/**/**
   - integration/**/**
   - lib-injection/**/**
-  - lib/*
-  - lib/datadog/*
-  - lib/datadog/core/vendor/**/**
-  - lib/datadog/kit/**/**
-  - lib/datadog/opentelemetry/**/**
-  - lib/datadog/tracing/**/**
+  - lib/datadog/**/vendor/**/*
+  - "lib/**/*":
+    - Style
+    - Layout
   - spec/*
   - spec/datadog/*
   - spec/datadog/core/**/**
