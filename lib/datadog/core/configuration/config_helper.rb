@@ -47,7 +47,7 @@ module Datadog
           configs = {}
 
           ENV.each do |key, value|
-            if key.start_with?('DD_') || key.start_with?('OTEL_') || ALIAS_TO_CANONICAL[key]
+            if key.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[key]
               if SUPPORTED_CONFIGURATIONS[key]
                 configs[key] = value
               elsif ALIAS_TO_CANONICAL[key] && configs[ALIAS_TO_CANONICAL[key]].nil?
@@ -85,7 +85,7 @@ module Datadog
         # @return [String, nil] The environment variable value
         # @raise [RuntimeError] if the configuration is not supported
         def self.get_environment_variable(name)
-          if (name.start_with?('DD_') || name.start_with?('OTEL_') || ALIAS_TO_CANONICAL[name]) &&
+          if (name.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[name]) &&
             !SUPPORTED_CONFIGURATIONS[name]
             raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
           end
