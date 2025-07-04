@@ -106,7 +106,7 @@ RSpec.describe CustomCops::EnvUsageCop do
 
     it 'registers an offense for ENV in interpolation', skip: 'TODO: Fix this test (works with rubocop vscode extension)' do
       expect_offense(<<~RUBY)
-        "API Key: #{ENV['DATADOG_API_KEY']}"
+        "API Key: #{ENV["DATADOG_API_KEY"]}"
                     ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
       RUBY
     end
