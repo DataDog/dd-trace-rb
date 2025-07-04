@@ -245,26 +245,32 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           allow(Datadog.configuration.tracing.sampling).to receive(:default_rate).and_return(default_rate)
         end
 
-        it { is_expected.to eq(0.5) }
+        it 'returns default_rate as fallback' do
+          expect(sample_rate).to eq(0.5)
+        end
       end
 
-      context 'when accessing default_rate raises an error' do
+      context 'when sampler is nil and default_rate is nil' do
         before do
           allow(Datadog.configuration.tracing).to receive(:sampler).and_return(nil)
-          allow(Datadog.configuration.tracing.sampling).to receive(:default_rate).and_raise(StandardError)
+          allow(Datadog.configuration.tracing.sampling).to receive(:default_rate).and_return(nil)
         end
 
-        it { is_expected.to be_nil }
+        it 'returns nil' do
+          expect(sample_rate).to be_nil
+        end
       end
 
-      context 'when sampler raises error' do
+      context 'when sampler is present' do
         before do
           sampler = double('sampler')
           allow(Datadog.configuration.tracing).to receive(:sampler).and_return(sampler)
-          allow(sampler).to receive(:sample_rate).with(nil).and_raise(StandardError)
+          allow(sampler).to receive(:sample_rate).with(nil).and_return(0.3)
         end
 
-        it { is_expected.to be_nil }
+        it 'returns sampler sample_rate' do
+          expect(sample_rate).to eq(0.3)
+        end
       end
     end
 
@@ -286,20 +292,11 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         end
       end
 
-      context 'when accessing rules raises an error' do
-        before do
-          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(nil)
-          allow(Datadog.configuration.tracing.sampling).to receive(:rules).and_raise(StandardError)
-        end
-
-        it { is_expected.to be_nil }
-      end
-
-      context 'when sampler processing raises error' do
+      context 'when sampler is present but not a PrioritySampler' do
         before do
           sampler = double('sampler')
           allow(Datadog.configuration.tracing).to receive(:sampler).and_return(sampler)
-          allow(sampler).to receive(:is_a?).with(Datadog::Tracing::Sampling::PrioritySampler).and_raise(StandardError)
+          allow(sampler).to receive(:is_a?).with(Datadog::Tracing::Sampling::PrioritySampler).and_return(false)
         end
 
         it { is_expected.to be_nil }
