@@ -345,3 +345,52 @@ jobs:
             --title "Update document v${GEM_VERSION}" \
           --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready.\n\nTo resolve conflicts:\n\`\`\`bash\ngit merge release\ngit checkout --ours .\`\`\`." \
             --label "docs"
+
+  update-version-file:
+    if: github.ref_name == 'master'
+    name: Update version file with next prerelease version
+    runs-on: ubuntu-24.04
+    needs:
+      - verify-checks
+      - rubygems-release
+      - update-gem-version
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NEXT_VERSION: ${{ needs.update-gem-version.outputs.next_version }}.dev
+      CURRENT_VERSION: ${{ needs.verify-checks.outputs.version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
+        with:
+          ruby-version: "3.3.7"
+      - run: bundle install
+      - name: Update version file
+        run: |
+          echo "Updating version to ${NEXT_VERSION}"
+          bundle exec rake version:bump -- "${NEXT_VERSION}"
+      - name: Create PR to master
+        run: |
+          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BRANCH_NAME="update-version-${NEXT_VERSION}"
+
+          git checkout -b "${BRANCH_NAME}"
+
+          git add lib/datadog/version.rb
+          git commit -m "Update version to ${NEXT_VERSION}"
+
+          git push origin "${BRANCH_NAME}"
+
+          gh pr create \
+            --base master \
+            --head "${BRANCH_NAME}" \
+            --title "Update version to ${NEXT_VERSION}" \
+            --body "This is an auto-generated PR to update the version file from [here](${JOB_URL})." \
+            --label "version"
