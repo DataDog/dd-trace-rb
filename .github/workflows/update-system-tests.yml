@@ -61,6 +61,18 @@ jobs:
           PATTERN: '(\s*SYSTEM_TESTS_REF:\s+)(\S+)(\s+# Automated:.*)'
           REF: ${{ steps.system-test-ref.outputs.commit }}
 
+      - run: .github/scripts/update_reference.sh
+        env:
+          TARGET: ".github/workflows/system-tests-official.yml"
+          PATTERN: '(system-tests.yml@)(\S+)(\s+# Automated:.*)'
+          REF: ${{ steps.system-test-ref.outputs.commit }}
+
+      - run: .github/scripts/update_reference.sh
+        env:
+          TARGET: ".github/workflows/system-tests-official.yml"
+          PATTERN: '(\s+ref: )(\S+)(\s+# Automated:.*)'
+          REF: ${{ steps.system-test-ref.outputs.commit }}
+
       - run: git diff --color=always
 
       - name: Generate GitHub App Token
