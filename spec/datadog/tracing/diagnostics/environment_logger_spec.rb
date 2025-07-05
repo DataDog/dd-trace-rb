@@ -234,5 +234,73 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         it { is_expected.to include agent_error: include('msg') }
       end
     end
+
+    describe '#sample_rate' do
+      subject(:sample_rate) { described_class.sample_rate }
+      let(:default_rate) { 0.5 }
+
+      context 'when sampler is nil' do
+        before do
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(nil)
+          allow(Datadog.configuration.tracing.sampling).to receive(:default_rate).and_return(default_rate)
+        end
+
+        it 'returns default_rate as fallback' do
+          expect(sample_rate).to eq(0.5)
+        end
+      end
+
+      context 'when sampler is nil and default_rate is nil' do
+        before do
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(nil)
+          allow(Datadog.configuration.tracing.sampling).to receive(:default_rate).and_return(nil)
+        end
+
+        it 'returns nil' do
+          expect(sample_rate).to be_nil
+        end
+      end
+
+      context 'when sampler is present' do
+        before do
+          sampler = double('sampler')
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(sampler)
+          allow(sampler).to receive(:sample_rate).with(nil).and_return(0.3)
+        end
+
+        it 'returns sampler sample_rate' do
+          expect(sample_rate).to eq(0.3)
+        end
+      end
+    end
+
+    describe '#sampling_rules' do
+      subject(:sampling_rules_result) { described_class.sampling_rules }
+      let(:sampling_rules) { [{ service: 'my-ruby-app', sample_rate: 0.5 }] }
+
+      context 'when sampler is nil' do
+        before do
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(nil)
+          allow(Datadog.configuration.tracing.sampling).to receive(:rules).and_return(sampling_rules)
+        end
+
+        it 'returns rules from configuration' do
+          sampling_rules_result.each do |rule|
+            expect(rule[:service]).to eq('my-ruby-app')
+            expect(rule[:sample_rate]).to eq(0.5)
+          end
+        end
+      end
+
+      context 'when sampler is present but not a PrioritySampler' do
+        before do
+          sampler = double('sampler')
+          allow(Datadog.configuration.tracing).to receive(:sampler).and_return(sampler)
+          allow(sampler).to receive(:is_a?).with(Datadog::Tracing::Sampling::PrioritySampler).and_return(false)
+        end
+
+        it { is_expected.to be_nil }
+      end
+    end
   end
 end
