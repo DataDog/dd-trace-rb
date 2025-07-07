@@ -208,6 +208,8 @@ $ bundle exec rake -T test:tracing
 rake test:tracing:ruby_on_rails[task_args]  # Run spec:tracing:ruby_on_rails tests
 ```
 
+At this point, the new tests will be automatically included in the CI that runs on every pull request.
+
 **Passing arguments to tests**
 
 When running tests, you may pass additional args as parameters to the Rake task. For example:

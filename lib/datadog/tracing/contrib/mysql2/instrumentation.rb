@@ -45,15 +45,12 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
 
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, query_options[:host])
+                tag_database_instance(span, query_options[:database])
+
+                set_span_tags(span, query_options)
 
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, query_options[:database])
-                span.set_tag(Ext::TAG_DB_NAME, query_options[:database])
-                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
-                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
 
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
@@ -90,6 +87,19 @@ module Datadog
 
             def analytics_sample_rate
               datadog_configuration[:analytics_sample_rate]
+            end
+
+            def tag_database_instance(span, database)
+              return if database.nil? || database.empty?
+
+              span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, database)
+              span.set_tag(Ext::TAG_DB_NAME, database)
+            end
+
+            def set_span_tags(span, query_options)
+              span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
+              span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, query_options[:host])
             end
           end
         end
