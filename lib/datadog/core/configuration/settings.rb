@@ -554,6 +554,16 @@ module Datadog
               o.env 'DD_PROFILING_NATIVE_FILENAMES_ENABLED'
               o.default true
             end
+
+            # Controls if the profiler should sample directly from the signal handler.
+            # TODO: Change default on Rubies that support it, explain better how this works.
+            #
+            # @default false
+            option :sighandler_sampling_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED'
+              o.default false
+            end
           end
 
           # @public_api

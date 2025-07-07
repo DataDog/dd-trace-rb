@@ -23,6 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:stack_recorder_options) { {} }
   let(:allocation_counting_enabled) { false }
   let(:gvl_profiling_enabled) { false }
+  let(:sighandler_sampling_enabled) { false }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -32,6 +33,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       allocation_profiling_enabled: allocation_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       gvl_profiling_enabled: gvl_profiling_enabled,
+      sighandler_sampling_enabled: sighandler_sampling_enabled,
       **options
     }
   end
