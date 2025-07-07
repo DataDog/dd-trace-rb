@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include <ruby/debug.h>
 #include <ruby/st.h>
+#include <stdatomic.h>
 
 #include "extconf.h" // This is needed for the HAVE_DLADDR and friends below
 
@@ -598,6 +599,10 @@ void record_placeholder_stack(
 }
 
 void prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
+  // Since this can get called from inside a signal handler, we don't want to touch the buffer if
+  // the thread was actually in the middle of marking it.
+  if (buffer->is_marking) return;
+
   buffer->pending_sample = true;
   buffer->pending_sample_result = ddtrace_rb_profile_frames(thread, 0, buffer->max_frames, buffer->stack_buffer);
 }
@@ -615,6 +620,7 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, dd
   buffer->locations = locations;
   buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
   buffer->pending_sample = false;
+  buffer->is_marking = false;
   buffer->pending_sample_result = 0;
 }
 
@@ -630,6 +636,7 @@ void sampling_buffer_free(sampling_buffer *buffer) {
   buffer->locations = NULL;
   buffer->stack_buffer = NULL;
   buffer->pending_sample = false;
+  buffer->is_marking = false;
   buffer->pending_sample_result = 0;
 }
 
@@ -638,9 +645,23 @@ void sampling_buffer_mark(sampling_buffer *buffer) {
     rb_bug("sampling_buffer_mark called with no pending sample. `sampling_buffer_needs_marking` should be used before calling mark.");
   }
 
+  buffer->is_marking = true;
+  // Tell the compiler it's not allowed to reorder the `is_marking` flag with the iteration below.
+  //
+  // Specifically, in the middle of `sampling_buffer_mark` a signal handler may execute and call
+  // `prepare_sample_thread` to add a new sample to the buffer. This flag is here to prevent that BUT we need to
+  // make sure the signal handler actually sees the flag being set.
+  //
+  // See https://github.com/ruby/ruby/pull/11036 for a similar change made to the Ruby VM with more context.
+  atomic_signal_fence(memory_order_seq_cst);
+
   for (int i = 0; i < buffer->pending_sample_result; i++) {
     if (buffer->stack_buffer[i].is_ruby_frame) {
       rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.iseq);
     }
   }
+
+  // Make sure iteration completes before `is_marking` is unset...
+  atomic_signal_fence(memory_order_seq_cst);
+  buffer->is_marking = false;
 }

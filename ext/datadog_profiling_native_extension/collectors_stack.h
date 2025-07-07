@@ -14,6 +14,7 @@ typedef struct {
   ddog_prof_Location *locations;
   frame_info *stack_buffer;
   bool pending_sample;
+  bool is_marking; // Used to avoid recording a sample when marking
   int pending_sample_result;
 } sampling_buffer;
 
