@@ -4,13 +4,12 @@
 
 #include "extconf.h" // This is needed for the HAVE_DLADDR and friends below
 
-// For dladdr/dladdr1
-#if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+#if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
   #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
   #endif
   #include <dlfcn.h>
-  #ifdef HAVE_DLADDR1
+  #if defined(HAVE_DLADDR1) && HAVE_DLADDR1
     #include <link.h>
   #endif
 #endif
@@ -63,24 +62,24 @@ void collectors_stack_init(VALUE profiling_module) {
 
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
 
-  #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
-  // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
-  // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
-  //
-  // Small note: Creating/deleting the cache is a bit awkward here, but it seems like a bigger footgun to allow
-  // `get_or_compute_native_filename` to run without a cache, since we never expect that to happen during sampling. So it seems
-  // like a reasonable trade-off to force callers to always figure that out.
-  st_table *temporary_cache = st_init_numtable();
-  const char *native_filename = get_or_compute_native_filename(rb_ary_new, temporary_cache);
-  if (native_filename != NULL && native_filename[0] != '\0') {
-    ruby_native_filename = native_filename;
-  }
-  st_free_table(temporary_cache);
+  #if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
+    // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
+    // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
+    //
+    // Small note: Creating/deleting the cache is a bit awkward here, but it seems like a bigger footgun to allow
+    // `get_or_compute_native_filename` to run without a cache, since we never expect that to happen during sampling. So it seems
+    // like a reasonable trade-off to force callers to always figure that out.
+    st_table *temporary_cache = st_init_numtable();
+    const char *native_filename = get_or_compute_native_filename(rb_ary_new, temporary_cache);
+    if (native_filename != NULL && native_filename[0] != '\0') {
+      ruby_native_filename = native_filename;
+    }
+    st_free_table(temporary_cache);
   #endif
 }
 
 static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self) {
-  #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+  #if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
     return ruby_native_filename != NULL ? Qtrue : Qfalse;
   #else
     return Qfalse;
@@ -393,7 +392,7 @@ void sample_thread(
   );
 }
 
-#if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+#if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
   static void set_file_info_for_cfunc(
     ddog_CharSlice *filename_slice,
     int *line,
@@ -441,12 +440,12 @@ void sample_thread(
 
     Dl_info info;
     const char *native_filename = NULL;
-    #ifdef HAVE_DLADDR1
+    #if defined(HAVE_DLADDR1) && HAVE_DLADDR1
       struct link_map *extra_info = NULL;
       if (dladdr1(function, &info, (void **) &extra_info, RTLD_DL_LINKMAP) != 0 && extra_info != NULL) {
         native_filename = extra_info->l_name != NULL ? extra_info->l_name : info.dli_fname;
       }
-    #elif defined(HAVE_DLADDR)
+    #elif defined(HAVE_DLADDR) && HAVE_DLADDR
       if (dladdr(function, &info) != 0) {
         native_filename = info.dli_fname;
       }
