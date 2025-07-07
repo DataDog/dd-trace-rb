@@ -10,7 +10,6 @@ module Datadog
   # This module handles conditional loading of single step auto-instrumentation,
   # which enables Datadog tracing and profiling features when available.
   module SingleStepInstrument
-    LOADED = false
   end
 end
 
