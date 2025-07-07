@@ -232,6 +232,8 @@ static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
 #endif
 static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance);
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
+static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
+static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -366,7 +368,7 @@ static VALUE _native_new(VALUE klass) {
   state->failure_exception = Qnil;
   state->stop_thread = Qnil;
 
-  state->during_sample = false;
+  during_sample_exit(state);
 
   #ifndef NO_GVL_INSTRUMENTATION
     state->gvl_profiling_hook = NULL;
@@ -701,12 +703,12 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
-  state->during_sample = true;
+  during_sample_enter(state);
 
   // Rescue against any exceptions that happen during sampling
   safely_call(rescued_sample_from_postponed_job, state->self_instance, state->self_instance);
 
-  state->during_sample = false;
+  during_sample_exit(state);
 }
 
 static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
@@ -912,11 +914,11 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
-  state->during_sample = true;
+  during_sample_enter(state);
 
   safely_call(thread_context_collector_sample_after_gc, state->thread_context_collector_instance, state->self_instance);
 
-  state->during_sample = false;
+  during_sample_exit(state);
 }
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
@@ -1177,7 +1179,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
     &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
   );
 
-  state->during_sample = true;
+  during_sample_enter(state);
 
   // Rescue against any exceptions that happen during sampling
   safely_call(rescued_sample_allocation, Qnil, state->self_instance);
@@ -1198,7 +1200,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
 
   state->stats.allocation_sampled++;
 
-  state->during_sample = false;
+  during_sample_exit(state);
 }
 
 static void disable_tracepoints(cpu_and_wall_time_worker_state *state) {
@@ -1339,12 +1341,12 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
     if (state == NULL) return;
 
-    state->during_sample = true;
+    during_sample_enter(state);
 
     // Rescue against any exceptions that happen during sampling
     safely_call(rescued_after_gvl_running_from_postponed_job, state->self_instance, state->self_instance);
 
-    state->during_sample = false;
+    during_sample_exit(state);
   }
 
   static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance) {
@@ -1380,3 +1382,21 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     return Qfalse;
   }
 #endif
+
+static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {
+  // Tell the compiler it's not allowed to reorder the `during_sample` flag with anything that happens after.
+  //
+  // In a few cases, we may be checking this flag from a signal handler, so we need to make sure the compiler didn't
+  // get clever and reordered things in such a way that makes us miss the flag update.
+  //
+  // See https://github.com/ruby/ruby/pull/11036 for a similar change made to the Ruby VM with more context.
+  state->during_sample = true;
+  atomic_signal_fence(memory_order_seq_cst);
+}
+
+static inline void during_sample_exit(cpu_and_wall_time_worker_state* state) {
+  // See `during_sample_enter` for more context; in this case we set the fence before to make sure anything that
+  // happens before the fence is not reordered with the flag update.
+  atomic_signal_fence(memory_order_seq_cst);
+  state->during_sample = false;
+}
