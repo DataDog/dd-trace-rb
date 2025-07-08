@@ -556,7 +556,14 @@ module Datadog
             end
 
             # Controls if the profiler should sample directly from the signal handler.
-            # TODO: Change default on Rubies that support it, explain better how this works.
+            # Sampling directly from the signal handler improves accuracy of the data collected.
+            #
+            # We recommend using this setting with Ruby 3.2.5+ / Ruby 3.3.4+ and above
+            # as they include additional safety measures added in https://github.com/ruby/ruby/pull/11036.
+            # We have not validated it thoroughly with earlier versions, but in practice it should work on Ruby 3.0+
+            # (the key change was https://github.com/ruby/ruby/pull/3296).
+            #
+            # Enabling this on Ruby 2 is not recommended as it may lead to rare crashes.
             #
             # @default false
             option :sighandler_sampling_enabled do |o|
