@@ -8,11 +8,11 @@ on: # yamllint disable-line rule:truthy
       #
       # This is also useful for testing the workflow without opening a pull request.
       - tmp/*
-  pull_request:
-    branches:
-      - master
+  # pull_request:  # To be uncommented if the guild chooses this workflow
+  #   branches:
+  #     - master
   workflow_dispatch: {}
-  # schedule:  # TO BE uncommented if the guild chooses this workflow
+  # schedule:  # To be uncommented if the guild chooses this workflow
   #   - cron: "00 04 * * 2-6"
 
 # Default permissions for all jobs
@@ -21,8 +21,6 @@ permissions: {}
 jobs:
   changes:
     name: Changes
-    # temporary condition to test official workflow
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.head_ref == 'cbeauchesne/system-tests-official')
     runs-on: ubuntu-24.04
     outputs:
       changes: ${{ steps.changes.outputs.src }}
