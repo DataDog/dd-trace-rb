@@ -13,9 +13,7 @@ variables:
   needs: []
   timeout: 1h
   rules:
-    - if: $CI_COMMIT_REF_NAME == "master"
-      when: always
-    - when: manual
+    - when: always
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
@@ -87,6 +85,14 @@ only-profiling:
     DD_PROFILING_ENABLED: "true"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
+only-sighandler-profiling:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
+
 only-profiling-alloc:
   extends: .benchmarks
   variables:
@@ -124,6 +130,15 @@ profiling-and-tracing-and-appsec:
     DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
     DD_TRACE_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
+    DD_APPSEC_ENABLED: "true"
+
+profiling-and-tracing-and-appsec-and-sighandler-profiling:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
+    DD_TRACE_ENABLED: "true"
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED: "true"
     DD_APPSEC_ENABLED: "true"
 
 # -----------------------------------------------------
