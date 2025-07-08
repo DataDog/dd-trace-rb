@@ -1021,7 +1021,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    describe "sampling from signal handler" do
+    describe "sampling from signal handler", :memcheck_valgrind_skip do
       let(:options) { {dynamic_sampling_rate_enabled: false} }
 
       let(:sample_count) do
