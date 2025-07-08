@@ -179,6 +179,9 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           { name: 'logger.instance', origin: 'code', seq_id: id, value: 'MyLogger' },
           { name: 'logger.level', origin: 'code', seq_id: id, value: 0 },
           { name: 'appsec.sca_enabled', origin: 'code', seq_id: id, value: false },
+          { name: 'instrumentation_source', origin: 'code', seq_id: id, value: 'manual' },
+          { name: 'DD_INJECT_FORCE', origin: 'env_var', seq_id: id, value: false },
+          { name: 'DD_INJECTION_ENABLED', origin: 'env_var', seq_id: id, value: '' },
         )
       end
     end
