@@ -1469,17 +1469,17 @@ static VALUE thread_list(thread_context_collector_state *state) {
 // expected to be called from a signal handler and to be async-signal-safe.
 //
 // Also, no allocation (Ruby or malloc) can happen.
-void thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance) {
+bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance) {
   thread_context_collector_state *state;
-  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
+  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return false;
   // This should never fail if the above check passes
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE current_thread = rb_thread_current();
   per_thread_context *thread_context = get_context_for(current_thread, state);
-  if (thread_context == NULL) return;
+  if (thread_context == NULL) return false;
 
-  prepare_sample_thread(current_thread, &thread_context->sampling_buffer);
+  return prepare_sample_thread(current_thread, &thread_context->sampling_buffer);
 }
 
 void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object) {
@@ -2217,6 +2217,5 @@ static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE c
 }
 
 static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  thread_context_collector_prepare_sample_inside_signal_handler(collector_instance);
-  return Qtrue;
+  return thread_context_collector_prepare_sample_inside_signal_handler(collector_instance) ? Qtrue : Qfalse;
 }

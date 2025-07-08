@@ -598,13 +598,14 @@ void record_placeholder_stack(
   );
 }
 
-void prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
+bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
   // Since this can get called from inside a signal handler, we don't want to touch the buffer if
   // the thread was actually in the middle of marking it.
-  if (buffer->is_marking) return;
+  if (buffer->is_marking) return false;
 
   buffer->pending_sample = true;
   buffer->pending_sample_result = ddtrace_rb_profile_frames(thread, 0, buffer->max_frames, buffer->stack_buffer);
+  return true;
 }
 
 uint16_t sampling_buffer_check_max_frames(int max_frames) {
