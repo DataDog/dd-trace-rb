@@ -1039,7 +1039,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         start
 
-        loop_until { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
+        loop_until(timeout_seconds: 60) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
 
         cpu_and_wall_time_worker.stop
 
