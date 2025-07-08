@@ -143,8 +143,10 @@ typedef struct {
     unsigned int trigger_simulated_signal_delivery_attempts;
     // How many times we actually simulated signal delivery
     unsigned int simulated_signal_delivery;
-    // How many times we actually called rb_postponed_job_register_one from a signal handler
+    // How many times we actually called rb_postponed_job_register_one from the signal handler
     unsigned int signal_handler_enqueued_sample;
+    // How many times we prepared a sample (sampled directly) from the signal handler
+    unsigned int signal_handler_prepared_sample;
     // How many times the signal handler was called from the wrong thread
     unsigned int signal_handler_wrong_thread;
     // How many times we actually tried to interrupt a thread for sampling
@@ -597,6 +599,19 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
   state->stats.signal_handler_enqueued_sample++;
 
+  bool sample_from_signal_handler =
+    state->sighandler_sampling_enabled &&
+    // Don't sample if we're already in the middle of processing a sample
+    !state->during_sample;
+
+  if (sample_from_signal_handler) {
+    // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
+    // until the postponed job below gets run.
+    bool prepared = thread_context_collector_prepare_sample_inside_signal_handler(state->thread_context_collector_instance);
+
+    if (prepared) state->stats.signal_handler_prepared_sample++;
+  }
+
   #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
     rb_postponed_job_trigger(sample_from_postponed_job_handle);
   #else
@@ -1001,6 +1016,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("trigger_simulated_signal_delivery_attempts")), /* => */ UINT2NUM(state->stats.trigger_simulated_signal_delivery_attempts),
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
+    ID2SYM(rb_intern("signal_handler_prepared_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_prepared_sample),
     ID2SYM(rb_intern("signal_handler_wrong_thread")),                /* => */ UINT2NUM(state->stats.signal_handler_wrong_thread),
     ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
