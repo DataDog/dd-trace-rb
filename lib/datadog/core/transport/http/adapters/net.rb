@@ -48,7 +48,7 @@ module Datadog
             end
 
             def get(env)
-              get = ::Net::HTTP::Get.new(env.path, env.headers)
+              get = ::Net::HTTP::Get.new(net_http_path_from_env(env), env.headers)
 
               # Connect and send the request
               http_response = open do |http|
@@ -63,7 +63,7 @@ module Datadog
               post = nil
 
               if env.form.nil? || env.form.empty?
-                post = ::Net::HTTP::Post.new(env.path, env.headers)
+                post = ::Net::HTTP::Post.new(net_http_path_from_env(env), env.headers)
                 post.body = env.body
               else
                 post = ::Datadog::Core::Vendor::Net::HTTP::Post::Multipart.new(
@@ -84,6 +84,21 @@ module Datadog
 
             def url
               "http://#{hostname}:#{port}?timeout=#{timeout}"
+            end
+
+            def net_http_path_from_env(env)
+              path = env.path
+              case query = env.query
+              when Hash
+                path = path + '?' + URI.encode_www_form(query)
+              when String
+                path = path + '?' + query
+              when nil
+                # Nothing
+              else
+                raise ArgumentError, "Invalid type for query: #{query}"
+              end
+              path
             end
 
             # Raised when called with an unknown HTTP method

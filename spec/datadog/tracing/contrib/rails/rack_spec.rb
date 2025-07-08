@@ -160,6 +160,8 @@ RSpec.describe 'Rails Rack', execute_in_fork: Rails.version.to_i >= 8 do
       expect(controller_span.resource).to eq('TestController#full')
       expect(controller_span.get_tag('rails.route.action')).to eq('full')
       expect(controller_span.get_tag('rails.route.controller')).to eq('TestController')
+      expect(controller_span.get_tag('rails.db.runtime')).to be_a(Float)
+      expect(controller_span.get_tag('rails.view.runtime')).to be_a(Float)
       expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('action_pack')
       expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('controller')
       expect(controller_span).to be_measured

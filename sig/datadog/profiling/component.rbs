@@ -5,7 +5,7 @@ module Datadog
 
       def self.build_profiler_component: (
         settings: untyped,
-        agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+        agent_settings: Datadog::Core::Configuration::AgentSettings,
         optional_tracer: Datadog::Tracing::Tracer?,
         logger: Datadog::Core::Logger,
       ) -> [Datadog::Profiling::Profiler?, {profiling_enabled: bool}]
@@ -26,7 +26,7 @@ module Datadog
 
       def self.build_profiler_transport: (
         untyped settings,
-        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings
+        Datadog::Core::Configuration::AgentSettings agent_settings
       ) -> untyped
 
       def self.enable_gc_profiling?: (untyped settings, Datadog::Core::Logger logger) -> bool

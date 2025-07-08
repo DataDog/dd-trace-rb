@@ -22,7 +22,7 @@ module Datadog
             @quantize = options[:quantize] || configuration[:quantize]
           end
 
-          def call(worker, job, queue)
+          def call(worker, job, queue) # rubocop:disable Metrics/MethodLength
             resource = job_resource(job)
 
             if @distributed_tracing
@@ -61,7 +61,10 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_RETRY_COUNT, job['retry_count'])
               span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
               span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
-              span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Core::Utils::Time.now.utc.to_f - job['enqueued_at'].to_f))
+
+              enqueued_at = job['enqueued_at']
+              enqueued_at *= Ext::SIDEKIQ_8_SECONDS_PER_INTEGER if enqueued_at.is_a?(Integer)
+              span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Core::Utils::Time.now.utc.to_f - enqueued_at.to_f))
 
               args = job['args']
               if args && !args.empty?

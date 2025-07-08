@@ -38,6 +38,26 @@ VALUE from_ddog_prof_EncodedProfile(ddog_prof_EncodedProfile profile) {
   return TypedData_Wrap_Struct(encoded_profile_class, &encoded_profile_typed_data, state);
 }
 
+static ddog_ByteSlice get_bytes(ddog_prof_EncodedProfile *state) {
+  ddog_prof_Result_ByteSlice raw_bytes = ddog_prof_EncodedProfile_bytes(state);
+  if (raw_bytes.tag == DDOG_PROF_RESULT_BYTE_SLICE_ERR_BYTE_SLICE) {
+    rb_raise(rb_eRuntimeError, "Failed to get bytes from profile: %"PRIsVALUE, get_error_details_and_drop(&raw_bytes.err));
+  }
+  return raw_bytes.ok;
+}
+
+static ddog_prof_EncodedProfile *internal_to_ddog_prof_EncodedProfile(VALUE object) {
+  ddog_prof_EncodedProfile *state;
+  TypedData_Get_Struct(object, ddog_prof_EncodedProfile, &encoded_profile_typed_data, state);
+  return state;
+}
+
+ddog_prof_EncodedProfile *to_ddog_prof_EncodedProfile(VALUE object) {
+  ddog_prof_EncodedProfile *state = internal_to_ddog_prof_EncodedProfile(object);
+  get_bytes(state); // Validate profile is still usable -- if it's not, this will raise an exception
+  return state;
+}
+
 static void encoded_profile_typed_data_free(void *state_ptr) {
   ddog_prof_EncodedProfile *state = (ddog_prof_EncodedProfile *) state_ptr;
 
@@ -49,18 +69,8 @@ static void encoded_profile_typed_data_free(void *state_ptr) {
 }
 
 static VALUE _native_bytes(VALUE self) {
-  ddog_prof_EncodedProfile *state;
-  TypedData_Get_Struct(self, ddog_prof_EncodedProfile, &encoded_profile_typed_data, state);
-
-  return ruby_string_from_vec_u8(state->buffer);
-
-  // TODO: This will be used for libdatadog 17
-  /*ddog_prof_Result_ByteSlice raw_bytes = ddog_prof_EncodedProfile_bytes(state);
-  if (raw_bytes.tag == DDOG_PROF_RESULT_BYTE_SLICE_ERR_BYTE_SLICE) {
-    rb_raise(rb_eRuntimeError, "Failed to get bytes from profile: %"PRIsVALUE, get_error_details_and_drop(&raw_bytes.err));
-  }
-
-  return rb_str_new((const char *) raw_bytes.ok.ptr, raw_bytes.ok.len);*/
+  ddog_ByteSlice bytes = get_bytes(internal_to_ddog_prof_EncodedProfile(self));
+  return rb_str_new((const char *) bytes.ptr, bytes.len);
 }
 
 VALUE enforce_encoded_profile_instance(VALUE object) {

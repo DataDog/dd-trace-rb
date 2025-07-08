@@ -12,6 +12,13 @@ module Datadog
         end
 
         class Request < Datadog::Core::Transport::Request
+          attr_reader :serialized_tags
+
+          def initialize(parcel, serialized_tags)
+            super(parcel)
+
+            @serialized_tags = serialized_tags
+          end
         end
 
         class Transport
@@ -28,10 +35,11 @@ module Datadog
             @apis[HTTP::API::INPUT]
           end
 
-          def send_input(payload)
+          def send_input(payload, tags)
             json = JSON.dump(payload)
             parcel = EncodedParcel.new(json)
-            request = Request.new(parcel)
+            serialized_tags = Core::TagBuilder.serialize_tags(tags)
+            request = Request.new(parcel, serialized_tags)
 
             response = @client.send_input_payload(request)
             unless response.ok?

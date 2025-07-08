@@ -18,16 +18,19 @@ typedef struct {
   rb_nativethread_id_t owner;
 } current_gvl_owner;
 
+// If a sample is kept around for later use, some of its fields need marking. Remember to
+// update the marking code in `sampling_buffer_mark` if new fields are added.
 typedef struct {
   union {
     struct {
-      VALUE iseq;
-      void *caching_pc; // For caching only
+      VALUE iseq; // Needs marking if kept around
+      void *caching_pc; // For caching validation/invalidation only (does not need marking)
       int line;
     } ruby_frame;
     struct {
-      VALUE caching_cme; // For caching only
+      VALUE caching_cme; // For caching validation/invalidation only (does not need marking)
       ID method_id;
+      void *function;
     } native_frame;
   } as;
   bool is_ruby_frame : 1;

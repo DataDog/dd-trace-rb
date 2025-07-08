@@ -24,8 +24,16 @@ class ProfilerHttpTransportBenchmark
     @port = 6006
     start_fake_webserver
 
+    agent_settings_cls = begin
+      Datadog::Core::Configuration::AgentSettings
+    rescue NameError
+      # Compatibility branch, delete after
+      # https://github.com/DataDog/dd-trace-rb/pull/4741 is merged.
+      Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings
+    end
+
     @transport = Datadog::Profiling::HttpTransport.new(
-      agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+      agent_settings: agent_settings_cls.new(
         adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
         uds_path: nil,
         ssl: false,
@@ -37,16 +45,20 @@ class ProfilerHttpTransportBenchmark
       api_key: nil,
       upload_timeout_seconds: 10,
     )
-    flush_finish = Time.now.utc
-    @flush = Datadog::Profiling::Flush.new(
-      start: flush_finish - 60,
-      finish: flush_finish,
-      encoded_profile: Datadog::Profiling::StackRecorder.for_testing.serialize!,
+    @flush_finish = Time.now.utc
+    @stack_recorder = Datadog::Profiling::StackRecorder.for_testing
+  end
+
+  def flush
+    Datadog::Profiling::Flush.new(
+      start: @flush_finish - 60,
+      finish: @flush_finish,
+      encoded_profile: @stack_recorder.serialize!,
       code_provenance_file_name: 'example_code_provenance_file_name.json',
-      code_provenance_data: '', # Random.new(1).bytes(4_000),
+      code_provenance_data: '',
       tags_as_array: [],
       internal_metadata: { no_signals_workaround_enabled: false },
-      info_json: JSON.fast_generate({ profiler: { benchmarking: true } }),
+      info_json: JSON.generate({ profiler: { benchmarking: true } }),
     )
   end
 
@@ -89,7 +101,7 @@ class ProfilerHttpTransportBenchmark
   end
 
   def run_once
-    success = @transport.export(@flush)
+    success = @transport.export(flush)
 
     raise('Unexpected: Export failed') unless success
   end

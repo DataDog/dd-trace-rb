@@ -288,6 +288,16 @@ current_span = Datadog::Tracing.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
 
+You can record an exception in the current span. It adds the recorded exception as a span event.
+You can record multiple exceptions during the lifetime of a span.
+```ruby
+# e.g: recording an exception in the active span
+rescue => e
+  current_span = Datadog::Tracing.active_span
+  current_span&.record_exception(e, attributes: { "foo" => "bar" })
+end
+```
+
 You can also get the current active trace using the `active_trace` method. This method will return `nil` if there is no active trace.
 
 ```ruby
@@ -1542,6 +1552,8 @@ end
 | 3.0 - 3.1    | 9.4            | 6.1 - 7.1      |
 | 3.2 - 3.4    |                | 6.1 - 8.0      |
 
+Instrumentation for the [Rails Runner](https://guides.rubyonrails.org/command_line.html#bin-rails-runner) command is only supported for Rails 5.1 or higher.
+
 ### Rake
 
 You can add instrumentation around your Rake tasks by activating the `rake` integration and
@@ -2718,7 +2730,7 @@ Datadog.configure do |c|
 
   # Optionally, you can configure runtime metrics to generate an additional `runtime-id` tag
   # on the generated metrics, which allows you to filter metrics at the individual process level.
-  # You can also set DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED=true to configure this.
+  # You can also set DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED=true to configure this.
   c.runtime_metrics.experimental_runtime_id_enabled = true
 
   # Optionally, you can configure the Statsd instance used for sending runtime metrics.
