@@ -1625,7 +1625,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   # We have separate specs that assert on these behaviors.
   def samples_from_pprof_without_gc_and_overhead(encoded_profile)
     samples_from_pprof(encoded_profile)
-      .reject { |it| it.locations.first.path == "Garbage Collection" }
+      .reject { |it| it.locations&.first&.path == "Garbage Collection" }
       .reject { |it| it.labels.include?(:"profiler overhead") }
   end
 
