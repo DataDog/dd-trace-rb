@@ -340,6 +340,10 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
         VM_ASSERT(n >= 0);
         ASSUME(n >= 0);
         size_t pos = n; /* no overflow */
+
+        if (n < 0) rb_bug("Out of bounds! (n < 0)");
+        if (n > ISEQ_BODY(iseq)->iseq_size) rb_bug("Out of bounds! n > iseq_size");
+
         if (LIKELY(pos)) {
             /* use pos-1 because PC points next instruction at the beginning of instruction */
             pos--;
@@ -371,6 +375,8 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
     if (calc_pos(iseq, pc, &lineno, NULL)) return lineno;
     return 0;
 }
+
+void print_stacktrace_debug(const char *target1, const char *target2, const char *target3);
 
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
@@ -425,6 +431,8 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //    disagree, and quite a few of them seem oversights/bugs (speculation from my part) rather than deliberate
 //    decisions.
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer) {
+    //print_stacktrace_debug("rb_ary_tmp_new_from_values", "on_newobj_event", "gc_finalize_deferred");
+
     int i;
     // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
     // support sampling any thread (including the current) passed as an argument

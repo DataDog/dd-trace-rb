@@ -70,6 +70,9 @@ $stderr.puts(
 # that may fail on an environment not properly setup for building Ruby extensions.
 require "mkmf"
 
+have_library('unwind') or abort 'libunwind is missing'
+
+
 Logging.message("[datadog] Using compiler:\n")
 xsystem("#{CONFIG["CC"]} -v")
 Logging.message("[datadog] End of compiler information\n")

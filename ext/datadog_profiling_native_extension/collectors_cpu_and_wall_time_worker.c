@@ -657,41 +657,41 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
 
-    if (state->no_signals_workaround_enabled) {
-      // In the no_signals_workaround_enabled mode, the profiler never sends SIGPROF signals.
-      //
-      // This is a fallback for a few incompatibilities and limitations -- see the code that decides when to enable
-      // `no_signals_workaround_enabled` in `Profiling::Component` for details.
-      //
-      // Thus, we instead pretty please ask Ruby to let us run. This means profiling data can be biased by when the Ruby
-      // scheduler chooses to schedule us.
-      state->stats.trigger_simulated_signal_delivery_attempts++;
-      grab_gvl_and_sample(); // Note: Can raise exceptions
-    } else {
-      current_gvl_owner owner = gvl_owner();
-      if (owner.valid) {
-        // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
-        // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
-        // includes a check to see if it got called in the right thread
-        state->stats.interrupt_thread_attempts++;
-        pthread_kill(owner.owner, SIGPROF);
-      } else {
-        if (state->skip_idle_samples_for_testing) {
-          // This was added to make sure our tests don't accidentally pass due to idle samples. Specifically, if we
-          // comment out the thread interruption code inside `if (owner.valid)` above, our tests should not pass!
-        } else {
-          // If no thread owns the Global VM Lock, the application is probably idle at the moment. We still want to sample
-          // so we "ask a friend" (the IdleSamplingHelper component) to grab the GVL and simulate getting a SIGPROF.
-          //
-          // In a previous version of the code, we called `grab_gvl_and_sample` directly BUT this was problematic because
-          // Ruby may concurrently get busy and so the CpuAndWallTimeWorker would be blocked in line to acquire the GVL
-          // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
-          // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
-          state->stats.trigger_simulated_signal_delivery_attempts++;
-          idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
-        }
-      }
-    }
+    // if (state->no_signals_workaround_enabled) {
+    //   // In the no_signals_workaround_enabled mode, the profiler never sends SIGPROF signals.
+    //   //
+    //   // This is a fallback for a few incompatibilities and limitations -- see the code that decides when to enable
+    //   // `no_signals_workaround_enabled` in `Profiling::Component` for details.
+    //   //
+    //   // Thus, we instead pretty please ask Ruby to let us run. This means profiling data can be biased by when the Ruby
+    //   // scheduler chooses to schedule us.
+    //   state->stats.trigger_simulated_signal_delivery_attempts++;
+    //   grab_gvl_and_sample(); // Note: Can raise exceptions
+    // } else {
+    //   current_gvl_owner owner = gvl_owner();
+    //   if (owner.valid) {
+    //     // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
+    //     // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
+    //     // includes a check to see if it got called in the right thread
+    //     state->stats.interrupt_thread_attempts++;
+    //     pthread_kill(owner.owner, SIGPROF);
+    //   } else {
+    //     if (state->skip_idle_samples_for_testing) {
+    //       // This was added to make sure our tests don't accidentally pass due to idle samples. Specifically, if we
+    //       // comment out the thread interruption code inside `if (owner.valid)` above, our tests should not pass!
+    //     } else {
+    //       // If no thread owns the Global VM Lock, the application is probably idle at the moment. We still want to sample
+    //       // so we "ask a friend" (the IdleSamplingHelper component) to grab the GVL and simulate getting a SIGPROF.
+    //       //
+    //       // In a previous version of the code, we called `grab_gvl_and_sample` directly BUT this was problematic because
+    //       // Ruby may concurrently get busy and so the CpuAndWallTimeWorker would be blocked in line to acquire the GVL
+    //       // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
+    //       // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
+    //       state->stats.trigger_simulated_signal_delivery_attempts++;
+    //       idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
+    //     }
+    //   }
+    // }
 
     sleep_for(minimum_time_between_signals);
 
@@ -1172,24 +1172,24 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   }
 
   // Hot path: Dynamic sampling rate is usually enabled and the sampling decision is usually false
-  if (RB_LIKELY(state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler))) {
-    state->stats.allocation_skipped++;
+  // if (RB_LIKELY(state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler))) {
+  //   state->stats.allocation_skipped++;
 
-    coarse_instant now = monotonic_coarse_wall_time_now_ns();
-    HANDLE_CLOCK_FAILURE(now.timestamp_ns);
+  //   coarse_instant now = monotonic_coarse_wall_time_now_ns();
+  //   HANDLE_CLOCK_FAILURE(now.timestamp_ns);
 
-    bool needs_readjust = discrete_dynamic_sampler_skipped_sample(&state->allocation_sampler, now);
-    if (RB_UNLIKELY(needs_readjust)) {
-      // We rarely readjust, so this is a cold path
-      // Also, while above we used the cheaper monotonic_coarse, for this call we want the regular monotonic call,
-      // which is why we end up getting time "again".
-      discrete_dynamic_sampler_readjust(
-        &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
-      );
-    }
+  //   bool needs_readjust = discrete_dynamic_sampler_skipped_sample(&state->allocation_sampler, now);
+  //   if (RB_UNLIKELY(needs_readjust)) {
+  //     // We rarely readjust, so this is a cold path
+  //     // Also, while above we used the cheaper monotonic_coarse, for this call we want the regular monotonic call,
+  //     // which is why we end up getting time "again".
+  //     discrete_dynamic_sampler_readjust(
+  //       &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
+  //     );
+  //   }
 
-    return;
-  }
+  //   return;
+  // }
 
   // From here on, we've decided to go ahead with the sample, which is way less common than skipping it
 
@@ -1206,19 +1206,19 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   // Rescue against any exceptions that happen during sampling
   safely_call(rescued_sample_allocation, Qnil, state->self_instance);
 
-  if (state->dynamic_sampling_rate_enabled) {
-    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-    if (now == 0) {
-      delayed_error(state, ERR_CLOCK_FAIL);
-      // NOTE: Not short-circuiting here to make sure cleanup happens
-    }
-    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler, now);
-    // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions which is
-    //       why we're fine with having this inside this conditional.
-    state->stats.allocation_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_min);
-    state->stats.allocation_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_max);
-    state->stats.allocation_sampling_time_ns_total += sampling_time_ns;
-  }
+  // if (state->dynamic_sampling_rate_enabled) {
+  //   long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  //   if (now == 0) {
+  //     delayed_error(state, ERR_CLOCK_FAIL);
+  //     // NOTE: Not short-circuiting here to make sure cleanup happens
+  //   }
+  //   uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler, now);
+  //   // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions which is
+  //   //       why we're fine with having this inside this conditional.
+  //   state->stats.allocation_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_min);
+  //   state->stats.allocation_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_max);
+  //   state->stats.allocation_sampling_time_ns_total += sampling_time_ns;
+  // }
 
   state->stats.allocation_sampled++;
 
