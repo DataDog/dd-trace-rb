@@ -563,13 +563,16 @@ module Datadog
             # We have not validated it thoroughly with earlier versions, but in practice it should work on Ruby 3.0+
             # (the key change was https://github.com/ruby/ruby/pull/3296).
             #
-            # Enabling this on Ruby 2 is not recommended as it may lead to rare crashes.
+            # Enabling this on Ruby 2 is not recommended as it may cause VM crashes and/or incorrect data.
             #
-            # @default false
+            # @default true on Ruby 3.2.5+ / Ruby 3.3.4+, false on older Rubies
             option :sighandler_sampling_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED'
-              o.default false
+              o.default do
+                Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.2.5') &&
+                  !(RUBY_VERSION.start_with?('3.3.') && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.4'))
+              end
             end
           end
 
