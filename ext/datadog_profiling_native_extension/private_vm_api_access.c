@@ -360,11 +360,16 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
         }
 #endif
 
-        // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method. We couldn't reproduce or
-        // figure out the root cause, but "just in case", we're validating that the iseq looks valid and that the
-        // `n` used for the position is also sane, and if they don't look good, we don't calculate the line, rather
-        // than potentially trigger any issues.
-        if (RB_UNLIKELY(!RB_TYPE_P((VALUE) iseq, T_IMEMO) || n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
+        // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method.
+        // We were only able to reproduce this issue on Ruby 2.6 and 2.7, not 2.5 or the 3.x series (tried 3.0, 3.2 and 3.4).
+        // Note that going out of bounds doesn't crash every time, as usual with C we may just read garbage or get lucky.
+        //
+        // For those problematic Rubies, we observed that when we try to take a sample in the middle of processing the
+        // VM `LEAVE` instruction, the value of `n` can violate the documented assumptions above and be
+        // `n > ISEQ_BODY(iseq)->iseq_size)`.
+        //
+        // To work around this and any other potential issues, we validate here that the bytecode position is sane.
+        if (RB_UNLIKELY(n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
 
         if (lineno) *lineno = rb_iseq_line_no(iseq, pos);
 #ifdef USE_ISEQ_NODE_ID
