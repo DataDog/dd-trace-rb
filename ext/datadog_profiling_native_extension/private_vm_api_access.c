@@ -445,6 +445,12 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     // support sampling any thread (including the current) passed as an argument
     rb_thread_t *th = thread_struct_from_object(thread);
     const rb_execution_context_t *ec = th->ec;
+
+    // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
+    // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
+    // here.
+    if (ec == NULL) return 0;
+
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     #ifndef NO_JIT_RETURN
       const rb_control_frame_t *top = cfp;
@@ -461,11 +467,6 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     // This should not happen for ddtrace (it can only happen when a thread is still being created), but I've imported
     // it from https://github.com/ruby/ruby/pull/7116 in a "just in case" kind of mindset.
     if (cfp == NULL) return 0;
-
-    // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
-    // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
-    // here.
-    if (ec == NULL) return 0;
 
     // Fix: Skip dummy frame that shows up in main thread.
     //
