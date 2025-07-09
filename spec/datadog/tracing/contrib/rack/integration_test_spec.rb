@@ -693,7 +693,7 @@ RSpec.describe 'Rack integration tests' do
           end
 
           it do
-            agent_settings = Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+            agent_settings = Datadog::Core::Configuration::AgentSettings.new(
               adapter: nil,
               ssl: false,
               uds_path: nil,

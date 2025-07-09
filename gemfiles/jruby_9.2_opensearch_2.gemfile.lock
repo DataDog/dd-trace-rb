@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.17.0)
+    datadog (2.18.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
-      libddwaf (~> 1.22.0.0.2)
+      libddwaf (~> 1.24.1.0.0)
       logger
       msgpack
 
@@ -38,10 +38,10 @@ GEM
       faraday-retry (~> 1.0)
       ruby2_keywords (>= 0.0.4)
     faraday-em_http (1.0.0)
-    faraday-em_synchrony (1.0.0)
+    faraday-em_synchrony (1.0.1)
     faraday-excon (1.1.0)
     faraday-httpclient (1.0.1)
-    faraday-multipart (1.1.0)
+    faraday-multipart (1.1.1)
       multipart-post (~> 2.0)
     faraday-net_http (1.0.2)
     faraday-net_http_persistent (1.2.0)
@@ -53,7 +53,7 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (18.1.0.1.0)
-    libddwaf (1.22.0.0.2-java)
+    libddwaf (1.24.1.0.0-java)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)

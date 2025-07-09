@@ -36,7 +36,7 @@ end
 SimpleCov.command_name "#{ruby_engine}:#{gemset_hash}:#{$PROGRAM_NAME} #{command_line_arguments}"
 
 # A very large number to disable result merging timeout
-SimpleCov.merge_timeout 2 ** 31
+SimpleCov.merge_timeout 2**31
 
 # DEV If we choose to enforce a hard minimum.
 # SimpleCov.minimum_coverage 95

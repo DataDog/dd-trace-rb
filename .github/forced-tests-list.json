@@ -1,6 +1,10 @@
 {
-    "DEFAULT": [
-        "tests/appsec/test_fingerprinting.py::Test_Fingerprinting_Endpoint",
-        "tests/appsec/test_fingerprinting.py::Test_Fingerprinting_Header_And_Network"
+    "PARAMETRIC": [
+        "tests/parametric/test_config_consistency.py::Test_Stable_Config_Default::test_config_precedence",
+        "tests/parametric/test_config_consistency.py::Test_Stable_Config_Default::test_invalid_files",
+        "tests/parametric/test_config_consistency.py::Test_Stable_Config_Default::test_unknown_key_skipped",
+        "tests/parametric/test_config_consistency.py::Test_Stable_Config_Default::test_default_config",
+        "tests/parametric/test_process_discovery.py",
+        "tests/parametric/test_telemetry.py::Test_Stable_Configuration_Origin"
     ]
 }

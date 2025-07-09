@@ -23,16 +23,20 @@ namespace :github do
     matrix.each do |key, spec_metadata|
       spec_metadata.each do |group, rubies|
         matched = if RUBY_PLATFORM == 'java'
-                    rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
-                  else
-                    rubies.include?("✅ #{ruby_version}")
-                  end
+          rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
+        else
+          rubies.include?("✅ #{ruby_version}")
+        end
 
         next unless matched
 
-        gemfile = AppraisalConversion.to_bundle_gemfile(group) rescue 'Gemfile'
+        gemfile = begin
+          AppraisalConversion.to_bundle_gemfile(group)
+        rescue
+          'Gemfile'
+        end
 
-        task = { task: key, group: group, gemfile: gemfile }
+        task = {task: key, group: group, gemfile: gemfile}
 
         if misc_candidates.include?(key)
           misc_tasks << task
@@ -50,15 +54,15 @@ namespace :github do
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
 
-    batched_matrix = { 'include' => [] }
+    batched_matrix = {'include' => []}
 
     matching_tasks.each_slice(tasks_per_job).with_index do |task_group, index|
-      batched_matrix['include'] << { 'batch' => index.to_s, 'tasks' => task_group }
+      batched_matrix['include'] << {'batch' => index.to_s, 'tasks' => task_group}
     end
 
     data = {
       batches: batched_matrix,
-      misc: { 'include' => [ { 'batch' => "0", 'tasks' => misc_tasks } ] }
+      misc: {'include' => [{'batch' => "0", 'tasks' => misc_tasks}]}
     }
 
     # Output the JSON
@@ -75,12 +79,12 @@ namespace :github do
     File.open(summary, 'a') do |f|
       data['include'].each do |batch|
         rows = batch['tasks'].map do |t|
-          "* #{t['task']} (#{t['group']})"
+          "* #{t["task"]} (#{t["group"]})"
         end
 
         f.puts <<~SUMMARY
           <details>
-          <summary>Batch #{batch['batch']} (#{batch['tasks'].length} tasks)</summary>
+          <summary>Batch #{batch["batch"]} (#{batch["tasks"].length} tasks)</summary>
 
           #{rows.join("\n")}
           </details>
@@ -93,7 +97,7 @@ namespace :github do
     tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
 
     tasks.each do |task|
-      env = { 'BUNDLE_GEMFILE' => task['gemfile'] }
+      env = {'BUNDLE_GEMFILE' => task['gemfile']}
       cmd = 'bundle check || bundle install'
       # This retry mechanism is a generic way to improve the reliability in Github Actions,
       # since network issues can cause the `bundle install` command to fail,
@@ -115,8 +119,8 @@ namespace :github do
     tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
 
     tasks.each do |task|
-      env = { 'BUNDLE_GEMFILE' => task['gemfile'] }
-      cmd = "bundle exec rake spec:#{task['task']}"
+      env = {'BUNDLE_GEMFILE' => task['gemfile']}
+      cmd = "bundle exec rake spec:#{task["task"]}"
 
       Bundler.with_unbundled_env { sh(env, cmd) }
     end
@@ -126,7 +130,7 @@ namespace :github do
     retries = 0
     begin
       yield
-    rescue StandardError => e
+    rescue => e
       rake_output_message(
         "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
         Source:\n#{Array(e.backtrace).join("\n")}"

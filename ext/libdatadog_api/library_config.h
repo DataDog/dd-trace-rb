@@ -17,3 +17,9 @@ static inline VALUE log_warning_without_config(VALUE warning) {
 
   return rb_funcall(logger, rb_intern("warn"), 1, warning);
 }
+
+static inline ddog_CStr cstr_from_ruby_string(VALUE string) {
+  ENFORCE_TYPE(string, T_STRING);
+  ddog_CStr cstr = {.ptr = RSTRING_PTR(string), .length = RSTRING_LEN(string)};
+  return cstr;
+}

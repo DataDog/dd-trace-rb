@@ -28,7 +28,11 @@ require 'datadog/core/transport/http/adapters/net'
 RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
 
-  let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:logger) do
+    instance_double(Datadog::Core::Logger).tap do |logger|
+      allow(logger).to receive(:debug)
+    end
+  end
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
   let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings, logger: logger) }

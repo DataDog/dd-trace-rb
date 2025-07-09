@@ -56,6 +56,7 @@ RSpec.describe 'Telemetry full integration tests' do
   end
 
   context 'when Datadog.configure is used and dependency collection is enabled' do
+    skip_any_instance_on_buggy_jruby
 
     before do
       Datadog.send(:reset!)
@@ -115,6 +116,7 @@ RSpec.describe 'Telemetry full integration tests' do
   end
 
   context 'when Datadog.configure is used and dynamic instrumentation is enabled' do
+    skip_any_instance_on_buggy_jruby
 
     before do
       Datadog.send(:reset!)
@@ -154,7 +156,7 @@ RSpec.describe 'Telemetry full integration tests' do
       expect(event.payload.fetch(:configuration)).to include(
         name: 'dynamic_instrumentation.enabled',
         value: false,
-        origin: 'code',
+        origin: 'default',
         seq_id: Integer,
       )
 
