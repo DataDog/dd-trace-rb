@@ -1,16 +1,16 @@
 #include <ruby.h>
 #include <ruby/debug.h>
 #include <ruby/st.h>
+#include <stdatomic.h>
 
 #include "extconf.h" // This is needed for the HAVE_DLADDR and friends below
 
-// For dladdr/dladdr1
-#if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+#if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
   #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
   #endif
   #include <dlfcn.h>
-  #ifdef HAVE_DLADDR1
+  #if defined(HAVE_DLADDR1) && HAVE_DLADDR1
     #include <link.h>
   #endif
 #endif
@@ -63,24 +63,24 @@ void collectors_stack_init(VALUE profiling_module) {
 
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
 
-  #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
-  // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
-  // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
-  //
-  // Small note: Creating/deleting the cache is a bit awkward here, but it seems like a bigger footgun to allow
-  // `get_or_compute_native_filename` to run without a cache, since we never expect that to happen during sampling. So it seems
-  // like a reasonable trade-off to force callers to always figure that out.
-  st_table *temporary_cache = st_init_numtable();
-  const char *native_filename = get_or_compute_native_filename(rb_ary_new, temporary_cache);
-  if (native_filename != NULL && native_filename[0] != '\0') {
-    ruby_native_filename = native_filename;
-  }
-  st_free_table(temporary_cache);
+  #if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
+    // To be able to detect when a frame is coming from Ruby, we record here its filename as returned by dladdr.
+    // We expect this same pointer to be returned by dladdr for all frames coming from Ruby.
+    //
+    // Small note: Creating/deleting the cache is a bit awkward here, but it seems like a bigger footgun to allow
+    // `get_or_compute_native_filename` to run without a cache, since we never expect that to happen during sampling. So it seems
+    // like a reasonable trade-off to force callers to always figure that out.
+    st_table *temporary_cache = st_init_numtable();
+    const char *native_filename = get_or_compute_native_filename(rb_ary_new, temporary_cache);
+    if (native_filename != NULL && native_filename[0] != '\0') {
+      ruby_native_filename = native_filename;
+    }
+    st_free_table(temporary_cache);
   #endif
 }
 
 static VALUE _native_filenames_available(DDTRACE_UNUSED VALUE self) {
-  #if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+  #if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
     return ruby_native_filename != NULL ? Qtrue : Qfalse;
   #else
     return Qfalse;
@@ -393,7 +393,7 @@ void sample_thread(
   );
 }
 
-#if defined(HAVE_DLADDR1) || defined(HAVE_DLADDR)
+#if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
   static void set_file_info_for_cfunc(
     ddog_CharSlice *filename_slice,
     int *line,
@@ -441,12 +441,12 @@ void sample_thread(
 
     Dl_info info;
     const char *native_filename = NULL;
-    #ifdef HAVE_DLADDR1
+    #if defined(HAVE_DLADDR1) && HAVE_DLADDR1
       struct link_map *extra_info = NULL;
       if (dladdr1(function, &info, (void **) &extra_info, RTLD_DL_LINKMAP) != 0 && extra_info != NULL) {
         native_filename = extra_info->l_name != NULL ? extra_info->l_name : info.dli_fname;
       }
-    #elif defined(HAVE_DLADDR)
+    #elif defined(HAVE_DLADDR) && HAVE_DLADDR
       if (dladdr(function, &info) != 0) {
         native_filename = info.dli_fname;
       }
@@ -597,9 +597,14 @@ void record_placeholder_stack(
   );
 }
 
-void prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
+bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
+  // Since this can get called from inside a signal handler, we don't want to touch the buffer if
+  // the thread was actually in the middle of marking it.
+  if (buffer->is_marking) return false;
+
   buffer->pending_sample = true;
   buffer->pending_sample_result = ddtrace_rb_profile_frames(thread, 0, buffer->max_frames, buffer->stack_buffer);
+  return true;
 }
 
 uint16_t sampling_buffer_check_max_frames(int max_frames) {
@@ -615,6 +620,7 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, dd
   buffer->locations = locations;
   buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
   buffer->pending_sample = false;
+  buffer->is_marking = false;
   buffer->pending_sample_result = 0;
 }
 
@@ -630,6 +636,7 @@ void sampling_buffer_free(sampling_buffer *buffer) {
   buffer->locations = NULL;
   buffer->stack_buffer = NULL;
   buffer->pending_sample = false;
+  buffer->is_marking = false;
   buffer->pending_sample_result = 0;
 }
 
@@ -638,9 +645,23 @@ void sampling_buffer_mark(sampling_buffer *buffer) {
     rb_bug("sampling_buffer_mark called with no pending sample. `sampling_buffer_needs_marking` should be used before calling mark.");
   }
 
+  buffer->is_marking = true;
+  // Tell the compiler it's not allowed to reorder the `is_marking` flag with the iteration below.
+  //
+  // Specifically, in the middle of `sampling_buffer_mark` a signal handler may execute and call
+  // `prepare_sample_thread` to add a new sample to the buffer. This flag is here to prevent that BUT we need to
+  // make sure the signal handler actually sees the flag being set.
+  //
+  // See https://github.com/ruby/ruby/pull/11036 for a similar change made to the Ruby VM with more context.
+  atomic_signal_fence(memory_order_seq_cst);
+
   for (int i = 0; i < buffer->pending_sample_result; i++) {
     if (buffer->stack_buffer[i].is_ruby_frame) {
       rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.iseq);
     }
   }
+
+  // Make sure iteration completes before `is_marking` is unset...
+  atomic_signal_fence(memory_order_seq_cst);
+  buffer->is_marking = false;
 }

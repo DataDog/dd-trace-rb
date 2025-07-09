@@ -23,6 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:stack_recorder_options) { {} }
   let(:allocation_counting_enabled) { false }
   let(:gvl_profiling_enabled) { false }
+  let(:sighandler_sampling_enabled) { false }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -32,6 +33,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       allocation_profiling_enabled: allocation_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       gvl_profiling_enabled: gvl_profiling_enabled,
+      sighandler_sampling_enabled: sighandler_sampling_enabled,
       **options
     }
   end
@@ -1019,6 +1021,62 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
+    describe "sampling from signal handler", :memcheck_valgrind_skip do
+      let(:options) { {dynamic_sampling_rate_enabled: false} }
+
+      let(:sample_count) do
+        samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+          .map { |it| it.values.fetch(:"cpu-samples") }.reduce(:+)
+      end
+      let(:signal_handler_prepared_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_prepared_sample) }
+      let(:signal_handler_enqueued_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) }
+
+      before do
+        allow(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
+        allow(Datadog::Core::Telemetry::Logger).to receive(:error).with(/dynamic sampling rate disabled/)
+
+        skip_if_signal_handler_sampling_not_supported
+
+        start
+
+        loop_until { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
+
+        cpu_and_wall_time_worker.stop
+
+        expect(sample_count).to be > 0
+        expect(sample_count).to be_within(20).percent_of(signal_handler_enqueued_sample)
+      end
+
+      context "when signal handler sampling is enabled" do
+        let(:sighandler_sampling_enabled) { true }
+
+        it "prepares samples in the signal handler" do
+          expect(signal_handler_prepared_sample).to be > 0
+          expect(signal_handler_prepared_sample).to be_within(20).percent_of(signal_handler_enqueued_sample)
+        end
+      end
+
+      context "when signal handler sampling is disabled" do
+        let(:sighandler_sampling_enabled) { false }
+
+        it "does not prepare samples in the signal handler" do
+          expect(signal_handler_prepared_sample).to be 0
+        end
+      end
+
+      def skip_if_signal_handler_sampling_not_supported
+        return unless sighandler_sampling_enabled
+
+        ruby_version = Gem::Version.new(RUBY_VERSION)
+        if ruby_version < Gem::Version.new("3.2.5") ||
+            (ruby_version >= Gem::Version.new("3.3.0") && ruby_version < Gem::Version.new("3.3.4"))
+          # In practice, many older Rubies are OK to sample from the signal handler, but for the purposes of testing
+          # this is a safe simplification (these versions all include https://github.com/ruby/ruby/pull/11036)
+          skip "Not safe to enable signal handler sampling on Ruby < 3.2.5 / Ruby < 3.3.4"
+        end
+      end
+    end
+
     context "Process::Waiter crash regression tests" do
       # On Ruby 2.3 to 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
       # see https://bugs.ruby-lang.org/issues/17807 .
@@ -1265,6 +1323,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
           signal_handler_wrong_thread: 0,
+          signal_handler_prepared_sample: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
           cpu_skipped: 0,
@@ -1566,7 +1625,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   # We have separate specs that assert on these behaviors.
   def samples_from_pprof_without_gc_and_overhead(encoded_profile)
     samples_from_pprof(encoded_profile)
-      .reject { |it| it.locations.first.path == "Garbage Collection" }
+      .reject { |it| it.locations&.first&.path == "Garbage Collection" }
       .reject { |it| it.labels.include?(:"profiler overhead") }
   end
 

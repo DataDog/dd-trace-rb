@@ -1,0 +1,5 @@
+module Datadog
+  module SingleStepInstrument
+    LOADED: true
+  end
+end
