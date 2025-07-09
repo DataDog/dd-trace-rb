@@ -23,6 +23,7 @@ module Datadog
           allocation_profiling_enabled:,
           allocation_counting_enabled:,
           gvl_profiling_enabled:,
+          sighandler_sampling_enabled:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
@@ -49,6 +50,7 @@ module Datadog
             allocation_profiling_enabled: allocation_profiling_enabled,
             allocation_counting_enabled: allocation_counting_enabled,
             gvl_profiling_enabled: gvl_profiling_enabled,
+            sighandler_sampling_enabled: sighandler_sampling_enabled,
             skip_idle_samples_for_testing: skip_idle_samples_for_testing,
           )
           @worker_thread = nil

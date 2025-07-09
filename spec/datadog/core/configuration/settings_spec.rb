@@ -841,6 +841,21 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(false)
         end
       end
+
+      describe '#sighandler_sampling_enabled' do
+        subject(:sighandler_sampling_enabled) { settings.profiling.advanced.sighandler_sampling_enabled }
+
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: false
+      end
+
+      describe '#sighandler_sampling_enabled=' do
+        it 'updates the #sighandler_sampling_enabled setting' do
+          expect { settings.profiling.advanced.sighandler_sampling_enabled = true }
+            .to change { settings.profiling.advanced.sighandler_sampling_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
     end
 
     describe '#upload' do
