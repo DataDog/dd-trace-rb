@@ -7,6 +7,13 @@ REQUIRES = [
   {require: 'datadog/core', check: 'Datadog::Core'},
   {require: 'datadog/error_tracking', check: 'Datadog::ErrorTracking'},
   {require: 'datadog/di', check: 'Datadog::DI',
+    env: {'DD_DYNAMIC_INSTRUMENTATION_ENABLED' => 'false'},
+    condition: -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }},
+  # DI initializes itsef when it's loaded and the environment variable
+  # instructs DI to be enabled, therefore needs separate tests with the
+  # environment variable being enabled and disabled.
+  {require: 'datadog/di', check: 'Datadog::DI',
+    env: {'DD_DYNAMIC_INSTRUMENTATION_ENABLED' => 'true'},
     condition: -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }},
   {require: 'datadog/di/preload', check: 'Datadog::DI::CodeTracker',
     condition: -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }},
@@ -20,6 +27,10 @@ RSpec.describe 'loading of products' do
     req = spec.fetch(:require)
 
     context req do
+      if env = spec[:env]
+        with_env **env
+      end
+
       let(:const) { spec.fetch(:check) }
 
       if condition = spec[:condition]
