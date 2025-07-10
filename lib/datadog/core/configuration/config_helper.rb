@@ -2,7 +2,6 @@
 
 require_relative 'assets'
 require 'json'
-require 'warning'
 
 module Datadog
   module Core
@@ -10,9 +9,9 @@ module Datadog
       module ConfigHelper
         # Load the supported configurations from JSON file
         supported_config_data = JSON.parse(Assets.supported_configurations)
-        SUPPORTED_CONFIGURATIONS = supported_config_data['supportedConfigurations']
-        ALIASES = supported_config_data['aliases']
-        DEPRECATIONS = supported_config_data['deprecations']
+        SUPPORTED_CONFIGURATIONS = supported_config_data['supportedConfigurations'] || {}
+        ALIASES = supported_config_data['aliases'] || {}
+        DEPRECATIONS = supported_config_data['deprecations'] || {}
 
         # Build alias to canonical mapping
         ALIAS_TO_CANONICAL = {}
@@ -25,57 +24,22 @@ module Datadog
           end
         end
 
-        # Build deprecation methods
-        DEPRECATION_METHODS = {}
-        DEPRECATIONS&.each do |deprecation, message|
-          DEPRECATION_METHODS[deprecation] = lambda do
-            warning_message = "The environment variable #{deprecation} is deprecated."
-            if ALIAS_TO_CANONICAL[deprecation]
-              warning_message += " Please use #{ALIAS_TO_CANONICAL[deprecation]} instead."
-            else
-              warning_message += " #{message}"
-            end
-            Warning.warn("DATADOG_#{deprecation}: #{warning_message}\n")
-          end
-        end
+        def self.deprecation_messages
+          # Log only during startup. We don't want to print it again when calling replace_components!
+          return if @logged_deprecations
+          @logged_deprecations = true
 
-        # Returns the environment variables that are supported by the tracer
-        # (including all non-Datadog/OTEL specific environment variables)
-        #
-        # @return [Hash<String, String>] The environment variables
-        def self.get_environment_variables
-          configs = {}
-
-          ENV.each do |key, value|
-            if key.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[key]
-              if SUPPORTED_CONFIGURATIONS[key]
-                configs[key] = value
-              elsif ALIAS_TO_CANONICAL[key] && configs[ALIAS_TO_CANONICAL[key]].nil?
-                # The alias should only be used if the actual configuration is not set
-                # In case that more than a single alias exist, use the one defined first in our own order
-                ALIASES[ALIAS_TO_CANONICAL[key]].each do |alias_name|
-                  if ENV[alias_name]
-                    configs[ALIAS_TO_CANONICAL[key]] = value
-                    break
-                  end
-                end
-                # TODO(BridgeAR) Implement logging. It would have to use a timeout to
-                # lazily log the message after all loading being done otherwise.
-                #   debug(
-                #     "Missing configuration #{env} in supported-configurations file. The environment variable is ignored."
-                #   )
+          DEPRECATIONS&.reduce([]) do |messages, (deprecation, message)|
+            if ENV[deprecation]
+              warning_message = "#{deprecation} environment variable is deprecated, "
+              if ALIAS_TO_CANONICAL[deprecation]
+                warning_message += "use #{ALIAS_TO_CANONICAL[deprecation]} instead."
+              else
+                warning_message += message
               end
-              DEPRECATION_METHODS[key]&.call
-            else
-              configs[key] = value
+              messages << warning_message
             end
           end
-
-          configs
-        end
-
-        def self.environment_variables
-          @environment_variables ||= get_environment_variables
         end
 
         # Returns the environment variable, if it's supported or a non Datadog
@@ -84,10 +48,18 @@ module Datadog
         # @param name [String] Environment variable name
         # @return [String, nil] The environment variable value
         # @raise [RuntimeError] if the configuration is not supported
-        def self.get_environment_variable(name)
+        def get_environment_variable(name)
+          # List of env var that do not start with DD_ or OTEL_ but related to datadog:
+          # DISABLE_DATADOG_RAILS
           if (name.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[name]) &&
             !SUPPORTED_CONFIGURATIONS[name]
-            raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
+            config_array = JSON.parse(File.read('tmp_config.json'))
+            unless config_array.include?(name)
+              config_array << name
+              File.write('tmp_config.json', JSON.pretty_generate(config_array))
+            end
+            # return nil
+            # raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
           end
 
           config = ENV[name]

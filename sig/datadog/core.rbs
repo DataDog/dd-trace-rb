@@ -4,6 +4,7 @@ module Datadog
   end
 
   extend Core::Deprecations
+  extend Core::Configuration::ConfigHelper
   extend Core::Configuration
   extend Tracing::Contrib::Extensions::Helpers
 end
