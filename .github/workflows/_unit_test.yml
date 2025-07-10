@@ -164,6 +164,7 @@ jobs:
         TEST_ELASTICSEARCH_HOST: elasticsearch
         TEST_MEMCACHED_HOST: memcached
         TEST_MONGODB_HOST: mongodb
+        TEST_MONGODB_SECONDARY_HOST: mongodb_secondary
         TEST_OPENSEARCH_HOST: opensearch
         TEST_OPENSEARCH_PORT: '9200'
         TEST_PRESTO_HOST: presto
@@ -172,6 +173,7 @@ jobs:
         DATADOG_GEM_CI: 'true'
         TEST_DATADOG_INTEGRATION: '1'
         JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
+      options: --link mongodb:mongodb_secondary
     services:
       agent:
         image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
