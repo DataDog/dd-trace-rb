@@ -128,7 +128,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
       redis:
-        image: ghcr.io/datadog/images-rb/services/redis:6.2
+        image: ghcr.io/datadog/images-rb/services/redis:8
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
