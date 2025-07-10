@@ -75,7 +75,7 @@ module Datadog
 
               trace.keep!
 
-              record_event_telemetry_metric(LOGIN_SUCCESS_EVENT)
+              record_event_telemetry_metric(LOGIN_FAILURE_EVENT)
               ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', LOGIN_FAILURE_EVENT)
 
               user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(nil, login)

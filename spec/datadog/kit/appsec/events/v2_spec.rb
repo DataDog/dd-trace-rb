@@ -100,6 +100,13 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             'appsec.events.users.login.success.track' => 'true',
           )
       end
+
+      it 'record telemetry metrics' do
+        expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:inc)
+          .with('appsec', 'sdk.event', 1, tags: { event_type: 'login_success', sdk_version: 'v2' })
+
+        sdk.track_user_login_success('john.snow')
+      end
     end
   end
 
@@ -151,6 +158,13 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
           .to change { span.tags }.to include(
             'appsec.events.users.login.failure.usr.exists' => 'false',
           )
+      end
+
+      it 'record telemetry metrics' do
+        expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:inc)
+          .with('appsec', 'sdk.event', 1, tags: { event_type: 'login_failure', sdk_version: 'v2' })
+
+        sdk.track_user_login_failure('john.snow')
       end
     end
   end
