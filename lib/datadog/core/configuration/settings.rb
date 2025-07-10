@@ -212,6 +212,7 @@ module Datadog
           # Log level for `Datadog.logger`.
           # @see Logger::Severity
           # @return Logger::Severity
+          # TODO: Add environment variable for this `DD_TRACE_LOG_LEVEL`
           option :level, default: ::Logger::INFO
         end
 

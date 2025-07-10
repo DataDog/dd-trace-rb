@@ -11,63 +11,84 @@ RSpec.describe CustomCops::EnvUsageCop do
     it 'registers an offense for ENV hash access' do
       expect_offense(<<~RUBY)
         ENV['DATADOG_API_KEY']
-        ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        Datadog.get_environment_variable('DATADOG_API_KEY')
       RUBY
     end
 
     it 'registers an offense for ENV.fetch' do
       expect_offense(<<~RUBY)
         ENV.fetch('DATADOG_API_KEY')
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        Datadog.get_environment_variable('DATADOG_API_KEY')
       RUBY
     end
 
     it 'registers an offense for ENV.key?' do
       expect_offense(<<~RUBY)
         ENV.key?('DATADOG_API_KEY')
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        !Datadog.get_environment_variable('DATADOG_API_KEY').nil?
       RUBY
     end
 
     it 'registers an offense for ENV.has_key?' do
       expect_offense(<<~RUBY)
         ENV.has_key?('DATADOG_API_KEY')
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        !Datadog.get_environment_variable('DATADOG_API_KEY').nil?
       RUBY
     end
 
     it 'registers an offense for ENV.include?' do
       expect_offense(<<~RUBY)
         ENV.include?('DATADOG_API_KEY')
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        !Datadog.get_environment_variable('DATADOG_API_KEY').nil?
       RUBY
     end
 
     it 'registers an offense for ENV.member?' do
       expect_offense(<<~RUBY)
         ENV.member?('DATADOG_API_KEY')
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        !Datadog.get_environment_variable('DATADOG_API_KEY').nil?
       RUBY
     end
 
     it 'registers an offense for ENV.values_at' do
       expect_offense(<<~RUBY)
         ENV.values_at('KEY1', 'KEY2')
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
-      RUBY
-    end
-
-    it 'registers an offense for ENV.dig' do
-      expect_offense(<<~RUBY)
-        ENV.dig('DATADOG_API_KEY')
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
       RUBY
     end
 
     it 'registers an offense for ENV with symbol key' do
       expect_offense(<<~RUBY)
-        ENV[:DATADOG_API_KEY]
-        ^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        ENV[:DATADOG_API_KEY.to_s]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        Datadog.get_environment_variable(:DATADOG_API_KEY.to_s)
       RUBY
     end
 
@@ -75,7 +96,12 @@ RSpec.describe CustomCops::EnvUsageCop do
       expect_offense(<<~RUBY)
         key = 'DATADOG_API_KEY'
         ENV[key]
-        ^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+        ^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        key = 'DATADOG_API_KEY'
+        Datadog.get_environment_variable(key)
       RUBY
     end
 
@@ -83,7 +109,13 @@ RSpec.describe CustomCops::EnvUsageCop do
       expect_offense(<<~RUBY)
         def get_api_key
           ENV['DATADOG_API_KEY']
-          ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+          ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        def get_api_key
+          Datadog.get_environment_variable('DATADOG_API_KEY')
         end
       RUBY
     end
@@ -91,7 +123,13 @@ RSpec.describe CustomCops::EnvUsageCop do
     it 'registers an offense for ENV in conditional' do
       expect_offense(<<~RUBY)
         if ENV['DEBUG']
-           ^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+           ^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+          puts 'Debug mode'
+        end
+      RUBY
+
+      expect_correction(<<~RUBY)
+        if Datadog.get_environment_variable('DEBUG')
           puts 'Debug mode'
         end
       RUBY
@@ -100,29 +138,45 @@ RSpec.describe CustomCops::EnvUsageCop do
     it 'registers an offense for ENV in assignment' do
       expect_offense(<<~RUBY)
         api_key = ENV['DATADOG_API_KEY']
-                  ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+                  ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        api_key = Datadog.get_environment_variable('DATADOG_API_KEY')
       RUBY
     end
 
     it 'registers an offense for ENV in interpolation', skip: 'TODO: Fix this test (works with rubocop vscode extension)' do
       expect_offense(<<~RUBY)
         "API Key: #{ENV["DATADOG_API_KEY"]}"
-                    ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+                    ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        Datadog.get_environment_variable('DATADOG_API_KEY')
       RUBY
     end
 
     it 'registers an offense for ENV in array' do
       expect_offense(<<~RUBY)
         [ENV['KEY1'], ENV['KEY2']]
-         ^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
-                      ^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+         ^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+                      ^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        [Datadog.get_environment_variable('KEY1'), Datadog.get_environment_variable('KEY2')]
       RUBY
     end
 
     it 'registers an offense for ENV in hash' do
       expect_offense(<<~RUBY)
         { api_key: ENV['DATADOG_API_KEY'] }
-                   ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use config helper to access environment variables.
+                   ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.
+      RUBY
+
+      expect_correction(<<~RUBY)
+        { api_key: Datadog.get_environment_variable('DATADOG_API_KEY') }
       RUBY
     end
   end

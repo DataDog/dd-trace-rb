@@ -8,7 +8,7 @@ The `CustomCops::EnvUsageCop` prevents direct usage of the `ENV` hash to access 
 
 ### Purpose
 
-This cop prohibits usage of `ENV`. This ensures that environment variable usage is documented. TODO: Suggest/Replace with `get_environment_variable`
+This cop prohibits usage of `ENV` and automatically corrects it to use `Datadog.get_environment_variable`. This ensures that environment variable usage is documented and follows the proper Datadog configuration pattern.
 
 ### Examples
 
@@ -32,9 +32,39 @@ config = {
 }
 ```
 
-#### Good: Using `get_environment_variable`
+#### Good: Using `Datadog.get_environment_variable`
 
-TODO
+```ruby
+# These are the corrected versions:
+api_key = Datadog.get_environment_variable('DATADOG_API_KEY')
+debug_mode = Datadog.get_environment_variable('DEBUG')
+timeout = Datadog.get_environment_variable('TIMEOUT') || '30'
+
+if !Datadog.get_environment_variable('DATADOG_API_KEY').nil?
+  puts 'API key is set'
+end
+
+puts "API Key: #{Datadog.get_environment_variable('DATADOG_API_KEY')}"
+
+config = {
+  api_key: Datadog.get_environment_variable('DATADOG_API_KEY'),
+  debug: Datadog.get_environment_variable('DEBUG')
+}
+```
+
+### Auto-correction
+
+The cop automatically corrects the following patterns:
+
+- `ENV['key']` → `Datadog.get_environment_variable('key')`
+- `ENV.fetch('key')` → `Datadog.get_environment_variable('key')`
+- `ENV.fetch('key', default)` → `Datadog.get_environment_variable('key') || default`
+- `ENV.key?('key')` → `!Datadog.get_environment_variable('key').nil?`
+- `ENV.has_key?('key')` → `!Datadog.get_environment_variable('key').nil?`
+- `ENV.include?('key')` → `!Datadog.get_environment_variable('key').nil?`
+- `ENV.member?('key')` → `!Datadog.get_environment_variable('key').nil?`
+- `ENV.values` → `Datadog.get_environment_variables.values`
+- `ENV.keys` → `Datadog.get_environment_variables.keys`
 
 ### Configuration
 
@@ -55,7 +85,3 @@ Run the cop tests with:
 ```bash
 bundle exec rspec spec/custom_cops/env_usage_cop_spec.rb
 ```
-
-### Auto-correction
-
-Auto-correction is not implemented yet.

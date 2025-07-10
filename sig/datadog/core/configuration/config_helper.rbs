@@ -8,8 +8,7 @@ module Datadog
         ALIAS_TO_CANONICAL: untyped
         DEPRECATION_METHODS: untyped
 
-        def self.get_environment_variables: () -> Hash[String, String]
-        def self.get_environment_variable: (String) -> String?
+        def get_environment_variable: (String) -> String?
       end
     end
   end

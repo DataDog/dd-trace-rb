@@ -27,7 +27,7 @@ module Datadog
         def set_rubyopt!
           existing_rubyopt = ENV["RUBYOPT"]
 
-          ENV["RUBYOPT"] = existing_rubyopt ? "#{existing_rubyopt} #{rubyopts.join(" ")}" : rubyopts.join(" ")
+          ENV["RUBYOPT"] = existing_rubyopt ? "#{existing_rubyopt} #{rubyopts.join(" ")}" : rubyopts.join(" ") # rubocop:disable CustomCops/EnvUsageCop
         end
 
         # If there's an error here, rather than throwing a cryptic stack trace, let's instead have clearer messages, and

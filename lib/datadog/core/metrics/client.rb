@@ -54,11 +54,11 @@ module Datadog
         end
 
         def default_hostname
-          ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
+          Datadog.get_environment_variable(Configuration::Ext::Agent::ENV_DEFAULT_HOST) || Ext::DEFAULT_HOST
         end
 
         def default_port
-          ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT).to_i
+          (Datadog.get_environment_variable(Configuration::Ext::Metrics::ENV_DEFAULT_PORT) || Ext::DEFAULT_PORT).to_i
         end
 
         def default_statsd_client
