@@ -1,7 +1,11 @@
 module Datadog
   module Profiling
     module TagBuilder
-      def self.call: (settings: untyped) -> untyped
+      def self.call: (
+        settings: untyped,
+        ?profiler_version: ::String,
+        profile_seq: ::Integer
+      ) -> ::Hash[::String, ::String]
     end
   end
 end
