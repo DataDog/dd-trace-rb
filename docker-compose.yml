@@ -313,7 +313,7 @@ services:
     ports:
       - "127.0.0.1:${TEST_PRESTO_PORT}:8080"
   redis:
-    image: redis:6.2
+    image: redis:8
     expose:
       - "6379"
     ports:
