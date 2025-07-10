@@ -11,11 +11,11 @@ module CustomCops
   #   ENV.key?('DATADOG_API_KEY')
   #
   #   # good
-  #   # Use configuration objects or other methods to access environment variables
+  #   Datadog.get_environment_variable('DATADOG_API_KEY')
   class EnvUsageCop < RuboCop::Cop::Base
     extend RuboCop::Cop::AutoCorrector
 
-    MSG = 'Avoid direct usage of ENV. Use config helper to access environment variables.'
+    MSG = 'Avoid direct usage of ENV. Use Datadog.get_environment_variable to access environment variables.'
 
     # Detect ENV usage in various contexts
     def_node_matcher :env_usage?, <<~PATTERN
@@ -29,8 +29,7 @@ module CustomCops
       return unless env_usage?(node)
 
       add_offense(node, message: MSG) do |corrector|
-        # NOTE: Auto-correction is not implemented as the replacement
-        # depends on the specific use case and configuration setup
+        correct_env_usage(corrector, node)
       end
     end
 
@@ -43,9 +42,83 @@ module CustomCops
       return unless parent&.send_type?
 
       add_offense(parent, message: MSG) do |corrector|
-        # NOTE: Auto-correction is not implemented as the replacement
-        # depends on the specific use case and configuration setup
+        correct_env_usage(corrector, parent)
       end
+    end
+
+    private
+
+    # TODO: Change to dangerous replacement
+    def correct_env_usage(corrector, node)
+      case node.method_name
+      when :[]
+        correct_env_access(corrector, node)
+      when :fetch
+        correct_env_fetch(corrector, node)
+      when :key?
+        correct_env_key_check(corrector, node)
+      when :has_key?
+        correct_env_key_check(corrector, node)
+      when :include?
+        correct_env_key_check(corrector, node)
+      when :member?
+        correct_env_key_check(corrector, node)
+      else
+        # For other methods, just replace ENV with Datadog.get_environment_variable
+        # but keep the method call
+        correct_env_method_call(corrector, node)
+      end
+    end
+
+    def correct_env_access(corrector, node)
+      # ENV['key'] -> Datadog.get_environment_variable('key')
+      key_arg = node.arguments.first
+      return unless key_arg
+
+      replacement = "Datadog.get_environment_variable(#{key_arg.source})"
+      corrector.replace(node, replacement)
+    end
+
+    def correct_env_fetch(corrector, node)
+      # ENV.fetch('key', default) -> Datadog.get_environment_variable('key') || default
+      # ENV.fetch('key') -> Datadog.get_environment_variable('key')
+      key_arg = node.arguments.first
+      default_arg = node.arguments[1]
+      return unless key_arg
+
+      replacement = if default_arg
+        "Datadog.get_environment_variable(#{key_arg.source}) || #{default_arg.source}"
+      else
+        "Datadog.get_environment_variable(#{key_arg.source})"
+      end
+      corrector.replace(node, replacement)
+    end
+
+    def correct_env_key_check(corrector, node)
+      # ENV.key?('key') -> !Datadog.get_environment_variable('key').nil?
+      key_arg = node.arguments.first
+      return unless key_arg
+
+      replacement = "!Datadog.get_environment_variable(#{key_arg.source}).nil?"
+      corrector.replace(node, replacement)
+    end
+
+    def correct_env_method_call(corrector, node)
+      # For other methods like ENV.values, ENV.keys, etc.
+      # Replace ENV with Datadog.get_environment_variables() and adjust the method call
+      replacement = case node.method_name
+      when :values
+        'Datadog.get_environment_variables.values'
+      when :keys
+        'Datadog.get_environment_variables.keys'
+      when :each, :each_pair
+        "Datadog.get_environment_variables.#{node.method_name}"
+      else
+        # For unknown methods, just replace ENV with Datadog.get_environment_variables
+        "Datadog.get_environment_variables.#{node.method_name}"
+      end
+
+      corrector.replace(node, replacement)
     end
   end
 end
