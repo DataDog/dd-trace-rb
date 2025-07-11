@@ -12,10 +12,12 @@ module Datadog
       def self.call(
         settings:,
         # Other metadata
+        profile_seq:,
         profiler_version: Core::Environment::Identity.gem_datadog_version
       )
         hash = Core::TagBuilder.tags(settings).merge(
           FORM_FIELD_TAG_PROFILER_VERSION => profiler_version,
+          'profile_seq' => profile_seq.to_s,
         )
         Core::Utils.encode_tags(hash)
       end

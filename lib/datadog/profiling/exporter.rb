@@ -26,7 +26,8 @@ module Datadog
         :last_flush_finish_at,
         :created_at,
         :internal_metadata,
-        :info_json
+        :info_json,
+        :sequence_tracker
 
       public
 
@@ -37,7 +38,8 @@ module Datadog
         code_provenance_collector:,
         internal_metadata:,
         minimum_duration_seconds: PROFILE_DURATION_THRESHOLD_SECONDS,
-        time_provider: Time
+        time_provider: Time,
+        sequence_tracker: Datadog::Profiling::SequenceTracker
       )
         @pprof_recorder = pprof_recorder
         @worker = worker
@@ -50,6 +52,7 @@ module Datadog
         # NOTE: At the time of this comment collected info does not change over time so we'll hardcode
         #       it on startup to prevent serializing the same info on every flush.
         @info_json = JSON.generate(info_collector.info).freeze
+        @sequence_tracker = sequence_tracker
       end
 
       def flush
@@ -73,7 +76,10 @@ module Datadog
           encoded_profile: encoded_profile,
           code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
-          tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
+          tags_as_array: Datadog::Profiling::TagBuilder.call(
+            settings: Datadog.configuration,
+            profile_seq: sequence_tracker.get_next,
+          ).to_a,
           internal_metadata: internal_metadata.merge(
             {
               worker_stats: worker_stats,

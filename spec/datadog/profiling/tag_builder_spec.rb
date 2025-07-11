@@ -4,7 +4,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
   describe ".call" do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
 
-    subject(:call) { described_class.call(settings: settings) }
+    subject(:call) { described_class.call(settings: settings, profile_seq: 123) }
 
     it "returns a hash with the tags to be attached to a profile" do
       expect(call).to include(
@@ -16,6 +16,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
         "runtime_engine" => RUBY_ENGINE,
         "runtime-id" => Datadog::Core::Environment::Identity.id,
         "runtime_version" => RUBY_VERSION,
+        "profile_seq" => "123",
       )
     end
 

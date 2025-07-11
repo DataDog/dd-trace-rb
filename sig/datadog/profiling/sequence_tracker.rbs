@@ -1,0 +1,12 @@
+module Datadog
+  module Profiling
+    module SequenceTracker
+      @sequence_number: Integer
+
+      extend Core::Utils::Forking
+
+      def self.get_next: () -> Integer
+      def self.reset!: () -> void
+    end
+  end
+end
