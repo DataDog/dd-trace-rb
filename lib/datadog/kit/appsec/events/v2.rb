@@ -19,7 +19,27 @@ module Datadog
           }.freeze
 
           class << self
-            # TODO: Write doc
+            # Attach user login success information to the service entry span
+            # and trigger AppSec event processing.
+            #
+            # @param login [String] The user login (e.g., username or email).
+            # @param user_or_id [String, Hash<Symbol, String>] (optional) If a
+            #   String, considered as a user ID, if a Hash, considered as a user
+            #   attributes. The Hash must include `:id` as a key.
+            # @param metadata [Hash<Symbol, String>] Additional flat free-form
+            #   metadata to attach to the event.
+            #
+            # @example Login only
+            #   Datadog::Kit::AppSec::Events::V2.track_user_login_success('alice@example.com')
+            #
+            # @example Login and user attributes
+            #   Datadog::Kit::AppSec::Events::V2.track_user_login_success(
+            #     'alice@example.com',
+            #     { id: 'user-123', email: 'alice@example.com', name: 'Alice' },
+            #     ip: '192.168.1.1', device: 'mobile', 'usr.country': 'US'
+            #   )
+            #
+            # @return [void]
             def track_user_login_success(login, user_or_id = nil, **metadata)
               trace = service_entry_trace
               span = service_entry_span
@@ -51,6 +71,25 @@ module Datadog
               ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
             end
 
+            # Attach user login failure information to the service entry span
+            # and trigger AppSec event processing.
+            #
+            # @param login [String] The user login (e.g., username or email).
+            # @param user_exists [Boolean] Whether the user exists in the system.
+            # @param metadata [Hash<Symbol, String>] Additional flat free-form
+            #   metadata to attach to the event.
+            #
+            # @example Login only
+            #   Datadog::Kit::AppSec::Events::V2.track_user_login_failure('alice@example.com')
+            #
+            # @example With user existence and metadata
+            #   Datadog::Kit::AppSec::Events::V2.track_user_login_failure(
+            #     'alice@example.com',
+            #     true,
+            #     ip: '192.168.1.1', device: 'mobile', 'usr.country': 'US'
+            #   )
+            #
+            # @return [void]
             def track_user_login_failure(login, user_exists = false, **metadata)
               trace = service_entry_trace
               span = service_entry_span
