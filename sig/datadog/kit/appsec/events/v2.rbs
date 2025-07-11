@@ -29,9 +29,9 @@ module Datadog
 
           def self.service_entry_span: () -> Tracing::SpanOperation?
 
-          def self.build_user_attributes: (user_or_id? user_or_id, ::String login) -> ::Hash[::Symbol, ::String | nil]
+          def self.build_user_attributes: (user_or_id? user_or_id, ::String login) -> attributes
 
-          def self.export_tags: (Tracing::SpanOperation span, attributes source, namespace: ::String) -> void
+          def self.export_tags: (Tracing::SpanOperation span, ::Hash[::Symbol, untyped] source, namespace: ::String) -> void
 
           def self.record_event_telemetry_metric: (::String event) -> void
         end

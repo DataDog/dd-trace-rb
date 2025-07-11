@@ -3,7 +3,7 @@ module Datadog
     module Identity
       type trace = Tracing::TraceSegment | Tracing::TraceOperation
 
-      def self.set_user: (trace trace, id: ::String, ?email: ::String?, ?name: ::String?, ?session_id: ::String?, ?role: ::String?, ?scope: ::String?, **::Hash[::Symbol, ::String | nil] others) -> void
+      def self.set_user: (?trace trace, ?Tracing::SpanOperation span, id: ::String, ?email: ::String?, ?name: ::String?, ?session_id: ::String?, ?role: ::String?, ?scope: ::String?, **::Hash[::Symbol, ::String | nil] others) -> void
     end
   end
 end
