@@ -13,7 +13,7 @@ module Datadog
         class User < Argument
           attr_reader :id, :login, :session_id
 
-          def initialize(id, login = nil, session_id = nil)
+          def initialize(id = nil, login = nil, session_id = nil)
             super()
 
             @id = id
