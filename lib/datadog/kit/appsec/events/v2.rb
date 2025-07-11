@@ -98,7 +98,7 @@ module Datadog
             end
 
             def build_user_attributes(user_or_id, login)
-              raise TypeError 'login argument must be a String' unless login.is_a?(String)
+              raise TypeError, 'login argument must be a String' unless login.is_a?(String)
 
               return { login: login } unless user_or_id
               return { login: login, id: user_or_id } unless user_or_id.is_a?(Hash)
@@ -119,7 +119,8 @@ module Datadog
             end
 
             # TODO: In case if we need to introduce telemetry metrics to the SDK v1
-            #       this method should be extracted into a proper module
+            #       or highly increase the number of metrics, this method should be
+            #       extracted into a proper module.
             def record_event_telemetry_metric(event)
               telemetry = ::Datadog.send(:components)&.telemetry
 
