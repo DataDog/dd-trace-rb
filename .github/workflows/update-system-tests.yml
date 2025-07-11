@@ -20,7 +20,6 @@ permissions: {}
 
 jobs:
   next-gem-version:
-    if: github.ref_name == 'master'
     name: Prepare next gem version
     runs-on: ubuntu-24.04
     outputs:
@@ -40,7 +39,7 @@ jobs:
           echo "next_version=$(bundle exec rake version:next)" >> "$GITHUB_OUTPUT"
 
   update-version-file:
-    if: ${{ github.ref_name == 'master' && github.event.inputs.dry-run != 'true' && github.event.client_payload.dry-run != 'true' }}
+    if: ${{ github.event.inputs.dry-run != 'true' && github.event.client_payload.dry-run != 'true' }}
     name: Create Pull Request to update the version file
     runs-on: ubuntu-24.04
     needs:
@@ -65,7 +64,7 @@ jobs:
       - name: Update version file
         run: |
           echo "Updating version to ${NEXT_VERSION}"
-          bundle exec rake version:bump -- "${NEXT_VERSION}"
+          bundle exec rake version:bump["${NEXT_VERSION}]"
       - name: Create PR to master
         run: |
           JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
