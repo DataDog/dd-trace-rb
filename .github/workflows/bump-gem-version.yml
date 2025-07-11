@@ -1,0 +1,104 @@
+name: Bump datadog gem version
+
+on: # yamllint disable-line rule:truthy
+  repository_dispatch:
+    types: [bump-gem-version]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Skip PR creation and only show changes
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  next-gem-version:
+    name: Prepare next gem version
+    runs-on: ubuntu-24.04
+    outputs:
+      next_version: ${{ steps.next_version.outputs.next_version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
+        with:
+          ruby-version: "3.3.7"
+      - run: bundle install
+      - id: next_version
+        run: |
+          echo "next_version=$(bundle exec rake version:next)" >> "$GITHUB_OUTPUT"
+
+  update-version-file:
+    if: ${{ github.event.inputs.dry-run != 'true' && github.event.client_payload.dry-run != 'true' }}
+    name: Create Pull Request to update the version file
+    runs-on: ubuntu-24.04
+    needs:
+      - next-gem-version
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NEXT_VERSION: ${{ needs.next-gem-version.outputs.next_version }}.dev
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
+        with:
+          ruby-version: "3.3.7"
+
+      - run: bundle install
+
+      - name: Update version file
+        run: |
+          echo "Updating version to ${NEXT_VERSION}"
+          bundle exec rake version:bump["${NEXT_VERSION}]"
+
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Create Pull Request
+        # Skip PR creation if dry-run is true (from either trigger type)
+        if: ${{ github.event.inputs.dry-run != 'true' && github.event.client_payload.dry-run != 'true' }}
+        id: cpr
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          branch: auto-generate/bump-datadog-gem-version
+          title: "[🤖] Bump datadog gem version to ${{ needs.next-gem-version.outputs.next_version }}.dev"
+          base: master
+          labels: dev/internal
+          commit-message: "[🤖] Update datadog gem version to ${{ needs.next-gem-version.outputs.next_version }}.dev"
+          delete-branch: true
+          sign-commits: true
+          add-paths: gemfiles,lib/datadog/version.rb
+          body: |
+            _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/bump-datadog-gem-version.yml)_
+            The PR updates the version of datadog gem to ${{ needs.next-gem-version.outputs.next_version }}.dev
+
+            **Trigger Information:**
+            - Event: ${{ github.event_name }}
+            - Triggered by: ${{ github.event.client_payload.triggered_by || 'Manual/Scheduled' }}
+            - Source repo: ${{ github.event.client_payload.source_repo || 'N/A' }}
+            - Source commit: ${{ github.event.client_payload.source_commit || 'N/A' }}
+
+            Please review the changes and merge when ready
