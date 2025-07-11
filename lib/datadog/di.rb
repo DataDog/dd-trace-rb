@@ -35,9 +35,3 @@ module Datadog
     end
   end
 end
-
-# Line probes will not work on Ruby < 2.6 because of lack of :script_compiled
-# trace point. Activate DI automatically on supported Ruby versions but
-# always load its settings so that, for example, turning DI off when
-# we are on Ruby 2.5 does not produce exceptions.
-require_relative 'di/boot' if RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby'

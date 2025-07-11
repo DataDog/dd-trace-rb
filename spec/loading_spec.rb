@@ -2,28 +2,36 @@ require 'shellwords'
 require 'open3'
 
 REQUIRES = [
-  ['datadog', 'Datadog::Core'],
-  ['datadog/appsec', 'Datadog::AppSec'],
-  ['datadog/core', 'Datadog::Core'],
-  ['datadog/error_tracking', 'Datadog::ErrorTracking'],
-  ['datadog/di', 'Datadog::DI',
-   -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
-  ['datadog/di/preload', 'Datadog::DI::CodeTracker',
-   -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
-  ['datadog/kit', 'Datadog::Kit'],
-  ['datadog/profiling', 'Datadog::Profiling'],
-  ['datadog/tracing', 'Datadog::Tracing'],
+  { require: 'datadog', check: 'Datadog::Core' },
+  { require: 'datadog/appsec', check: 'Datadog::AppSec' },
+  { require: 'datadog/core', check: 'Datadog::Core' },
+  { require: 'datadog/error_tracking', check: 'Datadog::ErrorTracking' },
+  { require: 'datadog/di', check: 'Datadog::DI',
+    env: { DD_DYNAMIC_INSTRUMENTATION_ENABLED: 'false' },
+    condition: -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' } },
+  # DI initializes itsef when it's loaded and the environment variable
+  # instructs DI to be enabled, therefore needs separate tests with the
+  # environment variable being enabled and disabled.
+  { require: 'datadog/di', check: 'Datadog::DI',
+    env: { DD_DYNAMIC_INSTRUMENTATION_ENABLED: 'true' },
+    condition: -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' } },
+  { require: 'datadog/di/preload', check: 'Datadog::DI::CodeTracker',
+    condition: -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' } },
+  { require: 'datadog/kit', check: 'Datadog::Kit' },
+  { require: 'datadog/profiling', check: 'Datadog::Profiling' },
+  { require: 'datadog/tracing', check: 'Datadog::Tracing' },
 ].freeze
 
 RSpec.describe 'loading of products' do
-  REQUIRES.each do |(req, const, condition)|
+  REQUIRES.each do |spec|
+    req = spec.fetch(:require)
+
     context req do
-      if condition
-        before do
-          skip 'condition is false' unless condition.call
-        end
+      if (env = spec[:env])
+        with_env(**env)
       end
 
+      let(:const) { spec.fetch(:check) }
       let(:code) do
         <<-E
           if defined?(Datadog)
@@ -40,6 +48,12 @@ RSpec.describe 'loading of products' do
 
           exit 0
         E
+      end
+
+      if (condition = spec[:condition])
+        before do
+          skip 'condition is false' unless condition.call
+        end
       end
 
       it 'loads successfully by itself' do
