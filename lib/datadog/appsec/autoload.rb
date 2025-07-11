@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-if %w[1 true].include?((ENV['DD_APPSEC_ENABLED'] || '').downcase)
+if %w[1 true].include?((Datadog.get_environment_variable('DD_APPSEC_ENABLED') || '').downcase)
   begin
     require_relative 'contrib/auto_instrument'
     Datadog::AppSec::Contrib::AutoInstrument.patch_all

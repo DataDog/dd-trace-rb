@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module Configuration
+      module ConfigHelper
+        SUPPORTED_CONFIG_DATA: Hash[String, untyped]
+        ALIASES: Hash[String, Array[String]]
+
+        def log_deprecations: () -> void
+        def alias_to_canonical: () -> Hash[String, String]
+
+        def supported_configurations: () -> Hash[String, untyped]
+
+        def get_environment_variable: (String) -> String?
+      end
+    end
+  end
+end

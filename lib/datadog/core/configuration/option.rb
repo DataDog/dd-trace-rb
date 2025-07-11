@@ -304,7 +304,7 @@ module Datadog
         end
 
         def set_env_value
-          value, resolved_env = get_value_and_resolved_env_from(ENV)
+          value, resolved_env = get_value_and_resolved_env_from_env
           set(value, precedence: Precedence::ENVIRONMENT, resolved_env: resolved_env) unless value.nil?
         end
 
@@ -312,7 +312,7 @@ module Datadog
           customer_config = StableConfig.configuration.dig(:local, :config)
           return if customer_config.nil?
 
-          value, resolved_env = get_value_and_resolved_env_from(customer_config, source: 'local stable config')
+          value, resolved_env = get_value_and_resolved_env_from(customer_config, 'local stable config')
           set(value, precedence: Precedence::LOCAL_STABLE, resolved_env: resolved_env) unless value.nil?
         end
 
@@ -320,11 +320,11 @@ module Datadog
           fleet_config = StableConfig.configuration.dig(:fleet, :config)
           return if fleet_config.nil?
 
-          value, resolved_env = get_value_and_resolved_env_from(fleet_config, source: 'fleet stable config')
+          value, resolved_env = get_value_and_resolved_env_from(fleet_config, 'fleet stable config')
           set(value, precedence: Precedence::FLEET_STABLE, resolved_env: resolved_env) unless value.nil?
         end
 
-        def get_value_and_resolved_env_from(env_vars, source: 'environment variable')
+        def get_value_and_resolved_env_from(env_vars, source)
           value = nil
           resolved_env = nil
 
@@ -352,6 +352,36 @@ module Datadog
           raise ArgumentError,
             "Expected #{source} #{resolved_env} to be a #{@definition.type}, " \
                               "but '#{env_vars[resolved_env]}' was provided"
+        end
+
+        def get_value_and_resolved_env_from_env
+          value = nil
+          resolved_env = nil
+
+          if definition.env
+            Array(definition.env).each do |env|
+              temp_value = Datadog.get_environment_variable(env)
+              next if temp_value.nil?
+
+              resolved_env = env
+              value = coerce_env_variable(temp_value)
+              break
+            end
+          end
+
+          if value.nil? && definition.deprecated_env
+            if (deprecated_value = Datadog.get_environment_variable(definition.deprecated_env))
+              resolved_env = definition.deprecated_env
+              value = coerce_env_variable(deprecated_value)
+              # log depreciation is done by the config helper
+            end
+          end
+
+          [value, resolved_env]
+        rescue ArgumentError
+          raise ArgumentError,
+            "Expected env var #{resolved_env} to be a #{@definition.type}, " \
+                              "but '#{Datadog.get_environment_variable(resolved_env)}' was provided"
         end
 
         # Anchor object that represents a value that is not set.
