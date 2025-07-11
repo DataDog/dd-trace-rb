@@ -20,7 +20,7 @@ module Datadog
 
           class << self
             # TODO: Write doc
-            def track_user_login_success(login, user_or_id = nil, metadata = {})
+            def track_user_login_success(login, user_or_id = nil, **metadata)
               trace = service_entry_trace
               span = service_entry_span
 
@@ -30,12 +30,10 @@ module Datadog
                 )
               end
 
-              metadata ||= {}
               user_attributes = build_user_attributes(user_or_id, login)
 
               export_tags(span, metadata, namespace: LOGIN_SUCCESS_EVENT)
               export_tags(span, user_attributes, namespace: "#{LOGIN_SUCCESS_EVENT}.usr")
-
               span.set_tag('appsec.events.users.login.success.track', 'true')
               span.set_tag('_dd.appsec.events.users.login.success.sdk', 'true')
 
@@ -52,7 +50,7 @@ module Datadog
               ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
             end
 
-            def track_user_login_failure(login, user_exists = false, metadata = {})
+            def track_user_login_failure(login, user_exists = false, **metadata)
               trace = service_entry_trace
               span = service_entry_span
 
@@ -62,12 +60,11 @@ module Datadog
                 )
               end
 
-              metadata ||= {}
-              # FIXME: typecheck!?
-              user_exists ||= false
+              unless user_exists.is_a?(TrueClass) || user_exists.is_a?(FalseClass)
+                raise TypeError, 'user existence flag must be a boolean'
+              end
 
               export_tags(span, metadata, namespace: LOGIN_FAILURE_EVENT)
-
               span.set_tag('appsec.events.users.login.failure.track', 'true')
               span.set_tag('_dd.appsec.events.users.login.failure.sdk', 'true')
               span.set_tag('appsec.events.users.login.failure.usr.login', login)

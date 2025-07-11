@@ -52,7 +52,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets metadata as tags on service entry span' do
-        expect { sdk.track_user_login_success('john.snow', '13', { 'hello' => 'world' }) }
+        expect { sdk.track_user_login_success('john.snow', '13', hello: 'world') }
           .to change { span.tags }.to include(
             'usr.id' => '13',
             'usr.login' => 'john.snow',
@@ -66,7 +66,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets user login from argument and overrides it in user object' do
-        expect { sdk.track_user_login_success('john.snow', { id: '13', login: 'john.wick' }) }
+        expect { sdk.track_user_login_success('john.snow', {id: '13'}, login: 'john.wick') }
           .to change { span.tags }.to include(
             'usr.id' => '13',
             'usr.login' => 'john.snow',
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets user id from argument and ignores it in metadata' do
-        expect { sdk.track_user_login_success('john.snow', '42', { 'usr.id' => '13' }) }
+        expect { sdk.track_user_login_success('john.snow', '42', 'usr.id': '13') }
           .to change { span.tags }.to include(
             'usr.id' => '42',
             'appsec.events.users.login.success.usr.id' => '42'
@@ -87,7 +87,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets user login from argument and ignores it in metadata' do
-        expect { sdk.track_user_login_success('john.snow', '42', { 'usr.login' => 'john.wick', 'usr.login': 'john.doe' }) }
+        expect { sdk.track_user_login_success('john.snow', '42', 'usr.login': 'john.doe') }
           .to change { span.tags }.to include(
             'usr.login' => 'john.snow',
             'appsec.events.users.login.success.usr.login' => 'john.snow'
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets track to true even if metadata track key is false' do
-        expect { sdk.track_user_login_success('john.snow', '42', { 'track' => 'false', track: 'false' }) }
+        expect { sdk.track_user_login_success('john.snow', '42', track: 'false') }
           .to change { span.tags }.to include(
             'appsec.events.users.login.success.track' => 'true',
           )
@@ -129,7 +129,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets metadata as tags on service entry span' do
-        expect { sdk.track_user_login_failure('john.snow', true, { 'hello' => 'world' }) }
+        expect { sdk.track_user_login_failure('john.snow', true, hello: 'world') }
           .to change { span.tags }.to include(
             'appsec.events.users.login.failure.usr.login' => 'john.snow',
             'appsec.events.users.login.failure.usr.exists' => 'true',
@@ -140,24 +140,32 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets id from argument and ignores it in metadata' do
-        expect { sdk.track_user_login_failure('john.snow', false, { 'usr.login' => 'john.wick', 'usr.id': 'john.doe' }) }
+        expect { sdk.track_user_login_failure('john.snow', false, 'usr.id': 'john.doe') }
           .to change { span.tags }.to include(
             'appsec.events.users.login.failure.usr.login' => 'john.snow',
           )
       end
 
       it 'sets track to true even if metadata track key is false' do
-        expect { sdk.track_user_login_failure('john.snow', false, { 'track' => 'false', track: 'false' }) }
+        expect { sdk.track_user_login_failure('john.snow', false, track: 'false') }
           .to change { span.tags }.to include(
             'appsec.events.users.login.failure.track' => 'true',
           )
       end
 
       it 'sets exists from argument even if metadata exists key is false' do
-        expect { sdk.track_user_login_failure('john.snow', false, { 'usr.exists' => 'true', 'usr.exists': 'true' }) }
+        expect { sdk.track_user_login_failure('john.snow', false, 'usr.exists': 'true') }
           .to change { span.tags }.to include(
             'appsec.events.users.login.failure.usr.exists' => 'false',
           )
+      end
+
+      it 'sets exists from argument only if it is a boolean' do
+        expect { sdk.track_user_login_failure('john.snow', 'true') }
+          .to raise_error(TypeError, 'user existence flag must be a boolean')
+
+        expect { sdk.track_user_login_failure('john.snow', 1) }
+          .to raise_error(TypeError, 'user existence flag must be a boolean')
       end
 
       it 'record telemetry metrics' do
