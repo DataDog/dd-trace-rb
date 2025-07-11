@@ -15,6 +15,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Default permissions for all jobs
+permissions: {}
+
 jobs:
   next-gem-version:
     if: github.ref_name == 'master'
