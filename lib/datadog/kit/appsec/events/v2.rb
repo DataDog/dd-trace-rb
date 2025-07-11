@@ -42,7 +42,8 @@ module Datadog
               record_event_telemetry_metric(LOGIN_SUCCESS_EVENT)
               ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', LOGIN_SUCCESS_EVENT)
 
-              return Kit::Identity.set_user(trace, span, **user_attributes) if user_attributes.key?(:id)
+              # NOTE: Guard-clause will not work with Steep typechecking
+              return Kit::Identity.set_user(trace, span, **user_attributes) if user_attributes.key?(:id) # steep:ignore
 
               # NOTE: This is a fallback for the case when we don't have an ID,
               #       but need to trigger WAF.

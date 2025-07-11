@@ -1,0 +1,41 @@
+module Datadog
+  module Kit
+    module AppSec
+      module Events
+        module V2
+          type attributes = ::Hash[::Symbol, ::String | nil]
+
+          type user_or_id = nil | ::String | attributes
+
+          LOGIN_SUCCESS_EVENT: ::String
+
+          LOGIN_FAILURE_EVENT: ::String
+
+          TELEMETRY_METRICS_NAMESPACE: ::String
+
+          TELEMETRY_METRICS_SDK_EVENT: ::String
+
+          TELEMETRY_METRICS_SDK_VERSION: ::String
+
+          TELEMETRY_METRICS_EVENTS_INTO_TYPES: Hash[::String, ::String]
+
+          def self.track_user_login_success: (::String login, ?user_or_id user_or_id, **attributes metadata) -> void
+
+          def self.track_user_login_failure: (::String login, ?bool user_exists, **attributes metadata) -> void
+
+          private
+
+          def self.service_entry_trace: () -> (Tracing::TraceSegment | Tracing::TraceOperation)?
+
+          def self.service_entry_span: () -> Tracing::SpanOperation?
+
+          def self.build_user_attributes: (user_or_id? user_or_id, ::String login) -> attributes
+
+          def self.export_tags: (Tracing::SpanOperation span, ::Hash[::Symbol, untyped] source, namespace: ::String) -> void
+
+          def self.record_event_telemetry_metric: (::String event) -> void
+        end
+      end
+    end
+  end
+end
