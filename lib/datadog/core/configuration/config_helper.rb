@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'assets'
+require_relative '../logger'
 require 'json'
 
 module Datadog
@@ -8,37 +9,38 @@ module Datadog
     module Configuration
       module ConfigHelper
         # Load the supported configurations from JSON file
-        supported_config_data = JSON.parse(Assets.supported_configurations)
-        SUPPORTED_CONFIGURATIONS = supported_config_data['supportedConfigurations'] || {}
-        ALIASES = supported_config_data['aliases'] || {}
-        DEPRECATIONS = supported_config_data['deprecations'] || {}
+        SUPPORTED_CONFIG_DATA = JSON.parse(Assets.supported_configurations)
+        ALIASES = SUPPORTED_CONFIG_DATA['aliases'] || {}
 
-        # Build alias to canonical mapping
-        ALIAS_TO_CANONICAL = {}
-        ALIASES&.each do |canonical, alias_list|
-          alias_list.each do |alias_name|
-            if ALIAS_TO_CANONICAL[alias_name]
-              raise "The alias #{alias_name} is already used for #{ALIAS_TO_CANONICAL[alias_name]}."
+        def log_deprecations
+          SUPPORTED_CONFIG_DATA['deprecations']&.each do |deprecation, new_value|
+            if ENV[deprecation]
+              Datadog::Core.log_deprecation do
+                "#{deprecation} environment variable is deprecated, use #{new_value} instead."
+              end
             end
-            ALIAS_TO_CANONICAL[alias_name] = canonical
           end
         end
 
-        def self.deprecation_messages
-          # Log only during startup. We don't want to print it again when calling replace_components!
-          return if @logged_deprecations
-          @logged_deprecations = true
-
-          DEPRECATIONS&.reduce([]) do |messages, (deprecation, message)|
-            if ENV[deprecation]
-              warning_message = "#{deprecation} environment variable is deprecated, "
-              if ALIAS_TO_CANONICAL[deprecation]
-                warning_message += "use #{ALIAS_TO_CANONICAL[deprecation]} instead."
-              else
-                warning_message += message
+        def alias_to_canonical
+          @alias_to_canonical ||= begin
+            ALIASES.reduce({}) do |alias_to_canonical, (canonical, alias_list)|
+              alias_list.each do |alias_name|
+                if alias_to_canonical[alias_name]
+                  raise "The alias #{alias_name} is already used for #{alias_to_canonical[alias_name]}."
+                end
+                alias_to_canonical[alias_name] = canonical
               end
-              messages << warning_message
+              alias_to_canonical
             end
+          end
+        end
+
+        def supported_configurations
+          @supported_configurations ||= begin
+            # Log deprecations only once
+            log_deprecations
+            SUPPORTED_CONFIG_DATA['supportedConfigurations'] || {}
           end
         end
 
@@ -49,17 +51,10 @@ module Datadog
         # @return [String, nil] The environment variable value
         # @raise [RuntimeError] if the configuration is not supported
         def get_environment_variable(name)
-          # List of env var that do not start with DD_ or OTEL_ but related to datadog:
-          # DISABLE_DATADOG_RAILS
-          if (name.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[name]) &&
-            !SUPPORTED_CONFIGURATIONS[name]
-            config_array = JSON.parse(File.read('tmp_config.json'))
-            unless config_array.include?(name)
-              config_array << name
-              File.write('tmp_config.json', JSON.pretty_generate(config_array))
-            end
+          if (name.start_with?('DD_', 'OTEL_') || alias_to_canonical[name]) &&
+             !supported_configurations[name]
             # return nil
-            # raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
+            raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
           end
 
           config = ENV[name]
