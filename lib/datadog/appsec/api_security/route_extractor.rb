@@ -10,6 +10,7 @@ module Datadog
         GRAPE_ROUTE_KEY = 'grape.routing_args'
         RAILS_ROUTE_KEY = 'action_dispatch.route_uri_pattern'
         RAILS_ROUTES_KEY = 'action_dispatch.routes'
+        RAILS_PATH_PARAMS_KEY = 'action_dispatch.request.path_parameters'
         RAILS_FORMAT_SUFFIX = '(.:format)'
 
         # HACK: We rely on the fact that each contrib will modify `request.env`
@@ -36,6 +37,11 @@ module Datadog
         #         "/users/:id(.:format)"
         #
         # WARNING: This method works only *after* the request has been routed.
+        #
+        # WARNING: In Rails > 7.1 when a route was not found,
+        #          action_dispatch.route_uri_pattern will not be set.
+        #          In Rails < 7.1 it also will not be set even if a route was found,
+        #          but in this case  action_dispatch.request.path_parameters won't be empty.
         def self.route_pattern(request)
           if request.env.key?(GRAPE_ROUTE_KEY)
             pattern = request.env[GRAPE_ROUTE_KEY][:route_info]&.pattern&.origin
@@ -45,7 +51,7 @@ module Datadog
             "#{request.script_name}#{pattern}"
           elsif request.env.key?(RAILS_ROUTE_KEY)
             request.env[RAILS_ROUTE_KEY].delete_suffix(RAILS_FORMAT_SUFFIX)
-          elsif request.env.key?(RAILS_ROUTES_KEY)
+          elsif request.env.key?(RAILS_ROUTES_KEY) && !request.env.fetch(RAILS_PATH_PARAMS_KEY, {}).empty?
             pattern = request.env[RAILS_ROUTES_KEY].router
               .recognize(request) { |route, _| break route.path.spec.to_s }
 
