@@ -1,8 +1,6 @@
 name: Bump datadog gem version
 
 on: # yamllint disable-line rule:truthy
-  repository_dispatch:
-    types: [bump-gem-version]
   workflow_dispatch:
     inputs:
       dry-run:
@@ -10,6 +8,11 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: boolean
         default: false
+  workflow_call:
+    outputs:
+      next_version:
+        description: The next version that will be used
+        value: ${{ jobs.next-gem-version.outputs.next_version }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
