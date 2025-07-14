@@ -40,7 +40,7 @@ module Datadog
             #   )
             #
             # @return [void]
-            def track_user_login_success(login, user_or_id = nil, **metadata)
+            def track_user_login_success(login, user_or_id = nil, metadata = {})
               trace = service_entry_trace
               span = service_entry_span
 
@@ -49,6 +49,9 @@ module Datadog
                   'Kit::AppSec: Tracing is not enabled. Please enable tracing if you want to track events'
                 )
               end
+
+              raise TypeError, '`login` argument must be a String' unless login.is_a?(String)
+              raise TypeError, '`metadata` argument must be a Hash' unless metadata.is_a?(Hash)
 
               user_attributes = build_user_attributes(user_or_id, login)
 
@@ -90,7 +93,7 @@ module Datadog
             #   )
             #
             # @return [void]
-            def track_user_login_failure(login, user_exists = false, **metadata)
+            def track_user_login_failure(login, user_exists = false, metadata = {})
               trace = service_entry_trace
               span = service_entry_span
 
@@ -100,8 +103,11 @@ module Datadog
                 )
               end
 
+              raise TypeError, '`login` argument must be a String' unless login.is_a?(String)
+              raise TypeError, '`metadata` argument must be a Hash' unless metadata.is_a?(Hash)
+
               unless user_exists.is_a?(TrueClass) || user_exists.is_a?(FalseClass)
-                raise TypeError, 'user existence flag must be a boolean'
+                raise TypeError, '`user_exists` argument must be a boolean'
               end
 
               export_tags(span, metadata, namespace: LOGIN_FAILURE_EVENT)
@@ -138,15 +144,21 @@ module Datadog
             end
 
             def build_user_attributes(user_or_id, login)
-              raise TypeError, 'login argument must be a String' unless login.is_a?(String)
+              raise TypeError, '`login` argument must be a String' unless login.is_a?(String)
 
-              return { login: login } unless user_or_id
-              return { login: login, id: user_or_id } unless user_or_id.is_a?(Hash)
+              case user_or_id
+              when nil
+                { login: login }
+              when String
+                { login: login, id: user_or_id }
+              when Hash
+                raise ArgumentError, 'missing required user key `:id`' unless user_or_id.key?(:id)
+                raise TypeError, 'user key `:id` must be a String' unless user_or_id[:id].is_a?(String)
 
-              raise ArgumentError, 'missing required key `:id`' unless user_or_id.key?(:id)
-              raise TypeError, 'key `:id` must be a String' unless user_or_id[:id].is_a?(String)
-
-              user_or_id.merge(login: login)
+                user_or_id.merge(login: login)
+              else
+                raise TypeError, '`user_or_id` argument must be either String or Hash'
+              end
             end
 
             def export_tags(span, source, namespace:)
@@ -166,7 +178,7 @@ module Datadog
 
               if telemetry.nil?
                 return Datadog.logger.debug(
-                  'Kit::AppSec: Telemetry component is unavailabl. Skip recording SDK metrics'
+                  'Kit::AppSec: Telemetry component is unavailable. Skip recording SDK metrics'
                 )
               end
 

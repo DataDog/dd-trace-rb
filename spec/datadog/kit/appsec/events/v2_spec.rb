@@ -1,13 +1,10 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-
-require 'datadog/tracing/trace_operation'
 require 'datadog/kit/appsec/events/v2'
 
 RSpec.describe Datadog::Kit::AppSec::Events::V2 do
   let(:sdk) { described_class }
-  let(:trace_op) { Datadog::Tracing::TraceOperation.new }
 
   describe '#track_user_login_success' do
     context 'when AppSec context is active' do
@@ -19,12 +16,27 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
 
       it 'raises exception when user key :id is missing' do
         expect { sdk.track_user_login_success('john.snow', {}) }
-          .to raise_error(ArgumentError, 'missing required key `:id`')
+          .to raise_error(ArgumentError, 'missing required user key `:id`')
       end
 
-      it 'raises exception when user key :id is nil' do
-        expect { sdk.track_user_login_success('john.snow', {id: nil}) }
-          .to raise_error(TypeError, 'key `:id` must be a String')
+      it 'raises exception when user key :id is not String' do
+        expect { sdk.track_user_login_success('john.snow', {id: 15}) }
+          .to raise_error(TypeError, 'user key `:id` must be a String')
+      end
+
+      it 'raises exception when user id argument is not string' do
+        expect { sdk.track_user_login_success('john.snow', 15) }
+          .to raise_error(TypeError, '`user_or_id` argument must be either String or Hash')
+      end
+
+      it 'raises exception when login argument is not string' do
+        expect { sdk.track_user_login_success(12) }
+          .to raise_error(TypeError, '`login` argument must be a String')
+      end
+
+      it 'raises exception when metadata argument is not Hash' do
+        expect { sdk.track_user_login_success('john.snow', '42', 15) }
+          .to raise_error(TypeError, '`metadata` argument must be a Hash')
       end
 
       it 'sets required tags on service entry span' do
@@ -79,7 +91,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets user id from argument and ignores it in metadata' do
-        expect { sdk.track_user_login_success('john.snow', '42', 'usr.id': '13') }
+        expect { sdk.track_user_login_success('john.snow', '42', "usr.id": '13') }
           .to change { span.tags }.to include(
             'usr.id' => '42',
             'appsec.events.users.login.success.usr.id' => '42'
@@ -87,7 +99,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets user login from argument and ignores it in metadata' do
-        expect { sdk.track_user_login_success('john.snow', '42', 'usr.login': 'john.doe') }
+        expect { sdk.track_user_login_success('john.snow', '42', "usr.login": 'john.doe') }
           .to change { span.tags }.to include(
             'usr.login' => 'john.snow',
             'appsec.events.users.login.success.usr.login' => 'john.snow'
@@ -103,7 +115,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
 
       it 'record telemetry metrics' do
         expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:inc)
-          .with('appsec', 'sdk.event', 1, tags: { event_type: 'login_success', sdk_version: 'v2' })
+          .with('appsec', 'sdk.event', 1, tags: {event_type: 'login_success', sdk_version: 'v2'})
 
         sdk.track_user_login_success('john.snow')
       end
@@ -117,6 +129,24 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       let(:span) { trace.build_span('root') }
 
       before { allow(Datadog::AppSec).to receive(:active_context).and_return(context) }
+
+      it 'raises exception if exists argument is not a boolean' do
+        expect { sdk.track_user_login_failure('john.snow', 'true') }
+          .to raise_error(TypeError, '`user_exists` argument must be a boolean')
+
+        expect { sdk.track_user_login_failure('john.snow', 1) }
+          .to raise_error(TypeError, '`user_exists` argument must be a boolean')
+      end
+
+      it 'raises exception when login argument is not string' do
+        expect { sdk.track_user_login_failure(12) }
+          .to raise_error(TypeError, '`login` argument must be a String')
+      end
+
+      it 'raises exception when metadata argument is not Hash' do
+        expect { sdk.track_user_login_failure('john.snow', true, 15) }
+          .to raise_error(TypeError, '`metadata` argument must be a Hash')
+      end
 
       it 'sets user existance to false when it is not provided' do
         expect { sdk.track_user_login_failure('john.snow') }
@@ -140,7 +170,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets id from argument and ignores it in metadata' do
-        expect { sdk.track_user_login_failure('john.snow', false, 'usr.id': 'john.doe') }
+        expect { sdk.track_user_login_failure('john.snow', false, "usr.id": 'john.doe') }
           .to change { span.tags }.to include(
             'appsec.events.users.login.failure.usr.login' => 'john.snow',
           )
@@ -154,23 +184,15 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       end
 
       it 'sets exists from argument even if metadata exists key is false' do
-        expect { sdk.track_user_login_failure('john.snow', false, 'usr.exists': 'true') }
+        expect { sdk.track_user_login_failure('john.snow', false, "usr.exists": 'true') }
           .to change { span.tags }.to include(
             'appsec.events.users.login.failure.usr.exists' => 'false',
           )
       end
 
-      it 'sets exists from argument only if it is a boolean' do
-        expect { sdk.track_user_login_failure('john.snow', 'true') }
-          .to raise_error(TypeError, 'user existence flag must be a boolean')
-
-        expect { sdk.track_user_login_failure('john.snow', 1) }
-          .to raise_error(TypeError, 'user existence flag must be a boolean')
-      end
-
       it 'record telemetry metrics' do
         expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:inc)
-          .with('appsec', 'sdk.event', 1, tags: { event_type: 'login_failure', sdk_version: 'v2' })
+          .with('appsec', 'sdk.event', 1, tags: {event_type: 'login_failure', sdk_version: 'v2'})
 
         sdk.track_user_login_failure('john.snow')
       end
