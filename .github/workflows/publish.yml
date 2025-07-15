@@ -228,7 +228,7 @@ jobs:
     uses: ./.github/workflows/bump-gem-version.yml
     with:
       version: ${{ needs.update-gem-version.outputs.next_version }}
-    secrets: inherit
+    secrets: inherit # zizmor: ignore[secrets-inherit]
 
   # https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28
   milestone:
