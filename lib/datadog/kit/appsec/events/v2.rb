@@ -55,8 +55,8 @@ module Datadog
 
               user_attributes = build_user_attributes(user_or_id, login)
 
-              export_tags(span, metadata, namespace: LOGIN_SUCCESS_EVENT)
-              export_tags(span, user_attributes, namespace: "#{LOGIN_SUCCESS_EVENT}.usr")
+              set_span_tags(span, metadata, namespace: LOGIN_SUCCESS_EVENT)
+              set_span_tags(span, user_attributes, namespace: "#{LOGIN_SUCCESS_EVENT}.usr")
               span.set_tag('appsec.events.users.login.success.track', 'true')
               span.set_tag('_dd.appsec.events.users.login.success.sdk', 'true')
 
@@ -110,7 +110,7 @@ module Datadog
                 raise TypeError, '`user_exists` argument must be a boolean'
               end
 
-              export_tags(span, metadata, namespace: LOGIN_FAILURE_EVENT)
+              set_span_tags(span, metadata, namespace: LOGIN_FAILURE_EVENT)
               span.set_tag('appsec.events.users.login.failure.track', 'true')
               span.set_tag('_dd.appsec.events.users.login.failure.sdk', 'true')
               span.set_tag('appsec.events.users.login.failure.usr.login', login)
@@ -161,12 +161,11 @@ module Datadog
               end
             end
 
-            def export_tags(span, source, namespace:)
-              namespace = "appsec.events.#{namespace}"
-              source.each do |key, value|
+            def set_span_tags(span, tags, namespace:)
+              tags.each do |name, value|
                 next if value.nil?
 
-                span.set_tag("#{namespace}.#{key}", value)
+                span.set_tag("appsec.events.#{namespace}.#{name}", value)
               end
             end
 

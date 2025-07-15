@@ -31,7 +31,7 @@ module Datadog
 
           def self.build_user_attributes: (user_or_id? user_or_id, ::String login) -> attributes
 
-          def self.export_tags: (Tracing::SpanOperation span, ::Hash[::Symbol, untyped] source, namespace: ::String) -> void
+          def self.set_span_tags: (Tracing::SpanOperation span, ::Hash[::Symbol, untyped] tags, namespace: ::String) -> void
 
           def self.record_event_telemetry_metric: (::String event) -> void
         end
