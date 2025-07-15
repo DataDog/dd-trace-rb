@@ -73,6 +73,12 @@ jobs:
           PATTERN: '(\s+ref: )(\S+)(\s+# Automated:.*)'
           REF: ${{ steps.system-test-ref.outputs.commit }}
 
+      - run: .github/scripts/update_reference.sh
+        env:
+          TARGET: ".gitlab-ci.yml"
+          PATTERN: '(\s*SYSTEM_TESTS_REF:\s+)(\S+)(\s+# Automated:.*)'
+          REF: ${{ steps.system-test-ref.outputs.commit }}
+
       - run: git diff --color=always
 
       - name: Generate GitHub App Token
@@ -98,6 +104,7 @@ jobs:
           sign-commits: true
           add-paths: |
             .github/
+            .gitlab-ci.yml
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-system-tests.yml)_
             The PR updates the system tests (Updated to commit: ${{ steps.system-test-ref.outputs.commit }})
