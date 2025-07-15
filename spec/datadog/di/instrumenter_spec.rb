@@ -611,7 +611,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.first[:duration]).to be_a(Float)
 
           expect(observed_calls.first[:serialized_entry_args]).to eq(
-            kwarg: {type: 'Integer', value: '42'}
+            kwarg: {type: 'Integer', value: '42'},
+            self: {type: 'HookTestClass', fields: {}},
           )
         end
       end
@@ -667,6 +668,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first[:serialized_entry_args]).to eq(
               arg1: {type: 'String', value: 'hello'},
               kwarg: {type: 'Integer', value: '42'},
+              self: {type: 'HookTestClass', fields: {}},
             )
           end
         end
