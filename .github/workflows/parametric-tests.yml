@@ -15,7 +15,7 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 env:
-  SYSTEM_TESTS_REF: ddf8222d2d3acc5318d579d5c4a341c14cab196b # Automated: Can be updated by .github/workflows/update-system-tests.yml
+  SYSTEM_TESTS_REF: ceced0c3602d4ea97cfe82659911381a7c00d477 # Automated: Can be updated by .github/workflows/update-system-tests.yml
 
 jobs:
   changes:
