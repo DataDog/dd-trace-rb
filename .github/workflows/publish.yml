@@ -220,6 +220,9 @@ jobs:
   bump-gem-version:
     if: github.ref_name == 'master'
     name: Bump gem version
+    permissions:
+      contents: write
+      pull-requests: write
     needs:
       - update-gem-version
     uses: ./.github/workflows/bump-gem-version.yml
