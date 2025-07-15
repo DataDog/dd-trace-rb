@@ -96,7 +96,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             },
           }, return: {
             arguments: {
-              self: {
+              :self => {
                 type: 'Object',
                 fields: {},
               },
@@ -110,7 +110,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
         it 'builds expected payload' do
           payload = builder.build_snapshot(
-            probe, args: args, kwargs: kwargs, target_self: Object.new)
+            probe, args: args, kwargs: kwargs, target_self: Object.new
+          )
           expect(payload).to be_a(Hash)
           captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
           expect(captures).to eq(expected_captures)

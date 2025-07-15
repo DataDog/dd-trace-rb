@@ -274,8 +274,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   a: {type: "Integer", value: "42"},
-                  self: {type: 'Object', fields: {}},
-                  }},
+                  self: {type: 'Object', fields: {}},}},
       {name: "args, kwargs and instance vars",
        args: [1, "x"],
        kwargs: {a: 42},
@@ -288,8 +287,7 @@ RSpec.describe Datadog::DI::Serializer do
                     fields: {
                       "@ivar": {type: 'String', value: 'quux'},
                     },
-                  },
-                },},
+                  },},},
       {name: "kwargs contains redacted identifier",
        args: [1, "x"],
        kwargs: {password: 42},
@@ -297,8 +295,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   password: {type: "Integer", notCapturedReason: "redactedIdent"},
-                  self: {type: 'Object', fields: {}},
-                  }},
+                  self: {type: 'Object', fields: {}},}},
     ]
 
     cases.each do |c|

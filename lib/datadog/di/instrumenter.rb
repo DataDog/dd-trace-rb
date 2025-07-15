@@ -316,7 +316,7 @@ module Datadog
                     depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                     attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
                 end
-                serialized_target_self = if probe.capture_snapshot?
+                if probe.capture_snapshot?
                   serializer.serialize_value(tp.self,
                     depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                     attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
