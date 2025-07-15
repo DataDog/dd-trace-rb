@@ -217,6 +217,19 @@ jobs:
         run: |
           echo "next_version=$(bundle exec rake version:next)" >> "$GITHUB_OUTPUT"
 
+  bump-gem-version:
+    if: github.ref_name == 'master'
+    name: Bump gem version
+    permissions:
+      contents: write
+      pull-requests: write
+    needs:
+      - update-gem-version
+    uses: ./.github/workflows/bump-gem-version.yml
+    with:
+      version: ${{ needs.update-gem-version.outputs.next_version }}
+    secrets: inherit # zizmor: ignore[secrets-inherit]
+
   # https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28
   milestone:
     if: github.ref_name == 'master'
