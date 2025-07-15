@@ -16,6 +16,10 @@ module Datadog
     #    counting from 0 again
     #
     # This is why this module is implemented as a singleton that we reuse, not as an instance that we recreate.
+    #
+    # Note that this module is not thread-safe, so it's up to the callers to make sure
+    # it's only used by a single thread at a time (which is what the `Profiling::Exporter`)
+    # is doing.
     module SequenceTracker
       class << self
         include Core::Utils::Forking
