@@ -173,7 +173,7 @@ module Datadog
             #       or highly increase the number of metrics, this method should be
             #       extracted into a proper module.
             def record_event_telemetry_metric(event)
-              telemetry = ::Datadog.send(:components)&.telemetry
+              telemetry = ::Datadog.send(:components, allow_initialization: false)&.telemetry
 
               if telemetry.nil?
                 return Datadog.logger.debug(

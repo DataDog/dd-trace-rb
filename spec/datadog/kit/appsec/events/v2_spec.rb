@@ -113,11 +113,34 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
           )
       end
 
-      it 'record telemetry metrics' do
-        expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:inc)
-          .with('appsec', 'sdk.event', 1, tags: {event_type: 'login_success', sdk_version: 'v2'})
+      context 'when telemetry is available' do
+        before do
+          allow(Datadog).to receive(:components).and_return(components)
+          allow(components).to receive(:telemetry).and_return(telemetry)
+        end
 
-        sdk.track_user_login_success('john.snow')
+        let(:components) { instance_double(Datadog::Core::Configuration::Components) }
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+        it 'record telemetry metrics' do
+          expect(telemetry).to receive(:inc)
+            .with('appsec', 'sdk.event', 1, tags: {event_type: 'login_success', sdk_version: 'v2'})
+
+          sdk.track_user_login_success('john.snow')
+        end
+      end
+
+      context 'when telemetry is not available' do
+        before { allow(Datadog).to receive(:logger).and_return(logger) }
+
+        let(:logger) { instance_double(Logger) }
+
+        it 'does not record telemetry metrics' do
+          expect(logger).to receive(:debug).with(/Telemetry component is unavailable/)
+          expect_any_instance_of(Datadog::Core::Telemetry::Component).not_to receive(:inc)
+
+          sdk.track_user_login_success('john.snow')
+        end
       end
     end
   end
@@ -190,11 +213,34 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
           )
       end
 
-      it 'record telemetry metrics' do
-        expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:inc)
-          .with('appsec', 'sdk.event', 1, tags: {event_type: 'login_failure', sdk_version: 'v2'})
+      context 'when telemetry is available' do
+        before do
+          allow(Datadog).to receive(:components).and_return(components)
+          allow(components).to receive(:telemetry).and_return(telemetry)
+        end
 
-        sdk.track_user_login_failure('john.snow')
+        let(:components) { instance_double(Datadog::Core::Configuration::Components) }
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+        it 'record telemetry metrics' do
+          expect(telemetry).to receive(:inc)
+            .with('appsec', 'sdk.event', 1, tags: {event_type: 'login_failure', sdk_version: 'v2'})
+
+          sdk.track_user_login_failure('john.snow')
+        end
+      end
+
+      context 'when telemetry is not available' do
+        before { allow(Datadog).to receive(:logger).and_return(logger) }
+
+        let(:logger) { instance_double(Logger) }
+
+        it 'does not record telemetry metrics' do
+          expect(logger).to receive(:debug).with(/Telemetry component is unavailable/)
+          expect_any_instance_of(Datadog::Core::Telemetry::Component).not_to receive(:inc)
+
+          sdk.track_user_login_failure('john.snow')
+        end
       end
     end
   end
