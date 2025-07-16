@@ -452,6 +452,7 @@ module Datadog
           span
         end
       end
+      # rubocop:enable Metrics/MethodLength
       # rubocop:enable Lint/UnderscorePrefixedVariableName
       # rubocop:enable Metrics/MethodLength
 

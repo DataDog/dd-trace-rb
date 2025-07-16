@@ -941,9 +941,24 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
         end
 
-        it 'log deprecation warning' do
-          expect(Datadog::Core).to receive(:log_deprecation)
-          option.get
+        context 'with deprecated env added to supported config data' do
+          around do |example|
+            # We simulate that the deprecated env is set in supported-configurations.json.
+            # Because it does not start with DD_ or OTEL_, it does not need to be added in ['supportedConfigurations']
+            # But aliases and deprecations are still supported.
+            # It is also tested with an actual value (see spec/datadog/core/configuration/settings_spec.rb:693)
+            supported_config_data = Datadog::Core::Configuration::ConfigHelper.const_get(:SUPPORTED_CONFIG_DATA)
+            supported_config_data['deprecations'][deprecated_env] = ''
+
+            example.run
+
+            supported_config_data['deprecations'].delete(deprecated_env)
+          end
+
+          it 'log deprecation warning' do
+            expect(Datadog::Core).to receive(:log_deprecation)
+            option.get
+          end
         end
 
         it_behaves_like 'env coercion'
@@ -1002,9 +1017,24 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
         end
 
-        it 'log deprecation warning' do
-          expect(Datadog::Core).to receive(:log_deprecation)
-          option.get
+        context 'with deprecated env added to supported config data' do
+          around do |example|
+            # We simulate that the deprecated env is set in supported-configurations.json.
+            # Because it does not start with DD_ or OTEL_, it does not need to be added in ['supportedConfigurations']
+            # But aliases and deprecations are still supported.
+            # It is also tested with an actual value (see spec/datadog/core/configuration/settings_spec.rb:693)
+            supported_config_data = Datadog::Core::Configuration::ConfigHelper.const_get(:SUPPORTED_CONFIG_DATA)
+            supported_config_data['deprecations'][deprecated_env] = ''
+
+            example.run
+
+            supported_config_data['deprecations'].delete(deprecated_env)
+          end
+
+          it 'log deprecation warning' do
+            expect(Datadog::Core).to receive(:log_deprecation)
+            option.get
+          end
         end
       end
 

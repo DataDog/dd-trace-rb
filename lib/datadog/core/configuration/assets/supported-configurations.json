@@ -10,8 +10,7 @@
       "version": ["A"]
     },
     "DD_PROFILING_GVL_ENABLED": {
-      "version": ["A"],
-      "deprecated": ["DD_PROFILING_PREVIEW_GVL_ENABLED"]
+      "version": ["A"]
     },
     "DD_APPSEC_ENABLED": {
       "version": ["A"]
@@ -28,13 +27,7 @@
     "DD_SERVICE": {
       "version": ["A"]
     },
-    "OTEL_SERVICE_NAME": {
-      "version": ["A"]
-    },
     "DD_TAGS": {
-      "version": ["A"]
-    },
-    "OTEL_RESOURCE_ATTRIBUTES": {
       "version": ["A"]
     },
     "DD_TRACE_DEBUG": {
@@ -97,9 +90,6 @@
     "DD_TRACE_ENABLED": {
       "version": ["A"]
     },
-    "OTEL_TRACES_EXPORTER": {
-      "version": ["A"]
-    },
     "DD_SPAN_SAMPLING_RULES": {
       "version": ["A"]
     },
@@ -121,9 +111,6 @@
     "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED": {
       "version": ["A"]
     },
-    "DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED": {
-      "version": ["A"]
-    },
     "DD_METRIC_AGENT_PORT": {
       "version": ["A"]
     },
@@ -137,9 +124,6 @@
       "version": ["A"]
     },
     "DD_TRACE_PROPAGATION_STYLE": {
-      "version": ["A"]
-    },
-    "OTEL_PROPAGATORS": {
       "version": ["A"]
     },
     "DD_TRACE_PROPAGATION_STYLE_INJECT": {
@@ -161,6 +145,9 @@
       "version": ["A"]
     },
     "DD_TRACE_RAILS_ENABLED": {
+      "version": ["A"]
+    },
+    "DD_DISABLE_DATADOG_RAILS": {
       "version": ["A"]
     },
     "DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP": {
@@ -308,9 +295,6 @@
       "version": ["A"]
     },
     "DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_PREVIEW_GVL_ENABLED": {
       "version": ["A"]
     },
     "DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE": {
@@ -855,7 +839,31 @@
     },
     "DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE": {
       "version": ["A"]
+    },
+    "DD_TRACE_GRPC_ANALYTICS_ENABLED": {
+      "version": ["A"]
+    },
+    "DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_GRPC_SERVICE_NAME": {
+      "version": ["A"]
+    },
+    "DD_TRACE_GRPC_PEER_SERVICE": {
+      "version": ["A"]
+    },
+    "DD_INJECTION_ENABLED": {
+      "version": ["A"]
     }
+  },
+  "aliases": {
+    "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED": ["DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED"],
+    "DD_SERVICE": ["OTEL_SERVICE_NAME"],
+    "DD_TAGS": ["OTEL_RESOURCE_ATTRIBUTES"],
+    "DD_TRACE_PROPAGATION_STYLE": ["OTEL_PROPAGATORS"],
+    "DD_TRACE_ENABLED": ["OTEL_TRACES_EXPORTER"],
+    "DD_DISABLE_DATADOG_RAILS": ["DISABLE_DATADOG_RAILS"],
+    "DD_PROFILING_GVL_ENABLED": ["DD_PROFILING_PREVIEW_GVL_ENABLED"]
   },
   "deprecations": {
     "DD_PROFILING_PREVIEW_GVL_ENABLED": "DD_PROFILING_GVL_ENABLED"

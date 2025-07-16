@@ -16,7 +16,7 @@ require_relative 'serializer'
 require_relative 'transport/http'
 require_relative 'utils'
 
-# TODO: Fix Datadog.get_environment_variable usage in this file
+# Replace with Datadog.get_environment_variable when https://github.com/DataDog/dd-trace-rb/pull/4789 is merged
 # rubocop:disable CustomCops/EnvUsageCop
 if %w[1 true yes].include?(ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
   # rubocop:enable CustomCops/EnvUsageCop

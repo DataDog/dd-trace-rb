@@ -269,6 +269,12 @@ RSpec.configure do |config|
   # put this code inside the test scope, interfering
   # with the test execution.
   config.around do |example|
+    # This is initialized during app startup and should not change during app lifecycle
+    # However in our tests, we change the environment variables without completely resetting the app
+    # This is why we reset these variables here.
+    Datadog.instance_variable_set(:@log_deprecations_called, nil)
+    Datadog.instance_variable_set(:@alias_to_canonical, nil)
+
     example.run.tap do
       tracer_shutdown!
     end
