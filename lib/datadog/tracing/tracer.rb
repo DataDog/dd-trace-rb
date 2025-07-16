@@ -194,7 +194,6 @@ module Datadog
           )
         end
       end
-      # rubocop:enable Metrics/MethodLength
 
       # Set the given key / value tag pair at the tracer level. These tags will be
       # appended to each span created by the tracer. Keys and values must be strings.
@@ -332,7 +331,6 @@ module Datadog
         @provider.context(key)
       end
 
-      # rubocop:disable Metrics/MethodLength
       def build_trace(digest = nil)
         # Resolve hostname if configured
         hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
@@ -389,7 +387,6 @@ module Datadog
           flush_trace(event_trace_op)
         end
       end
-      # rubocop:enable Metrics/MethodLength
 
       # Creates a new TraceOperation, with events bounds to this Tracer instance.
       # @return [TraceOperation]
@@ -404,7 +401,6 @@ module Datadog
       end
 
       # rubocop:disable Lint/UnderscorePrefixedVariableName
-      # rubocop:disable Metrics/MethodLength
       def start_span(
         name,
         continue_from: nil,
@@ -456,8 +452,8 @@ module Datadog
           span
         end
       end
+      # rubocop:enable Metrics/MethodLength
       # rubocop:enable Lint/UnderscorePrefixedVariableName
-      # rubocop:disable Metrics/MethodLength
 
       def resolve_tags(tags, service)
         merged_tags = if @tags.any? && tags
