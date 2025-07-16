@@ -27,7 +27,7 @@ module Datadog
         def get_environment_variable(name)
           # If we have a deprecated env var that does not start with DD_ or OTEL_, without an alias,
           # it will not do the third check (SUPPORTED_CONFIGURATIONS[name]) and will not call log_deprecations.
-          log_deprecations unless @log_deprecations_called
+          log_deprecations unless defined?(@log_deprecations_called) && @log_deprecations_called
 
           # datadog-ci-rb is using dd-trace-rb config DSL, which uses this method.
           # Until we've correctly implemented support for datadog-ci-rb, we disable config inversion if ci is enabled.
