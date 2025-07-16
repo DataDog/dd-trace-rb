@@ -25,7 +25,7 @@ module Datadog
         private
 
         def set_rubyopt!
-          existing_rubyopt = ENV["RUBYOPT"]
+          existing_rubyopt = ENV["RUBYOPT"] # rubocop:disable CustomCops/EnvUsageCop
 
           ENV["RUBYOPT"] = existing_rubyopt ? "#{existing_rubyopt} #{rubyopts.join(" ")}" : rubyopts.join(" ") # rubocop:disable CustomCops/EnvUsageCop
         end
