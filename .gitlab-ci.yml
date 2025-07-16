@@ -180,7 +180,7 @@ vaccine:
 
   script:
     - export GITHUB_TOKEN=$(cat token.txt)
-    - .gitlab/scripts/vaccine.sh lloeki/ssi "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
+    - .gitlab/scripts/vaccine.sh master "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
 
   after_script:
     # Revoke the token after usage
