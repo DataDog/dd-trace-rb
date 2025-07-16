@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: DeterminateSystems/nix-installer-action@41e0dcf2158a3d6eefca89332cc236df1733e8a7 # main
+      - uses: DeterminateSystems/nix-installer-action@c723f3a885e3f1d866d91f4f0c33dd44b1fc7c60 # main
       - name: Print ruby version
         run: |
           nix develop --command which ruby

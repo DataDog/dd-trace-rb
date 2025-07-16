@@ -92,6 +92,21 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         it { expect(described_class.route_pattern(request)).to eq('/api/v1/users/:id/posts/:post_id') }
       end
 
+      context 'when route_uri_pattern is not set, but request path parameters are present' do
+        before do
+          allow(request).to receive(:env).and_return({
+            'action_dispatch.routes' => route_set,
+            'action_dispatch.request.path_parameters' => {}
+          })
+        end
+
+        let(:router) { double('ActionDispatch::Routing::RouteSet::Router') }
+        let(:route_set) { double('ActionDispatch::Routing::RouteSet', router: router) }
+        let(:request) { double('Rack::Request', env: {}, script_name: '', path: '/users/1') }
+
+        it { expect(described_class.route_pattern(request)).to eq('/users/1') }
+      end
+
       context 'when Rails router cannot recognize request' do
         before do
           allow(request).to receive(:env).and_return({'action_dispatch.routes' => route_set})
