@@ -303,12 +303,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
       end
 
-      context "when #{Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER}" do
+      context 'when OTEL_TRACES_EXPORTER' do
         around do |example|
           ClimateControl.modify(
             {
               Datadog::Tracing::Configuration::Ext::ENV_ENABLED => dd_enable,
-              Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER => otel_exporter
+              'OTEL_TRACES_EXPORTER' => otel_exporter
             }
           ) do
             example.run

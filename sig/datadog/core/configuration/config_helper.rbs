@@ -2,13 +2,19 @@ module Datadog
   module Core
     module Configuration
       module ConfigHelper
-        SUPPORTED_CONFIGURATIONS: untyped
-        ALIASES: untyped
-        DEPRECATIONS: untyped
-        ALIAS_TO_CANONICAL: untyped
-        DEPRECATION_METHODS: untyped
+        SUPPORTED_CONFIG_DATA: Hash[String, untyped]
+        SUPPORTED_CONFIGURATIONS: Hash[String, untyped]
+        ALIASES: Hash[String, Array[String]]
 
         def get_environment_variable: (String) -> String?
+
+        private
+
+        @alias_to_canonical: Hash[String, String]
+        @log_deprecations_called: bool
+
+        def log_deprecations: () -> void
+        def alias_to_canonical: () -> Hash[String, String]
       end
     end
   end

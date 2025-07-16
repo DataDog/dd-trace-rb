@@ -93,7 +93,8 @@ module Datadog
               # @return [Array<String>]
               option :propagation_style do |o|
                 o.type :array
-                o.env [Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE, Configuration::Ext::Distributed::ENV_OTEL_PROPAGATION_STYLE]
+                # Alias defined in supported-configurations.json
+                o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                 o.default []
                 o.after_set do |styles|
                   next if styles.empty?
@@ -133,13 +134,14 @@ module Datadog
               # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :enabled do |o|
-                o.env [Tracing::Configuration::Ext::ENV_ENABLED, Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER]
+                # Alias defined in supported-configurations.json
+                o.env Tracing::Configuration::Ext::ENV_ENABLED
                 o.default true
                 o.type :bool
                 o.env_parser do |value|
                   value = value&.downcase
-                  # Tracing is disabled when OTEL_TRACES_EXPORTER is none or
-                  # DD_TRACE_ENABLED is 0 or false.
+                  # Tracing is disabled when OTEL_TRACES_EXPORTER or DD_TRACE_ENABLED
+                  # is set to none, 0 or false.
                   if ['none', 'false', '0'].include?(value)
                     false
                   # Tracing is enabled when DD_TRACE_ENABLED is true or 1

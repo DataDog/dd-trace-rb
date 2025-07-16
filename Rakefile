@@ -69,9 +69,7 @@ namespace :spec do
   task all: [:main, :benchmark, :custom_cop,
              :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
-             :elasticsearch, :http, :redis,
-             # :sidekiq,
-             :sinatra, :hanami, :hanami_autoinstrument,
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
              :profiling, :crashtracking, :error_tracking, :process_discovery, :stable_config]
 
   desc '' # "Explicitly hiding from `rake -T`"
