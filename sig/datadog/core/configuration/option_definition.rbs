@@ -10,8 +10,6 @@ module Datadog
 
         attr_reader env: untyped
 
-        attr_reader deprecated_env: untyped
-
         attr_reader env_parser: untyped
 
         attr_reader depends_on: untyped
@@ -23,6 +21,10 @@ module Datadog
         attr_reader resetter: untyped
 
         attr_reader setter: untyped
+
+        attr_reader type: untyped
+
+        attr_reader type_options: untyped
 
         def initialize: (untyped name, ?::Hash[untyped, untyped] meta) { () -> untyped } -> untyped
 
@@ -40,8 +42,6 @@ module Datadog
           def default_proc: () { () -> untyped } -> untyped
 
           def env: (untyped value) -> untyped
-
-          def deprecated_env: (untyped value) -> untyped
 
           def env_parser: () { (String env_value) -> untyped } -> untyped
 
