@@ -24,8 +24,6 @@ module Datadog
 
         attr_reader env: String | Array[String] | nil
 
-        attr_reader deprecated_env: String?
-
         attr_reader env_parser: (^(String env_value) [self: Configuration::Settings] -> option_type)?
 
         attr_reader name: Symbol
