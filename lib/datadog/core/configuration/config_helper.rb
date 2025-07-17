@@ -24,10 +24,10 @@ module Datadog
         # @param name [String] Environment variable name
         # @return [String, nil] The environment variable value
         # @raise [RuntimeError] if the configuration is not supported
-        def get_environment_variable(name)
+        def get_environment_variable(name, env_vars: ENV, source: 'environment')
           # If we have a deprecated env var that does not start with DD_ or OTEL_, without an alias,
           # it will not do the third check (SUPPORTED_CONFIGURATIONS[name]) and will not call log_deprecations.
-          log_deprecations unless defined?(@log_deprecations_called) && @log_deprecations_called
+          log_deprecations(env_vars, source)
 
           # datadog-ci-rb is using dd-trace-rb config DSL, which uses this method.
           # Until we've correctly implemented support for datadog-ci-rb, we disable config inversion if ci is enabled.
@@ -38,10 +38,10 @@ module Datadog
             raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
           end
 
-          config = ENV[name]
+          config = env_vars[name]
           if config.nil? && ALIASES[name]
             ALIASES[name].each do |alias_name|
-              return ENV[alias_name] if ENV[alias_name]
+              return env_vars[alias_name] if env_vars[alias_name]
             end
           end
 
@@ -51,14 +51,18 @@ module Datadog
         private
 
         # An env can be deprecated without a replacement (e.g.: if we remove a feature)
-        def log_deprecations
-          @log_deprecations_called = true
+        def log_deprecations(env_vars, source)
+          @log_deprecations_called ||= {}
+          return if @log_deprecations_called[source]
+
+          @log_deprecations_called[source] = true
+          @temp_logger ||= Core::Logger.new($stdout)
           SUPPORTED_CONFIG_DATA['deprecations']&.each do |deprecation, message|
-            if ENV[deprecation]
+            if env_vars[deprecation]
               # As we only use warn level, we can use a new logger.
               # Using logger_without_configuration is not possible as it uses an environment variable.
-              Datadog::Core.log_deprecation(logger: Core::Logger.new($stdout)) do
-                value = "#{deprecation} environment variable is deprecated"
+              Datadog::Core.log_deprecation(logger: @temp_logger) do
+                value = "#{deprecation} #{source} variable is deprecated"
                 value += ", use #{alias_to_canonical[deprecation]} instead" if alias_to_canonical[deprecation]
                 value += '.'
                 value += " #{message}." unless message.nil? || message.empty?
