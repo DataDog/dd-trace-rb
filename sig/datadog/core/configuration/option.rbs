@@ -2,6 +2,8 @@ module Datadog
   module Core
     module Configuration
       class Option
+        type env_value = Hash[String, String] | Array[String] | String | Integer | Float | bool | nil
+
         @context: Configuration::Settings
 
         @is_set: bool
@@ -11,7 +13,6 @@ module Datadog
 
         attr_reader definition: Configuration::OptionDefinition
         attr_reader precedence_set: Precedence::Value
-        attr_reader resolved_env: String?
 
         module Precedence
           REMOTE_CONFIGURATION: Value
@@ -35,7 +36,7 @@ module Datadog
 
         def initialize: (Configuration::OptionDefinition definition, Configuration::Settings context) -> void
 
-        def set: (untyped value, ?precedence: Precedence::Value, ?resolved_env: String?) -> void
+        def set: (untyped value, ?precedence: Precedence::Value) -> void
 
         def get: () -> untyped
 
@@ -58,7 +59,7 @@ module Datadog
 
         def validate: (untyped type, untyped value) -> untyped
 
-        def internal_set: (untyped value, Precedence::Value precedence, String? resolved_env) -> untyped
+        def internal_set: (untyped value, Precedence::Value precedence) -> untyped
 
         def context_exec: (*untyped args) { (untyped) [self: untyped] -> untyped } -> untyped
 
@@ -72,7 +73,9 @@ module Datadog
 
         def set_fleet_stable_config_value: () -> void
 
-        def get_value_and_resolved_env_from: (?Hash[String, String]? env_vars, ?String? source) -> [Hash[String, String] | Array[String] | String | Integer | Float | bool | nil, String | nil]
+        def get_value_from_ENV: () -> env_value
+
+        def get_value_from: (Hash[String, String] env_vars, String source) -> env_value
 
         UNSET: Object
       end
