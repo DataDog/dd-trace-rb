@@ -312,10 +312,20 @@ RSpec.describe 'Instrumentation integration' do
         let(:expected_captures) do
           {
             entry: {arguments: {
-              "@ivar": {type: 'String', value: 'start value'},
-            }, throwable: nil},
+              self: {
+                type: 'InstrumentationSpecTestClass',
+                fields: {
+                  "@ivar": {type: 'String', value: 'start value'},
+                },
+              },
+            }},
             return: {arguments: {
-              "@ivar": {type: 'String', value: 'start value'},
+              self: {
+                type: 'InstrumentationSpecTestClass',
+                fields: {
+                  "@ivar": {type: 'String', value: 'start value'},
+                },
+              },
               "@return": {type: 'Integer', value: '42'},
             }, throwable: nil},
           }
@@ -362,14 +372,31 @@ RSpec.describe 'Instrumentation integration' do
           end
 
           let(:expected_captures) do
-            {entry: {arguments: {
-              arg1: {type: 'String', value: 'hello world'},
-              "@ivar": {type: 'String', value: 'start value'},
-            }, throwable: nil},
-             return: {arguments: {
-               "@ivar": {type: 'String', value: 'start value'},
-               "@return": {type: 'String', value: 'bye world'},
-             }, throwable: nil},}
+            {
+              entry: {
+                arguments: {
+                  arg1: {type: 'String', value: 'hello world'},
+                  self: {
+                    type: 'InstrumentationSpecTestClass',
+                    fields: {
+                      "@ivar": {type: 'String', value: 'start value'},
+                    },
+                  },
+                },
+              },
+              return: {
+                arguments: {
+                  self: {
+                    type: 'InstrumentationSpecTestClass',
+                    fields: {
+                      "@ivar": {type: 'String', value: 'start value'},
+                    },
+                  },
+                  "@return": {type: 'String', value: 'bye world'},
+                },
+                throwable: nil,
+              },
+            }
           end
 
           it 'captures original argument value at entry' do
@@ -387,13 +414,25 @@ RSpec.describe 'Instrumentation integration' do
           end
 
           let(:expected_captures) do
-            {entry: {arguments: {
-              "@ivar": {type: 'String', value: 'start value'},
-            }, throwable: nil},
-             return: {arguments: {
-               "@ivar": {type: 'String', value: 'altered value'},
-               "@return": {type: 'String', value: 'altered value'},
-             }, throwable: nil},}
+            {
+              entry: {arguments: {
+                self: {
+                  type: 'InstrumentationSpecTestClass',
+                  fields: {
+                    "@ivar": {type: 'String', value: 'start value'},
+                  },
+                },
+              }},
+              return: {arguments: {
+                self: {
+                  type: 'InstrumentationSpecTestClass',
+                  fields: {
+                    "@ivar": {type: 'String', value: 'altered value'},
+                  },
+                },
+                "@return": {type: 'String', value: 'altered value'},
+              }, throwable: nil},
+            }
           end
 
           it 'captures original instance variable value at entry' do
@@ -677,15 +716,24 @@ RSpec.describe 'Instrumentation integration' do
         end
 
         let(:expected_captures) do
-          {lines: {20 => {locals: {
-            a: {type: 'Integer', value: '21'},
-            "@ivar": {type: 'Integer', value: '51'},
-            password: {type: 'String', notCapturedReason: 'redactedIdent'},
-            redacted: {type: 'Hash', entries: [
-              [{type: 'Symbol', value: 'b'}, {type: 'Integer', value: '33'}],
-              [{type: 'Symbol', value: 'session'}, {type: 'String', notCapturedReason: 'redactedIdent'}],
-            ]},
-          }}}}
+          {lines: {20 => {
+            locals: {
+              a: {type: 'Integer', value: '21'},
+              password: {type: 'String', notCapturedReason: 'redactedIdent'},
+              redacted: {type: 'Hash', entries: [
+                [{type: 'Symbol', value: 'b'}, {type: 'Integer', value: '33'}],
+                [{type: 'Symbol', value: 'session'}, {type: 'String', notCapturedReason: 'redactedIdent'}],
+              ]},
+            },
+            arguments: {
+              self: {
+                type: 'InstrumentationIntegrationTestClass',
+                fields: {
+                  "@ivar": {type: 'Integer', value: '51'},
+                },
+              },
+            },
+          }}}
         end
 
         before do
@@ -732,10 +780,18 @@ RSpec.describe 'Instrumentation integration' do
           end
 
           let(:expected_captures) do
-            {lines: {7 => {locals: {
+            {lines: {7 => {
               # Reports instance variables but no locals
-              "@ivar": {type: 'Integer', value: '51'},
-            }}}}
+              locals: {},
+              arguments: {
+                self: {
+                  type: 'InstrumentationIntegrationTestClass',
+                  fields: {
+                    "@ivar": {type: 'Integer', value: '51'},
+                  },
+                },
+              },
+            }}}
           end
 
           let(:test_method_name) { :method_with_no_locals }
