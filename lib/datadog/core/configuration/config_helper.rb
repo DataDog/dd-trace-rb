@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'assets'
+require_relative 'assets/supported_configurations'
 require_relative '../logger'
 require 'json'
 
@@ -9,13 +9,10 @@ module Datadog
     module Configuration
       module ConfigHelper
         # Load the supported configurations from JSON file. We will do this AOT.
-        SUPPORTED_CONFIG_DATA = JSON.parse(Assets.supported_configurations)
-        private_constant :SUPPORTED_CONFIG_DATA
-
-        SUPPORTED_CONFIGURATIONS = SUPPORTED_CONFIG_DATA['supportedConfigurations'] || {}
+        SUPPORTED_CONFIGURATIONS = Assets::SUPPORTED_CONFIG_DATA[:supportedConfigurations] || {}
         private_constant :SUPPORTED_CONFIGURATIONS
 
-        ALIASES = SUPPORTED_CONFIG_DATA['aliases'] || {}
+        ALIASES = Assets::SUPPORTED_CONFIG_DATA[:aliases] || {}
         private_constant :ALIASES
 
         # Returns the environment variable, if it's supported or a non Datadog
@@ -57,17 +54,17 @@ module Datadog
 
           @log_deprecations_called[source] = true
           @temp_logger ||= Core::Logger.new($stdout)
-          SUPPORTED_CONFIG_DATA['deprecations']&.each do |deprecation, message|
-            if env_vars[deprecation]
-              # As we only use warn level, we can use a new logger.
-              # Using logger_without_configuration is not possible as it uses an environment variable.
-              Datadog::Core.log_deprecation(logger: @temp_logger) do
-                value = "#{deprecation} #{source} variable is deprecated"
-                value += ", use #{alias_to_canonical[deprecation]} instead" if alias_to_canonical[deprecation]
-                value += '.'
-                value += " #{message}." unless message.nil? || message.empty?
-                value
-              end
+          Assets::SUPPORTED_CONFIG_DATA[:deprecations]&.each do |deprecation, message|
+            next unless env_vars[deprecation]
+
+            # As we only use warn level, we can use a new logger.
+            # Using logger_without_configuration is not possible as it uses an environment variable.
+            Datadog::Core.log_deprecation(logger: @temp_logger) do
+              value = "#{deprecation} #{source} variable is deprecated"
+              value += ", use #{alias_to_canonical[deprecation]} instead" if alias_to_canonical[deprecation]
+              value += '.'
+              value += " #{message}." unless message.nil? || message.empty?
+              value
             end
           end
         end
