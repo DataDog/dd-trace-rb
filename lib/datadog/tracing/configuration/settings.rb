@@ -287,7 +287,8 @@ module Datadog
                 # @return [Float, nil]
                 option :default_rate do |o|
                   o.type :float, nilable: true
-                  o.env [Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, Tracing::Configuration::Ext::Sampling::ENV_OTEL_TRACES_SAMPLER]
+                  # Alias defined in supported-configurations.json
+                  o.env Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
                   o.env_parser do |value|
                     # Parse the value as a float
                     next if value.nil?
