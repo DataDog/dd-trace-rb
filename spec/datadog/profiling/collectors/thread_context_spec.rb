@@ -7,8 +7,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     skip_if_profiling_not_supported(self)
 
     @clean_threads_required = true
-    [t1, t2, t3].each { ready_queue.pop }
-    expect(Thread.list).to include(t1, t2, t3)
+    testing_threads.each { ready_queue.pop }
+    expect(Thread.list).to include(*testing_threads)
   end
 
   let(:recorder) do
@@ -35,6 +35,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sleep
     end
   end
+  let(:profiler_overhead_thread_placeholder) do
+    Thread.new(ready_queue) do |ready_queue|
+      def self.overhead_placeholder(queue)
+        queue << true
+        sleep
+      end
+
+      overhead_placeholder(ready_queue)
+    end
+  end
+  let(:testing_threads) { [t1, t2, t3, profiler_overhead_thread_placeholder] }
   let(:max_frames) { 123 }
 
   let(:pprof_result) { recorder.serialize! }
@@ -48,8 +59,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:gvl_waiting_enabled_empty_magic_value) { 2**62 - 1 }
   let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
   let(:otel_context_enabled) { false }
+  let(:native_filenames_enabled) { false }
 
-  subject(:cpu_and_wall_time_collector) do
+  subject(:thread_context_collector) do
     described_class.new(
       recorder: recorder,
       max_frames: max_frames,
@@ -58,40 +70,41 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       timeline_enabled: timeline_enabled,
       waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
+      native_filenames_enabled: native_filenames_enabled,
     )
   end
 
   after do
     if @clean_threads_required
-      [t1, t2, t3].each do |thread|
+      testing_threads.each do |thread|
         thread.kill
         thread.join
       end
     end
   end
 
-  def sample(profiler_overhead_stack_thread: Thread.current, allow_exception: false)
-    described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread, allow_exception)
+  def sample(profiler_overhead_stack_thread: profiler_overhead_thread_placeholder, allow_exception: false)
+    described_class::Testing._native_sample(thread_context_collector, profiler_overhead_stack_thread, allow_exception)
   end
 
   def on_gc_start
-    described_class::Testing._native_on_gc_start(cpu_and_wall_time_collector)
+    described_class::Testing._native_on_gc_start(thread_context_collector)
   end
 
   def on_gc_finish
-    described_class::Testing._native_on_gc_finish(cpu_and_wall_time_collector)
+    described_class::Testing._native_on_gc_finish(thread_context_collector)
   end
 
   def sample_after_gc(allow_exception: false)
-    described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector, allow_exception)
+    described_class::Testing._native_sample_after_gc(thread_context_collector, allow_exception)
   end
 
   def sample_allocation(weight:, new_object: Object.new)
-    described_class::Testing._native_sample_allocation(cpu_and_wall_time_collector, weight, new_object)
+    described_class::Testing._native_sample_allocation(thread_context_collector, weight, new_object)
   end
 
   def sample_skipped_allocation_samples(skipped_samples)
-    described_class::Testing._native_sample_skipped_allocation_samples(cpu_and_wall_time_collector, skipped_samples)
+    described_class::Testing._native_sample_skipped_allocation_samples(thread_context_collector, skipped_samples)
   end
 
   def on_gvl_waiting(thread)
@@ -107,7 +120,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def sample_after_gvl_running(thread)
-    described_class::Testing._native_sample_after_gvl_running(cpu_and_wall_time_collector, thread)
+    described_class::Testing._native_sample_after_gvl_running(thread_context_collector, thread)
   end
 
   def thread_list
@@ -115,20 +128,24 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def per_thread_context
-    described_class::Testing._native_per_thread_context(cpu_and_wall_time_collector)
+    described_class::Testing._native_per_thread_context(thread_context_collector)
   end
 
   def stats
-    described_class::Testing._native_stats(cpu_and_wall_time_collector)
+    described_class::Testing._native_stats(thread_context_collector)
   end
 
   def gc_tracking
-    described_class::Testing._native_gc_tracking(cpu_and_wall_time_collector)
+    described_class::Testing._native_gc_tracking(thread_context_collector)
   end
 
   def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
     described_class::Testing
-      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(cpu_and_wall_time_collector, thread, delta_ns)
+      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(thread_context_collector, thread, delta_ns)
+  end
+
+  def prepare_sample_inside_signal_handler
+    described_class::Testing._native_prepare_sample_inside_signal_handler(thread_context_collector)
   end
 
   # What's the deal with the `profiler_system_epoch_time_now_ns`? Internally the profiler uses a monotonic clock
@@ -150,7 +167,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   # in the profiler is ever changed.)
 
   def profiler_system_epoch_time_now_ns
-    result = described_class::Testing._native_system_epoch_time_now_ns(cpu_and_wall_time_collector)
+    result = described_class::Testing._native_system_epoch_time_now_ns(thread_context_collector)
     ten_seconds_ns = 10 * 1e9
     expect(result).to be_within(ten_seconds_ns).of(Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now))
     result
@@ -169,7 +186,28 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe ".new" do
     it "sets the waiting_for_gvl_threshold_ns to the provided value" do
       # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
-      expect(cpu_and_wall_time_collector.inspect).to include("global_waiting_for_gvl_threshold_ns=222333444")
+      expect(thread_context_collector.inspect).to include("global_waiting_for_gvl_threshold_ns=222333444")
+    end
+
+    context "when native filenames are enabled but feature is not available" do
+      let(:native_filenames_enabled) { true }
+
+      before do
+        allow(Datadog::Profiling::Collectors::Stack).to receive(:_native_filenames_available?).and_return(false)
+        allow(Datadog.logger).to receive(:debug)
+      end
+
+      it "disables native filenames" do
+        expect(described_class).to receive(:_native_initialize).with(hash_including(native_filenames_enabled: false))
+
+        thread_context_collector
+      end
+
+      it "logs a debug message" do
+        expect(Datadog.logger).to receive(:debug).with(/Disabling native filenames/)
+
+        thread_context_collector
+      end
     end
   end
 
@@ -1171,7 +1209,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             skip_if_gvl_profiling_not_supported(self)
 
             sample # trigger context creation
-            samples_from_pprof(recorder.serialize!) # flush sample
+            recorder.serialize! # flush sample
 
             @previous_sample_timestamp_ns = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
 
@@ -2005,6 +2043,55 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
+  describe "#prepare_sample_inside_signal_handler" do
+    let(:timeline_enabled) { true } # Not strictly needed but disables aggregation which makes it easier to analyze results
+    let(:trigger_context_creation) { true }
+
+    def prepare_and_sample
+      sample if trigger_context_creation
+
+      prepare_sample_inside_signal_handler
+      recorder.serialize! # ensure there are no samples recorded
+
+      sample
+    end
+
+    it "samples the stack into the sampling_buffer" do
+      prepare_and_sample
+
+      result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+
+      # Because the sample was prepared inside the `_native_prepare_sample_inside_signal_handler`, that should be
+      # the method at the top of the stack, even though the sample was only recorded later, inside
+      # `sample` -> `_native_sample`.
+      expect(result.locations.first).to have_attributes(base_label: "_native_prepare_sample_inside_signal_handler")
+    end
+
+    it "only uses the recorded stack once" do
+      prepare_and_sample
+      sample
+
+      results = samples_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+
+      expect(results).to contain_exactly(
+        have_attributes(locations: include(have_attributes(base_label: "_native_prepare_sample_inside_signal_handler"))),
+        have_attributes(locations: include(have_attributes(base_label: "_native_sample")))
+      )
+    end
+
+    context "when context did not exist" do
+      let(:trigger_context_creation) { false }
+
+      it "does not sample the stack" do
+        prepare_and_sample
+
+        result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+
+        expect(result.locations.first).to have_attributes(base_label: "_native_sample")
+      end
+    end
+  end
+
   describe "#thread_list" do
     it "returns the same as Ruby's Thread.list" do
       expect(thread_list).to eq Thread.list
@@ -2223,7 +2310,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#reset_after_fork" do
-    subject(:reset_after_fork) { cpu_and_wall_time_collector.reset_after_fork }
+    subject(:reset_after_fork) { thread_context_collector.reset_after_fork }
 
     before do
       sample

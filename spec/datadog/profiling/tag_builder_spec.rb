@@ -4,7 +4,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
   describe ".call" do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
 
-    subject(:call) { described_class.call(settings: settings) }
+    subject(:call) { described_class.call(settings: settings, profile_seq: 123) }
 
     it "returns a hash with the tags to be attached to a profile" do
       expect(call).to include(
@@ -16,6 +16,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
         "runtime_engine" => RUBY_ENGINE,
         "runtime-id" => Datadog::Core::Environment::Identity.id,
         "runtime_version" => RUBY_VERSION,
+        "profile_seq" => "123",
       )
     end
 
@@ -81,10 +82,12 @@ RSpec.describe Datadog::Profiling::TagBuilder do
     describe "source code integration" do
       context "when git environment is available" do
         before do
-          allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(
+          Datadog::Core::TagBuilder.reset_for_tests
+
+          expect(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(
             "git_repository_url"
           )
-          allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return("git_commit_sha")
+          expect(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return("git_commit_sha")
         end
 
         it "includes the git repository URL and commit SHA" do
@@ -96,8 +99,10 @@ RSpec.describe Datadog::Profiling::TagBuilder do
 
       context "when git environment is not available" do
         before do
-          allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(nil)
-          allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(nil)
+          Datadog::Core::TagBuilder.reset_for_tests
+
+          expect(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(nil)
+          expect(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(nil)
         end
 
         it "includes the git repository URL and commit SHA" do

@@ -313,7 +313,7 @@ module Datadog
 
             # Can be used to enable/disable the collection of heap profiles.
             #
-            # This feature is alpha and disabled by default
+            # This feature is in preview and disabled by default. Requires Ruby 3.1+.
             #
             # @warn To enable heap profiling you are required to also enable allocation profiling.
             #
@@ -326,12 +326,12 @@ module Datadog
 
             # Can be used to enable/disable the collection of heap size profiles.
             #
-            # This feature is alpha and enabled by default when heap profiling is enabled.
+            # This feature is in preview and by default is enabled whenever heap profiling is enabled.
             #
-            # @warn To enable heap size profiling you are required to also enable allocation and heap profiling.
+            # @warn Heap size profiling depends on allocation and heap profiling, so they must be enabled as well.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise
-            # whatever the value of DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED is.
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise it
+            # follows the value of `experimental_heap_enabled`.
             option :experimental_heap_size_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED'
@@ -341,17 +341,19 @@ module Datadog
             # Can be used to configure the heap sampling rate: a heap sample will be collected for every x allocation
             # samples.
             #
-            # The lower the value, the more accuracy in heap tracking but the bigger the overhead. In particular, a
-            # value of 1 will track ALL allocations samples for heap profiles.
+            # The higher the value, the less accuracy in heap tracking but the smaller the overhead.
+            #
+            # If you needed to tweak this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>,
+            # so we can fix it!
             #
             # The effective heap sampling rate in terms of allocations (not allocation samples) can be calculated via
             # effective_heap_sample_rate = allocation_sample_rate * heap_sample_rate.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `10`.
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `1`.
             option :experimental_heap_sample_rate do |o|
               o.type :int
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE'
-              o.default 10
+              o.default 1
             end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
@@ -542,6 +544,36 @@ module Datadog
               o.env 'DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED'
               o.default true
             end
+
+            # Controls if the profiler should use native filenames for frames in stack traces for functions implemented using
+            # native code. Setting to `false` will make the profiler fall back to default Ruby stack trace behavior (only show .rb files).
+            #
+            # @default true
+            option :native_filenames_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_NATIVE_FILENAMES_ENABLED'
+              o.default true
+            end
+
+            # Controls if the profiler should sample directly from the signal handler.
+            # Sampling directly from the signal handler improves accuracy of the data collected.
+            #
+            # We recommend using this setting with Ruby 3.2.5+ / Ruby 3.3.4+ and above
+            # as they include additional safety measures added in https://github.com/ruby/ruby/pull/11036.
+            # We have not validated it thoroughly with earlier versions, but in practice it should work on Ruby 3.0+
+            # (the key change was https://github.com/ruby/ruby/pull/3296).
+            #
+            # Enabling this on Ruby 2 is not recommended as it may cause VM crashes and/or incorrect data.
+            #
+            # @default true on Ruby 3.2.5+ / Ruby 3.3.4+, false on older Rubies
+            option :sighandler_sampling_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED'
+              o.default do
+                Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.2.5') &&
+                  !(RUBY_VERSION.start_with?('3.3.') && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.4'))
+              end
+            end
           end
 
           # @public_api
@@ -572,7 +604,7 @@ module Datadog
 
           option :experimental_runtime_id_enabled do |o|
             o.type :bool
-            o.env 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED'
+            o.env ['DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED', 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED']
             o.default false
           end
 

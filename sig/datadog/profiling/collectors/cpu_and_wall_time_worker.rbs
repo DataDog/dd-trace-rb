@@ -17,6 +17,7 @@ module Datadog
           allocation_profiling_enabled: bool,
           allocation_counting_enabled: bool,
           gvl_profiling_enabled: bool,
+          sighandler_sampling_enabled: bool,
           ?skip_idle_samples_for_testing: false,
         ) -> void
 
@@ -31,6 +32,7 @@ module Datadog
           allocation_profiling_enabled: bool,
           allocation_counting_enabled: bool,
           gvl_profiling_enabled: bool,
+          sighandler_sampling_enabled: bool,
           skip_idle_samples_for_testing: bool,
         ) -> true
 

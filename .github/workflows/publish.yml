@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@13e7a03dc3ac6c3798f4570bfead2aed4d96abfb # v1.244.0
+      - uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
         with:
           ruby-version: "3.3.7"
 
@@ -165,7 +165,7 @@ jobs:
         with:
           persist-credentials: false # `rubygems/release-gem` action handles credentials itself
       - name: Set up Ruby
-        uses: ruby/setup-ruby@13e7a03dc3ac6c3798f4570bfead2aed4d96abfb # v1.244.0
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
         with:
           ruby-version: "3.3.7"
       - run: bundle install
@@ -209,13 +209,26 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@13e7a03dc3ac6c3798f4570bfead2aed4d96abfb # v1.244.0
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
         with:
           ruby-version: "3.3.7"
       - run: bundle install
       - id: next_version
         run: |
           echo "next_version=$(bundle exec rake version:next)" >> "$GITHUB_OUTPUT"
+
+  bump-gem-version:
+    if: github.ref_name == 'master'
+    name: Bump gem version
+    permissions:
+      contents: write
+      pull-requests: write
+    needs:
+      - update-gem-version
+    uses: ./.github/workflows/bump-gem-version.yml
+    with:
+      version: ${{ needs.update-gem-version.outputs.next_version }}
+    secrets: inherit # zizmor: ignore[secrets-inherit]
 
   # https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28
   milestone:
@@ -316,15 +329,22 @@ jobs:
       issues: write
       pull-requests: write
     env:
-      GITHUB_TOKEN: ${{ secrets.GHA_PAT }}
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: true # required for `git` operations (push) at later steps
-          token: ${{ secrets.GHA_PAT }}
+          token: ${{ steps.generate-token.outputs.token }}
           fetch-depth: 0
-      - run: |
+      - env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
           JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TEMP_BRANCH="update-document-v${GEM_VERSION}"
 

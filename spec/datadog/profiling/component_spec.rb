@@ -69,12 +69,16 @@ RSpec.describe Datadog::Profiling::Component do
           dummy_stack_recorder = instance_double(Datadog::Profiling::StackRecorder, "dummy_stack_recorder")
           allow(Datadog::Profiling::StackRecorder).to receive(:new).and_return(dummy_stack_recorder)
 
-          expect(settings.profiling.advanced).to receive(:max_frames).and_return(:max_frames_config)
+          expect(settings.profiling.advanced)
+            .to receive(:max_frames).and_return(:max_frames_config)
           expect(settings.profiling.advanced)
             .to receive(:timeline_enabled).at_least(:once).and_return(:timeline_enabled_config)
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
-          expect(settings.profiling.advanced).to receive(:waiting_for_gvl_threshold_ns).and_return(:threshold_ns_config)
+          expect(settings.profiling.advanced)
+            .to receive(:waiting_for_gvl_threshold_ns).and_return(:threshold_ns_config)
+          expect(settings.profiling.advanced)
+            .to receive(:native_filenames_enabled).and_return(:native_filenames_enabled_config)
 
           expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
             recorder: dummy_stack_recorder,
@@ -84,6 +88,7 @@ RSpec.describe Datadog::Profiling::Component do
             timeline_enabled: :timeline_enabled_config,
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
             otel_context_enabled: false,
+            native_filenames_enabled: :native_filenames_enabled_config,
           )
 
           build_profiler_component
@@ -122,6 +127,8 @@ RSpec.describe Datadog::Profiling::Component do
           expect(settings.profiling.advanced)
             .to receive(:allocation_counting_enabled).and_return(:allocation_counting_enabled_config)
           expect(described_class).to receive(:enable_gvl_profiling?).and_return(:gvl_profiling_result)
+          expect(settings.profiling.advanced)
+            .to receive(:sighandler_sampling_enabled).and_return(:sighandler_sampling_enabled_config)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
@@ -131,6 +138,7 @@ RSpec.describe Datadog::Profiling::Component do
             allocation_profiling_enabled: false,
             allocation_counting_enabled: :allocation_counting_enabled_config,
             gvl_profiling_enabled: :gvl_profiling_result,
+            sighandler_sampling_enabled: :sighandler_sampling_enabled_config,
           )
 
           build_profiler_component
@@ -331,8 +339,14 @@ RSpec.describe Datadog::Profiling::Component do
               settings.profiling.allocation_enabled = false
             end
 
-            it "raises an ArgumentError during component initialization" do
-              expect { build_profiler_component }.to raise_error(ArgumentError, /requires allocation profiling/)
+            it "initializes StackRecorder without heap sampling support and warns" do
+              expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
+                .and_call_original
+
+              expect(logger).to receive(:warn).with(/allocation profiling is not enabled/)
+
+              build_profiler_component
             end
           end
 
@@ -350,8 +364,7 @@ RSpec.describe Datadog::Profiling::Component do
 
               expect(logger).to receive(:info).with(/Ractors.+stopping/)
               expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
-              expect(logger).to receive(:warn).with(/experimental heap profiling/)
-              expect(logger).to receive(:warn).with(/experimental heap size profiling/)
+              expect(logger).to receive(:debug).with(/Enabled heap profiling/)
 
               build_profiler_component
             end
@@ -368,8 +381,7 @@ RSpec.describe Datadog::Profiling::Component do
 
                 expect(logger).to receive(:info).with(/Ractors.+stopping/)
                 expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
-                expect(logger).to receive(:warn).with(/experimental heap profiling/)
-                expect(logger).not_to receive(:warn).with(/experimental heap size profiling/)
+                expect(logger).to receive(:debug).with(/Enabled heap profiling/)
 
                 build_profiler_component
               end

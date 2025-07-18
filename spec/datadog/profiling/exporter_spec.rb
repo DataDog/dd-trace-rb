@@ -128,6 +128,25 @@ RSpec.describe Datadog::Profiling::Exporter do
         is_expected.to have_attributes(internal_metadata_json: a_string_matching('"no_signals_workaround_enabled":false'))
       }
     end
+
+    context "when multiple flushes are performed" do
+      let(:sequence_tracker) { class_double(Datadog::Profiling::SequenceTracker) }
+      let(:options) { {**super(), sequence_tracker: sequence_tracker} }
+
+      before do
+        allow(sequence_tracker).to receive(:get_next).and_return(0, 1, 2)
+      end
+
+      it "includes incrementing profile_seq in subsequent flushes" do
+        first_flush = exporter.flush
+        second_flush = exporter.flush
+        third_flush = exporter.flush
+
+        expect(first_flush.tags_as_array).to include(["profile_seq", "0"])
+        expect(second_flush.tags_as_array).to include(["profile_seq", "1"])
+        expect(third_flush.tags_as_array).to include(["profile_seq", "2"])
+      end
+    end
   end
 
   describe "#reset_after_fork" do

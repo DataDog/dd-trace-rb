@@ -103,16 +103,6 @@ void raise_syserr(
   }
 }
 
-char* ruby_strndup(const char *str, size_t size) {
-  char *dup;
-
-  dup = xmalloc(size + 1);
-  memcpy(dup, str, size);
-  dup[size] = '\0';
-
-  return dup;
-}
-
 static VALUE _id2ref(VALUE obj_id) {
   // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
   return rb_funcall(module_object_space, _id2ref_id, 1, obj_id);
@@ -122,9 +112,7 @@ static VALUE _id2ref_failure(DDTRACE_UNUSED VALUE _unused1, DDTRACE_UNUSED VALUE
   return Qfalse;
 }
 
-// Native wrapper to get an object ref from an id. Returns true on success and
-// writes the ref to the value pointer parameter if !NULL. False if id doesn't
-// reference a valid object (in which case value is not changed).
+// See notes on header for important details
 bool ruby_ref_from_id(VALUE obj_id, VALUE *value) {
   // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
   // so we need to call it via rb_rescue2

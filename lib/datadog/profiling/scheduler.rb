@@ -68,6 +68,7 @@ module Datadog
           "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
         )
         on_failure_proc&.call
+        Datadog::Core::Telemetry::Logger.report(e, description: "Profiling::Scheduler thread error")
         raise
       ensure
         Datadog.logger.debug("#flush was interrupted or failed before it could complete") if interrupted
@@ -133,7 +134,7 @@ module Datadog
         begin
           transport.export(flush)
         rescue => e
-          Datadog.logger.error(
+          Datadog.logger.warn(
             "Unable to report profile. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
           )
           Datadog::Core::Telemetry::Logger.report(e, description: "Unable to report profile")

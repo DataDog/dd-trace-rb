@@ -79,6 +79,35 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         end
       end
     end
+
+    context 'when pii_safe is true' do
+      it 'sends a log event to via telemetry including the exception message' do
+        expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+          expect(event.message).to eq('StandardError: (Test exception message without pii)')
+        end
+
+        component.report(
+          StandardError.new('Test exception message without pii'),
+          level: :error,
+          pii_safe: true,
+        )
+      end
+
+      context 'when a description is provided' do
+        it 'sends a log event to via telemetry including the description' do
+          expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+            expect(event.message).to eq('StandardError: Test description (Test exception message without pii)')
+          end
+
+          component.report(
+            StandardError.new('Test exception message without pii'),
+            description: 'Test description',
+            level: :error,
+            pii_safe: true,
+          )
+        end
+      end
+    end
   end
 
   describe '.error' do

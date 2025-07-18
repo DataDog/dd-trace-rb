@@ -126,8 +126,7 @@ module Datadog
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
-          # TODO: Re-enable this once we have updated libdatadog to 17.1
-          # @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
+          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
 
           self.class.configure_tracing(settings)
         end
@@ -211,8 +210,7 @@ module Datadog
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
 
-          # TODO: Re-enable this once we have updated libdatadog to 17.1
-          # Core::ProcessDiscovery._native_close_tracer_memfd(@process_discovery_fd, @logger) if @process_discovery_fd
+          @process_discovery_fd&.shutdown!
         end
 
         # Returns the current state of various components.

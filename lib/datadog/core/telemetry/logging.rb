@@ -45,11 +45,17 @@ module Datadog
           end
         end
 
-        def report(exception, level: :error, description: nil)
-          # Annoymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
-          message = +''
-          message << (exception.class.name || exception.class.inspect)
-          message << ': ' << description if description
+        def report(exception, level: :error, description: nil, pii_safe: false)
+          # Anonymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
+          message = +"#{exception.class.name || exception.class.inspect}" # standard:disable Style/RedundantInterpolation
+
+          exception_message = pii_safe ? exception.message : nil
+
+          if description || exception_message
+            message << ':'
+            message << " #{description}" if description
+            message << " (#{exception.message})" if exception_message
+          end
 
           event = Event::Log.new(
             message: message,

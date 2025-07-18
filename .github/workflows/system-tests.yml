@@ -22,7 +22,7 @@ permissions: {}
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
+  SYSTEM_TESTS_REF: 1c30358ee8c4ed3020040c2d63216e7e205cca31 # Automated: This reference is automatically updated.
 
 jobs:
   changes:

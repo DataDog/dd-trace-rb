@@ -39,6 +39,7 @@ require 'support/platform_helpers'
 require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
+require 'support/tag_builder_helpers'
 require 'support/test_helpers'
 require 'support/telemetry_helpers'
 require 'support/tracer_helpers'
@@ -75,6 +76,7 @@ RSpec.configure do |config|
   config.include TracerHelpers
   config.include TestHelpers::RSpec::Integration, :integration
   config.include HttpServerHelpers
+  config.extend  PlatformHelpers::ClassMethods
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true

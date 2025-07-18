@@ -15,7 +15,7 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 env:
-  SYSTEM_TESTS_REF: 'main' # This must always be set to `main` on dd-trace-rb's master branch
+  SYSTEM_TESTS_REF: 1c30358ee8c4ed3020040c2d63216e7e205cca31 # Automated: Can be updated by .github/workflows/update-system-tests.yml
 
 jobs:
   changes:
@@ -24,7 +24,7 @@ jobs:
     outputs:
       changes: ${{ steps.changes.outputs.src }}
       FORCED_TESTS_LIST: ${{ steps.read_forced_tests_list.outputs.FORCED_TESTS_LIST }}
-      ST_REF: ${{ steps.read_forced_tests_list.outputs.ST_REF }}
+      ST_REF: ${{ steps.outputs_branch.outputs.ST_REF }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

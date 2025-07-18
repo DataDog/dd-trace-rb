@@ -35,6 +35,9 @@ AllCops:
     - lib/datadog/core/**/*
     - lib/datadog/core.rb
     - spec/datadog/core/**/*
+    - lib/datadog/appsec/**/*
+    - lib/datadog/appsec.rb
+    - spec/datadog/appsec/**/*
   NewCops: disable # Don't allow new cops to be enabled implicitly.
   SuggestExtensions: false # Stop pushing suggestions constantly.
 
@@ -42,35 +45,43 @@ AllCops:
 # and is not managed by rubocop:
 Style:
   Exclude:
-    - "lib/datadog/profiling*"
-    - "lib/datadog/profiling/**/*"
-    - "spec/datadog/profiling*"
-    - "spec/datadog/profiling/**/*"
-    - "ext/datadog_profiling_*/**/*"
-    - "lib/datadog/error_tracking*"
-    - "lib/datadog/error_tracking/**/*"
-    - "spec/datadog/error_tracking*"
-    - "spec/datadog/error_tracking/**/*"
+    - "Gemfile"
+    - "ext/**/*"
     - "lib/datadog/appsec*"
     - "lib/datadog/appsec/**/*"
+    - "lib/datadog/error_tracking*"
+    - "lib/datadog/error_tracking/**/*"
+    - "lib/datadog/profiling*"
+    - "lib/datadog/profiling/**/*"
     - "spec/datadog/appsec*"
     - "spec/datadog/appsec/**/*"
+    - "spec/datadog/benchmark/**/**"
+    - "spec/datadog/error_tracking*"
+    - "spec/datadog/error_tracking/**/*"
+    - "spec/datadog/kit/**/**"
+    - "spec/datadog/profiling*"
+    - "spec/datadog/profiling/**/*"
+    - "yard/**/*.rb"
 
 Layout:
   Exclude:
-    - "lib/datadog/profiling/*"
-    - "lib/datadog/profiling/**/**"
-    - "spec/datadog/profiling/*"
-    - "spec/datadog/profiling/**/**"
-    - "ext/datadog_profiling_*/**/*"
-    - "lib/datadog/error_tracking*"
-    - "lib/datadog/error_tracking/**/*"
-    - "spec/datadog/error_tracking*"
-    - "spec/datadog/error_tracking/**/*"
+    - "Gemfile"
+    - "ext/**/*"
     - "lib/datadog/appsec*"
     - "lib/datadog/appsec/**/*"
+    - "lib/datadog/error_tracking*"
+    - "lib/datadog/error_tracking/**/*"
+    - "lib/datadog/profiling/*"
+    - "lib/datadog/profiling/**/**"
     - "spec/datadog/appsec*"
     - "spec/datadog/appsec/**/*"
+    - "spec/datadog/benchmark/**/**"
+    - "spec/datadog/error_tracking*"
+    - "spec/datadog/error_tracking/**/*"
+    - "spec/datadog/kit/**/**"
+    - "spec/datadog/profiling/*"
+    - "spec/datadog/profiling/**/**"
+    - "yard/**/*.rb"
 
 Layout/LineLength:
   Max: 124

@@ -26,7 +26,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   end
 
   let(:agent_settings) do
-    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+    Datadog::Core::Configuration::AgentSettings.new(
       adapter: adapter,
       uds_path: uds_path,
       ssl: ssl,
@@ -216,12 +216,12 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       context "with a http status code" do
         before do
           expect(described_class).to receive(:_native_do_export).and_return([:ok, 500])
-          allow(Datadog.logger).to receive(:error)
+          allow(Datadog.logger).to receive(:warn)
           allow(Datadog::Core::Telemetry::Logger).to receive(:error)
         end
 
         it "logs an error message" do
-          expect(Datadog.logger).to receive(:error).with(
+          expect(Datadog.logger).to receive(:warn).with(
             "Failed to report profiling data (agent: http://192.168.0.1:12345/): " \
             "server returned unexpected HTTP 500 status code"
           )
@@ -243,12 +243,12 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       context "with a failure without an http status code" do
         before do
           expect(described_class).to receive(:_native_do_export).and_return([:error, "Some error message"])
-          allow(Datadog.logger).to receive(:error)
+          allow(Datadog.logger).to receive(:warn)
           allow(Datadog::Core::Telemetry::Logger).to receive(:error)
         end
 
         it "logs an error message" do
-          expect(Datadog.logger).to receive(:error)
+          expect(Datadog.logger).to receive(:warn)
             .with("Failed to report profiling data (agent: http://192.168.0.1:12345/): Some error message")
 
           export
@@ -391,7 +391,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:error).with(/ddog_prof_Exporter_send failed/)
+        expect(Datadog.logger).to receive(:warn).with(/ddog_prof_Exporter_send failed/)
         expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to report profiling data")
 
         http_transport.export(flush)
@@ -403,7 +403,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:server_proc) { proc { sleep 0.05 } }
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:error).with(/timed out/)
+        expect(Datadog.logger).to receive(:warn).with(/timed out/)
         expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to report profiling data")
 
         http_transport.export(flush)
@@ -414,7 +414,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:server_proc) { proc { |_req, res| res.status = 418 } }
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:error).with(/unexpected HTTP 418/)
+        expect(Datadog.logger).to receive(:warn).with(/unexpected HTTP 418/)
         expect(Datadog::Core::Telemetry::Logger)
           .to receive(:error).with("Failed to report profiling data: unexpected HTTP 418 status code")
 
@@ -426,7 +426,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:server_proc) { proc { |_req, res| res.status = 503 } }
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:error).with(/unexpected HTTP 503/)
+        expect(Datadog.logger).to receive(:warn).with(/unexpected HTTP 503/)
         expect(Datadog::Core::Telemetry::Logger)
           .to receive(:error).with("Failed to report profiling data: unexpected HTTP 503 status code")
 
