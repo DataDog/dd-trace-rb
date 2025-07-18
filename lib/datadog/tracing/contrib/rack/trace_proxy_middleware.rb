@@ -47,7 +47,7 @@ module Datadog
           ensure
             # Ensure that the spans are finished even if an exception is raised.
             # **This is very important** to prevent the trace from leaking between requests,
-            # as `queue_span` is normally a root span.
+            # especially because `queue_span` is normally a root span.
             queue_span&.finish
             request_span&.finish
           end
