@@ -6,8 +6,7 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require_relative 'benchmarks_helper'
 require 'datadog'
 require 'benchmark'
-require 'net/http'
-require 'webmock'
+
 class ErrorTrackingApiBenchmark
   module NoopWriter
     def write(trace)
@@ -24,16 +23,13 @@ class ErrorTrackingApiBenchmark
 
   def initialize
     ::Datadog::Tracing::Writer.prepend(NoopWriter)
+  end
 
-    # Enable WebMock but allow connections to the Datadog agent
-    WebMock.disable_net_connect!(allow: ['testagent:9126', 'localhost:9126', '127.0.0.1:9126'])
-
-    WebMock.stub_request(:any, 'http://example.com/test').to_return do
-      # Sleep for 50ms to simulate network latency
-      sleep(0.05)
-
-      { status: 200, body: 'OK' }
-    end
+  def simulate_http_request
+    # Simulate some work that might be done in a real application
+    # Sleep for 50ms to simulate network latency or processing time
+    sleep(0.05)
+    { status: 200, body: 'OK' }
   end
 
   def benchmark_with_http_request_simulation_no_error_tracking
@@ -42,7 +38,7 @@ class ErrorTrackingApiBenchmark
 
       x.report('without error tracking with http') do
         Datadog::Tracing.trace('http.request') do
-          Net::HTTP.get_response(URI('http://example.com/test'))
+          simulate_http_request
           begin
             raise 'Test error'
           rescue
@@ -66,7 +62,7 @@ class ErrorTrackingApiBenchmark
 
       x.report('error tracking with http - all') do
         Datadog::Tracing.trace('http.request') do
-          Net::HTTP.get_response(URI('http://example.com/test'))
+          simulate_http_request
           begin
             raise 'Test error'
           rescue
@@ -90,7 +86,7 @@ class ErrorTrackingApiBenchmark
 
       x.report('error tracking with http - user code only') do
         Datadog::Tracing.trace('http.request') do
-          Net::HTTP.get_response(URI('http://example.com/test'))
+          simulate_http_request
           begin
             raise 'Test error'
           rescue
@@ -114,7 +110,7 @@ class ErrorTrackingApiBenchmark
 
       x.report('error tracking with http - third_party only') do
         Datadog::Tracing.trace('http.request') do
-          Net::HTTP.get_response(URI('http://example.com/test'))
+          simulate_http_request
           begin
             raise 'Test error'
           rescue
@@ -145,6 +141,3 @@ ErrorTrackingApiBenchmark.new.instance_exec do
   run_benchmark { benchmark_with_http_request_simulation_user }
   run_benchmark { benchmark_with_http_request_simulation_third_party }
 end
-
-# Clean up WebMock stubs after all benchmarks are finished
-WebMock.disable!
