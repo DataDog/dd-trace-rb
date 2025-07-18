@@ -476,6 +476,41 @@ namespace :changelog do
   end
 end
 
+namespace :config do
+  require 'json'
+  # We only keep env vars as strings
+  data = JSON.parse(File.read('supported-configurations.json')).transform_keys(&:to_sym)
+  data[:supportedConfigurations].each_value { |config| config.transform_keys!(&:to_sym) }
+
+  task :generate do
+    File.write(
+      'lib/datadog/core/configuration/assets/supported_configurations.rb',
+      <<~RUBY
+        # frozen_string_literal: true
+
+        module Datadog
+          module Core
+            module Configuration
+              module Assets
+                SUPPORTED_CONFIG_DATA = #{data.inspect}
+              end
+            end
+          end
+        end
+      RUBY
+    )
+  end
+
+  task :check do
+    require 'datadog/core/configuration/assets/supported_configurations'
+
+    if data != Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA
+      warn 'Data mismatch, please run `rake config:generate` and commit the changes'
+      exit 1
+    end
+  end
+end
+
 NATIVE_EXTS = [
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = 'ext/libdatadog_api'
