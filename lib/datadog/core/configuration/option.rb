@@ -15,7 +15,7 @@ module Datadog
         # @!attribute [r] precedence_set
         #   When this option was last set, what was the value precedence used?
         #   @return [Precedence::Value]
-        attr_reader :definition, :precedence_set, :resolved_env
+        attr_reader :definition, :precedence_set
 
         # Option setting precedence.
         module Precedence
@@ -60,7 +60,6 @@ module Datadog
           @context = context
           @value = nil
           @is_set = false
-          @resolved_env = nil
 
           # One value is stored per precedence, to allow unsetting a higher
           # precedence value and falling back to a lower precedence one.
@@ -76,7 +75,7 @@ module Datadog
         #
         # @param value [Object] the new value to be associated with this option
         # @param precedence [Precedence] from what precedence order this new value comes from
-        def set(value, precedence: Precedence::PROGRAMMATIC, resolved_env: nil)
+        def set(value, precedence: Precedence::PROGRAMMATIC)
           # Is there a higher precedence value set?
           if @precedence_set > precedence
             # This should be uncommon, as higher precedence values tend to
@@ -95,7 +94,7 @@ module Datadog
             return @value
           end
 
-          internal_set(value, precedence, resolved_env)
+          internal_set(value, precedence)
         end
 
         def unset(precedence)
@@ -113,7 +112,7 @@ module Datadog
               # Look for value that is set.
               # The hash `@value_per_precedence` has a custom default value of `UNSET`.
               if (value = @value_per_precedence[p]) != UNSET
-                internal_set(value, p, nil)
+                internal_set(value, p)
                 return nil
               end
             end
@@ -160,7 +159,7 @@ module Datadog
 
         def default_value
           if definition.default.instance_of?(Proc)
-            # Steep does not handle well Procs
+            # Steep does not handle well Procs (https://github.com/ruby/rbs/issues/736)
             context_eval(&definition.default) # steep:ignore BlockTypeMismatch
           else
             definition.default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
@@ -279,12 +278,11 @@ module Datadog
         end
 
         # Directly manipulates the current value and currently set precedence.
-        def internal_set(value, precedence, resolved_env)
+        def internal_set(value, precedence)
           old_value = @value
           (@value = context_exec(validate_type(value), old_value, &definition.setter)).tap do |v|
             @is_set = true
             @precedence_set = precedence
-            @resolved_env = resolved_env
             # Store original value to ensure we can always safely call `#internal_set`
             # when restoring a value from `@value_per_precedence`, and we are only running `definition.setter`
             # on the original value, not on a value that has already been processed by `definition.setter`.
@@ -306,48 +304,44 @@ module Datadog
         end
 
         def set_env_value
-          value, resolved_env = get_value_and_resolved_env_from
-          set(value, precedence: Precedence::ENVIRONMENT, resolved_env: resolved_env) unless value.nil?
+          value = get_value_from_ENV
+          set(value, precedence: Precedence::ENVIRONMENT) unless value.nil?
         end
 
         def set_customer_stable_config_value
           customer_config = StableConfig.configuration.dig(:local, :config)
           return if customer_config.nil?
 
-          value, resolved_env = get_value_and_resolved_env_from(customer_config, 'local stable config')
-          set(value, precedence: Precedence::LOCAL_STABLE, resolved_env: resolved_env) unless value.nil?
+          value = get_value_from(customer_config, 'local stable config')
+          set(value, precedence: Precedence::LOCAL_STABLE) unless value.nil?
         end
 
         def set_fleet_stable_config_value
           fleet_config = StableConfig.configuration.dig(:fleet, :config)
           return if fleet_config.nil?
 
-          value, resolved_env = get_value_and_resolved_env_from(fleet_config, 'fleet stable config')
-          set(value, precedence: Precedence::FLEET_STABLE, resolved_env: resolved_env) unless value.nil?
+          value = get_value_from(fleet_config, 'fleet stable config')
+          set(value, precedence: Precedence::FLEET_STABLE) unless value.nil?
         end
 
-        def get_value_and_resolved_env_from(env_vars = nil, source = nil)
-          value = nil
-          resolved_env = nil
+        def get_value_from_ENV
+          env = definition.env
+          return unless env
 
-          if definition.env
-            Array(definition.env).each do |env|
-              # We could simplify it by calling it with ENV but we don't want to access ENV other than config helper
-              temp_value = if env_vars && source
-                Datadog.get_environment_variable(env, env_vars: env_vars, source: source)
-              else
-                # Default to ENV if no env_vars are provided
-                Datadog.get_environment_variable(env)
-              end
-              next if temp_value.nil?
+          # Default value for env_vars is ENV
+          value = Datadog.get_environment_variable(env)
+          coerce_env_variable(value) unless value.nil?
+        rescue ArgumentError
+          raise ArgumentError,
+            "Cannot resolve environment variable for option #{@definition.name}"
+        end
 
-              resolved_env = env
-              value = coerce_env_variable(temp_value)
-              break
-            end
-          end
+        def get_value_from(env_vars, source)
+          env = definition.env
+          return unless env
 
-          [value, resolved_env]
+          value = Datadog.get_environment_variable(env, env_vars: env_vars, source: source)
+          coerce_env_variable(value) unless value.nil?
         rescue ArgumentError
           raise ArgumentError,
             "Cannot resolve #{source} variable for option #{@definition.name}"
