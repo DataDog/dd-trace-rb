@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
     let(:env) { double('ENV') }
 
     before do
-      expect(Datadog::Tracing::Contrib::Rack::QueueTime).to receive(:get_request_start).with(env).and_return(timestamp)
+      allow(Datadog::Tracing::Contrib::Rack::QueueTime).to receive(:get_request_start).with(env).and_return(timestamp)
     end
 
     context 'when given timestamp' do
