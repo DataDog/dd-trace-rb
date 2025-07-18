@@ -3,6 +3,10 @@ module Datadog
     module Telemetry
       module Event
         class AppStarted < Base
+          @agent_settings: Datadog::Core::Configuration::AgentSettings
+
+          def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings) -> void
+
           def type: () -> "app-started"
 
           def payload: () -> { products: untyped, configuration: untyped, install_signature: untyped }
@@ -14,7 +18,7 @@ module Datadog
           TARGET_OPTIONS: Array[String]
           def configuration: -> Array[Hash[Symbol, untyped]]
 
-          def agent_transport: (untyped config) -> String
+          def agent_transport: () -> String
 
           def conf_value: (String name, untyped value, Integer seq_id, String origin) -> Hash[Symbol, untyped]
 
