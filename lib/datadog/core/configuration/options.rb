@@ -55,7 +55,9 @@ module Datadog
             helpers.each do |name, block|
               next unless block.is_a?(Proc)
 
-              define_method(name, &block)
+              # Steep doesn't understand relation between Method and Proc.
+              # https://github.com/ruby/rbs/issues/736
+              define_method(name, &block) # steep:ignore BlockTypeMismatch
             end
           end
         end

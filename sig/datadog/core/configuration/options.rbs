@@ -2,9 +2,17 @@ module Datadog
   module Core
     module Configuration
       module Options
+        extend ClassMethods
+        include InstanceMethods
+
         def self.included: (untyped base) -> untyped
 
         module ClassMethods
+          include InstanceMethods
+
+          @options: Hash[Symbol, Option]
+          @settings_name: String?
+
           def options: () -> untyped
 
           def option: (untyped name, ?::Hash[untyped, untyped] meta) ?{ (OptionDefinition::Builder) -> untyped } -> untyped
@@ -14,12 +22,20 @@ module Datadog
           def default_helpers: (untyped name) -> ::Hash[untyped, untyped]
 
           def define_helpers: (untyped helpers) -> untyped
+
+          # Fake methods to make it work with RBS. RBS cannot understand that this module is only used in a class context.
+          def superclass: () -> Superclass
+          def define_method: (untyped name) { (untyped) -> untyped } -> untyped
         end
 
         module InstanceMethods
-          def options: () -> untyped
+          extend ClassMethods
 
-          def set_option: (untyped name, untyped value, precedence: Option::Precedence::Value) -> untyped
+          @options: Hash[Symbol, Option]
+
+          def options: () -> Hash[Symbol, Option]
+
+          def set_option: (untyped name, untyped value, ?precedence: Option::Precedence::Value) -> untyped
 
           def get_option: (untyped name) -> untyped
 
@@ -27,7 +43,7 @@ module Datadog
 
           def option_defined?: (untyped name) -> untyped
 
-          def unset_option: (untyped name, precedence: Option::Precedence::Value) -> void
+          def unset_option: (untyped name, ?precedence: Option::Precedence::Value) -> void
 
           def using_default?: (Symbol option) -> bool
 
@@ -45,6 +61,13 @@ module Datadog
         end
 
         InvalidOptionError: untyped
+
+        private
+
+        # Fake class to make it work with RBS. RBS cannot understand that this module is only used in a class context.
+        class Superclass < Class
+          include Options
+        end
       end
     end
   end
