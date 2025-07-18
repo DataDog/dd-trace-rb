@@ -87,12 +87,12 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL}" do
+      context 'when OTEL_LOG_LEVEL' do
         around do |example|
           ClimateControl.modify(
             {
               Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => dd_debug_env,
-              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL => otel_level_env
+              'OTEL_LOG_LEVEL' => otel_level_env
             }
           ) do
             example.run

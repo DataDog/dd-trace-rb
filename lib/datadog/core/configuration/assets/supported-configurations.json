@@ -33,9 +33,6 @@
     "DD_TRACE_DEBUG": {
       "version": ["A"]
     },
-    "OTEL_LOG_LEVEL": {
-      "version": ["A"]
-    },
     "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED": {
       "version": ["A"]
     },
@@ -82,9 +79,6 @@
       "version": ["A"]
     },
     "DD_TRACE_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "OTEL_TRACES_SAMPLER": {
       "version": ["A"]
     },
     "DD_TRACE_ENABLED": {
@@ -863,7 +857,9 @@
     "DD_TRACE_PROPAGATION_STYLE": ["OTEL_PROPAGATORS"],
     "DD_TRACE_ENABLED": ["OTEL_TRACES_EXPORTER"],
     "DD_DISABLE_DATADOG_RAILS": ["DISABLE_DATADOG_RAILS"],
-    "DD_PROFILING_GVL_ENABLED": ["DD_PROFILING_PREVIEW_GVL_ENABLED"]
+    "DD_PROFILING_GVL_ENABLED": ["DD_PROFILING_PREVIEW_GVL_ENABLED"],
+    "DD_TRACE_SAMPLE_RATE": ["OTEL_TRACES_SAMPLER"],
+    "DD_TRACE_DEBUG": ["OTEL_LOG_LEVEL"]
   },
   "deprecations": {
     "DD_PROFILING_PREVIEW_GVL_ENABLED": "DD_PROFILING_GVL_ENABLED"
