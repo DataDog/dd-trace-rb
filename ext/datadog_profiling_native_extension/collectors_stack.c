@@ -39,7 +39,7 @@ static void set_file_info_for_cfunc(
   st_table *native_filenames_cache
 );
 static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache);
-static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
+static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
 
@@ -375,14 +375,10 @@ void sample_thread(
     };
   }
 
-  // Used below; since we want to stack-allocate this, we must do it here rather than in maybe_add_placeholder_frames_omitted
-  const int frames_omitted_message_size = sizeof(MAX_FRAMES_LIMIT_AS_STRING " frames omitted");
-  char frames_omitted_message[frames_omitted_message_size];
-
   // If we filled up the buffer, some frames may have been omitted. In that case, we'll add a placeholder frame
   // with that info.
   if (captured_frames == (long) buffer->max_frames) {
-    maybe_add_placeholder_frames_omitted(thread, buffer, frames_omitted_message, frames_omitted_message_size);
+    maybe_add_placeholder_frames_omitted(thread, buffer);
   }
 
   record_sample(
@@ -521,24 +517,17 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
   name_slice->len = pos;
 }
 
-static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size) {
+static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer) {
   ptrdiff_t frames_omitted = stack_depth_for(thread) - buffer->max_frames;
 
   if (frames_omitted == 0) return; // Perfect fit!
 
-  // The placeholder frame takes over a space, so if 10 frames were left out and we consume one other space for the
-  // placeholder, then 11 frames are omitted in total
-  frames_omitted++;
+  // Important note: The strings below are static so we don't need to worry about their lifetime. If we ever want to change
+  // this to non-static strings, don't forget to check that lifetimes are properly respected.
 
-  snprintf(frames_omitted_message, frames_omitted_message_size, "%td frames omitted", frames_omitted);
-
-  // Important note: `frames_omitted_message` MUST have a lifetime that is at least as long as the call to
-  // `record_sample`. So be careful where it gets allocated. (We do have tests for this, at least!)
-  ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
-  ddog_CharSlice function_filename = {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)};
   buffer->locations[buffer->max_frames - 1] = (ddog_prof_Location) {
     .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
-    .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
+    .function = (ddog_prof_Function) {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C("")},
     .line = 0,
   };
 }

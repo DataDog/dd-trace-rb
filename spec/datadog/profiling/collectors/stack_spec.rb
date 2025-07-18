@@ -676,21 +676,19 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       expect(gathered_stack[0...(max_frames - 1)]).to eq reference_stack[0...(max_frames - 1)]
     end
 
-    it "includes a placeholder frame including the number of skipped frames" do
+    it "includes a placeholder 'Truncated Frames' frame" do
       placeholder = 1
       omitted_frames = target_stack_depth - max_frames + placeholder
 
       expect(omitted_frames).to be 96
-      expect(gathered_stack.last).to have_attributes(base_label: "", path: "96 frames omitted", lineno: 0)
+      expect(gathered_stack.last).to have_attributes(base_label: "Truncated Frames", path: "", lineno: 0)
     end
 
     context "when stack is exactly 1 item deeper than the configured max_frames" do
       let(:target_stack_depth) { 6 }
 
-      it "includes a placeholder frame stating that 2 frames were omitted" do
-        # Why 2 frames omitted and not 1? That's because the placeholder takes over 1 space in the buffer, so
-        # if there were 6 frames on the stack and the limit is 5, then 4 of those frames will be present in the output
-        expect(gathered_stack.last).to have_attributes(base_label: "", path: "2 frames omitted", lineno: 0)
+      it "includes a placeholder frame" do
+        expect(gathered_stack.last).to have_attributes(base_label: "Truncated Frames", path: "", lineno: 0)
       end
     end
 
