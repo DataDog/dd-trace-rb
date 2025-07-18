@@ -6,7 +6,7 @@ module Datadog
         type meta = {
           default: (option_type | Configuration::Options::GenericSettingsClass)?,
           default_proc: (^() -> option_type)?,
-          env: (String | Array[String])?,
+          env: String?,
           deprecated_env: String?,
           env_parser: (^(String env_value) [self: Configuration::Settings] -> option_type)?,
           after_set: (^(option_type value, option_type old_value, Configuration::Option::Precedence::Value precedence) [self: Configuration::Settings] -> void)?,
@@ -22,7 +22,7 @@ module Datadog
 
         attr_reader default_proc: (^() -> option_type)?
 
-        attr_reader env: String | Array[String] | nil
+        attr_reader env: String?
 
         attr_reader env_parser: (^(String env_value) [self: Configuration::Settings] -> option_type)?
 
@@ -66,9 +66,7 @@ module Datadog
 
           def initialize: (String | Symbol name, ?meta options) ?{ (Builder) -> void } -> void
 
-          def env: (String | Array[String] | nil value) -> void
-
-          def deprecated_env: (String? value) -> void
+          def env: (String value) -> String
 
           def env_parser: () ?{ (String env_value) [self: Configuration::Settings] -> option_type } -> void
 
