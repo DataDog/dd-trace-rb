@@ -8,7 +8,7 @@ module Datadog
 
         attr_reader default_proc: untyped
 
-        attr_reader env: untyped
+        attr_reader env: String?
 
         attr_reader env_parser: untyped
 
@@ -26,14 +26,29 @@ module Datadog
 
         attr_reader type_options: untyped
 
-        def initialize: (untyped name, ?::Hash[untyped, untyped] meta) { () -> untyped } -> untyped
+        def initialize: (untyped name, ?::Hash[untyped, untyped] meta) ?{ () -> untyped } -> untyped
 
         def build: (untyped context) -> untyped
 
         class Builder
+          class InvalidOptionError < StandardError
+          end
+
           attr_reader helpers: untyped
 
-          def initialize: (untyped name, ?::Hash[untyped, untyped] options) { (untyped) -> untyped } -> untyped
+          @env: String?
+          @env_parser: untyped
+          @default: untyped
+          @default_proc: untyped
+          @helpers: untyped
+          @name: untyped
+          @after_set: untyped
+          @resetter: untyped
+          @setter: untyped
+          @type: untyped
+          @type_options: untyped
+
+          def initialize: (untyped name, ?::Hash[untyped, untyped] options) ?{ (untyped) -> untyped } -> untyped
 
           def depends_on: (*untyped values) -> untyped
 
@@ -41,11 +56,11 @@ module Datadog
 
           def default_proc: () { () -> untyped } -> untyped
 
-          def env: (untyped value) -> untyped
+          def env: (String value) -> String
 
           def env_parser: () { (String env_value) -> untyped } -> untyped
 
-          def type: (Symbol value, ?::Hash[untyped, untyped] type_options) -> untyped
+          def type: (Symbol value, ?nilable: bool) -> untyped
 
           def helper: (untyped name, *untyped _args) { () -> untyped } -> untyped
 
@@ -59,7 +74,21 @@ module Datadog
 
           def to_definition: () -> untyped
 
-          def meta: () -> { default: untyped, after_set: untyped, resetter: untyped, setter: untyped }
+          def meta: () -> {
+            default: untyped,
+            default_proc: untyped,
+            env: String?,
+            env_parser: untyped,
+            after_set: untyped,
+            resetter: untyped,
+            setter: untyped,
+            type: untyped,
+            type_options: untyped
+          }
+
+          private
+
+          def validate_options!: () -> void
         end
       end
     end
