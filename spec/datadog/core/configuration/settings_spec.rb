@@ -87,12 +87,12 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL}" do
+      context 'when OTEL_LOG_LEVEL' do
         around do |example|
           ClimateControl.modify(
             {
               Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => dd_debug_env,
-              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL => otel_level_env
+              'OTEL_LOG_LEVEL' => otel_level_env
             }
           ) do
             example.run
@@ -1066,7 +1066,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         around do |example|
           ClimateControl.modify(
             Datadog::Core::Environment::Ext::ENV_SERVICE => 'service-name-from-dd-service',
-            Datadog::Core::Environment::Ext::ENV_OTEL_SERVICE => 'otel-service-name'
+            'OTEL_SERVICE_NAME' => 'otel-service-name'
           ) do
             example.run
           end
@@ -1079,7 +1079,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       context 'and defined via OTEL_SERVICE_NAME' do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_OTEL_SERVICE => 'otel-service-name') do
+          ClimateControl.modify('OTEL_SERVICE_NAME' => 'otel-service-name') do
             example.run
           end
         end
@@ -1275,10 +1275,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
-    context "when #{Datadog::Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES}" do
+    context "when OTEL_RESOURCE_ATTRIBUTES" do
       around do |example|
         ClimateControl.modify(
-          Datadog::Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES => otel_tags,
+          'OTEL_RESOURCE_ATTRIBUTES' => otel_tags,
           Datadog::Core::Environment::Ext::ENV_TAGS => dd_tags
         ) do
           example.run

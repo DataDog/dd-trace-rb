@@ -1,0 +1,11 @@
+require:
+  - ./rubocop/custom_cops
+
+# Custom cop to prevent ENV usage
+CustomCops/EnvUsageCop:
+  Enabled: true
+  Description: 'Prevents direct usage of ENV to access environment variables'
+  Include:
+    - "lib/**/*"
+  Exclude:
+    - "lib/datadog/core/configuration/config_helper.rb"

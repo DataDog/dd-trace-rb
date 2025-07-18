@@ -66,7 +66,7 @@ end
 desc 'Run RSpec'
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
-  task all: [:main, :benchmark,
+  task all: [:main, :benchmark, :custom_cop,
              :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
@@ -75,13 +75,18 @@ namespace :spec do
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking}/**/*_spec.rb,'\
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking,rubocop}/**/*_spec.rb,'\
                         ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config}_spec.rb, spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
     t.pattern = 'spec/datadog/benchmark/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:custom_cop) do |t, args|
+    t.pattern = 'spec/rubocop/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -468,6 +473,41 @@ namespace :changelog do
     require 'pimpmychangelog'
 
     PimpMyChangelog::CLI.run!
+  end
+end
+
+namespace :config do
+  require 'json'
+  # We only keep env vars as strings
+  data = JSON.parse(File.read('supported-configurations.json')).transform_keys(&:to_sym)
+  data[:supportedConfigurations].each_value { |config| config.transform_keys!(&:to_sym) }
+
+  task :generate do
+    File.write(
+      'lib/datadog/core/configuration/assets/supported_configurations.rb',
+      <<~RUBY
+        # frozen_string_literal: true
+
+        module Datadog
+          module Core
+            module Configuration
+              module Assets
+                SUPPORTED_CONFIG_DATA = #{data.inspect}
+              end
+            end
+          end
+        end
+      RUBY
+    )
+  end
+
+  task :check do
+    require 'datadog/core/configuration/assets/supported_configurations'
+
+    if data != Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA
+      warn 'Data mismatch, please run `rake config:generate` and commit the changes'
+      exit 1
+    end
   end
 end
 

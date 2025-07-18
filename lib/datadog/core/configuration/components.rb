@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'config_helper'
 require_relative 'agent_settings_resolver'
 require_relative 'components_state'
 require_relative 'ext'

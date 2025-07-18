@@ -2,6 +2,8 @@ module Datadog
   module Core
     module Configuration
       class Option
+        type env_value = Hash[String, String] | Array[String] | String | Integer | Float | bool | nil
+
         @context: Configuration::Settings
 
         @is_set: bool
@@ -19,12 +21,16 @@ module Datadog
           ENVIRONMENT: Value
           LOCAL_STABLE: Value
           DEFAULT: Value
-          LIST: [Value]
+          LIST: Array[Value]
 
-          class Value < ::Struct[[int, Symbol, String]]
+          class Value
+            include Comparable
+
             attr_reader numeric: int
             attr_reader name: Symbol
             attr_reader origin: String
+
+            def initialize: (int numeric, Symbol name, String origin) -> void
           end
         end
 
@@ -38,7 +44,7 @@ module Datadog
 
         def default_value: () -> untyped
 
-        def default_precedence?: () -> Precedence::Value?
+        def default_precedence?: () -> bool
 
         def unset: (Precedence::Value) -> void
 
@@ -46,13 +52,18 @@ module Datadog
 
         def coerce_env_variable: (untyped value) -> untyped
 
+        class InvalidDefinitionError < StandardError
+        end
+
         def validate_type: (untyped value) -> untyped
 
         def validate: (untyped type, untyped value) -> untyped
 
-        def context_exec: (*untyped args) { () -> untyped } -> untyped
+        def internal_set: (untyped value, Precedence::Value precedence) -> untyped
 
-        def context_eval: () { () -> untyped } -> untyped
+        def context_exec: (*untyped args) { (untyped) [self: untyped] -> untyped } -> untyped
+
+        def context_eval: () { (untyped) [self: untyped] -> untyped } -> untyped
 
         def set_default_value: () -> void
 
@@ -62,7 +73,11 @@ module Datadog
 
         def set_fleet_stable_config_value: () -> void
 
-        def get_value_and_resolved_env_from: (Hash[String, String] env_vars, ?source: String) -> [Hash[String, String] | Array[String] | String | Integer | Float | bool, String | nil]
+        def get_value_from_ENV: () -> env_value
+
+        def get_value_from: (Hash[String, String] env_vars, String source) -> env_value
+
+        UNSET: Object
       end
     end
   end

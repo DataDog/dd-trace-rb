@@ -1,0 +1,23 @@
+module Datadog
+  module Core
+    module Configuration
+      module ConfigHelper
+        type env_hash = RBS::Unnamed::ENVClass | Hash[String, String]
+
+        SUPPORTED_CONFIGURATIONS: Hash[String, untyped]
+        ALIASES: Hash[String, Array[String]]
+
+        def get_environment_variable: (String, ?env_vars: env_hash, ?source: String) -> String?
+
+        private
+
+        @alias_to_canonical: Hash[String, String]
+        @log_deprecations_called: Hash[String, bool]
+        @temp_logger: Core::Logger
+
+        def log_deprecations: (env_hash, String) -> void
+        def alias_to_canonical: () -> Hash[String, String]
+      end
+    end
+  end
+end
