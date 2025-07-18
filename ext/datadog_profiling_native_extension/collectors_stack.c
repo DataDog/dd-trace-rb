@@ -271,7 +271,8 @@ void sample_thread(
   // The convention in Kernel#caller_locations is to instead use the path and line number of the first Ruby frame
   // on the stack that is below (e.g. directly or indirectly has called) the native method.
   // Thus, we keep that frame here to able to replicate that behavior.
-  // (This is why we also iterate the sampling buffers backwards below -- so that it's easier to keep the last_ruby_frame_filename)
+  // (This is why we also iterate the sampling buffers backwards from what libdatadog uses below -- so that it's easier
+  // to keep the last_ruby_frame_filename)
   ddog_CharSlice last_ruby_frame_filename = DDOG_CHARSLICE_C("");
   int last_ruby_line = 0;
 
@@ -290,10 +291,12 @@ void sample_thread(
     if (labels.is_gvl_waiting_state) rb_raise(rb_eRuntimeError, "BUG: Unexpected combination of cpu-time with is_gvl_waiting");
   }
 
-  for (int i = captured_frames - 1; i >= 0; i--) {
+  int top_of_stack_position = captured_frames - 1;
+
+  for (int i = 0; i <= top_of_stack_position; i++) {
     ddog_CharSlice name_slice, filename_slice;
     int line;
-    bool top_of_the_stack = i == 0;
+    bool top_of_the_stack = i == top_of_stack_position;
 
     if (buffer->stack_buffer[i].is_ruby_frame) {
       VALUE name = rb_iseq_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
@@ -323,7 +326,6 @@ void sample_thread(
     }
 
     maybe_trim_template_random_ids(&name_slice, &filename_slice);
-
 
     // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
     if (top_of_the_stack && only_wall_time) {
@@ -368,7 +370,9 @@ void sample_thread(
       }
     }
 
-    buffer->locations[i] = (ddog_prof_Location) {
+    int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
+
+    buffer->locations[libdatadog_stores_stacks_flipped_from_rb_profile_frames_index] = (ddog_prof_Location) {
       .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
       .function = (ddog_prof_Function) {.name = name_slice, .filename = filename_slice},
       .line = line,

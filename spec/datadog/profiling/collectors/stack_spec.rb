@@ -672,16 +672,18 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       expect(gathered_stack.size).to be max_frames
     end
 
-    it "matches the Ruby backtrace API up to max_frames - 1" do
-      expect(gathered_stack[0...(max_frames - 1)]).to eq reference_stack[0...(max_frames - 1)]
+    it "matches the Ruby backtrace API when comparing from the root of the thread" do
+      expect(gathered_stack[0...(max_frames - 1)]).to eq reference_stack[-max_frames...-1]
     end
 
-    it "includes a placeholder 'Truncated Frames' frame" do
-      placeholder = 1
-      omitted_frames = target_stack_depth - max_frames + placeholder
-
-      expect(omitted_frames).to be 96
-      expect(gathered_stack.last).to have_attributes(base_label: "Truncated Frames", path: "", lineno: 0)
+    it "gathers frames from the root of the thread and replaces the root with a placeholder" do
+      expect(gathered_stack).to contain_exactly(
+        have_attributes(base_label: "deep_stack_5"),
+        have_attributes(base_label: "deep_stack_4"),
+        have_attributes(base_label: "deep_stack_3"),
+        have_attributes(base_label: "deep_stack_2"),
+        have_attributes(base_label: "Truncated Frames", path: "", lineno: 0),
+      )
     end
 
     context "when stack is exactly 1 item deeper than the configured max_frames" do
