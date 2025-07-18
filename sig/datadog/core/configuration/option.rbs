@@ -14,7 +14,6 @@ module Datadog
 
         attr_reader definition: Configuration::OptionDefinition
         attr_reader precedence_set: Precedence::Value
-        attr_reader resolved_env: String?
 
         module Precedence
           REMOTE_CONFIGURATION: Value
