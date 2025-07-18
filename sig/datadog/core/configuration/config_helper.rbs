@@ -4,7 +4,6 @@ module Datadog
       module ConfigHelper
         type env_hash = RBS::Unnamed::ENVClass | Hash[String, String]
 
-        SUPPORTED_CONFIG_DATA: Hash[String, untyped]
         SUPPORTED_CONFIGURATIONS: Hash[String, untyped]
         ALIASES: Hash[String, Array[String]]
 
