@@ -952,9 +952,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
         end
 
-        # Discuss with config inversion squad what the behaviour should be (keep Ruby behaviour or change it)
-        it 'do not log deprecation warning' do
-          expect(Datadog::Core).to_not receive(:log_deprecation)
+        it 'log deprecation warning' do
+          expect(Datadog::Core).to receive(:log_deprecation)
           option.get
         end
       end
