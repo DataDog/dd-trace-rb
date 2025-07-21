@@ -672,25 +672,25 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       expect(gathered_stack.size).to be max_frames
     end
 
-    it "matches the Ruby backtrace API when comparing from the root of the thread" do
-      expect(gathered_stack[0...(max_frames - 1)]).to eq reference_stack[-max_frames...-1]
+    it "matches the last (max_frames - 1) frames from the Ruby backtrace API" do
+      expect(gathered_stack[1..(max_frames - 1)]).to eq reference_stack[-(max_frames - 1)..-1]
     end
 
-    it "gathers frames from the root of the thread and replaces the root with a placeholder" do
+    it "gathers max_frames frames from the root of the thread and replaces the topmost frame with a placeholder" do
       expect(gathered_stack).to contain_exactly(
-        have_attributes(base_label: "deep_stack_5"),
+        have_attributes(base_label: "Truncated Frames", path: "", lineno: 0),
         have_attributes(base_label: "deep_stack_4"),
         have_attributes(base_label: "deep_stack_3"),
         have_attributes(base_label: "thread_with_stack_depth"),
-        have_attributes(base_label: "Truncated Frames", path: "", lineno: 0),
+        have_attributes(base_label: "initialize"),
       )
     end
 
     context "when stack is the same depth as the configured max_frames" do
       let(:target_stack_depth) { max_frames }
 
-      it "includes a placeholder frame" do
-        expect(gathered_stack.last).to have_attributes(base_label: "Truncated Frames", path: "", lineno: 0)
+      it "includes a placeholder frame as the topmost frame of the stack" do
+        expect(gathered_stack.first).to have_attributes(base_label: "Truncated Frames", path: "", lineno: 0)
       end
     end
 

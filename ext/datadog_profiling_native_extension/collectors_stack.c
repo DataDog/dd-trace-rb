@@ -524,7 +524,7 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
 static void add_truncated_frames_placeholder(sampling_buffer* buffer) {
   // Important note: The strings below are static so we don't need to worry about their lifetime. If we ever want to change
   // this to non-static strings, don't forget to check that lifetimes are properly respected.
-  buffer->locations[buffer->max_frames - 1] = (ddog_prof_Location) {
+  buffer->locations[0] = (ddog_prof_Location) {
     .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
     .function = (ddog_prof_Function) {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C("")},
     .line = 0,
