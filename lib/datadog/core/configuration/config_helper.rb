@@ -31,8 +31,11 @@ module Datadog
           if !defined?(::Datadog::CI) &&
              (name.start_with?('DD_', 'OTEL_') || alias_to_canonical[name]) &&
              !SUPPORTED_CONFIGURATIONS[name]
-            # return nil
-            raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
+            if defined?(@dd_test_environment) && @dd_test_environment
+              raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
+            end
+            # TODO: Send telemetry to know if we ever miss an env var
+            return nil
           end
 
           config = env_vars[name]
@@ -81,6 +84,11 @@ module Datadog
               alias_to_canonical
             end
           end
+        end
+
+        # This should never be used outside of datadog test environment.
+        def dd_test_environment!
+          @dd_test_environment = true
         end
       end
     end
