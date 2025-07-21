@@ -136,7 +136,7 @@ class ProfilerSampleLoopBenchmark
       x.compare!
     end
 
-    File.write('test.out', @recorder.serialize!._native_bytes)
+    @recorder.serialize!
   end
 
   def sample(collector)
