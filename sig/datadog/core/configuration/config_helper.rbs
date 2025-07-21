@@ -14,6 +14,7 @@ module Datadog
         @alias_to_canonical: Hash[String, String]
         @log_deprecations_called: Hash[String, bool]
         @temp_logger: Core::Logger
+        @dd_test_environment: bool?
 
         def log_deprecations: (env_hash, String) -> void
         def alias_to_canonical: () -> Hash[String, String]
