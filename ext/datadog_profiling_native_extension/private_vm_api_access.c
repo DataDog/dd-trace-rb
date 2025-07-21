@@ -212,21 +212,6 @@ uint64_t native_thread_id_for(VALUE thread) {
   #endif
 }
 
-// Returns the stack depth by using the same approach as rb_profile_frames and backtrace_each: get the positions
-// of the end and current frame pointers and subtracting them.
-ptrdiff_t stack_depth_for(VALUE thread) {
-  const rb_execution_context_t *ec = thread_struct_from_object(thread)->ec;
-  const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
-
-  if (end_cfp == NULL) return 0;
-
-  // Skip dummy frame, as seen in `backtrace_each` (`vm_backtrace.c`) and our custom rb_profile_frames
-  // ( https://github.com/ruby/ruby/blob/4bd38e8120f2fdfdd47a34211720e048502377f1/vm_backtrace.c#L890-L914 )
-  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
-
-  return end_cfp <= cfp ? 0 : end_cfp - cfp - 1;
-}
-
 // This was renamed in Ruby 3.2
 #if !defined(ccan_list_for_each) && defined(list_for_each)
   #define ccan_list_for_each list_for_each

@@ -39,7 +39,7 @@ static void set_file_info_for_cfunc(
   st_table *native_filenames_cache
 );
 static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache);
-static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer);
+static void add_truncated_frames_placeholder(sampling_buffer* buffer);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
 
@@ -382,7 +382,7 @@ void sample_thread(
   // If we filled up the buffer, some frames may have been omitted. In that case, we'll add a placeholder frame
   // with that info.
   if (captured_frames == (long) buffer->max_frames) {
-    maybe_add_placeholder_frames_omitted(thread, buffer);
+    add_truncated_frames_placeholder(buffer);
   }
 
   record_sample(
@@ -521,14 +521,9 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
   name_slice->len = pos;
 }
 
-static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer) {
-  ptrdiff_t frames_omitted = stack_depth_for(thread) - buffer->max_frames;
-
-  if (frames_omitted == 0) return; // Perfect fit!
-
+static void add_truncated_frames_placeholder(sampling_buffer* buffer) {
   // Important note: The strings below are static so we don't need to worry about their lifetime. If we ever want to change
   // this to non-static strings, don't forget to check that lifetimes are properly respected.
-
   buffer->locations[buffer->max_frames - 1] = (ddog_prof_Location) {
     .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
     .function = (ddog_prof_Function) {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C("")},

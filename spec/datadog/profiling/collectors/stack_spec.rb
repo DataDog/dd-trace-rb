@@ -681,21 +681,21 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         have_attributes(base_label: "deep_stack_5"),
         have_attributes(base_label: "deep_stack_4"),
         have_attributes(base_label: "deep_stack_3"),
-        have_attributes(base_label: "deep_stack_2"),
+        have_attributes(base_label: "thread_with_stack_depth"),
         have_attributes(base_label: "Truncated Frames", path: "", lineno: 0),
       )
     end
 
-    context "when stack is exactly 1 item deeper than the configured max_frames" do
-      let(:target_stack_depth) { 6 }
+    context "when stack is the same depth as the configured max_frames" do
+      let(:target_stack_depth) { max_frames }
 
       it "includes a placeholder frame" do
         expect(gathered_stack.last).to have_attributes(base_label: "Truncated Frames", path: "", lineno: 0)
       end
     end
 
-    context "when stack is exactly as deep as the configured max_frames" do
-      let(:target_stack_depth) { 5 }
+    context "when stack is exactly 1 item less deep than the configured max_frames" do
+      let(:target_stack_depth) { max_frames - 1 }
 
       it "matches the Ruby backtrace API" do
         expect(gathered_stack).to eq reference_stack
@@ -860,9 +860,9 @@ class DeepStackSimulator
     # Since in this helper we want to have precise control over how many frames are on the stack of a given thread,
     # we need to take into account that the DatadogThreadDebugger adds one more frame to the stack.
     first_method =
-      (defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger)) ? :deep_stack_2 : :deep_stack_1
+      (defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger)) ? :deep_stack_3 : :deep_stack_2
 
-    thread = Thread.new(&DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).method(first_method))
+      thread = Thread.new { DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).send(first_method) }
     thread.name = "Deep stack #{depth}" if thread.respond_to?(:name=)
     ready_queue.pop
 
