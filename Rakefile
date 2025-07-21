@@ -481,6 +481,13 @@ namespace :config do
   # We only keep env vars as strings
   data = JSON.parse(File.read('supported-configurations.json')).transform_keys(&:to_sym)
   data[:supportedConfigurations].each_value { |config| config.transform_keys!(&:to_sym) }
+  alias_to_canonical = data[:aliases].each_with_object({}) do |(canonical, alias_list), h|
+    alias_list.each do |alias_name|
+      raise "The alias #{alias_name} is already used for #{h[alias_name]}." if h[alias_name]
+
+      h[alias_name] = canonical
+    end
+  end
 
   task :generate do
     File.write(
@@ -493,6 +500,8 @@ namespace :config do
             module Configuration
               module Assets
                 SUPPORTED_CONFIG_DATA = #{data.inspect}
+
+                ALIAS_TO_CANONICAL = #{alias_to_canonical.inspect}
               end
             end
           end
@@ -504,7 +513,8 @@ namespace :config do
   task :check do
     require 'datadog/core/configuration/assets/supported_configurations'
 
-    if data != Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA
+    if data != Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA ||
+        alias_to_canonical != Datadog::Core::Configuration::Assets::ALIAS_TO_CANONICAL
       warn 'Data mismatch, please run `rake config:generate` and commit the changes'
       exit 1
     end
