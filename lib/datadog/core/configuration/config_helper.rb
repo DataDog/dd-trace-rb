@@ -15,6 +15,9 @@ module Datadog
         ALIASES = Assets::SUPPORTED_CONFIG_DATA[:aliases] || {}
         private_constant :ALIASES
 
+        ALIAS_TO_CANONICAL = Assets::ALIAS_TO_CANONICAL || {}
+        private_constant :ALIAS_TO_CANONICAL
+
         # Returns the environment variable, if it's supported or a non Datadog
         # configuration. Otherwise, it throws an error.
         #
@@ -29,7 +32,7 @@ module Datadog
           # datadog-ci-rb is using dd-trace-rb config DSL, which uses this method.
           # Until we've correctly implemented support for datadog-ci-rb, we disable config inversion if ci is enabled.
           if !defined?(::Datadog::CI) &&
-             (name.start_with?('DD_', 'OTEL_') || alias_to_canonical[name]) &&
+             (name.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[name]) &&
              !SUPPORTED_CONFIGURATIONS[name]
             if defined?(@dd_test_environment) && @dd_test_environment
               raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
@@ -64,24 +67,10 @@ module Datadog
             # Using logger_without_configuration is not possible as it uses an environment variable.
             Datadog::Core.log_deprecation(logger: @temp_logger) do
               value = "#{deprecation} #{source} variable is deprecated"
-              value += ", use #{alias_to_canonical[deprecation]} instead" if alias_to_canonical[deprecation]
+              value += ", use #{ALIAS_TO_CANONICAL[deprecation]} instead" if ALIAS_TO_CANONICAL[deprecation]
               value += '.'
               value += " #{message}." unless message.nil? || message.empty?
               value
-            end
-          end
-        end
-
-        def alias_to_canonical
-          @alias_to_canonical ||= begin
-            ALIASES.reduce({}) do |alias_to_canonical, (canonical, alias_list)|
-              alias_list.each do |alias_name|
-                if alias_to_canonical[alias_name]
-                  raise "The alias #{alias_name} is already used for #{alias_to_canonical[alias_name]}."
-                end
-                alias_to_canonical[alias_name] = canonical
-              end
-              alias_to_canonical
             end
           end
         end
