@@ -6,7 +6,9 @@ RSpec.shared_examples 'tracing dynamic simple option' do |name:, env_var:, confi
   let(:option) { described_class.new }
   let(:configuration_object) { config_object || Datadog.configuration.tracing }
   let(:new_value) { value }
+  let(:expected_new_value) { new_value }
   let(:old_value) { configuration_object.public_send(config_key) }
+  let(:expected_old_value) { old_value }
 
   before do
     configuration_object.reset!
@@ -17,7 +19,7 @@ RSpec.shared_examples 'tracing dynamic simple option' do |name:, env_var:, confi
     subject(:call) { option.call(new_value) }
 
     it "changes #{config_key} to #{value}" do
-      expect { call }.to change { configuration_object.public_send(config_key) }.from(old_value).to(value)
+      expect { call }.to change { configuration_object.public_send(config_key) }.from(expected_old_value).to(expected_new_value)
     end
 
     it "declares environment variable name as #{env_var}" do
@@ -29,10 +31,11 @@ RSpec.shared_examples 'tracing dynamic simple option' do |name:, env_var:, confi
     end
 
     context 'with nil value' do
-      before { call }
+      before { configuration_object.public_send("#{config_key}=", old_value) }
 
       it "restores original value before dynamic configuration #{config_key}" do
-        expect { option.call(nil) }.to change { configuration_object.public_send(config_key) }.from(value).to(old_value)
+        call
+        expect { option.call(nil) }.to change { configuration_object.public_send(config_key) }.from(expected_new_value).to(expected_old_value)
       end
     end
   end
@@ -51,9 +54,13 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingHeaderTags do
     name: 'tracing_header_tags',
     env_var: 'DD_TRACE_HEADER_TAGS',
     config_key: :header_tags,
-    value: RSpec::Matchers::BuiltIn::Match.new(->(header_tags) { header_tags.to_s == 'my-header:my-tag' }) do
-      let(:old_value) { ->(header_tags) { header_tags.to_s == '' } }
+    value: [{ 'header' => 'my-header', 'tag_name' => 'my-tag' }] do
+      let(:old_value) { [] }
+      let(:expected_old_value) { RSpec::Matchers::BuiltIn::Match.new(->(header_tags) { header_tags.to_s == '' }) }
       let(:new_value) { [{ 'header' => 'my-header', 'tag_name' => 'my-tag' }] }
+      let(:expected_new_value) { RSpec::Matchers::BuiltIn::Match.new(->(header_tags) {
+        header_tags.to_s == 'my-header:my-tag'
+      }) }
     end
 
   context 'with multiple values in tracing_header_tags' do
@@ -87,23 +94,20 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
     name: 'tracing_sampling_rules',
     env_var: 'DD_TRACE_SAMPLING_RULES',
     config_key: :rules,
-    value: RSpec::Matchers::BuiltIn::Match.new(->(rules) { rules == '[{"sample_rate":1}]' }),
+    value: [{ 'sample_rate' => 1 }],
     config_object: Datadog.configuration.tracing.sampling do
-      let(:new_value) { [{ sample_rate: 1 }] }
-    end
+    let(:expected_new_value) { [{ 'sample_rate' => 1 }].to_json }
+  end
 
   context 'with tags' do
     include_examples 'tracing dynamic simple option',
       name: 'tracing_sampling_rules',
       env_var: 'DD_TRACE_SAMPLING_RULES',
       config_key: :rules,
-      value: RSpec::Matchers::BuiltIn::Match.new(
-        lambda do |rules|
-          rules == '[{"sample_rate":1,"tags":[{"key":"k","value_glob":"v"}]}]'
-        end
-      ),
+      value: [{ 'sample_rate' => 1, 'tags' => [{ 'key' => 'k', 'value_glob' => 'v' }] }],
       config_object: Datadog.configuration.tracing.sampling do
-        let(:new_value) { [{ sample_rate: 1, tags: [{ key: 'k', value_glob: 'v' }] }] }
+        let(:new_value) { [{ 'sample_rate' => 1, 'tags' => [{ 'key' => 'k', 'value_glob' => 'v' }] }] }
+        let(:expected_new_value) { [{ 'sample_rate' => 1, 'tags' => { 'k' => 'v' } }].to_json }
       end
   end
 
