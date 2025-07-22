@@ -526,7 +526,7 @@ static void add_truncated_frames_placeholder(sampling_buffer* buffer) {
   // this to non-static strings, don't forget to check that lifetimes are properly respected.
   buffer->locations[0] = (ddog_prof_Location) {
     .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
-    .function = (ddog_prof_Function) {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C("")},
+    .function = {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C(""), .filename_id = {}},
     .line = 0,
   };
 }
