@@ -5,6 +5,7 @@ require:
 CustomCops/EnvUsageCop:
   Enabled: true
   Description: 'Prevents direct usage of ENV to access environment variables'
+  SafeAutoCorrect: false
   Include:
     - "lib/**/*"
   Exclude:
@@ -14,6 +15,7 @@ CustomCops/EnvUsageCop:
 CustomCops/EnvStringValidationCop:
   Enabled: true
   Description: 'Prevents usage of environment variables that are not in the allowed list'
+  Safe: false
   Include:
     - "lib/**/*"
   Exclude:
