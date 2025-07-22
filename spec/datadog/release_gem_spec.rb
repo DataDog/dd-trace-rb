@@ -22,6 +22,7 @@ RSpec.describe 'gem release process' do
            |\.rubocop_todo.yml
            |\.semgrepignore
            |\.simplecov
+           |\.codecov.yml
            |\.yardopts
            |\.yamllint.yml
            |ext/\.gitignore
@@ -52,7 +53,6 @@ RSpec.describe 'gem release process' do
             sig
             |spec
             |docs
-            |\.circleci
             |\.github
             |\.gitlab
             |\.vscode
