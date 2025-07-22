@@ -35,7 +35,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   let(:initial_event) do
-    Datadog::Core::Telemetry::Event::AppStarted.new
+    Datadog::Core::Telemetry::Event::AppStarted.new(agent_settings: instance_double(Datadog::Core::Configuration::AgentSettings))
   end
 
   before do
