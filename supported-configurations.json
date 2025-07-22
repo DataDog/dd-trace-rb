@@ -848,6 +848,48 @@
     },
     "DD_INJECTION_ENABLED": {
       "version": ["A"]
+    },
+    "DD_API_SECURITY_REQUEST_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_ACTIVE_JOB_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_STRIPE_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED": {
+      "version": ["A"]
+    },
+    "DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED": {
+      "version": ["A"]
+    },
+    "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
+    },
+    "DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED": {
+      "version": ["A"]
+    },
+    "DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE": {
+      "version": ["A"]
     }
   },
   "aliases": {
