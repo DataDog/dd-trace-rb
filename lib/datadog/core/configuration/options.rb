@@ -55,7 +55,9 @@ module Datadog
             helpers.each do |name, block|
               next unless block.is_a?(Proc)
 
-              define_method(name, &block)
+              # Steep doesn't understand relation between Method and Proc.
+              # https://github.com/ruby/rbs/issues/736
+              define_method(name, &block) # steep:ignore BlockTypeMismatch
             end
           end
         end
@@ -68,7 +70,7 @@ module Datadog
           end
 
           def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
-            resolve_option(name).set(value, precedence: precedence, resolved_env: resolved_env(name))
+            resolve_option(name).set(value, precedence: precedence)
           end
 
           def unset_option(name, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
@@ -114,10 +116,6 @@ module Datadog
             assert_valid_option!(name)
             definition = self.class.options[name]
             options[name] = definition.build(self)
-          end
-
-          def resolved_env(name)
-            options[name].resolved_env if options.key?(name)
           end
 
           def assert_valid_option!(name)
