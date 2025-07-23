@@ -166,8 +166,9 @@ vaccine:
   image: registry.ddbuild.io/images/dd-octo-sts-ci-base:v68058725-73f34e7-2025.06-1
   tags: ["arch:amd64"]
   stage: vaccine
-  needs: [create-multiarch-lib-injection-image]
-
+  needs:
+    - create-multiarch-lib-injection-image
+    - kubernetes-injection-test-ecr-publish
   id_tokens:
     DDOCTOSTS_ID_TOKEN:
       aud: dd-octo-sts
