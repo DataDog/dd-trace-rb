@@ -35,7 +35,11 @@ module Datadog
              (name.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[name]) &&
              !SUPPORTED_CONFIGURATIONS[name]
             if defined?(@dd_test_environment) && @dd_test_environment
-              raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
+              if ALIAS_TO_CANONICAL[name]
+                raise "Please use #{ALIAS_TO_CANONICAL[name]} instead of #{name}."
+              else
+                raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
+              end
             end
             # TODO: Send telemetry to know if we ever miss an env var
             return nil
