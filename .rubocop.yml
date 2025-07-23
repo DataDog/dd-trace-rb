@@ -311,7 +311,7 @@ RSpec/EmptyLineAfterFinalLet:
   Enabled: false
 
 # Ensures static strings are not recreated on every invocation.
-# We disable this cop, and enable it in lib/.rubocop.yml
+# standard-rb is nor enforcing this cop, we use a rake task to enforce the magic comment.
 Style/FrozenStringLiteralComment:
   Enabled: false
 
