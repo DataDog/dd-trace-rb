@@ -154,11 +154,11 @@ module Datadog
             end
 
             trace ||= Datadog::Tracing.active_trace
-            span ||=  trace && trace.active_span || Datadog::Tracing.active_span
+            span ||= trace && trace.active_span || Datadog::Tracing.active_span
 
             unless trace && span
               Datadog.logger.debug(
-                "Tracing not enabled. Method ##{method} is a no-op. Please enable tracing if you want ##{method}"\
+                "Tracing not enabled. Method ##{method} is a no-op. Please enable tracing if you want ##{method}" \
                 ' to track this events'
               )
               return

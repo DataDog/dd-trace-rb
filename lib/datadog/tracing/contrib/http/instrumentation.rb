@@ -74,7 +74,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
               span.set_tag(
                 Tracing::Metadata::Ext::HTTP::TAG_URL,
-                Contrib::Utils::Quantization::HTTP.url(request.path, { query: { exclude: :all } })
+                Contrib::Utils::Quantization::HTTP.url(request.path, {query: {exclude: :all}})
               )
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request.method)
 

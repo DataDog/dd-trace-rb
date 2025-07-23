@@ -118,7 +118,7 @@ module Datadog
               # Incorrect Hash#to_s serialization. The Mongo command should only be encoded as JSON.
               # This code path should be removed, and is only kept to avoid a breaking change.
               Datadog::Core.log_deprecation(key: :mongo_json_command) do
-                'MongoDB integration: `json_command: false` causes invalid command serialization. '\
+                'MongoDB integration: `json_command: false` causes invalid command serialization. ' \
                 'Use `json_command: true` or `DD_TRACE_MONGO_JSON_COMMAND=1` instead.'
               end
 

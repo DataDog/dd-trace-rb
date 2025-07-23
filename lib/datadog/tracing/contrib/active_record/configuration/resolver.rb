@@ -75,7 +75,7 @@ module Datadog
               # hence provide a succinct summary for the error logging.
               #
               Datadog.logger.error(
-                'Failed to resolve ActiveRecord database configuration. '\
+                'Failed to resolve ActiveRecord database configuration. ' \
                 "Cause: #{e.class.name} Source: #{Array(e.backtrace).first}"
               )
               Core::Telemetry::Logger.report(e, description: 'Failed to resolve ActiveRecord database configuration')

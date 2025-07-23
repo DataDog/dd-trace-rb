@@ -170,7 +170,7 @@ module Datadog
         # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
 
         DATADOG_SPAN_ATTRIBUTE_OVERRIDES = ['analytics.event', 'operation.name', 'resource.name', 'service.name',
-                                            'span.type', 'http.response.status_code'].freeze
+          'span.type', 'http.response.status_code'].freeze
 
         ::OpenTelemetry::SDK::Trace::Span.prepend(self)
       end

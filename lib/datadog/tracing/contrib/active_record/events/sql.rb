@@ -35,10 +35,10 @@ module Datadog
               settings = Datadog.configuration.tracing[:active_record, config]
               adapter_name = Contrib::Utils::Database.normalize_vendor(config[:adapter])
               service_name = if settings.service_name != Contrib::Utils::Database::VENDOR_DEFAULT
-                               settings.service_name
-                             else
-                               adapter_name
-                             end
+                settings.service_name
+              else
+                adapter_name
+              end
 
               span.name = "#{adapter_name}.query"
               span.service = service_name

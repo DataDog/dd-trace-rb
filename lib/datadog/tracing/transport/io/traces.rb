@@ -33,10 +33,10 @@ module Datadog
 
                 # Write to IO
                 result = if block_given?
-                           yield(out, data)
-                         else
-                           write_data(out, data)
-                         end
+                  yield(out, data)
+                else
+                  write_data(out, data)
+                end
 
                 # Generate response
                 Traces::Response.new(result)

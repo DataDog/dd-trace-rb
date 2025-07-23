@@ -43,11 +43,11 @@ module Datadog
           # the provided `options` and `&block`.
           def configure(matcher = :default, options = {}, &block)
             config = if matcher == :default
-                       default_configuration
-                     else
-                       # Get or add the configuration
-                       resolver.get(matcher) || resolver.add(matcher, new_configuration)
-                     end
+              default_configuration
+            else
+              # Get or add the configuration
+              resolver.get(matcher) || resolver.add(matcher, new_configuration)
+            end
 
             # Apply the settings
             config.configure(options, &block) if config

@@ -30,10 +30,10 @@ module Datadog
             # If block is given, allow it to handle writing
             # Otherwise do a standard encode/write/response.
             response = if block_given?
-                         yield(out, request)
-                       else
-                         @request_block.call(out, request)
-                       end
+              yield(out, request)
+            else
+              @request_block.call(out, request)
+            end
 
             # Update statistics
             update_stats_from_response!(response)

@@ -77,19 +77,19 @@ module Datadog
               {}.tap do |options|
                 # Show
                 # If either is :all, value becomes :all
-                options[:show] =  if original[:show] == :all || additional[:show] == :all
-                                    :all
-                                  else
-                                    (original[:show] || []).dup.concat(additional[:show] || []).uniq
-                                  end
+                options[:show] = if original[:show] == :all || additional[:show] == :all
+                  :all
+                else
+                  (original[:show] || []).dup.concat(additional[:show] || []).uniq
+                end
 
                 # Exclude
                 # If either is :all, value becomes :all
                 options[:exclude] = if original[:exclude] == :all || additional[:exclude] == :all
-                                      :all
-                                    else
-                                      (original[:exclude] || []).dup.concat(additional[:exclude] || []).uniq
-                                    end
+                  :all
+                else
+                  (original[:exclude] || []).dup.concat(additional[:exclude] || []).uniq
+                end
 
                 options[:placeholder] = additional[:placeholder] || original[:placeholder]
               end

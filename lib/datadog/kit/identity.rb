@@ -43,12 +43,12 @@ module Datadog
 
           # enforce types
 
-          raise TypeError, ':id must be a String'         unless id.is_a?(String)
-          raise TypeError, ':email must be a String'      unless email.nil? || email.is_a?(String)
-          raise TypeError, ':name must be a String'       unless name.nil? || name.is_a?(String)
+          raise TypeError, ':id must be a String' unless id.is_a?(String)
+          raise TypeError, ':email must be a String' unless email.nil? || email.is_a?(String)
+          raise TypeError, ':name must be a String' unless name.nil? || name.is_a?(String)
           raise TypeError, ':session_id must be a String' unless session_id.nil? || session_id.is_a?(String)
-          raise TypeError, ':role must be a String'       unless role.nil? || role.is_a?(String)
-          raise TypeError, ':scope must be a String'      unless scope.nil? || scope.is_a?(String)
+          raise TypeError, ':role must be a String' unless role.nil? || role.is_a?(String)
+          raise TypeError, ':scope must be a String' unless scope.nil? || scope.is_a?(String)
 
           others.each do |k, v|
             raise TypeError, "#{k.inspect} must be a String" unless v.nil? || v.is_a?(String)
@@ -57,11 +57,11 @@ module Datadog
           set_trace_and_span_context('set_user', trace, span) do |_active_trace, active_span|
             # set tags once data is known consistent
             active_span.set_tag('usr.id', id)
-            active_span.set_tag('usr.email', email)           unless email.nil?
-            active_span.set_tag('usr.name', name)             unless name.nil?
+            active_span.set_tag('usr.email', email) unless email.nil?
+            active_span.set_tag('usr.name', name) unless name.nil?
             active_span.set_tag('usr.session_id', session_id) unless session_id.nil?
-            active_span.set_tag('usr.role', role)             unless role.nil?
-            active_span.set_tag('usr.scope', scope)           unless scope.nil?
+            active_span.set_tag('usr.role', role) unless role.nil?
+            active_span.set_tag('usr.scope', scope) unless scope.nil?
 
             others.each do |k, v|
               active_span.set_tag("usr.#{k}", v) unless v.nil?
@@ -89,7 +89,7 @@ module Datadog
 
           unless trace && span
             Datadog.logger.debug(
-              "Tracing not enabled. Method ##{method} is a no-op. Please enable tracing if you want ##{method}"\
+              "Tracing not enabled. Method ##{method} is a no-op. Please enable tracing if you want ##{method}" \
               ' to track this events'
             )
             return

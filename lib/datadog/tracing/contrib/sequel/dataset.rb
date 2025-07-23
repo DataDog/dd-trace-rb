@@ -40,7 +40,7 @@ module Datadog
               response = nil
 
               Tracing.trace(Ext::SPAN_QUERY) do |span|
-                span.service =  Datadog.configuration_for(db, :service_name) \
+                span.service = Datadog.configuration_for(db, :service_name) \
                                 || Datadog.configuration.tracing[:sequel][:service_name] \
                                 || Contrib::SpanAttributeSchema.fetch_service_name(
                                   '',

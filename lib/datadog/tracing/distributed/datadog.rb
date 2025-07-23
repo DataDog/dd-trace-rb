@@ -55,7 +55,7 @@ module Datadog
         def extract(data)
           fetcher = @fetcher.new(data)
 
-          trace_id  = parse_trace_id(fetcher)
+          trace_id = parse_trace_id(fetcher)
           parent_id = parse_parent_id(fetcher)
 
           sampling_priority = Helpers.parse_decimal_id(fetcher[@sampling_priority_key])

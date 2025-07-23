@@ -25,7 +25,7 @@ module Datadog
 
           value = value.to_s
 
-          num   = value.to_i
+          num = value.to_i
 
           # Ensure the parsed number is the same as the original string value
           # e.g. We want to make sure to throw away `'nan'.to_i == 0`
