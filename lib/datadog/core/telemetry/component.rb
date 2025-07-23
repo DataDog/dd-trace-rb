@@ -62,7 +62,9 @@ module Datadog
           return unless @enabled
 
           @transport = if settings.telemetry.agentless_enabled
-            agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
+            # We don't touch the `agent_settings` since we still want the telemetry payloads to refer to the original
+            # settings, even though the telemetry itself may be using a different path.
+            telemetry_specific_agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
               settings,
               host_prefix: 'instrumentation-telemetry-intake',
               url_override: settings.telemetry.agentless_url_override,
@@ -70,7 +72,7 @@ module Datadog
               logger: logger,
             )
             Telemetry::Transport::HTTP.agentless_telemetry(
-              agent_settings: agent_settings,
+              agent_settings: telemetry_specific_agent_settings,
               logger: logger,
               # api_key should have already validated to be
               # not nil by +build+ method above.
@@ -96,6 +98,8 @@ module Datadog
             logger: logger,
             shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
           )
+
+          @agent_settings = agent_settings
         end
 
         def disable!
@@ -107,9 +111,9 @@ module Datadog
           return if !@enabled
 
           initial_event = if initial_event_is_change
-            Event::SynthAppClientConfigurationChange.new
+            Event::SynthAppClientConfigurationChange.new(agent_settings: @agent_settings)
           else
-            Event::AppStarted.new
+            Event::AppStarted.new(agent_settings: @agent_settings)
           end
 
           @worker.start(initial_event)

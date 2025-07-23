@@ -266,10 +266,11 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       let(:payload) do
-        builder.build_executed(probe, path: '/foo.rb', locals: locals)
+        builder.build_executed(probe, path: '/foo.rb',
+          serialized_locals: serialized_locals, target_self: Object.new)
       end
 
-      let(:locals) do
+      let(:serialized_locals) do
         {foo: {type: 'Integer', value: '1234'}}.freeze
       end
 
@@ -282,7 +283,11 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             captures: {
               lines: {
                 1 => {
-                  locals: locals,
+                  locals: serialized_locals,
+                  arguments: {self: {
+                    type: 'Object',
+                    fields: {},
+                  }},
                 },
               },
             },

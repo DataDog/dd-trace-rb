@@ -4,7 +4,8 @@ require 'datadog/core/telemetry/event/app_started'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
   let(:id) { double('seq_id') }
-  let(:event) { described_class.new }
+  subject(:event) { described_class.new(agent_settings: agent_settings) }
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(Datadog.configuration) }
 
   let(:logger) do
     stub_const('MyLogger', Class.new(::Logger)).new(nil)
@@ -60,7 +61,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     # Reset global cache
     Datadog::Core::Environment::Git.reset_for_tests
   end
-  it_behaves_like 'telemetry event with no attributes'
 
   describe '.payload' do
     it 'contains expected products' do

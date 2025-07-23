@@ -16,9 +16,9 @@ module Datadog
 
       def build_errored: (Probe probe, Exception exception) -> Hash[Symbol,untyped]
 
-      def build_executed: (Probe probe, ?instance_vars: untyped?, ?rv: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
+      def build_executed: (Probe probe, ?serialized_locals: untyped?, ?rv: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?, ?target_self: untyped?) -> Hash[Symbol,untyped]
 
-      def build_snapshot: (Probe probe, ?rv: untyped?, ?locals: untyped?, ?path: String?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?instance_vars: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
+      def build_snapshot: (Probe probe, ?rv: untyped?, ?path: String?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_locals: untyped?, ?serialized_entry_args: untyped?, ?target_self: untyped?) -> Hash[Symbol,untyped]
 
       def build_status: (Probe probe, message: untyped, status: untyped) -> Hash[Symbol,untyped]
 

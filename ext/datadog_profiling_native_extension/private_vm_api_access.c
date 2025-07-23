@@ -212,21 +212,6 @@ uint64_t native_thread_id_for(VALUE thread) {
   #endif
 }
 
-// Returns the stack depth by using the same approach as rb_profile_frames and backtrace_each: get the positions
-// of the end and current frame pointers and subtracting them.
-ptrdiff_t stack_depth_for(VALUE thread) {
-  const rb_execution_context_t *ec = thread_struct_from_object(thread)->ec;
-  const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
-
-  if (end_cfp == NULL) return 0;
-
-  // Skip dummy frame, as seen in `backtrace_each` (`vm_backtrace.c`) and our custom rb_profile_frames
-  // ( https://github.com/ruby/ruby/blob/4bd38e8120f2fdfdd47a34211720e048502377f1/vm_backtrace.c#L890-L914 )
-  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
-
-  return end_cfp <= cfp ? 0 : end_cfp - cfp - 1;
-}
-
 // This was renamed in Ruby 3.2
 #if !defined(ccan_list_for_each) && defined(list_for_each)
   #define ccan_list_for_each list_for_each
@@ -417,6 +402,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Imported fix from https://github.com/ruby/ruby/pull/8280 to keep us closer to upstream
 // * Added potential fix for https://github.com/ruby/ruby/pull/13643 (this one is a just-in-case, unclear if it happens
 //   for ddtrace)
+// * Reversed order of iteration to better enable caching
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -495,7 +481,20 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
     if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
-    for (i=0; i<limit && cfp != end_cfp; cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp)) {
+    // This is the position just after the top of the stack -- e.g. where a new frame pushed on the stack would end up.
+    const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
+
+    // We iterate the stack from bottom (beginning of thread) to the top (currently-active frame). This is different
+    // from upstream rb_profile_frames, but actually matches what `backtrace_each` does (yes, different Ruby VM APIs
+    // iterate in different directions).
+    // We do this to better take advantage of the `same_frame` caching mechanism: By starting from the bottom of the
+    // stack towards the top, we can usually keep most of the stack intact when the code is only going up and down
+    // a few methods at the top. Before this change, the cache was really only useful if between samples the app had
+    // not moved from the current stack, as adding or removing one frame would invalidate the existing cache (because
+    // every position would shift).
+    cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+
+    for (i=0; i<limit && cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
         if (cfp->iseq && !cfp->pc) {
           // Fix: Do nothing -- this frame should not be used
           //

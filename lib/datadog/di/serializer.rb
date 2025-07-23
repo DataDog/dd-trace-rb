@@ -36,6 +36,10 @@ module Datadog
     # efficient but there would be additional overhead from passing this
     # parameter all the time and the API would get more complex.
     #
+    # Note: "self" cannot be used as a parameter name in Ruby, therefore
+    # there should never be a conflict between instance variable
+    # serialization and method parameters.
+    #
     # @api private
     class Serializer
       # Third-party library integration / custom serializers.
@@ -86,7 +90,7 @@ module Datadog
       # Instance variables are technically a hash just like kwargs,
       # we take them as a separate parameter to avoid a hash merge
       # in upstream code.
-      def serialize_args(args, kwargs, instance_vars,
+      def serialize_args(args, kwargs, target_self,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
         counter = 0
@@ -95,7 +99,7 @@ module Datadog
           # Conversion to symbol is needed here to put args ahead of
           # kwargs when they are merged below.
           c[:"arg#{counter}"] = value
-        end.update(kwargs).update(instance_vars)
+        end.update(kwargs).update(self: target_self)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count)
       end
 

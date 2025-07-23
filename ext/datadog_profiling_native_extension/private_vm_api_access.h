@@ -41,7 +41,6 @@ rb_nativethread_id_t pthread_id_for(VALUE thread);
 bool is_current_thread_holding_the_gvl(void);
 current_gvl_owner gvl_owner(void);
 uint64_t native_thread_id_for(VALUE thread);
-ptrdiff_t stack_depth_for(VALUE thread);
 void ddtrace_thread_list(VALUE result_array);
 bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
