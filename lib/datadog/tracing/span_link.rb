@@ -47,12 +47,12 @@ module Datadog
         @span_id = digest.span_id
         @trace_id = digest.trace_id
         @trace_flags = if digest.trace_sampling_priority.nil?
-                         nil
-                       elsif digest.trace_sampling_priority > 0
-                         1
-                       else
-                         0
-                       end
+          nil
+        elsif digest.trace_sampling_priority > 0
+          1
+        else
+          0
+        end
         @trace_state = digest.trace_state && digest.trace_state.dup
         @dropped_attributes = 0
         @attributes = (attributes && attributes.dup) || {}
@@ -81,10 +81,10 @@ module Datadog
         # If traceflags set, the high bit (bit 31) should be set to 1 (uint32).
         # This helps us distinguish between when the sample decision is zero or not set
         h[:flags] = if @trace_flags.nil?
-                      0
-                    else
-                      @trace_flags | (1 << 31)
-                    end
+          0
+        else
+          @trace_flags | (1 << 31)
+        end
         h
       end
     end

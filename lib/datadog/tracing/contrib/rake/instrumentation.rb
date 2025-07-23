@@ -89,7 +89,7 @@ module Datadog
             end
 
             def span_options
-              { service: configuration[:service_name] }
+              {service: configuration[:service_name]}
             end
 
             def configuration

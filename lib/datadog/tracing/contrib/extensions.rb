@@ -70,10 +70,10 @@ module Datadog
 
             if configuration.respond_to?(:integrations_pending_activation)
               ignore_integration_load_errors = if configuration.respond_to?(:ignore_integration_load_errors?)
-                                                 configuration.ignore_integration_load_errors?
-                                               else
-                                                 false
-                                               end
+                configuration.ignore_integration_load_errors?
+              else
+                false
+              end
 
               configuration.integrations_pending_activation.each do |integration|
                 next unless integration.respond_to?(:patch)

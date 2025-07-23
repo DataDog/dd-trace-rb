@@ -36,8 +36,8 @@ module Datadog
               end
             else
               Datadog.logger.warn(
-                "GraphQL version (#{target_version}) does not support GraphQL::Tracing::DataDogTrace"\
-                'or Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.'\
+                "GraphQL version (#{target_version}) does not support GraphQL::Tracing::DataDogTrace" \
+                'or Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.' \
                 'Falling back to GraphQL::Tracing::DataDogTracing.'
               )
               TracingPatcher.patch!(schemas)

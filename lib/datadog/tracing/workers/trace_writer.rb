@@ -152,16 +152,16 @@ module Datadog
 
         def fork_policy=(policy)
           # Translate to Workers::Async::Thread policy
-          thread_fork_policy =  case policy
-                                when Core::Workers::Async::Thread::FORK_POLICY_STOP
-                                  policy
-                                when FORK_POLICY_SYNC
-                                  # Stop the async thread because the writer
-                                  # will bypass and run synchronously.
-                                  Core::Workers::Async::Thread::FORK_POLICY_STOP
-                                else
-                                  Core::Workers::Async::Thread::FORK_POLICY_RESTART
-                                end
+          thread_fork_policy = case policy
+          when Core::Workers::Async::Thread::FORK_POLICY_STOP
+            policy
+          when FORK_POLICY_SYNC
+            # Stop the async thread because the writer
+            # will bypass and run synchronously.
+            Core::Workers::Async::Thread::FORK_POLICY_STOP
+          else
+            Core::Workers::Async::Thread::FORK_POLICY_RESTART
+          end
 
           # Update thread fork policy
           super(thread_fork_policy)

@@ -97,7 +97,7 @@ module Datadog
             def datadog_before_request(continue_from: nil)
               load_datadog_configuration_for(url)
 
-              trace_options = continue_from ? { continue_from: continue_from } : {}
+              trace_options = continue_from ? {continue_from: continue_from} : {}
               uri = try_parse_uri
 
               @datadog_span = Tracing.trace(

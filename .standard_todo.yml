@@ -26,7 +26,6 @@ ignore:
   - lib/datadog/**/vendor/**/*
   - "lib/**/*":
       - Style
-      - Layout
   - spec/*
   - spec/datadog/*
   - spec/datadog/core/**/**

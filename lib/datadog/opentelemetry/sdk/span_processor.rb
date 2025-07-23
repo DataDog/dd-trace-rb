@@ -129,15 +129,15 @@ module Datadog
 
           attributes[Tracing::Metadata::Ext::TAG_KIND] = span.kind || 'internal'
 
-          kwargs = { start_time: ns_to_time(span.start_timestamp) }
+          kwargs = {start_time: ns_to_time(span.start_timestamp)}
 
           name = if attributes.key?('operation.name')
-                   attributes['operation.name']
-                 elsif (rich_name = Datadog::OpenTelemetry::Trace::Span.enrich_name(span.kind, attributes))
-                   rich_name.downcase
-                 else
-                   span.kind
-                 end
+            attributes['operation.name']
+          elsif (rich_name = Datadog::OpenTelemetry::Trace::Span.enrich_name(span.kind, attributes))
+            rich_name.downcase
+          else
+            span.kind
+          end
 
           kwargs[:resource] = attributes.key?('resource.name') ? attributes['resource.name'] : span.name
           kwargs[:service] = attributes['service.name'] if attributes.key?('service.name')

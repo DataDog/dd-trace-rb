@@ -216,10 +216,10 @@ module Datadog
           # DEV: come from Datadog-controlled sources.
           # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
           value = if INVALID_ORIGIN_CHARS.match?(value)
-                    value.gsub(INVALID_ORIGIN_CHARS, '_')
-                  else
-                    value
-                  end
+            value.gsub(INVALID_ORIGIN_CHARS, '_')
+          else
+            value
+          end
 
           if REMAP_ORIGIN_CHARS.match?(value)
             value.gsub(REMAP_ORIGIN_CHARS, '~')
@@ -253,10 +253,10 @@ module Datadog
           # DEV: come from Datadog-controlled sources.
           # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
           ret = if INVALID_TAG_VALUE_CHARS.match?(value)
-                  value.gsub(INVALID_TAG_VALUE_CHARS, '_')
-                else
-                  value
-                end
+            value.gsub(INVALID_TAG_VALUE_CHARS, '_')
+          else
+            value
+          end
 
           # DEV: Checking for an unlikely '=' is faster than a no-op `tr`.
           if ret.include?('=')

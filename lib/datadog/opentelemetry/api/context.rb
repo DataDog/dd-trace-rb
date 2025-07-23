@@ -89,10 +89,10 @@ module Datadog
           # If the values hash contains a BAGGAGE_KEY, merge its contents with existing baggage
           # Otherwise, keep the existing baggage unchanged
           new_baggage = if values.key?(::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY))
-                          existing_baggage.merge(values[::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY)])
-                        else
-                          existing_baggage
-                        end
+            existing_baggage.merge(values[::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY)])
+          else
+            existing_baggage
+          end
 
           ::OpenTelemetry::Context.new(existing_values.merge(values), trace: trace, baggage: new_baggage)
         end

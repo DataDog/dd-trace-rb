@@ -103,12 +103,12 @@ module Datadog
               return unless call
 
               peer_address = if call.respond_to?(:peer)
-                               call.peer
-                             else
-                               # call is a "view" class with restricted method visibility.
-                               # We reach into it to find our data source anyway.
-                               call.instance_variable_get(:@wrapped).peer
-                             end
+                call.peer
+              else
+                # call is a "view" class with restricted method visibility.
+                # We reach into it to find our data source anyway.
+                call.instance_variable_get(:@wrapped).peer
+              end
 
               Core::Utils.extract_host_port(peer_address)
             rescue => e

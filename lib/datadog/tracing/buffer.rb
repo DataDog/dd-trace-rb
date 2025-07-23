@@ -121,9 +121,9 @@ module Datadog
     # TODO We should restructure this module, so that classes are not declared at top-level ::Datadog.
     # TODO Making such a change is potentially breaking for users manually configuring the tracer.
     TraceBuffer = if Core::Environment::Ext::RUBY_ENGINE == 'ruby'
-                    CRubyTraceBuffer
-                  else
-                    ThreadSafeTraceBuffer
-                  end
+      CRubyTraceBuffer
+    else
+      ThreadSafeTraceBuffer
+    end
   end
 end

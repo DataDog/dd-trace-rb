@@ -71,10 +71,10 @@ module Datadog
 
           def execute_query_lazy(*args, query:, multiplex:, **kwargs)
             resource = if query
-                         query.selected_operation_name || fallback_transaction_name(query.context)
-                       else
-                         multiplex_resource(multiplex)
-                       end
+              query.selected_operation_name || fallback_transaction_name(query.context)
+            else
+              multiplex_resource(multiplex)
+            end
             trace(proc { super }, 'execute_lazy', resource, query: query, multiplex: multiplex)
           end
 
@@ -202,23 +202,23 @@ module Datadog
             capture_extensions = Datadog.configuration.tracing[:graphql][:error_extensions]
             errors.each do |error|
               extensions = if !capture_extensions.empty? && (extensions = error.extensions)
-                             # Capture extensions, ensuring all values are primitives
-                             extensions.each_with_object({}) do |(key, value), hash|
-                               next unless capture_extensions.include?(key.to_s)
+                # Capture extensions, ensuring all values are primitives
+                extensions.each_with_object({}) do |(key, value), hash|
+                  next unless capture_extensions.include?(key.to_s)
 
-                               value = case value
-                                       when TrueClass, FalseClass, Integer, Float
-                                         value
-                                       else
-                                         # Stringify anything that is not a boolean or a number
-                                         value.to_s
-                                       end
+                  value = case value
+                  when TrueClass, FalseClass, Integer, Float
+                    value
+                  else
+                    # Stringify anything that is not a boolean or a number
+                    value.to_s
+                  end
 
-                               hash["extensions.#{key}"] = value
-                             end
-                           else
-                             {}
-                           end
+                  hash["extensions.#{key}"] = value
+                end
+              else
+                {}
+              end
 
               # {::GraphQL::Error#to_h} returns the error formatted in compliance with the GraphQL spec.
               # This is an unwritten contract in the `graphql` library.
