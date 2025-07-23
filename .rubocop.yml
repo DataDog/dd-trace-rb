@@ -525,3 +525,6 @@ Lint/RedundantRequireStatement:
   Enabled: true
   Exclude:
     - "lib/datadog/core/configuration/settings.rb"
+
+Lint/RedundantSafeNavigation:
+  Enabled: false

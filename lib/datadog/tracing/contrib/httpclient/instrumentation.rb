@@ -95,7 +95,7 @@ module Datadog
             end
 
             def annotate_span_with_response!(span, response, request_options)
-              return unless response && response.status
+              return unless response&.status
 
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
 

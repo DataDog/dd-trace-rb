@@ -387,7 +387,7 @@ module Datadog
       class Events
         include Tracing::Events
 
-        DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
+        DEFAULT_ON_ERROR = proc { |span_op, error| span_op&.set_error(error) }
 
         attr_reader \
           :logger,
@@ -455,7 +455,7 @@ module Datadog
                   Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
               end
 
-              original.call(op, error) if original
+              original&.call(op, error)
             end
           end
 

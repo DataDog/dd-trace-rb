@@ -89,7 +89,7 @@ module Datadog
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak
-            span.finish unless span.nil?
+            span&.finish
             clear_span(event)
           end
 
@@ -105,7 +105,7 @@ module Datadog
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak
-            span.finish unless span.nil?
+            span&.finish
             clear_span(event)
           end
 

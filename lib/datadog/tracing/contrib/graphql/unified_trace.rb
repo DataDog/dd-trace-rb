@@ -176,7 +176,7 @@ module Datadog
 
               ret = callable.call
 
-              after.call(span) if after
+              after&.call(span)
 
               ret
             end

@@ -81,7 +81,7 @@ module Datadog
       # @public_api
       def keep!
         trace = active_trace
-        trace.keep! if trace
+        trace&.keep!
       end
 
       # (see Datadog::Tracing::TraceSegment#reject!)
@@ -89,7 +89,7 @@ module Datadog
       # @public_api
       def reject!
         trace = active_trace
-        trace.reject! if trace
+        trace&.reject!
       end
 
       # (see Datadog::Tracing::Tracer#active_correlation)
