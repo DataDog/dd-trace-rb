@@ -42,7 +42,6 @@ module Datadog
             # rubocop:disable Metrics/AbcSize
             # rubocop:disable Metrics/MethodLength
             # rubocop:disable Metrics/PerceivedComplexity
-            # rubocop:disable Metrics/CyclomaticComplexity
             #
             # This method is a subset of the implementation provided in v3.0.0
             # https://github.com/redis/redis-rb/blob/v3.0.0/lib/redis/client.rb
@@ -153,7 +152,6 @@ module Datadog
             # rubocop:enable Metrics/AbcSize
             # rubocop:enable Metrics/MethodLength
             # rubocop:enable Metrics/PerceivedComplexity
-            # rubocop:enable Metrics/CyclomaticComplexity
           end
         end
       end
