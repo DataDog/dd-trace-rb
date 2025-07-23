@@ -104,7 +104,7 @@ module Datadog
                 # the call is still executed
                 response = super
 
-                if response && response.respond_to?(:status)
+                if response&.respond_to?(:status)
                   span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
                 end
               end

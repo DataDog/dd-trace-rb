@@ -122,7 +122,7 @@ module Datadog
               end
 
               def run(span, name, id, payload)
-                @block.call(span, name, id, payload) if @block
+                @block&.call(span, name, id, payload)
               rescue => e
                 Datadog.logger.debug(
                   "ActiveSupport::Notifications handler for '#{name}' failed: #{e.class.name} #{e.message}"

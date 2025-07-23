@@ -53,9 +53,9 @@ module Datadog
         else
           0
         end
-        @trace_state = digest.trace_state && digest.trace_state.dup
+        @trace_state = digest.trace_state&.dup
         @dropped_attributes = 0
-        @attributes = (attributes && attributes.dup) || {}
+        @attributes = attributes&.dup || {}
       end
 
       def to_hash

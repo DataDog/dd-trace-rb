@@ -80,8 +80,8 @@ module Datadog
             )
           end
 
-          existing_values = @trace && @trace.otel_values || {}
-          existing_baggage = @trace && @trace.baggage || {}
+          existing_values = @trace&.otel_values || {}
+          existing_baggage = @trace&.baggage || {}
 
           # Retrieve the baggage removal sentinel and remove it from the values hash
           existing_baggage.delete(values[BAGGAGE_REMOVE_KEY]) if values.key?(BAGGAGE_REMOVE_KEY)
@@ -125,7 +125,7 @@ module Datadog
             previous_trace = Tracing.active_trace
             continue_trace!(context)
 
-            stack.push(previous_trace && previous_trace.otel_context || ::OpenTelemetry::Context::ROOT)
+            stack.push(previous_trace&.otel_context || ::OpenTelemetry::Context::ROOT)
             stack.size
           end
 
@@ -168,7 +168,7 @@ module Datadog
 
           def continue_trace!(context, &block)
             call_context = Tracing.send(:tracer).send(:call_context)
-            if context && context.trace
+            if context&.trace
               call_context.activate!(context.ensure_trace, &block)
             else
               call_context.activate!(nil)

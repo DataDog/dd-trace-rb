@@ -45,7 +45,7 @@ module Datadog
           end
 
           def retain_middleware_name(middleware)
-            return unless middleware && middleware.respond_to?(:call)
+            return unless middleware&.respond_to?(:call)
 
             middleware.singleton_class.class_eval do
               alias_method :__call, :call

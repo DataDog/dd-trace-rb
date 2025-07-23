@@ -22,7 +22,7 @@ module Datadog
           end
 
           def self.version
-            Gem.loaded_specs['activejob'] && Gem.loaded_specs['activejob'].version
+            Gem.loaded_specs['activejob']&.version
           end
 
           def self.loaded?

@@ -21,7 +21,7 @@ module Datadog
           end
 
           def self.version
-            Gem.loaded_specs['rest-client'] && Gem.loaded_specs['rest-client'].version
+            Gem.loaded_specs['rest-client']&.version
           end
 
           def self.loaded?

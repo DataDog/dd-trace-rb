@@ -163,20 +163,20 @@ module Datadog
       end
 
       def name
-        @name || (root_span && root_span.name)
+        @name || root_span&.name
       end
 
       def resource
-        @resource || (root_span && root_span.resource)
+        @resource || root_span&.resource
       end
 
       # When retrieving tags or metrics we need to include root span tags for sampling purposes
       def get_tag(key)
-        super || (root_span && root_span.get_tag(key))
+        super || root_span&.get_tag(key)
       end
 
       def get_metric(key)
-        super || (root_span && root_span.get_metric(key))
+        super || root_span&.get_metric(key)
       end
 
       def set_distributed_source(product_bit)
@@ -201,7 +201,7 @@ module Datadog
       end
 
       def service
-        @service || (root_span && root_span.service)
+        @service || root_span&.service
       end
 
       def measure(
@@ -325,7 +325,7 @@ module Datadog
       # We should move the sample call to inject and right before moving to new contexts(threads, forking etc.)
       def to_digest
         # Resolve current span ID
-        span_id = @active_span && @active_span.id
+        span_id = @active_span&.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
         events.trace_propagated.publish(self)
@@ -355,7 +355,7 @@ module Datadog
 
       def to_correlation
         # Resolve current span ID
-        span_id = @active_span && @active_span.id
+        span_id = @active_span&.id
         span_id ||= @parent_span_id unless finished?
 
         Correlation::Identifier.new(
@@ -369,22 +369,22 @@ module Datadog
       def fork_clone
         self.class.new(
           agent_sample_rate: @agent_sample_rate,
-          events: @events && @events.dup,
-          hostname: @hostname && @hostname.dup,
+          events: @events&.dup,
+          hostname: @hostname&.dup,
           id: @id,
           max_length: @max_length,
-          name: name && name.dup,
-          origin: @origin && @origin.dup,
-          parent_span_id: (@active_span && @active_span.id) || @parent_span_id,
+          name: name&.dup,
+          origin: @origin&.dup,
+          parent_span_id: @active_span&.id || @parent_span_id,
           rate_limiter_rate: @rate_limiter_rate,
-          resource: resource && resource.dup,
+          resource: resource&.dup,
           rule_sample_rate: @rule_sample_rate,
           sample_rate: @sample_rate,
           sampled: @sampled,
           sampling_priority: @sampling_priority,
-          service: service && service.dup,
-          trace_state: @trace_state && @trace_state.dup,
-          trace_state_unknown_fields: @trace_state_unknown_fields && @trace_state_unknown_fields.dup,
+          service: service&.dup,
+          trace_state: @trace_state&.dup,
+          trace_state_unknown_fields: @trace_state_unknown_fields&.dup,
           tags: meta.dup,
           metrics: metrics.dup,
           remote_parent: @remote_parent
@@ -531,7 +531,7 @@ module Datadog
           service: service,
           tags: meta,
           metrics: metrics,
-          root_span_id: (!partial) ? root_span && root_span.id : nil,
+          root_span_id: (!partial) ? root_span&.id : nil,
           profiling_enabled: @profiling_enabled,
           apm_tracing_enabled: @apm_tracing_enabled
         )

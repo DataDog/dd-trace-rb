@@ -224,7 +224,7 @@ module Datadog
       # @return [nil] if no trace is active, and thus no span is active
       def active_span(key = nil)
         trace = active_trace(key)
-        trace.active_span if trace
+        trace&.active_span
       end
 
       # Information about the currently active trace.
@@ -312,7 +312,7 @@ module Datadog
       def shutdown!
         return unless @enabled
 
-        @writer.stop if @writer
+        @writer&.stop
       end
 
       private
