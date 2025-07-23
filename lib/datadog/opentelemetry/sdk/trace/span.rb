@@ -115,9 +115,11 @@ module Datadog
 
           kind.to_s
         end
+        # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
 
         private
 
+        # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def datadog_set_attribute(key)
           # Return if attributes are currently disabled by OpenTelemetry.
           return unless defined?(@attributes) && @attributes
@@ -148,9 +150,11 @@ module Datadog
             end
           end
         end
+        # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
 
         # Some special attributes can override Datadog Span fields beyond tags and metrics.
         # @return [Boolean] true if the key is a Datadog Span override attribute, false otherwise
+        # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def override_datadog_values(span, key, value)
           span.name = value if key == 'operation.name'
           span.resource = value if key == 'resource.name'
@@ -166,7 +170,6 @@ module Datadog
 
           span.set_tag('http.status_code', value) if key == 'http.response.status_code'
         end
-
         # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
 
         DATADOG_SPAN_ATTRIBUTE_OVERRIDES = ['analytics.event', 'operation.name', 'resource.name', 'service.name',

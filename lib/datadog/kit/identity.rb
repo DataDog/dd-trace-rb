@@ -75,9 +75,15 @@ module Datadog
             end
           end
         end
+        # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/PerceivedComplexity
+        # rubocop:enable Metrics/CyclomaticComplexity
 
         private
 
+        # rubocop:disable Metrics/AbcSize
+        # rubocop:disable Metrics/CyclomaticComplexity
+        # rubocop:disable Metrics/PerceivedComplexity
         def set_trace_and_span_context(method, trace = nil, span = nil)
           if (appsec_context = Datadog::AppSec.active_context)
             trace = appsec_context.trace
