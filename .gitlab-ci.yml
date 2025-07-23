@@ -49,7 +49,7 @@ build-image-amd64:
 
 build-image-arm64:
   extends: .build-image-base
-  tags: ["runner:docker-arm", "platform:arm64"]
+  tags: ["docker-in-docker:arm64"]
   variables:
     ARCHITECTURE: arm64
 
