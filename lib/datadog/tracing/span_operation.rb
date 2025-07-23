@@ -157,7 +157,7 @@ module Datadog
           # running, to minimize impact on normal application function.
           begin
             start
-          rescue StandardError => e
+          rescue => e
             logger.debug { "Failed to start span: #{e}" }
           ensure
             # We should yield to the provided block when possible, as this
@@ -448,23 +448,21 @@ module Datadog
             original = @handler
 
             @handler = proc do |op, error|
-              begin
-                yield(op, error)
-              rescue StandardError => e
-                logger.debug do
-                  "Custom on_error handler #{@handler} failed, using fallback behavior. \
+              yield(op, error)
+            rescue => e
+              logger.debug do
+                "Custom on_error handler #{@handler} failed, using fallback behavior. \
                   Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
-                end
-
-                original.call(op, error) if original
               end
+
+              original.call(op, error) if original
             end
           end
 
           def publish(*args)
             begin
               @handler.call(*args)
-            rescue StandardError => e
+            rescue => e
               logger.debug do
                 "Error in on_error handler '#{@default}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
               end

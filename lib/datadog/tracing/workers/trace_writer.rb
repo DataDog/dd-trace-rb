@@ -45,7 +45,7 @@ module Datadog
         def write_traces(traces)
           traces = process_traces(traces)
           flush_traces(traces)
-        rescue StandardError => e
+        rescue => e
           logger.warn(
             "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
@@ -119,7 +119,7 @@ module Datadog
         # WARNING: This method breaks the Liskov Substitution Principle -- TraceWriter#perform is spec'd to return the
         # result from the writer, whereas this method always returns nil.
         def perform(traces)
-          super(traces).tap do |responses|
+          super.tap do |responses|
             loop_back_off! if responses.find(&:server_error?)
           end
 

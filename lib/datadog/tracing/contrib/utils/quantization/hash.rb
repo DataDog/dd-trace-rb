@@ -21,7 +21,7 @@ module Datadog
             def format(hash_obj, options = {})
               options ||= {}
               format!(hash_obj, options)
-            rescue StandardError
+            rescue
               options[:placeholder] || PLACEHOLDER
             end
 
@@ -66,7 +66,7 @@ module Datadog
             def format_array(value, options)
               if value.any? { |v| v.class <= ::Hash || v.class <= Array }
                 first_entry = format_value(value.first, options)
-                value.size > 1 ? [first_entry, options[:placeholder]] : [first_entry]
+                (value.size > 1) ? [first_entry, options[:placeholder]] : [first_entry]
                 # Otherwise short-circuit and return single placeholder
               else
                 [options[:placeholder]]

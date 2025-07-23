@@ -28,7 +28,7 @@ module Datadog
           # Use Elasticsearch implementation
           def format_body(body, options = {})
             format_body!(body, options)
-          rescue StandardError
+          rescue
             options[:placeholder] || DEFAULT_PLACEHOLDER
           end
 

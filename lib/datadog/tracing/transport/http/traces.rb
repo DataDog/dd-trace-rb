@@ -95,7 +95,7 @@ module Datadog
                 env.body = env.request.parcel.data
 
                 # Query for response
-                http_response = super(env, &block)
+                http_response = super
 
                 # Process the response
                 response_options = {trace_count: env.request.parcel.trace_count}.tap do |options|

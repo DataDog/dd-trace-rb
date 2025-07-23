@@ -76,7 +76,7 @@ module Datadog
               end
 
               Thread.current[KEY_RUN] = true
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -120,7 +120,7 @@ module Datadog
                 span.start(start)
                 span.finish(finish)
               end
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -164,7 +164,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RENDER)
 
               Thread.current[KEY_RENDER] = true
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -189,7 +189,7 @@ module Datadog
                 span.start(start)
                 span.finish(finish)
               end
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -228,7 +228,7 @@ module Datadog
                 span.start(start)
                 span.finish(finish)
               end
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -301,7 +301,7 @@ module Datadog
             end
 
             def enabled?
-              Datadog.configuration.tracing.enabled && \
+              Datadog.configuration.tracing.enabled &&
                 datadog_configuration[:enabled] == true
             end
 

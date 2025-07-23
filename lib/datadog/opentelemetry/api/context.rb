@@ -50,7 +50,7 @@ module Datadog
           @trace.otel_value(key)
         end
 
-        alias [] value
+        alias_method :[], :value
 
         # Returns a new Context where entries contains the newly added key and value
         #

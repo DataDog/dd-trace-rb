@@ -61,7 +61,7 @@ module Datadog
 
       def set_active_trace!(trace)
         # Don't retain finished traces
-        @active_trace = trace && !trace.finished? ? trace : nil
+        @active_trace = (trace && !trace.finished?) ? trace : nil
       end
     end
   end

@@ -72,7 +72,7 @@ module Datadog
 
             # set the resource with the quantized query
             span.resource = serialized_query
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.debug("error when handling MongoDB 'started' event: #{e}")
           end
           # rubocop:enable Metrics/AbcSize
@@ -84,7 +84,7 @@ module Datadog
             # the failure is not a real exception because it's handled by
             # the framework itself, so we set only the error and the message
             span.set_error(event)
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.debug("error when handling MongoDB 'failed' event: #{e}")
           ensure
             # whatever happens, the Span must be removed from the local storage and
@@ -100,7 +100,7 @@ module Datadog
             # add fields that are available only after executing the query
             rows = event.reply.fetch('n', nil)
             span.set_tag(Ext::TAG_ROWS, rows) unless rows.nil?
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.debug("error when handling MongoDB 'succeeded' event: #{e}")
           ensure
             # whatever happens, the Span must be removed from the local storage and

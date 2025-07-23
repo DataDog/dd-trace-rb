@@ -68,7 +68,7 @@ module Datadog
               span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host]) if config[:host]
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, config[:port]) if config[:port]
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end

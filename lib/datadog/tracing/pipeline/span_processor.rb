@@ -28,7 +28,9 @@ module Datadog
         # @!visibility private
         def call(trace)
           trace.spans.each do |span|
-            @operation.call(span) rescue next
+            @operation.call(span)
+          rescue
+            next
           end
 
           trace

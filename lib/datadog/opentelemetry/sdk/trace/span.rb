@@ -39,7 +39,7 @@ module Datadog
         end
 
         # `alias` performed to match {OpenTelemetry::SDK::Trace::Span} aliasing upstream
-        alias []= set_attribute
+        alias_method :[]=, :set_attribute
 
         # Attributes are equivalent to span tags and metrics.
         def add_attributes(attributes)
@@ -72,24 +72,24 @@ module Datadog
             return 'http.client.request' if kind == :client
           end
 
-          return "#{attrs['db.system']}.query" if attrs.key?('db.system') && kind == :client
+          return "#{attrs["db.system"]}.query" if attrs.key?('db.system') && kind == :client
 
           if (attrs.key?('messaging.system') || attrs.key?('messaging.operation')) &&
               [:consumer, :producer, :server, :client].include?(kind)
 
-            return "#{attrs['messaging.system']}.#{attrs['messaging.operation']}"
+            return "#{attrs["messaging.system"]}.#{attrs["messaging.operation"]}"
           end
 
           if attrs.key?('rpc.system')
             if attrs['rpc.system'] == 'aws-api' && kind == :client
               service = attrs['rpc.service']
-              return "aws.#{service || 'client'}.request"
+              return "aws.#{service || "client"}.request"
             end
 
             if kind == :client
-              return "#{attrs['rpc.system']}.client.request"
+              return "#{attrs["rpc.system"]}.client.request"
             elsif kind == :server
-              return "#{attrs['rpc.system']}.server.request"
+              return "#{attrs["rpc.system"]}.server.request"
             end
           end
 
@@ -99,7 +99,7 @@ module Datadog
             return "#{provider}.#{name}.invoke"
           end
 
-          return "#{attrs['faas.trigger']}.invoke" if attrs.key?('faas.trigger') && kind == :server
+          return "#{attrs["faas.trigger"]}.invoke" if attrs.key?('faas.trigger') && kind == :server
 
           return 'graphql.server.request' if attrs.key?('graphql.operation.type')
 
@@ -160,7 +160,7 @@ module Datadog
           if key == 'analytics.event' && value.respond_to?(:casecmp)
             Datadog::Tracing::Analytics.set_sample_rate(
               span,
-              value.casecmp('true') == 0 ? 1 : 0
+              (value.casecmp('true') == 0) ? 1 : 0
             )
           end
 

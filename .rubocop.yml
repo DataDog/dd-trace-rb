@@ -47,12 +47,7 @@ Style:
   Exclude:
     - "Gemfile"
     - "ext/**/*"
-    - "lib/datadog/appsec*"
-    - "lib/datadog/appsec/**/*"
-    - "lib/datadog/error_tracking*"
-    - "lib/datadog/error_tracking/**/*"
-    - "lib/datadog/profiling*"
-    - "lib/datadog/profiling/**/*"
+    - "lib/**/*"
     - "spec/datadog/appsec*"
     - "spec/datadog/appsec/**/*"
     - "spec/datadog/benchmark/**/**"

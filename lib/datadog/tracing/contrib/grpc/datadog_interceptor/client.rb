@@ -33,7 +33,7 @@ module Datadog
 
                 begin
                   result = yield
-                rescue StandardError => e
+                rescue => e
                   code = e.is_a?(::GRPC::BadStatus) ? e.code : ::GRPC::Core::StatusCodes::UNKNOWN
                   span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, code)
 
@@ -89,7 +89,7 @@ module Datadog
                 GRPC.inject(trace, metadata)
               end
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.debug("GRPC client trace failed: #{e}")
             end
 

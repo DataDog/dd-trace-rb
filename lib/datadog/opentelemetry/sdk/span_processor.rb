@@ -120,7 +120,7 @@ module Datadog
         # Some special attributes can override Datadog Span fields
         def span_arguments(span, attributes)
           if attributes.key?('analytics.event') && (analytics_event = attributes['analytics.event']).respond_to?(:casecmp)
-            attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] = analytics_event.casecmp('true') == 0 ? 1 : 0
+            attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] = (analytics_event.casecmp('true') == 0) ? 1 : 0
           end
 
           if attributes.key?('http.response.status_code')

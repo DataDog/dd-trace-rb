@@ -56,7 +56,7 @@ module Datadog
 
                 Datadog.logger.warn(
                   "Invalid resource pattern: #{value}. " \
-                  "Supported values are: #{Ext::VALID_RESOURCE_PATTERNS.join(' | ')}. " \
+                  "Supported values are: #{Ext::VALID_RESOURCE_PATTERNS.join(" | ")}. " \
                   "Using default value: #{Ext::DEFAULT_RESOURCE_PATTERN}."
                 )
 
