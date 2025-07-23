@@ -54,7 +54,7 @@ module Datadog
             span.set_tag(Ext::TAG_REQUEST_METHOD, event.method)
             span.set_tag(Ext::TAG_REQUEST_PATH, event.path)
             span.set_tag(Ext::TAG_REQUEST_NUM_RETRIES, event.num_retries.to_s)
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.debug(e.message)
           end
 

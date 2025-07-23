@@ -17,7 +17,7 @@ module Datadog
             # @return [String, nil] the header value or nil if not found
             def [](name)
               # Try to fetch with the plain key
-              value = super(name)
+              value = super
               return value if value && !value.empty?
 
               # If not found, try the Rack-formatted key

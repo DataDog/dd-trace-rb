@@ -22,7 +22,7 @@ module Datadog
             end
 
             # Allows this class to have a similar API to a {Hash}.
-            alias [] get
+            alias_method :[], :get
 
             # Tests whether a header with the given name exists in the environment.
             def key?(header_name)

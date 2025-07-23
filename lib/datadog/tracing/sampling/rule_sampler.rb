@@ -140,7 +140,7 @@ module Datadog
 
             trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, provenance)
           end
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.error(
             "Rule sampling failed. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )

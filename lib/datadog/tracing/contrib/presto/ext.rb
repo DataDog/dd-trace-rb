@@ -29,7 +29,7 @@ module Datadog
           TAG_OPERATION_QUERY = 'query'
           TAG_OPERATION_KILL = 'kill'
           TAG_SYSTEM = 'presto'
-          PEER_SERVICE_SOURCES = (Array[Ext::TAG_SCHEMA_NAME] +
+          PEER_SERVICE_SOURCES = ([Ext::TAG_SCHEMA_NAME] +
                                             Contrib::Ext::DB::PEER_SERVICE_SOURCES).freeze
         end
       end

@@ -215,7 +215,7 @@ module Datadog
               # Find only well-behaved HTTP headers.
               lines.map do |line|
                 header = line.split(':', 2)
-                header.size != 2 ? nil : header
+                (header.size != 2) ? nil : header
               end.compact.to_h
             end
           end

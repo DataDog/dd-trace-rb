@@ -26,11 +26,11 @@ module Datadog
             # environment variable it configures.
             if tracing_header_tags
               tracing_header_tags.map! do |hash|
-                "#{hash['header']}:#{hash['tag_name']}"
+                "#{hash["header"]}:#{hash["tag_name"]}"
               end
             end
 
-            super(tracing_header_tags)
+            super
           end
         end
 
@@ -80,7 +80,7 @@ module Datadog
               tracing_sampling_rules = tracing_sampling_rules.to_json
             end
 
-            super(tracing_sampling_rules)
+            super
             Datadog.send(:components).reconfigure_live_sampler
           end
 

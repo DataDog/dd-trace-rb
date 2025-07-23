@@ -28,7 +28,7 @@ module Datadog
               request_options = datadog_configuration(host)
               client_config = Datadog.configuration_for(self)
 
-              return super(req, body, &block) if Contrib::HTTP.should_skip_tracing?(req)
+              return super if Contrib::HTTP.should_skip_tracing?(req)
 
               Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
                 span.service = service_name(host, request_options, client_config)
@@ -92,7 +92,7 @@ module Datadog
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error("error preparing span from http request: #{e}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -107,7 +107,7 @@ module Datadog
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.response_tags(response)
               )
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error("error preparing span from http response: #{e}")
               Datadog::Core::Telemetry::Logger.report(e)
             end

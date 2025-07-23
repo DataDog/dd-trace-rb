@@ -123,7 +123,7 @@ module Datadog
             # 4. Fallback with verb + status, eq `GET 200`
             request_span.resource ||=
               if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
-                "#{env['RESPONSE_MIDDLEWARE']}##{original_request_method}"
+                "#{env["RESPONSE_MIDDLEWARE"]}##{original_request_method}"
               elsif trace.resource_override?
                 trace.resource
               else

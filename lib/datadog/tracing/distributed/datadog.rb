@@ -65,7 +65,7 @@ module Datadog
           # DEV: To be valid we need to have a trace id and a parent id
           #      or when it is a synthetics trace, just the trace id.
           # DEV: `Fetcher#id` will not return 0
-          return unless (trace_id && parent_id) || (origin && trace_id)
+          return if trace_id.nil? || parent_id.nil? && origin.nil?
 
           trace_distributed_tags = extract_tags(fetcher)
 

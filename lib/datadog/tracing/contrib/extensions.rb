@@ -63,7 +63,7 @@ module Datadog
           # TODO: We should promote most of this logic to core parts of datadog.
           def configure(&block)
             # Reconfigure core settings
-            super(&block)
+            super
 
             # Activate integrations
             configuration = self.configuration.tracing
@@ -85,9 +85,9 @@ module Datadog
 
                 # if patching failed, only log output if verbosity is unset
                 # or if patching failure is due to compatibility or integration specific reasons
-                next unless !ignore_integration_load_errors ||
-                  ((patch_results[:available] && patch_results[:loaded]) &&
-                  (!patch_results[:compatible] || !patch_results[:patchable]))
+                next if ignore_integration_load_errors &&
+                  (!patch_results[:available] || !patch_results[:loaded] ||
+                  (patch_results[:compatible] && patch_results[:patchable]))
 
                 desc = "Available?: #{patch_results[:available]}"
                 desc += ", Loaded? #{patch_results[:loaded]}"

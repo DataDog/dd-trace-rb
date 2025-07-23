@@ -38,7 +38,7 @@ module Datadog
               end
 
               set_common_tags(span, payload)
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.debug(e.message)
             end
           end

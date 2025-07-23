@@ -34,8 +34,8 @@ module Datadog
             # return the request_start only if it's lesser than
             # current time, to avoid significant clock skew
             request_start = Time.at(time_value)
-            request_start.utc > now ? nil : request_start
-          rescue StandardError => e
+            (request_start.utc > now) ? nil : request_start
+          rescue => e
             # in case of an Exception we don't create a
             # `request.queuing` span
             Datadog.logger.debug("[rack] unable to parse request queue headers: #{e}")

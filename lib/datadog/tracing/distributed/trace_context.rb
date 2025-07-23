@@ -128,7 +128,7 @@ module Datadog
         # @param parent_id [Integer] 64-bit
         # @param trace_flags [Integer] 8-bit
         def build_traceparent_string(trace_id, parent_id, trace_flags)
-          "00-#{format('%032x', trace_id)}-#{format('%016x', parent_id)}-#{format('%02x', trace_flags)}"
+          "00-#{format("%032x", trace_id)}-#{format("%016x", parent_id)}-#{format("%02x", trace_flags)}"
         end
 
         # Sets the trace flag to an existing `trace_flags`.
@@ -187,7 +187,7 @@ module Datadog
               # Ensure the list has at most 31 elements, as we need to prepend Datadog's
               # entry and the limit is 32 elements total.
               vendors = vendors[0..30]
-              "#{tracestate},#{vendors.join(',')}"
+              "#{tracestate},#{vendors.join(",")}"
             else
               tracestate.to_s
             end
@@ -199,7 +199,7 @@ module Datadog
         def last_dd_parent_id(digest)
           if !digest.span_remote
             span_id = digest.span_id || 0 # Fall back to zero (invalid) if not present
-            "p:#{format('%016x', span_id)};"
+            "p:#{format("%016x", span_id)};"
           elsif digest.trace_distributed_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
             "p:#{digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]};"
           else
@@ -333,7 +333,11 @@ module Datadog
             key, value = pair.split(':', 2)
             case key
             when 's'
-              sampling_priority = Integer(value) rescue nil
+              sampling_priority = begin
+                Integer(value)
+              rescue
+                nil
+              end
             when 'o'
               origin = value
             when 'p'

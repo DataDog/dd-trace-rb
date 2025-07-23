@@ -25,7 +25,7 @@ ignore:
   - lib-injection/**/**
   - lib/datadog/**/vendor/**/*
   - "lib/**/*":
-      - Style
+      - Style/SafeNavigation
   - spec/*
   - spec/datadog/*
   - spec/datadog/core/**/**

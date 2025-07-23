@@ -27,7 +27,7 @@ module Datadog
 
           def format_body(body, options = {})
             format_body!(body, options)
-          rescue StandardError
+          rescue
             options[:placeholder] || PLACEHOLDER
           end
 

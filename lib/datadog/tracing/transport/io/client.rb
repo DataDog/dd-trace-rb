@@ -40,7 +40,7 @@ module Datadog
 
             # Return response
             response
-          rescue StandardError => e
+          rescue => e
             message =
               "Internal error during IO transport request. Cause: #{e.class.name} #{e.message} " \
                 "Location: #{Array(e.backtrace).first}"

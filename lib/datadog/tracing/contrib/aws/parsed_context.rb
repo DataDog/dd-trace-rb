@@ -11,7 +11,9 @@ module Datadog
           end
 
           def safely(attr, fallback = nil)
-            public_send(attr) rescue fallback
+            public_send(attr)
+          rescue
+            fallback
           end
 
           def resource

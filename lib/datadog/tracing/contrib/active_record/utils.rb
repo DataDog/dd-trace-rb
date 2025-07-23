@@ -109,7 +109,7 @@ module Datadog
 
             connection_pool = ::ActiveRecord::Base.connection_handler.retrieve_connection_pool(current_connection_name)
             connection_pool.nil? ? EMPTY_CONFIG : (@default_connection_config = db_config(connection_pool))
-          rescue StandardError
+          rescue
             EMPTY_CONFIG
           end
 

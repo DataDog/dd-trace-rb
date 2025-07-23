@@ -22,7 +22,7 @@ module Datadog
             def execute(&block)
               uri = URI.parse(url)
 
-              return super(&block) unless Tracing.enabled?
+              return super unless Tracing.enabled?
 
               datadog_trace_request(uri) do |_span, trace|
                 if Tracing::Distributed::PropagationPolicy.enabled?(

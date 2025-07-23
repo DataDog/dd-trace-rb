@@ -28,7 +28,7 @@ module Datadog
           span_id = digest.span_id || 0 # Fall back to zero (invalid) if not present
 
           # DEV: We need these to be hex encoded
-          value = "#{format('%032x', digest.trace_id)}-#{format('%016x', span_id)}"
+          value = "#{format("%032x", digest.trace_id)}-#{format("%016x", span_id)}"
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(

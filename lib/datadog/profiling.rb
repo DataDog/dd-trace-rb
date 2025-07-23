@@ -121,15 +121,13 @@ module Datadog
     end
 
     private_class_method def self.try_loading_native_library
-      begin
-        require_relative 'profiling/load_native_extension'
+      require_relative 'profiling/load_native_extension'
 
-        success =
-          defined?(Profiling::NativeExtension) && Profiling::NativeExtension.send(:native_working?)
-        [success, nil]
-      rescue StandardError, LoadError => e
-        [false, e]
-      end
+      success =
+        defined?(Profiling::NativeExtension) && Profiling::NativeExtension.send(:native_working?)
+      [success, nil]
+    rescue StandardError, LoadError => e
+      [false, e]
     end
 
     # All requires for the profiler should be directly added here; and everything should be loaded eagerly.

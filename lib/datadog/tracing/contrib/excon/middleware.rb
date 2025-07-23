@@ -39,7 +39,7 @@ module Datadog
 
                 span
               end
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.debug(e.message)
             end
 
@@ -179,7 +179,7 @@ module Datadog
                 datum.delete(:datadog_span)
               end
             end
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.debug(e.message)
           end
 
