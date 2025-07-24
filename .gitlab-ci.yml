@@ -32,7 +32,7 @@ default:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7"]
+      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
   script:
     - >
       docker build
@@ -49,7 +49,7 @@ build-image-amd64:
 
 build-image-arm64:
   extends: .build-image-base
-  tags: ["runner:docker-arm", "platform:arm64"]
+  tags: ["docker-in-docker:arm64"]
   variables:
     ARCHITECTURE: arm64
 
@@ -67,7 +67,7 @@ promote-image:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7"]
+      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
         ARCHITECTURE: ["amd64", "arm64"]
   script:
     - docker pull $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID
@@ -105,8 +105,7 @@ install-dependencies:
   tags: ["arch:$ARCH"]
   parallel:
     matrix:
-      # Promote again when adding 3.4 support
-      - RUBY_VERSION: ["3.3", "3.2", "3.1", "3.0", "2.7"]
+      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
         ARCH: ["amd64", "arm64"]
   stage: package
   needs:
@@ -138,6 +137,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
+    SYSTEM_TESTS_REF: 200c08522c28c91fbcadc5992d7a573b2b696c94 # Automated: This reference is automatically updated.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
 
 save_versions:
@@ -166,8 +166,9 @@ vaccine:
   image: registry.ddbuild.io/images/dd-octo-sts-ci-base:v68058725-73f34e7-2025.06-1
   tags: ["arch:amd64"]
   stage: vaccine
-  needs: [create-multiarch-lib-injection-image]
-
+  needs:
+    - create-multiarch-lib-injection-image
+    - kubernetes-injection-test-ecr-publish
   id_tokens:
     DDOCTOSTS_ID_TOKEN:
       aud: dd-octo-sts

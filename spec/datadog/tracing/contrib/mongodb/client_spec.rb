@@ -88,9 +88,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       let(:primary_service) { 'mongodb-primary' }
       let(:secondary_service) { 'mongodb-secondary' }
       let(:secondary_client) { Mongo::Client.new(["#{secondary_host}:#{port}"], client_options) }
-      # TODO: This tests doesn't work if TEST_MONGODB_HOST is set to anything other than 127.0.0.1
-      #       We should fix this... maybe do a more clever IP resolve or something?
-      let(:secondary_host) { 'localhost' }
+      let(:secondary_host) { ENV.fetch('TEST_MONGODB_SECONDARY_HOST', '127.0.0.1') }
 
       before do
         Datadog.configure do |c|
@@ -119,12 +117,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
       end
 
-      # Our GHA Unit Tests run in docker containers, where "localhost" refers to the container itself.
-      # As a result, the secondary client (with host "localhost") cannot connect to the primary MongoDB
-      # service, causing the test to timeout while waiting for "primary server [to be] available in cluster".
-      # One solution is to pull a second MongoDB service and set the secondary client accordingly. However,
-      # given the large amount of services already being pulled, this spec remains skipped on GHA for now.
-      context 'secondary client', skip: ENV['BATCHED_TASKS'] do
+      context 'secondary client' do
         around do |example|
           without_warnings do
             # Reset before and after each example; don't allow global state to linger.

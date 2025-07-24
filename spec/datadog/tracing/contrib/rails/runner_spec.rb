@@ -3,6 +3,12 @@
 require_relative 'rails_helper'
 require_relative '../analytics_examples'
 
+# Manually load the `RunnerCommand` class, since this file is only loaded
+# by Rails during the execution of `rails runner`.
+# In a `rails runner` execution, the `RunnerCommand` class is loaded and then
+# Rails immediately loads the Rails application, which calls `Datadog.configure`: https://github.com/rails/rails/blob/ad858b91a9a4bc94950708955e44c654a1f3789b/railties/lib/rails/commands/runner/runner_command.rb#L30
+require 'rails/commands/runner/runner_command' if Rails.version >= '5.1'
+
 RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.version.to_i >= 8 do
   include_context 'Rails test application'
 
@@ -18,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
   end
 
   before do
-    skip('Rails runner tracing is not supported on Rails 4') if Rails::VERSION::MAJOR < 5
+    skip('Rails runner tracing is not supported on Rails < 5.1') if Rails.version < '5.1'
 
     Datadog.configure do |c|
       c.tracing.instrument :rails, **configuration_options
@@ -32,7 +38,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
       let(:configuration_options) { { service_name: 'runner-name' } }
 
       it 'sets the span service name' do
-        run
+        expect { run }.to output('OK').to_stdout
         expect(span.service).to eq('runner-name')
       end
     end
@@ -85,9 +91,29 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Rails::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Rails::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
+
+    context 'with an error reading the source file' do
+      let(:source) { 'raise' }
+
+      it 'creates an error span' do
+        expect { run }.to raise_error(RuntimeError)
+
+        expect(span.name).to eq('rails.runner.file')
+        expect(span.resource).to eq(file_path)
+        expect(span.service).to eq(tracer.default_service)
+        expect(span.get_tag('component')).to eq('rails')
+        expect(span.get_tag('operation')).to eq('runner.file')
+        expect(span).to have_error
+        expect(span).to have_error_type('RuntimeError')
+      end
+    end
   end
 
   context 'from STDIN' do
+    before do
+      skip('Rails Runner in Rails 5.1 does not support STDIN') if Rails.version < '5.2'
+    end
+
     around do |example|
       begin
         stdin = $stdin

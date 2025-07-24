@@ -6,20 +6,21 @@ module Datadog
           def initialize: (*untyped) -> void
         end
 
+        # FIXME: This sig will be rewritten
         class User < Argument
-          @id: String
+          @id: ::String?
 
-          @login: String?
+          @login: ::String?
 
-          @session_id: String?
+          @session_id: ::String?
 
-          attr_reader id: String
+          attr_reader id: ::String?
 
-          attr_reader login: String?
+          attr_reader login: ::String?
 
-          attr_reader session_id: String?
+          attr_reader session_id: ::String?
 
-          def initialize: (String id, String? login, String? session_id) -> void
+          def initialize: (?::String? id, ?::String? login, ?::String? session_id) -> void
         end
       end
     end

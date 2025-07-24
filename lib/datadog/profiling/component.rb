@@ -67,6 +67,7 @@ module Datadog
           allocation_profiling_enabled: allocation_profiling_enabled,
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           gvl_profiling_enabled: enable_gvl_profiling?(settings, logger),
+          sighandler_sampling_enabled: settings.profiling.advanced.sighandler_sampling_enabled,
         )
 
         internal_metadata = {

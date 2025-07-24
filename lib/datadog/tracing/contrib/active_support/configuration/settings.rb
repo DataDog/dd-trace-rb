@@ -49,6 +49,19 @@ module Datadog
                 o.default true
               end
             end
+
+            # Specifies which cache stores to trace.
+            # Accepts a list, with the same format as `config.cache_store`
+            # (e.g. `memory_store`, `file_store`, or symbols like `:file_store`).
+            # Defaults to `nil`, which traces all cache stores.
+            # @see https://github.com/rails/rails/blob/b7520a13adda46c0cc5f3fb4a4c1726633af2bba/guides/source/caching_with_rails.md?plain=1#L576-L582
+            option :cache_store do |o|
+              o.type :array, nilable: true
+              o.default nil
+              o.after_set do |stores|
+                stores&.map!(&:to_s) # Convert symbols to strings to match the Rails configuration format
+              end
+            end
           end
         end
       end

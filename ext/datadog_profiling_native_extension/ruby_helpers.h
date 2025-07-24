@@ -72,7 +72,7 @@ NORETURN(void raise_syserr(
 // reference a valid object (in which case value is not changed).
 //
 // Note: GVL can be released and other threads may get to run before this method returns
-bool ruby_ref_from_id(size_t id, VALUE *value);
+bool ruby_ref_from_id(VALUE obj_id, VALUE *value);
 
 // Native wrapper to get the approximate/estimated current size of the passed
 // object.

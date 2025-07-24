@@ -288,6 +288,16 @@ current_span = Datadog::Tracing.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
 
+You can record an exception in the current span. It adds the recorded exception as a span event.
+You can record multiple exceptions during the lifetime of a span.
+```ruby
+# e.g: recording an exception in the active span
+rescue => e
+  current_span = Datadog::Tracing.active_span
+  current_span&.record_exception(e, attributes: { "foo" => "bar" })
+end
+```
+
 You can also get the current active trace using the `active_trace` method. This method will return `nil` if there is no active trace.
 
 ```ruby
@@ -552,6 +562,7 @@ cache.read('city')
 | --------------- | - | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
 | `enabled` | `DD_TRACE_ACTIVE_SUPPORT_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `cache_service` | | `String` | Name of application running the `active_support` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `active_support-cache` |
+| `cache_store` | | `Array` | Specifies which cache stores to instrument. Accepts a list of store names (e.g. `memory_store`, `file_store`, or symbols like `:file_store`). If set, only the listed stores will be traced. By default (`nil`), it traces all stores. | `nil` |
 
 ### AWS
 
@@ -1540,6 +1551,8 @@ end
 | 2.6 - 2.7    | 9.2 - 9.3      | 5.0 - 6.1      |
 | 3.0 - 3.1    | 9.4            | 6.1 - 7.1      |
 | 3.2 - 3.4    |                | 6.1 - 8.0      |
+
+Instrumentation for the [Rails Runner](https://guides.rubyonrails.org/command_line.html#bin-rails-runner) command is only supported for Rails 5.1 or higher.
 
 ### Rake
 

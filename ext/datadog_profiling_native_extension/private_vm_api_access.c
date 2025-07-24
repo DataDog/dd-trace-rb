@@ -212,21 +212,6 @@ uint64_t native_thread_id_for(VALUE thread) {
   #endif
 }
 
-// Returns the stack depth by using the same approach as rb_profile_frames and backtrace_each: get the positions
-// of the end and current frame pointers and subtracting them.
-ptrdiff_t stack_depth_for(VALUE thread) {
-  const rb_execution_context_t *ec = thread_struct_from_object(thread)->ec;
-  const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
-
-  if (end_cfp == NULL) return 0;
-
-  // Skip dummy frame, as seen in `backtrace_each` (`vm_backtrace.c`) and our custom rb_profile_frames
-  // ( https://github.com/ruby/ruby/blob/4bd38e8120f2fdfdd47a34211720e048502377f1/vm_backtrace.c#L890-L914 )
-  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
-
-  return end_cfp <= cfp ? 0 : end_cfp - cfp - 1;
-}
-
 // This was renamed in Ruby 3.2
 #if !defined(ccan_list_for_each) && defined(list_for_each)
   #define ccan_list_for_each list_for_each
@@ -360,11 +345,16 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
         }
 #endif
 
-        // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method. We couldn't reproduce or
-        // figure out the root cause, but "just in case", we're validating that the iseq looks valid and that the
-        // `n` used for the position is also sane, and if they don't look good, we don't calculate the line, rather
-        // than potentially trigger any issues.
-        if (RB_UNLIKELY(!RB_TYPE_P((VALUE) iseq, T_IMEMO) || n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
+        // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method.
+        // We were only able to reproduce this issue on Ruby 2.6 and 2.7, not 2.5 or the 3.x series (tried 3.0, 3.2 and 3.4).
+        // Note that going out of bounds doesn't crash every time, as usual with C we may just read garbage or get lucky.
+        //
+        // For those problematic Rubies, we observed that when we try to take a sample in the middle of processing the
+        // VM `LEAVE` instruction, the value of `n` can violate the documented assumptions above and be
+        // `n > ISEQ_BODY(iseq)->iseq_size)`.
+        //
+        // To work around this and any other potential issues, we validate here that the bytecode position is sane.
+        if (RB_UNLIKELY(n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
 
         if (lineno) *lineno = rb_iseq_line_no(iseq, pos);
 #ifdef USE_ISEQ_NODE_ID
@@ -410,6 +400,9 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Add frame_flags.same_frame and logic to skip redoing work if the buffer already contains the same data we're collecting
 // * Skipped use of rb_callable_method_entry_t (cme) for Ruby frames as it doesn't impact us.
 // * Imported fix from https://github.com/ruby/ruby/pull/8280 to keep us closer to upstream
+// * Added potential fix for https://github.com/ruby/ruby/pull/13643 (this one is a just-in-case, unclear if it happens
+//   for ddtrace)
+// * Reversed order of iteration to better enable caching
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -445,6 +438,16 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     // support sampling any thread (including the current) passed as an argument
     rb_thread_t *th = thread_struct_from_object(thread);
     const rb_execution_context_t *ec = th->ec;
+
+    // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
+    // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
+    // here.
+    if (ec == NULL) return 0;
+
+    // I suspect this won't happen for ddtrace, but just-in-case we've imported a potential fix for
+    // https://github.com/ruby/ruby/pull/13643 by assuming that these can be NULL/zero with the cfp being non-NULL yet.
+    if (ec->vm_stack == NULL || ec->vm_stack_size == 0) return 0;
+
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     #ifndef NO_JIT_RETURN
       const rb_control_frame_t *top = cfp;
@@ -462,11 +465,6 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     // it from https://github.com/ruby/ruby/pull/7116 in a "just in case" kind of mindset.
     if (cfp == NULL) return 0;
 
-    // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
-    // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
-    // here.
-    if (ec == NULL) return 0;
-
     // Fix: Skip dummy frame that shows up in main thread.
     //
     // According to a comment in `backtrace_each` (`vm_backtrace.c`), there's two dummy frames that we should ignore
@@ -483,7 +481,20 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
     if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
-    for (i=0; i<limit && cfp != end_cfp; cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp)) {
+    // This is the position just after the top of the stack -- e.g. where a new frame pushed on the stack would end up.
+    const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
+
+    // We iterate the stack from bottom (beginning of thread) to the top (currently-active frame). This is different
+    // from upstream rb_profile_frames, but actually matches what `backtrace_each` does (yes, different Ruby VM APIs
+    // iterate in different directions).
+    // We do this to better take advantage of the `same_frame` caching mechanism: By starting from the bottom of the
+    // stack towards the top, we can usually keep most of the stack intact when the code is only going up and down
+    // a few methods at the top. Before this change, the cache was really only useful if between samples the app had
+    // not moved from the current stack, as adding or removing one frame would invalidate the existing cache (because
+    // every position would shift).
+    cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+
+    for (i=0; i<limit && cfp != top_sentinel; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
         if (cfp->iseq && !cfp->pc) {
           // Fix: Do nothing -- this frame should not be used
           //

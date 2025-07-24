@@ -11,7 +11,6 @@ RSpec.describe 'Error Tracking benchmarks', :memcheck_valgrind_skip do
 
   benchmarks_to_validate = [
     'error_tracking_simple',
-    'error_tracking_api'
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|

@@ -127,6 +127,8 @@ RSpec.describe Datadog::Profiling::Component do
           expect(settings.profiling.advanced)
             .to receive(:allocation_counting_enabled).and_return(:allocation_counting_enabled_config)
           expect(described_class).to receive(:enable_gvl_profiling?).and_return(:gvl_profiling_result)
+          expect(settings.profiling.advanced)
+            .to receive(:sighandler_sampling_enabled).and_return(:sighandler_sampling_enabled_config)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
@@ -136,6 +138,7 @@ RSpec.describe Datadog::Profiling::Component do
             allocation_profiling_enabled: false,
             allocation_counting_enabled: :allocation_counting_enabled_config,
             gvl_profiling_enabled: :gvl_profiling_result,
+            sighandler_sampling_enabled: :sighandler_sampling_enabled_config,
           )
 
           build_profiler_component

@@ -84,6 +84,8 @@ module Datadog
 
       def set_error: (untyped e) -> untyped
 
+      def record_exception: (Exception exception, ?attributes: SpanEvent::attributes) -> void
+
       def to_s: () -> ::String
 
       def to_hash: () -> untyped
