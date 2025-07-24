@@ -13,7 +13,7 @@ namespace :lint do
 
     Find.find('lib') do |path|
       # Skip vendor folders
-      Find.prune if path.include?('/vendor')
+      Find.prune if File.basename(path) == 'vendor'
 
       next unless File.file?(path) && path.end_with?('.rb')
 
