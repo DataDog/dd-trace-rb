@@ -154,6 +154,7 @@ module Datadog
           tracestate << "o:#{serialize_origin(digest.trace_origin)};" if digest.trace_origin
 
           # Replacing this by safe navigation seems to have a different behaviour on Rubies <= 3.0.
+          # It cause a LocalJumpError in the CI.
           if digest.trace_distributed_tags # rubocop:disable Style/SafeNavigation
             digest.trace_distributed_tags.each do |name, value|
               tag = "t.#{serialize_tag_key(name)}:#{serialize_tag_value(value)};"
