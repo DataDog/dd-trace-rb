@@ -153,16 +153,19 @@ module Datadog
           tracestate << "s:#{digest.trace_sampling_priority};" if digest.trace_sampling_priority
           tracestate << "o:#{serialize_origin(digest.trace_origin)};" if digest.trace_origin
 
-          digest.trace_distributed_tags&.each do |name, value|
-            tag = "t.#{serialize_tag_key(name)}:#{serialize_tag_value(value)};"
+          # Replacing this by safe navigation seems to have a different behaviour on Rubies <= 3.0.
+          if digest.trace_distributed_tags # rubocop:disable Style/SafeNavigation
+            digest.trace_distributed_tags.each do |name, value|
+              tag = "t.#{serialize_tag_key(name)}:#{serialize_tag_value(value)};"
 
-            # If tracestate size limit is exceed, drop the remaining data.
-            # String#bytesize is used because only ASCII characters are allowed.
-            #
-            # We add 1 to the limit because of the trailing comma, which will be removed before returning.
-            break if tracestate.bytesize + tag.bytesize > (TRACESTATE_VALUE_SIZE_LIMIT + 1)
+              # If tracestate size limit is exceed, drop the remaining data.
+              # String#bytesize is used because only ASCII characters are allowed.
+              #
+              # We add 1 to the limit because of the trailing comma, which will be removed before returning.
+              break if tracestate.bytesize + tag.bytesize > (TRACESTATE_VALUE_SIZE_LIMIT + 1)
 
-            tracestate << tag
+              tracestate << tag
+            end
           end
 
           tracestate << digest.trace_state_unknown_fields if digest.trace_state_unknown_fields
