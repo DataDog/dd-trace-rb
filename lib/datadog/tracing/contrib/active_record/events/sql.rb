@@ -35,10 +35,10 @@ module Datadog
               settings = Datadog.configuration.tracing[:active_record, config]
               adapter_name = Contrib::Utils::Database.normalize_vendor(config[:adapter])
               service_name = if settings.service_name != Contrib::Utils::Database::VENDOR_DEFAULT
-                               settings.service_name
-                             else
-                               adapter_name
-                             end
+                settings.service_name
+              else
+                adapter_name
+              end
 
               span.name = "#{adapter_name}.query"
               span.service = service_name
@@ -68,7 +68,7 @@ module Datadog
               span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host]) if config[:host]
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, config[:port]) if config[:port]
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end

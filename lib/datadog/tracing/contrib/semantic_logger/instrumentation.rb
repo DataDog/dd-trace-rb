@@ -25,7 +25,7 @@ module Datadog
               # if the user already has conflicting log_tags
               # we want them to clobber ours, because we should allow them to override if needed.
               log.named_tags = correlation.to_h.merge(original_named_tags)
-              super(log, message, progname, &block)
+              super
             end
           end
         end

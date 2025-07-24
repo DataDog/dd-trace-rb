@@ -15,7 +15,7 @@ module Datadog
             def [](key)
               # Metadata values are normally integrals but can also be
               # arrays when multiple values are associated with the same key.
-              value = super(key)
+              value = super
               value.is_a?(::Array) ? value[0] : value
             end
           end

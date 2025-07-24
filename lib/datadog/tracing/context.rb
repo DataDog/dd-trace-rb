@@ -53,7 +53,7 @@ module Datadog
 
       # Creates a copy of the context, when forked.
       def fork_clone
-        forked_trace = @active_trace && @active_trace.fork_clone
+        forked_trace = @active_trace&.fork_clone
         self.class.new(trace: forked_trace)
       end
 
@@ -61,7 +61,7 @@ module Datadog
 
       def set_active_trace!(trace)
         # Don't retain finished traces
-        @active_trace = trace && !trace.finished? ? trace : nil
+        @active_trace = (trace && !trace.finished?) ? trace : nil
       end
     end
   end

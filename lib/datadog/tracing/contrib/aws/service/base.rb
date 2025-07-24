@@ -7,7 +7,8 @@ module Datadog
         module Service
           # Base class for all AWS service-specific tag handlers.
           class Base
-            def add_tags(span, params); end
+            def add_tags(span, params)
+            end
           end
         end
       end

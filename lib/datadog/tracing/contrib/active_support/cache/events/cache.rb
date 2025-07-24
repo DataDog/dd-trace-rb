@@ -38,11 +38,11 @@ module Datadog
 
               # DEV: Look for other uses of `ActiveSupport::Cache::Store#instrument`, to find other useful event keys.
               MAPPING = {
-                'cache_delete.active_support' => { resource: Ext::RESOURCE_CACHE_DELETE },
-                'cache_read.active_support' => { resource: Ext::RESOURCE_CACHE_GET },
-                'cache_read_multi.active_support' => { resource: Ext::RESOURCE_CACHE_MGET, multi_key: true },
-                'cache_write.active_support' => { resource: Ext::RESOURCE_CACHE_SET },
-                'cache_write_multi.active_support' => { resource: Ext::RESOURCE_CACHE_MSET, multi_key: true }
+                'cache_delete.active_support' => {resource: Ext::RESOURCE_CACHE_DELETE},
+                'cache_read.active_support' => {resource: Ext::RESOURCE_CACHE_GET},
+                'cache_read_multi.active_support' => {resource: Ext::RESOURCE_CACHE_MGET, multi_key: true},
+                'cache_write.active_support' => {resource: Ext::RESOURCE_CACHE_SET},
+                'cache_write_multi.active_support' => {resource: Ext::RESOURCE_CACHE_MSET, multi_key: true}
               }.freeze
 
               def trace?(event, payload)
@@ -93,7 +93,7 @@ module Datadog
                 if Datadog.configuration.tracing[:active_support][:cache_key].enabled
                   set_cache_key(span, key, mapping[:multi_key])
                 end
-              rescue StandardError => e
+              rescue => e
                 Datadog.logger.error(e.message)
                 Datadog::Core::Telemetry::Logger.report(e)
               end

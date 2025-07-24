@@ -21,7 +21,7 @@ module Datadog
             def format(hash_obj, options = {})
               options ||= {}
               format!(hash_obj, options)
-            rescue StandardError
+            rescue
               options[:placeholder] || PLACEHOLDER
             end
 
@@ -66,7 +66,7 @@ module Datadog
             def format_array(value, options)
               if value.any? { |v| v.class <= ::Hash || v.class <= Array }
                 first_entry = format_value(value.first, options)
-                value.size > 1 ? [first_entry, options[:placeholder]] : [first_entry]
+                (value.size > 1) ? [first_entry, options[:placeholder]] : [first_entry]
                 # Otherwise short-circuit and return single placeholder
               else
                 [options[:placeholder]]
@@ -77,19 +77,19 @@ module Datadog
               {}.tap do |options|
                 # Show
                 # If either is :all, value becomes :all
-                options[:show] =  if original[:show] == :all || additional[:show] == :all
-                                    :all
-                                  else
-                                    (original[:show] || []).dup.concat(additional[:show] || []).uniq
-                                  end
+                options[:show] = if original[:show] == :all || additional[:show] == :all
+                  :all
+                else
+                  (original[:show] || []).dup.concat(additional[:show] || []).uniq
+                end
 
                 # Exclude
                 # If either is :all, value becomes :all
                 options[:exclude] = if original[:exclude] == :all || additional[:exclude] == :all
-                                      :all
-                                    else
-                                      (original[:exclude] || []).dup.concat(additional[:exclude] || []).uniq
-                                    end
+                  :all
+                else
+                  (original[:exclude] || []).dup.concat(additional[:exclude] || []).uniq
+                end
 
                 options[:placeholder] = additional[:placeholder] || original[:placeholder]
               end

@@ -34,7 +34,7 @@ module Datadog
               # Some exception gets handled by Rails middleware before it can be set on Rack middleware
               # The rack span is the root span of the request and should make sure it has the full exception
               # set on it.
-              env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN].set_error(e) if env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+              env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]&.set_error(e)
             end
             raise e
           end

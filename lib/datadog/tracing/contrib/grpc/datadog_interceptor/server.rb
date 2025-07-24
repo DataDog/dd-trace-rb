@@ -37,7 +37,7 @@ module Datadog
 
                 begin
                   yield
-                rescue StandardError => e
+                rescue => e
                   code = e.is_a?(::GRPC::BadStatus) ? e.code : ::GRPC::Core::StatusCodes::UNKNOWN
                   span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, code)
 
@@ -52,7 +52,7 @@ module Datadog
 
             def set_distributed_context!(metadata)
               Tracing.continue_trace!(GRPC.extract(metadata))
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.debug(
                 "unable to propagate GRPC metadata to context: #{e}"
               )
@@ -85,7 +85,7 @@ module Datadog
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.debug("GRPC server trace failed: #{e}")
             end
           end

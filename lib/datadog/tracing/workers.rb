@@ -53,7 +53,7 @@ module Datadog
             traces = @trace_buffer.pop
             traces = Pipeline.process!(traces)
             @trace_task.call(traces, @transport) unless @trace_task.nil? || traces.empty?
-          rescue StandardError => e
+          rescue => e
             # ensures that the thread will not die because of an exception.
             # TODO[manu]: findout the reason and reschedule the send if it's not
             # a fatal exception
@@ -107,7 +107,7 @@ module Datadog
 
         private
 
-        alias flush_data callback_traces
+        alias_method :flush_data, :callback_traces
 
         def perform
           loop do

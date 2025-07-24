@@ -148,9 +148,9 @@ module Datadog
 
               case user_or_id
               when nil
-                { login: login }
+                {login: login}
               when String
-                { login: login, id: user_or_id }
+                {login: login, id: user_or_id}
               when Hash
                 raise ArgumentError, 'missing required user key `:id`' unless user_or_id.key?(:id)
                 raise TypeError, 'user key `:id` must be a String' unless user_or_id[:id].is_a?(String)

@@ -9,7 +9,7 @@ module Datadog
         # This patches the Async - to wrap executor service using ContextCompositeExecutorService
         module AsyncPatch
           def initialize(delegate)
-            super(delegate)
+            super
 
             @executor = ContextCompositeExecutorService.new(@executor)
           end

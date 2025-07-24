@@ -38,7 +38,9 @@ module Datadog
         private
 
         def drop_it?(span)
-          @operation.call(span) rescue false
+          @operation.call(span)
+        rescue
+          false
         end
       end
     end

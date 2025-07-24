@@ -86,7 +86,11 @@ module Datadog
             sampler = Datadog.configuration.tracing.sampler
             return Datadog.configuration.tracing.sampling.default_rate unless sampler
 
-            sampler.sample_rate(nil) rescue nil
+            begin
+              sampler.sample_rate(nil)
+            rescue
+              nil
+            end
           end
 
           # DEV: We currently only support SimpleRule instances.

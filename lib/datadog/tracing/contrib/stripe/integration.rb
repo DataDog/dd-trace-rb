@@ -18,7 +18,7 @@ module Datadog
           register_as :stripe
 
           def self.version
-            Gem.loaded_specs['stripe'] && Gem.loaded_specs['stripe'].version
+            Gem.loaded_specs['stripe']&.version
           end
 
           def self.loaded?

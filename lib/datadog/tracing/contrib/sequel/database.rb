@@ -23,7 +23,7 @@ module Datadog
               response = nil
 
               Tracing.trace(Ext::SPAN_QUERY) do |span|
-                span.service =  Datadog.configuration_for(self, :service_name) \
+                span.service = Datadog.configuration_for(self, :service_name) \
                                 || Datadog.configuration.tracing[:sequel][:service_name] \
                                 || Contrib::SpanAttributeSchema.fetch_service_name(
                                   '',
@@ -46,10 +46,10 @@ module Datadog
 
             def parse_opts(sql, opts)
               db_opts = if ::Sequel::VERSION < '3.41.0' && self.class.to_s !~ /Dataset$/
-                          @opts
-                        elsif instance_variable_defined?(:@pool) && @pool
-                          @pool.db.opts
-                        end
+                @opts
+              elsif instance_variable_defined?(:@pool) && @pool
+                @pool.db.opts
+              end
               sql = sql.is_a?(::Sequel::SQL::Expression) ? literal(sql) : sql.to_s
 
               Utils.parse_opts(sql, opts, db_opts)

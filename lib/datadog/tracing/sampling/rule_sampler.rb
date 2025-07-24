@@ -30,26 +30,26 @@ module Datadog
           default_sampler: nil
         )
           @rules = if default_sample_rate && !default_sampler
-                     # Add to the end of the rule list a rule always matches any trace
-                     rules << SimpleRule.new(sample_rate: default_sample_rate)
-                   else
-                     rules
-                   end
+            # Add to the end of the rule list a rule always matches any trace
+            rules << SimpleRule.new(sample_rate: default_sample_rate)
+          else
+            rules
+          end
           @rate_limiter = if rate_limiter
-                            rate_limiter
-                          elsif rate_limit
-                            Core::TokenBucket.new(rate_limit)
-                          else
-                            Core::UnlimitedLimiter.new
-                          end
+            rate_limiter
+          elsif rate_limit
+            Core::TokenBucket.new(rate_limit)
+          else
+            Core::UnlimitedLimiter.new
+          end
           @default_sampler = if default_sampler
-                               default_sampler
-                             elsif default_sample_rate
-                               nil
-                             else
-                               # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
-                               RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags['env'] })
-                             end
+            default_sampler
+          elsif default_sample_rate
+            nil
+          else
+            # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
+            RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags['env'] })
+          end
         end
 
         def self.parse(rules, rate_limit, default_sample_rate)
@@ -130,17 +130,17 @@ module Datadog
             set_limiter_metrics(trace, rate_limiter.effective_rate)
 
             provenance = case rule.provenance
-                         when Rule::PROVENANCE_REMOTE_USER
-                           Ext::Decision::REMOTE_USER_RULE
-                         when Rule::PROVENANCE_REMOTE_DYNAMIC
-                           Ext::Decision::REMOTE_DYNAMIC_RULE
-                         else
-                           Ext::Decision::TRACE_SAMPLING_RULE
-                         end
+            when Rule::PROVENANCE_REMOTE_USER
+              Ext::Decision::REMOTE_USER_RULE
+            when Rule::PROVENANCE_REMOTE_DYNAMIC
+              Ext::Decision::REMOTE_DYNAMIC_RULE
+            else
+              Ext::Decision::TRACE_SAMPLING_RULE
+            end
 
             trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, provenance)
           end
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.error(
             "Rule sampling failed. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
@@ -153,10 +153,10 @@ module Datadog
         # was responsible for the sampling decision.
         def set_priority(trace, sampled)
           trace.sampling_priority = if sampled
-                                      Sampling::Ext::Priority::USER_KEEP
-                                    else
-                                      Sampling::Ext::Priority::USER_REJECT
-                                    end
+            Sampling::Ext::Priority::USER_KEEP
+          else
+            Sampling::Ext::Priority::USER_REJECT
+          end
         end
 
         def set_rule_metrics(trace, sample_rate)
