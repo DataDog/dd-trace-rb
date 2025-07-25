@@ -306,6 +306,23 @@ You can also get the current active trace using the `active_trace` method. This 
 current_trace = Datadog::Tracing.active_trace
 ```
 
+### Adding span events
+
+Span events are timestamped annotations attached to a span, useful for recording structured logs, exceptions, or custom events during a span's lifetime. You can create and add custom span events to the current active span as follows:
+
+```ruby
+event = Datadog::Tracing::SpanEvent.new(
+ "custom.event.name",
+ attributes: { "key1" => "value1", "key2" => 123 }
+)
+
+span.span_events << event
+```
+
+You can add multiple events to a span. Each event **must** include a name, an optional set of attributes, and an optional timestamp (in nanoseconds). If no timestamp is provided, the current time is used.
+
+This is useful for recording application-specific events, errors, or milestones within a trace.
+
 ## Integration instrumentation
 
 Many popular libraries and frameworks are supported out-of-the-box, which can be auto-instrumented. Although they are not activated automatically, they can be easily activated and configured by using the `Datadog.configure` API:
