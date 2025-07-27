@@ -137,7 +137,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 200c08522c28c91fbcadc5992d7a573b2b696c94 # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_REF: d4653da13381151e60a4b82d1e13ba66b85f446f # Automated: This reference is automatically updated.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
 
 save_versions:
