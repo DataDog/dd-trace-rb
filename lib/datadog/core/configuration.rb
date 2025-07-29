@@ -37,6 +37,10 @@ module Datadog
       COMPONENTS_READ_LOCK = Mutex.new
       private_constant :COMPONENTS_READ_LOCK
 
+      def self.extended(base)
+        base.extend(ConfigHelper)
+      end
+
       attr_writer :configuration
 
       # Current Datadog configuration.
@@ -295,7 +299,7 @@ module Datadog
         # such as reading stable config. In this case we cannot access configuration.
 
         @temp_config_logger ||= begin
-          debug_env_value = ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
+          debug_env_value = Datadog.get_environment_variable(Ext::Diagnostics::ENV_DEBUG_ENABLED)&.strip&.downcase
           debug_value = debug_env_value == 'true' || debug_env_value == '1'
 
           logger = Core::Logger.new($stdout)

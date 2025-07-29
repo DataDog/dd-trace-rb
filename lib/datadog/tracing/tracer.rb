@@ -194,7 +194,6 @@ module Datadog
           )
         end
       end
-      # rubocop:enable Metrics/MethodLength
 
       # Set the given key / value tag pair at the tracer level. These tags will be
       # appended to each span created by the tracer. Keys and values must be strings.
@@ -453,6 +452,7 @@ module Datadog
           span
         end
       end
+      # rubocop:enable Metrics/MethodLength
       # rubocop:enable Lint/UnderscorePrefixedVariableName
 
       def resolve_tags(tags, service)
