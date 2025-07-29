@@ -1,4 +1,4 @@
-# frozen_string_literal: false
+# frozen_string_literal: true
 
 require_relative '../../../distributed/fetcher'
 
@@ -17,13 +17,13 @@ module Datadog
             # @return [String, nil] the header value or nil if not found
             def [](name)
               # Try to fetch with the plain key
-              value = super(name)
+              value = super
               return value if value && !value.empty?
 
               # If not found, try the Rack-formatted key
-              rack_header = "HTTP-#{name}"
+              rack_header = +"HTTP-#{name}"
               rack_header.upcase!
-              rack_header.tr!('-'.freeze, '_'.freeze)
+              rack_header.tr!('-', '_')
 
               hdr = super(rack_header)
 

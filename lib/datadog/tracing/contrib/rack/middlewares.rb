@@ -47,7 +47,7 @@ module Datadog
             end
 
             TraceProxyMiddleware.call(env, configuration) do
-              trace_options = { type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
+              trace_options = {type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND}
               trace_options[:service] = configuration[:service_name] if configuration[:service_name]
 
               # start a new request span and attach it to the current Rack environment;
@@ -80,7 +80,7 @@ module Datadog
               # catch exceptions that may be raised in the middleware chain
               # Note: if a middleware catches an Exception without re raising,
               # the Exception cannot be recorded here.
-              request_span.set_error(e) unless request_span.nil?
+              request_span&.set_error(e)
               raise e
             ensure
               env[Ext::RACK_ENV_REQUEST_SPAN] = previous_request_span if previous_request_span
@@ -123,7 +123,7 @@ module Datadog
             # 4. Fallback with verb + status, eq `GET 200`
             request_span.resource ||=
               if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
-                "#{env['RESPONSE_MIDDLEWARE']}##{original_request_method}"
+                "#{env["RESPONSE_MIDDLEWARE"]}##{original_request_method}"
               elsif trace.resource_override?
                 trace.resource
               else
@@ -240,16 +240,18 @@ module Datadog
             Datadog.configuration.tracing[:rack]
           end
 
+          # rubocop:disable Metrics/AbcSize
+          # rubocop:disable Metrics/MethodLength
           def parse_url(env, original_env)
             request_obj = ::Rack::Request.new(env)
 
             # scheme, host, and port
             base_url = if request_obj.respond_to?(:base_url)
-                         request_obj.base_url
-                       else
-                         # Compatibility for older Rack versions
-                         request_obj.url.chomp(request_obj.fullpath)
-                       end
+              request_obj.base_url
+            else
+              # Compatibility for older Rack versions
+              request_obj.url.chomp(request_obj.fullpath)
+            end
 
             # https://github.com/rack/rack/blob/main/SPEC.rdoc
             #
@@ -269,18 +271,20 @@ module Datadog
             # prepended to PATH_INFO to reflect the correct user visible path.
             request_uri = env['REQUEST_URI'].to_s
             fullpath = if request_uri.empty?
-                         query_string = original_env['QUERY_STRING'].to_s
-                         path = original_env['SCRIPT_NAME'].to_s + original_env['PATH_INFO'].to_s
+              query_string = original_env['QUERY_STRING'].to_s
+              path = original_env['SCRIPT_NAME'].to_s + original_env['PATH_INFO'].to_s
 
-                         query_string.empty? ? path : "#{path}?#{query_string}"
-                       else
-                         # normally REQUEST_URI starts at the path, but it
-                         # might contain the full URL in some cases (e.g WEBrick)
-                         request_uri.delete_prefix(base_url)
-                       end
+              query_string.empty? ? path : "#{path}?#{query_string}"
+            else
+              # normally REQUEST_URI starts at the path, but it
+              # might contain the full URL in some cases (e.g WEBrick)
+              request_uri.delete_prefix(base_url)
+            end
 
             base_url + fullpath
           end
+          # rubocop:enable Metrics/AbcSize
+          # rubocop:enable Metrics/MethodLength
 
           def parse_user_agent_header(headers)
             headers.get(Tracing::Metadata::Ext::HTTP::HEADER_USER_AGENT)

@@ -19,7 +19,6 @@ module Datadog
     Extensions.activate!
 
     class << self
-
       # This method is called from DI Remote handler to issue DI operations
       # to the probe manager (add or remove probes).
       #

@@ -46,7 +46,7 @@ module Datadog
               ensure
                 begin
                   response = yield
-                rescue StandardError
+                rescue
                   # The status code is unknown to Roda and decided by the upstream web runner.
                   # In this case, spans default to status code 500 rather than a blank status code.
                   default_error_status = '500'

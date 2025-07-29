@@ -72,7 +72,7 @@ module Datadog
 
             # set the resource with the quantized query
             span.resource = serialized_query
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.debug("error when handling MongoDB 'started' event: #{e}")
           end
           # rubocop:enable Metrics/AbcSize
@@ -84,12 +84,12 @@ module Datadog
             # the failure is not a real exception because it's handled by
             # the framework itself, so we set only the error and the message
             span.set_error(event)
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.debug("error when handling MongoDB 'failed' event: #{e}")
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak
-            span.finish unless span.nil?
+            span&.finish
             clear_span(event)
           end
 
@@ -100,12 +100,12 @@ module Datadog
             # add fields that are available only after executing the query
             rows = event.reply.fetch('n', nil)
             span.set_tag(Ext::TAG_ROWS, rows) unless rows.nil?
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.debug("error when handling MongoDB 'succeeded' event: #{e}")
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak
-            span.finish unless span.nil?
+            span&.finish
             clear_span(event)
           end
 
@@ -118,7 +118,7 @@ module Datadog
               # Incorrect Hash#to_s serialization. The Mongo command should only be encoded as JSON.
               # This code path should be removed, and is only kept to avoid a breaking change.
               Datadog::Core.log_deprecation(key: :mongo_json_command) do
-                'MongoDB integration: `json_command: false` causes invalid command serialization. '\
+                'MongoDB integration: `json_command: false` causes invalid command serialization. ' \
                 'Use `json_command: true` or `DD_TRACE_MONGO_JSON_COMMAND=1` instead.'
               end
 

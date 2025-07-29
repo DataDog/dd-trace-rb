@@ -11,7 +11,7 @@ module Datadog
           # Custom settings for the MongoDB integration
           # @public_api
           class Settings < Contrib::Configuration::Settings
-            DEFAULT_QUANTIZE = { show: [:collection, :database, :operation] }.freeze
+            DEFAULT_QUANTIZE = {show: [:collection, :database, :operation]}.freeze
 
             option :enabled do |o|
               o.type :bool

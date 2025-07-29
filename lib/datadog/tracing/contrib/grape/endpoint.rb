@@ -76,7 +76,7 @@ module Datadog
               end
 
               Thread.current[KEY_RUN] = true
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -120,7 +120,7 @@ module Datadog
                 span.start(start)
                 span.finish(finish)
               end
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -164,7 +164,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RENDER)
 
               Thread.current[KEY_RENDER] = true
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -189,7 +189,7 @@ module Datadog
                 span.start(start)
                 span.finish(finish)
               end
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -228,7 +228,7 @@ module Datadog
                 span.start(start)
                 span.finish(finish)
               end
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -265,7 +265,7 @@ module Datadog
 
             def endpoint_expand_path(endpoint)
               route_path = endpoint.options[:path]
-              namespace = endpoint.routes.first && endpoint.routes.first.namespace || ''
+              namespace = endpoint.routes.first&.namespace || ''
 
               path = (namespace.split('/') + route_path)
                 .reject { |p| p.blank? || p.eql?('/') }
@@ -297,11 +297,11 @@ module Datadog
               matcher = datadog_configuration[:error_statuses]
               return true unless matcher
 
-              matcher.include?(status) if matcher
+              matcher&.include?(status)
             end
 
             def enabled?
-              Datadog.configuration.tracing.enabled && \
+              Datadog.configuration.tracing.enabled &&
                 datadog_configuration[:enabled] == true
             end
 

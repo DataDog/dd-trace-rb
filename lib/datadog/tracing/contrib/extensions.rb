@@ -63,17 +63,17 @@ module Datadog
           # TODO: We should promote most of this logic to core parts of datadog.
           def configure(&block)
             # Reconfigure core settings
-            super(&block)
+            super
 
             # Activate integrations
             configuration = self.configuration.tracing
 
             if configuration.respond_to?(:integrations_pending_activation)
               ignore_integration_load_errors = if configuration.respond_to?(:ignore_integration_load_errors?)
-                                                 configuration.ignore_integration_load_errors?
-                                               else
-                                                 false
-                                               end
+                configuration.ignore_integration_load_errors?
+              else
+                false
+              end
 
               configuration.integrations_pending_activation.each do |integration|
                 next unless integration.respond_to?(:patch)
@@ -85,9 +85,9 @@ module Datadog
 
                 # if patching failed, only log output if verbosity is unset
                 # or if patching failure is due to compatibility or integration specific reasons
-                next unless !ignore_integration_load_errors ||
-                  ((patch_results[:available] && patch_results[:loaded]) &&
-                  (!patch_results[:compatible] || !patch_results[:patchable]))
+                next if ignore_integration_load_errors &&
+                  (!patch_results[:available] || !patch_results[:loaded] ||
+                  (patch_results[:compatible] && patch_results[:patchable]))
 
                 desc = "Available?: #{patch_results[:available]}"
                 desc += ", Loaded? #{patch_results[:loaded]}"
@@ -208,7 +208,7 @@ module Datadog
             # @return [Datadog::Tracing::Contrib::Configuration::Settings]
             def [](integration_name, key = :default)
               integration = fetch_integration(integration_name)
-              integration.resolve(key) unless integration.nil?
+              integration&.resolve(key)
             end
 
             # @!visibility private

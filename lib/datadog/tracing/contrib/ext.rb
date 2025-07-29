@@ -26,7 +26,7 @@ module Datadog
           TAG_SYSTEM = 'db.system'
           TAG_STATEMENT = 'db.statement'
           TAG_ROW_COUNT = 'db.row_count'
-          PEER_SERVICE_SOURCES = Array[TAG_INSTANCE,
+          PEER_SERVICE_SOURCES = [TAG_INSTANCE,
             Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
             Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
@@ -36,7 +36,7 @@ module Datadog
           TAG_SYSTEM = 'rpc.system'
           TAG_SERVICE = 'rpc.service'
           TAG_METHOD = 'rpc.method'
-          PEER_SERVICE_SOURCES = Array[TAG_SERVICE,
+          PEER_SERVICE_SOURCES = [TAG_SERVICE,
             Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
             Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
@@ -49,7 +49,7 @@ module Datadog
         module Messaging
           TAG_SYSTEM = 'messaging.system'
           TAG_DESTINATION = 'messaging.destination'
-          PEER_SERVICE_SOURCES = Array[Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+          PEER_SERVICE_SOURCES = [Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
             Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end

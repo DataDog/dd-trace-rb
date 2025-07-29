@@ -18,7 +18,7 @@ module Datadog
           register_as :trilogy
 
           def self.version
-            Gem.loaded_specs['trilogy'] && Gem.loaded_specs['trilogy'].version
+            Gem.loaded_specs['trilogy']&.version
           end
 
           def self.loaded?

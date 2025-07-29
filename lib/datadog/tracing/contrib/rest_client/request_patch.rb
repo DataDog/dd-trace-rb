@@ -22,7 +22,7 @@ module Datadog
             def execute(&block)
               uri = URI.parse(url)
 
-              return super(&block) unless Tracing.enabled?
+              return super unless Tracing.enabled?
 
               datadog_trace_request(uri) do |_span, trace|
                 if Tracing::Distributed::PropagationPolicy.enabled?(
@@ -106,11 +106,11 @@ module Datadog
               # rubocop:disable Lint/RescueException
             rescue Exception => e
               # rubocop:enable Lint/RescueException
-              span.set_error(e) if span
+              span&.set_error(e)
 
               raise e
             ensure
-              span.finish if span
+              span&.finish
             end
 
             private

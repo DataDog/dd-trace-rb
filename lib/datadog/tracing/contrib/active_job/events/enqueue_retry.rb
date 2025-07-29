@@ -40,7 +40,7 @@ module Datadog
               set_common_tags(span, payload)
               span.set_tag(Ext::TAG_JOB_ERROR, payload[:error])
               span.set_tag(Ext::TAG_JOB_RETRY_WAIT, payload[:wait])
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.debug(e.message)
             end
           end

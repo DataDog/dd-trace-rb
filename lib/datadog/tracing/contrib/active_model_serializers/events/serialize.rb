@@ -18,9 +18,9 @@ module Datadog
 
             def supported?
               Gem.loaded_specs['active_model_serializers'] \
-                && ( \
+                && (
                   Gem.loaded_specs['active_model_serializers'].version >= Gem::Version.new('0.9') \
-                  && Gem.loaded_specs['active_model_serializers'].version < Gem::Version.new('0.10') \
+                  && Gem.loaded_specs['active_model_serializers'].version < Gem::Version.new('0.10')
                 )
             end
 
@@ -36,7 +36,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SERIALIZE)
 
               set_common_tags(span, payload)
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.debug(e.message)
             end
           end

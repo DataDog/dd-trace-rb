@@ -54,7 +54,7 @@ module Datadog
         @buffer_accepted_lengths += trace.length
 
         @buffer_spans += trace.length
-      rescue StandardError => e
+      rescue => e
         Datadog.logger.debug(
           "Failed to measure queue accept. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
         )
@@ -64,7 +64,7 @@ module Datadog
         @buffer_dropped += 1
 
         @buffer_spans -= trace.length
-      rescue StandardError => e
+      rescue => e
         Datadog.logger.debug(
           "Failed to measure queue drop. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
         )
@@ -89,7 +89,7 @@ module Datadog
         @buffer_accepted_lengths = 0
         @buffer_dropped = 0
         @buffer_spans = 0
-      rescue StandardError => e
+      rescue => e
         Datadog.logger.debug(
           "Failed to measure queue. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
         )
@@ -121,9 +121,9 @@ module Datadog
     # TODO We should restructure this module, so that classes are not declared at top-level ::Datadog.
     # TODO Making such a change is potentially breaking for users manually configuring the tracer.
     TraceBuffer = if Core::Environment::Ext::RUBY_ENGINE == 'ruby'
-                    CRubyTraceBuffer
-                  else
-                    ThreadSafeTraceBuffer
-                  end
+      CRubyTraceBuffer
+    else
+      ThreadSafeTraceBuffer
+    end
   end
 end

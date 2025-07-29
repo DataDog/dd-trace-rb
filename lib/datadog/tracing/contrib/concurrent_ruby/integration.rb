@@ -21,7 +21,7 @@ module Datadog
           end
 
           def self.version
-            Gem.loaded_specs['concurrent-ruby'] && Gem.loaded_specs['concurrent-ruby'].version
+            Gem.loaded_specs['concurrent-ruby']&.version
           end
 
           def self.loaded?
