@@ -134,6 +134,51 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       end
     end
   end
+
+  describe ".libdatadog_issue?" do
+    subject(:libdatadog_issue) { described_class.libdatadog_issue? }
+
+    before do
+      skip_if_profiling_not_supported(self)
+    end
+
+    context "when libdatadog gem fails to load" do
+      before do
+        expect(described_class).to receive(:require).and_raise(LoadError.new("Test error"))
+      end
+
+      it "returns an error message with the exception details" do
+        expect(libdatadog_issue).to eq("There was an error loading `libdatadog`: LoadError Test error")
+      end
+    end
+
+    context "when libdatadog gem loads successfully but pkgconfig_folder is nil" do
+      before do
+        expect(described_class).to receive(:try_loading_libdatadog).and_return(nil)
+        expect(Libdatadog).to receive(:pkgconfig_folder).and_return(nil)
+        expect(Libdatadog).to receive(:current_platform).and_return("testplatform")
+        expect(Libdatadog).to receive(:available_binaries).and_return(["testbinary1", "testbinary2"])
+      end
+
+      it "returns an error message about missing platform binaries" do
+        expect(libdatadog_issue).to eq(
+          "The `libdatadog` gem installed on your system is missing binaries for your platform variant. " \
+          "Your platform: `testplatform`; available binaries: `testbinary1`, `testbinary2`"
+        )
+      end
+    end
+
+    context "when libdatadog gem loads successfully and pkgconfig_folder is available" do
+      before do
+        expect(described_class).to receive(:try_loading_libdatadog).and_return(nil)
+        expect(Libdatadog).to receive(:pkgconfig_folder).and_return("/path/to/pkgconfig")
+      end
+
+      it "returns nil (no issues)" do
+        expect(libdatadog_issue).to be_nil
+      end
+    end
+  end
 end
 
 RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
