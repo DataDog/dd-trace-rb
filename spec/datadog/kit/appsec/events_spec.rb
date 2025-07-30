@@ -20,15 +20,15 @@ RSpec.describe Datadog::Kit::AppSec::Events do
     let(:security_engine) do
       Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
     end
-    let(:waf_runner) { security_engine.new_runner }
     let(:appsec_span) { trace_op.build_span('root') }
 
     before do
+      allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
       allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
     end
 
     context 'when is present' do
-      let(:appsec_active_context) { Datadog::AppSec::Context.new(trace_op, appsec_span, waf_runner) }
+      let(:appsec_active_context) { Datadog::AppSec::Context.new(trace_op, appsec_span) }
 
       it 'sets tags on AppSec span' do
         event
