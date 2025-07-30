@@ -57,7 +57,7 @@ module Datadog
 
         def finalize!
           @waf_context.finalize!
-          AppSec.security_engine&.release_waf_handle(@waf_handle)
+          AppSec.security_engine.release_waf_handle(@waf_handle)
         end
 
         private
