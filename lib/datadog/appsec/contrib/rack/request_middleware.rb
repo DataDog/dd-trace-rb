@@ -57,7 +57,9 @@ module Datadog
 
             return @app.call(env) unless security_engine
 
-            ctx = Datadog::AppSec::Context.activate(Datadog::AppSec::Context.new(active_trace, active_span))
+            ctx = Datadog::AppSec::Context.activate(
+              Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner)
+            )
             env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
 
             add_appsec_tags(security_engine, ctx)

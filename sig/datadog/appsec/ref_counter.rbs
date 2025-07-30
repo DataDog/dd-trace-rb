@@ -1,0 +1,27 @@
+module Datadog
+  module AppSec
+    class RefCounter
+      @current: untyped
+
+      @finalizer: ::Symbol
+
+      @counters: Hash[untyped, Integer]
+
+      @outdated: Array[untyped]
+
+      @mutex: ::Mutex
+
+      def initialize: (untyped initial_obj) -> void
+
+      def acquire_current: () -> untyped
+
+      def release: (untyped obj) -> void
+
+      def current=: (untyped obj) -> void
+
+      private
+
+      def finalize: (untyped obj) -> void
+    end
+  end
+end
