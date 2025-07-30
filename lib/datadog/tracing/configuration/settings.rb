@@ -170,6 +170,36 @@ module Datadog
                 o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
               end
 
+              # Comma-separated list of baggage keys that should be converted to span tags.
+              #
+              # Baggage keys matching the exact, case-sensitive names in this list will be converted
+              # to span tags with the prefix "baggage.".
+              #
+              # Special values:
+              # * Empty string ("") disables baggage tag conversion
+              # * Wildcard ("*") converts all baggage keys to span tags
+              #
+              # @default `DD_TRACE_BAGGAGE_TAG_KEYS` environment variable, otherwise `"user.id,session.id,account.id"`
+              # @return [Array<String>, Symbol, nil] processed baggage tag keys configuration
+              option :baggage_tag_keys do |o|
+                o.env Configuration::Ext::ENV_BAGGAGE_TAG_KEYS
+                o.type :string
+                o.default 'user.id,session.id,account.id'
+                o.after_set do |value|
+                  # Process the configuration string into a more usable format
+                  if value.nil? || value.empty?
+                    # Empty string disables baggage tag conversion
+                    nil
+                  elsif value.strip == '*'
+                    # Wildcard means convert all baggage keys
+                    :all
+                  else
+                    # Split comma-separated keys and trim whitespace
+                    value.split(',').map(&:strip).reject(&:empty?)
+                  end
+                end
+              end
+
               # Enable 128 bit trace id generation.
               #
               # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `true`
@@ -467,20 +497,6 @@ module Datadog
                 o.type :int
                 o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
-              end
-
-              # Controls which baggage keys are converted into span tags.
-              # When set to an empty string, no baggage keys are converted into span tags.
-              # When set to a comma-separated list of keys, only baggage keys matching one of the exact,
-              # case-sensitive names in this list are added as span tags.
-              # When set to "*", all baggage keys will be converted into span tags.
-              #
-              # @default `DD_TRACE_BAGGAGE_TAG_KEYS` environment variable, otherwise "user.id,session.id,account.id"
-              # @return [String]
-              option :baggage_span_tags do |o|
-                o.type :string
-                o.env Tracing::Configuration::Ext::Distributed::ENV_BAGGAGE_SPAN_TAGS
-                o.default "user.id,session.id,account.id"
               end
             end
           end
