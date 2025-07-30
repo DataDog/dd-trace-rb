@@ -25,7 +25,7 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
 
   let(:span) { Datadog::Tracing::SpanOperation.new('root') }
   let(:trace) { Datadog::Tracing::TraceOperation.new }
-  let(:context) { Datadog::AppSec::Context.new(trace, span, security_engine.new_runner) }
+  let(:context) { Datadog::AppSec::Context.new(trace, span) }
 
   let!(:user_class) do
     stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
@@ -53,6 +53,7 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
       c.appsec.instrument :active_record
     end
 
+    allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
     Datadog::AppSec::Context.activate(context)
 
     raise_on_rails_deprecation!
@@ -62,7 +63,6 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
     Datadog.configuration.reset!
 
     Datadog::AppSec::Context.deactivate
-    security_engine.finalize!
   end
 
   context 'when RASP is disabled' do
