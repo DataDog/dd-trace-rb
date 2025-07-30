@@ -223,10 +223,10 @@ RSpec.describe Datadog::Kit::Identity do
       let(:security_engine) do
         Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
       end
-      let(:waf_runner) { security_engine.new_runner }
       let(:appsec_active_context) { nil }
 
       before do
+        allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
         allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
       end
 
@@ -235,7 +235,7 @@ RSpec.describe Datadog::Kit::Identity do
         after { Datadog.configuration.reset! }
 
         let(:span_op) { trace_op.build_span('root') }
-        let(:appsec_active_context) { Datadog::AppSec::Context.new(trace_op, span_op, waf_runner) }
+        let(:appsec_active_context) { Datadog::AppSec::Context.new(trace_op, span_op) }
 
         it 'sets collection mode to SDK' do
           trace_op.measure('root') do |_span, _trace|
