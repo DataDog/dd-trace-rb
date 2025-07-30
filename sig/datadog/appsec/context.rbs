@@ -27,7 +27,7 @@ module Datadog
 
       def self.active: () -> Context
 
-      def initialize: (Tracing::TraceOperation trace, Tracing::SpanOperation span, SecurityEngine::Engine security_engine) -> void
+      def initialize: (Tracing::TraceOperation trace, Tracing::SpanOperation span) -> void
 
       def run_waf: (input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
 
