@@ -14,9 +14,11 @@ module Datadog
 
         SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
 
-        def initialize: (WAF::Handle waf_handle) -> void
+        def initialize: (RefCounter waf_ref_counter) -> void
 
         def run: (input_data persistent_data, input_data ephemeral_data, ?::Integer timeout) -> SecurityEngine::result
+
+        def waf_context: () -> WAF::Context
 
         def finalize!: () -> void
 

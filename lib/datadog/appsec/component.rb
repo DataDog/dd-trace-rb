@@ -2,9 +2,9 @@
 
 require_relative 'security_engine/engine'
 require_relative 'security_engine/runner'
-require_relative 'security_engine/waf_handle_registry'
 require_relative 'processor/rule_loader'
 require_relative 'actions_handler'
+require_relative 'ref_counter'
 
 module Datadog
   module AppSec
