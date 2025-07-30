@@ -6,9 +6,14 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_loader'
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
+  let(:waf_handle) { instance_double(Datadog::AppSec::WAF::Handle) }
   let(:waf_context) { instance_double(Datadog::AppSec::WAF::Context) }
 
-  subject(:runner) { described_class.new(waf_context) }
+  before do
+    allow(waf_handle).to receive(:build_context).and_return(waf_context)
+  end
+
+  subject(:runner) { described_class.new(waf_handle) }
 
   describe '#run' do
     context 'when keys contain values to clean' do

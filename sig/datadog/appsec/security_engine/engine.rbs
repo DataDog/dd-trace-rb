@@ -4,7 +4,7 @@ module Datadog
       class Engine
         @waf_builder: WAF::HandleBuilder
 
-        @waf_handle: WAF::Handle
+        @waf_handle_registry: WAFHandleRegistry
 
         @waf_addresses: ::Array[::String]
 
@@ -23,6 +23,8 @@ module Datadog
         def finalize!: () -> void
 
         def new_runner: () -> SecurityEngine::Runner
+
+        def release_waf_handle: (WAF::Handle waf_handle) -> void
 
         def add_or_update_config: (::Hash[::String, untyped] config, path: ::String) -> void
 

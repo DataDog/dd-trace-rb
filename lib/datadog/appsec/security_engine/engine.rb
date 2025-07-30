@@ -40,8 +40,10 @@ module Datadog
           diagnostics = load_default_config(telemetry: telemetry)
           report_configuration_diagnostics(diagnostics, action: 'init', telemetry: telemetry)
 
-          @waf_handle = @waf_builder.build_handle
-          @waf_addresses = @waf_handle.known_addresses
+          waf_handle = @waf_builder.build_handle
+          @waf_addresses = waf_handle.known_addresses
+
+          @waf_handle_registry = WAFHandleRegistry.new(waf_handle)
         rescue WAF::Error => e
           error_message = "AppSec security engine failed to initialize"
 
@@ -51,16 +53,12 @@ module Datadog
           raise e
         end
 
-        def finalize!
-          @waf_handle&.finalize!
-          @waf_builder&.finalize!
-
-          @waf_addresses = []
-          @ruleset_version = nil
+        def new_runner
+          SecurityEngine::Runner.new(@waf_handle_registry.acquire_current_handle)
         end
 
-        def new_runner
-          SecurityEngine::Runner.new(@waf_handle.build_context)
+        def release_waf_handle(waf_handle)
+          @waf_handle_registry.release_handle(waf_handle)
         end
 
         def add_or_update_config(config, path:)
@@ -107,24 +105,17 @@ module Datadog
         end
 
         def reconfigure!
-          old_waf_handle = @waf_handle
+          new_waf_handle = @waf_builder.build_handle
+          @waf_addresses = new_waf_handle.known_addresses
 
-          @waf_handle = @waf_builder.build_handle
-          @waf_addresses = @waf_handle.known_addresses
-
-          old_waf_handle&.finalize!
+          @waf_handle_registry.current_handle = new_waf_handle
         rescue WAF::Error => e
-          error_message = "AppSec security engine failed to reconfigure"
+          # WAF::Error can only be raised during new WAF handle creation or when reading known addresses.
+          # This means that the current WAF handle was not yet substituted.
+          error_message = "AppSec security engine failed to reconfigure, reverting to the previous configuration"
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           AppSec.telemetry.report(e, description: error_message)
-
-          if old_waf_handle
-            Datadog.logger.warn("Reverting to the previous configuration")
-
-            @waf_handle = old_waf_handle
-            @waf_addresses = old_waf_handle.known_addresses
-          end
         end
 
         private

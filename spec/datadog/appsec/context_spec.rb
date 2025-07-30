@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'libddwaf'
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_loader'
 
@@ -15,8 +16,7 @@ RSpec.describe Datadog::AppSec::Context do
   let(:security_engine) do
     Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
   end
-  let(:waf_runner) { security_engine.new_runner }
-  let(:context) { described_class.new(trace, span, waf_runner) }
+  let(:context) { described_class.new(trace, span, security_engine) }
 
   before do
     Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
@@ -48,7 +48,7 @@ RSpec.describe Datadog::AppSec::Context do
     context 'when active context is already set' do
       before { described_class.activate(context) }
 
-      subject(:activate_context) { described_class.activate(described_class.new(trace, span, waf_runner)) }
+      subject(:activate_context) { described_class.activate(described_class.new(trace, span, security_engine)) }
 
       it 'raises an error and does not change the active context' do
         expect { activate_context }.to raise_error(Datadog::AppSec::Context::ActiveContextError)
@@ -196,7 +196,7 @@ RSpec.describe Datadog::AppSec::Context do
 
   describe '#export_metrics' do
     context 'when span is not present' do
-      let(:context) { described_class.new(trace, nil, waf_runner) }
+      let(:context) { described_class.new(trace, nil, security_engine) }
 
       it 'does not export metrics' do
         expect(Datadog::AppSec::Metrics::Exporter).not_to receive(:export_waf_metrics)

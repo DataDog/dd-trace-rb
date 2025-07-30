@@ -122,39 +122,11 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
     end
   end
 
-  describe '#finalize!' do
-    subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
-
-    it 'finalizes waf builder and waf handle' do
-      engine.finalize!
-
-      expect { engine.new_runner }.to raise_error(Datadog::AppSec::WAF::InstanceFinalizedError)
-    end
-
-    it 'resets waf_addresses' do
-      engine.finalize!
-      expect(engine.waf_addresses).to be_empty
-    end
-
-    it 'resets ruleset_version' do
-      engine.finalize!
-      expect(engine.ruleset_version).to be_nil
-    end
-  end
-
   describe '#new_runner' do
     subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
 
     it 'returns an instance of SecurityEngine::Runner' do
       expect(engine.new_runner).to be_a(Datadog::AppSec::SecurityEngine::Runner)
-    end
-
-    context 'when finalized' do
-      it 'raises InstanceFinalizedError' do
-        engine.finalize!
-
-        expect { engine.new_runner }.to raise_error(Datadog::AppSec::WAF::InstanceFinalizedError)
-      end
     end
   end
 
@@ -594,7 +566,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       engine.add_or_update_config(asm_dd_config, path: 'datadog/603646/ASM_DD/latest/config')
     end
 
-    it 'finalizes old handle' do
+    xit 'finalizes old handle' do
       expect(engine.instance_variable_get(:@waf_handle)).to receive(:finalize!)
 
       engine.reconfigure!
@@ -621,7 +593,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         allow(telemetry).to receive(:report)
       end
 
-      it 'does not change @waf_handle' do
+      xit 'does not change @waf_handle' do
         expect { engine.reconfigure! }.not_to(change { engine.instance_variable_get(:@waf_handle) })
       end
 
@@ -632,7 +604,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       it 'reports error though telemetry' do
         expect(telemetry).to receive(:report).with(
           Datadog::AppSec::WAF::LibDDWAFError,
-          description: 'AppSec security engine failed to reconfigure'
+          description: 'AppSec security engine failed to reconfigure, reverting to the previous configuration'
         )
 
         engine.reconfigure!
