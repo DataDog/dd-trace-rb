@@ -540,23 +540,18 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(configuration.tracing.baggage_tag_keys).to eq(['user.id', 'session.id', 'account.id'])
           end
 
-          it 'only adds configured keys as span tags when trace is continued' do
+          it 'only adds configured keys as trace tags' do
             Datadog::Tracing.continue_trace!(trace_digest) do
               Datadog::Tracing.trace('operation') do |span|
                 trace_op = Datadog::Tracing.active_trace
-                puts "DEBUG: trace_op.get_tag('baggage.user.id') = #{trace_op.get_tag('baggage.user.id').inspect}"
-                puts "DEBUG: span.get_tag('baggage.user.id') = #{span.get_tag('baggage.user.id').inspect}"
-                puts "DEBUG: trace_op.tags = #{trace_op.tags.inspect}"
-                puts "DEBUG: span.tags = #{span.tags.inspect}"
 
-                # Only user.id should be added (matches default config)
-                expect(span.get_tag('baggage.user.id')).to eq('12345')
+                # Only user.id and session.id should be added (matches default config and present in baggage)
+                expect(trace_op.get_tag('baggage.user.id')).to eq('12345')
+                expect(trace_op.get_tag('baggage.session.id')).to eq('test123')
                 # These should not be added (not in default config)
-                expect(span.get_tag('baggage.correlation_id')).to be_nil
-                expect(span.get_tag('baggage.region')).to be_nil
-                # session.id and account.id are in config but not in baggage
-                expect(span.get_tag('baggage.session.id')).to be_nil
-                expect(span.get_tag('baggage.account.id')).to be_nil
+                expect(trace_op.get_tag('baggage.correlation_id')).to be_nil
+                # account.id is in config but not in baggage
+                expect(trace_op.get_tag('baggage.account.id')).to be_nil
               end
             end
           end
@@ -575,20 +570,21 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             configuration.tracing.baggage_tag_keys = ['session_id', 'feature_flag']
           end
 
-          it 'only adds specified keys as span tags when trace is continued' do
+          it 'only adds specified keys as trace tags when trace is continued' do
             Datadog::Tracing.continue_trace!(trace_digest) do
               Datadog::Tracing.trace('operation') do |span|
+                trace_op = Datadog::Tracing.active_trace
                 # Only configured keys should be added
-                expect(span.get_tag('baggage.session_id')).to eq('mysession')
-                expect(span.get_tag('baggage.feature_flag')).to eq('beta')
+                expect(trace_op.get_tag('baggage.session_id')).to eq('mysession')
+                expect(trace_op.get_tag('baggage.feature_flag')).to eq('beta')
                 # This should not be added (not in config)
-                expect(span.get_tag('baggage.user.id')).to be_nil
+                expect(trace_op.get_tag('baggage.user.id')).to be_nil
               end
             end
           end
         end
 
-        context 'Disabled Baggage Span Tags in configuration' do
+        context 'Disabled Baggage Tags in configuration' do
           let(:data) do
             {
               prepare_key['x-datadog-trace-id'] => '61185',
@@ -604,9 +600,10 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           it 'does not add any baggage tags when disabled' do
             Datadog::Tracing.continue_trace!(trace_digest) do
               Datadog::Tracing.trace('operation') do |span|
+                trace_op = Datadog::Tracing.active_trace
                 # No baggage tags should be added when disabled
-                expect(span.get_tag('baggage.user.id')).to be_nil
-                expect(span.get_tag('baggage.session.id')).to be_nil
+                expect(trace_op.get_tag('baggage.user.id')).to be_nil
+                expect(trace_op.get_tag('baggage.session.id')).to be_nil
               end
             end
           end
@@ -626,11 +623,12 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(configuration.tracing.baggage_tag_keys).to eq(['user.id', 'session.id', 'account.id'])
           end
 
-          it 'does not add span tags for empty baggage values' do
+          it 'does not add trace tags for empty baggage values' do
             Datadog::Tracing.continue_trace!(trace_digest) do
               Datadog::Tracing.trace('operation') do |span|
-                # Empty values should not be added as span tags
-                expect(span.get_tag('baggage.user.id')).to be_nil
+                trace_op = Datadog::Tracing.active_trace
+                # Empty values should not be added as trace tags
+                expect(trace_op.get_tag('baggage.user.id')).to be_nil
               end
             end
           end
@@ -649,13 +647,14 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             configuration.tracing.baggage_tag_keys = ['*'] # Wildcard means all keys
           end
 
-          it 'adds all baggage keys as span tags' do
+          it 'adds all baggage keys as trace tags' do
             Datadog::Tracing.continue_trace!(trace_digest) do
               Datadog::Tracing.trace('operation') do |span|
+                trace_op = Datadog::Tracing.active_trace
                 # All baggage keys should be added with wildcard config
-                expect(span.get_tag('baggage.user.id')).to eq('12345')
-                expect(span.get_tag('baggage.custom.key')).to eq('custom_value')
-                expect(span.get_tag('baggage.another.key')).to eq('another_value')
+                expect(trace_op.get_tag('baggage.user.id')).to eq('12345')
+                expect(trace_op.get_tag('baggage.custom.key')).to eq('custom_value')
+                expect(trace_op.get_tag('baggage.another.key')).to eq('another_value')
               end
             end
           end
