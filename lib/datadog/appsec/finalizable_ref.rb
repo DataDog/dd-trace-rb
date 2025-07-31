@@ -5,7 +5,7 @@ module Datadog
     # This class is used for counting references to objects.
     # It might be useful when we need to substitute one object with another
     # and finalize the previous one in a thread-safe manner.
-    class RefCounter
+    class FinalizableRef
       def initialize(initial_obj, finalizer: :finalize!)
         @current = initial_obj
         @finalizer = finalizer
@@ -15,7 +15,7 @@ module Datadog
         @mutex = Mutex.new
       end
 
-      def acquire_current
+      def acquire
         @mutex.synchronize do
           @counters[@current] += 1
 
@@ -49,7 +49,9 @@ module Datadog
         obj.public_send(@finalizer)
 
         true
-      rescue
+      rescue => e
+        Datadog.logger.debug("Couldn't finalize #{obj.class.name} object, error: #{e.inspect}")
+
         true
       end
     end
