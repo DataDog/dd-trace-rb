@@ -183,21 +183,8 @@ module Datadog
               # @return [Array<String>, Symbol, nil] processed baggage tag keys configuration
               option :baggage_tag_keys do |o|
                 o.env Configuration::Ext::ENV_BAGGAGE_TAG_KEYS
-                o.type :string
-                o.default 'user.id,session.id,account.id'
-                o.after_set do |value|
-                  # Process the configuration string into a more usable format
-                  if value.nil? || value.empty?
-                    # Empty string disables baggage tag conversion
-                    nil
-                  elsif value.strip == '*'
-                    # Wildcard means convert all baggage keys
-                    :all
-                  else
-                    # Split comma-separated keys and trim whitespace
-                    value.split(',').map(&:strip).reject(&:empty?)
-                  end
-                end
+                o.type :array
+                o.default ['user.id', 'session.id', 'account.id']
               end
 
               # Enable 128 bit trace id generation.
