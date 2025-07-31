@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'libddwaf'
+
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_loader'
 
@@ -17,10 +19,6 @@ RSpec.describe Datadog::AppSec::Context do
   end
   let(:waf_runner) { security_engine.new_runner }
   let(:context) { described_class.new(trace, span, waf_runner) }
-
-  before do
-    Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
-  end
 
   after do
     described_class.deactivate

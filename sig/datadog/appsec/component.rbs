@@ -23,8 +23,6 @@ module Datadog
 
       def reconfigure!: () -> void
 
-      def reconfigure_lock: () { (?) -> void } -> void
-
       def shutdown!: () -> void
     end
   end

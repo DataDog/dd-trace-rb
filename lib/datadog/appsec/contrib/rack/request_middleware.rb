@@ -46,31 +46,20 @@ module Datadog
             boot = Datadog::Core::Remote::Tie.boot
             Datadog::Core::Remote::Tie::Tracing.tag(boot, active_span)
 
-            security_engine = nil
-            ready = false
-            ctx = nil
-
             # For a given request, keep using the first Rack stack scope for
             # nested apps. Don't set `context` local variable so that on popping
             # out of this nested stack we don't finalize the parent's context
             return @app.call(env) if active_context(env)
 
-            Datadog::AppSec.reconfigure_lock do
-              security_engine = Datadog::AppSec.security_engine
-
-              if security_engine
-                ctx = Datadog::AppSec::Context.activate(
-                  Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner)
-                )
-
-                env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
-                ready = true
-              end
-            end
+            security_engine = Datadog::AppSec.security_engine
 
             # TODO: handle exceptions, except for @app.call
+            return @app.call(env) unless security_engine
 
-            return @app.call(env) unless ready
+            ctx = Datadog::AppSec::Context.activate(
+              Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner)
+            )
+            env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
 
             add_appsec_tags(security_engine, ctx)
             add_request_tags(ctx, env)

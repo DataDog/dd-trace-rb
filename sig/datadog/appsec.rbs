@@ -6,11 +6,9 @@ module Datadog
 
     def self.telemetry: () -> Core::Telemetry::Component
 
-    def self.security_engine: () -> SecurityEngine::Engine?
+    def self.security_engine: () -> SecurityEngine::Engine
 
     def self.reconfigure!: () -> void
-
-    def self.reconfigure_lock: () { (?) -> untyped } -> void
 
     def self.perform_api_security_check?: () -> bool
 

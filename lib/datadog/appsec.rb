@@ -34,13 +34,6 @@ module Datadog
         components.appsec&.reconfigure!
       end
 
-      def reconfigure_lock(&block)
-        appsec_component = components.appsec
-        return unless appsec_component
-
-        appsec_component.reconfigure_lock(&block)
-      end
-
       def perform_api_security_check?
         Datadog.configuration.appsec.api_security.enabled &&
           Datadog.configuration.appsec.api_security.sample_rate.sample?

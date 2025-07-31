@@ -4,6 +4,7 @@ require_relative 'security_engine/engine'
 require_relative 'security_engine/runner'
 require_relative 'processor/rule_loader'
 require_relative 'actions_handler'
+require_relative 'thread_safe_ref'
 
 module Datadog
   module AppSec
@@ -74,25 +75,14 @@ module Datadog
       def initialize(security_engine:, telemetry:)
         @security_engine = security_engine
         @telemetry = telemetry
-
-        @mutex = Mutex.new
       end
 
       def reconfigure!
-        @mutex.synchronize do
-          security_engine.reconfigure!
-        end
-      end
-
-      def reconfigure_lock(&block)
-        @mutex.synchronize(&block)
+        security_engine.reconfigure!
       end
 
       def shutdown!
-        @mutex.synchronize do
-          security_engine.finalize!
-          @security_engine = nil
-        end
+        # no-op
       end
     end
   end
