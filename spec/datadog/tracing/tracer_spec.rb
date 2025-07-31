@@ -1075,7 +1075,6 @@ RSpec.describe Datadog::Tracing::Tracer do
       Datadog::Tracing.baggage['key'] = 'value'
       expect(Datadog::Tracing.active_trace.to_digest.baggage).to eq('key' => 'value')
     end
-  end
 
   it 'baggage value is overridden inside an active trace' do
     Datadog::Tracing.trace('operation') do |_span, trace|
@@ -1089,6 +1088,15 @@ RSpec.describe Datadog::Tracing::Tracer do
     Datadog::Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(baggage: { 'key1' => 'value1' }))
     expect(Datadog::Tracing.active_trace.to_digest.baggage).to eq('key1' => 'value1')
   end
+
+  it 'sets a trace tag for the respective baggage key' do
+    trace_digest = Datadog::Tracing::Contrib::HTTP.extract({ 'baggage' => 'user.id=test-id' })
+
+    Datadog::Tracing.trace('op', continue_from: trace_digest) do |_span, trace|
+      expect(trace.get_tag('baggage.user.id')).to eq('test-id')
+    end
+  end
+end
 end
 
 RSpec.describe Datadog::Tracing::Tracer::TraceCompleted do
