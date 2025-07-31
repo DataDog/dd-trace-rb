@@ -6,7 +6,7 @@ require 'datadog/tracing/contrib/rails/ext'
 
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails cache' do
+RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
   include_context 'Rails test application'
 
   before do
@@ -198,6 +198,59 @@ RSpec.describe 'Rails cache' do
         .to eq('active_support')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
+    end
+
+    context 'when :cache_store config includes the backend' do
+      before do
+        Datadog.configuration.tracing[:active_support][:cache_store] = ['other_store', 'file_store']
+      end
+
+      it 'creates a span' do
+        write
+        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+      end
+
+      context 'as a symbol' do
+        before do
+          Datadog.configuration.tracing[:active_support][:cache_store] = [:file_store]
+        end
+
+        it 'creates a span' do
+          write
+          expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+        end
+      end
+    end
+
+    context 'when :cache_store config does not include the backend' do
+      before do
+        Datadog.configuration.tracing[:active_support][:cache_store] = ['other_store']
+      end
+
+      it 'creates a span for the non-excluded backend' do
+        expect { write }.to_not(change { fetch_spans.size })
+      end
+
+      context 'with an empty array' do
+        before do
+          Datadog.configuration.tracing[:active_support][:cache_store] = []
+        end
+
+        it 'does not create a span' do
+          expect { write }.to_not(change { fetch_spans.size })
+        end
+      end
+    end
+
+    context 'when :cache_store config is not set' do
+      before do
+        Datadog.configuration.tracing[:active_support].reset!
+      end
+
+      it 'creates a span' do
+        write
+        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+      end
     end
 
     context 'with custom cache_service' do

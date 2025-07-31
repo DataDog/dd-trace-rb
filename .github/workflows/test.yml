@@ -116,7 +116,7 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     container:
-      image: datadog/ci
+      image: datadog/ci:v3.7.1
       credentials:
         username: "${{ secrets.DOCKERHUB_USERNAME }}"
         password: "${{ secrets.DOCKERHUB_TOKEN }}"
@@ -208,7 +208,7 @@ jobs:
       - name: Generate coverage report
         run: bundle exec rake coverage:report
       - name: Upload coverage report
-        uses: codecov/codecov-action@ad3126e916f78f00edff4ed0317cf185271ccc2d # v5.4.2
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         with:
           files: coverage/report/coverage.xml
           # Uncomment the following line to enable verbose output for debugging

@@ -40,6 +40,7 @@ module Datadog
         :baggage
 
       attr_reader \
+        :logger,
         :active_span_count,
         :active_span,
         :id,
@@ -55,6 +56,7 @@ module Datadog
         :service
 
       def initialize(
+        logger: Datadog.logger,
         agent_sample_rate: nil,
         events: nil,
         hostname: nil,
@@ -77,10 +79,11 @@ module Datadog
         trace_state: nil,
         trace_state_unknown_fields: nil,
         remote_parent: false,
-        tracer: nil,
+        tracer: nil, # DEV-3.0: deprecated, remove in 3.0
         baggage: nil
-
       )
+        @logger = logger
+
         # Attributes
         @id = id || Tracing::Utils::TraceId.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
@@ -103,7 +106,6 @@ module Datadog
         @apm_tracing_enabled = apm_tracing_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
-        @tracer = tracer
         @baggage = baggage
 
         # Generic tags
@@ -204,6 +206,7 @@ module Datadog
 
       def measure(
         op_name,
+        logger: Datadog.logger,
         events: nil,
         on_error: nil,
         resource: nil,
@@ -217,7 +220,9 @@ module Datadog
         # Don't allow more span measurements if the
         # trace is already completed. Prevents multiple
         # root spans with parent_span_id = 0.
-        return yield(SpanOperation.new(op_name), TraceOperation.new) if finished? || full?
+        return yield( # rubocop:disable Style/MultilineIfModifier
+          SpanOperation.new(op_name, logger: logger),
+          TraceOperation.new(logger: logger)) if finished? || full?
 
         # Create new span
         span_op = build_span(
@@ -238,6 +243,7 @@ module Datadog
 
       def build_span(
         op_name,
+        logger: Datadog.logger,
         events: nil,
         on_error: nil,
         resource: nil,
@@ -259,7 +265,7 @@ module Datadog
           parent_id = parent ? parent.id : @parent_span_id || 0
 
           # Build events
-          events ||= SpanOperation::Events.new
+          events ||= SpanOperation::Events.new(logger: logger)
 
           # Before start: activate the span, publish events.
           events.before_start.subscribe do |span_op|
@@ -274,6 +280,7 @@ module Datadog
           # Build a new span operation
           SpanOperation.new(
             op_name,
+            logger: logger,
             events: events,
             on_error: on_error,
             parent_id: parent_id,
@@ -286,10 +293,10 @@ module Datadog
             id: id
           )
         rescue StandardError => e
-          Datadog.logger.debug { "Failed to build new span: #{e}" }
+          logger.debug { "Failed to build new span: #{e}" }
 
           # Return dummy span
-          SpanOperation.new(op_name)
+          SpanOperation.new(op_name, logger: logger)
         end
       end
 
@@ -321,7 +328,7 @@ module Datadog
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
-        @tracer&.sample_trace(self) unless sampling_priority
+        events.trace_propagated.publish(self)
 
         TraceDigest.new(
           span_id: span_id,
@@ -391,12 +398,14 @@ module Datadog
         attr_reader \
           :span_before_start,
           :span_finished,
-          :trace_finished
+          :trace_finished,
+          :trace_propagated
 
         def initialize
           @span_before_start = SpanBeforeStart.new
           @span_finished = SpanFinished.new
           @trace_finished = TraceFinished.new
+          @trace_propagated = TracePropagated.new
         end
 
         # Triggered before a span starts.
@@ -410,6 +419,13 @@ module Datadog
         class SpanFinished < Tracing::Event
           def initialize
             super(:span_finished)
+          end
+        end
+
+        #  Triggered when trace is being propagated between applications or contexts
+        class TracePropagated < Tracing::Event
+          def initialize
+            super(:trace_propagated)
           end
         end
 
@@ -465,7 +481,7 @@ module Datadog
           # Publish :span_before_start event
           events.span_before_start.publish(span_op, self)
         rescue StandardError => e
-          Datadog.logger.debug { "Error starting span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
+          logger.debug { "Error starting span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
         end
       end
 
@@ -489,7 +505,7 @@ module Datadog
           # Publish :trace_finished event
           events.trace_finished.publish(self) if finished?
         rescue StandardError => e
-          Datadog.logger.debug { "Error finishing span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
+          logger.debug { "Error finishing span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
         end
       end
 

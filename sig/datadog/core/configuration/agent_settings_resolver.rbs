@@ -2,19 +2,6 @@ module Datadog
   module Core
     module Configuration
       class AgentSettingsResolver
-        class AgentSettings
-          def initialize: (?adapter: untyped, ?ssl: untyped, ?hostname: untyped, ?port: untyped, ?uds_path: untyped, ?timeout_seconds: untyped) -> void
-
-          attr_reader adapter: :net_http | :unix
-          attr_reader ssl: untyped
-          attr_reader hostname: untyped
-          attr_reader port: untyped
-          attr_reader uds_path: untyped
-          attr_reader timeout_seconds: untyped
-
-          def url: () -> ::String
-        end
-
         @settings: untyped
         @logger: untyped
         @configured_hostname: untyped
@@ -25,11 +12,6 @@ module Datadog
         @uds_fallback: untyped
         @mixed_http_and_uds: untyped
         @parsed_url: untyped
-
-        # IPv6 regular expression from
-        # https://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses
-        # Does not match IPv4 addresses.
-        IPV6_REGEXP: ::Regexp
 
         def self.call: (untyped settings, ?logger: untyped) -> untyped
 

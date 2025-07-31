@@ -23,6 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:stack_recorder_options) { {} }
   let(:allocation_counting_enabled) { false }
   let(:gvl_profiling_enabled) { false }
+  let(:sighandler_sampling_enabled) { false }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -32,6 +33,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       allocation_profiling_enabled: allocation_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       gvl_profiling_enabled: gvl_profiling_enabled,
+      sighandler_sampling_enabled: sighandler_sampling_enabled,
       **options
     }
   end
@@ -161,6 +163,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       it do
         expect(Datadog.logger).to receive(:warn).with(/GVL profiling is not supported/)
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report)
         proc_called = Queue.new
 
         cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
@@ -568,7 +571,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     context "when all threads are sleeping (no thread holds the Global VM Lock)" do
       let(:options) { {dynamic_sampling_rate_enabled: false} }
 
-      before { expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/) }
+      before do
+        expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
+        expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(/dynamic sampling rate disabled/)
+      end
 
       it "is able to sample even when all threads are sleeping" do
         start
@@ -656,13 +662,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               trigger_simulated_signal_delivery_attempts: trigger_sample_attempts,
               simulated_signal_delivery: trigger_sample_attempts,
               signal_handler_enqueued_sample: trigger_sample_attempts,
-              # @ivoanjo: A flaky test run was reported for this assertion -- a case where `trigger_sample_attempts` was 1
-              # but `postponed_job_success` was 0 (on Ruby 2.6).
-              # See https://app.circleci.com/pipelines/github/DataDog/dd-trace-rb/11866/workflows/08660eeb-0746-4675-87fd-33d473a3f479/jobs/445903
-              # At the time, the test didn't print the full `stats` contents, so it's unclear to me if the test failed
-              # because the postponed job API returned something other than success, or if something else entirely happened.
-              # If/when it happens again, hopefully the extra debugging + this info helps out with the investigation.
-              postponed_job_success: trigger_sample_attempts,
             )
           ),
           "**If you see this test flaking, please report it to @ivoanjo!**\n\n" \
@@ -698,7 +697,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             .find { |s| s.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" }
 
         expect(allocation_sample.values).to include("alloc-samples": test_num_allocated_object)
-        expect(allocation_sample.locations.first.lineno).to eq allocation_line
+        # For Ruby 3.5 onwards, new is inlined into the bytecode of the caller and there's no "new"
+        # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
+        expect((RUBY_VERSION >= "3.5.0") ? allocation_sample.locations[0] : allocation_sample.locations[1])
+          .to match(have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: allocation_line))
       end
 
       context "with dynamic_sampling_rate_enabled" do
@@ -894,27 +896,40 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        test_struct_heap_sample = lambda { |sample|
-          first_frame = sample.locations.first
-          first_frame.lineno == allocation_line &&
-            first_frame.path == __FILE__ &&
-            first_frame.base_label == "new" &&
-            sample.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" &&
-            (sample.values[:"heap-live-samples"] || 0) > 0
-        }
+        current_method_name = caller_locations(0, 1).first.base_label
 
         # We can't just use find here because samples might have different gc age labels
         # if a gc happens to run in the middle of this test. Thus, we'll have to sum up
         # together the values of all matching samples.
-        relevant_samples = samples_from_pprof(recorder.serialize!)
-          .select(&test_struct_heap_sample)
+        relevant_samples = samples_from_pprof(recorder.serialize!).select do |sample|
+          # From Ruby 3.5 onwards, new is inlined into the bytecode of the caller and there's no "new"
+          # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
+          allocation_trigger_frame = (RUBY_VERSION >= "3.5.0") ? sample.locations[0] : sample.locations[1]
+          next unless allocation_trigger_frame
+
+          allocation_trigger_frame.lineno == allocation_line &&
+            allocation_trigger_frame.path == __FILE__ &&
+            allocation_trigger_frame.base_label == current_method_name &&
+            sample.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" &&
+            (sample.values[:"heap-live-samples"] || 0) > 0
+        end
 
         total_samples = relevant_samples.map { |sample| sample.values[:"heap-live-samples"] || 0 }.reduce(:+)
         total_size = relevant_samples.map { |sample| sample.values[:"heap-live-size"] || 0 }.reduce(:+)
 
         expect(total_samples).to eq test_num_allocated_object
-        # 40 is the size of a basic object and we have test_num_allocated_object of them
-        expect(total_size).to eq test_num_allocated_object * 40
+
+        expected_size_of_object = 40 # 40 is the size of a basic object and we have test_num_allocated_object of them
+
+        # Starting with Ruby 3.5, the object_id counts towards the object's size
+        if RUBY_VERSION >= "3.5.0"
+          expected_size_of_object = 104
+
+          expect(ObjectSpace.memsize_of(CpuAndWallTimeWorkerSpec::TestStruct.new.tap(&:object_id)))
+            .to be expected_size_of_object
+        end
+
+        expect(total_size).to eq test_num_allocated_object * expected_size_of_object
       end
 
       describe "heap cleanup after GC" do
@@ -1006,6 +1021,62 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
+    describe "sampling from signal handler", :memcheck_valgrind_skip do
+      let(:options) { {dynamic_sampling_rate_enabled: false} }
+
+      let(:sample_count) do
+        samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+          .map { |it| it.values.fetch(:"cpu-samples") }.reduce(:+)
+      end
+      let(:signal_handler_prepared_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_prepared_sample) }
+      let(:signal_handler_enqueued_sample) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) }
+
+      before do
+        allow(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
+        allow(Datadog::Core::Telemetry::Logger).to receive(:error).with(/dynamic sampling rate disabled/)
+
+        skip_if_signal_handler_sampling_not_supported
+
+        start
+
+        loop_until { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
+
+        cpu_and_wall_time_worker.stop
+
+        expect(sample_count).to be > 0
+        expect(sample_count).to be_within(20).percent_of(signal_handler_enqueued_sample)
+      end
+
+      context "when signal handler sampling is enabled" do
+        let(:sighandler_sampling_enabled) { true }
+
+        it "prepares samples in the signal handler" do
+          expect(signal_handler_prepared_sample).to be > 0
+          expect(signal_handler_prepared_sample).to be_within(20).percent_of(signal_handler_enqueued_sample)
+        end
+      end
+
+      context "when signal handler sampling is disabled" do
+        let(:sighandler_sampling_enabled) { false }
+
+        it "does not prepare samples in the signal handler" do
+          expect(signal_handler_prepared_sample).to be 0
+        end
+      end
+
+      def skip_if_signal_handler_sampling_not_supported
+        return unless sighandler_sampling_enabled
+
+        ruby_version = Gem::Version.new(RUBY_VERSION)
+        if ruby_version < Gem::Version.new("3.2.5") ||
+            (ruby_version >= Gem::Version.new("3.3.0") && ruby_version < Gem::Version.new("3.3.4"))
+          # In practice, many older Rubies are OK to sample from the signal handler, but for the purposes of testing
+          # this is a safe simplification (these versions all include https://github.com/ruby/ruby/pull/11036)
+          skip "Not safe to enable signal handler sampling on Ruby < 3.2.5 / Ruby < 3.3.4"
+        end
+      end
+    end
+
     context "Process::Waiter crash regression tests" do
       # On Ruby 2.3 to 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
       # see https://bugs.ruby-lang.org/issues/17807 .
@@ -1043,6 +1114,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "calls the on_failure_proc" do
         expect(described_class).to receive(:_native_sampling_loop).and_raise(StandardError.new("Simulated error"))
         expect(Datadog.logger).to receive(:warn)
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report)
 
         proc_called = Queue.new
 
@@ -1251,10 +1323,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
           signal_handler_wrong_thread: 0,
-          postponed_job_skipped_already_existed: 0,
-          postponed_job_success: 0,
-          postponed_job_full: 0,
-          postponed_job_unknown_result: 0,
+          signal_handler_prepared_sample: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
           cpu_skipped: 0,
@@ -1556,7 +1625,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   # We have separate specs that assert on these behaviors.
   def samples_from_pprof_without_gc_and_overhead(encoded_profile)
     samples_from_pprof(encoded_profile)
-      .reject { |it| it.locations.first.path == "Garbage Collection" }
+      .reject { |it| it.locations&.first&.path == "Garbage Collection" }
       .reject { |it| it.labels.include?(:"profiler overhead") }
   end
 

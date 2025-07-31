@@ -1,11 +1,14 @@
 require "datadog/di/spec_helper"
 require 'datadog/di'
+require "datadog/di/probe_notifier_worker"
 
 # standard tries to wreck regular expressions in this fiel
 # rubocop:disable Style/PercentLiteralDelimiters
 # rubocop:disable Layout/LineContinuationSpacing
 
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
+  di_test
+
   let(:worker) do
     described_class.new(settings, logger, agent_settings: agent_settings)
   end
@@ -46,8 +49,18 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     end
 
     http_server.mount_proc('/debugger/v1/input') do |req, res|
+      expect(req.content_type).to eq('application/json')
       payload = JSON.parse(req.body)
-      input_payloads << payload
+
+      query = CGI.parse(req.query_string)
+      expect(query).to have_key('ddtags')
+      tags = query['ddtags'].first.split(',')
+      # We do not need to assert on everything in tags - this is done in
+      # unit tests elsewhere.
+      expect(tags).to include('language:ruby')
+      expect(tags).to include("debugger_version:#{Gem.loaded_specs["datadog"].version}")
+
+      input_payloads << {body: payload, tags: tags}
     end
   end
 
@@ -137,7 +150,31 @@ Content-Transfer-Encoding: binary
 
       expect(input_payloads.length).to be 1
       # deep stringify keys
-      expect(input_payloads.first).to eq([JSON.parse(snapshot_payload.to_json)])
+      expect(input_payloads.first[:body]).to eq([JSON.parse(snapshot_payload.to_json)])
+    end
+
+    context 'when git environment variables are set' do
+      with_env 'DD_GIT_REPOSITORY_URL' => 'http://foo',
+        'DD_GIT_COMMIT_SHA' => '1234hash'
+
+      before do
+        Datadog::Core::Environment::Git.reset_for_tests
+        Datadog::Core::TagBuilder.reset_for_tests
+      end
+
+      it 'includes SCM tags in payload' do
+        worker.add_snapshot(snapshot_payload)
+        worker.flush
+        expect(worker.send(:thread)).to be_alive
+
+        expect(input_payloads.length).to be 1
+        # deep stringify keys
+        expect(input_payloads.first[:body]).to eq([JSON.parse(snapshot_payload.to_json)])
+
+        tags = input_payloads.first[:tags]
+        expect(tags).to include('git.repository_url:http://foo')
+        expect(tags).to include('git.commit.sha:1234hash')
+      end
     end
   end
 end

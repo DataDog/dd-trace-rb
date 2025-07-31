@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.15.0)
+    datadog (2.20.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.22.0.0.2)
+      libdatadog (~> 18.1.0.1.0)
+      libddwaf (~> 1.24.1.0.3)
       logger
       msgpack
 
@@ -97,6 +97,7 @@ GEM
     erubi (1.13.0)
     extlz4 (0.3.4)
     ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-arm64-darwin)
     ffi (1.17.2-x86_64-linux-gnu)
     globalid (1.2.1)
       activesupport (>= 6.1)
@@ -111,11 +112,14 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (16.0.1.1.0-aarch64-linux)
-    libdatadog (16.0.1.1.0-x86_64-linux)
-    libddwaf (1.22.0.0.2-aarch64-linux)
+    libdatadog (18.1.0.1.0)
+    libdatadog (18.1.0.1.0-aarch64-linux)
+    libdatadog (18.1.0.1.0-x86_64-linux)
+    libddwaf (1.24.1.0.3-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.22.0.0.2-x86_64-linux)
+    libddwaf (1.24.1.0.3-arm64-darwin)
+      ffi (~> 1.0)
+    libddwaf (1.24.1.0.3-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     lograge (0.14.0)
@@ -262,6 +266,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  arm64-darwin-24
   x86_64-linux
 
 DEPENDENCIES

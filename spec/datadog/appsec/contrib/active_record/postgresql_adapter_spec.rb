@@ -13,12 +13,19 @@ end
 
 RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry) }
-  let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry) }
-  let(:context) { Datadog::AppSec::Context.new(trace, span, processor) }
+  let(:settings) do
+    Datadog::Core::Configuration::Settings.new.tap do |settings|
+      settings.appsec.enabled = true
+    end
+  end
+
+  let(:security_engine) do
+    Datadog::AppSec::SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
+  end
 
   let(:span) { Datadog::Tracing::SpanOperation.new('root') }
   let(:trace) { Datadog::Tracing::TraceOperation.new }
+  let(:context) { Datadog::AppSec::Context.new(trace, span, security_engine.new_runner) }
 
   let!(:user_class) do
     stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
@@ -62,7 +69,7 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
     Datadog.configuration.reset!
 
     Datadog::AppSec::Context.deactivate
-    processor.finalize
+    security_engine.finalize!
   end
 
   context 'when RASP is disabled' do
@@ -90,10 +97,10 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
 
     it 'calls waf with correct arguments when querying using .where' do
       expected_db_statement = if PlatformHelpers.jruby?
-                                'SELECT "users".* FROM "users" WHERE "users"."name" = ?'
-                              else
-                                'SELECT "users".* FROM "users" WHERE "users"."name" = $1'
-                              end
+        'SELECT "users".* FROM "users" WHERE "users"."name" = ?'
+      else
+        'SELECT "users".* FROM "users" WHERE "users"."name" = $1'
+      end
 
       expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
@@ -130,7 +137,7 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [],
-          actions: { 'generate_stack' => { 'stack_id' => 'some-id' } },
+          actions: {'generate_stack' => {'stack_id' => 'some-id'}},
           derivatives: {},
           timeout: false,
           duration_ns: 0,

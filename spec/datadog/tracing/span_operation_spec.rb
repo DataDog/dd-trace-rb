@@ -388,7 +388,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
         it do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
-          expect(callback_spy).to have_received(:after_stop).with(span_op).ordered
+          expect(callback_spy).to have_received(:after_stop).with(span_op, nil).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
           expect(callback_spy).to_not have_received(:on_error)
         end
@@ -440,7 +440,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
         it do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
-          expect(callback_spy).to have_received(:after_stop).with(span_op).ordered
+          expect(callback_spy).to have_received(:after_stop).with(span_op, error).ordered
           expect(callback_spy).to have_received(:on_error).with(span_op, error).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
         end
@@ -472,7 +472,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
         it do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
-          expect(callback_spy).to have_received(:after_stop).with(span_op).ordered
+          expect(callback_spy).to have_received(:after_stop).with(span_op, error).ordered
           expect(callback_spy).to have_received(:on_error).with(span_op, error).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
         end
@@ -663,7 +663,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           include_context 'callbacks'
           before { stop }
           it do
-            expect(callback_spy).to have_received(:after_stop).with(span_op)
+            expect(callback_spy).to have_received(:after_stop).with(span_op, nil)
             expect(callback_spy).to have_received(:before_start).with(span_op)
             expect(callback_spy).to_not have_received(:after_finish)
           end
@@ -685,7 +685,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           include_context 'callbacks'
           before { stop }
           it do
-            expect(callback_spy).to have_received(:after_stop).with(span_op)
+            expect(callback_spy).to have_received(:after_stop).with(span_op, nil)
             expect(callback_spy).to_not have_received(:before_start)
             expect(callback_spy).to_not have_received(:after_finish)
           end
@@ -771,7 +771,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         include_context 'callbacks'
         before { finish }
         it do
-          expect(callback_spy).to have_received(:after_stop).with(span_op).ordered
+          expect(callback_spy).to have_received(:after_stop).with(span_op, nil).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
         end
       end
@@ -997,6 +997,100 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         expect(span_op.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_MSG)).to eq(message)
         expect(span_op.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_STACK)).to be_a_kind_of(String)
       end
+    end
+  end
+
+  describe '#record_exception' do
+    let(:error) { StandardError.new('test error').tap { |e| e.set_backtrace(['this is a backtrace']) } }
+
+    it 'creates a span event' do
+      span_op.record_exception(error)
+      span_op.record_exception(error)
+
+      expect(span_op.span_events.length).to eq(2)
+      expect(span_op.span_events[0]).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+        }
+      )
+      expect(span_op.span_events[1]).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+        }
+      )
+    end
+
+    it 'provides custom attributes' do
+      span_op.record_exception(
+        error,
+        attributes: { 'custom_attr1' => 'value',
+                      custom_attr2: 'value' }
+      )
+
+      expect(span_op.span_events.last).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+          'custom_attr1' => 'value',
+          'custom_attr2' => 'value'
+        }
+      )
+    end
+
+    it 'provides invalid custom attributes' do
+      allow(Datadog.logger).to receive(:warn)
+
+      span_op.record_exception(
+        error,
+        attributes: {
+          'custom_attr' => 'value',
+          'custom_attr2' => { foo: 'bar' },
+          'custom_attr3' => [[1]],
+          'custom_attr4' => [1, 'foo'],
+          'custom_attr5' => 2 << 65,
+          'custom_attr6' => -2 << 65,
+          'custom_attr7' => Float::NAN,
+          'custom_attr8' => Float::INFINITY
+        }
+      )
+
+      expect(span_op.span_events[0].attributes.keys.length).to eq(4)
+      expect(span_op.span_events[0]).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+          'custom_attr' => 'value'
+        }
+      )
+      expect(Datadog.logger).to have_received(:warn).with(
+        /Attribute custom_attr2 must be a string, number, boolean, or array: \{.*foo.*bar.*\}./
+      )
+      expect(Datadog.logger).to have_received(:warn).with(
+        'Attribute custom_attr3 must be a string, number, or boolean: [[1]].'
+      )
+      expect(Datadog.logger).to have_received(:warn).with('Attribute custom_attr4 array must be homogenous: [1, "foo"].')
+      expect(Datadog.logger).to have_received(:warn).with(
+        "Attribute custom_attr5 must be within the range of a signed 64-bit integer: #{2 << 65}."
+      )
+      expect(Datadog.logger).to have_received(:warn).with(
+        "Attribute custom_attr6 must be within the range of a signed 64-bit integer: #{-(2 << 65)}."
+      )
+      expect(Datadog.logger).to have_received(:warn).with('Attribute custom_attr7 must be a finite number: NaN.')
+      expect(Datadog.logger).to have_received(:warn).with('Attribute custom_attr8 must be a finite number: Infinity.')
     end
   end
 end

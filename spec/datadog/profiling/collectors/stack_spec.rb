@@ -1,6 +1,8 @@
 require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/stack"
 
+require "bigdecimal"
+
 # This file has a few lines that cannot be broken because we want some things to have the same line number when looking
 # at their stack traces. Hence, we disable Rubocop's complaints here.
 #
@@ -16,10 +18,19 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:raw_reference_stack) { stacks.fetch(:reference) }
   let(:reference_stack) { convert_reference_stack(raw_reference_stack) }
   let(:gathered_stack) { stacks.fetch(:gathered) }
+  let(:native_filenames_enabled) { false }
 
   def sample(thread, recorder_instance, metric_values_hash, labels_array, **options)
     numeric_labels_array = []
-    described_class::Testing._native_sample(thread, recorder_instance, metric_values_hash, labels_array, numeric_labels_array, **options)
+    described_class::Testing._native_sample(
+      thread,
+      recorder_instance,
+      metric_values_hash,
+      labels_array,
+      numeric_labels_array,
+      native_filenames_enabled: native_filenames_enabled,
+      **options,
+    )
   end
 
   # This spec explicitly tests the main thread because an unpatched rb_profile_frames returns one more frame in the
@@ -211,6 +222,97 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       it "matches the Ruby backtrace API AND has a sleeping frame at the top of the stack" do
         expect(gathered_stack).to eq reference_stack
         expect(reference_stack.first.base_label).to eq "sleep"
+      end
+    end
+
+    context "when sampling a thread with native frames" do
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
+          catch do
+            BigDecimal.save_rounding_mode do
+              @expected_line = __LINE__ + 2 # Sleep
+              ready_queue << true
+              sleep
+            end
+          end
+        end
+      end
+
+      it "matches the Ruby backtrace API" do
+        expect(gathered_stack).to eq reference_stack
+      end
+
+      context "when native filenames are enabled" do
+        let(:native_filenames_enabled) { true }
+
+        before do
+          skip('Native filenames are only available on Linux') unless described_class._native_filenames_available?
+        end
+
+        it "matches the Ruby backtrace API after the 6th frame" do
+          expect(gathered_stack[5..-1]).to eq reference_stack[5..-1]
+        end
+
+        it "includes the real native filename for the top frames" do
+          expect(gathered_stack[0..4]).to contain_exactly(
+            # Sleep is expected to be native BUT since it's at the top of the stack we don't replace the path or lineno
+            # (see comment on `set_file_info_for_cfunc` for why)
+            have_attributes(base_label: "sleep", path: __FILE__, lineno: @expected_line),
+            have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: @expected_line),
+            # Bigdecimal is a native extension shipped separately from Ruby
+            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
+            # We expect the native filename for catch to be inside the Ruby VM -- either in the ruby binary or the libruby library
+            # Note that this may not apply everywhere (e.g. you can rename your Ruby), but it seems sane enough to require this when running tests
+            have_attributes(base_label: "catch", path: end_with("/ruby").or(include("libruby.so")), lineno: 0),
+          )
+        end
+      end
+    end
+
+    context "when sampling a thread calling super into a native method" do
+      let(:module_calling_super) do
+        Module.new do
+          def save_rounding_mode # rubocop:disable Lint/UselessMethodDefinition
+            super
+          end
+        end
+      end
+      let(:patched_big_decimal) { BigDecimal.dup.tap { |it| it.singleton_class.prepend(module_calling_super) } }
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
+          patched_big_decimal.save_rounding_mode do
+            ready_queue << true
+            sleep
+          end
+        end
+      end
+
+      it "matches the Ruby backtrace API" do
+        expect(gathered_stack).to eq reference_stack
+      end
+
+      context "when native filenames are enabled" do
+        let(:native_filenames_enabled) { true }
+
+        before do
+          skip('Native filenames are only available on Linux') unless described_class._native_filenames_available?
+        end
+
+        it "matches the Ruby backtrace API after the 5th frame" do
+          expect(gathered_stack[4..-1]).to eq reference_stack[4..-1]
+        end
+
+        it "includes the real native filename for the top frames" do
+          expect(gathered_stack[0..3]).to contain_exactly(
+            have_attributes(base_label: "sleep", path: __FILE__, lineno: be_positive),
+            have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
+            # Bigdecimal is a native extension shipped separately from Ruby
+            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            # This is the frame in module_calling_super.save_rounding_mode (the one that calls super)
+            have_attributes(base_label: "save_rounding_mode", path: __FILE__, lineno: be_positive),
+          )
+        end
       end
     end
 
@@ -570,30 +672,30 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       expect(gathered_stack.size).to be max_frames
     end
 
-    it "matches the Ruby backtrace API up to max_frames - 1" do
-      expect(gathered_stack[0...(max_frames - 1)]).to eq reference_stack[0...(max_frames - 1)]
+    it "matches the last (max_frames - 1) frames from the Ruby backtrace API" do
+      expect(gathered_stack[1..(max_frames - 1)]).to eq reference_stack[-(max_frames - 1)..-1]
     end
 
-    it "includes a placeholder frame including the number of skipped frames" do
-      placeholder = 1
-      omitted_frames = target_stack_depth - max_frames + placeholder
-
-      expect(omitted_frames).to be 96
-      expect(gathered_stack.last).to have_attributes(base_label: "", path: "96 frames omitted", lineno: 0)
+    it "gathers max_frames frames from the root of the thread and replaces the topmost frame with a placeholder" do
+      expect(gathered_stack).to contain_exactly(
+        have_attributes(base_label: "Truncated Frames", path: "", lineno: 0),
+        have_attributes(base_label: "deep_stack_4"),
+        have_attributes(base_label: "deep_stack_3"),
+        have_attributes(base_label: "thread_with_stack_depth"),
+        have_attributes(base_label: "initialize"),
+      )
     end
 
-    context "when stack is exactly 1 item deeper than the configured max_frames" do
-      let(:target_stack_depth) { 6 }
+    context "when stack is the same depth as the configured max_frames" do
+      let(:target_stack_depth) { max_frames }
 
-      it "includes a placeholder frame stating that 2 frames were omitted" do
-        # Why 2 frames omitted and not 1? That's because the placeholder takes over 1 space in the buffer, so
-        # if there were 6 frames on the stack and the limit is 5, then 4 of those frames will be present in the output
-        expect(gathered_stack.last).to have_attributes(base_label: "", path: "2 frames omitted", lineno: 0)
+      it "includes a placeholder frame as the topmost frame of the stack" do
+        expect(gathered_stack.first).to have_attributes(base_label: "Truncated Frames", path: "", lineno: 0)
       end
     end
 
-    context "when stack is exactly as deep as the configured max_frames" do
-      let(:target_stack_depth) { 5 }
+    context "when stack is exactly 1 item less deep than the configured max_frames" do
+      let(:target_stack_depth) { max_frames - 1 }
 
       it "matches the Ruby backtrace API" do
         expect(gathered_stack).to eq reference_stack
@@ -706,6 +808,34 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  describe "_native_filenames_available?" do
+    context "on linux", if: PlatformHelpers.linux? do
+      it "returns true" do
+        expect(described_class._native_filenames_available?).to be true
+      end
+    end
+
+    context "on non-linux", if: !PlatformHelpers.linux? do
+      it "returns false" do
+        expect(described_class._native_filenames_available?).to be false
+      end
+    end
+  end
+
+  describe "_native_ruby_native_filename" do
+    context "on linux", if: PlatformHelpers.linux? do
+      it "returns the correct filename" do
+        expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(include("libruby.so"))
+      end
+    end
+
+    context "on non-linux", if: !PlatformHelpers.linux? do
+      it "returns nil" do
+        expect(described_class._native_ruby_native_filename).to be nil
+      end
+    end
+  end
+
   def convert_reference_stack(raw_reference_stack)
     raw_reference_stack.map do |location|
       ProfileHelpers::Frame.new(location.base_label, location.path, location.lineno).freeze
@@ -730,9 +860,9 @@ class DeepStackSimulator
     # Since in this helper we want to have precise control over how many frames are on the stack of a given thread,
     # we need to take into account that the DatadogThreadDebugger adds one more frame to the stack.
     first_method =
-      (defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger)) ? :deep_stack_2 : :deep_stack_1
+      (defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger)) ? :deep_stack_3 : :deep_stack_2
 
-    thread = Thread.new(&DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).method(first_method))
+    thread = Thread.new { DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).send(first_method) }
     thread.name = "Deep stack #{depth}" if thread.respond_to?(:name=)
     ready_queue.pop
 

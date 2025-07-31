@@ -10,16 +10,16 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
 
   it 'returns the correct result when given a valid query' do
     bits = schema.execute('query test{ user(id: 1) { name } }')
-    expect(bits.to_h).to eq({ 'data' => { 'user' => { 'name' => 'Bits' } } })
+    expect(bits.to_h).to eq({'data' => {'user' => {'name' => 'Bits'}}})
 
     caniche = schema.execute('query test{ user(id: 10) { name } }')
-    expect(caniche.to_h).to eq({ 'data' => { 'user' => { 'name' => 'Caniche' } } })
+    expect(caniche.to_h).to eq({'data' => {'user' => {'name' => 'Caniche'}}})
 
     bits_by_name = schema.execute('query test{ userByName(name: "Bits") { id } }')
-    expect(bits_by_name.to_h).to eq({ 'data' => { 'userByName' => { 'id' => '1' } } })
+    expect(bits_by_name.to_h).to eq({'data' => {'userByName' => {'id' => '1'}}})
 
     caniche_by_name = schema.execute('query test{ userByName(name: "Caniche") { id } }')
-    expect(caniche_by_name.to_h).to eq({ 'data' => { 'userByName' => { 'id' => '10' } } })
+    expect(caniche_by_name.to_h).to eq({'data' => {'userByName' => {'id' => '10'}}})
   end
 
   it 'returns an error when given an invalid query' do
@@ -29,9 +29,9 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
       [
         {
           'message' => "Field 'error' doesn't exist on type 'Query'",
-          'locations' => [{ 'line' => 1, 'column' => 13 }],
+          'locations' => [{'line' => 1, 'column' => 13}],
           'path' => ['query test', 'error'],
-          'extensions' => { 'code' => 'undefinedField', 'typeName' => 'Query', 'fieldName' => 'error' }
+          'extensions' => {'code' => 'undefinedField', 'typeName' => 'Query', 'fieldName' => 'error'}
         }
       ]
     )
@@ -56,9 +56,9 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
 
     expect(result.map(&:to_h)).to eq(
       [
-        { 'data' => { 'user' => { 'name' => 'Bits' } } },
-        { 'data' => { 'user' => { 'name' => 'Caniche' } } },
-        { 'data' => { 'userByName' => { 'id' => '10' } } }
+        {'data' => {'user' => {'name' => 'Bits'}}},
+        {'data' => {'user' => {'name' => 'Caniche'}}},
+        {'data' => {'userByName' => {'id' => '10'}}}
       ]
     )
   end
@@ -82,17 +82,17 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
 
     expect(result.map(&:to_h)).to eq(
       [
-        { 'data' => { 'user' => { 'name' => 'Bits' } } },
-        { 'data' => { 'user' => { 'name' => 'Caniche' } } },
-        { 'data' => { 'userByName' => { 'id' => '10' } } },
+        {'data' => {'user' => {'name' => 'Bits'}}},
+        {'data' => {'user' => {'name' => 'Caniche'}}},
+        {'data' => {'userByName' => {'id' => '10'}}},
         {
           'errors' =>
           [
             {
               'message' => "Field 'error' doesn't exist on type 'Query'",
-              'locations' => [{ 'line' => 1, 'column' => 13 }],
+              'locations' => [{'line' => 1, 'column' => 13}],
               'path' => ['query test', 'error'],
-              'extensions' => { 'code' => 'undefinedField', 'typeName' => 'Query', 'fieldName' => 'error' }
+              'extensions' => {'code' => 'undefinedField', 'typeName' => 'Query', 'fieldName' => 'error'}
             }
           ]
         }

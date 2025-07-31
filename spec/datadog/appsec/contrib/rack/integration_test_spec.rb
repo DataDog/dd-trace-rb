@@ -35,46 +35,100 @@ RSpec.describe 'Rack integration tests' do
 
   let(:crs_942_100) do
     {
-      'version' => '2.2',
-      'metadata' => {
-        'rules_version' => '1.4.1'
+      version: '2.2',
+      metadata: {
+        rules_version: '1.4.1'
       },
-      'rules' => [
+      rules: [
         {
-          'id' => 'crs-942-100',
-          'name' => 'SQL Injection Attack Detected via libinjection',
-          'tags' => {
-            'type' => 'sql_injection',
-            'crs_id' => '942100',
-            'category' => 'attack_attempt'
+          id: 'crs-942-100',
+          name: 'SQL Injection Attack Detected via libinjection',
+          tags: {
+            type: 'sql_injection',
+            crs_id: '942100',
+            category: 'attack_attempt'
           },
-          'conditions' => [
+          conditions: [
             {
-              'parameters' => {
-                'inputs' => [
+              parameters: {
+                inputs: [
                   {
-                    'address' => 'server.request.query'
+                    address: 'server.request.query'
                   },
                   {
-                    'address' => 'server.request.body'
+                    address: 'server.request.body'
                   },
                   {
-                    'address' => 'server.request.path_params'
+                    address: 'server.request.path_params'
                   },
                   {
-                    'address' => 'grpc.server.request.message'
+                    address: 'grpc.server.request.message'
                   }
                 ]
               },
-              'operator' => 'is_sqli'
+              operator: 'is_sqli'
             }
           ],
-          'transformers' => [
+          transformers: [
             'removeNulls'
           ],
-          'on_match' => [
-            'block'
+          on_match: [
+            'block',
+            'extract_schema'
           ]
+        },
+      ],
+      processors: [
+        {
+          id: 'extract-content',
+          generator: 'extract_schema',
+          conditions: [
+            {
+              operator: 'equals',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'waf.context.processor',
+                    key_path: [
+                      'extract-schema'
+                    ]
+                  }
+                ],
+                type: 'boolean',
+                value: true
+              }
+            }
+          ],
+          parameters: {
+            mappings: [
+              {
+                inputs: [
+                  {
+                    address: 'server.request.query'
+                  }
+                ],
+                output: '_dd.appsec.s.req.query'
+              },
+              {
+                inputs: [
+                  {
+                    address: 'server.request.body'
+                  }
+                ],
+                output: '_dd.appsec.s.req.body'
+              },
+              {
+                inputs: [
+                  {
+                    address: 'server.request.path_params'
+                  }
+                ],
+                output: '_dd.appsec.s.req.params'
+              },
+            ]
+          },
+          evaluate: false,
+          output: true
         },
       ]
     }
@@ -82,11 +136,11 @@ RSpec.describe 'Rack integration tests' do
 
   let(:nfd_000_002) do
     {
-      'version' => '2.2',
-      'metadata' => {
-        'rules_version' => '1.4.1'
+      version: '2.2',
+      metadata: {
+        rules_version: '1.4.1'
       },
-      'rules' => [
+      rules: [
         {
           id: 'nfd-000-002',
           name: 'Detect failed attempt to fetch readme files',
@@ -126,9 +180,46 @@ RSpec.describe 'Rack integration tests' do
             }
           ],
           transformers: [],
-          'on_match' => [
+          on_match: [
             'block'
           ]
+        },
+      ],
+      processors: [
+        {
+          id: 'extract-content',
+          generator: 'extract_schema',
+          conditions: [
+            {
+              operator: 'equals',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'waf.context.processor',
+                    key_path: [
+                      'extract-schema'
+                    ]
+                  }
+                ],
+                type: 'boolean',
+                value: true
+              }
+            }
+          ],
+          parameters: {
+            mappings: [
+              {
+                inputs: [
+                  {
+                    address: 'server.request.uri.raw'
+                  }
+                ],
+                output: '_dd.appsec.s.req.uri.raw'
+              }
+            ]
+          },
+          evaluate: false,
+          output: true
         },
       ]
     }
@@ -141,7 +232,7 @@ RSpec.describe 'Rack integration tests' do
         {
           status: 200,
           body: request.headers.to_json,
-          headers: { 'Content-Type' => 'application/json' }
+          headers: {'Content-Type' => 'application/json'}
         }
       end
 
@@ -170,14 +261,19 @@ RSpec.describe 'Rack integration tests' do
         c.appsec.waf_timeout = 10_000_000 # in us
         c.appsec.ip_passlist = appsec_ip_passlist
         c.appsec.ip_denylist = appsec_ip_denylist
+
         c.appsec.user_id_denylist = appsec_user_id_denylist
         c.appsec.ruleset = appsec_ruleset
         c.appsec.api_security.enabled = api_security_enabled
-        c.appsec.api_security.sample_rate = api_security_sample
+        c.appsec.api_security.sample_delay = api_security_sample.to_i
 
         c.remote.enabled = remote_enabled
       end
     end
+
+    allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
+    allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
+      .and_return(true)
   end
 
   after do
@@ -247,6 +343,8 @@ RSpec.describe 'Rack integration tests' do
 
             c.appsec.enabled = appsec_enabled
             c.appsec.waf_timeout = 10_000_000 # in us
+            c.appsec.api_security.enabled = api_security_enabled
+            c.appsec.api_security.sample_delay = api_security_sample.to_i
             c.appsec.instrument :rack
           end
         end
@@ -255,7 +353,7 @@ RSpec.describe 'Rack integration tests' do
       let(:routes) do
         proc do
           map '/success/' do
-            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+            run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
           end
         end
       end
@@ -597,7 +695,7 @@ RSpec.describe 'Rack integration tests' do
       let(:routes) do
         proc do
           map '/success' do
-            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+            run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
           end
 
           map '/readme.md' do
@@ -605,9 +703,9 @@ RSpec.describe 'Rack integration tests' do
               proc do |env|
                 # When appsec is enabled we want to force the 404 to trigger a rule match
                 if env[Datadog::AppSec::Ext::CONTEXT_KEY]
-                  [404, { 'Content-Type' => 'text/html' }, ['NOT FOUND']]
+                  [404, {'Content-Type' => 'text/html'}, ['NOT FOUND']]
                 else
-                  [200, { 'Content-Type' => 'text/html' }, ['OK']]
+                  [200, {'Content-Type' => 'text/html'}, ['OK']]
                 end
               end
             )
@@ -617,7 +715,7 @@ RSpec.describe 'Rack integration tests' do
             run(
               proc do |_env|
                 Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: 'blocked-user-id')
-                [200, { 'Content-Type' => 'text/html' }, ['OK']]
+                [200, {'Content-Type' => 'text/html'}, ['OK']]
               end
             )
           end
@@ -635,7 +733,7 @@ RSpec.describe 'Rack integration tests' do
                   ext_response = http.request(ext_request)
                 end
 
-                [200, { 'Content-Type' => 'application/json' }, [ext_response.body]]
+                [200, {'Content-Type' => 'application/json'}, [ext_response.body]]
               end
             )
           end
@@ -652,7 +750,7 @@ RSpec.describe 'Rack integration tests' do
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
-        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
+        let(:env) { {'REMOTE_ADDR' => remote_addr}.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
@@ -683,9 +781,9 @@ RSpec.describe 'Rack integration tests' do
                 'ac882cd65a2712a0fe1289ec2bb6aee7',
 
               'http.request.headers.akamai-user-risk' =>
-                'uuid=12345678-1234-1234-1234-123456789012;request-id=12345678;status=0;score=61;'\
-                'risk=udfp:1234567890abcdefghijklmnopqrstuvwxyz1234/Hlunp=20057/H;trust=ugp:us;'\
-                'general=di=1234567890abcdefghijklmnopqrstuvwxyz1234|do=Mac iOS 14|db=iOS Safari 14|aci=0;'\
+                'uuid=12345678-1234-1234-1234-123456789012;request-id=12345678;status=0;score=61;' \
+                'risk=udfp:1234567890abcdefghijklmnopqrstuvwxyz1234/Hlunp=20057/H;trust=ugp:us;' \
+                'general=di=1234567890abcdefghijklmnopqrstuvwxyz1234|do=Mac iOS 14|db=iOS Safari 14|aci=0;' \
                 'allow=0;action=none',
 
               'http.request.headers.x-sigsci-requestid' =>
@@ -714,9 +812,9 @@ RSpec.describe 'Rack integration tests' do
                 'ac882cd65a2712a0fe1289ec2bb6aee7',
 
               'HTTP_AKAMAI_USER_RISK' =>
-                'uuid=12345678-1234-1234-1234-123456789012;request-id=12345678;status=0;score=61;'\
-                'risk=udfp:1234567890abcdefghijklmnopqrstuvwxyz1234/Hlunp=20057/H;trust=ugp:us;'\
-                'general=di=1234567890abcdefghijklmnopqrstuvwxyz1234|do=Mac iOS 14|db=iOS Safari 14|aci=0;'\
+                'uuid=12345678-1234-1234-1234-123456789012;request-id=12345678;status=0;score=61;' \
+                'risk=udfp:1234567890abcdefghijklmnopqrstuvwxyz1234/Hlunp=20057/H;trust=ugp:us;' \
+                'general=di=1234567890abcdefghijklmnopqrstuvwxyz1234|do=Mac iOS 14|db=iOS Safari 14|aci=0;' \
                 'allow=0;action=none',
 
               'HTTP_X_SIGSCI_REQUESTID' =>
@@ -743,7 +841,7 @@ RSpec.describe 'Rack integration tests' do
         end
 
         context 'with an event-triggering request in headers' do
-          let(:headers) { { 'HTTP_USER_AGENT' => 'Nessus SOAP' } }
+          let(:headers) { {'HTTP_USER_AGENT' => 'Nessus SOAP'} }
 
           it { is_expected.to be_ok }
           it { expect(triggers).to be_a Array }
@@ -756,7 +854,7 @@ RSpec.describe 'Rack integration tests' do
         end
 
         context 'with an event-triggering request in query string' do
-          let(:params) { { q: '1 OR 1;' } }
+          let(:params) { {q: '1 OR 1;'} }
 
           it { is_expected.to be_ok }
 
@@ -773,13 +871,13 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
 
             context 'and a passlist' do
               let(:client_ip) { '1.2.3.4' }
               let(:appsec_ip_passlist) { [client_ip] }
-              let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
+              let(:headers) { {'HTTP_X_FORWARDED_FOR' => client_ip} }
 
               it_behaves_like 'normal with tracing disable'
               it_behaves_like 'a GET 200 span'
@@ -790,8 +888,8 @@ RSpec.describe 'Rack integration tests' do
 
             context 'and a monitoring passlist' do
               let(:client_ip) { '1.2.3.4' }
-              let(:appsec_ip_passlist) { { monitor: [client_ip] } }
-              let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
+              let(:appsec_ip_passlist) { {monitor: [client_ip]} }
+              let(:headers) { {'HTTP_X_FORWARDED_FOR' => client_ip} }
 
               it_behaves_like 'normal with tracing disable'
               it_behaves_like 'a GET 200 span'
@@ -805,7 +903,7 @@ RSpec.describe 'Rack integration tests' do
         context 'with an event-triggering request in IP' do
           let(:client_ip) { '1.2.3.4' }
           let(:appsec_ip_denylist) { [client_ip] }
-          let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
+          let(:headers) { {'HTTP_X_FORWARDED_FOR' => client_ip} }
 
           it { is_expected.to be_forbidden }
 
@@ -837,7 +935,7 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
@@ -860,7 +958,7 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
@@ -872,7 +970,7 @@ RSpec.describe 'Rack integration tests' do
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
-        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
+        let(:env) { {'REMOTE_ADDR' => remote_addr}.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
@@ -885,7 +983,7 @@ RSpec.describe 'Rack integration tests' do
         end
 
         context 'with an event-triggering request in application/x-www-form-url-encoded body' do
-          let(:params) { { q: '1 OR 1;' } }
+          let(:params) { {q: '1 OR 1;'} }
 
           let(:middlewares) do
             [
@@ -910,15 +1008,15 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
         unless Gem.loaded_specs['rack-test'].version.to_s < '0.7'
           context 'with an event-triggering request in multipart/form-data body' do
-            let(:params) { Rack::Test::Utils.build_multipart({ q: '1 OR 1;' }, true, true) }
-            let(:headers) { { 'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}" } }
+            let(:params) { Rack::Test::Utils.build_multipart({q: '1 OR 1;'}, true, true) }
+            let(:headers) { {'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}"} }
 
             let(:middlewares) do
               [
@@ -944,7 +1042,7 @@ RSpec.describe 'Rack integration tests' do
               it_behaves_like 'normal with tracing disable'
               it_behaves_like 'a POST 403 span'
               it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events', { blocking: true }
+              it_behaves_like 'a trace with AppSec events', {blocking: true}
               it_behaves_like 'a trace with AppSec api security tags'
             end
           end
@@ -970,7 +1068,7 @@ RSpec.describe 'Rack integration tests' do
           end
 
           let(:params) { JSON.generate('q' => '1 OR 1;') }
-          let(:headers) { { 'CONTENT_TYPE' => 'application/json' } }
+          let(:headers) { {'CONTENT_TYPE' => 'application/json'} }
 
           it { is_expected.to be_ok }
 
@@ -988,7 +1086,7 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
@@ -1029,7 +1127,7 @@ RSpec.describe 'Rack integration tests' do
         context 'without appsec upstream without attack and trace is kept with priority 1' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
@@ -1083,7 +1181,7 @@ RSpec.describe 'Rack integration tests' do
         context 'without upstream appsec propagation with attack and trace is kept with priority 2' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
@@ -1131,7 +1229,7 @@ RSpec.describe 'Rack integration tests' do
         context 'with upstream appsec propagation without attack and trace is propagated as is' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'
@@ -1199,7 +1297,7 @@ RSpec.describe 'Rack integration tests' do
         context 'with any upstream propagation with attack and raises trace priority to 2' do
           subject(:response) do
             clear_traces!
-            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.addresses')
             get '/success/'
             # Second trace is a heartbeat trace
             get '/success/'

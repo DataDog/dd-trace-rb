@@ -69,7 +69,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: true # required for `git` operations (commit & push) at later steps
+          persist-credentials: false
 
       - name: Download artifacts for all runtimes
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -78,17 +78,25 @@ jobs:
           pattern: gha${{ github.run_id }}-datadog-gem-*
           merge-multiple: true
 
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
-          token: ${{ secrets.GHA_PAT }}
+          token: ${{ steps.generate-token.outputs.token }}
           branch: auto-generate/update-latest-dependencies
           title: '[🤖] Update Latest Dependency'
           base: master
           labels: dev/internal, integrations
           commit-message: "[🤖] Update Latest Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
+          sign-commits: true
           body: |
             _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
 

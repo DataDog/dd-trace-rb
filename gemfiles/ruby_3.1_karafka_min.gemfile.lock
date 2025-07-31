@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.15.0)
+    datadog (2.20.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.22.0.0.2)
+      libdatadog (~> 18.1.0.1.0)
+      libddwaf (~> 1.24.1.0.3)
       logger
       msgpack
 
@@ -68,23 +68,23 @@ GEM
       ffi (~> 1.15)
       mini_portile2 (~> 2.6)
       rake (> 12)
-    libdatadog (16.0.1.1.0)
-    libdatadog (16.0.1.1.0-aarch64-linux)
-    libdatadog (16.0.1.1.0-x86_64-linux)
-    libddwaf (1.22.0.0.2)
+    libdatadog (18.1.0.1.0)
+    libdatadog (18.1.0.1.0-aarch64-linux)
+    libdatadog (18.1.0.1.0-x86_64-linux)
+    libddwaf (1.24.1.0.3)
       ffi (~> 1.0)
-    libddwaf (1.22.0.0.2-aarch64-linux)
+    libddwaf (1.24.1.0.3-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.22.0.0.2-arm64-darwin)
+    libddwaf (1.24.1.0.3-arm64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.22.0.0.2-x86_64-darwin)
+    libddwaf (1.24.1.0.3-x86_64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.22.0.0.2-x86_64-linux)
+    libddwaf (1.24.1.0.3-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    mini_portile2 (2.8.8)
+    mini_portile2 (2.8.9)
     msgpack (1.8.0)
     os (1.1.4)
     pp (0.6.2)
@@ -97,7 +97,7 @@ GEM
       date
       stringio
     public_suffix (6.0.1)
-    rake (13.2.1)
+    rake (13.3.0)
     rake-compiler (1.2.9)
       rake
     rdoc (6.12.0)

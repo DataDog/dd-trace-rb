@@ -7,7 +7,7 @@ require 'rack/test'
 require 'datadog/tracing'
 require 'datadog/appsec'
 
-RSpec.describe 'Rails integration tests' do
+RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >= 8 do
   include Rack::Test::Methods
 
   let(:sorted_spans) do
@@ -39,50 +39,103 @@ RSpec.describe 'Rails integration tests' do
   let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
   let(:api_security_enabled) { false }
-  let(:api_security_sample) { 0.0 }
+  let(:api_security_sample) { 0 }
 
   let(:crs_942_100) do
     {
-      'version' => '2.2',
-      'metadata' => {
-        'rules_version' => '1.4.1'
+      version: '2.2',
+      metadata: {
+        rules_version: '1.4.1'
       },
-      'rules' => [
+      rules: [
         {
-          'id' => 'crs-942-100',
-          'name' => 'SQL Injection Attack Detected via libinjection',
-          'tags' => {
-            'type' => 'sql_injection',
-            'crs_id' => '942100',
-            'category' => 'attack_attempt'
+          id: 'crs-942-100',
+          name: 'SQL Injection Attack Detected via libinjection',
+          tags: {
+            type: 'sql_injection',
+            crs_id: '942100',
+            category: 'attack_attempt'
           },
-          'conditions' => [
+          conditions: [
             {
-              'parameters' => {
-                'inputs' => [
+              parameters: {
+                inputs: [
                   {
-                    'address' => 'server.request.query'
+                    address: 'server.request.query'
                   },
                   {
-                    'address' => 'server.request.body'
+                    address: 'server.request.body'
                   },
                   {
-                    'address' => 'server.request.path_params'
+                    address: 'server.request.path_params'
                   },
                   {
-                    'address' => 'grpc.server.request.message'
+                    address: 'grpc.server.request.message'
                   }
                 ]
               },
-              'operator' => 'is_sqli'
+              operator: 'is_sqli'
             }
           ],
-          'transformers' => [
+          transformers: [
             'removeNulls'
           ],
-          'on_match' => [
+          on_match: [
             'block'
           ]
+        },
+      ],
+      processors: [
+        {
+          id: 'extract-content',
+          generator: 'extract_schema',
+          conditions: [
+            {
+              operator: 'equals',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'waf.context.processor',
+                    key_path: [
+                      'extract-schema'
+                    ]
+                  }
+                ],
+                type: 'boolean',
+                value: true
+              }
+            }
+          ],
+          parameters: {
+            mappings: [
+              {
+                inputs: [
+                  {
+                    address: 'server.request.query'
+                  }
+                ],
+                output: '_dd.appsec.s.req.query'
+              },
+              {
+                inputs: [
+                  {
+                    address: 'server.request.body'
+                  }
+                ],
+                output: '_dd.appsec.s.req.body'
+              },
+              {
+                inputs: [
+                  {
+                    address: 'server.request.path_params'
+                  }
+                ],
+                output: '_dd.appsec.s.req.params'
+              },
+            ]
+          },
+          evaluate: false,
+          output: true
         },
       ]
     }
@@ -104,8 +157,12 @@ RSpec.describe 'Rails integration tests' do
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
       c.appsec.api_security.enabled = api_security_enabled
-      c.appsec.api_security.sample_rate = api_security_sample
+      c.appsec.api_security.sample_delay = api_security_sample.to_i
     end
+
+    allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
+    allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
+      .and_return(true)
   end
 
   after do
@@ -179,7 +236,7 @@ RSpec.describe 'Rails integration tests' do
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
-        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
+        let(:env) { {'REMOTE_ADDR' => remote_addr}.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
@@ -192,7 +249,7 @@ RSpec.describe 'Rails integration tests' do
         end
 
         context 'with an event-triggering request in headers' do
-          let(:headers) { { 'HTTP_USER_AGENT' => 'Nessus SOAP' } }
+          let(:headers) { {'HTTP_USER_AGENT' => 'Nessus SOAP'} }
 
           it { is_expected.to be_ok }
           it { expect(triggers).to be_a Array }
@@ -205,7 +262,7 @@ RSpec.describe 'Rails integration tests' do
         end
 
         context 'with an event-triggering request in query string' do
-          let(:params) { { q: '1 OR 1;' } }
+          let(:params) { {q: '1 OR 1;'} }
 
           it { is_expected.to be_ok }
 
@@ -223,7 +280,7 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
@@ -253,7 +310,7 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
@@ -261,14 +318,14 @@ RSpec.describe 'Rails integration tests' do
         context 'with an event-triggering request in IP' do
           let(:client_ip) { '1.2.3.4' }
           let(:appsec_ip_denylist) { [client_ip] }
-          let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
+          let(:headers) { {'HTTP_X_FORWARDED_FOR' => client_ip} }
 
           it { is_expected.to be_forbidden }
 
           it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 403 span'
           it_behaves_like 'a trace with AppSec tags'
-          it_behaves_like 'a trace with AppSec events', { blocking: true }
+          it_behaves_like 'a trace with AppSec events', {blocking: true}
           it_behaves_like 'a trace with AppSec api security tags'
         end
 
@@ -316,7 +373,7 @@ RSpec.describe 'Rails integration tests' do
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
-        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
+        let(:env) { {'REMOTE_ADDR' => remote_addr}.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
@@ -329,8 +386,8 @@ RSpec.describe 'Rails integration tests' do
         end
 
         context 'with an event-triggering request in application/x-www-form-url-encoded body' do
-          let(:params) { { q: '1 OR 1;' } }
-          let(:headers) { { 'HTTP_X_Forwarded' => '2001:db8:85a3:8d3:1319:8a2e:370:7348' } }
+          let(:params) { {q: '1 OR 1;'} }
+          let(:headers) { {'HTTP_X_Forwarded' => '2001:db8:85a3:8d3:1319:8a2e:370:7348'} }
 
           it { is_expected.to be_ok }
 
@@ -352,15 +409,15 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
         unless Gem.loaded_specs['rack-test'].version.to_s < '0.7'
           context 'with an event-triggering request in multipart/form-data body' do
-            let(:params) { Rack::Test::Utils.build_multipart({ q: '1 OR 1;' }, true, true) }
-            let(:headers) { { 'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}" } }
+            let(:params) { Rack::Test::Utils.build_multipart({q: '1 OR 1;'}, true, true) }
+            let(:headers) { {'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}"} }
 
             it { is_expected.to be_ok }
 
@@ -378,7 +435,7 @@ RSpec.describe 'Rails integration tests' do
               it_behaves_like 'normal with tracing disable'
               it_behaves_like 'a POST 403 span'
               it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events', { blocking: true }
+              it_behaves_like 'a trace with AppSec events', {blocking: true}
               it_behaves_like 'a trace with AppSec api security tags'
             end
           end
@@ -386,7 +443,7 @@ RSpec.describe 'Rails integration tests' do
 
         context 'with an event-triggering request as JSON' do
           let(:params) { JSON.generate('q' => '1 OR 1;') }
-          let(:headers) { { 'CONTENT_TYPE' => 'application/json' } }
+          let(:headers) { {'CONTENT_TYPE' => 'application/json'} }
 
           it { is_expected.to be_ok }
 
@@ -404,7 +461,7 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
@@ -425,7 +482,7 @@ RSpec.describe 'Rails integration tests' do
           Rack::Builder.new do
             app_middlewares.each { |m| use m }
             map '/' do
-              run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+              run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
             end
           end.to_app
         end
@@ -442,7 +499,7 @@ RSpec.describe 'Rails integration tests' do
           let(:url) { '/api' }
           let(:params) { {} }
           let(:headers) { {} }
-          let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
+          let(:env) { {'REMOTE_ADDR' => remote_addr}.merge!(headers) }
 
           context 'with a non-event-triggering request' do
             it { is_expected.to be_ok }
@@ -454,7 +511,7 @@ RSpec.describe 'Rails integration tests' do
           end
 
           context 'with an event-triggering request in headers' do
-            let(:headers) { { 'HTTP_USER_AGENT' => 'Nessus SOAP' } }
+            let(:headers) { {'HTTP_USER_AGENT' => 'Nessus SOAP'} }
 
             it { is_expected.to be_ok }
             it { expect(triggers).to be_a Array }
@@ -466,7 +523,7 @@ RSpec.describe 'Rails integration tests' do
           end
 
           context 'with an event-triggering request in query string' do
-            let(:params) { { q: '1 OR 1;' } }
+            let(:params) { {q: '1 OR 1;'} }
 
             it { is_expected.to be_ok }
 
@@ -483,7 +540,7 @@ RSpec.describe 'Rails integration tests' do
               it_behaves_like 'normal with tracing disable'
               it_behaves_like 'a GET 403 span'
               it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events', { blocking: true }
+              it_behaves_like 'a trace with AppSec events', {blocking: true}
             end
           end
         end

@@ -157,6 +157,7 @@ module Datadog
       require_relative 'profiling/native_extension'
       require_relative 'profiling/tag_builder'
       require_relative 'profiling/http_transport'
+      require_relative 'profiling/sequence_tracker'
 
       replace_noop_allocation_count
 

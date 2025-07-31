@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.15.0)
+    datadog (2.20.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.22.0.0.2)
+      libdatadog (~> 18.1.0.1.0)
+      libddwaf (~> 1.24.1.0.3)
       logger
       msgpack
 
@@ -13,7 +13,7 @@ GEM
   specs:
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
-    base64 (0.2.0)
+    base64 (0.3.0)
     benchmark-ips (2.14.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -32,10 +32,10 @@ GEM
     elastic-transport (8.4.0)
       faraday (< 3)
       multi_json
-    elasticsearch (9.0.2)
+    elasticsearch (9.0.3)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 9.0.2)
-    elasticsearch-api (9.0.2)
+      elasticsearch-api (= 9.0.3)
+    elasticsearch-api (9.0.3)
       multi_json
     extlz4 (0.3.4)
     faraday (2.8.1)
@@ -49,11 +49,11 @@ GEM
     hashdiff (1.1.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (16.0.1.1.0-aarch64-linux)
-    libdatadog (16.0.1.1.0-x86_64-linux)
-    libddwaf (1.22.0.0.2-aarch64-linux)
+    libdatadog (18.1.0.1.0-aarch64-linux)
+    libdatadog (18.1.0.1.0-x86_64-linux)
+    libddwaf (1.24.1.0.3-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.22.0.0.2-x86_64-linux)
+    libddwaf (1.24.1.0.3-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)

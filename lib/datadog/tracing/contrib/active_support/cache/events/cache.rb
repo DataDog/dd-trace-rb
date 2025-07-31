@@ -45,8 +45,14 @@ module Datadog
                 'cache_write_multi.active_support' => { resource: Ext::RESOURCE_CACHE_MSET, multi_key: true }
               }.freeze
 
-              def trace?(event, _payload)
+              def trace?(event, payload)
                 return false if !Tracing.enabled? || !configuration.enabled
+
+                if (cache_store = configuration[:cache_store])
+                  store = cache_backend(payload[:store])
+
+                  return false unless cache_store.include?(store)
+                end
 
                 # DEV-3.0: Backwards compatibility code for the 2.x gem series.
                 # DEV-3.0: See documentation at {Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation}
@@ -62,7 +68,10 @@ module Datadog
               end
 
               def on_start(span, event, _id, payload)
-                key = payload[:key]
+                # Since Rails 8, `dd_original_keys` contains the denormalized key provided by the user.
+                # In previous versions, the denormalized key is stored in the official `key` attribute.
+                # We fall back to `key`, even in Rails 8, as a defensive measure.
+                key = payload[:dd_original_keys] || payload[:key]
                 store = payload[:store]
 
                 mapping = MAPPING.fetch(event)

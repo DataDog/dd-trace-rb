@@ -22,6 +22,12 @@ module Datadog
           def service=: (::String) -> void
         end
 
+        interface _ErrorTracking
+          def handled_errors: () -> String
+
+          def handled_errors_include: () -> Array[String]
+        end
+
         interface _AppSec
           def enabled: () -> bool
 
@@ -48,6 +54,12 @@ module Datadog
           def ruleset=: (String | Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
 
           def block: () -> _AppSecBlock
+
+          def ip_passlist: () -> ::Array[::String]
+
+          def ip_denylist: () -> ::Array[::String]
+
+          def user_id_denylist: () -> ::Array[::String]
         end
 
         interface _AppSecBlock
@@ -125,6 +137,8 @@ module Datadog
         def dynamic_instrumentation: (?untyped? options) -> Datadog::Core::Configuration::Settings::_DI
 
         def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
+
+        def error_tracking: () -> Datadog::Core::Configuration::Settings::_ErrorTracking
       end
     end
   end

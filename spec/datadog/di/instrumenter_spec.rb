@@ -58,7 +58,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:call_keys) do
-    %i[caller_locations duration probe rv serialized_entry_args]
+    %i[caller_locations duration probe rv serialized_entry_args target_self]
   end
 
   shared_context 'with code tracking' do
@@ -301,6 +301,39 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'when capturing snapshot and there are instance variables' do
+      let(:probe_args) do
+        {type_name: 'HookIvarTestClass', method_name: 'hook_test_method',
+         capture_snapshot: true}
+      end
+
+      let(:target_call) do
+        expect(HookIvarTestClass.new.hook_test_method).to eq 42
+      end
+
+      it 'captures instance variables' do
+        instrumenter.hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        target_call
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.keys.sort).to eq call_keys
+        expect(observed_calls.first[:rv]).to eq 42
+        expect(observed_calls.first[:duration]).to be_a(Float)
+
+        expect(observed_calls.first[:serialized_entry_args]).to eq(
+          self: {
+            type: 'HookIvarTestClass',
+            fields: {
+              :@ivar => {type: 'Integer', value: '2442'},
+            },
+          },
+        )
+      end
+    end
+
     context 'positional args' do
       context 'without snapshot capture' do
         let(:probe_args) do
@@ -345,7 +378,44 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first[:rv]).to eq 2
             expect(observed_calls.first[:duration]).to be_a(Float)
 
-            expect(observed_calls.first[:serialized_entry_args]).to eq(arg1: {type: 'Integer', value: '2'})
+            expect(observed_calls.first[:serialized_entry_args]).to eq(
+              arg1: {type: 'Integer', value: '2'},
+              self: {type: 'HookTestClass', fields: {}},
+            )
+          end
+
+          context 'when there are instance variables' do
+            let(:probe_args) do
+              {type_name: 'HookIvarTestClass', method_name: 'hook_test_method_with_arg',
+               capture_snapshot: true}
+            end
+
+            let(:target_call) do
+              expect(HookIvarTestClass.new.hook_test_method_with_arg(2)).to eq 2
+            end
+
+            it 'captures instance variables in addition to parameters' do
+              instrumenter.hook_method(probe) do |payload|
+                observed_calls << payload
+              end
+
+              target_call
+
+              expect(observed_calls.length).to eq 1
+              expect(observed_calls.first.keys.sort).to eq call_keys
+              expect(observed_calls.first[:rv]).to eq 2
+              expect(observed_calls.first[:duration]).to be_a(Float)
+
+              expect(observed_calls.first[:serialized_entry_args]).to eq(
+                arg1: {type: 'Integer', value: '2'},
+                self: {
+                  type: 'HookIvarTestClass',
+                  fields: {
+                    :@ivar => {type: 'Integer', value: '2442'},
+                  },
+                },
+              )
+            end
           end
         end
 
@@ -398,7 +468,10 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first[:rv]).to eq 42
             expect(observed_calls.first[:duration]).to be_a(Float)
 
-            expect(observed_calls.first[:serialized_entry_args]).to eq(kwarg: {type: 'Integer', value: '42'})
+            expect(observed_calls.first[:serialized_entry_args]).to eq(
+              kwarg: {type: 'Integer', value: '42'},
+              self: {type: 'HookTestClass', fields: {}},
+            )
           end
         end
 
@@ -422,6 +495,40 @@ RSpec.describe Datadog::DI::Instrumenter do
             let(:rate_limit) { 0 }
 
             include_examples 'does not invoke callback but invokes target method'
+          end
+        end
+
+        context 'when there are instance variables' do
+          let(:probe_args) do
+            {type_name: 'HookIvarTestClass', method_name: 'hook_test_method_with_kwarg',
+             capture_snapshot: true}
+          end
+
+          let(:target_call) do
+            expect(HookIvarTestClass.new.hook_test_method_with_kwarg(kwarg: 42)).to eq 42
+          end
+
+          it 'captures instance variables in addition to kwargs' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq 42
+            expect(observed_calls.first[:duration]).to be_a(Float)
+
+            expect(observed_calls.first[:serialized_entry_args]).to eq(
+              kwarg: {type: 'Integer', value: '42'},
+              self: {
+                type: 'HookIvarTestClass',
+                fields: {
+                  :@ivar => {type: 'Integer', value: '2442'},
+                },
+              },
+            )
           end
         end
       end
@@ -455,7 +562,8 @@ RSpec.describe Datadog::DI::Instrumenter do
               # TODO actual argument name not captured yet,
               # requires method call trace point.
               arg1: {type: 'Integer', value: '41'},
-              kwarg: {type: 'Integer', value: '42'}
+              kwarg: {type: 'Integer', value: '42'},
+              self: {type: 'HookTestClass', fields: {}},
             )
           end
         end
@@ -503,7 +611,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.first[:duration]).to be_a(Float)
 
           expect(observed_calls.first[:serialized_entry_args]).to eq(
-            kwarg: {type: 'Integer', value: '42'}
+            kwarg: {type: 'Integer', value: '42'},
+            self: {type: 'HookTestClass', fields: {}},
           )
         end
       end
@@ -559,6 +668,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first[:serialized_entry_args]).to eq(
               arg1: {type: 'String', value: 'hello'},
               kwarg: {type: 'Integer', value: '42'},
+              self: {type: 'HookTestClass', fields: {}},
             )
           end
         end
@@ -772,7 +882,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     let(:call_keys) do
-      %i[caller_locations probe trace_point]
+      %i[caller_locations path probe serialized_locals target_self]
     end
 
     context 'when called without a block' do
@@ -966,9 +1076,11 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         expect(observed_calls.length).to eq 2
         expect(observed_calls.first).to be_a(Hash)
-        expect(observed_calls.first[:trace_point]).to be_a(TracePoint)
+        # We do not have locals here because we are not capturing,
+        # but we do have path which came from the trace point object.
+        expect(observed_calls.first[:path]).to be_a(String)
         expect(observed_calls[1]).to be_a(Hash)
-        expect(observed_calls[1][:trace_point]).to be_a(TracePoint)
+        expect(observed_calls[1][:path]).to be_a(String)
       end
     end
 

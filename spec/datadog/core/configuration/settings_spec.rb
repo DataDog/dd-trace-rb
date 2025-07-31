@@ -487,7 +487,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be 10 }
+            it { is_expected.to be 1 }
           end
 
           context 'is defined as 100' do
@@ -502,7 +502,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'updates the #experimental_heap_sample_rate setting' do
           expect { settings.profiling.advanced.experimental_heap_sample_rate = 100 }
             .to change { settings.profiling.advanced.experimental_heap_sample_rate }
-            .from(10)
+            .from(1)
             .to(100)
         end
       end
@@ -645,10 +645,18 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       describe '#experimental_crash_tracking_enabled=' do
+        before { allow(Datadog::Core).to receive(:log_deprecation) }
+
         it 'updates the #experimental_crash_tracking_enabled setting' do
           expect { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
             .to change { settings.profiling.advanced.experimental_crash_tracking_enabled }
             .from(nil).to(true)
+        end
+
+        it "logs a warning informing customers this no longer does anything" do
+          expect(Datadog::Core).to receive(:log_deprecation)
+
+          settings.profiling.advanced.experimental_crash_tracking_enabled = false
         end
       end
 
@@ -818,6 +826,66 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
         end
       end
+
+      describe '#native_filenames_enabled' do
+        subject(:native_filenames_enabled) { settings.profiling.advanced.native_filenames_enabled }
+
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_NATIVE_FILENAMES_ENABLED', default: true
+      end
+
+      describe '#native_filenames_enabled=' do
+        it 'updates the #native_filenames_enabled setting' do
+          expect { settings.profiling.advanced.native_filenames_enabled = false }
+            .to change { settings.profiling.advanced.native_filenames_enabled }
+            .from(true)
+            .to(false)
+        end
+      end
+
+      describe '#sighandler_sampling_enabled' do
+        subject(:sighandler_sampling_enabled) { settings.profiling.advanced.sighandler_sampling_enabled }
+
+        context 'on Ruby 3.2.4 and below' do
+          before { stub_const('RUBY_VERSION', '3.2.4') }
+
+          it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: false
+        end
+
+        context 'on Ruby 3.3 < 3.3.4' do
+          before { stub_const('RUBY_VERSION', '3.3.3') }
+
+          it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: false
+        end
+
+        context 'on Ruby 3.2 >= 3.2.5' do
+          before { stub_const('RUBY_VERSION', '3.2.5') }
+
+          it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: true
+        end
+
+        context 'on Ruby 3.3 >= 3.3.4' do
+          before { stub_const('RUBY_VERSION', '3.3.4') }
+
+          it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: true
+        end
+
+        context 'on Ruby 3.4' do
+          before { stub_const('RUBY_VERSION', '3.4.0') }
+
+          it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: true
+        end
+      end
+
+      describe '#sighandler_sampling_enabled=' do
+        it 'updates the #sighandler_sampling_enabled setting' do
+          default = settings.profiling.advanced.sighandler_sampling_enabled # Default is already tested in the getter
+
+          expect { settings.profiling.advanced.sighandler_sampling_enabled = !default }
+            .to change { settings.profiling.advanced.sighandler_sampling_enabled }
+            .from(default)
+            .to(!default)
+        end
+      end
     end
 
     describe '#upload' do
@@ -871,6 +939,57 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.runtime_metrics.enabled }
           .from(false)
           .to(true)
+      end
+    end
+
+    describe '#experimental_runtime_id_enabled' do
+      subject(:experimental_runtime_id_enabled) { settings.runtime_metrics.experimental_runtime_id_enabled }
+
+      let(:primary_env_var) { 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED' }
+      let(:fallback_env_var) { 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED' }
+
+      around do |example|
+        ClimateControl.modify(
+          primary_env_var => primary_enabled,
+          fallback_env_var => fallback_enabled
+        ) do
+          example.run
+        end
+      end
+
+      context 'by default' do
+        let(:primary_enabled) { nil }
+        let(:fallback_enabled) { nil }
+
+        it { is_expected.to be false }
+      end
+
+      context 'when only the primary env var DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED is set to true' do
+        let(:primary_enabled) { 'true' }
+        let(:fallback_enabled) { nil }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when only the fallback env var DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED is set to true' do
+        let(:primary_enabled) { nil }
+        let(:fallback_enabled) { 'true' }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when both env vars are set to true' do
+        let(:primary_enabled) { 'true' }
+        let(:fallback_enabled) { 'true' }
+
+        it { is_expected.to be true }
+      end
+
+      context "when primary env var is false and fallback is true" do
+        let(:primary_enabled) { 'false' }
+        let(:fallback_enabled) { 'true' }
+
+        it { is_expected.to be false }
       end
     end
 

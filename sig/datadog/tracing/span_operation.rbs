@@ -5,6 +5,10 @@ module Datadog
       include Metadata::Tagging
       include Metadata::Errors
       prepend Metadata::Analytics
+      
+      @logger: Core::Logger
+      
+      attr_reader logger: Core::Logger
 
       attr_reader links: untyped
 
@@ -54,15 +58,19 @@ module Datadog
 
       def resource=: (untyped resource) -> untyped
 
+      def get_collector_or_initialize: () { () -> Datadog::ErrorTracking::Collector } -> Datadog::ErrorTracking::Collector
+
       def measure: () { (untyped) -> untyped } -> untyped
 
       def start: (?untyped? start_time) -> self
 
-      def stop: (?untyped? stop_time) -> self?
+      def stop: (?Time? stop_time, ?exception: Exception) -> self?
 
       def started?: () -> untyped
 
       def stopped?: () -> untyped
+
+      def root?: () -> bool
 
       def start_time=: (untyped time) -> untyped
 
@@ -76,6 +84,8 @@ module Datadog
 
       def set_error: (untyped e) -> untyped
 
+      def record_exception: (Exception exception, ?attributes: SpanEvent::attributes) -> void
+
       def to_s: () -> ::String
 
       def to_hash: () -> untyped
@@ -86,6 +96,8 @@ module Datadog
         include Tracing::Events
 
         DEFAULT_ON_ERROR: on_error
+	
+	attr_reader logger: Core::Logger
 
         attr_reader after_finish: untyped
 
@@ -93,7 +105,7 @@ module Datadog
 
         attr_reader before_start: untyped
 
-        def initialize: (?on_error: on_error) -> void
+        def initialize: (?logger: Core::Logger, ?on_error: on_error) -> void
 
         def on_error: () -> OnError
 
@@ -110,7 +122,9 @@ module Datadog
         end
 
         class OnError
-          def initialize: (untyped default) -> void
+          def initialize: (untyped default, ?logger: Core::Logger) -> void
+	
+          attr_reader logger: Core::Logger
 
           def wrap_default: () { (untyped, untyped) -> untyped } -> untyped
 

@@ -9,7 +9,7 @@ module Datadog
       @exporter_configuration: exporter_configuration_array
 
       def initialize: (
-        agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+        agent_settings: Datadog::Core::Configuration::AgentSettings,
         site: ::String?,
         api_key: ::String?,
         upload_timeout_seconds: ::Integer,
@@ -27,10 +27,6 @@ module Datadog
         exporter_configuration_array exporter_configuration,
         ::Integer upload_timeout_milliseconds,
         Datadog::Profiling::Flush flush,
-        ::Integer start_timespec_seconds,
-        ::Integer start_timespec_nanoseconds,
-        ::Integer finish_timespec_seconds,
-        ::Integer finish_timespec_nanoseconds,
       ) -> [:ok | :error, ::Integer | ::String]
 
       def config_without_api_key: () -> ::String
