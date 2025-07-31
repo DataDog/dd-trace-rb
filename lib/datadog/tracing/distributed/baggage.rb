@@ -23,10 +23,12 @@ module Datadog
 
         def initialize(
           fetcher:,
-          baggage_key: BAGGAGE_KEY
+          baggage_key: BAGGAGE_KEY,
+          baggage_tag_keys: ::Datadog.configuration.tracing.baggage_tag_keys
         )
           @baggage_key = baggage_key
           @fetcher = fetcher
+          @baggage_tag_keys = baggage_tag_keys
         end
 
         def inject!(digest, data)
@@ -131,24 +133,22 @@ module Datadog
           baggage
         end
 
-        # Convert baggage items to trace_distributed_tags with 'baggage.' prefix
-        # based on the baggage_tag_keys configuration
+        # Convert selected baggage items to span tags
+        # Baggage carries important contextual information (like user.id, session.id) across distributed services,
+        # but isn't searchable by default.
         def build_baggage_tags(baggage)
           return {} if baggage.empty?
 
           # Get the configuration for which baggage keys should become span tags
-          baggage_tag_keys = ::Datadog.configuration.tracing.baggage_tag_keys
+          baggage_tag_keys = @baggage_tag_keys
           return {} if baggage_tag_keys.empty?
 
           # If wildcard is specified, use all baggage keys
-          baggage_tag_keys = baggage.keys if baggage_tag_keys == BAGGAGE_TAG_KEYS_MATCH_ALL
+          baggage_tag_keys = baggage if baggage_tag_keys == BAGGAGE_TAG_KEYS_MATCH_ALL
 
           tags = {}
 
-          # Convert configured keys to span tags
-          baggage_tag_keys.each do |key|
-            next unless baggage.key?(key)
-
+          baggage_tag_keys.each do |key, _| # rubocop:disable Style/HashEachMethods
             value = baggage[key]
             next if value.nil? || value.empty?
 

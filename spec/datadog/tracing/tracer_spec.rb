@@ -1061,6 +1061,8 @@ RSpec.describe Datadog::Tracing::Tracer do
   end
 
   describe '#baggage_tracing_interactions' do
+    before { Datadog.configure {} }
+
     it 'baggage set before active trace creates active trace' do
       Datadog::Tracing.baggage['key'] = 'value'
       Datadog::Tracing.trace('operation') do |_span, trace|
