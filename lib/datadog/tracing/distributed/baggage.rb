@@ -17,6 +17,7 @@ module Datadog
         BAGGAGE_KEY = 'baggage'
         DD_TRACE_BAGGAGE_MAX_ITEMS = 64
         DD_TRACE_BAGGAGE_MAX_BYTES = 8192
+        BAGGAGE_TAG_KEYS_MATCH_ALL = ['*'].freeze
         SAFE_CHARACTERS_KEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'*+-.^_`|~"
         SAFE_CHARACTERS_VALUE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'()*+-./:<>?@[]^_`{|}~"
 
@@ -72,8 +73,12 @@ module Datadog
           baggage = parse_baggage_header(fetcher[@baggage_key])
           return unless baggage
 
+          # Convert selected baggage items to span tags based on configuration
+          baggage_tags = build_baggage_tags(baggage)
+
           TraceDigest.new(
             baggage: baggage,
+            trace_distributed_tags: baggage_tags
           )
         end
 
@@ -124,6 +129,33 @@ module Datadog
             baggage[key] = value
           end
           baggage
+        end
+
+        # Convert baggage items to trace_distributed_tags with 'baggage.' prefix
+        # based on the baggage_tag_keys configuration
+        def build_baggage_tags(baggage)
+          return {} if baggage.empty?
+
+          # Get the configuration for which baggage keys should become span tags
+          baggage_tag_keys = ::Datadog.configuration.tracing.baggage_tag_keys
+          return {} if baggage_tag_keys.empty?
+
+          # If wildcard is specified, use all baggage keys
+          baggage_tag_keys = baggage.keys if baggage_tag_keys == BAGGAGE_TAG_KEYS_MATCH_ALL
+
+          tags = {}
+
+          # Convert configured keys to span tags
+          baggage_tag_keys.each do |key|
+            next unless baggage.key?(key)
+
+            value = baggage[key]
+            next if value.nil? || value.empty?
+
+            tags["baggage.#{key}"] = value
+          end
+
+          tags
         end
       end
     end

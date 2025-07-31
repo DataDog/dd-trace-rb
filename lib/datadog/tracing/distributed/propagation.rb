@@ -155,13 +155,24 @@ module Datadog
             # Merge with baggage if present
             digest = @baggage_propagator.extract(data)
             if digest
-              extracted_trace_digest.merge(baggage: digest.baggage)
+              puts 'DEBUG: propagate_baggage - merging baggage tags'
+              puts "DEBUG: existing trace_distributed_tags = #{extracted_trace_digest.trace_distributed_tags.inspect}"
+              puts "DEBUG: new baggage tags = #{digest.trace_distributed_tags.inspect}"
+              result = extracted_trace_digest.merge(
+                baggage: digest.baggage,
+                trace_distributed_tags: digest.trace_distributed_tags
+              )
+              puts "DEBUG: final merged trace_distributed_tags = #{result.trace_distributed_tags.inspect}"
+              result
             else
               extracted_trace_digest
             end
           else
             # Baggage is the only style
-            @baggage_propagator.extract(data)
+            result = @baggage_propagator.extract(data)
+            puts 'DEBUG: propagate_baggage - baggage only style'
+            puts "DEBUG: baggage only result = #{result&.trace_distributed_tags.inspect}"
+            result
           end
         end
 
