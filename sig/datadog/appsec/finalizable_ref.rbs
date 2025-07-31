@@ -1,6 +1,6 @@
 module Datadog
   module AppSec
-    class RefCounter
+    class FinalizableRef
       @current: untyped
 
       @finalizer: ::Symbol
@@ -13,7 +13,7 @@ module Datadog
 
       def initialize: (untyped initial_obj) -> void
 
-      def acquire_current: () -> untyped
+      def acquire: () -> untyped
 
       def release: (untyped obj) -> void
 

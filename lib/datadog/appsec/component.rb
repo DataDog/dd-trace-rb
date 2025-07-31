@@ -4,7 +4,7 @@ require_relative 'security_engine/engine'
 require_relative 'security_engine/runner'
 require_relative 'processor/rule_loader'
 require_relative 'actions_handler'
-require_relative 'ref_counter'
+require_relative 'finalizable_ref'
 
 module Datadog
   module AppSec

@@ -4,7 +4,7 @@ module Datadog
       class Engine
         @waf_builder: WAF::HandleBuilder
 
-        @waf_ref_counter: RefCounter
+        @finalizable_handle: FinalizableRef
 
         @waf_addresses: ::Array[::String]
 

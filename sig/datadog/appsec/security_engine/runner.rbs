@@ -6,6 +6,8 @@ module Datadog
 
         @mutex: ::Mutex
 
+        @finalizable_handle: FinalizableRef
+
         @waf_handle: WAF::Handle
 
         @waf_context: WAF::Context
@@ -14,7 +16,7 @@ module Datadog
 
         SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
 
-        def initialize: (RefCounter waf_ref_counter) -> void
+        def initialize: (FinalizableRef finalizable_handle) -> void
 
         def run: (input_data persistent_data, input_data ephemeral_data, ?::Integer timeout) -> SecurityEngine::result
 
