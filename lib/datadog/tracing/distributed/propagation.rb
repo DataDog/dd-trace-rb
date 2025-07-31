@@ -155,18 +155,16 @@ module Datadog
             # Merge with baggage if present
             digest = @baggage_propagator.extract(data)
             if digest
-              result = extracted_trace_digest.merge(
+              extracted_trace_digest.merge(
                 baggage: digest.baggage,
                 trace_distributed_tags: digest.trace_distributed_tags
               )
-              result
             else
               extracted_trace_digest
             end
           else
             # Baggage is the only style
-            result = @baggage_propagator.extract(data)
-            result
+            @baggage_propagator.extract(data)
           end
         end
 
