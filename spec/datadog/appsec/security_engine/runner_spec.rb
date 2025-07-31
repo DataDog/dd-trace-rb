@@ -6,16 +6,16 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_loader'
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
-  let(:finalizable_ref) { instance_double(Datadog::AppSec::FinalizableRef) }
+  let(:thread_safe_ref) { instance_double(Datadog::AppSec::ThreadSafeRef) }
   let(:waf_handle) { instance_double(Datadog::AppSec::WAF::Handle) }
   let(:waf_context) { instance_double(Datadog::AppSec::WAF::Context) }
 
   before do
-    allow(finalizable_ref).to receive(:acquire).and_return(waf_handle)
+    allow(thread_safe_ref).to receive(:acquire).and_return(waf_handle)
     allow(waf_handle).to receive(:build_context).and_return(waf_context)
   end
 
-  subject(:runner) { described_class.new(finalizable_ref) }
+  subject(:runner) { described_class.new(thread_safe_ref) }
 
   describe '#run' do
     context 'when keys contain values to clean' do

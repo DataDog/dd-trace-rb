@@ -2,10 +2,12 @@
 
 module Datadog
   module AppSec
-    # This class is used for counting references to objects.
-    # It might be useful when we need to substitute one object with another
-    # and finalize the previous one in a thread-safe manner.
-    class FinalizableRef
+    # This class is used for referencing an object that might be marked
+    # for finalization in another thread.
+    #
+    # References to the object are counted, and objects marked for finalization
+    # can be safely finalized when their reference count reaches zero.
+    class ThreadSafeRef
       def initialize(initial_obj, finalizer: :finalize!)
         @current = initial_obj
         @finalizer = finalizer

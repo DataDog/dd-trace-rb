@@ -1,8 +1,8 @@
 require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/finalizable_ref'
+require 'datadog/appsec/thread_safe_ref'
 
-RSpec.describe Datadog::AppSec::FinalizableRef do
-  subject(:finalizable_ref) { described_class.new(initial_obj, finalizer: :finalize_me!) }
+RSpec.describe Datadog::AppSec::ThreadSafeRef do
+  subject(:thread_safe_ref) { described_class.new(initial_obj, finalizer: :finalize_me!) }
 
   let(:test_object_class) do
     Class.new do
@@ -24,37 +24,37 @@ RSpec.describe Datadog::AppSec::FinalizableRef do
 
   describe '#acquire' do
     it 'returns the current object' do
-      expect(finalizable_ref.acquire).to eq(initial_obj)
+      expect(thread_safe_ref.acquire).to eq(initial_obj)
     end
   end
 
   describe '#release' do
     it 'does not finalize current object when releasing' do
-      obj = finalizable_ref.acquire
-      finalizable_ref.release(obj)
+      obj = thread_safe_ref.acquire
+      thread_safe_ref.release(obj)
 
       expect(initial_obj.finalized?).to be false
     end
 
     it 'finalizes outdated objects when their count reaches zero' do
-      obj1 = finalizable_ref.acquire
+      obj1 = thread_safe_ref.acquire
 
-      finalizable_ref.current = test_object_class.new
-      finalizable_ref.release(obj1)
+      thread_safe_ref.current = test_object_class.new
+      thread_safe_ref.release(obj1)
 
       expect(initial_obj.finalized?).to be true
     end
 
     it 'does not finalize outdated objects while they still have references' do
-      obj1 = finalizable_ref.acquire
-      obj2 = finalizable_ref.acquire
+      obj1 = thread_safe_ref.acquire
+      obj2 = thread_safe_ref.acquire
 
-      finalizable_ref.current = test_object_class.new
+      thread_safe_ref.current = test_object_class.new
 
-      finalizable_ref.release(obj1)
+      thread_safe_ref.release(obj1)
       expect(initial_obj.finalized?).to be false
 
-      finalizable_ref.release(obj2)
+      thread_safe_ref.release(obj2)
       expect(initial_obj.finalized?).to be true
     end
 
@@ -78,9 +78,9 @@ RSpec.describe Datadog::AppSec::FinalizableRef do
   describe '#current=' do
     it 'changes the current object' do
       new_obj = test_object_class.new
-      finalizable_ref.current = new_obj
+      thread_safe_ref.current = new_obj
 
-      expect(finalizable_ref.acquire).to eq(new_obj)
+      expect(thread_safe_ref.acquire).to eq(new_obj)
     end
   end
 end
