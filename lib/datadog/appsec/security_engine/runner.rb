@@ -9,10 +9,10 @@ module Datadog
       class Runner
         SUCCESSFUL_EXECUTION_CODES = [:ok, :match].freeze
 
-        def initialize(finalizable_handle)
+        def initialize(handle_ref)
           @mutex = Mutex.new
-          @finalizable_handle = finalizable_handle
-          @waf_handle = finalizable_handle.acquire
+          @handle_ref = handle_ref
+          @waf_handle = handle_ref.acquire
 
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
@@ -61,7 +61,7 @@ module Datadog
 
         def finalize!
           @waf_context&.finalize!
-          @finalizable_handle.release(@waf_handle)
+          @handle_ref.release(@waf_handle)
         end
 
         private

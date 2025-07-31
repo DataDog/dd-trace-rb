@@ -43,7 +43,7 @@ module Datadog
           waf_handle = @waf_builder.build_handle
           @waf_addresses = waf_handle.known_addresses
 
-          @finalizable_handle = FinalizableRef.new(waf_handle)
+          @handle_ref = ThreadSafeRef.new(waf_handle)
         rescue WAF::Error => e
           error_message = "AppSec security engine failed to initialize"
 
@@ -54,7 +54,7 @@ module Datadog
         end
 
         def new_runner
-          SecurityEngine::Runner.new(@finalizable_handle)
+          SecurityEngine::Runner.new(@handle_ref)
         end
 
         def add_or_update_config(config, path:)
@@ -104,7 +104,7 @@ module Datadog
           new_waf_handle = @waf_builder.build_handle
           @waf_addresses = new_waf_handle.known_addresses
 
-          @finalizable_handle.current = new_waf_handle
+          @handle_ref.current = new_waf_handle
         rescue WAF::Error => e
           # WAF::Error can only be raised during new WAF handle creation or when reading known addresses.
           # This means that the current WAF handle was not yet substituted.

@@ -4,7 +4,7 @@ module Datadog
       class Engine
         @waf_builder: WAF::HandleBuilder
 
-        @finalizable_handle: FinalizableRef
+        @handle_ref: ThreadSafeRef
 
         @waf_addresses: ::Array[::String]
 
@@ -19,8 +19,6 @@ module Datadog
         attr_reader ruleset_version: ::String
 
         def initialize: (appsec_settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> void
-
-        def finalize!: () -> void
 
         def new_runner: () -> SecurityEngine::Runner
 

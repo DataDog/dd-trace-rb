@@ -51,10 +51,9 @@ module Datadog
             # out of this nested stack we don't finalize the parent's context
             return @app.call(env) if active_context(env)
 
-            # TODO: handle exceptions, except for @app.call
-
             security_engine = Datadog::AppSec.security_engine
 
+            # TODO: handle exceptions, except for @app.call
             return @app.call(env) unless security_engine
 
             ctx = Datadog::AppSec::Context.activate(
