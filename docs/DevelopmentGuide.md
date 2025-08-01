@@ -47,19 +47,46 @@ All changes should be covered by a corresponding RSpec tests. Unit tests are pre
 
 ### Running tests
 
-`bundle exec rake ci` will run the entire test suite with any given Ruby runtime, just as CI does. However, this is not recommended because it is going take a long time.
+#### For the core library
 
-**For the core library**
+Any file that is **not** inside a `contrib` folder is part of the core library.
 
-Run the tests for the core library with:
+You can run all the tests for the core library with:
 
 ```
 $ bundle exec rake test:main
 ```
 
-**For integrations**
+##### Specific core tests
+
+You can also run only a subset of the core library tests.
+
+For example, for the test files [utils_spec.rb](https://github.com/DataDog/dd-trace-rb/blob/d66a6688f6cddab6a8c3cb1d6e0a6bfe86928e44/spec/datadog/core/utils_spec.rb) and 
+[error_spec.rb](https://github.com/DataDog/dd-trace-rb/blob/d66a6688f6cddab6a8c3cb1d6e0a6bfe86928e44/spec/datadog/core/error_spec.rb), you can run:
+
+```bash
+# Runs all tests in utils_spec.rb
+$ bundle exec rspec spec/datadog/core/utils_spec.rb
+
+# Runs only the test in line 24
+$ bundle exec rspec spec/datadog/core/utils_spec.rb:24
+
+# Runs the test in line 24 of utils_spec.rb and all the tests in error_spec.rb
+$ bundle exec rspec spec/datadog/core/utils_spec.rb:24 spec/datadog/core/error_spec.rb
+```
+
+#### All tests
+
+`bundle exec rake ci` will run the entire test suite with any given Ruby runtime, just as CI does.
+However, this is not recommended because it is going take a long time.
+
+Instead, run [specific core tests](#specific-core-tests), [integation tests](#for-integrations), or [the core library tests](#for-the-core-library).
+
+#### For integrations
 
 Integrations which interact with dependencies not listed in the `datadog` gemspec will need to load these dependencies to run their tests. Each test task could consist of multiple spec tasks which are executed with different groups of dependencies (likely against different versions or variations).
+
+Any file that **is** inside a `contrib` folder is part of an integration.
 
 To get a list of the test tasks, run `bundle exec rake -T test:`
 
