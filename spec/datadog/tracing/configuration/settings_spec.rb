@@ -396,6 +396,51 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#baggage_tag_keys' do
+      subject(:baggage_tag_keys) { settings.tracing.baggage_tag_keys }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_BAGGAGE_TAG_KEYS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_BAGGAGE_TAG_KEYS => env_var) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var) { nil }
+
+          it { is_expected.to eq(['user.id', 'session.id', 'account.id']) }
+        end
+
+        context 'is set to empty string' do
+          let(:env_var) { '' }
+
+          it { is_expected.to eq [] }
+        end
+
+        context 'is set to wildcard' do
+          let(:env_var) { '*' }
+
+          it { is_expected.to eq(['*']) }
+        end
+
+        context 'is set to custom keys' do
+          let(:env_var) { 'custom.key1,custom.key2' }
+
+          it { is_expected.to eq(['custom.key1', 'custom.key2']) }
+        end
+      end
+    end
+
+    describe '#baggage_tag_keys=' do
+      it 'updates the #baggage_tag_keys setting' do
+        expect { settings.tracing.baggage_tag_keys = ['new.key'] }
+          .to change { settings.tracing.baggage_tag_keys }
+          .from(['user.id', 'session.id', 'account.id'])
+          .to(['new.key'])
+      end
+    end
+
     describe '#instance' do
       subject(:instance) { settings.tracing.instance }
 

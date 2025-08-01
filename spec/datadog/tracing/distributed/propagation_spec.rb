@@ -516,6 +516,17 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         it 'contains baggage' do
           expect(trace_digest.baggage).to eq({ 'key' => 'value' })
         end
+
+        it 'converts baggage to distributed tags for configured keys' do
+          # Test with baggage containing user.id (which is in default config)
+          modified_data = data.dup
+          modified_data[prepare_key['baggage']] = 'key=value,user.id=test-user'
+
+          modified_trace_digest = propagator.extract(modified_data)
+
+          expect(modified_trace_digest.baggage).to eq({ 'key' => 'value', 'user.id' => 'test-user' })
+          expect(modified_trace_digest.trace_distributed_tags).to include('baggage.user.id' => 'test-user')
+        end
       end
     end
   end
