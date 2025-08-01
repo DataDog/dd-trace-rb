@@ -42,6 +42,7 @@ module Datadog
       def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
         result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
 
+        Metrics::Telemetry.report_waf(result)
         @metrics.record_waf(result)
         result
       end

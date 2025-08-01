@@ -8,9 +8,122 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     stub_const('Datadog::AppSec::WAF::VERSION::BASE_STRING', '1.42.99')
 
     allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+    allow(Datadog::AppSec).to receive(:security_engine).and_return(
+      instance_double(Datadog::AppSec::SecurityEngine::Engine, ruleset_version: '1.99.99')
+    )
   end
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+  describe '.report_waf' do
+    context 'when reporting a match run result' do
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Match.new(
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+        )
+      end
+
+      it 'reports appsec.waf.requests telemetry' do
+        expected_tags = {
+          waf_version: '1.42.99',
+          event_rules_version: '1.99.99',
+          rule_triggered: true,
+          waf_error: false,
+          waf_timeout: false
+        }
+
+        expect(telemetry).to receive(:inc).with('specsec', 'waf.requests', 1, tags: expected_tags)
+
+        described_class.report_waf(run_result)
+      end
+    end
+
+    context 'when reporting a match run result with timeout' do
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Match.new(
+          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0
+        )
+      end
+
+      it 'reports appsec.waf.requests telemetry' do
+        expected_tags = {
+          waf_version: '1.42.99',
+          event_rules_version: '1.99.99',
+          rule_triggered: true,
+          waf_error: false,
+          waf_timeout: true
+        }
+
+        expect(telemetry).to receive(:inc).with('specsec', 'waf.requests', 1, tags: expected_tags)
+
+        described_class.report_waf(run_result)
+      end
+    end
+
+    context 'when reporting a ok run result' do
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Ok.new(
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+        )
+      end
+
+      it 'reports appsec.waf.requests telemetry' do
+        expected_tags = {
+          waf_version: '1.42.99',
+          event_rules_version: '1.99.99',
+          rule_triggered: false,
+          waf_error: false,
+          waf_timeout: false
+        }
+
+        expect(telemetry).to receive(:inc).with('specsec', 'waf.requests', 1, tags: expected_tags)
+
+        described_class.report_waf(run_result)
+      end
+    end
+
+    context 'when reporting a ok run result with timeout' do
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Ok.new(
+          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0
+        )
+      end
+
+      it 'reports appsec.waf.requests telemetry' do
+        expected_tags = {
+          waf_version: '1.42.99',
+          event_rules_version: '1.99.99',
+          rule_triggered: false,
+          waf_error: false,
+          waf_timeout: true
+        }
+
+        expect(telemetry).to receive(:inc).with('specsec', 'waf.requests', 1, tags: expected_tags)
+
+        described_class.report_waf(run_result)
+      end
+    end
+
+    context 'when reporting an error run result' do
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0)
+      end
+
+      it 'reports appsec.waf.requests telemetry' do
+        expected_tags = {
+          waf_version: '1.42.99',
+          event_rules_version: '1.99.99',
+          rule_triggered: false,
+          waf_error: true,
+          waf_timeout: false
+        }
+
+        expect(telemetry).to receive(:inc).with('specsec', 'waf.requests', 1, tags: expected_tags)
+
+        described_class.report_waf(run_result)
+      end
+    end
+  end
 
   describe '.report_rasp' do
     context 'when reporting a match run result' do
