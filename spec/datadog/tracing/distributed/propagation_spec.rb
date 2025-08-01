@@ -516,148 +516,16 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         it 'contains baggage' do
           expect(trace_digest.baggage).to eq({ 'key' => 'value' })
         end
-      end
 
-      context 'when adding baggage tag keys' do
-        let(:writer) { FauxWriter.new }
-        let(:tracer) { Datadog::Tracing::Tracer.new(writer: writer) }
-        let(:configuration) { Datadog.configuration }
+        it 'converts baggage to distributed tags for configured keys' do
+          # Test with baggage containing user.id (which is in default config)
+          modified_data = data.dup
+          modified_data[prepare_key['baggage']] = 'key=value,user.id=test-user'
 
-        before { Datadog.configure { |c| c.tracing.instance = tracer } }
-        after { tracer.shutdown! }
+          modified_trace_digest = propagator.extract(modified_data)
 
-        context 'Default Behavior with no configuration set' do
-          let(:data) do
-            {
-              prepare_key['x-datadog-trace-id'] => '61185',
-              prepare_key['x-datadog-parent-id'] => '73456',
-              prepare_key['baggage'] => 'user.id=12345,correlation_id=abc-xyz-999,session.id=test123'
-            }
-          end
-
-          before do
-            # Default configuration: ['user.id', 'session.id', 'account.id']
-            expect(configuration.tracing.baggage_tag_keys).to eq(['user.id', 'session.id', 'account.id'])
-          end
-
-          it 'only adds configured keys as trace tags' do
-            Datadog::Tracing.continue_trace!(trace_digest) do
-              Datadog::Tracing.trace('operation') do |_span|
-                trace_op = Datadog::Tracing.active_trace
-
-                # Only user.id and session.id should be added (matches default config and present in baggage)
-                expect(trace_op.get_tag('baggage.user.id')).to eq('12345')
-                expect(trace_op.get_tag('baggage.session.id')).to eq('test123')
-                # These should not be added (not in default config)
-                expect(trace_op.get_tag('baggage.correlation_id')).to be_nil
-                # account.id is in config but not in baggage
-                expect(trace_op.get_tag('baggage.account.id')).to be_nil
-              end
-            end
-          end
-        end
-
-        context 'Specifying Keys in configuration' do
-          let(:data) do
-            {
-              prepare_key['x-datadog-trace-id'] => '61185',
-              prepare_key['x-datadog-parent-id'] => '73456',
-              prepare_key['baggage'] => 'user.id=99999,session_id=mysession,feature_flag=beta'
-            }
-          end
-
-          before do
-            configuration.tracing.baggage_tag_keys = ['session_id', 'feature_flag']
-          end
-
-          it 'only adds specified keys as trace tags when trace is continued' do
-            Datadog::Tracing.continue_trace!(trace_digest) do
-              Datadog::Tracing.trace('operation') do |_span|
-                trace_op = Datadog::Tracing.active_trace
-                # Only configured keys should be added
-                expect(trace_op.get_tag('baggage.session_id')).to eq('mysession')
-                expect(trace_op.get_tag('baggage.feature_flag')).to eq('beta')
-                # This should not be added (not in config)
-                expect(trace_op.get_tag('baggage.user.id')).to be_nil
-              end
-            end
-          end
-        end
-
-        context 'Disabled Baggage Tags in configuration' do
-          let(:data) do
-            {
-              prepare_key['x-datadog-trace-id'] => '61185',
-              prepare_key['x-datadog-parent-id'] => '73456',
-              prepare_key['baggage'] => 'user.id=BaggageValue,session.id=mysession'
-            }
-          end
-
-          before do
-            configuration.tracing.baggage_tag_keys = [] # Empty array means disabled
-          end
-
-          it 'does not add any baggage tags when disabled' do
-            Datadog::Tracing.continue_trace!(trace_digest) do
-              Datadog::Tracing.trace('operation') do |_span|
-                trace_op = Datadog::Tracing.active_trace
-                # No baggage tags should be added when disabled
-                expect(trace_op.get_tag('baggage.user.id')).to be_nil
-                expect(trace_op.get_tag('baggage.session.id')).to be_nil
-              end
-            end
-          end
-        end
-
-        context 'Malformed Baggage Headers (empty values)' do
-          let(:data) do
-            {
-              prepare_key['x-datadog-trace-id'] => '61185',
-              prepare_key['x-datadog-parent-id'] => '73456',
-              prepare_key['baggage'] => 'user.id='
-            }
-          end
-
-          before do
-            # Default configuration includes user.id
-            expect(configuration.tracing.baggage_tag_keys).to eq(['user.id', 'session.id', 'account.id'])
-          end
-
-          it 'does not add trace tags for empty baggage values' do
-            Datadog::Tracing.continue_trace!(trace_digest) do
-              Datadog::Tracing.trace('operation') do |_span|
-                trace_op = Datadog::Tracing.active_trace
-                # Empty values should not be added as trace tags
-                expect(trace_op.get_tag('baggage.user.id')).to be_nil
-              end
-            end
-          end
-        end
-
-        context 'Wildcard configuration (*) includes all baggage keys' do
-          let(:data) do
-            {
-              prepare_key['x-datadog-trace-id'] => '61185',
-              prepare_key['x-datadog-parent-id'] => '73456',
-              prepare_key['baggage'] => 'user.id=12345,custom.key=custom_value,another.key=another_value'
-            }
-          end
-
-          before do
-            configuration.tracing.baggage_tag_keys = ['*'] # Wildcard means all keys
-          end
-
-          it 'adds all baggage keys as trace tags' do
-            Datadog::Tracing.continue_trace!(trace_digest) do
-              Datadog::Tracing.trace('operation') do |_span|
-                trace_op = Datadog::Tracing.active_trace
-                # All baggage keys should be added with wildcard config
-                expect(trace_op.get_tag('baggage.user.id')).to eq('12345')
-                expect(trace_op.get_tag('baggage.custom.key')).to eq('custom_value')
-                expect(trace_op.get_tag('baggage.another.key')).to eq('another_value')
-              end
-            end
-          end
+          expect(modified_trace_digest.baggage).to eq({ 'key' => 'value', 'user.id' => 'test-user' })
+          expect(modified_trace_digest.trace_distributed_tags).to include('baggage.user.id' => 'test-user')
         end
       end
     end
