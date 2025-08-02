@@ -19,7 +19,7 @@ module Datadog
         # Ensure Datadog-configure propagation styles have are applied when configured.
         #
         # DEV: Support configuring propagation through the environment variable
-        # DEV: `OTEL_PROPAGATORS`, similar to `DD_TRACE_PROPAGATION*`?
+        # DEV: `OTEL_PROPAGATORS`, alias to `DD_TRACE_PROPAGATION_STYLE`
         def configure_propagation
           @propagators = [Propagator.new(Tracing::Contrib::HTTP)]
           super

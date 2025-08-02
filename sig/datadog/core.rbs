@@ -1,9 +1,7 @@
 module Datadog
   module Core
     LIBDATADOG_API_FAILURE: ::String?
-  end
 
-  extend Core::Deprecations
-  extend Core::Configuration
-  extend Tracing::Contrib::Extensions::Helpers
+    extend Core::Deprecations
+  end
 end
