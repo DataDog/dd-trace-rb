@@ -187,7 +187,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       expect(waf_context).to receive(:finalize!).and_raise(StandardError)
       expect(thread_safe_ref).to receive(:release).with(waf_handle)
 
-      runner.finalize! rescue StandardError
+      begin
+        runner.finalize!
+      rescue
+      end
     end
   end
 end
