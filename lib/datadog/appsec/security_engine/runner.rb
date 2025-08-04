@@ -61,6 +61,7 @@ module Datadog
 
         def finalize!
           @waf_context&.finalize!
+        ensure
           @handle_ref.release(@waf_handle)
         end
 

@@ -178,4 +178,16 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       end
     end
   end
+
+  describe '#finalize!' do
+    it 'releases the waf handle when an error occurs' do
+      # waf_context is lazily initialized, so we need to ensure it is called
+      runner.waf_context
+
+      expect(waf_context).to receive(:finalize!).and_raise(StandardError)
+      expect(thread_safe_ref).to receive(:release).with(waf_handle)
+
+      runner.finalize! rescue StandardError
+    end
+  end
 end
