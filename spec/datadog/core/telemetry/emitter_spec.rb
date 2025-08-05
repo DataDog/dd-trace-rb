@@ -8,7 +8,11 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
   subject(:emitter) { described_class.new(transport, logger: logger) }
   let(:logger) { logger_allowing_debug }
   let(:transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
-  let(:response) { double(Datadog::Core::Transport::HTTP::Adapters::Net::Response) }
+  let(:response) do
+    double(Datadog::Core::Transport::HTTP::Adapters::Net::Response).tap do |response|
+      allow(response).to receive(:ok?).and_return(response_ok)
+    end
+  end
   let(:response_ok) { true }
 
   before do
@@ -59,6 +63,11 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
             request
             expect(emitter.class.sequence.instance_variable_get(:@current)).to be(original_seq_id + 1)
           end
+
+          it 'logs the request correctly' do
+            expect_lazy_log(logger, :debug, 'Telemetry sent for event `app-started`')
+            request
+          end
         end
 
         context 'when call is not successful and debug logging is enabled' do
@@ -67,8 +76,9 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
           end
 
           it 'logs the request correctly' do
-            expect_lazy_log(logger, :debug, 'Telemetry sent for event')
+            allow(logger).to receive(:debug)
             request
+            expect(logger).to have_lazy_debug_logged('Failed to send telemetry for event')
           end
         end
       end
