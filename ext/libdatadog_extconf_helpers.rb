@@ -124,7 +124,7 @@ module Datadog
       end
     end
 
-    def self.libdatadog_issue?
+    def self.libdatadog_issue
       try_loading_libdatadog do |exception|
         return "There was an error loading `libdatadog`: #{exception.class} #{exception.message}"
       end

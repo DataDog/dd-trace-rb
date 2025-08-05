@@ -135,8 +135,8 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     end
   end
 
-  describe ".libdatadog_issue?" do
-    subject(:libdatadog_issue) { described_class.libdatadog_issue? }
+  describe ".libdatadog_issue" do
+    subject(:libdatadog_issue) { described_class.libdatadog_issue }
 
     before do
       skip_if_profiling_not_supported(self)
