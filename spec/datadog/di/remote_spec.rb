@@ -149,7 +149,7 @@ RSpec.describe Datadog::DI::Remote do
 
         before do
           # Uncomment for debugging:
-          #allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
+          # allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
         end
 
         it 'calls probe manager to add a probe' do
