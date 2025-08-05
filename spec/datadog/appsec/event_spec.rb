@@ -7,12 +7,7 @@ RSpec.describe Datadog::AppSec::Event do
   describe '.record' do
     before { Datadog::AppSec::RateLimiter.reset! }
 
-    let(:security_engine) do
-      instance_double(
-        Datadog::AppSec::SecurityEngine::Engine,
-        new_runner: instance_double(Datadog::AppSec::SecurityEngine::Runner)
-      )
-    end
+    let(:waf_runner) { instance_double(Datadog::AppSec::SecurityEngine::Runner) }
 
     context 'when multiple spans present and a single security event with attack is recorded' do
       before { stub_const('Datadog::AppSec::Event::ALLOWED_REQUEST_HEADERS', ['user-agent']) }
@@ -23,7 +18,7 @@ RSpec.describe Datadog::AppSec::Event do
         trace_op.measure('request') do |span|
           2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
 
-          context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+          context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
           context.events.push(
             Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
           )
@@ -142,7 +137,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:trace) do
         trace_op = Datadog::Tracing::TraceOperation.new
         trace_op.measure('request') do |span|
-          context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+          context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
           described_class.record(context, request: rack_request, response: rack_response)
         end
         trace_op.flush!
@@ -174,7 +169,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:trace) do
         trace_op = Datadog::Tracing::TraceOperation.new
         trace_op.measure('request') do |_span|
-          context = Datadog::AppSec::Context.new(trace_op, nil, security_engine)
+          context = Datadog::AppSec::Context.new(trace_op, nil, waf_runner)
           described_class.record(context, request: rack_request, response: rack_response)
         end
         trace_op.flush!
@@ -223,7 +218,7 @@ RSpec.describe Datadog::AppSec::Event do
         Array.new(100) do
           trace_op = Datadog::Tracing::TraceOperation.new
           trace_op.measure('request') do |span|
-            context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+            context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
             context.events.push(
               Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
             )
@@ -253,7 +248,7 @@ RSpec.describe Datadog::AppSec::Event do
         trace_op.measure('request') do |span|
           2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
 
-          context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+          context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
           context.events.push(
             Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
           )
@@ -333,7 +328,7 @@ RSpec.describe Datadog::AppSec::Event do
         trace_op.measure('request') do |span|
           2.times { |i| trace_op.measure("other span #{i}") { 'noop' } }
 
-          context = Datadog::AppSec::Context.new(trace_op, span, security_engine)
+          context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
           context.events.push(
             Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
           )

@@ -6,9 +6,16 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_loader'
 
 RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
+  let(:thread_safe_ref) { instance_double(Datadog::AppSec::ThreadSafeRef) }
+  let(:waf_handle) { instance_double(Datadog::AppSec::WAF::Handle) }
   let(:waf_context) { instance_double(Datadog::AppSec::WAF::Context) }
 
-  subject(:runner) { described_class.new(waf_context) }
+  before do
+    allow(thread_safe_ref).to receive(:acquire).and_return(waf_handle)
+    allow(waf_handle).to receive(:build_context).and_return(waf_context)
+  end
+
+  subject(:runner) { described_class.new(thread_safe_ref) }
 
   describe '#run' do
     context 'when keys contain values to clean' do
@@ -169,6 +176,18 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(run_result).to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error)
         expect(run_result.duration_ext_ns).to be > 0
       end
+    end
+  end
+
+  describe '#finalize!' do
+    it 'releases the waf handle when an error occurs' do
+      # waf_context is lazily initialized, so we need to ensure it is called
+      runner.waf_context
+
+      allow(waf_context).to receive(:finalize!).and_raise(StandardError)
+      expect(thread_safe_ref).to receive(:release).with(waf_handle)
+
+      expect { runner.finalize! }.to raise_error(StandardError)
     end
   end
 end
