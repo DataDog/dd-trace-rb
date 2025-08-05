@@ -32,7 +32,8 @@ module Datadog
 
         begin
           probe_specs = File.open(probe_file_path) do |f|
-            JSON.load(f)
+            # The probe file should contain an array, JSON.parse does not work
+            JSON.load(f) # standard:disable Security/JSONLoad
           end
 
           probe_specs.each do |probe_spec|
