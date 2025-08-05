@@ -35,7 +35,7 @@ module SynchronizationHelpers
       fork_expectations.call(**result)
 
       result
-    rescue => e
+    rescue
       stdout ||= File.read(fork_stdout.path)
       stderr ||= File.read(fork_stderr.path)
 
