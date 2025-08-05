@@ -43,7 +43,7 @@ default:
       --file .gitlab/Dockerfile-$RUBY_VERSION
       .
     - docker push --all-tags $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE
-    - ddsign sign $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE --digest-from-docker
+    - ddsign sign $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID --digest-from-docker
 
 build-image-amd64:
   extends: .build-image-base
