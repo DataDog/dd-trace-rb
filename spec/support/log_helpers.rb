@@ -117,7 +117,7 @@ module LogHelpers
   end
 
   def expect_lazy_log(logger, meth, expected_msg)
-    expect(logger).to receive(meth) do |*args, &block|
+    expect(logger).to receive(meth) do |*_args, &block|
       expect(block).not_to be nil
       if expected_msg.is_a?(String)
         expect(block.call).to eq(expected_msg)
