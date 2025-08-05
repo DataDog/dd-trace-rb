@@ -170,6 +170,23 @@ module Datadog
                 o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
               end
 
+              # Comma-separated list of baggage keys that should be converted to span tags.
+              #
+              # Baggage keys matching the exact, case-sensitive names in this list will be converted
+              # to span tags with the prefix "baggage.".
+              #
+              # Special values:
+              # * Empty string ("") disables baggage tag conversion
+              # * Wildcard ("*") converts all baggage keys to span tags
+              #
+              # @default `DD_TRACE_BAGGAGE_TAG_KEYS` environment variable, otherwise `"user.id,session.id,account.id"`
+              # @return [Array<String>, Symbol, nil] processed baggage tag keys configuration
+              option :baggage_tag_keys do |o|
+                o.env Configuration::Ext::ENV_BAGGAGE_TAG_KEYS
+                o.type :array
+                o.default ['user.id', 'session.id', 'account.id']
+              end
+
               # Enable 128 bit trace id generation.
               #
               # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `true`

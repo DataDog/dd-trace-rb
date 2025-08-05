@@ -6,15 +6,21 @@ module Datadog
 
         @mutex: ::Mutex
 
+        @handle_ref: ThreadSafeRef
+
+        @waf_handle: WAF::Handle
+
         @waf_context: WAF::Context
 
         @debug_tag: ::String
 
         SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
 
-        def initialize: (WAF::Context waf_context) -> void
+        def initialize: (ThreadSafeRef handle_ref) -> void
 
         def run: (input_data persistent_data, input_data ephemeral_data, ?::Integer timeout) -> SecurityEngine::result
+
+        def waf_context: () -> WAF::Context
 
         def finalize!: () -> void
 

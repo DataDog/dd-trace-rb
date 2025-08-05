@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.19.0)
+    datadog (2.20.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
       libddwaf (~> 1.24.1.0.3)
@@ -67,7 +67,7 @@ GEM
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
-    mime-types-data (3.2025.0708)
+    mime-types-data (3.2025.0729)
     msgpack (1.8.0)
     mutex_m (0.3.0)
     netrc (0.11.0)
