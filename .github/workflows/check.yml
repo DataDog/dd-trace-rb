@@ -4,6 +4,7 @@ on: # yamllint disable-line rule:truthy
   push:
     branches:
       - master
+      - tonycthsu/zizmor-action
   pull_request:
     branches:
       - master
@@ -123,16 +124,16 @@ jobs:
   zizmor:
     name: zizmor
     runs-on: ubuntu-24.04
+    permissions:
+      security-events: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
       - name: Run zizmor 🌈
-        uses: docker://ghcr.io/woodruffw/zizmor:1.4.1
+        uses: zizmorcore/zizmor-action@f52a838cfabf134edcbaa7c8b3677dde20045018 # v0.1.1
         with:
-          args: --min-severity low .
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          min-severity: low
 
   actionlint:
     name: actionlint
