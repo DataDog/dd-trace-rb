@@ -28,6 +28,7 @@ module Datadog
         # We want to initialize the component tree here if it was not already
         # initialized.
         component = Datadog::DI.component
+        return unless component
 
         begin
           probe_specs = File.open(probe_file_path) do |f|
