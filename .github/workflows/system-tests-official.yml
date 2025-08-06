@@ -16,6 +16,7 @@ on: # yamllint disable-line rule:truthy
       #
       # This is also useful for testing the workflow without opening a pull request.
       - tmp/*
+      - cbeauchesne/system-tests-forced-tests
   # pull_request:  # To be uncommented if the guild chooses this workflow
   #   branches:
   #     - master
