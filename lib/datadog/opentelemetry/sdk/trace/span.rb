@@ -38,8 +38,8 @@ module Datadog
           res
         end
 
-        # `alias` performed to match {OpenTelemetry::SDK::Trace::Span} aliasing upstream
-        alias_method :[]=, :set_attribute
+        # `alias` performed to match {::OpenTelemetry::SDK::Trace::Span} aliasing upstream
+        alias []= set_attribute # rubocop:disable Style/Alias
 
         # Attributes are equivalent to span tags and metrics.
         def add_attributes(attributes)

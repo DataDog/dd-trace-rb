@@ -50,7 +50,8 @@ module Datadog
           @trace.otel_value(key)
         end
 
-        alias_method :[], :value
+        # `alias` performed to match {::OpenTelemetry::Context} aliasing upstream
+        alias [] value # rubocop:disable Style/Alias
 
         # Returns a new Context where entries contains the newly added key and value
         #

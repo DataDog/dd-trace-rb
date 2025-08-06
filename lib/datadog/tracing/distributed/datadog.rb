@@ -62,8 +62,7 @@ module Datadog
           origin = fetcher[@origin_key]
 
           # Return early if this propagation is not valid
-          # DEV: To be valid we need to have a trace id and a parent id
-          #      or when it is a synthetics trace, just the trace id.
+          # DEV: To be valid we need to have a trace id and a parent id or an origin id.
           # DEV: `Fetcher#id` will not return 0
           return if trace_id.nil? || parent_id.nil? && origin.nil?
 
