@@ -80,7 +80,7 @@ jobs:
       - id: compute_forced_tests
         run: |
           value=$(grep -v -E '^\s*#|^\s*$' .github/forced-tests-list.cfg | paste -sd ',')
-          echo "forced_tests=$value" >> $GITHUB_OUTPUT
+          echo "forced_tests=$value" >> "$GITHUB_OUTPUT"
 
   test:
     strategy:
