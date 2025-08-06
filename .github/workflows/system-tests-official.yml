@@ -79,7 +79,7 @@ jobs:
           path: packaged
       - id: compute_forced_tests
         run: |
-          value=$(grep -v -E '^\s*#|^\s*$' .github/forced-tests-list.cfg | paste -sd ',')
+          value=$(grep -v -E '^\s*#|^\s*$' packaged/dd-trace-rb/.github/forced-tests-list.cfg | paste -sd ',')
           echo "forced_tests=$value" >> "$GITHUB_OUTPUT"
 
   test:
