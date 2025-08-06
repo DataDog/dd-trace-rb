@@ -122,8 +122,8 @@ module Datadog
               end
 
               def run(span, name, id, payload)
-                @block.call(span, name, id, payload) if @block
-              rescue StandardError => e
+                @block&.call(span, name, id, payload)
+              rescue => e
                 Datadog.logger.debug(
                   "ActiveSupport::Notifications handler for '#{name}' failed: #{e.class.name} #{e.message}"
                 )
@@ -144,13 +144,11 @@ module Datadog
 
               def run(event, key, *args)
                 blocks_for(key).each do |callback|
-                  begin
-                    callback.call(event, key, *args)
-                  rescue StandardError => e
-                    Datadog.logger.debug(
-                      "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.class.name} #{e.message}"
-                    )
-                  end
+                  callback.call(event, key, *args)
+                rescue => e
+                  Datadog.logger.debug(
+                    "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.class.name} #{e.message}"
+                  )
                 end
               end
 

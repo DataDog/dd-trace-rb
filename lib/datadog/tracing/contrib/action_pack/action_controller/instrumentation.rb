@@ -42,7 +42,7 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -87,7 +87,7 @@ module Datadog
               ensure
                 span.finish
               end
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -115,7 +115,7 @@ module Datadog
                 begin
                   # process and catch request exceptions
                   Instrumentation.start_processing(payload)
-                  result = super(*args)
+                  result = super
                   status = datadog_response_status
                   payload[:status] = status unless status.nil?
                   result
@@ -146,7 +146,7 @@ module Datadog
                 when Array
                   # Likely a Rack response array: first element is the status.
                   status = response.first
-                  status.class <= Integer ? status : nil
+                  (status.class <= Integer) ? status : nil
                 end
               end
             end

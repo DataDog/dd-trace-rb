@@ -48,7 +48,7 @@ module Datadog
                   Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, trace_op.to_digest)
               else
                 Datadog.logger.warn(
-                  'Sql comment propagation with `full` mode is aborted, because tracing is disabled. '\
+                  'Sql comment propagation with `full` mode is aborted, because tracing is disabled. ' \
                   'Please set `Datadog.configuration.tracing.enabled = true` to continue.'
                 )
               end

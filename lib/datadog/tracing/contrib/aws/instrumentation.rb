@@ -87,7 +87,7 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, context.safely(:status_code))
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.error(e.message)
             Datadog::Core::Telemetry::Logger.report(e)
           end
@@ -123,7 +123,7 @@ module Datadog
               request.handlers.remove(Handler)
             end
 
-            super(*args, &block)
+            super
           end
 
           ruby2_keywords :sign_but_dont_send if respond_to?(:ruby2_keywords, true)
