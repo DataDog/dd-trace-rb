@@ -34,7 +34,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER)
 
               set_common_tags(span, payload)
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.debug(e.message)
             end
           end

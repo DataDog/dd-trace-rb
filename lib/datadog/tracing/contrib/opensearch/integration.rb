@@ -21,8 +21,7 @@ module Datadog
           end
 
           def self.version
-            Gem.loaded_specs['opensearch-ruby'] \
-              && Gem.loaded_specs['opensearch-ruby'].version
+            Gem.loaded_specs['opensearch-ruby']&.version
           end
 
           def self.loaded?

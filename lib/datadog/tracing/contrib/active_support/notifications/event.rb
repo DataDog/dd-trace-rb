@@ -67,7 +67,8 @@ module Datadog
                   payload[:exception] # Fallback for ActiveSupport < 5.0
               end
 
-              def on_start(_span, _event, _id, _payload); end
+              def on_start(_span, _event, _id, _payload)
+              end
 
               def on_finish(span, _event, _id, payload)
                 record_exception(span, payload)

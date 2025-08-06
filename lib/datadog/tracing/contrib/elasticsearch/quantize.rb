@@ -27,7 +27,7 @@ module Datadog
 
           def format_body(body, options = {})
             format_body!(body, options)
-          rescue StandardError
+          rescue
             options[:placeholder] || PLACEHOLDER
           end
 
@@ -50,10 +50,10 @@ module Datadog
               # Show
               # If either is :all, value becomes :all
               options[:show] = if original[:show] == :all || additional[:show] == :all
-                                 :all
-                               else
-                                 (original[:show] || []).dup.concat(additional[:show] || []).uniq
-                               end
+                :all
+              else
+                (original[:show] || []).dup.concat(additional[:show] || []).uniq
+              end
 
               # Exclude
               options[:exclude] = (original[:exclude] || []).dup.concat(additional[:exclude] || []).uniq

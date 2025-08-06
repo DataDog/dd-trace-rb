@@ -66,11 +66,11 @@ module Datadog
           #   number of traces
           def encode_in_chunks(traces)
             encoded_traces = if traces.respond_to?(:filter_map)
-                               # DEV Supported since Ruby 2.7, saves an intermediate object creation
-                               traces.filter_map { |t| encode_one(t) }
-                             else
-                               traces.map { |t| encode_one(t) }.reject(&:nil?)
-                             end
+              # DEV Supported since Ruby 2.7, saves an intermediate object creation
+              traces.filter_map { |t| encode_one(t) }
+            else
+              traces.map { |t| encode_one(t) }.reject(&:nil?)
+            end
 
             Datadog::Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
               [encoder.join(chunk), chunk.size]

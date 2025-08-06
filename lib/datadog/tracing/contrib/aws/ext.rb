@@ -33,7 +33,7 @@ module Datadog
           TAG_RULE_NAME = 'rulename'
           TAG_STATE_MACHINE_NAME = 'statemachinename'
           TAG_BUCKET_NAME = 'bucketname'
-          PEER_SERVICE_SOURCES = Array[TAG_QUEUE_NAME,
+          PEER_SERVICE_SOURCES = [TAG_QUEUE_NAME,
             TAG_TOPIC_NAME,
             TAG_STREAM_NAME,
             TAG_TABLE_NAME,

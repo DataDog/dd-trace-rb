@@ -16,7 +16,7 @@ module Datadog
               return super unless Datadog.configuration.tracing.log_injection
               return super unless Datadog.configuration.tracing[:lograge].enabled
 
-              original_custom_options = super(event)
+              original_custom_options = super
 
               # Retrieves trace information for current thread
               correlation = Tracing.correlation

@@ -97,7 +97,7 @@ module Datadog
             def datadog_before_request(continue_from: nil)
               load_datadog_configuration_for(url)
 
-              trace_options = continue_from ? { continue_from: continue_from } : {}
+              trace_options = continue_from ? {continue_from: continue_from} : {}
               uri = try_parse_uri
 
               @datadog_span = Tracing.trace(
@@ -215,7 +215,7 @@ module Datadog
               # Find only well-behaved HTTP headers.
               lines.map do |line|
                 header = line.split(':', 2)
-                header.size != 2 ? nil : header
+                (header.size != 2) ? nil : header
               end.compact.to_h
             end
           end

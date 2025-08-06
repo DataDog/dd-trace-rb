@@ -16,7 +16,7 @@ module Datadog
           register_as :graphql, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version
+            Gem.loaded_specs['graphql']&.version
           end
 
           def self.loaded?

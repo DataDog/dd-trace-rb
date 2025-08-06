@@ -31,7 +31,7 @@ module Datadog
             return false
           end
 
-          return pin_config[:distributed_tracing] if pin_config && pin_config.key?(:distributed_tracing)
+          return pin_config[:distributed_tracing] if pin_config&.key?(:distributed_tracing)
           return global_config[:distributed_tracing] if global_config
 
           true

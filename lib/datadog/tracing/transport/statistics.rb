@@ -47,7 +47,7 @@ module Datadog
         end
 
         def metrics_for_exception(_exception)
-          { api_errors: Core::Metrics::Metric.new(:api_errors, nil, 1) }
+          {api_errors: Core::Metrics::Metric.new(:api_errors, nil, 1)}
         end
 
         # Stat counts
