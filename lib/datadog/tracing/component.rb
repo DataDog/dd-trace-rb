@@ -12,6 +12,7 @@ module Datadog
   module Tracing
     # Tracing component
     module Component
+      extend self
       # Methods that interact with component instance fields.
       module InstanceMethods
         # Hot-swaps with a new sampler.
