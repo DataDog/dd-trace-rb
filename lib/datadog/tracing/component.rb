@@ -13,16 +13,6 @@ module Datadog
     # Tracing component
     module Component
       extend self
-      # Methods that interact with component instance fields.
-      module InstanceMethods
-        # Hot-swaps with a new sampler.
-        # This operation acquires the Components lock to ensure
-        # there is no concurrent modification of the sampler.
-        def reconfigure_live_sampler
-          sampler = self.class.build_sampler(Datadog.configuration)
-          Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
-        end
-      end
 
       def build_tracer(settings, agent_settings, logger:)
         # If a custom tracer has been provided, use it instead.

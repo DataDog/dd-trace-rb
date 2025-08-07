@@ -78,6 +78,7 @@ module Datadog
 
         attr_reader \
           :health_metrics,
+          :settings,
           :logger,
           :remote,
           :profiler,
@@ -91,6 +92,7 @@ module Datadog
           :agent_info
 
         def initialize(settings)
+          @settings = settings
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
 
@@ -126,6 +128,14 @@ module Datadog
 
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
+        end
+
+        # Hot-swaps with a new sampler.
+        # This operation acquires the Components lock to ensure
+        # there is no concurrent modification of the sampler.
+        def reconfigure_live_sampler
+          sampler = Datadog::Tracing::Component.build_sampler(settings)
+          Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
         end
 
         # Starts up components
