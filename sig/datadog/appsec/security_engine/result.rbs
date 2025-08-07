@@ -36,16 +36,22 @@ module Datadog
           def timeout?: () -> bool
 
           def match?: () -> bool
+
+          def error?: () -> bool
         end
 
         # A result that indicates a security rule match
         class Match < Base
           def match?: () -> true
+
+          def error?: () -> false
         end
 
         # A result that indicates a successful security rules check without a match
         class Ok < Base
           def match?: () -> false
+
+          def error?: () -> false
         end
 
         # A result that indicates an internal security library error
@@ -75,6 +81,8 @@ module Datadog
           def timeout?: () -> false
 
           def match?: () -> false
+
+          def error?: () -> true
         end
       end
     end
