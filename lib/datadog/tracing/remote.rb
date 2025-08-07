@@ -45,7 +45,6 @@ module Datadog
 
           Datadog.send(:components).telemetry.client_configuration_change!(env_vars)
         rescue => e
-        raise
           content.errored("#{e.class.name} #{e.message}: #{Array(e.backtrace).join("\n")}")
         end
 
