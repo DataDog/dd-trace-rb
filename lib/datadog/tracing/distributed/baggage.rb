@@ -41,8 +41,11 @@ module Datadog
             if baggage_items.size > DD_TRACE_BAGGAGE_MAX_ITEMS
               ::Datadog.logger.warn('Baggage item limit exceeded, dropping excess items')
               # Record telemetry for item count truncation
-              record_telemetry_metric('context_header_style.truncated', 1, 
-                                      { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded' })
+              record_telemetry_metric(
+                'context_header_style.truncated',
+                1,
+                { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded' }
+              )
               baggage_items = baggage_items.first(DD_TRACE_BAGGAGE_MAX_ITEMS)
             end
 
@@ -55,8 +58,11 @@ module Datadog
               if total_size + item_size > DD_TRACE_BAGGAGE_MAX_BYTES
                 ::Datadog.logger.warn('Baggage header size exceeded, dropping excess items')
                 # Record telemetry for byte count truncation
-                record_telemetry_metric('context_header_style.truncated', 1, 
-                                        { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded' })
+                record_telemetry_metric(
+                  'context_header_style.truncated',
+                  1,
+                  { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded' }
+                )
                 break # stop adding items when size limit is reached
               end
               encoded_items << item
@@ -68,7 +74,7 @@ module Datadog
 
             header_value = encoded_items.join(',')
             data[@baggage_key] = header_value
-            
+
             # Record telemetry for successful injection
             record_telemetry_metric('context_header_style.injected', 1, { 'header_style' => 'baggage' })
           rescue => e
@@ -186,6 +192,21 @@ module Datadog
           rescue => e
             # Silently handle telemetry errors to avoid affecting main functionality
             ::Datadog.logger.debug("Failed to record baggage telemetry metric: #{e.message}")
+          end
+        end
+
+        def truncate_baggage_items_if_needed(baggage_items)
+          if baggage_items.size > DD_TRACE_BAGGAGE_MAX_ITEMS
+            ::Datadog.logger.warn('Baggage item limit exceeded, dropping excess items')
+            # Record telemetry for item count truncation
+            record_telemetry_metric(
+              'context_header_style.truncated',
+              1,
+              { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded' }
+            )
+            baggage_items.first(DD_TRACE_BAGGAGE_MAX_ITEMS)
+          else
+            baggage_items
           end
         end
       end
