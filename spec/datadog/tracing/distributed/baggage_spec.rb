@@ -263,4 +263,145 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
       end
     end
   end
+
+  describe 'telemetry integration' do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+    before do
+      # Mock the telemetry component
+      allow(Datadog).to receive(:send).with(:components).and_return(
+        double(telemetry: telemetry)
+      )
+    end
+
+    describe '#inject! telemetry' do
+      let(:data) { {} }
+
+      context 'successful injection' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            baggage: { 'key' => 'value' }
+          )
+        end
+
+        it 'records successful injection telemetry' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.injected',
+            1,
+            tags: { 'header_style' => 'baggage' }
+          )
+
+          propagation.inject!(digest, data)
+        end
+      end
+
+      context 'when baggage item count exceeds limit' do
+        let(:digest) do
+          baggage = {}
+          70.times { |i| baggage["key#{i}"] = "value#{i}" }
+          Datadog::Tracing::TraceDigest.new(baggage: baggage)
+        end
+
+        it 'records item count truncation telemetry' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.truncated',
+            1,
+            tags: { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded' }
+          )
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.injected',
+            1,
+            tags: { 'header_style' => 'baggage' }
+          )
+
+          propagation.inject!(digest, data)
+        end
+      end
+
+      context 'when baggage header size exceeds limit' do
+        let(:digest) do
+          # Create baggage items that will exceed the byte limit
+          large_value = 'x' * 200
+          baggage = {}
+          50.times { |i| baggage["key#{i}"] = large_value }
+          Datadog::Tracing::TraceDigest.new(baggage: baggage)
+        end
+
+        it 'records byte count truncation telemetry' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.truncated',
+            1,
+            tags: { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded' }
+          )
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.injected',
+            1,
+            tags: { 'header_style' => 'baggage' }
+          )
+
+          propagation.inject!(digest, data)
+        end
+      end
+
+      context 'with nil digest' do
+        let(:digest) { nil }
+
+        it 'does not record any telemetry' do
+          expect(telemetry).not_to receive(:inc)
+
+          propagation.inject!(digest, data)
+        end
+      end
+
+      context 'with empty baggage' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(baggage: {})
+        end
+
+        it 'does not record any telemetry' do
+          expect(telemetry).not_to receive(:inc)
+
+          propagation.inject!(digest, data)
+        end
+      end
+    end
+
+    describe '#extract telemetry' do
+      context 'successful extraction' do
+        let(:data) { { 'baggage' => 'key=value' } }
+
+        it 'records successful extraction telemetry' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.extracted',
+            1,
+            tags: { 'header_style' => 'baggage' }
+          )
+
+          propagation.extract(data)
+        end
+      end
+
+      context 'malformed baggage - missing value' do
+        let(:data) { { 'baggage' => 'key=' } }
+
+        it 'records malformed header telemetry' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.malformed',
+            1,
+            tags: { 'header_style' => 'baggage' }
+          )
+
+          result = propagation.extract(data)
+          expect(result).to be_nil
+        end
+      end
+    end
+  end
 end
