@@ -16,6 +16,7 @@ module Datadog
                 gateway = Instrumentation.gateway
 
                 watch_request_action(gateway)
+                watch_response_body_json(gateway)
               end
 
               def watch_request_action(gateway = Instrumentation.gateway)
@@ -41,6 +42,28 @@ module Datadog
                   end
 
                   stack.call(gateway_request.request)
+                end
+              end
+
+              def watch_response_body_json(gateway = Instrumentation.gateway)
+                gateway.watch('rails.response.body.json', :appsec) do |stack, container|
+                  context = container.context
+
+                  persistent_data = {
+                    'server.response.body' => container.data
+                  }
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+
+                  if result.match?
+                    context.events.push(
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                    )
+
+                    AppSec::Event.tag_and_keep!(context, result)
+                    AppSec::ActionsHandler.handle(result.actions)
+                  end
+
+                  stack.call(container)
                 end
               end
             end
