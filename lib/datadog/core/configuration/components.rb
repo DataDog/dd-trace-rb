@@ -76,8 +76,6 @@ module Datadog
           end
         end
 
-        include Datadog::Tracing::Component::InstanceMethods
-
         attr_reader \
           :health_metrics,
           :logger,
@@ -107,7 +105,7 @@ module Datadog
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 
           @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
-          @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
+          @tracer = Datadog::Tracing::Component.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
@@ -126,7 +124,8 @@ module Datadog
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
           @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
 
-          self.class.configure_tracing(settings)
+          # Configure non-privileged components.
+          Datadog::Tracing::Contrib::Component.configure(settings)
         end
 
         # Starts up components
