@@ -50,8 +50,8 @@ RSpec.describe 'Rack integration tests' do
 
     # Sampler with the same settings as APM disabled one, except it is 4 seconds instead of 60 so tests are faster
     unless apm_tracing_enabled
-      post_sampler = Datadog::Core::Configuration::Components.send(:build_rate_limit_post_sampler, **{ seconds: 4 })
-      allow(Datadog::Core::Configuration::Components).to receive(:build_rate_limit_post_sampler).and_return(post_sampler)
+      post_sampler = Datadog::Tracing::Component.send(:build_rate_limit_post_sampler, **{ seconds: 4 })
+      allow(Datadog::Tracing::Component).to receive(:build_rate_limit_post_sampler).and_return(post_sampler)
     end
 
     unless remote_enabled
