@@ -8,8 +8,8 @@ require_relative 'framework'
 require_relative 'gateway/watcher'
 require_relative 'gateway/route_params'
 require_relative 'gateway/request'
+require_relative 'patches/json_patch'
 require_relative '../../../tracing/contrib/sinatra/framework'
-require_relative 'patches/json_helper_patch'
 
 module Datadog
   module AppSec
@@ -116,13 +116,14 @@ module Datadog
             ::Sinatra::Base.singleton_class.prepend(DefaultMiddlewarePatch)
             ::Sinatra::Base.prepend(DispatchPatch)
             ::Sinatra::Base.prepend(RoutePatch)
+            ::Sinatra::Base.prepend(Patches::JsonPatch) if patch_json?
             ::Sinatra::Base.singleton_class.prepend(AppSecSetupPatch)
 
-            if defined?(::Sinatra::JSON) && ::Sinatra::Base < ::Sinatra::JSON
-              ::Sinatra::Base.prepend(Patches::JsonHelperPatch)
-            end
-
             Patcher.instance_variable_set(:@patched, true)
+          end
+
+          def patch_json?
+            defined?(::Sinatra::JSON) && ::Sinatra::Base < ::Sinatra::JSON
           end
         end
       end

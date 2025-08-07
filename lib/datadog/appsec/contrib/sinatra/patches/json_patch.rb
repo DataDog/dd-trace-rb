@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../utils/hash_serializer'
+require_relative '../../../utils/hash_coercion'
 require_relative '../../../instrumentation/gateway/argument'
 
 module Datadog
@@ -8,14 +8,14 @@ module Datadog
     module Contrib
       module Sinatra
         module Patches
-          # TODO Write description for the patch
-          module JsonHelperPatch
+          # A patch targeting `Sinatra::JSON#json` method to capture JSON response
+          # body right before it is serialized.
+          module JsonPatch
             def json(object, options = {})
               context = @request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
               return super unless context
 
-              # FIXME: Rename method and maybe module
-              data = Utils::HashSerializer.to_hash(object)
+              data = Utils::HashCoercion.coerce(object)
               return super unless data
 
               container = Instrumentation::Gateway::DataContainer.new(data, context: context)

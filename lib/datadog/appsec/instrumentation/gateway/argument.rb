@@ -31,6 +31,8 @@ module Datadog
           attr_reader :data, :context
 
           def initialize(data, context:)
+            super()
+
             @data = data
             @context = context
           end

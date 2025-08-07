@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../utils/hash_serializer'
+require_relative '../../../utils/hash_coercion'
 require_relative '../../../instrumentation/gateway/argument'
 
 module Datadog
@@ -8,7 +8,8 @@ module Datadog
     module Contrib
       module Rails
         module Patches
-          # TODO Write description for the patch
+          # A patch targeting `AbstractController::Rendering#render_to_body`
+          # method to capture JSON response body right before it is serialized.
           module RenderToBodyPatch
             def render_to_body(options = {})
               return super unless options.key?(:json)
@@ -16,7 +17,7 @@ module Datadog
               context = request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
               return super unless context
 
-              data = Utils::HashSerializer.to_hash(options[:json])
+              data = Utils::HashCoercion.coerce(options[:json])
               return super unless data
 
               container = Instrumentation::Gateway::DataContainer.new(data, context: context)
