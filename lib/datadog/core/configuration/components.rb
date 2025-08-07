@@ -25,8 +25,6 @@ module Datadog
       # Global components for the trace library.
       class Components
         class << self
-          include Datadog::Tracing::Component
-
           def build_health_metrics(settings, logger, telemetry)
             settings = settings.health_metrics
             options = {enabled: settings.enabled}
