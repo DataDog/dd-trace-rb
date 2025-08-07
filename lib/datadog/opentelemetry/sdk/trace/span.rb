@@ -38,8 +38,8 @@ module Datadog
           res
         end
 
-        # `alias` performed to match {OpenTelemetry::SDK::Trace::Span} aliasing upstream
-        alias []= set_attribute
+        # `alias` performed to match {::OpenTelemetry::SDK::Trace::Span} aliasing upstream
+        alias []= set_attribute # rubocop:disable Style/Alias
 
         # Attributes are equivalent to span tags and metrics.
         def add_attributes(attributes)
@@ -72,24 +72,24 @@ module Datadog
             return 'http.client.request' if kind == :client
           end
 
-          return "#{attrs['db.system']}.query" if attrs.key?('db.system') && kind == :client
+          return "#{attrs["db.system"]}.query" if attrs.key?('db.system') && kind == :client
 
           if (attrs.key?('messaging.system') || attrs.key?('messaging.operation')) &&
               [:consumer, :producer, :server, :client].include?(kind)
 
-            return "#{attrs['messaging.system']}.#{attrs['messaging.operation']}"
+            return "#{attrs["messaging.system"]}.#{attrs["messaging.operation"]}"
           end
 
           if attrs.key?('rpc.system')
             if attrs['rpc.system'] == 'aws-api' && kind == :client
               service = attrs['rpc.service']
-              return "aws.#{service || 'client'}.request"
+              return "aws.#{service || "client"}.request"
             end
 
             if kind == :client
-              return "#{attrs['rpc.system']}.client.request"
+              return "#{attrs["rpc.system"]}.client.request"
             elsif kind == :server
-              return "#{attrs['rpc.system']}.server.request"
+              return "#{attrs["rpc.system"]}.server.request"
             end
           end
 
@@ -99,7 +99,7 @@ module Datadog
             return "#{provider}.#{name}.invoke"
           end
 
-          return "#{attrs['faas.trigger']}.invoke" if attrs.key?('faas.trigger') && kind == :server
+          return "#{attrs["faas.trigger"]}.invoke" if attrs.key?('faas.trigger') && kind == :server
 
           return 'graphql.server.request' if attrs.key?('graphql.operation.type')
 
@@ -119,6 +119,7 @@ module Datadog
 
         private
 
+        # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def datadog_set_attribute(key)
           # Return if attributes are currently disabled by OpenTelemetry.
           return unless defined?(@attributes) && @attributes
@@ -149,9 +150,11 @@ module Datadog
             end
           end
         end
+        # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
 
         # Some special attributes can override Datadog Span fields beyond tags and metrics.
         # @return [Boolean] true if the key is a Datadog Span override attribute, false otherwise
+        # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def override_datadog_values(span, key, value)
           span.name = value if key == 'operation.name'
           span.resource = value if key == 'resource.name'
@@ -161,15 +164,16 @@ module Datadog
           if key == 'analytics.event' && value.respond_to?(:casecmp)
             Datadog::Tracing::Analytics.set_sample_rate(
               span,
-              value.casecmp('true') == 0 ? 1 : 0
+              (value.casecmp('true') == 0) ? 1 : 0
             )
           end
 
           span.set_tag('http.status_code', value) if key == 'http.response.status_code'
         end
+        # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
 
         DATADOG_SPAN_ATTRIBUTE_OVERRIDES = ['analytics.event', 'operation.name', 'resource.name', 'service.name',
-                                            'span.type', 'http.response.status_code'].freeze
+          'span.type', 'http.response.status_code'].freeze
 
         ::OpenTelemetry::SDK::Trace::Span.prepend(self)
       end

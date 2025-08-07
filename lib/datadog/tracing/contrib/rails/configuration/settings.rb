@@ -13,7 +13,7 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             def initialize(options = {})
-              super(options)
+              super
 
               # NOTE: Eager load these
               #       Rails integration is responsible for orchestrating other integrations.

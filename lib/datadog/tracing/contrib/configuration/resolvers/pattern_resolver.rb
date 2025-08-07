@@ -17,10 +17,10 @@ module Datadog
               # Try to find a matching pattern
               _, config = configurations.reverse_each.find do |matcher, _|
                 matcher === if matcher.is_a?(Proc)
-                              value
-                            else
-                              value.to_s
-                            end
+                  value
+                else
+                  value.to_s
+                end
               end
 
               config

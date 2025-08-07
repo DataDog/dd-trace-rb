@@ -43,7 +43,7 @@ module Datadog
             return 'AUTH ?' if auth_command?(command_args)
 
             verb, *args = command_args.map { |x| format_arg(x) }
-            Core::Utils.truncate("#{verb.upcase} #{args.join(' ')}", CMD_MAX_LEN, TOO_LONG_MARK)
+            Core::Utils.truncate("#{verb.upcase} #{args.join(" ")}", CMD_MAX_LEN, TOO_LONG_MARK)
           end
 
           def get_verb(command_args)

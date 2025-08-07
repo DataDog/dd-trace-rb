@@ -46,7 +46,7 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               record_exception(span, payload)
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.debug(e.message)
             end
           end

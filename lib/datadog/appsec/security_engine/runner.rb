@@ -9,9 +9,10 @@ module Datadog
       class Runner
         SUCCESSFUL_EXECUTION_CODES = [:ok, :match].freeze
 
-        def initialize(waf_context)
+        def initialize(handle_ref)
           @mutex = Mutex.new
-          @waf_context = waf_context
+          @handle_ref = handle_ref
+          @waf_handle = handle_ref.acquire
 
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
@@ -54,14 +55,20 @@ module Datadog
           @mutex.unlock
         end
 
+        def waf_context
+          @waf_context ||= @waf_handle.build_context
+        end
+
         def finalize!
-          @waf_context.finalize!
+          @waf_context&.finalize!
+        ensure
+          @handle_ref.release(@waf_handle)
         end
 
         private
 
         def try_run(persistent_data, ephemeral_data, timeout)
-          @waf_context.run(persistent_data, ephemeral_data, timeout)
+          waf_context.run(persistent_data, ephemeral_data, timeout)
         rescue WAF::LibDDWAFError => e
           Datadog.logger.debug { "#{@debug_tag} execution error: #{e} backtrace: #{e.backtrace&.first(3)}" }
           AppSec.telemetry.report(e, description: 'libddwaf-rb internal low-level error')

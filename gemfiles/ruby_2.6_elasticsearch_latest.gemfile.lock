@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.19.0)
+    datadog (2.20.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
       libddwaf (~> 1.24.1.0.3)
@@ -32,10 +32,10 @@ GEM
     elastic-transport (8.4.0)
       faraday (< 3)
       multi_json
-    elasticsearch (9.0.3)
+    elasticsearch (9.1.0)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 9.0.3)
-    elasticsearch-api (9.0.3)
+      elasticsearch-api (= 9.1.0)
+    elasticsearch-api (9.1.0)
       multi_json
     extlz4 (0.3.4)
     faraday (2.8.1)

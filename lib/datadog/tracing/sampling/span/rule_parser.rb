@@ -28,7 +28,7 @@ module Datadog
                 list = JSON.parse(rules)
               rescue => e
                 Datadog.logger.warn(
-                  "Error parsing Span Sampling Rules `#{rules.inspect}`: "\
+                  "Error parsing Span Sampling Rules `#{rules.inspect}`: " \
                   "#{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
                 )
                 return nil

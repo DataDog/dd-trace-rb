@@ -29,6 +29,9 @@ default:
         - .gitlab-ci.yml         # list of images is here so it is a dependency too
       allow_failure: true
   image: $DOCKER_REGISTRY/docker:20.10.13
+  id_tokens:
+    DDSIGN_ID_TOKEN:
+      aud: image-integrity
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
@@ -40,6 +43,7 @@ default:
       --file .gitlab/Dockerfile-$RUBY_VERSION
       .
     - docker push --all-tags $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE
+    - ddsign sign $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID --digest-from-docker
 
 build-image-amd64:
   extends: .build-image-base

@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.19.0)
+    datadog (2.20.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
       libddwaf (~> 1.24.1.0.3)
@@ -57,8 +57,14 @@ GEM
     karafka-core (2.5.2)
       karafka-rdkafka (>= 0.19.2, < 0.21.0)
       logger (>= 1.6.0)
-    karafka-rdkafka (0.19.5)
+    karafka-rdkafka (0.20.1)
       ffi (~> 1.15)
+      logger
+      mini_portile2 (~> 2.6)
+      rake (> 12)
+    karafka-rdkafka (0.20.1-x86_64-linux-gnu)
+      ffi (~> 1.15)
+      logger
       mini_portile2 (~> 2.6)
       rake (> 12)
     libdatadog (18.1.0.1.0)
