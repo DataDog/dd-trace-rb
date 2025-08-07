@@ -95,4 +95,42 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       it { expect(result).not_to be_match }
     end
   end
+
+  describe '#error?' do
+    context 'when result is a generic type' do
+      subject(:result) do
+        described_class::Base.new(
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+        )
+      end
+
+      it { expect { result.error? }.to raise_error NotImplementedError }
+    end
+
+    context 'when result is a "match" type' do
+      subject(:result) do
+        described_class::Match.new(
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+        )
+      end
+
+      it { expect(result).not_to be_error }
+    end
+
+    context 'when result is an "ok" type' do
+      subject(:result) do
+        described_class::Ok.new(
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+        )
+      end
+
+      it { expect(result).not_to be_error }
+    end
+
+    context 'when result is an "error" type' do
+      subject(:result) { described_class::Error.new(duration_ext_ns: 0) }
+
+      it { expect(result).to be_error }
+    end
+  end
 end
