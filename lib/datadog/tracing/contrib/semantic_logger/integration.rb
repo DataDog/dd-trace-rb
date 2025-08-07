@@ -21,7 +21,7 @@ module Datadog
           register_as :semantic_logger
 
           def self.version
-            Gem.loaded_specs['semantic_logger'] && Gem.loaded_specs['semantic_logger'].version
+            Gem.loaded_specs['semantic_logger']&.version
           end
 
           def self.loaded?

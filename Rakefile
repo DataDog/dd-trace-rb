@@ -512,7 +512,7 @@ namespace :native_dev do
 end
 
 desc 'Runs rubocop + main test suite'
-task default: ['rubocop', 'standard', 'typecheck', 'spec:main']
+task default: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['rubocop', 'standard', 'typecheck', 'spec:main']
+multitask fastdefault: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']

@@ -25,7 +25,7 @@ module Datadog
           TAG_COMPONENT = 'mongodb'
           TAG_OPERATION_COMMAND = 'command'
           TAG_SYSTEM = 'mongodb'
-          PEER_SERVICE_SOURCES = (Array[Ext::TAG_DB] + Contrib::Ext::DB::PEER_SERVICE_SOURCES).freeze
+          PEER_SERVICE_SOURCES = ([Ext::TAG_DB] + Contrib::Ext::DB::PEER_SERVICE_SOURCES).freeze
 
           # Temporary namespace to accommodate unified tags which has naming collision, before
           # making breaking changes

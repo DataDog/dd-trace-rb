@@ -82,12 +82,13 @@ module Datadog
             )
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.error(e.message)
             Datadog::Core::Telemetry::Logger.report(e)
           end
           # rubocop:enable Metrics/AbcSize
 
+          # rubocop:disable Metrics/AbcSize
           def handle_response(span, env, options)
             span.set_error(["Error #{env[:status]}", env[:body]]) if options[:error_status_codes].include? env[:status]
 
@@ -96,10 +97,11 @@ module Datadog
             span.set_tags(
               Datadog.configuration.tracing.header_tags.response_tags(env[:response_headers])
             )
-          rescue StandardError => e
+          rescue => e
             Datadog.logger.error(e.message)
             Datadog::Core::Telemetry::Logger.report(e)
           end
+          # rubocop:enable Metrics/AbcSize
 
           def propagate!(trace, span, env)
             Contrib::HTTP.inject(trace, env[:request_headers])

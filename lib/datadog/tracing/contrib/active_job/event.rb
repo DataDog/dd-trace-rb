@@ -29,10 +29,10 @@ module Datadog
 
             def set_common_tags(span, payload)
               adapter_name = if payload[:adapter].is_a?(Class)
-                               payload[:adapter].name
-                             else
-                               payload[:adapter].class.name
-                             end
+                payload[:adapter].name
+              else
+                payload[:adapter].class.name
+              end
               span.set_tag(Ext::TAG_ADAPTER, adapter_name)
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -44,10 +44,10 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_EXECUTIONS, job.executions) if job.respond_to?(:executions)
 
               job_scheduled_at = if job.respond_to?(:scheduled_at)
-                                   job.scheduled_at
-                                 elsif job.respond_to?(:enqueued_at)
-                                   job.enqueued_at
-                                 end
+                job.scheduled_at
+              elsif job.respond_to?(:enqueued_at)
+                job.enqueued_at
+              end
               span.set_tag(Ext::TAG_JOB_SCHEDULED_AT, Time.at(job_scheduled_at)) if job_scheduled_at
             end
           end

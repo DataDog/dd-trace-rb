@@ -69,7 +69,7 @@ module Datadog
         def set_value(key, value, metadata: nil, context: ::OpenTelemetry::Context.current)
           # Delegate to the context to set the value because an active trace is not guaranteed
           # set_values handles this logic
-          context.set_values({ ::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY) => { key => value } })
+          context.set_values({::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY) => {key => value}})
         end
 
         # Returns a new context with value at key removed
@@ -81,7 +81,7 @@ module Datadog
         def remove_value(key, context: ::OpenTelemetry::Context.current)
           # Delegate to the context to remove the value because an active trace is not guaranteed
           # set_values handles this logic
-          context.set_values({ Context::BAGGAGE_REMOVE_KEY => key })
+          context.set_values({Context::BAGGAGE_REMOVE_KEY => key})
         end
         ::OpenTelemetry::Baggage.singleton_class.prepend(self)
       end

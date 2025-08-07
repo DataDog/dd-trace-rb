@@ -39,17 +39,17 @@ module Datadog
             return default_connection_config if connection.nil? && connection_id.nil?
 
             conn = if !connection.nil?
-                     # Since Rails 6.0, the connection object
-                     # is directly available.
-                     connection
-                   else
-                     # For Rails < 6.0, only the `connection_id`
-                     # is available. We have to find the connection
-                     # object from it.
-                     connection_from_id(connection_id)
-                   end
+              # Since Rails 6.0, the connection object
+              # is directly available.
+              connection
+            else
+              # For Rails < 6.0, only the `connection_id`
+              # is available. We have to find the connection
+              # object from it.
+              connection_from_id(connection_id)
+            end
 
-            if conn && conn.instance_variable_defined?(:@config)
+            if conn&.instance_variable_defined?(:@config)
               conn.instance_variable_get(:@config)
             else
               EMPTY_CONFIG
@@ -102,14 +102,14 @@ module Datadog
             return @default_connection_config if instance_variable_defined?(:@default_connection_config)
 
             current_connection_name = if ::ActiveRecord::Base.respond_to?(:connection_specification_name)
-                                        ::ActiveRecord::Base.connection_specification_name
-                                      else
-                                        ::ActiveRecord::Base
-                                      end
+              ::ActiveRecord::Base.connection_specification_name
+            else
+              ::ActiveRecord::Base
+            end
 
             connection_pool = ::ActiveRecord::Base.connection_handler.retrieve_connection_pool(current_connection_name)
             connection_pool.nil? ? EMPTY_CONFIG : (@default_connection_config = db_config(connection_pool))
-          rescue StandardError
+          rescue
             EMPTY_CONFIG
           end
 

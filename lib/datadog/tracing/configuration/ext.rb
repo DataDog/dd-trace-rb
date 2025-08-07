@@ -48,8 +48,8 @@ module Datadog
           PROPAGATION_STYLE_BAGGAGE = 'baggage'
 
           PROPAGATION_STYLE_SUPPORTED = [PROPAGATION_STYLE_DATADOG, PROPAGATION_STYLE_B3_MULTI_HEADER,
-                                         PROPAGATION_STYLE_B3_SINGLE_HEADER, PROPAGATION_STYLE_TRACE_CONTEXT,
-                                         PROPAGATION_STYLE_BAGGAGE].freeze
+            PROPAGATION_STYLE_B3_SINGLE_HEADER, PROPAGATION_STYLE_TRACE_CONTEXT,
+            PROPAGATION_STYLE_BAGGAGE].freeze
 
           # Sets both extract and inject propagation style tho the provided value.
           # Has lower precedence than `DD_TRACE_PROPAGATION_STYLE_INJECT` or

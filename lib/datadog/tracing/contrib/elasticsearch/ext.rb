@@ -23,10 +23,11 @@ module Datadog
           TAG_COMPONENT = 'elasticsearch'
           TAG_OPERATION_QUERY = 'query'
           TAG_SYSTEM = 'elasticsearch'
-          PEER_SERVICE_SOURCES = Array[
+          PEER_SERVICE_SOURCES = [
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
             Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
-            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,
+          ].freeze
         end
       end
     end
