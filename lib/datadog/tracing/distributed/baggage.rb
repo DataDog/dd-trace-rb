@@ -72,8 +72,7 @@ module Datadog
             # edge case where a single item is too large
             return if encoded_items.empty?
 
-            header_value = encoded_items.join(',')
-            data[@baggage_key] = header_value
+            data[@baggage_key] = encoded_items.join(',')
 
             # Record telemetry for successful injection
             record_telemetry_metric('context_header_style.injected', 1, { 'header_style' => 'baggage' })
@@ -186,28 +185,8 @@ module Datadog
 
         # Record telemetry metrics for baggage operations
         def record_telemetry_metric(metric_name, value, tags)
-          begin
-            telemetry = ::Datadog.send(:components).telemetry
-            telemetry&.inc('instrumentation_telemetry_data.tracers', metric_name, value, tags: tags)
-          rescue => e
-            # Silently handle telemetry errors to avoid affecting main functionality
-            ::Datadog.logger.debug("Failed to record baggage telemetry metric: #{e.message}")
-          end
-        end
-
-        def truncate_baggage_items_if_needed(baggage_items)
-          if baggage_items.size > DD_TRACE_BAGGAGE_MAX_ITEMS
-            ::Datadog.logger.warn('Baggage item limit exceeded, dropping excess items')
-            # Record telemetry for item count truncation
-            record_telemetry_metric(
-              'context_header_style.truncated',
-              1,
-              { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded' }
-            )
-            baggage_items.first(DD_TRACE_BAGGAGE_MAX_ITEMS)
-          else
-            baggage_items
-          end
+          telemetry = ::Datadog.send(:components).telemetry
+          telemetry.inc('instrumentation_telemetry_data.tracers', metric_name, value, tags: tags)
         end
       end
     end
