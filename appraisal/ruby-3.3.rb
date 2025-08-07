@@ -245,6 +245,6 @@ appraise 'rails-app' do
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rails', '~> 7.0'
   gem 'sinatra', '~> 3.0'
-  gem 'sinatra-contrib', '~> 3.0'
+  gem 'sinatra-contrib', '~> 3.0', require: false
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
 end
