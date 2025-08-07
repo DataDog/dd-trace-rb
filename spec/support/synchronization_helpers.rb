@@ -35,11 +35,11 @@ module SynchronizationHelpers
       fork_expectations.call(**result)
 
       result
-    rescue
+    rescue => e
       stdout ||= File.read(fork_stdout.path)
       stderr ||= File.read(fork_stderr.path)
 
-      raise "Failure or timeout during `expect_in_fork`, STDOUT: `#{stdout}`, STDERR: `#{stderr}`"
+      raise "Failure or timeout during `expect_in_fork`, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", e
     ensure
       Process.kill('KILL', pid) rescue nil # Prevent zombie processes on failure
 
