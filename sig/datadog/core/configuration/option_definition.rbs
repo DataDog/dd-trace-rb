@@ -2,65 +2,105 @@ module Datadog
   module Core
     module Configuration
       class OptionDefinition
-        IDENTITY: untyped
+        type option_type = String | Integer | Float | Rational | Symbol | bool | Proc | Array[untyped] | Hash[untyped, untyped] | nil
+        type meta = {
+          default: (option_type | Configuration::Options::GenericSettingsClass)?,
+          default_proc: (^() -> option_type)?,
+          env: (String | Array[String])?,
+          deprecated_env: String?,
+          env_parser: (^(String env_value) [self: Configuration::Settings] -> option_type)?,
+          after_set: (^(option_type value, option_type old_value, Configuration::Option::Precedence::Value precedence) [self: Configuration::Settings] -> void)?,
+          resetter: (^(option_type value) [self: Configuration::Settings] -> option_type)?,
+          setter: (^(option_type new_value, option_type old_value) [self: Configuration::Settings] -> option_type),
+          type: Symbol?,
+          type_options: Hash[Symbol, untyped]
+        }
 
-        attr_reader default: untyped
+        IDENTITY: ^(option_type new_value, option_type _old_value) [self: Configuration::Settings] -> option_type
 
-        attr_reader default_proc: untyped
+        attr_reader default: option_type | Configuration::Options::GenericSettingsClass
 
-        attr_reader env: untyped
+        attr_reader default_proc: (^() -> option_type)?
 
-        attr_reader deprecated_env: untyped
+        attr_reader env: String | Array[String] | nil
 
-        attr_reader env_parser: untyped
+        attr_reader deprecated_env: String?
 
-        attr_reader depends_on: untyped
+        attr_reader env_parser: (^(String env_value) [self: Configuration::Settings] -> option_type)?
 
-        attr_reader name: untyped
+        attr_reader name: Symbol
 
-        attr_reader after_set: untyped
+        attr_reader after_set: (^(option_type value, option_type old_value, Configuration::Option::Precedence::Value precedence) [self: Configuration::Settings] -> void)?
 
-        attr_reader resetter: untyped
+        attr_reader resetter: (^(option_type value) [self: Configuration::Settings] -> option_type)?
 
-        attr_reader setter: untyped
+        attr_reader setter: (^(option_type new_value, option_type old_value) [self: Configuration::Settings] -> option_type)
 
-        def initialize: (untyped name, ?::Hash[untyped, untyped] meta) { () -> untyped } -> untyped
+        attr_reader type: Symbol?
 
-        def build: (untyped context) -> untyped
+        attr_reader type_options: Hash[Symbol, untyped]
+
+        def initialize: (String | Symbol name, meta meta) ?{ (option_type new_value, option_type old_value) [self: Configuration::Settings] -> option_type } -> void
+
+        # context is a class that includes `Configuration::Options::InstanceMethods`.
+        # Only `Configuration::Base` includes `Configuration::Options::InstanceMethods` (through `Configuration::Options`).
+        # `Configuration::Base` is used by settings classes.
+        def build: (Configuration::Options::InstanceMethods context) -> Configuration::Option
 
         class Builder
-          attr_reader helpers: untyped
+          class InvalidOptionError < StandardError
+          end
 
-          def initialize: (untyped name, ?::Hash[untyped, untyped] options) { (untyped) -> untyped } -> untyped
+          attr_reader helpers: Hash[Symbol, Proc]
 
-          def depends_on: (*untyped values) -> untyped
+          @env: String | Array[String] | nil
+          @deprecated_env: String?
+          @env_parser: (^(String env_value) [self: Configuration::Settings] -> option_type)?
+          @default: option_type | Configuration::Options::GenericSettingsClass
+          @default_proc: (^() -> option_type)?
+          @helpers: Hash[Symbol, Proc]
+          @name: Symbol
+          @after_set: (^(option_type value, option_type old_value, Configuration::Option::Precedence::Value precedence) [self: Configuration::Settings] -> void)?
+          @resetter: (^(option_type value) [self: Configuration::Settings] -> option_type)?
+          @setter: (^(option_type new_value, option_type old_value) [self: Configuration::Settings] -> option_type)
+          @type: Symbol?
+          @type_options: Hash[Symbol, untyped]
 
-          def default: (?untyped? value) ?{ () -> untyped } -> untyped
+          def initialize: (String | Symbol name, ?meta options) ?{ (Builder) -> void } -> void
 
-          def default_proc: () { () -> untyped } -> untyped
+          def env: (String | Array[String] | nil value) -> void
 
-          def env: (untyped value) -> untyped
+          def deprecated_env: (String? value) -> void
 
-          def deprecated_env: (untyped value) -> untyped
+          def env_parser: () ?{ (String env_value) [self: Configuration::Settings] -> option_type } -> void
 
-          def env_parser: () { (String env_value) -> untyped } -> untyped
+          # can also be a class that includes Configuration::Base for new settings
+          def default: (?(option_type | Configuration::Options::GenericSettingsClass) value) ?{ () -> (option_type | Configuration::Options::GenericSettingsClass) } -> void
 
-          def type: (Symbol value, ?::Hash[untyped, untyped] type_options) -> untyped
+          def default_proc: () ?{ () -> option_type } -> void
 
-          def helper: (untyped name, *untyped _args) { () -> untyped } -> untyped
+          def type: (Symbol? value, ?nilable: bool) -> void
 
-          def after_set: () { (untyped value) -> untyped } -> untyped
+          def helper: (Symbol name, *untyped _args) { (?) -> untyped } -> void
 
-          def resetter: () { (untyped value) -> untyped } -> untyped
+          def after_set: () ?{ (option_type value, option_type old_value, Configuration::Option::Precedence::Value precedence) [self: Configuration::Settings] -> void } -> void
 
-          def setter: () { (untyped value) -> untyped } -> untyped
+          def resetter: () ?{ (option_type value) [self: Configuration::Settings] -> option_type } -> void
 
-          def apply_options!: (?::Hash[untyped, untyped] options) -> (nil | untyped)
+          def setter: () { (option_type new_value, option_type old_value) [self: Configuration::Settings] -> option_type } -> void
 
-          def to_definition: () -> untyped
+          def apply_options!: (?meta options) -> void
 
-          def meta: () -> { default: untyped, after_set: untyped, resetter: untyped, setter: untyped }
+          def to_definition: () -> OptionDefinition
+
+          def meta: () -> meta
+
+          private
+
+          def validate_options!: () -> void
         end
+
+        private
       end
     end
   end

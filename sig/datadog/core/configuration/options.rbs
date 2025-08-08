@@ -2,49 +2,68 @@ module Datadog
   module Core
     module Configuration
       module Options
-        def self.included: (untyped base) -> untyped
+        extend ClassMethods
+        include InstanceMethods
+
+        def self.included: (Class | Module base) -> void
 
         module ClassMethods
-          def options: () -> untyped
+          @options: Hash[Symbol, OptionDefinition]
+          @settings_name: String?
 
-          def option: (untyped name, ?::Hash[untyped, untyped] meta) ?{ (OptionDefinition::Builder) -> untyped } -> untyped
+          def options: () -> Hash[Symbol, OptionDefinition]
+
+          def option: (Symbol name, ?Configuration::OptionDefinition::meta meta) ?{ (Configuration::OptionDefinition::Builder) -> void } -> Configuration::OptionDefinition
 
           private
 
-          def default_helpers: (untyped name) -> ::Hash[untyped, untyped]
+          def default_helpers: (Symbol | String name) -> Hash[Symbol, Proc]
 
-          def define_helpers: (untyped helpers) -> untyped
+          def define_helpers: (Hash[Symbol, Proc] helpers) -> void
+
+          # Fake methods to make it work with RBS. RBS cannot understand that this module is only used in a class context.
+          def superclass: () -> singleton(Options)
+          def define_method: (untyped name) { (untyped) -> untyped } -> untyped
         end
 
         module InstanceMethods
-          def options: () -> untyped
+          extend ClassMethods
 
-          def set_option: (untyped name, untyped value, precedence: Option::Precedence::Value) -> untyped
+          @options: Hash[Symbol, Option]
 
-          def get_option: (untyped name) -> untyped
+          def options: () -> Hash[Symbol, Option]
 
-          def reset_option: (untyped name) -> untyped
+          def set_option: (Symbol name, Object? value, ?precedence: Option::Precedence::Value) -> Object?
 
-          def option_defined?: (untyped name) -> untyped
+          def unset_option: (Symbol name, ?precedence: Option::Precedence::Value) -> void
 
-          def unset_option: (untyped name, precedence: Option::Precedence::Value) -> void
+          def get_option: (Symbol name) -> Object?
 
-          def using_default?: (Symbol option) -> bool
+          def reset_option: (Symbol name) -> void
 
-          def options_hash: () -> untyped
+          def option_defined?: (Symbol name) -> bool
 
-          def reset_options!: () -> untyped
+          def using_default?: (Symbol name) -> bool
+
+          def options_hash: () -> Hash[Symbol, Object?]
+
+          def reset_options!: () -> void
 
           private
 
           def resolve_option: (Symbol name) -> Option
 
-          def add_option: (untyped name) -> untyped
+          def resolved_env: (Symbol name) -> String?
 
-          def assert_valid_option!: (untyped name) -> untyped
+          def assert_valid_option!: (Symbol name) -> void
         end
 
-        InvalidOptionError: untyped
+        class InvalidOptionError < StandardError
+        end
+
+        class GenericSettingsClass
+          include Options
+        end
       end
     end
   end

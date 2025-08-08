@@ -43,10 +43,12 @@ module Datadog
 
             {
               option_name.to_sym => proc do
-                get_option(option_name)
+                # get/set_option are defined, but we add them to the OptionDefinition helpers here.
+                # Steep is right that these methods are not defined, but we only run these Procs in instance context.
+                get_option(option_name) # steep:ignore NoMethod
               end,
               :"#{option_name}=" => proc do |value|
-                set_option(option_name, value)
+                set_option(option_name, value) # steep:ignore NoMethod
               end
             }
           end
@@ -55,7 +57,9 @@ module Datadog
             helpers.each do |name, block|
               next unless block.is_a?(Proc)
 
-              define_method(name, &block)
+              # Steep doesn't understand relation between Method and Proc.
+              # https://github.com/ruby/rbs/issues/736
+              define_method(name, &block) # steep:ignore BlockTypeMismatch
             end
           end
         end
@@ -125,7 +129,7 @@ module Datadog
           end
         end
 
-        InvalidOptionError = Class.new(StandardError)
+        class InvalidOptionError < StandardError; end
       end
     end
   end
