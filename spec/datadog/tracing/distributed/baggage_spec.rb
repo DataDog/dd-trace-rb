@@ -268,9 +268,10 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
     before do
-      # Mock the telemetry component
+      # Mock the telemetry component and tracer (needed by test helpers)
+      tracer = instance_double(Datadog::Tracing::Tracer)
       allow(Datadog).to receive(:send).with(:components).and_return(
-        double(telemetry: telemetry)
+        double(telemetry: telemetry, tracer: tracer)
       )
     end
 
