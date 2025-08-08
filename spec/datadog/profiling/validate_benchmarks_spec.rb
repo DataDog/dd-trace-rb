@@ -23,7 +23,7 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
 
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
-      it("runs without raising errors") { expect_in_fork { load "./benchmarks/#{benchmark}.rb" } }
+      it("runs without raising errors") { expect_in_fork(timeout_seconds: 15) { load "./benchmarks/#{benchmark}.rb" } }
     end
   end
 
