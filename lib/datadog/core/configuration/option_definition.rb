@@ -22,7 +22,7 @@ module Datadog
           :type,
           :type_options
 
-        def initialize(name, meta = {}, &block)
+        def initialize(name, meta, &block)
           @default = meta[:default]
           @default_proc = meta[:default_proc]
           @env = meta[:env]
