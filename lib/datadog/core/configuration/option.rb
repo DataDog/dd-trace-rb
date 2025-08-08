@@ -28,7 +28,8 @@ module Datadog
             def <=>(other)
               return nil unless other.is_a?(Value)
 
-              numeric <=> other.numeric
+              # Steep does not handle well Structs (https://github.com/ruby/rbs/blob/master/docs/data_and_struct.md)
+              numeric <=> other.numeric # steep:ignore NoMethod
             end
           end
 
@@ -159,7 +160,8 @@ module Datadog
 
         def default_value
           if definition.default.instance_of?(Proc)
-            context_eval(&definition.default)
+            # Steep does not handle well Procs (https://github.com/ruby/rbs/issues/736)
+            context_eval(&definition.default) # steep:ignore BlockTypeMismatch
           else
             definition.default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
@@ -172,23 +174,22 @@ module Datadog
         private
 
         def coerce_env_variable(value)
-          return context_exec(value, &@definition.env_parser) if @definition.env_parser
+          return context_exec(value, &definition.env_parser) if definition.env_parser
 
           case @definition.type
           when :hash
             values = value.split(',') # By default we only want to support comma separated strings
 
-            values.map! do |v|
+            result = {}
+            values.each do |v|
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+              next if v.empty?
 
-              v.empty? ? nil : v
-            end
-
-            values.compact!
-            values.each.with_object({}) do |v, hash|
               pair = v.split(':', 2)
-              hash[pair[0]] = pair[1]
+              result[pair[0]] = pair[1]
             end
+
+            result
           when :int
             Integer(value, 10)
           when :float
@@ -196,14 +197,15 @@ module Datadog
           when :array
             values = value.split(',')
 
-            values.map! do |v|
+            result = []
+            values.each do |v|
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+              next if v.empty?
 
-              v.empty? ? nil : v
+              result << v
             end
 
-            values.compact!
-            values
+            result
           when :bool
             string_value = value.strip
             string_value = string_value.downcase
@@ -329,18 +331,23 @@ module Datadog
           resolved_env = nil
 
           if definition.env
-            Array(definition.env).each do |env|
-              next if env_vars[env].nil?
+            # Steep thinks that Array([String]) will return an array of arrays.
+            envs = definition.env.is_a?(Array) ? definition.env : [definition.env]
+
+            envs.each do |env|
+              env_var = env_vars[env]
+              next if env_var.nil?
 
               resolved_env = env
-              value = coerce_env_variable(env_vars[env])
+              value = coerce_env_variable(env_var)
               break
             end
           end
 
-          if value.nil? && definition.deprecated_env && env_vars[definition.deprecated_env]
+          deprecated_env = definition.deprecated_env ? env_vars[definition.deprecated_env] : nil
+          if value.nil? && deprecated_env
             resolved_env = definition.deprecated_env
-            value = coerce_env_variable(env_vars[definition.deprecated_env])
+            value = coerce_env_variable(deprecated_env)
 
             Datadog::Core.log_deprecation do
               "#{definition.deprecated_env} #{source} is deprecated, use #{definition.env} instead."
@@ -349,9 +356,10 @@ module Datadog
 
           [value, resolved_env]
         rescue ArgumentError
+          env_var = resolved_env ? env_vars[resolved_env] : nil
           raise ArgumentError,
             "Expected #{source} #{resolved_env} to be a #{@definition.type}, " \
-                              "but '#{env_vars[resolved_env]}' was provided"
+            "but '#{env_var}' was provided"
         end
 
         # Anchor object that represents a value that is not set.
