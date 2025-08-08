@@ -47,7 +47,7 @@ module Datadog
           next nil if current_trace.nil? || current_trace.empty?
 
           process_result = processor.call(current_trace)
-          process_result && process_result.empty? ? nil : process_result
+          (process_result && process_result.empty?) ? nil : process_result
         end
       rescue => e
         Datadog.logger.debug(

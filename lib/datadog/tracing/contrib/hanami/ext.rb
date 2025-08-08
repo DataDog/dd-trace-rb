@@ -9,9 +9,9 @@ module Datadog
         module Ext
           ENV_ENABLED = 'DD_TRACE_HANAMI_ENABLED'
 
-          SPAN_ACTION =  'hanami.action'
+          SPAN_ACTION = 'hanami.action'
           SPAN_ROUTING = 'hanami.routing'
-          SPAN_RENDER =  'hanami.render'
+          SPAN_RENDER = 'hanami.render'
 
           TAG_COMPONENT = 'hanami'
           TAG_OPERATION_ACTION = 'action'

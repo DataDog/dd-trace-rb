@@ -51,9 +51,9 @@ GEM
     rake (13.2.1)
     rake-compiler (1.2.9)
       rake
-    redis (5.4.0)
+    redis (5.4.1)
       redis-client (>= 0.22.0)
-    redis-client (0.25.0)
+    redis-client (0.25.1)
       connection_pool
     rexml (3.4.1)
     rspec (3.13.0)

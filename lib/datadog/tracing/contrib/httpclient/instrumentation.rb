@@ -40,7 +40,7 @@ module Datadog
 
                   # Add additional request specific tags to the span.
                   annotate_span_with_request!(span, req, request_options)
-                rescue StandardError => e
+                rescue => e
                   Datadog.logger.error("error preparing span for httpclient request: #{e}, Source: #{e.backtrace}")
                   Datadog::Core::Telemetry::Logger.report(e)
                 ensure
@@ -95,7 +95,7 @@ module Datadog
             end
 
             def annotate_span_with_response!(span, response, request_options)
-              return unless response && response.status
+              return unless response&.status
 
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
 
@@ -106,7 +106,7 @@ module Datadog
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.response_tags(response.header)
               )
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.error("error preparing span from httpclient response: #{e}, Source: #{e.backtrace}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
