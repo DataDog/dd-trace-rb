@@ -12,16 +12,7 @@ module Datadog
   module Tracing
     # Tracing component
     module Component
-      # Methods that interact with component instance fields.
-      module InstanceMethods
-        # Hot-swaps with a new sampler.
-        # This operation acquires the Components lock to ensure
-        # there is no concurrent modification of the sampler.
-        def reconfigure_live_sampler
-          sampler = self.class.build_sampler(Datadog.configuration)
-          Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
-        end
-      end
+      extend self
 
       def build_tracer(settings, agent_settings, logger:)
         # If a custom tracer has been provided, use it instead.
@@ -154,11 +145,6 @@ module Datadog
       def build_span_sampler(settings)
         rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules)
         Tracing::Sampling::Span::Sampler.new(rules || [])
-      end
-
-      # Configure non-privileged components.
-      def configure_tracing(settings)
-        Datadog::Tracing::Contrib::Component.configure(settings)
       end
 
       # Sampler wrapper component, to allow for hot-swapping
