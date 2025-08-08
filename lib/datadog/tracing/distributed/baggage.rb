@@ -92,8 +92,10 @@ module Datadog
           # Convert selected baggage items to span tags based on configuration
           baggage_tags = build_baggage_tags(baggage)
 
-          # Record telemetry for successful extraction
-          record_telemetry_metric('context_header_style.extracted', 1, { 'header_style' => 'baggage' })
+          # Record telemetry for successful extraction only if baggage is not empty
+          if !baggage.empty?
+            record_telemetry_metric('context_header_style.extracted', 1, { 'header_style' => 'baggage' })
+          end
 
           TraceDigest.new(
             baggage: baggage,

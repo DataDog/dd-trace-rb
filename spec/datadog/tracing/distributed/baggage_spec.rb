@@ -399,7 +399,8 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
           )
 
           result = propagation.extract(data)
-          expect(result).to be_nil
+          expect(result).to be_a(Datadog::Tracing::TraceDigest)
+          expect(result.baggage).to eq({})
         end
       end
     end
