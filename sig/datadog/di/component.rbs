@@ -56,6 +56,8 @@ module Datadog
 
       attr_reader serializer: untyped
       def shutdown!: (?untyped? replacement) -> untyped
+      
+      def parse_probe_spec_and_notify: (untyped) -> untyped
     end
   end
 end

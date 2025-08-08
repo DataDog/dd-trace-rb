@@ -339,6 +339,12 @@
     'rails61-mysql2' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ❌ jruby',
     'rails8-mysql2'  => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ❌ jruby',
   },
+  'di:rails' => {
+    'rails61-mysql2' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ❌ jruby',
+    'rails7-mysql2'  => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ❌ jruby',
+    'rails71-mysql2'  => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ❌ jruby',
+    'rails8-mysql2'  => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ❌ jruby',
+  },
 }.each_with_object({}) do |(tasks, spec_metadata), hash|
   # Explode arrays of task names into individual tasks
   # e.g. ['rails', 'railsdisableenv'] => {'...'} becomes 'rails7' => {'...'}, 'railsdisableenv7' => {'...'}

@@ -112,6 +112,13 @@ module Datadog
         probe_manager.close
         probe_notifier_worker.stop
       end
+
+      def parse_probe_spec_and_notify(probe_spec)
+        probe = ProbeBuilder.build_from_remote_config(probe_spec)
+        payload = probe_notification_builder.build_received(probe)
+        probe_notifier_worker.add_status(payload)
+        probe
+      end
     end
   end
 end
