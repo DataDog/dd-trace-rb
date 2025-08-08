@@ -8,7 +8,7 @@ module Datadog
         module_function
 
         def report_rasp(type, result)
-          return if result.is_a?(SecurityEngine::Result::Error)
+          return if result.error?
 
           tags = {rule_type: type, waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING}
           namespace = Ext::TELEMETRY_METRICS_NAMESPACE
