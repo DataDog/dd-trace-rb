@@ -31,7 +31,17 @@ module Datadog
           seq_id = self.class.sequence.next
           payload = Request.build_payload(event, seq_id, debug: debug?)
           res = @transport.send_telemetry(request_type: event.type, payload: payload)
-          logger.debug { "Telemetry sent for event `#{event.type}` (response code: #{res.code})" }
+          if res.ok?
+            logger.debug { "Telemetry sent for event `#{event.type}`" }
+          else
+            diag = if res.respond_to?(:code)
+              "#{res}: code #{res.code}"
+            else
+              # InternalErrorResponse does not have a code
+              res.to_s
+            end
+            logger.debug { "Failed to send telemetry for event `#{event.type}`: #{diag}" }
+          end
           res
         rescue => e
           logger.debug {
