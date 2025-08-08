@@ -43,7 +43,7 @@ module Datadog
 
             {
               option_name.to_sym => proc do
-                # get/set_option are defined, but we add them to the OptionDefinition helpers here.
+                # These Procs uses `get/set_option`, but we only add them to the OptionDefinition helpers here.
                 # Steep is right that these methods are not defined, but we only run these Procs in instance context.
                 get_option(option_name) # steep:ignore NoMethod
               end,
