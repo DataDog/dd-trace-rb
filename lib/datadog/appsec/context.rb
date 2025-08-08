@@ -66,6 +66,22 @@ module Datadog
         Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
       end
 
+      def export_request_telemetry(trace_sampled:, request_blocked:)
+        return if @span.nil?
+
+        AppSec.telemetry.inc(
+          Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.requests', 1,
+          tags: {
+            waf_version: WAF::VERSION::BASE_STRING,
+            rule_triggered: @metrics.waf.matches.positive?.to_s,
+            waf_error: @metrics.waf.errors.positive?.to_s,
+            waf_timeout: @metrics.waf.timeouts.positive?.to_s,
+            request_blocked: request_blocked.to_s,
+            rate_limited: (!trace_sampled).to_s
+          }
+        )
+      end
+
       def finalize!
         @waf_runner.finalize!
       end

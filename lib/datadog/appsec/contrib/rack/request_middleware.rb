@@ -117,6 +117,8 @@ module Datadog
           ensure
             if ctx
               ctx.export_metrics
+              ctx.export_request_telemetry(trace_sampled: ctx.trace.sampled?, request_blocked: !interrupt_params.nil?) if ctx.trace
+
               Datadog::AppSec::Context.deactivate
             end
           end

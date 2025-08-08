@@ -35,6 +35,8 @@ module Datadog
 
       def export_metrics: () -> void
 
+      def export_request_telemetry: (trace_sampled: bool, request_blocked: bool) -> void
+
       def finalize!: () -> void
     end
   end
