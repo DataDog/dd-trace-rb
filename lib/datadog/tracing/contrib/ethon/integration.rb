@@ -13,7 +13,7 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('0.11.0')
+          MINIMUM_VERSION = Gem::Version.new('0.9.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :ethon
