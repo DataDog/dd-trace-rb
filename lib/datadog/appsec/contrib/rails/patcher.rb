@@ -19,6 +19,7 @@ module Datadog
       module Rails
         # Patcher for AppSec on Rails
         module Patcher
+          GUARD_ACTION_CONTROLLER_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
           BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
           AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
 
@@ -36,6 +37,7 @@ module Datadog
             Gateway::Watcher.watch
             patch_before_initialize
             patch_after_initialize
+            patch_action_controller
 
             Patcher.instance_variable_set(:@patched, true)
           end
@@ -53,7 +55,6 @@ module Datadog
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
 
               ::ActionController::Metal.prepend(Patches::ProcessActionPatch)
-              ::ActionController::Base.prepend(Patches::RenderToBodyPatch)
             end
           end
 
@@ -66,25 +67,6 @@ module Datadog
               )
             else
               app.middleware.insert_before(0, Datadog::AppSec::Contrib::Rack::RequestMiddleware)
-            end
-          end
-
-          # Hook into ActionController::Instrumentation#process_action, which encompasses action filters
-          module ProcessActionPatch
-            def process_action(*args)
-              env = request.env
-
-              context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
-              return super unless context
-
-              # TODO: handle exceptions, except for super
-
-              gateway_request = Gateway::Request.new(request)
-              http_response, _gateway_request = Instrumentation.gateway.push('rails.request.action', gateway_request) do
-                super
-              end
-
-              http_response
             end
           end
 
@@ -138,6 +120,14 @@ module Datadog
               # We need to wait for some things, like application name, middleware stack, etc.
               setup_security
               inspect_middlewares(app)
+            end
+          end
+
+          def patch_action_controller
+            ::ActiveSupport.on_load(:action_controller) do
+              GUARD_ACTION_CONTROLLER_ONCE_PER_APP[self].run do
+                ::ActionController::Base.prepend(Patches::RenderToBodyPatch)
+              end
             end
           end
 
