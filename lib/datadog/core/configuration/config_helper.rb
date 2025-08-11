@@ -32,8 +32,8 @@ module Datadog
           # datadog-ci-rb is using dd-trace-rb config DSL, which uses this method.
           # Until we've correctly implemented support for datadog-ci-rb, we disable config inversion if ci is enabled.
           if !defined?(::Datadog::CI) &&
-             (name.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[name]) &&
-             !SUPPORTED_CONFIGURATIONS[name]
+              (name.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[name]) &&
+              !SUPPORTED_CONFIGURATIONS[name]
             if defined?(@dd_test_environment) && @dd_test_environment
               if ALIAS_TO_CANONICAL[name]
                 raise "Please use #{ALIAS_TO_CANONICAL[name]} instead of #{name}."

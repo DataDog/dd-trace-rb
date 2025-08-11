@@ -890,6 +890,9 @@
     },
     "DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE": {
       "version": ["A"]
+    },
+    "DD_TRACE_BAGGAGE_TAG_KEYS": {
+      "version": ["A"]
     }
   },
   "aliases": {
