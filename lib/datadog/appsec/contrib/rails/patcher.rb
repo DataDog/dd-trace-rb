@@ -8,6 +8,8 @@ require_relative '../rack/request_middleware'
 require_relative '../rack/request_body_middleware'
 require_relative 'gateway/watcher'
 require_relative 'gateway/request'
+require_relative 'patches/render_to_body_patch'
+require_relative 'patches/process_action_patch'
 
 require_relative '../../../tracing/contrib/rack/middlewares'
 
@@ -49,7 +51,9 @@ module Datadog
               # Middleware must be added before the application is initialized.
               # Otherwise the middleware stack will be frozen.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
-              patch_process_action
+
+              ::ActionController::Metal.prepend(Patches::ProcessActionPatch)
+              ::ActionController::Base.prepend(Patches::RenderToBodyPatch)
             end
           end
 
@@ -71,23 +75,17 @@ module Datadog
               env = request.env
 
               context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
-
               return super unless context
 
               # TODO: handle exceptions, except for super
 
               gateway_request = Gateway::Request.new(request)
-
               http_response, _gateway_request = Instrumentation.gateway.push('rails.request.action', gateway_request) do
                 super
               end
 
               http_response
             end
-          end
-
-          def patch_process_action
-            ::ActionController::Metal.prepend(ProcessActionPatch)
           end
 
           def include_middleware?(middleware, app)

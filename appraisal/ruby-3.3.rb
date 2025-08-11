@@ -83,7 +83,7 @@ end
 appraise 'rails8-postgres-sidekiq' do
   gem 'rails', '~> 8.0.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  # Note: Sidekiq 8 uses different timestamp formatting compared to prior versions. As long as
+  # NOTE: Sidekiq 8 uses different timestamp formatting compared to prior versions. As long as
   # versions <8 are supported, make sure there's some CI running both older and newer versions.
   gem 'sidekiq', '< 8'
   gem 'lograge', '~> 0.11'
