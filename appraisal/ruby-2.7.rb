@@ -57,6 +57,7 @@ appraise 'rails6-mysql2' do
   gem 'mysql2', '< 1', platform: :ruby
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
+  gem 'nio4r', '>= 2.5.9' # NOTE: 2.5.8 has a compilation issues that were fixed
 end
 
 appraise 'rails6-postgres' do
