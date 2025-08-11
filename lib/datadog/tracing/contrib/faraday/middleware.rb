@@ -112,10 +112,11 @@ module Datadog
           end
 
           def build_request_options!(env)
-            datadog_configuration
-              .options_hash # integration level settings
-              .merge(datadog_configuration(env[:url].host).options_hash) # per-host override
-              .merge(@options) # middleware instance override
+            datadog_configuration.merge(
+              datadog_configuration(env[:url].host), # per-host override
+              @options, # middleware instance override
+              Core::Pin.get_from(@options[:connection]) || {} # per-connection override
+            )
           end
 
           def datadog_configuration(host = :default)
