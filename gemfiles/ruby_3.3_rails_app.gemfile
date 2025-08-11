@@ -34,8 +34,6 @@ gem "rack", "~> 2"
 gem "rack-contrib", "~> 2"
 gem "rack-test"
 gem "rails", "~> 7.0"
-gem "sinatra", "~> 3.0"
-gem "sinatra-contrib", "~> 3.0", require: false
 gem "sqlite3", ">= 1.4.2", platform: :ruby
 
 group :check do

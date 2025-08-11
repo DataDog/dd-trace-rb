@@ -159,6 +159,7 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
     gem 'sinatra', "~> #{n}"
+    gem 'sinatra-contrib', "~> #{n}"
     gem 'rack-contrib'
     gem 'rack-test' # Dev dependencies for testing rack-based code
   end
