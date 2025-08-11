@@ -38,6 +38,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     msgpack (1.8.0-java)
+    multi_json (1.15.0)
     mustermann (2.0.2)
       ruby2_keywords (~> 0.0.1)
     os (1.1.4)
@@ -96,6 +97,12 @@ GEM
       rack (~> 2.2)
       rack-protection (= 2.2.4)
       tilt (~> 2.0)
+    sinatra-contrib (2.2.4)
+      multi_json
+      mustermann (~> 2.0)
+      rack-protection (= 2.2.4)
+      sinatra (= 2.2.4)
+      tilt (~> 2.0)
     spoon (0.0.6)
       ffi
     strscan (3.1.0-java)
@@ -132,6 +139,7 @@ DEPENDENCIES
   simplecov (~> 0.22.0)
   simplecov-cobertura (~> 2.1.0)
   sinatra (~> 2)
+  sinatra-contrib (~> 2)
   warning (~> 1)
   webmock (>= 3.10.0)
 
