@@ -14,10 +14,6 @@ module Datadog
         TELEMETRY_ACTIONS: ::Array[::String]
         DIAGNOSTICS_CONFIG_KEYS: ::Array[::String]
 
-        attr_reader waf_addresses: ::Array[::String]
-
-        attr_reader ruleset_version: ::String
-
         def initialize: (appsec_settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> void
 
         def new_runner: () -> SecurityEngine::Runner

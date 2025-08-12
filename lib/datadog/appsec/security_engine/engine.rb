@@ -20,8 +20,6 @@ module Datadog
           exclusion_data
         ].freeze
 
-        attr_reader :waf_addresses, :ruleset_version
-
         def initialize(appsec_settings:, telemetry:)
           @default_ruleset = appsec_settings.ruleset
 
@@ -54,7 +52,11 @@ module Datadog
         end
 
         def new_runner
-          SecurityEngine::Runner.new(@handle_ref)
+          SecurityEngine::Runner.new(
+            handle_ref: @handle_ref,
+            ruleset_version: @ruleset_version,
+            waf_addresses: @waf_addresses
+          )
         end
 
         def add_or_update_config(config, path:)
@@ -139,7 +141,7 @@ module Datadog
 
           common_tags = {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-            event_rules_version: diagnostics.fetch('ruleset_version', @ruleset_version).to_s,
+            event_rules_version: diagnostics['ruleset_version'].to_s,
             action: action
           }
 
