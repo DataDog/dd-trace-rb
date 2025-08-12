@@ -12,11 +12,19 @@ module Datadog
 
         @waf_context: WAF::Context
 
+        @ruleset_version: ::String
+
+        @waf_addresses: ::Array[::String]
+
         @debug_tag: ::String
 
         SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
 
-        def initialize: (ThreadSafeRef handle_ref) -> void
+        attr_reader ruleset_version: ::String
+
+        attr_reader waf_addresses: ::Array[::String]
+
+        def initialize: (handle_ref: ThreadSafeRef, ruleset_version: ::String, waf_addresses: ::Array[::String]) -> void
 
         def run: (input_data persistent_data, input_data ephemeral_data, ?::Integer timeout) -> SecurityEngine::result
 
