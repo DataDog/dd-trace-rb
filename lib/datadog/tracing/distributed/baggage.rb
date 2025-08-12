@@ -44,7 +44,7 @@ module Datadog
               record_telemetry_metric(
                 'context_header_style.truncated',
                 1,
-                { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded' }
+                {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'}
               )
               baggage_items = baggage_items.first(DD_TRACE_BAGGAGE_MAX_ITEMS)
             end
@@ -61,7 +61,7 @@ module Datadog
                 record_telemetry_metric(
                   'context_header_style.truncated',
                   1,
-                  { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded' }
+                  {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'}
                 )
                 break # stop adding items when size limit is reached
               end
@@ -75,7 +75,7 @@ module Datadog
             data[@baggage_key] = encoded_items.join(',')
 
             # Record telemetry for successful injection
-            record_telemetry_metric('context_header_style.injected', 1, { 'header_style' => 'baggage' })
+            record_telemetry_metric('context_header_style.injected', 1, {'header_style' => 'baggage'})
           rescue => e
             ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.class}: #{e}")
           end
@@ -94,7 +94,7 @@ module Datadog
 
           # Record telemetry for successful extraction only if baggage is not empty
           unless baggage.empty?
-            record_telemetry_metric('context_header_style.extracted', 1, { 'header_style' => 'baggage' })
+            record_telemetry_metric('context_header_style.extracted', 1, {'header_style' => 'baggage'})
           end
 
           TraceDigest.new(
@@ -143,7 +143,7 @@ module Datadog
             # If baggage is malformed, return an empty hash
             if key.nil? || value.nil?
               # Record telemetry for malformed header
-              record_telemetry_metric('context_header_style.malformed', 1, { 'header_style' => 'baggage' })
+              record_telemetry_metric('context_header_style.malformed', 1, {'header_style' => 'baggage'})
               return {}
             end
 
@@ -151,7 +151,7 @@ module Datadog
             value = URI.decode_www_form_component(value.strip)
             if key.empty? || value.empty?
               # Record telemetry for malformed header
-              record_telemetry_metric('context_header_style.malformed', 1, { 'header_style' => 'baggage' })
+              record_telemetry_metric('context_header_style.malformed', 1, {'header_style' => 'baggage'})
               return {}
             end
 
