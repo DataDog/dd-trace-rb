@@ -22,14 +22,23 @@ module Datadog
           # Represents an Option precedence level.
           # Each precedence has a `numeric` value; higher values means higher precedence.
           # `name` is for inspection purposes only.
-          Value = Struct.new(:numeric, :name, :origin) do
+
+          class Value
             include Comparable
+
+            attr_accessor :numeric, :name, :origin
+
+            def initialize(numeric, name, origin)
+              @numeric = numeric
+              @name = name
+              @origin = origin
+            end
 
             def <=>(other)
               return nil unless other.is_a?(Value)
 
               # Steep does not handle well Structs (https://github.com/ruby/rbs/blob/master/docs/data_and_struct.md)
-              numeric <=> other.numeric # steep:ignore NoMethod
+              numeric <=> other.numeric
             end
           end
 
@@ -180,16 +189,13 @@ module Datadog
           when :hash
             values = value.split(',') # By default we only want to support comma separated strings
 
-            result = {}
-            values.each do |v|
+            values.each_with_object({}) do |v, hash| # $ Hash[String, String]
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
               next if v.empty?
 
               pair = v.split(':', 2)
-              result[pair[0]] = pair[1]
+              hash[pair[0]] = pair[1]
             end
-
-            result
           when :int
             Integer(value, 10)
           when :float
@@ -197,15 +203,12 @@ module Datadog
           when :array
             values = value.split(',')
 
-            result = []
-            values.each do |v|
+            values.each_with_object([]) do |v, arr| # $ Array[String]
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
               next if v.empty?
 
-              result << v
+              arr << v
             end
-
-            result
           when :bool
             string_value = value.strip
             string_value = string_value.downcase
@@ -332,8 +335,12 @@ module Datadog
 
           if definition.env
             # Steep thinks that Array([String]) will return an array of arrays.
-            envs = definition.env.is_a?(Array) ? definition.env : [definition.env]
-
+            # We create a new variable and annotate it to avoid the error.
+            # As aliases will be removed from the DSL with config inversion,
+            # this will be removed in the future as `definition.env` will be a `String?`.
+            #
+            # @type var envs: Array[String]
+            envs = Array(definition.env)
             envs.each do |env|
               env_var = env_vars[env]
               next if env_var.nil?

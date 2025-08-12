@@ -28,11 +28,16 @@ module Datadog
           class Value
             include Comparable
 
-            attr_reader numeric: int
-            attr_reader name: Symbol
-            attr_reader origin: String
+            attr_accessor numeric: Integer
+            attr_accessor name: Symbol
+            attr_accessor origin: String
 
-            def initialize: (int numeric, Symbol name, String origin) -> void
+            @numeric: Integer
+            @name: Symbol
+            @origin: String
+
+            def initialize: (Integer numeric, Symbol name, String origin) -> void
+            def <=>: (untyped other) -> Integer?
           end
         end
 
