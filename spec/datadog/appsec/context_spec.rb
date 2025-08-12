@@ -243,6 +243,7 @@ RSpec.describe Datadog::AppSec::Context do
             waf_error: 'false',
             waf_timeout: 'false',
             request_blocked: 'false',
+            block_failure: 'false',
             rate_limited: 'false'
           }
         )

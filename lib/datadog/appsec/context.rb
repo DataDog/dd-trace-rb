@@ -77,6 +77,7 @@ module Datadog
             waf_error: @metrics.waf.errors.positive?.to_s,
             waf_timeout: @metrics.waf.timeouts.positive?.to_s,
             request_blocked: request_blocked.to_s,
+            block_failure: 'false',
             rate_limited: (!trace_sampled).to_s
           }
         )
