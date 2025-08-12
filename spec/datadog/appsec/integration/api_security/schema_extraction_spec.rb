@@ -27,6 +27,7 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
 
       klass.connection.create_table 'products', force: :cascade do |t|
         t.string :name, null: false
+        t.float :price, default: 0.0
       end
 
       # prevent internal sql requests from showing up
@@ -93,6 +94,21 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
           {
             id: "extract-content",
             generator: "extract_schema",
+            conditions: [
+              {
+                operator: "equals",
+                parameters: {
+                  inputs: [
+                    {
+                      address: "waf.context.processor",
+                      key_path: ["extract-schema"]
+                    }
+                  ],
+                  type: "boolean",
+                  value: true
+                }
+              }
+            ],
             parameters: {
               mappings: [
                 {
@@ -161,13 +177,18 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
 
     app.initialize!
     app.routes.draw do
+      get '/api/product', to: 'api#product'
       get '/api/products', to: 'api#products'
       get '/api/search', to: 'api#search'
     end
 
     stub_const('ApiController', Class.new(ActionController::Base)).class_eval do
-      def products
+      def product
         render json: {id: 1, name: 'Widget', price: 29.99}
+      end
+
+      def products
+        render json: Product.all
       end
 
       def search
@@ -225,7 +246,7 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
 
       allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(true)
 
-      get('/api/products')
+      get('/api/product')
     end
 
     it 'extracts schema and adds to span tags' do
@@ -248,7 +269,7 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
     context 'when trace is not priority sampled' do
       before do
         allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(false)
-        get('/api/products')
+        get('/api/product')
       end
 
       it 'does not extract schema' do
@@ -264,7 +285,7 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
       before do
         allow_any_instance_of(Datadog::AppSec::APISecurity::Sampler).to receive(:sample?).and_return(false)
 
-        get('/api/products')
+        get('/api/product')
       end
 
       let(:sampler) { instance_double(Datadog::Tracing::Sampling::Sampler, sample!: true) }
@@ -286,7 +307,7 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
         config.appsec.api_security.sample_delay = 30
       end
 
-      get('/api/products')
+      get('/api/product')
     end
 
     it 'does not extract schema' do
@@ -306,13 +327,13 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
         config.appsec.api_security.sample_delay = 30
       end
 
-      get('/api/products')
+      get('/api/product')
     end
 
     context 'when trace is not priority sampled' do
       before do
         allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(false)
-        get('/api/products')
+        get('/api/product')
       end
 
       it 'extracts request and response schema even if tracer is not sampling' do
@@ -327,7 +348,7 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
     context 'when trace is priority sampled' do
       before do
         allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(true)
-        get('/api/products')
+        get('/api/product')
       end
 
       it 'extracts request and response schema even if tracer is not sampling' do
@@ -354,6 +375,22 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
       expect(response).to be_forbidden
       expect(http_service_entry_span.tags).to include(match(%r{_dd.appsec.s.req.*}))
       expect(http_service_entry_span.tags).not_to include(match(%r{_dd.appsec.s.res.*}))
+    end
+  end
+
+  context 'when response body schema is collected' do
+    before do
+      allow_any_instance_of(Datadog::AppSec::APISecurity::Sampler).to receive(:sample?).and_return(true)
+      allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(true)
+
+      2.times { |i| Product.create(name: "Product #{i}", price: i + 0.99) }
+
+      get('/api/products')
+    end
+
+    it 'extracts request and response body schema' do
+      expect(response).to be_ok
+      expect(http_service_entry_span.tags).to have_key('_dd.appsec.s.res.body')
     end
   end
 end
