@@ -51,7 +51,7 @@ module Datadog
 
           attr_reader helpers: Hash[Symbol, Proc]
 
-          @env: String | Array[String] | nil
+          @env: String?
           @deprecated_env: String?
           @env_parser: (^(String env_value) [self: Configuration::Settings] -> option_type)?
           @default: option_type | Configuration::Options::GenericSettingsClass
@@ -66,7 +66,7 @@ module Datadog
 
           def initialize: (String | Symbol name, ?meta options) ?{ (Builder) -> void } -> void
 
-          def env: (String value) -> String
+          def env: (String? value) -> void
 
           def env_parser: () ?{ (String env_value) [self: Configuration::Settings] -> option_type } -> void
 

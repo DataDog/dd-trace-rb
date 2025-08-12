@@ -40,7 +40,7 @@ module Datadog
         # `Configuration::Base` is used by settings classes.
         def initialize: (Configuration::OptionDefinition definition, Configuration::Options::InstanceMethods context) -> void
 
-        def set: (Object? value, ?precedence: Precedence::Value, ?resolved_env: String?) -> Object?
+        def set: (Object? value, ?precedence: Precedence::Value) -> Object?
 
         def get: () -> Object?
 
@@ -63,7 +63,7 @@ module Datadog
 
         def validate: (Symbol? type, Object? value) -> bool
 
-        def internal_set: (Object? value, Precedence::Value precedence, String? resolved_env) -> Object?
+        def internal_set: (Object? value, Precedence::Value precedence) -> Object?
 
         # `context_exec/eval` can take any block (and args) and just apply them to the context using `instance_exec/eval`.
         # Which makes it impossible to type. Even if we know the type of the blocks that uses `context_exec`,
@@ -80,7 +80,9 @@ module Datadog
 
         def set_fleet_stable_config_value: () -> void
 
-        def get_value_and_resolved_env_from: (env_vars env_vars, ?source: String ) -> [env_value, String?]
+        def get_value_from_ENV: () -> env_value
+
+        def get_value_from: (env_vars env_vars, String source) -> env_value
 
         UNSET: Object
       end
