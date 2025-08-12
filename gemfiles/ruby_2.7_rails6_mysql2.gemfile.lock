@@ -132,7 +132,7 @@ GEM
       timeout
     net-smtp (0.3.3)
       net-protocol
-    nio4r (2.5.8)
+    nio4r (2.7.4)
     nokogiri (1.14.2-aarch64-linux)
       racc (~> 1.4)
     nokogiri (1.14.2-x86_64-linux)
@@ -247,6 +247,7 @@ DEPENDENCIES
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
   mysql2 (< 1)
+  nio4r (>= 2.5.9)
   os (~> 1.1)
   pry
   rails (~> 6.0.0)
