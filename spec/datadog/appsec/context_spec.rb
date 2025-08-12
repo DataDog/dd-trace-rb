@@ -218,95 +218,32 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
-  describe '#export_request_telemetry' do
-    context 'when span is not present' do
-      let(:context) { described_class.new(trace, nil, waf_runner) }
-
-      it 'does not export metrics via telemetry' do
-        expect(Datadog::AppSec.telemetry).not_to receive(:inc)
-
-        context.export_request_telemetry(trace_sampled: true, request_blocked: false)
-      end
+  describe '#mark_as_interrupted!, #interrupted?' do
+    it 'returns false when not interrupted' do
+      expect(context.interrupted?).to be false
     end
 
-    context 'when span is present' do
-      before do
-        stub_const('Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE', 'specsec')
-        stub_const('Datadog::AppSec::WAF::VERSION::BASE_STRING', '1.42.99')
-      end
+    it 'returns true when interrupted' do
+      context.mark_as_interrupted!
 
-      it 'exports all tags' do
-        expect(Datadog::AppSec.telemetry).to receive(:inc).with(
-          'specsec', 'waf.requests', 1, tags: {
-            waf_version: '1.42.99',
-            rule_triggered: 'false',
-            waf_error: 'false',
-            waf_timeout: 'false',
-            request_blocked: 'false',
-            block_failure: 'false',
-            rate_limited: 'false'
-          }
-        )
+      expect(context.interrupted?).to be true
+    end
+  end
 
-        context.export_request_telemetry(trace_sampled: true, request_blocked: false)
-      end
+  describe '#export_request_telemetry' do
+    it 'calls telemetry exporter' do
+      expect(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_waf_request_metrics).with(anything, context)
 
-      it 'exports request_blocked as "true" when the request was blocked' do
-        expect(Datadog::AppSec.telemetry).to receive(:inc).with(
-          'specsec', 'waf.requests', 1, tags: hash_including(request_blocked: 'true')
-        )
+      context.export_request_telemetry
+    end
 
-        context.export_request_telemetry(trace_sampled: true, request_blocked: true)
-      end
+    context 'when trace is not present' do
+      let(:context) { described_class.new(nil, span, waf_runner) }
 
-      it 'exports rate_limited as "true" when trace was not sampled' do
-        expect(Datadog::AppSec.telemetry).to receive(:inc).with(
-          'specsec', 'waf.requests', 1, tags: hash_including(rate_limited: 'true')
-        )
+      it 'does not call telemetry exporter' do
+        expect(Datadog::AppSec::Metrics::TelemetryExporter).not_to receive(:export_waf_request_metrics)
 
-        context.export_request_telemetry(trace_sampled: false, request_blocked: false)
-      end
-
-      context 'when waf metrics has non-zero count of matches' do
-        before do
-          context.instance_variable_get(:@metrics).waf.matches = 1
-        end
-
-        it 'exports rule_triggered as "true"' do
-          expect(Datadog::AppSec.telemetry).to receive(:inc).with(
-            'specsec', 'waf.requests', 1, tags: hash_including(rule_triggered: 'true')
-          )
-
-          context.export_request_telemetry(trace_sampled: true, request_blocked: false)
-        end
-      end
-
-      context 'when waf metrics has non-zero count of errors' do
-        before do
-          context.instance_variable_get(:@metrics).waf.errors = 1
-        end
-
-        it 'exports rule_triggered as "true"' do
-          expect(Datadog::AppSec.telemetry).to receive(:inc).with(
-            'specsec', 'waf.requests', 1, tags: hash_including(waf_error: 'true')
-          )
-
-          context.export_request_telemetry(trace_sampled: true, request_blocked: false)
-        end
-      end
-
-      context 'when waf metrics has non-zero count of timeouts' do
-        before do
-          context.instance_variable_get(:@metrics).waf.timeouts = 1
-        end
-
-        it 'exports rule_triggered as "true"' do
-          expect(Datadog::AppSec.telemetry).to receive(:inc).with(
-            'specsec', 'waf.requests', 1, tags: hash_including(waf_timeout: 'true')
-          )
-
-          context.export_request_telemetry(trace_sampled: true, request_blocked: false)
-        end
+        context.export_request_telemetry
       end
     end
   end

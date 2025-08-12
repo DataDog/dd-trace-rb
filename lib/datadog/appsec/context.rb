@@ -55,6 +55,18 @@ module Datadog
         result
       end
 
+      def mark_as_interrupted!
+        @interrupted = true
+      end
+
+      def interrupted?
+        @interrupted == true
+      end
+
+      def ruleset_version
+        @waf_runner.ruleset_version
+      end
+
       def extract_schema
         @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
       end
@@ -66,21 +78,10 @@ module Datadog
         Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
       end
 
-      def export_request_telemetry(trace_sampled:, request_blocked:)
-        return if @span.nil?
+      def export_request_telemetry
+        return if @trace.nil?
 
-        AppSec.telemetry.inc(
-          Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.requests', 1,
-          tags: {
-            waf_version: WAF::VERSION::BASE_STRING,
-            rule_triggered: @metrics.waf.matches.positive?.to_s,
-            waf_error: @metrics.waf.errors.positive?.to_s,
-            waf_timeout: @metrics.waf.timeouts.positive?.to_s,
-            request_blocked: request_blocked.to_s,
-            block_failure: 'false',
-            rate_limited: (!trace_sampled).to_s
-          }
-        )
+        Metrics::TelemetryExporter.export_waf_request_metrics(@metrics.waf, self)
       end
 
       def finalize!
