@@ -39,7 +39,7 @@ module Datadog
 
           begin
             if baggage_items.size > DD_TRACE_BAGGAGE_MAX_ITEMS
-              ::Datadog.logger.warn('Baggage item limit exceeded, dropping excess items')
+              ::Datadog.logger.warn("Baggage item limit (#{DD_TRACE_BAGGAGE_MAX_ITEMS}) exceeded, dropping excess items")
               # Record telemetry for item count truncation
               record_telemetry_metric(
                 'context_header_style.truncated',
@@ -56,7 +56,7 @@ module Datadog
               item = "#{encode_item(key, SAFE_CHARACTERS_KEY)}=#{encode_item(value, SAFE_CHARACTERS_VALUE)}"
               item_size = item.bytesize + (encoded_items.empty? ? 0 : 1) # +1 for comma if not first item
               if total_size + item_size > DD_TRACE_BAGGAGE_MAX_BYTES
-                ::Datadog.logger.warn('Baggage header size exceeded, dropping excess items')
+                ::Datadog.logger.warn("Baggage header size (#{DD_TRACE_BAGGAGE_MAX_BYTES}) exceeded, dropping excess items")
                 # Record telemetry for byte count truncation
                 record_telemetry_metric(
                   'context_header_style.truncated',
@@ -77,7 +77,7 @@ module Datadog
             # Record telemetry for successful injection
             record_telemetry_metric('context_header_style.injected', 1, { 'header_style' => 'baggage' })
           rescue => e
-            ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.message}")
+            ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.class}: #{e}")
           end
         end
 
