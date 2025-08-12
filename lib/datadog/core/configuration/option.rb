@@ -176,7 +176,7 @@ module Datadog
         def coerce_env_variable(value)
           return context_exec(value, &definition.env_parser) if definition.env_parser
 
-          case @definition.type
+          case definition.type
           when :hash
             values = value.split(',') # By default we only want to support comma separated strings
 
@@ -214,7 +214,7 @@ module Datadog
             value
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option for env coercion `#{@definition.type}`"
+              "The option #{definition.name} is using an unsupported type option for env coercion `#{definition.type}`"
           end
         end
 
@@ -225,10 +225,10 @@ module Datadog
         def validate_type(value)
           raise_error = false
 
-          valid_type = validate(@definition.type, value)
+          valid_type = validate(definition.type, value)
 
           unless valid_type
-            raise_error = if @definition.type_options[:nilable]
+            raise_error = if definition.type_options[:nilable]
               !value.is_a?(NilClass)
             else
               true
@@ -236,12 +236,12 @@ module Datadog
           end
 
           if raise_error
-            error_msg = if @definition.type_options[:nilable]
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
-              "#{@definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})." \
+            error_msg = if definition.type_options[:nilable]
+              "The setting `#{definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "#{definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})." \
             else
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
-              "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})." \
+              "The setting `#{definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "#{definition.type}, but a `#{value.class}` was provided (#{value.inspect})." \
             end
 
             error_msg = "#{error_msg} Please update your `configure` block. "
@@ -274,7 +274,7 @@ module Datadog
             true # No validation is performed when option is typeless
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option `#{@definition.type}`"
+              "The option #{definition.name} is using an unsupported type option `#{definition.type}`"
           end
         end
 
@@ -358,7 +358,7 @@ module Datadog
         rescue ArgumentError
           env_var = resolved_env ? env_vars[resolved_env] : nil
           raise ArgumentError,
-            "Expected #{source} #{resolved_env} to be a #{@definition.type}, " \
+            "Expected #{source} #{resolved_env} to be a #{definition.type}, " \
             "but '#{env_var}' was provided"
         end
 
