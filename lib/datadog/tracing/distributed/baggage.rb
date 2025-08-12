@@ -93,7 +93,7 @@ module Datadog
           baggage_tags = build_baggage_tags(baggage)
 
           # Record telemetry for successful extraction only if baggage is not empty
-          if !baggage.empty?
+          unless baggage.empty?
             record_telemetry_metric('context_header_style.extracted', 1, { 'header_style' => 'baggage' })
           end
 
