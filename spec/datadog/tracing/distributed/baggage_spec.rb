@@ -106,7 +106,7 @@ RSpec.shared_examples 'Baggage distributed format' do
         end
 
         it 'logs a warning and stops injecting excess items' do
-          expect(Datadog.logger).to receive(:warn).with('Baggage item limit exceeded, dropping excess items')
+          expect(Datadog.logger).to receive(:warn).with('Baggage item limit (64) exceeded, dropping excess items')
           inject!
           expect(data['baggage'].split(',').size).to eq(Datadog::Tracing::Distributed::Baggage::DD_TRACE_BAGGAGE_MAX_ITEMS)
         end
@@ -121,7 +121,7 @@ RSpec.shared_examples 'Baggage distributed format' do
         end
 
         it 'logs a warning and stops injecting excess items' do
-          expect(Datadog.logger).to receive(:warn).with('Baggage header size exceeded, dropping excess items')
+          expect(Datadog.logger).to receive(:warn).with('Baggage header size (8192) exceeded, dropping excess items')
           inject!
           expect(data['baggage']).to eq('key1=value1')
         end
