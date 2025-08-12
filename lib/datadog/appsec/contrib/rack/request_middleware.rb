@@ -85,6 +85,7 @@ module Datadog
             end
 
             if interrupt_params
+              ctx.mark_as_interrupted!
               http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
             end
 
@@ -116,7 +117,7 @@ module Datadog
           ensure
             if ctx
               ctx.export_metrics
-              ctx.export_request_telemetry(trace_sampled: ctx.trace.sampled?, request_blocked: !interrupt_params.nil?) if ctx.trace
+              ctx.export_request_telemetry
 
               Datadog::AppSec::Context.deactivate
             end

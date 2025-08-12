@@ -43,7 +43,7 @@ RSpec.shared_context 'Rails 7 test application' do
       if config.respond_to?(:active_job)
         config.active_job.queue_adapter = :inline
         if ENV['USE_SIDEKIQ']
-          config.active_job.queue_adapter = :sidekiq
+          config.active_job.queue_adapterl = :sidekiq
           # add Sidekiq middleware
           Sidekiq::Testing.server_middleware do |chain|
             chain.add(
