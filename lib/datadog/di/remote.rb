@@ -43,6 +43,8 @@ module Datadog
             if component
 
               probe_manager = component.probe_manager
+              probe_notification_builder = component.probe_notification_builder
+              probe_notifier_worker = component.probe_notifier_worker
 
               current_probe_ids = {}
               repository.contents.each do |content|
@@ -50,11 +52,7 @@ module Datadog
                 when PRODUCT
                   begin
                     probe_spec = parse_content(content)
-                    probe = ProbeBuilder.build_from_remote_config(probe_spec)
-                    probe_notification_builder = component.probe_notification_builder
-                    payload = probe_notification_builder.build_received(probe)
-                    probe_notifier_worker = component.probe_notifier_worker
-                    probe_notifier_worker.add_status(payload)
+                    probe = component.parse_probe_spec_and_notify(probe_spec)
                     component.logger.debug { "di: received #{probe.type} probe at #{probe.location} (#{probe.id}) via RC" }
 
                     begin
