@@ -56,11 +56,12 @@ module Datadog
             # TODO: handle exceptions, except for @app.call
             return @app.call(env) unless security_engine
 
-            waf_runner = security_engine.new_runner
-            ctx = Datadog::AppSec::Context.activate(Datadog::AppSec::Context.new(active_trace, active_span, waf_runner))
+            ctx = Datadog::AppSec::Context.activate(
+              Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner)
+            )
             env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
 
-            add_appsec_tags(waf_runner, ctx)
+            add_appsec_tags(ctx)
             add_request_tags(ctx, env)
 
             http_response = nil
@@ -147,7 +148,7 @@ module Datadog
           end
 
           # standard:disable Metrics/MethodLength
-          def add_appsec_tags(waf_runner, context)
+          def add_appsec_tags(context)
             span = context.span
             trace = context.trace
 
@@ -157,15 +158,15 @@ module Datadog
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
-            if waf_runner.ruleset_version
-              span.set_tag('_dd.appsec.event_rules.version', waf_runner.ruleset_version)
+            if context.ruleset_version
+              span.set_tag('_dd.appsec.event_rules.version', context.ruleset_version)
 
               unless @oneshot_tags_sent
                 # Small race condition, but it's inoccuous: worst case the tags
                 # are sent a couple of times more than expected
                 @oneshot_tags_sent = true
 
-                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(waf_runner.waf_addresses))
+                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(context.waf_addresses))
 
                 # Ensure these tags reach the backend
                 trace.keep!

@@ -67,6 +67,10 @@ module Datadog
         @waf_runner.ruleset_version
       end
 
+      def waf_addresses
+        @waf_runner.waf_addresses
+      end
+
       def extract_schema
         @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
       end
