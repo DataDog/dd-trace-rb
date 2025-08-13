@@ -12,7 +12,7 @@ module Datadog
   module Tracing
     # Tracing component
     module Component
-      extend self
+      module_function
 
       def build_tracer(settings, agent_settings, logger:)
         # If a custom tracer has been provided, use it instead.
@@ -168,8 +168,7 @@ module Datadog
         end
       end
 
-      private
-
+      # @api private
       def build_tracer_tags(settings)
         settings.tags.dup.tap do |tags|
           tags[Core::Environment::Ext::TAG_ENV] = settings.env unless settings.env.nil?
@@ -179,6 +178,7 @@ module Datadog
 
       # Build a post-sampler that limits the rate of traces to one per `seconds`.
       # E.g.: `build_rate_limit_post_sampler(seconds: 60)` will limit the rate to one trace per minute.
+      # @api private
       def build_rate_limit_post_sampler(seconds:)
         Tracing::Sampling::RuleSampler.new(
           rate_limiter: Datadog::Core::TokenBucket.new(1.0 / seconds, 1.0),
@@ -186,11 +186,13 @@ module Datadog
         )
       end
 
+      # @api private
       def build_test_mode_trace_flush(settings)
         # If context flush behavior is provided, use it instead.
         settings.tracing.test_mode.trace_flush || build_trace_flush(settings)
       end
 
+      # @api private
       def build_test_mode_sampler
         # Do not sample any spans for tests; all must be preserved.
         # Set priority sampler to ensure the agent doesn't drop any traces.
@@ -200,6 +202,7 @@ module Datadog
         )
       end
 
+      # @api private
       def build_test_mode_writer(settings, agent_settings)
         writer_options = settings.tracing.test_mode.writer_options || {}
 
