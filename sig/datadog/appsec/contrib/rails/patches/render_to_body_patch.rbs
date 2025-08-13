@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rails
+        module Patches
+          module RenderToBodyPatch
+            def render_to_body: (?::Hash[untyped, untyped] options) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

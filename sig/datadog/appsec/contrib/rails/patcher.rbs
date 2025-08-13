@@ -19,12 +19,6 @@ module Datadog
 
           def self?.add_middleware: (untyped app) -> untyped
 
-          module ProcessActionPatch
-            def process_action: (*untyped args) -> untyped
-          end
-
-          def self?.patch_process_action: () -> untyped
-
           def self?.include_middleware?: (untyped middleware, untyped app) -> untyped
 
           def self?.inspect_middlewares: (untyped app) -> untyped

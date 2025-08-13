@@ -22,7 +22,7 @@ permissions: {}
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: 200c08522c28c91fbcadc5992d7a573b2b696c94 # Automated: This reference is automatically updated.
+  SYSTEM_TESTS_REF: 4ea4c419151062ab3c2e4131962f24f73c8f3f5d # Automated: This reference is automatically updated.
 
 jobs:
   changes:
@@ -138,21 +138,12 @@ jobs:
         app:
           - rack
           - sinatra14
-          - sinatra20
-          - sinatra21
           - sinatra22
-          - sinatra30
-          - sinatra31
           - sinatra32
-          - sinatra40
+          - sinatra41
           - rails42
-          - rails50
-          - rails51
           - rails52
-          - rails60
           - rails61
-          - rails70
-          - rails71
           - rails72
           - rails80
           - graphql23
@@ -249,21 +240,12 @@ jobs:
         app:
           - rack
           - sinatra14
-          - sinatra20
-          - sinatra21
           - sinatra22
-          - sinatra30
-          - sinatra31
           - sinatra32
-          - sinatra40
+          - sinatra41
           - rails42
-          - rails50
-          - rails51
           - rails52
-          - rails60
           - rails61
-          - rails70
-          - rails71
           - rails72
           - rails80
         scenario:
@@ -310,28 +292,28 @@ jobs:
             app: rack
             scenario: APPSEC_RATE_LIMITER
           - library: ruby
-            app: rails70
+            app: rails72
             scenario: APPSEC_AUTO_EVENTS_EXTENDED
           - library: ruby
-            app: rails70
+            app: rails72
             scenario: APPSEC_API_SECURITY
           - library: ruby
             app: rack
             scenario: APPSEC_RULES_MONITORING_WITH_ERRORS
           - library: ruby
-            app: rails70
+            app: rails72
             scenario: DEBUGGER_PROBES_STATUS
           - library: ruby
-            app: rails70
+            app: rails72
             scenario: DEBUGGER_PROBES_SNAPSHOT
           - library: ruby
-            app: rails70
+            app: rails72
             scenario: DEBUGGER_PII_REDACTION
           - library: ruby
-            app: rails70
+            app: rails72
             scenario: SCA_STANDALONE
           - library: ruby
-            app: rails70
+            app: rails72
             scenario: APPSEC_STANDALONE
           - library: ruby
             app: rack
@@ -419,21 +401,12 @@ jobs:
         app:
           - rack
           - sinatra14
-          - sinatra20
-          - sinatra21
           - sinatra22
-          - sinatra30
-          - sinatra31
           - sinatra32
-          - sinatra40
+          - sinatra41
           - rails42
-          - rails50
-          - rails51
           - rails52
-          - rails60
           - rails61
-          - rails70
-          - rails71
           - rails72
           - rails80
           - graphql23
@@ -476,21 +449,12 @@ jobs:
           - agent
           - weblog-rack
           - weblog-sinatra14
-          - weblog-sinatra20
-          - weblog-sinatra21
           - weblog-sinatra22
-          - weblog-sinatra30
-          - weblog-sinatra31
           - weblog-sinatra32
-          - weblog-sinatra40
+          - weblog-sinatra41
           - weblog-rails42
-          - weblog-rails50
-          - weblog-rails51
           - weblog-rails52
-          - weblog-rails60
           - weblog-rails61
-          - weblog-rails70
-          - weblog-rails71
           - weblog-rails72
           - weblog-rails80
           - weblog-graphql23
