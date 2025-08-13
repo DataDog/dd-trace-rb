@@ -45,7 +45,7 @@ module Datadog
           res
         rescue => e
           logger.debug {
-            "Unable to send telemetry request for event `#{event.type}`: #{e.class}: #{e}"
+            "Unable to send telemetry request for event `#{event.respond_to?(:type) ? event.type : event.to_s}`: #{e.class}: #{e}"
           }
           Core::Transport::InternalErrorResponse.new(e)
         end
