@@ -9,9 +9,8 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
   let(:logger) { logger_allowing_debug }
   let(:transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
   let(:response) do
-    double(Datadog::Core::Transport::HTTP::Adapters::Net::Response).tap do |response|
-      allow(response).to receive(:ok?).and_return(response_ok)
-    end
+    double(Datadog::Core::Transport::HTTP::Adapters::Net::Response,
+      ok?: response_ok)
   end
   let(:response_ok) { true }
 
