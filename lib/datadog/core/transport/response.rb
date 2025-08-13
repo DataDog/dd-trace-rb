@@ -35,7 +35,7 @@ module Datadog
 
         def inspect
           maybe_code = if respond_to?(:code)
-            " code:#{code},"
+            " code:#{code}," # steep:ignore
           end
           "#{self.class} ok?:#{ok?},#{maybe_code} unsupported?:#{unsupported?}, " \
             "not_found?:#{not_found?}, client_error?:#{client_error?}, " \
