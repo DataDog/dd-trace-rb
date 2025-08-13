@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rails
+        module Patches
+          module ProcessActionPatch
+            def process_action: (*untyped args) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

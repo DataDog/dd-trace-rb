@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Sinatra
+        module Patches
+          module JsonPatch
+            def json: (untyped object, ?::Hash[untyped, untyped] options) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

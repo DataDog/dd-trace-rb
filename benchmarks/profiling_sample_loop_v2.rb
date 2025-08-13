@@ -8,6 +8,8 @@ require 'os'
 
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
+VARYING_DEPTH_DEFAULT = 2900
+
 class ProfilerSampleLoopBenchmark
   # This is needed because we're directly invoking the collector through a testing interface; in normal
   # use a profiler thread is automatically used.
@@ -43,7 +45,7 @@ class ProfilerSampleLoopBenchmark
     Thread.new { deep_stack.call }.tap { |t| t.name = "Deep stack #{depth}" }
   end
 
-  def go_to_depth_and_run(depth: 2900, &block)
+  def go_to_depth_and_run(depth:, &block)
     current_depth = caller.size
     return yield if current_depth > depth
 
@@ -158,5 +160,5 @@ ProfilerSampleLoopBenchmark.new.instance_exec do
   create_profiler
   run_benchmark(mode: :ruby)
   run_benchmark(mode: :native)
-  go_to_depth_and_run { run_varying_depth_benchmark }
+  go_to_depth_and_run(depth: VALIDATE_BENCHMARK_MODE ? 10 : VARYING_DEPTH_DEFAULT) { run_varying_depth_benchmark }
 end
