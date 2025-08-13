@@ -45,7 +45,7 @@ RSpec.describe Datadog::Tracing::Component do
       end
     end
     let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+    let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
     context 'given an instance' do
       let(:instance) { instance_double(Datadog::Tracing::Tracer) }
