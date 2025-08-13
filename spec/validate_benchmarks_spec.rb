@@ -16,7 +16,7 @@ RSpec.describe 'Library benchmarks' do
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
       it 'runs without raising errors' do
-        expect_in_fork(timeout_seconds: 0) do
+        expect_in_fork do
           load "./benchmarks/#{benchmark}.rb"
         end
       end
