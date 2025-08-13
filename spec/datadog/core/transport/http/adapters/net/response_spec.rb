@@ -152,4 +152,13 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net::Response do
       it { is_expected.to be false }
     end
   end
+
+  describe '#inspect' do
+
+    let(:http_response) { instance_double(::Net::HTTPResponse, code: 202, body: 'body') }
+
+    it 'includes the code' do
+      expect(response.inspect).to match(/code:202/)
+    end
+  end
 end

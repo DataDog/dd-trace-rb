@@ -34,7 +34,10 @@ module Datadog
         end
 
         def inspect
-          "#{self.class} ok?:#{ok?} unsupported?:#{unsupported?}, " \
+          maybe_code = if respond_to?(:code)
+            " code:#{code}"
+          end
+          "#{self.class} ok?:#{ok?}#{maybe_code} unsupported?:#{unsupported?}, " \
             "not_found?:#{not_found?}, client_error?:#{client_error?}, " \
             "server_error?:#{server_error?}, internal_error?:#{internal_error?}, " \
             "payload:#{payload}"
