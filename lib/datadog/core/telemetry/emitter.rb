@@ -34,13 +34,7 @@ module Datadog
           if res.ok?
             logger.debug { "Telemetry sent for event `#{event.type}`" }
           else
-            diag = if res.respond_to?(:code)
-              "#{res}: code #{res.code}"
-            else
-              # InternalErrorResponse does not have a code
-              res.to_s
-            end
-            logger.debug { "Failed to send telemetry for event `#{event.type}`: #{diag}" }
+            logger.debug { "Failed to send telemetry for event `#{event.type}`: #{res.inspect}" }
           end
           res
         rescue => e
