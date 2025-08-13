@@ -21,7 +21,6 @@ module Datadog
           TRACE_SAMPLING_RULE: ::String
           MANUAL: ::String
           ASM: ::String
-          SPAN_SAMPLING_RATE: ::String
         end
       end
     end
