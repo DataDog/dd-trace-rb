@@ -77,7 +77,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
           it 'logs the request correctly' do
             allow(logger).to receive(:debug)
             request
-            expect(logger).to have_lazy_debug_logged('Failed to send telemetry for event')
+            expect(logger).to have_lazy_debug_logged(/Failed to send telemetry for event `app-started`:.*InternalErrorResponse.*error_type:StandardError error:Failed call/)
           end
         end
       end
