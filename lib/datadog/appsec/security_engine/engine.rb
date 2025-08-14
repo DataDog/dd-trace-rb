@@ -37,11 +37,9 @@ module Datadog
 
           diagnostics = load_default_config(telemetry: telemetry)
           report_configuration_diagnostics(diagnostics, action: 'init', telemetry: telemetry)
+          @ruleset_version = diagnostics['ruleset_version']
 
-          waf_handle = @waf_builder.build_handle
-          @ruleset_version, @builder_ruleset_version = @builder_ruleset_version, nil
-
-          @handle_ref = ThreadSafeRef.new(waf_handle)
+          @handle_ref = ThreadSafeRef.new(@waf_builder.build_handle)
         rescue WAF::Error => e
           error_message = "AppSec security engine failed to initialize"
 
@@ -71,6 +69,7 @@ module Datadog
               diagnostics.dig('rules', 'error') ||
               diagnostics.dig('processors', 'errors'))
             diagnostics = load_default_config(telemetry: AppSec.telemetry)
+            @builder_ruleset_version = diagnostics['ruleset_version']
             report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
           end
 
@@ -87,6 +86,7 @@ module Datadog
 
           if result && path != DEFAULT_RULES_CONFIG_PATH && path.include?('ASM_DD')
             diagnostics = load_default_config(telemetry: AppSec.telemetry)
+            @builder_ruleset_version = diagnostics['ruleset_version']
             report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
           end
 
@@ -100,7 +100,7 @@ module Datadog
 
         def reconfigure!
           new_waf_handle = @waf_builder.build_handle
-          @ruleset_version, @builder_ruleset_version = @builder_ruleset_version, nil
+          @ruleset_version = @builder_ruleset_version
 
           @handle_ref.current = new_waf_handle
         rescue WAF::Error => e
@@ -126,10 +126,7 @@ module Datadog
           # deprecated - ip passlist should be configured via RC
           config['exclusions'] ||= AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: @default_ip_passlist)
 
-          diagnostics = @waf_builder.add_or_update_config(config, path: DEFAULT_RULES_CONFIG_PATH)
-          @builder_ruleset_version = diagnostics['ruleset_version']
-
-          diagnostics
+          @waf_builder.add_or_update_config(config, path: DEFAULT_RULES_CONFIG_PATH)
         end
 
         def report_configuration_diagnostics(diagnostics, action:, telemetry:)
