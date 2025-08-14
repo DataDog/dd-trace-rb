@@ -26,7 +26,7 @@ module Datadog
               end
 
               def span_options
-                super.merge({ tags: { Tracing::Metadata::Ext::TAG_OPERATION => Ext::TAG_OPERATION_CONSUMER_LEAVE_GROUP } })
+                super.merge({tags: {Tracing::Metadata::Ext::TAG_OPERATION => Ext::TAG_OPERATION_CONSUMER_LEAVE_GROUP}})
               end
             end
           end

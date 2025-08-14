@@ -19,7 +19,7 @@ module Datadog
           register_as :sneakers, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['sneakers'] && Gem.loaded_specs['sneakers'].version
+            Gem.loaded_specs['sneakers']&.version
           end
 
           def self.loaded?

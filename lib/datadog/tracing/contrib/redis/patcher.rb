@@ -30,7 +30,7 @@ module Datadog
                 # For `redis-rb` 3.x
                 return client if respond_to?(:client)
 
-                Datadog.logger.warn 'Fail to apply configuration on redis client instance with '  \
+                Datadog.logger.warn 'Fail to apply configuration on redis client instance with ' \
                                                         '`Datadog.configure_onto(redis)`.'
 
                 # Null object instead of raising error
@@ -49,8 +49,8 @@ module Datadog
             module InstanceMethods
               def datadog_pin=(_pin)
                 Datadog.logger.warn \
-                  '`Datadog.configure_onto(redis)` is not supported on Redis 5+. To instrument '\
-                  "a redis instance with custom configuration, please initialize it with:\n"\
+                  '`Datadog.configure_onto(redis)` is not supported on Redis 5+. To instrument ' \
+                  "a redis instance with custom configuration, please initialize it with:\n" \
                   "  `Redis.new(..., custom: { datadog: { service_name: 'my-service' } })`.\n\n" \
                   'See: https://github.com/DataDog/dd-trace-rb/blob/master/docs/GettingStarted.md#redis'
               end
@@ -61,7 +61,7 @@ module Datadog
 
           def default_tags
             [].tap do |tags|
-              tags << "target_redis_version:#{Integration.redis_version}"               if Integration.redis_version
+              tags << "target_redis_version:#{Integration.redis_version}" if Integration.redis_version
               tags << "target_redis_client_version:#{Integration.redis_client_version}" if Integration.redis_client_version
             end
           end

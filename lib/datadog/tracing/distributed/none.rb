@@ -8,10 +8,12 @@ module Datadog
       # @see https://github.com/open-telemetry/opentelemetry-specification/blob/255a6c52b8914a2ed7e26bb5585abecab276aafc/specification/sdk-environment-variables.md?plain=1#L88
       class None
         # No-op
-        def inject!(_digest, _data); end
+        def inject!(_digest, _data)
+        end
 
         # No-op
-        def extract(_data); end
+        def extract(_data)
+        end
       end
     end
   end

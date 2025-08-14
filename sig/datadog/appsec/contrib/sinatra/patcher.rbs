@@ -25,13 +25,7 @@ module Datadog
 
           def self?.patch: () -> untyped
 
-          def self?.setup_security: () -> untyped
-
-          def self?.patch_default_middlewares: () -> untyped
-
-          def self?.patch_dispatch: () -> untyped
-
-          def self?.patch_route: () -> untyped
+          def self?.patch_json?: () -> bool
         end
       end
     end

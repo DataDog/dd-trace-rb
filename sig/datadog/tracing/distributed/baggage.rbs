@@ -23,6 +23,8 @@ module Datadog
         def parse_baggage_header: (String baggage_header) -> Hash[String, String]
 
         def build_baggage_tags: (Hash[String, String] baggage) -> Hash[String, String]
+
+        def record_telemetry_metric: (String metric_name, Integer value, Hash[String, String] tags) -> void
         end
     end
   end

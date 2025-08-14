@@ -9,7 +9,7 @@ module Datadog
         # This patches the Future - to wrap executor service using ContextCompositeExecutorService
         module FuturePatch
           def ns_initialize(value, opts)
-            super(value, opts)
+            super
 
             @executor = ContextCompositeExecutorService.new(@executor)
           end
