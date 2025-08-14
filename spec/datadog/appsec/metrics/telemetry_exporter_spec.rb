@@ -10,7 +10,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
     let(:context) do
       instance_double(
         Datadog::AppSec::Context,
-        ruleset_version: '1.0.0',
+        waf_runner_ruleset_version: '1.0.0',
         interrupted?: false,
         trace: trace
       )

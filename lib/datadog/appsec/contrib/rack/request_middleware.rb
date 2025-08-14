@@ -158,15 +158,15 @@ module Datadog
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
-            if context.ruleset_version
-              span.set_tag('_dd.appsec.event_rules.version', context.ruleset_version)
+            if context.waf_runner_ruleset_version
+              span.set_tag('_dd.appsec.event_rules.version', context.waf_runner_ruleset_version)
 
               unless @oneshot_tags_sent
                 # Small race condition, but it's inoccuous: worst case the tags
                 # are sent a couple of times more than expected
                 @oneshot_tags_sent = true
 
-                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(context.waf_addresses))
+                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(context.waf_runner_known_addresses))
 
                 # Ensure these tags reach the backend
                 trace.keep!

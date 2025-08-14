@@ -64,11 +64,11 @@ module Datadog
         @interrupted == true
       end
 
-      def ruleset_version
+      def waf_runner_ruleset_version
         @waf_runner.ruleset_version
       end
 
-      def waf_addresses
+      def waf_runner_known_addresses
         @waf_runner.waf_addresses
       end
 
