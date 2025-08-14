@@ -41,7 +41,7 @@ module Datadog
 
       def ruleset_version: () -> ::String
 
-      def waf_addresses: () -> ::Array[::String]
+      def waf_addresses: () -> WAF::waf_addresses
 
       def export_metrics: () -> void
 

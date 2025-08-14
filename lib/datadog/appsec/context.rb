@@ -37,6 +37,7 @@ module Datadog
         @events = []
         @waf_runner = waf_runner
         @metrics = Metrics::Collector.new
+        @interrupted = false
       end
 
       def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)

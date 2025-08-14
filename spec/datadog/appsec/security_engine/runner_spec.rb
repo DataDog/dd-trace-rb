@@ -15,7 +15,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
     allow(waf_handle).to receive(:build_context).and_return(waf_context)
   end
 
-  subject(:runner) { described_class.new(handle_ref: thread_safe_ref, ruleset_version: '1.0.0', waf_addresses: []) }
+  subject(:runner) { described_class.new(thread_safe_ref, ruleset_version: '1.0.0') }
 
   describe '#run' do
     context 'when keys contain values to clean' do
