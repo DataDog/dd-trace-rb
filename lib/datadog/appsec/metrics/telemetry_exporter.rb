@@ -12,7 +12,7 @@ module Datadog
             Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.requests', 1,
             tags: {
               waf_version: WAF::VERSION::BASE_STRING,
-              event_rules_version: context.ruleset_version,
+              event_rules_version: context.waf_runner_ruleset_version,
               rule_triggered: metrics.matches.positive?.to_s,
               waf_error: metrics.errors.positive?.to_s,
               waf_timeout: metrics.timeouts.positive?.to_s,

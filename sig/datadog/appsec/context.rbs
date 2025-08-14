@@ -39,9 +39,9 @@ module Datadog
 
       def interrupted?: () -> bool
 
-      def ruleset_version: () -> ::String
+      def waf_runner_ruleset_version: () -> ::String
 
-      def waf_addresses: () -> WAF::known_addresses
+      def waf_runner_known_addresses: () -> WAF::known_addresses
 
       def export_metrics: () -> void
 
