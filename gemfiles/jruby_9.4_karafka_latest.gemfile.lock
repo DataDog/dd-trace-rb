@@ -38,7 +38,7 @@ GEM
       karafka-rdkafka (>= 0.19.5)
       waterdrop (>= 2.8.3, < 3.0.0)
       zeitwerk (~> 2.3)
-    karafka-core (2.5.2)
+    karafka-core (2.5.5)
       karafka-rdkafka (>= 0.19.2, < 0.21.0)
       logger (>= 1.6.0)
     karafka-rdkafka (0.20.1)
