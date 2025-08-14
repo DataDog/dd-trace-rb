@@ -115,7 +115,6 @@ module Datadog
 
           kind.to_s
         end
-        # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
 
         private
 
@@ -170,6 +169,8 @@ module Datadog
 
           span.set_tag('http.status_code', value) if key == 'http.response.status_code'
         end
+        # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
+
         # rubocop:enable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
 
         DATADOG_SPAN_ATTRIBUTE_OVERRIDES = ['analytics.event', 'operation.name', 'resource.name', 'service.name',

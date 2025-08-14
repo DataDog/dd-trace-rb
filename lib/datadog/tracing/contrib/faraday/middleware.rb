@@ -86,7 +86,6 @@ module Datadog
             Datadog.logger.error(e.message)
             Datadog::Core::Telemetry::Logger.report(e)
           end
-          # rubocop:enable Metrics/AbcSize
 
           # rubocop:disable Metrics/AbcSize
           def handle_response(span, env, options)
@@ -101,6 +100,8 @@ module Datadog
             Datadog.logger.error(e.message)
             Datadog::Core::Telemetry::Logger.report(e)
           end
+          # rubocop:enable Metrics/AbcSize
+
           # rubocop:enable Metrics/AbcSize
 
           def propagate!(trace, span, env)

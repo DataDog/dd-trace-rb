@@ -1,4 +1,6 @@
-inherit_from: .rubocop_todo.yml
+inherit_from:
+  - .rubocop_todo.yml
+  - .customcops.yml
 
 require:
   - rubocop-packaging
@@ -25,6 +27,7 @@ AllCops:
     - spec/datadog/di/**/*
     - spec/datadog/core/**/*
     - spec/datadog/appsec/**/*
+    - spec/rubocop/**/*
   NewCops: disable # Don't allow new cops to be enabled implicitly.
   SuggestExtensions: false # Stop pushing suggestions constantly.
 
