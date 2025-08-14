@@ -23,9 +23,41 @@ RSpec.describe 'WAF requests telemetry' do
       c.appsec.ip_passlist = []
       c.appsec.ip_denylist = []
       c.appsec.user_id_denylist = []
-      c.appsec.ruleset = :recommended
       c.appsec.api_security.enabled = false
       c.appsec.api_security.sample_rate = 0.0
+
+      c.appsec.ruleset = {
+        rules: [
+          {
+            id: "ua0-600-10x",
+            name: "Nessus",
+            tags: {
+              type: "attack_tool",
+              category: "attack_attempt",
+              cwe: "200",
+              capec: "1000/118/169",
+              tool_name: "Nessus",
+              confidence: "1",
+              module: "waf"
+            },
+            conditions: [
+              {
+                parameters: {
+                  inputs: [
+                    {
+                      address: "server.request.headers.no_cookies",
+                      key_path: ["user-agent"]
+                    }
+                  ],
+                  regex: "(?i)^Nessus(/|([ :]+SOAP))"
+                },
+                operator: "match_regex"
+              }
+            ],
+            transformers: []
+          }
+        ]
+      }
 
       c.remote.enabled = false
     end
@@ -52,8 +84,6 @@ RSpec.describe 'WAF requests telemetry' do
   end
 
   describe 'appsec.waf.requests telemetry' do
-    subject(:response) { last_response }
-
     context 'when WAF check triggered for HTTP request' do
       it 'exports correct tags' do
         expect(Datadog::AppSec.telemetry).to receive(:inc).with(
