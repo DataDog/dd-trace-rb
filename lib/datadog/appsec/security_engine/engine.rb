@@ -39,7 +39,6 @@ module Datadog
           report_configuration_diagnostics(diagnostics, action: 'init', telemetry: telemetry)
 
           waf_handle = @waf_builder.build_handle
-          @waf_addresses = waf_handle.known_addresses
           @ruleset_version, @builder_ruleset_version = @builder_ruleset_version, nil
 
           @handle_ref = ThreadSafeRef.new(waf_handle)
@@ -53,11 +52,7 @@ module Datadog
         end
 
         def new_runner
-          SecurityEngine::Runner.new(
-            handle_ref: @handle_ref,
-            ruleset_version: @ruleset_version,
-            waf_addresses: @waf_addresses
-          )
+          SecurityEngine::Runner.new(@handle_ref, ruleset_version: @ruleset_version)
         end
 
         def add_or_update_config(config, path:)
@@ -105,7 +100,6 @@ module Datadog
 
         def reconfigure!
           new_waf_handle = @waf_builder.build_handle
-          @waf_addresses = new_waf_handle.known_addresses
           @ruleset_version, @builder_ruleset_version = @builder_ruleset_version, nil
 
           @handle_ref.current = new_waf_handle

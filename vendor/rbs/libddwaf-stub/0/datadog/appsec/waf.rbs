@@ -2,6 +2,8 @@ module Datadog
   module AppSec
     # rubocop:disable Metrics/ModuleLength
     module WAF
+      type waf_addresses = ::Array[::String?]
+
       # retain logging proc if set properly
       self.@log_callback: untyped
 

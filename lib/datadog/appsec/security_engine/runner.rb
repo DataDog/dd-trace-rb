@@ -9,14 +9,13 @@ module Datadog
       class Runner
         SUCCESSFUL_EXECUTION_CODES = [:ok, :match].freeze
 
-        attr_reader :ruleset_version, :waf_addresses
+        attr_reader :ruleset_version
 
-        def initialize(handle_ref:, ruleset_version:, waf_addresses:)
+        def initialize(handle_ref, ruleset_version:)
           @mutex = Mutex.new
           @handle_ref = handle_ref
           @waf_handle = handle_ref.acquire
           @ruleset_version = ruleset_version
-          @waf_addresses = waf_addresses
 
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
@@ -61,6 +60,10 @@ module Datadog
 
         def waf_context
           @waf_context ||= @waf_handle.build_context
+        end
+
+        def waf_addresses
+          @waf_handle.known_addresses
         end
 
         def finalize!

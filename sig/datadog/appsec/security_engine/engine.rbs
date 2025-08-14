@@ -6,8 +6,6 @@ module Datadog
 
         @handle_ref: ThreadSafeRef
 
-        @waf_addresses: ::Array[::String]
-
         @ruleset_version: ::String
 
         DEFAULT_RULES_CONFIG_PATH: ::String
