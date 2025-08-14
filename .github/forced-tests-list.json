@@ -1,3 +1,5 @@
 {
-  
+  "PARAMETRIC": [
+    "tests/parametric/test_span_sampling.py::Test_Span_Sampling::test_single_rule_with_head_and_rule_trace_sampling_keep_019"
+  ]
 }
