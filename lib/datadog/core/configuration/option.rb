@@ -22,12 +22,22 @@ module Datadog
           # Represents an Option precedence level.
           # Each precedence has a `numeric` value; higher values means higher precedence.
           # `name` is for inspection purposes only.
-          Value = Struct.new(:numeric, :name, :origin) do
+
+          class Value
             include Comparable
+
+            attr_accessor :numeric, :name, :origin
+
+            def initialize(numeric, name, origin)
+              @numeric = numeric
+              @name = name
+              @origin = origin
+            end
 
             def <=>(other)
               return nil unless other.is_a?(Value)
 
+              # Steep does not handle well Structs (https://github.com/ruby/rbs/blob/master/docs/data_and_struct.md)
               numeric <=> other.numeric
             end
           end
@@ -159,7 +169,8 @@ module Datadog
 
         def default_value
           if definition.default.instance_of?(Proc)
-            context_eval(&definition.default)
+            # Steep does not handle well Procs (https://github.com/ruby/rbs/issues/736)
+            context_eval(&definition.default) # steep:ignore BlockTypeMismatch
           else
             definition.default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
@@ -172,20 +183,16 @@ module Datadog
         private
 
         def coerce_env_variable(value)
-          return context_exec(value, &@definition.env_parser) if @definition.env_parser
+          return context_exec(value, &definition.env_parser) if definition.env_parser
 
-          case @definition.type
+          case definition.type
           when :hash
             values = value.split(',') # By default we only want to support comma separated strings
 
-            values.map! do |v|
+            values.each_with_object({}) do |v, hash| # $ Hash[String, String]
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+              next if v.empty?
 
-              v.empty? ? nil : v
-            end
-
-            values.compact!
-            values.each.with_object({}) do |v, hash|
               pair = v.split(':', 2)
               hash[pair[0]] = pair[1]
             end
@@ -196,14 +203,12 @@ module Datadog
           when :array
             values = value.split(',')
 
-            values.map! do |v|
+            values.each_with_object([]) do |v, arr| # $ Array[String]
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+              next if v.empty?
 
-              v.empty? ? nil : v
+              arr << v
             end
-
-            values.compact!
-            values
           when :bool
             string_value = value.strip
             string_value = string_value.downcase
@@ -212,7 +217,7 @@ module Datadog
             value
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option for env coercion `#{@definition.type}`"
+              "The option #{definition.name} is using an unsupported type option for env coercion `#{definition.type}`"
           end
         end
 
@@ -223,10 +228,10 @@ module Datadog
         def validate_type(value)
           raise_error = false
 
-          valid_type = validate(@definition.type, value)
+          valid_type = validate(definition.type, value)
 
           unless valid_type
-            raise_error = if @definition.type_options[:nilable]
+            raise_error = if definition.type_options[:nilable]
               !value.is_a?(NilClass)
             else
               true
@@ -234,12 +239,12 @@ module Datadog
           end
 
           if raise_error
-            error_msg = if @definition.type_options[:nilable]
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
-              "#{@definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})." \
+            error_msg = if definition.type_options[:nilable]
+              "The setting `#{definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "#{definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})." \
             else
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
-              "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})." \
+              "The setting `#{definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "#{definition.type}, but a `#{value.class}` was provided (#{value.inspect})." \
             end
 
             error_msg = "#{error_msg} Please update your `configure` block. "
@@ -272,7 +277,7 @@ module Datadog
             true # No validation is performed when option is typeless
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option `#{@definition.type}`"
+              "The option #{definition.name} is using an unsupported type option `#{definition.type}`"
           end
         end
 
@@ -329,18 +334,27 @@ module Datadog
           resolved_env = nil
 
           if definition.env
-            Array(definition.env).each do |env|
-              next if env_vars[env].nil?
+            # Steep thinks that Array([String]) will return an array of arrays.
+            # We create a new variable and annotate it to avoid the error.
+            # As aliases will be removed from the DSL with config inversion,
+            # this will be removed in the future as `definition.env` will be a `String?`.
+            #
+            # @type var envs: Array[String]
+            envs = Array(definition.env)
+            envs.each do |env|
+              env_var = env_vars[env]
+              next if env_var.nil?
 
               resolved_env = env
-              value = coerce_env_variable(env_vars[env])
+              value = coerce_env_variable(env_var)
               break
             end
           end
 
-          if value.nil? && definition.deprecated_env && env_vars[definition.deprecated_env]
+          deprecated_env = definition.deprecated_env ? env_vars[definition.deprecated_env] : nil
+          if value.nil? && deprecated_env
             resolved_env = definition.deprecated_env
-            value = coerce_env_variable(env_vars[definition.deprecated_env])
+            value = coerce_env_variable(deprecated_env)
 
             Datadog::Core.log_deprecation do
               "#{definition.deprecated_env} #{source} is deprecated, use #{definition.env} instead."
@@ -349,9 +363,10 @@ module Datadog
 
           [value, resolved_env]
         rescue ArgumentError
+          env_var = resolved_env ? env_vars[resolved_env] : nil
           raise ArgumentError,
-            "Expected #{source} #{resolved_env} to be a #{@definition.type}, " \
-                              "but '#{env_vars[resolved_env]}' was provided"
+            "Expected #{source} #{resolved_env} to be a #{definition.type}, " \
+            "but '#{env_var}' was provided"
         end
 
         # Anchor object that represents a value that is not set.
