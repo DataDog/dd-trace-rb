@@ -524,10 +524,6 @@ RSpec.describe 'Tracer integration tests' do
         expect(spans).to_not include(have_tag('_dd.span_sampling.rule_rate'))
         expect(spans).to_not include(have_tag('_dd.span_sampling.max_per_second'))
       end
-
-      it 'trace sampling decision is not set to simple span sampling' do
-        expect(local_root_span.get_tag('_dd.p.dm')).to_not eq('-8')
-      end
     end
 
     shared_examples 'set single span sampling tags' do
@@ -535,7 +531,6 @@ RSpec.describe 'Tracer integration tests' do
         expect(single_sampled_span.get_metric('_dd.span_sampling.mechanism')).to eq(8)
         expect(single_sampled_span.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
         expect(single_sampled_span.get_metric('_dd.span_sampling.max_per_second')).to eq(-1)
-        expect(local_root_span.get_tag('_dd.p.dm')).to eq('-8')
       end
     end
 

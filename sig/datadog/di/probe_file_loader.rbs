@@ -1,0 +1,8 @@
+module Datadog
+  module DI
+    module ProbeFileLoader
+      def self?.load_now_or_later: () -> untyped
+      def self?.load_now: () -> untyped
+    end
+  end
+end

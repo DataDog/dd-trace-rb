@@ -22,6 +22,18 @@ module Datadog
 
           def initialize: (?::String? id, ?::String? login, ?::String? session_id) -> void
         end
+
+        class DataContainer < Argument
+          @data: untyped
+
+          @context: Context
+
+          attr_reader data: untyped
+
+          attr_reader context: Context
+
+          def initialize: (untyped data, context: Context) -> void
+        end
       end
     end
   end
