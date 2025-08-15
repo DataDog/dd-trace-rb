@@ -13,6 +13,8 @@ module Datadog
 
       @metrics: Metrics::Collector
 
+      @interrupted: bool
+
       ActiveContextError: ::StandardError
 
       attr_reader trace: Tracing::TraceOperation
@@ -33,7 +35,17 @@ module Datadog
 
       def run_rasp: (Ext::rasp_rule_type type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
 
+      def mark_as_interrupted!: () -> void
+
+      def interrupted?: () -> bool
+
+      def waf_runner_ruleset_version: () -> ::String
+
+      def waf_runner_known_addresses: () -> WAF::known_addresses
+
       def export_metrics: () -> void
+
+      def export_request_telemetry: () -> void
 
       def finalize!: () -> void
     end

@@ -11,3 +11,4 @@ end
 require_relative 'metrics/collector'
 require_relative 'metrics/exporter'
 require_relative 'metrics/telemetry'
+require_relative 'metrics/telemetry_exporter'

@@ -9,6 +9,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
     context 'when no results were recorded' do
       it 'contains all metrics in initial state' do
         expect(collector.waf.evals).to eq(0)
+        expect(collector.waf.matches).to eq(0)
+        expect(collector.waf.errors).to eq(0)
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.duration_ns).to eq(0)
         expect(collector.waf.duration_ext_ns).to eq(0)
@@ -26,6 +28,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       it 'contains metrics of a single result' do
         expect(collector.waf.evals).to eq(1)
+        expect(collector.waf.matches).to eq(0)
+        expect(collector.waf.errors).to eq(0)
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.duration_ns).to eq(100)
         expect(collector.waf.duration_ext_ns).to eq(200)
@@ -52,6 +56,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       it 'contains cumulative metrics of both results' do
         expect(collector.waf.timeouts).to eq(0)
+        expect(collector.waf.matches).to eq(1)
+        expect(collector.waf.errors).to eq(0)
         expect(collector.waf.duration_ns).to eq(1100)
         expect(collector.waf.duration_ext_ns).to eq(1400)
       end
@@ -80,6 +86,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       it 'accumulates timeouts in addition to other metics' do
         expect(collector.waf.evals).to eq(3)
+        expect(collector.waf.matches).to eq(1)
+        expect(collector.waf.errors).to eq(1)
         expect(collector.waf.timeouts).to eq(2)
         expect(collector.waf.duration_ns).to eq(500)
         expect(collector.waf.duration_ext_ns).to eq(2000)
@@ -91,6 +99,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
     context 'when no results were recorded' do
       it 'contains all metrics in initial state' do
         expect(collector.rasp.evals).to eq(0)
+        expect(collector.waf.matches).to eq(0)
+        expect(collector.waf.errors).to eq(0)
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(0)
         expect(collector.rasp.duration_ext_ns).to eq(0)
@@ -108,6 +118,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       it 'contains metrics of a single result' do
         expect(collector.rasp.evals).to eq(1)
+        expect(collector.waf.matches).to eq(0)
+        expect(collector.waf.errors).to eq(0)
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(100)
         expect(collector.rasp.duration_ext_ns).to eq(200)
@@ -134,6 +146,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       it 'contains cumulative metrics of both results' do
         expect(collector.rasp.evals).to eq(2)
+        expect(collector.waf.matches).to eq(1)
+        expect(collector.waf.errors).to eq(0)
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(1100)
         expect(collector.rasp.duration_ext_ns).to eq(1400)
@@ -163,6 +177,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       it 'accumulates timeouts in addition to other metics' do
         expect(collector.rasp.evals).to eq(3)
+        expect(collector.waf.matches).to eq(1)
+        expect(collector.waf.errors).to eq(1)
         expect(collector.rasp.timeouts).to eq(2)
         expect(collector.rasp.duration_ns).to eq(500)
         expect(collector.rasp.duration_ext_ns).to eq(2000)
