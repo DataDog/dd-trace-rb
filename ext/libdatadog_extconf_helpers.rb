@@ -124,7 +124,8 @@ module Datadog
       end
     end
 
-    def self.libdatadog_issue
+    # Note: This helper is currently only used in the `libdatadog_api/extconf.rb` BUT still lives here to enable testing.
+    def self.load_libdatadog_or_get_issue
       try_loading_libdatadog do |exception|
         return "There was an error loading `libdatadog`: #{exception.class} #{exception.message}"
       end

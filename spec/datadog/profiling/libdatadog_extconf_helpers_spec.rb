@@ -134,8 +134,8 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     end
   end
 
-  describe ".libdatadog_issue" do
-    subject(:libdatadog_issue) { described_class.libdatadog_issue }
+  describe ".load_libdatadog_or_get_issue" do
+    subject(:load_libdatadog_or_get_issue) { described_class.load_libdatadog_or_get_issue }
 
     before do
       skip_if_profiling_not_supported(self)
@@ -147,7 +147,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       end
 
       it "returns an error message with the exception details" do
-        expect(libdatadog_issue).to eq("There was an error loading `libdatadog`: LoadError Test error")
+        expect(load_libdatadog_or_get_issue).to eq("There was an error loading `libdatadog`: LoadError Test error")
       end
     end
 
@@ -160,7 +160,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       end
 
       it "returns an error message about missing platform binaries" do
-        expect(libdatadog_issue).to eq(
+        expect(load_libdatadog_or_get_issue).to eq(
           "The `libdatadog` gem installed on your system is missing binaries for your platform variant. " \
           "Your platform: `testplatform`; available binaries: `testbinary1`, `testbinary2`"
         )
@@ -174,7 +174,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       end
 
       it "returns nil (no issues)" do
-        expect(libdatadog_issue).to be_nil
+        expect(load_libdatadog_or_get_issue).to be_nil
       end
     end
   end

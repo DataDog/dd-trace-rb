@@ -27,7 +27,7 @@ end
 skip_building_extension!('current Ruby VM is not supported') if RUBY_ENGINE != 'ruby'
 skip_building_extension!('Microsoft Windows is not supported') if Gem.win_platform?
 
-libdatadog_issue = Datadog::LibdatadogExtconfHelpers.libdatadog_issue
+libdatadog_issue = Datadog::LibdatadogExtconfHelpers.load_libdatadog_or_get_issue
 skip_building_extension!("issue setting up `libdatadog` gem: #{libdatadog_issue}") if libdatadog_issue
 
 require 'mkmf'
