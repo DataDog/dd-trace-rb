@@ -3,6 +3,7 @@
 require_relative '../ext'
 require_relative '../configuration'
 require_relative '../data_extractor'
+require_relative '../../../trace_keeper'
 
 module Datadog
   module AppSec
@@ -25,7 +26,7 @@ module Datadog
                 return result
               end
 
-              context.trace.keep!
+              TraceKeeper.keep!(context.trace)
 
               if result
                 record_successful_signin(context, resource)

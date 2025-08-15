@@ -35,8 +35,6 @@ module Datadog
       def self.response_tags: (_ResponseInterface response) -> tags
 
       def self.json_parse: (untyped value) -> ::String?
-
-      def self.add_distributed_tags: (::Datadog::Tracing::TraceOperation? trace) -> void
     end
   end
 end
