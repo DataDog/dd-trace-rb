@@ -5,6 +5,8 @@ require 'pathname'
 
 module Datadog
   # Contains a bunch of shared helpers that get used during building of extensions that link to libdatadog
+  #
+  # Note: Specs for this file currently live in `spec/datadog/profiling/native_extension_helpers_spec.rb`.
   module LibdatadogExtconfHelpers
     # Used to make sure the correct gem version gets loaded, as extconf.rb does not get run with "bundle exec" and thus
     # may see multiple libdatadog versions. See https://github.com/DataDog/dd-trace-rb/pull/2531 for the horror story.
@@ -122,9 +124,17 @@ module Datadog
       end
     end
 
-    def self.libdatadog_issue?
-      try_loading_libdatadog { |_exception| return true }
-      Libdatadog.pkgconfig_folder.nil?
+    # Note: This helper is currently only used in the `libdatadog_api/extconf.rb` BUT still lives here to enable testing.
+    def self.load_libdatadog_or_get_issue
+      try_loading_libdatadog do |exception|
+        return "There was an error loading `libdatadog`: #{exception.class} #{exception.message}"
+      end
+
+      unless Libdatadog.pkgconfig_folder
+        "The `libdatadog` gem installed on your system is missing binaries for your platform variant. " \
+          "Your platform: " \
+          "`#{Libdatadog.current_platform}`; available binaries: `#{Libdatadog.available_binaries.join("`, `")}`"
+      end
     end
   end
 end

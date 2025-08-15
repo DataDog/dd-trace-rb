@@ -2,6 +2,7 @@ require "datadog/profiling/collectors/code_provenance"
 require "json-schema"
 require "json"
 require "yaml"
+require "datadog/profiling/spec_helper"
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
   before { skip_if_profiling_not_supported(self) }
