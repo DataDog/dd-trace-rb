@@ -3,6 +3,7 @@
 require_relative '../ext'
 require_relative '../configuration'
 require_relative '../data_extractor'
+require_relative '../../../trace_keeper'
 
 module Datadog
   module AppSec
@@ -26,7 +27,7 @@ module Datadog
 
                 next yield(resource) if resource.new_record? && block_given?
 
-                context.trace.keep!
+                TraceKeeper.keep!(context.trace)
                 record_successful_signup(context, resource)
                 Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_SIGNUP)
 
