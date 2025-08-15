@@ -61,7 +61,7 @@ module Datadog
       end
 
       def interrupted?
-        @interrupted == true
+        @interrupted
       end
 
       def waf_runner_ruleset_version
