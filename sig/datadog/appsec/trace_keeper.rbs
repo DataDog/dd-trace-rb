@@ -1,0 +1,8 @@
+module Datadog
+  module AppSec
+    module TraceKeeper
+      # FIXME: typing in the Kit::AppSec::Events prevents typing
+      def self.keep!: (untyped) -> void
+    end
+  end
+end
