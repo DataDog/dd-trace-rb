@@ -86,7 +86,7 @@ jobs:
       - changes
     if: ${{ needs.changes.outputs.changes == 'true' && needs.changes.outputs.FORCED_TESTS_LIST && !(fromJSON(needs.changes.outputs.FORCED_TESTS_LIST)['PARAMETRIC'] == null) }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
-    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@496df42fa1527130327ac54279309ffdbe91d6cc # main
 
     with:
       library: ruby
@@ -103,7 +103,7 @@ jobs:
       - changes
     if: ${{ needs.changes.outputs.changes == 'true' && !(needs.changes.outputs.FORCED_TESTS_LIST && !(fromJSON(needs.changes.outputs.FORCED_TESTS_LIST)['PARAMETRIC'] == null)) }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
-    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@496df42fa1527130327ac54279309ffdbe91d6cc # main
 
     with:
       library: ruby
