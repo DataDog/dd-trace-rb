@@ -5,19 +5,21 @@ module Datadog
     module Metrics
       # A class responsible for collecting WAF and RASP call metrics.
       class Collector
-        Store = Struct.new(:evals, :timeouts, :duration_ns, :duration_ext_ns, keyword_init: true)
+        Store = Struct.new(:evals, :matches, :errors, :timeouts, :duration_ns, :duration_ext_ns, keyword_init: true)
 
         attr_reader :waf, :rasp
 
         def initialize
           @mutex = Mutex.new
-          @waf = Store.new(evals: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0)
-          @rasp = Store.new(evals: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0)
+          @waf = Store.new(evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0)
+          @rasp = Store.new(evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0)
         end
 
         def record_waf(result)
           @mutex.synchronize do
             @waf.evals += 1
+            @waf.matches += 1 if result.match?
+            @waf.errors += 1 if result.error?
             @waf.timeouts += 1 if result.timeout?
             @waf.duration_ns += result.duration_ns
             @waf.duration_ext_ns += result.duration_ext_ns
@@ -27,6 +29,8 @@ module Datadog
         def record_rasp(result)
           @mutex.synchronize do
             @rasp.evals += 1
+            @waf.matches += 1 if result.match?
+            @waf.errors += 1 if result.error?
             @rasp.timeouts += 1 if result.timeout?
             @rasp.duration_ns += result.duration_ns
             @rasp.duration_ext_ns += result.duration_ext_ns
