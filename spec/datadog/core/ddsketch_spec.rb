@@ -75,6 +75,14 @@ RSpec.describe Datadog::Core::DDSketch do
       it 'resets the sketch for reuse' do
         expect { sketch.encode }.to change { sketch.count }.from(3.0).to(0.0)
       end
+
+      it 'can be decoded' do
+        42.times { sketch.add(0) }
+        decoded = Test::DDSketch.decode(encode)
+
+        # @ivoanjo: Not amazingly interesting, but just a simple sanity check that the round trip works
+        expect(decoded.zeroCount).to be(42.0)
+      end
     end
   end
 end
