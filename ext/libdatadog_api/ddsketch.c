@@ -57,7 +57,7 @@ static VALUE native_add(VALUE self, VALUE point) {
     // rb_raise(rb_eRuntimeError, "DDSketch add failed: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 
-  return Qtrue;
+  return self;
 }
 
 static VALUE native_add_with_count(VALUE self, VALUE point, VALUE count) {
@@ -72,7 +72,7 @@ static VALUE native_add_with_count(VALUE self, VALUE point, VALUE count) {
     // rb_raise(rb_eRuntimeError, "DDSketch add_with_count failed: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 
-  return Qtrue;
+  return self;
 }
 
 static VALUE native_count(VALUE self) {
