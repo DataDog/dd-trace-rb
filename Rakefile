@@ -26,6 +26,7 @@ CORE_WITH_LIBDATADOG_API = [
   'spec/datadog/core/crashtracking/**/*_spec.rb',
   'spec/datadog/core/process_discovery_spec.rb',
   'spec/datadog/core/configuration/stable_config_spec.rb',
+  'spec/datadog/core/ddsketch_spec.rb',
 ].freeze
 
 # rubocop:disable Metrics/BlockLength
