@@ -72,12 +72,7 @@ RSpec.describe Datadog::Core::DDSketch do
       end
 
       it 'resets the sketch for reuse' do
-        original_count = sketch.count
-        expect(original_count).to be > 0
-
-        encode
-
-        expect(sketch.count).to be 0.0
+        expect { sketch.encode }.to change { sketch.count }.from(3.0).to(0.0)
       end
     end
   end
