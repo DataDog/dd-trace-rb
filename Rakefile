@@ -22,6 +22,12 @@ Dir.glob('tasks/*.rake').each { |r| import r }
 
 TEST_METADATA = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
+CORE_WITH_LIBDATADOG_API = [
+  'spec/datadog/core/crashtracking/**/*_spec.rb',
+  'spec/datadog/core/process_discovery_spec.rb',
+  'spec/datadog/core/configuration/stable_config_spec.rb',
+].freeze
+
 # rubocop:disable Metrics/BlockLength
 namespace :test do
   desc 'Run all tests'
@@ -202,27 +208,8 @@ namespace :spec do
   end
 
   # rubocop:disable Style/MultilineBlockChain
-  RSpec::Core::RakeTask.new(:crashtracking) do |t, args|
-    t.pattern = 'spec/datadog/core/crashtracking/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
-  end.tap do |t|
-    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
-  end
-  # rubocop:enable Style/MultilineBlockChain
-
-  # rubocop:disable Style/MultilineBlockChain
-  RSpec::Core::RakeTask.new(:process_discovery) do |t, args|
-    t.pattern = 'spec/datadog/core/process_discovery_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
-  end.tap do |t|
-    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
-  end
-  # rubocop:enable Style/MultilineBlockChain
-
-  # rubocop:disable Style/MultilineBlockChain
-  desc '' # "Explicitly hiding from `rake -T`"
-  RSpec::Core::RakeTask.new(:stable_config) do |t, args|
-    t.pattern = 'spec/datadog/core/configuration/stable_config_spec.rb'
+  RSpec::Core::RakeTask.new(:core_with_libdatadog_api) do |t, args|
+    t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end.tap do |t|
     Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
