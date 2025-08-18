@@ -60,7 +60,7 @@ module Datadog
           remove_config_at_path(DEFAULT_RULES_CONFIG_PATH) if @is_ruleset_update
 
           diagnostics = @waf_builder.add_or_update_config(config, path: path)
-          @builder_ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
+          @reconfigured_ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
           report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
 
           # we need to load default config if diagnostics contains top-level error for rules or processors
@@ -69,7 +69,7 @@ module Datadog
               diagnostics.dig('rules', 'error') ||
               diagnostics.dig('processors', 'errors'))
             diagnostics = load_default_config(telemetry: AppSec.telemetry)
-            @builder_ruleset_version = diagnostics['ruleset_version']
+            @reconfigured_ruleset_version = diagnostics['ruleset_version']
             report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
           end
 
@@ -86,7 +86,7 @@ module Datadog
 
           if result && path != DEFAULT_RULES_CONFIG_PATH && path.include?('ASM_DD')
             diagnostics = load_default_config(telemetry: AppSec.telemetry)
-            @builder_ruleset_version = diagnostics['ruleset_version']
+            @reconfigured_ruleset_version = diagnostics['ruleset_version']
             report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
           end
 
@@ -100,7 +100,7 @@ module Datadog
 
         def reconfigure!
           new_waf_handle = @waf_builder.build_handle
-          @ruleset_version = @builder_ruleset_version
+          @ruleset_version = @reconfigured_ruleset_version
 
           @handle_ref.current = new_waf_handle
         rescue WAF::Error => e
