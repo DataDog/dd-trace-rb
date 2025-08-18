@@ -44,7 +44,7 @@ module Datadog
         # Acts as DSL for building OptionDefinitions
         # @public_api
         class Builder
-          class InvalidOptionError < StandardError; end
+          InvalidOptionError = Class.new(StandardError)
 
           attr_reader \
             :helpers

@@ -2,35 +2,18 @@ module Datadog
   module Core
     module Configuration
       module Options
-        extend ClassMethods
-        include InstanceMethods
+        extend _ClassMethods
+        include _InstanceMethods
 
         def self.included: (Class | Module base) -> void
 
-        module ClassMethods
-          @options: Hash[Symbol, OptionDefinition]
-          @settings_name: String?
-
+        interface _ClassMethods
           def options: () -> Hash[Symbol, OptionDefinition]
 
-          def option: (Symbol name, ?Configuration::OptionDefinition::meta meta) ?{ (Configuration::OptionDefinition::Builder) -> void } -> Configuration::OptionDefinition
-
-          private
-
-          def default_helpers: (Symbol | String name) -> Hash[Symbol, Proc]
-
-          def define_helpers: (Hash[Symbol, Proc] helpers) -> void
-
-          # Fake methods to make it work with RBS. RBS cannot understand that this module is only used in a class context.
-          def superclass: () -> singleton(Options)
-          def define_method: (untyped name) { (untyped) -> untyped } -> untyped
+          def option: (Symbol name, ?OptionDefinition::meta meta) ?{ (OptionDefinition::Builder) -> void } -> OptionDefinition
         end
 
-        module InstanceMethods
-          extend ClassMethods
-
-          @options: Hash[Symbol, Option]
-
+        interface _InstanceMethods
           def options: () -> Hash[Symbol, Option]
 
           def set_option: (Symbol name, Object? value, ?precedence: Option::Precedence::Value) -> Object?
@@ -48,6 +31,30 @@ module Datadog
           def options_hash: () -> Hash[Symbol, Object?]
 
           def reset_options!: () -> void
+        end
+
+        module ClassMethods
+          include _ClassMethods
+
+          @options: Hash[Symbol, OptionDefinition]
+          @settings_name: String?
+
+          private
+
+          def default_helpers: (Symbol | String name) -> Hash[Symbol, OptionDefinition::helper_proc]
+
+          def define_helpers: (Hash[Symbol, OptionDefinition::helper_proc] helpers) -> void
+
+          # Fake methods to make it work with RBS. RBS cannot understand that this module is only used in a class context.
+          def superclass: () -> singleton(Options)
+          def define_method: (Symbol name) { (?) [self: GenericSettingsClass] -> untyped } -> void
+        end
+
+        module InstanceMethods
+          extend _ClassMethods
+          include _InstanceMethods
+
+          @options: Hash[Symbol, Option]
 
           private
 
@@ -61,8 +68,10 @@ module Datadog
         class InvalidOptionError < StandardError
         end
 
+        # Needs to be a class, not an interface, to use methods like instance_of?
         class GenericSettingsClass
-          include Options
+          extend ClassMethods
+          include InstanceMethods
         end
       end
     end

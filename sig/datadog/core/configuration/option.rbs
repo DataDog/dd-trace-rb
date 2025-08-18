@@ -5,14 +5,14 @@ module Datadog
         type env_value = Hash[String, String] | Array[String] | String | Integer | Float | bool | nil
         type env_vars = Hash[String, String] | ::RBS::Unnamed::ENVClass
 
-        @context: Configuration::Options::GenericSettingsClass
+        @context: Options::GenericSettingsClass
 
         @is_set: bool
         @value: Object?
 
         @value_per_precedence: ::Hash[Precedence::Value, Object?]
 
-        attr_reader definition: Configuration::OptionDefinition
+        attr_reader definition: OptionDefinition
         attr_reader precedence_set: Precedence::Value
         attr_reader resolved_env: String?
 
@@ -37,14 +37,11 @@ module Datadog
             @origin: String
 
             def initialize: (Integer numeric, Symbol name, String origin) -> void
-            def <=>: (untyped other) -> Integer?
+            def <=>: (Object? other) -> Integer?
           end
         end
 
-        # context is a class that includes `Configuration::Options::InstanceMethods`.
-        # Only `Configuration::Base` includes `Configuration::Options::InstanceMethods` (through `Configuration::Options`).
-        # `Configuration::Base` is used by settings classes.
-        def initialize: (Configuration::OptionDefinition definition, Configuration::Options::InstanceMethods context) -> void
+        def initialize: (OptionDefinition definition, Options::GenericSettingsClass context) -> void
 
         def set: (Object? value, ?precedence: Precedence::Value, ?resolved_env: String?) -> Object?
 
@@ -52,7 +49,7 @@ module Datadog
 
         def reset: () -> void
 
-        def default_value: () -> (Configuration::OptionDefinition::option_type | Configuration::Options::GenericSettingsClass)
+        def default_value: () -> (OptionDefinition::option_type | Options::GenericSettingsClass)
 
         def default_precedence?: () -> bool
 
@@ -71,12 +68,9 @@ module Datadog
 
         def internal_set: (Object? value, Precedence::Value precedence, String? resolved_env) -> Object?
 
-        # `context_exec/eval` can take any block (and args) and just apply them to the context using `instance_exec/eval`.
-        # Which makes it impossible to type. Even if we know the type of the blocks that uses `context_exec`,
-        # in the case of `after_set`, the block returns void, but `setter`, `resetter` and `env_parser` return a value.
-        def context_exec: (*Object? args) { (?) [self: untyped] -> untyped } -> untyped
+        def context_exec: [U] (*Object? args) { (?) [self: Options::GenericSettingsClass] -> U } -> U
 
-        def context_eval: () { (untyped) [self: untyped] -> untyped } -> untyped
+        def context_eval: [U] () { (Options::GenericSettingsClass settings) [self: Options::GenericSettingsClass] -> U } -> U
 
         def set_default_value: () -> void
 
