@@ -7,6 +7,7 @@ static void ddsketch_free(void *ptr);
 static VALUE native_add(VALUE self, VALUE point);
 static VALUE native_add_with_count(VALUE self, VALUE point, VALUE count);
 static VALUE native_count(VALUE self);
+static VALUE native_encode(VALUE self);
 
 void ddsketch_init(VALUE datadog_module) {
   VALUE ddsketch_class = rb_define_class_under(datadog_module, "DDSketch", rb_cObject);
@@ -15,6 +16,7 @@ void ddsketch_init(VALUE datadog_module) {
   rb_define_method(ddsketch_class, "add", native_add, 1);
   rb_define_method(ddsketch_class, "add_with_count", native_add_with_count, 2);
   rb_define_method(ddsketch_class, "count", native_count, 0);
+  rb_define_method(ddsketch_class, "encode", native_encode, 0);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a ddsketch_Handle_DDSketch
@@ -88,4 +90,23 @@ static VALUE native_count(VALUE self) {
   }
 
   return DBL2NUM(count_out);
+}
+
+static VALUE native_encode(VALUE self) {
+  ddsketch_Handle_DDSketch *state;
+  TypedData_Get_Struct(self, ddsketch_Handle_DDSketch, &ddsketch_typed_data, state);
+
+  ddsketch_Vec_u8 encoded = ddog_ddsketch_encode(state);
+
+  // Copy into a Ruby string
+  VALUE bytes = rb_str_new((const char *) encoded.ptr, encoded.len);
+
+  ddog_Vec_U8_drop(encoded);
+
+  // The sketch is consumed by encode; to make this a bit more user-friendly for
+  // a Ruby API (since we can't "kill" the Ruby object), let's re-initialize it so
+  // it can be used again.
+  *state = ddog_ddsketch_new();
+
+  return bytes;
 }
