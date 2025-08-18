@@ -1,4 +1,3 @@
-#include "datadog_ruby_common.h"
 #include <ruby.h>
 #include <datadog/ddsketch.h>
 
@@ -9,8 +8,8 @@ static VALUE native_add_with_count(VALUE self, VALUE point, VALUE count);
 static VALUE native_count(VALUE self);
 static VALUE native_encode(VALUE self);
 
-void ddsketch_init(VALUE datadog_module) {
-  VALUE ddsketch_class = rb_define_class_under(datadog_module, "DDSketch", rb_cObject);
+void ddsketch_init(VALUE core_module) {
+  VALUE ddsketch_class = rb_define_class_under(core_module, "DDSketch", rb_cObject);
 
   rb_define_alloc_func(ddsketch_class, _native_new);
   rb_define_method(ddsketch_class, "add", native_add, 1);

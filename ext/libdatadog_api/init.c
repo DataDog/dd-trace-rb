@@ -5,7 +5,7 @@
 #include "process_discovery.h"
 #include "library_config.h"
 
-void ddsketch_init(VALUE datadog_module);
+void ddsketch_init(VALUE core_module);
 
 void DDTRACE_EXPORT Init_libdatadog_api(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -14,5 +14,5 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   crashtracker_init(core_module);
   process_discovery_init(core_module);
   library_config_init(core_module);
-  ddsketch_init(datadog_module); // ddsketch lives in `Datadog::DDSketch`
+  ddsketch_init(core_module);
 }
