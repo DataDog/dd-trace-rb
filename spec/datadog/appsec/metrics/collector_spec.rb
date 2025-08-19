@@ -14,6 +14,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.duration_ns).to eq(0)
         expect(collector.waf.duration_ext_ns).to eq(0)
+        expect(collector.waf.input_truncated_count).to eq(0)
       end
     end
 
@@ -22,7 +23,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 100, duration_ext_ns: 200
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 100,
+          duration_ext_ns: 200, input_truncated: false
         )
       end
 
@@ -33,6 +35,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.duration_ns).to eq(100)
         expect(collector.waf.duration_ext_ns).to eq(200)
+        expect(collector.waf.input_truncated_count).to eq(0)
       end
     end
 
@@ -44,13 +47,15 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 100, duration_ext_ns: 200
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 100,
+          duration_ext_ns: 200, input_truncated: false
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 1000, duration_ext_ns: 1200
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 1000,
+          duration_ext_ns: 1200, input_truncated: false
         )
       end
 
@@ -60,6 +65,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.waf.errors).to eq(0)
         expect(collector.waf.duration_ns).to eq(1100)
         expect(collector.waf.duration_ext_ns).to eq(1400)
+        expect(collector.waf.input_truncated_count).to eq(0)
       end
     end
 
@@ -72,17 +78,21 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 100, duration_ext_ns: 500
+          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 100,
+          duration_ext_ns: 500, input_truncated: false
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 400, duration_ext_ns: 1200
+          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 400,
+          duration_ext_ns: 1200, input_truncated: false
         )
       end
 
-      let(:result_3) { Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 300) }
+      let(:result_3) do
+        Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 300, input_truncated: false)
+      end
 
       it 'accumulates timeouts in addition to other metics' do
         expect(collector.waf.evals).to eq(3)
@@ -91,6 +101,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.waf.timeouts).to eq(2)
         expect(collector.waf.duration_ns).to eq(500)
         expect(collector.waf.duration_ext_ns).to eq(2000)
+        expect(collector.waf.input_truncated_count).to eq(0)
       end
     end
   end
@@ -104,6 +115,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(0)
         expect(collector.rasp.duration_ext_ns).to eq(0)
+        expect(collector.rasp.input_truncated_count).to eq(0)
       end
     end
 
@@ -112,7 +124,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 100, duration_ext_ns: 200
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 100,
+          duration_ext_ns: 200, input_truncated: false
         )
       end
 
@@ -123,6 +136,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(100)
         expect(collector.rasp.duration_ext_ns).to eq(200)
+        expect(collector.rasp.input_truncated_count).to eq(0)
       end
     end
 
@@ -134,13 +148,15 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 100, duration_ext_ns: 200
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 100,
+          duration_ext_ns: 200, input_truncated: false
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 1000, duration_ext_ns: 1200
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 1000,
+          duration_ext_ns: 1200, input_truncated: false
         )
       end
 
@@ -151,6 +167,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(1100)
         expect(collector.rasp.duration_ext_ns).to eq(1400)
+        expect(collector.rasp.input_truncated_count).to eq(0)
       end
     end
 
@@ -163,17 +180,22 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 100, duration_ext_ns: 500
+          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 100,
+          duration_ext_ns: 500, input_truncated: false
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 400, duration_ext_ns: 1200
+          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 400,
+          duration_ext_ns: 1200,
+          input_truncated: false
         )
       end
 
-      let(:result_3) { Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 300) }
+      let(:result_3) do
+        Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 300, input_truncated: false)
+      end
 
       it 'accumulates timeouts in addition to other metics' do
         expect(collector.rasp.evals).to eq(3)
@@ -182,6 +204,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.timeouts).to eq(2)
         expect(collector.rasp.duration_ns).to eq(500)
         expect(collector.rasp.duration_ext_ns).to eq(2000)
+        expect(collector.rasp.input_truncated_count).to eq(0)
       end
     end
   end
