@@ -50,8 +50,12 @@ module Datadog
             trace(
               proc { super },
               'execute',
-              query.selected_operation_name,
+              operation_resource(query.selected_operation),
               lambda { |span|
+                # Ensure this span can be aggregated by in the Datadog App, and generates RED metrics.
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
+                span.set_tag('span.kind', 'server')
+
                 span.set_tag('graphql.source', query.query_string)
                 span.set_tag('graphql.operation.type', query.selected_operation.operation_type)
                 if query.selected_operation_name
@@ -191,6 +195,14 @@ module Datadog
               fallback_transaction_name(first_query && first_query.context)
             else
               operations
+            end
+          end
+
+          def operation_resource(operation)
+            if operation.name
+              "#{operation.operation_type} #{operation.name}"
+            else
+              "anonymous"
             end
           end
 
