@@ -9,7 +9,7 @@ module Datadog
         class Base
           attr_reader :events, :actions, :derivatives, :duration_ns, :duration_ext_ns
 
-          def initialize(events:, actions:, derivatives:, timeout:, duration_ns:, duration_ext_ns:)
+          def initialize(events:, actions:, derivatives:, timeout:, duration_ns:, duration_ext_ns:, input_truncated:)
             @events = events
             @actions = actions
             @derivatives = derivatives
@@ -17,6 +17,7 @@ module Datadog
             @timeout = timeout
             @duration_ns = duration_ns
             @duration_ext_ns = duration_ext_ns
+            @input_truncated = input_truncated
           end
 
           def timeout?
@@ -29,6 +30,10 @@ module Datadog
 
           def error?
             raise NotImplementedError
+          end
+
+          def input_truncated?
+            @input_truncated
           end
         end
 
@@ -58,11 +63,12 @@ module Datadog
         class Error
           attr_reader :events, :actions, :derivatives, :duration_ns, :duration_ext_ns
 
-          def initialize(duration_ext_ns:)
+          def initialize(duration_ext_ns:, input_truncated:)
             @events = []
             @actions = @derivatives = {}
             @duration_ns = 0
             @duration_ext_ns = duration_ext_ns
+            @input_truncated = input_truncated
           end
 
           def timeout?
@@ -75,6 +81,10 @@ module Datadog
 
           def error?
             true
+          end
+
+          def input_truncated?
+            @input_truncated
           end
         end
       end
