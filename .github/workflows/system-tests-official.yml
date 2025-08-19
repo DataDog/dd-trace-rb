@@ -122,6 +122,7 @@ jobs:
     secrets: inherit  # zizmor: ignore[secrets-inherit]
     permissions:
       contents: read
+      id-token: write
       packages: write
     with:
       library: ruby
