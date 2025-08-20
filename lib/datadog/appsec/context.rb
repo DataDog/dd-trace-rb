@@ -37,6 +37,7 @@ module Datadog
         @events = []
         @waf_runner = waf_runner
         @metrics = Metrics::Collector.new
+        @interrupted = false
       end
 
       def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
@@ -55,6 +56,22 @@ module Datadog
         result
       end
 
+      def mark_as_interrupted!
+        @interrupted = true
+      end
+
+      def interrupted?
+        @interrupted
+      end
+
+      def waf_runner_ruleset_version
+        @waf_runner.ruleset_version
+      end
+
+      def waf_runner_known_addresses
+        @waf_runner.waf_addresses
+      end
+
       def extract_schema
         @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
       end
@@ -64,6 +81,12 @@ module Datadog
 
         Metrics::Exporter.export_waf_metrics(@metrics.waf, @span)
         Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
+      end
+
+      def export_request_telemetry
+        return if @trace.nil?
+
+        Metrics::TelemetryExporter.export_waf_request_metrics(@metrics.waf, self)
       end
 
       def finalize!

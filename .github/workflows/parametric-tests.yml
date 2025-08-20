@@ -15,7 +15,7 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 env:
-  SYSTEM_TESTS_REF: 200c08522c28c91fbcadc5992d7a573b2b696c94 # Automated: Can be updated by .github/workflows/update-system-tests.yml
+  SYSTEM_TESTS_REF: 4ea4c419151062ab3c2e4131962f24f73c8f3f5d # Automated: Can be updated by .github/workflows/update-system-tests.yml
 
 jobs:
   changes:
@@ -86,7 +86,7 @@ jobs:
       - changes
     if: ${{ needs.changes.outputs.changes == 'true' && needs.changes.outputs.FORCED_TESTS_LIST && !(fromJSON(needs.changes.outputs.FORCED_TESTS_LIST)['PARAMETRIC'] == null) }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
-    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@496df42fa1527130327ac54279309ffdbe91d6cc # main
 
     with:
       library: ruby
@@ -103,7 +103,7 @@ jobs:
       - changes
     if: ${{ needs.changes.outputs.changes == 'true' && !(needs.changes.outputs.FORCED_TESTS_LIST && !(fromJSON(needs.changes.outputs.FORCED_TESTS_LIST)['PARAMETRIC'] == null)) }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
-    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@496df42fa1527130327ac54279309ffdbe91d6cc # main
 
     with:
       library: ruby
