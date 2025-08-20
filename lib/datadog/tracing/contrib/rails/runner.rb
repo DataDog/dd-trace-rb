@@ -76,7 +76,8 @@ module Datadog
           # Instruments the `Kernel.load` method, but only for the
           # `Rails::Command::RunnerCommand` class.
           module InstrumentedKernel
-            def self.load(file, wrap = false)
+            def self.load(*args)
+              file = args[0]
               name = Ext::SPAN_RUNNER_FILE
               resource = file
               operation = Ext::TAG_OPERATION_FILE
