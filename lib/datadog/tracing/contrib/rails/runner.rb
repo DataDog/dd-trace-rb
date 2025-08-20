@@ -105,7 +105,7 @@ module Datadog
                 end
                 Contrib::Analytics.set_rate!(span, Datadog.configuration.tracing[:rails])
 
-                Kernel.load(file, wrap)
+                super
               end
             end
           end
