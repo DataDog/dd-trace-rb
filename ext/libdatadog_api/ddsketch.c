@@ -1,12 +1,15 @@
 #include <ruby.h>
 #include <datadog/ddsketch.h>
 
+#include "datadog_ruby_common.h"
+
 static VALUE _native_new(VALUE klass);
 static void ddsketch_free(void *ptr);
 static VALUE native_add(VALUE self, VALUE point);
 static VALUE native_add_with_count(VALUE self, VALUE point, VALUE count);
 static VALUE native_count(VALUE self);
 static VALUE native_encode(VALUE self);
+NORETURN(static void raise_ddsketch_error(const char *message, ddog_VoidResult result));
 
 void ddsketch_init(VALUE core_module) {
   VALUE ddsketch_class = rb_define_class_under(core_module, "DDSketch", rb_cObject);
@@ -45,17 +48,17 @@ static void ddsketch_free(void *ptr) {
   ruby_xfree(ptr);
 }
 
+static void raise_ddsketch_error(const char *message, ddog_VoidResult result) {
+  rb_raise(rb_eRuntimeError, "%s: %"PRIsVALUE, message, get_error_details_and_drop(&result.err));
+}
+
 static VALUE native_add(VALUE self, VALUE point) {
   ddsketch_Handle_DDSketch *state;
   TypedData_Get_Struct(self, ddsketch_Handle_DDSketch, &ddsketch_typed_data, state);
 
-  ddsketch_VoidResult result = ddog_ddsketch_add(state, NUM2DBL(point));
+  ddog_VoidResult result = ddog_ddsketch_add(state, NUM2DBL(point));
 
-  if (result.tag == DDSKETCH_VOID_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "DDSketch add failed");
-    // TODO: These types need fixing on the libdatadog side
-    // rb_raise(rb_eRuntimeError, "DDSketch add failed: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
+  if (result.tag == DDOG_VOID_RESULT_ERR) raise_ddsketch_error("DDSketch add failed", result);
 
   return self;
 }
@@ -64,13 +67,9 @@ static VALUE native_add_with_count(VALUE self, VALUE point, VALUE count) {
   ddsketch_Handle_DDSketch *state;
   TypedData_Get_Struct(self, ddsketch_Handle_DDSketch, &ddsketch_typed_data, state);
 
-  ddsketch_VoidResult result = ddog_ddsketch_add_with_count(state, NUM2DBL(point), NUM2DBL(count));
+  ddog_VoidResult result = ddog_ddsketch_add_with_count(state, NUM2DBL(point), NUM2DBL(count));
 
-  if (result.tag == DDSKETCH_VOID_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "DDSketch add_with_count failed");
-    // TODO: These types need fixing on the libdatadog side
-    // rb_raise(rb_eRuntimeError, "DDSketch add_with_count failed: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
+  if (result.tag == DDOG_VOID_RESULT_ERR) raise_ddsketch_error("DDSketch add_with_count failed", result);
 
   return self;
 }
@@ -80,13 +79,9 @@ static VALUE native_count(VALUE self) {
   TypedData_Get_Struct(self, ddsketch_Handle_DDSketch, &ddsketch_typed_data, state);
 
   double count_out;
-  ddsketch_VoidResult result = ddog_ddsketch_count(state, &count_out);
+  ddog_VoidResult result = ddog_ddsketch_count(state, &count_out);
 
-  if (result.tag == DDSKETCH_VOID_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "DDSketch count failed");
-    // TODO: These types need fixing on the libdatadog side
-    // rb_raise(rb_eRuntimeError, "DDSketch count failed: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
+  if (result.tag == DDOG_VOID_RESULT_ERR) raise_ddsketch_error("DDSketch count failed", result);
 
   return DBL2NUM(count_out);
 }
@@ -95,7 +90,7 @@ static VALUE native_encode(VALUE self) {
   ddsketch_Handle_DDSketch *state;
   TypedData_Get_Struct(self, ddsketch_Handle_DDSketch, &ddsketch_typed_data, state);
 
-  ddsketch_Vec_u8 encoded = ddog_ddsketch_encode(state);
+  ddog_Vec_U8 encoded = ddog_ddsketch_encode(state);
 
   // Copy into a Ruby string
   VALUE bytes = rb_str_new((const char *) encoded.ptr, encoded.len);
