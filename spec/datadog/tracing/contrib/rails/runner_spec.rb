@@ -127,12 +127,12 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
       end
 
       it 'creates span for a file runner' do
-        expect { run }.to output('TestNamespace::Jobs').to_stdout
+        expect { run }.to output("TestNamespace::Jobs\n").to_stdout
 
         expect(span.name).to eq('rails.runner.file')
         expect(span.resource).to eq(file_path)
         expect(span.service).to eq(tracer.default_service)
-        #expect(span.get_tag('source')).to eq('print "OK"')
+        expect(span.get_tag('source')).to eq("module TestNamespace\n  puts Jobs.name\nend\n")
         expect(span.get_tag('component')).to eq('rails')
         expect(span.get_tag('operation')).to eq('runner.file')
       end

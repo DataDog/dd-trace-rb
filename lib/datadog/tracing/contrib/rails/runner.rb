@@ -69,14 +69,14 @@ module Datadog
             end
           end
 
-          def self.prepend(base)
-            base.const_set(:Kernel, Kernel)
+          def self.prepended(base)
+            base.const_set(:Kernel, InstrumentedKernel)
           end
 
           # Instruments the `Kernel.load` method, but only for the
           # `Rails::Command::RunnerCommand` class.
-          module Kernel
-            def self.load(file, wrap = true)
+          module InstrumentedKernel
+            def self.load(file, wrap = false)
               name = Ext::SPAN_RUNNER_FILE
               resource = file
               operation = Ext::TAG_OPERATION_FILE
@@ -105,7 +105,7 @@ module Datadog
                 end
                 Contrib::Analytics.set_rate!(span, Datadog.configuration.tracing[:rails])
 
-                super
+                Kernel.load(file, wrap)
               end
             end
           end
