@@ -38,6 +38,10 @@ module Datadog
           TAG_MSG: ::String
           TAG_STACK: ::String
           TAG_TYPE: ::String
+          ATTRIBUTE_MESSAGE: ::String
+          ATTRIBUTE_STACKTRACE: ::String
+          ATTRIBUTE_TYPE: ::String
+          EVENT_NAME: ::String
         end
 
         module HTTP

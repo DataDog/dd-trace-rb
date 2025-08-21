@@ -112,4 +112,30 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
   end
+
+  describe 'error_tracking' do
+    context 'when default' do
+      it do
+        settings = described_class.new
+
+        expect(settings.error_tracking).to eq(false)
+      end
+    end
+
+    context 'when given `true`' do
+      it do
+        settings = described_class.new(error_tracking: true)
+
+        expect(settings.error_tracking).to eq(true)
+      end
+    end
+
+    context 'when given `false`' do
+      it do
+        settings = described_class.new(error_tracking: false)
+
+        expect(settings.error_tracking).to eq(false)
+      end
+    end
+  end
 end

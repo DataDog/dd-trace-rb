@@ -13,6 +13,16 @@ module Datadog
         module UnifiedTrace
           def initialize(*args, **kwargs)
             @has_prepare_span = respond_to?(:prepare_span)
+
+            # Cache configuration values to avoid repeated lookups
+            config = Datadog.configuration.tracing[:graphql]
+            @service_name = config[:service_name]
+            @analytics_enabled = config[:analytics_enabled]
+            @analytics_sample_rate = config[:analytics_sample_rate]
+            @error_extensions_config = config[:error_extensions]
+
+            load_error_event_attributes(config[:error_tracking])
+
             super
           end
 
@@ -153,16 +163,14 @@ module Datadog
           # @param kwargs [Hash] the arguments to pass to `prepare_span`
           # @yield [Span] the block to run before the trace, same as the `before` parameter
           def trace(callable, trace_key, resource, before = nil, after = nil, **kwargs, &before_block)
-            config = Datadog.configuration.tracing[:graphql]
-
             Tracing.trace(
               "graphql.#{trace_key}",
               type: 'graphql',
               resource: resource,
-              service: config[:service_name]
+              service: @service_name
             ) do |span|
-              if Contrib::Analytics.enabled?(config[:analytics_enabled])
-                Contrib::Analytics.set_sample_rate(span, config[:analytics_sample_rate])
+              if Contrib::Analytics.enabled?(@analytics_enabled)
+                Contrib::Analytics.set_sample_rate(span, @analytics_sample_rate)
               end
 
               # A sanity check for us.
@@ -195,26 +203,21 @@ module Datadog
           end
 
           # Create a Span Event for each error that occurs at query level.
-          #
-          # These are represented in the Datadog App as special GraphQL errors,
-          # given their event name `dd.graphql.query.error`.
           def add_query_error_events(span, errors)
-            capture_extensions = Datadog.configuration.tracing[:graphql][:error_extensions]
             errors.each do |error|
-              extensions = if !capture_extensions.empty? && (extensions = error.extensions)
+              attributes = if !@error_extensions_config.empty? && (extensions = error.extensions)
                 # Capture extensions, ensuring all values are primitives
                 extensions.each_with_object({}) do |(key, value), hash|
-                  next unless capture_extensions.include?(key.to_s)
+                  next unless @error_extensions_config.include?(key.to_s)
 
                   value = case value
                   when TrueClass, FalseClass, Integer, Float
                     value
                   else
-                    # Stringify anything that is not a boolean or a number
                     value.to_s
                   end
 
-                  hash["extensions.#{key}"] = value
+                  hash[@extensions_key + key.to_s] = value
                 end
               else
                 {}
@@ -224,18 +227,40 @@ module Datadog
               # This is an unwritten contract in the `graphql` library.
               # See for an example: https://github.com/rmosolgo/graphql-ruby/blob/0afa241775e5a113863766cce126214dee093464/lib/graphql/execution_error.rb#L32
               graphql_error = error.to_h
-              error = Core::Error.build_from(error)
+              parsed_error = Core::Error.build_from(error)
 
-              span.span_events << Datadog::Tracing::SpanEvent.new(
-                Ext::EVENT_QUERY_ERROR,
-                attributes: extensions.merge!(
-                  message: graphql_error['message'],
-                  type: error.type,
-                  stacktrace: error.backtrace,
-                  locations: serialize_error_locations(graphql_error['locations']),
-                  path: graphql_error['path'],
+              span.span_events << SpanEvent.new(
+                @event_name,
+                attributes: attributes.merge!(
+                  @type_key => parsed_error.type,
+                  @stacktrace_key => parsed_error.backtrace,
+                  @message_key => graphql_error['message'],
+                  @locations_key => serialize_error_locations(graphql_error['locations']),
+                  @path_key => graphql_error['path'],
                 )
               )
+            end
+          end
+
+          # Do this once, to avoid rechecking configuration on every request
+          # and make the error handling code more readable.
+          def load_error_event_attributes(error_tracking)
+            if error_tracking
+              @event_name = Tracing::Metadata::Ext::Errors::EVENT_NAME
+              @message_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_MESSAGE
+              @type_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_TYPE
+              @stacktrace_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_STACKTRACE
+              @locations_key = 'graphql.error.locations'
+              @path_key = 'graphql.error.path'
+              @extensions_key = 'graphql.error.extensions.'
+            else
+              @event_name = Ext::EVENT_QUERY_ERROR
+              @message_key = 'message'
+              @type_key = 'type'
+              @stacktrace_key = 'stacktrace'
+              @locations_key = 'locations'
+              @path_key = 'path'
+              @extensions_key = 'extensions.'
             end
           end
 
