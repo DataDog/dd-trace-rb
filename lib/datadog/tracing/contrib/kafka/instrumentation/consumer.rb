@@ -13,15 +13,20 @@ module Datadog
 
             # Instance methods for consumer instrumentation
             module InstanceMethods
-              # Monkey patch for each_message method
+                            # Monkey patch for each_message method
               def each_message(**kwargs, &block)
-                puts "each_message"
+                # Only run DSM code if enabled
+                if Datadog.configuration.tracing.data_streams.enabled
+                  puts "each_message (DSM enabled)"
 
-                # TODO: Add DSM instrumentation for message consumption
-                # This is where you would:
-                # 1. Extract pathway hash from message headers
-                # 2. Set checkpoint information for consumed messages
-                # 3. Add DSM-specific tags for data lineage
+                  # TODO: Add DSM instrumentation for message consumption
+                  # This is where you would:
+                  # 1. Extract pathway hash from message headers
+                  # 2. Set checkpoint information for consumed messages
+                  # 3. Add DSM-specific tags for data lineage
+                else
+                  puts "each_message (DSM disabled)"
+                end
 
                 # Call the original method - spans are created by ActiveSupport::Notifications
                 super(**kwargs, &block)
@@ -29,9 +34,14 @@ module Datadog
 
               # Monkey patch for each_batch method
               def each_batch(**kwargs, &block)
-                puts "each_batch"
+                # Only run DSM code if enabled
+                if Datadog.configuration.tracing.data_streams.enabled
+                  puts "each_batch (DSM enabled)"
 
-                # TODO: Process DSM pathway information for the entire batch
+                  # TODO: Process DSM pathway information for the entire batch
+                else
+                  puts "each_batch (DSM disabled)"
+                end
 
                 # Call the original method - spans are created by ActiveSupport::Notifications
                 super(**kwargs, &block)

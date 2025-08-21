@@ -472,6 +472,21 @@ module Datadog
                 end
               end
 
+              # Data Streams Monitoring configuration
+              # @public_api
+              settings :data_streams do
+                # Whether Data Streams Monitoring is enabled. When enabled, the tracer will
+                # collect and report data lineage information for messaging systems.
+                #
+                # @default `DD_DATA_STREAMS_ENABLED` environment variable, otherwise `false`.
+                # @return [Boolean]
+                option :enabled do |o|
+                  o.type :bool
+                  o.env Tracing::Configuration::Ext::DataStreams::ENV_ENABLED
+                  o.default false
+                end
+              end
+
               # Maximum size for the `x-datadog-tags` distributed trace tags header.
               #
               # If the serialized size of distributed trace tags is larger than this value, it will

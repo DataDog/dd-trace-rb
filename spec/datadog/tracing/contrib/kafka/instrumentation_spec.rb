@@ -50,26 +50,37 @@ RSpec.describe 'Kafka instrumentation via monkey patching' do
       ]
     end
 
-    it 'calls deliver_messages and prints to stdout' do
-      expect { producer.deliver_messages(messages) }.to output("deliver_messages\n").to_stdout
+        context 'when DSM is disabled (default)' do
+      it 'calls deliver_messages and prints DSM disabled' do
+        expect { producer.deliver_messages(messages) }.to output("deliver_messages (DSM disabled)\n").to_stdout
+      end
+
+      it 'calls send_messages and prints DSM disabled' do
+        expect { producer.send_messages(messages) }.to output("send_messages (DSM disabled)\n").to_stdout
+      end
+
+      it 'preserves the original return value for deliver_messages' do
+        expect {
+          result = producer.deliver_messages(messages)
+          expect(result).to eq({ delivered_count: 2 })
+        }.to output("deliver_messages (DSM disabled)\n").to_stdout
+      end
     end
 
-    it 'calls send_messages and prints to stdout' do
-      expect { producer.send_messages(messages) }.to output("send_messages\n").to_stdout
-    end
+    context 'when DSM is enabled' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.data_streams.enabled = true
+        end
+      end
 
-    it 'preserves the original return value for deliver_messages' do
-      expect {
-        result = producer.deliver_messages(messages)
-        expect(result).to eq({ delivered_count: 2 })
-      }.to output("deliver_messages\n").to_stdout
-    end
+      it 'calls deliver_messages and prints DSM enabled' do
+        expect { producer.deliver_messages(messages) }.to output("deliver_messages (DSM enabled)\n").to_stdout
+      end
 
-    it 'preserves the original return value for send_messages' do
-      expect {
-        result = producer.send_messages(messages)
-        expect(result).to eq({ sent_count: 2 })
-      }.to output("send_messages\n").to_stdout
+      it 'calls send_messages and prints DSM enabled' do
+        expect { producer.send_messages(messages) }.to output("send_messages (DSM enabled)\n").to_stdout
+      end
     end
   end
 
@@ -113,44 +124,70 @@ RSpec.describe 'Kafka instrumentation via monkey patching' do
     let(:consumed_messages) { [] }
     let(:consumed_batches) { [] }
 
-    it 'calls each_message and prints to stdout' do
-      expect do
-        consumer.each_message do |msg|
-          consumed_messages << msg
-        end
-      end.to output("each_message\n").to_stdout
+        context 'when DSM is disabled (default)' do
+      it 'calls each_message and prints DSM disabled' do
+        expect do
+          consumer.each_message do |msg|
+            consumed_messages << msg
+          end
+        end.to output("each_message (DSM disabled)\n").to_stdout
+      end
+
+      it 'calls each_batch and prints DSM disabled' do
+        expect do
+          consumer.each_batch do |batch|
+            consumed_batches << batch
+          end
+        end.to output("each_batch (DSM disabled)\n").to_stdout
+      end
+
+      it 'preserves message processing behavior' do
+        expect do
+          consumer.each_message do |msg|
+            consumed_messages << msg
+          end
+        end.to output("each_message (DSM disabled)\n").to_stdout
+
+        expect(consumed_messages).to have(3).items
+        expect(consumed_messages.first.topic).to eq('test_topic')
+        expect(consumed_messages.first.offset).to eq(100)
+      end
     end
 
-    it 'calls each_batch and prints to stdout' do
-      expect do
-        consumer.each_batch do |batch|
-          consumed_batches << batch
+    context 'when DSM is enabled' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.data_streams.enabled = true
         end
-      end.to output("each_batch\n").to_stdout
-    end
+      end
 
-    it 'preserves message processing behavior' do
-      expect do
-        consumer.each_message do |msg|
-          consumed_messages << msg
-        end
-      end.to output("each_message\n").to_stdout
+      it 'calls each_message and prints DSM enabled' do
+        expect do
+          consumer.each_message do |msg|
+            consumed_messages << msg
+          end
+        end.to output("each_message (DSM enabled)\n").to_stdout
+      end
 
-      expect(consumed_messages).to have(3).items
-      expect(consumed_messages.first.topic).to eq('test_topic')
-      expect(consumed_messages.first.offset).to eq(100)
-    end
+      it 'calls each_batch and prints DSM enabled' do
+        expect do
+          consumer.each_batch do |batch|
+            consumed_batches << batch
+          end
+        end.to output("each_batch (DSM enabled)\n").to_stdout
+      end
 
-    it 'preserves batch processing behavior' do
-      expect do
-        consumer.each_batch do |batch|
-          consumed_batches << batch
-        end
-      end.to output("each_batch\n").to_stdout
+      it 'preserves batch processing behavior' do
+        expect do
+          consumer.each_batch do |batch|
+            consumed_batches << batch
+          end
+        end.to output("each_batch (DSM enabled)\n").to_stdout
 
-      expect(consumed_batches).to have(1).item
-      expect(consumed_batches.first.topic).to eq('test_topic')
-      expect(consumed_batches.first.messages).to have(2).items
+        expect(consumed_batches).to have(1).item
+        expect(consumed_batches.first.topic).to eq('test_topic')
+        expect(consumed_batches.first.messages).to have(2).items
+      end
     end
   end
 end
