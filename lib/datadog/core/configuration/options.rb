@@ -40,14 +40,19 @@ module Datadog
 
           def default_helpers(name)
             option_name = name.to_sym
-
+            # @type var opt_getter: Configuration::OptionDefinition::helper_proc
+            opt_getter = proc do
+              # These Procs uses `get/set_option`, but we only add them to the OptionDefinition helpers here.
+              # Steep is right that these methods are not defined, but we only run these Procs in instance context.
+              get_option(option_name) # steep:ignore NoMethod
+            end
+            # @type var opt_setter: Configuration::OptionDefinition::helper_proc
+            opt_setter = proc do |value|
+              set_option(option_name, value) # steep:ignore NoMethod
+            end
             {
-              option_name.to_sym => proc do
-                get_option(option_name)
-              end,
-              :"#{option_name}=" => proc do |value|
-                set_option(option_name, value)
-              end
+              option_name.to_sym => opt_getter,
+              :"#{option_name}=" => opt_setter
             }
           end
 
@@ -113,6 +118,7 @@ module Datadog
 
             assert_valid_option!(name)
             definition = self.class.options[name]
+            # @type self: Configuration::Options::GenericSettingsClass
             options[name] = definition.build(self)
           end
 

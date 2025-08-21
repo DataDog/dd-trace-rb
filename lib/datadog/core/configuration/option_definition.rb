@@ -22,7 +22,7 @@ module Datadog
           :type,
           :type_options
 
-        def initialize(name, meta = {}, &block)
+        def initialize(name, meta, &block)
           @default = meta[:default]
           @default_proc = meta[:default_proc]
           @env = meta[:env]
@@ -44,7 +44,7 @@ module Datadog
         # Acts as DSL for building OptionDefinitions
         # @public_api
         class Builder
-          class InvalidOptionError < StandardError; end
+          InvalidOptionError = Class.new(StandardError)
 
           attr_reader \
             :helpers

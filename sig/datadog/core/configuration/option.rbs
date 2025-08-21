@@ -2,15 +2,19 @@ module Datadog
   module Core
     module Configuration
       class Option
-        @context: Configuration::Settings
+        type env_value = Hash[String, String] | Array[String] | String | Integer | Float | bool | nil
+        type env_vars = Hash[String, String] | ::RBS::Unnamed::ENVClass
+
+        @context: Options::GenericSettingsClass
 
         @is_set: bool
-        @value: untyped
+        @value: Object?
 
-        @value_per_precedence: ::Hash[Precedence::Value, untyped]
+        @value_per_precedence: ::Hash[Precedence::Value, Object?]
 
-        attr_reader definition: Configuration::OptionDefinition
+        attr_reader definition: OptionDefinition
         attr_reader precedence_set: Precedence::Value
+        attr_reader resolved_env: String?
 
         module Precedence
           REMOTE_CONFIGURATION: Value
@@ -19,40 +23,54 @@ module Datadog
           ENVIRONMENT: Value
           LOCAL_STABLE: Value
           DEFAULT: Value
-          LIST: [Value]
+          LIST: Array[Value]
 
-          class Value < ::Struct[[int, Symbol, String]]
-            attr_reader numeric: int
-            attr_reader name: Symbol
-            attr_reader origin: String
+          class Value
+            include Comparable
+
+            attr_accessor numeric: Integer
+            attr_accessor name: Symbol
+            attr_accessor origin: String
+
+            @numeric: Integer
+            @name: Symbol
+            @origin: String
+
+            def initialize: (Integer numeric, Symbol name, String origin) -> void
+            def <=>: (Object? other) -> Integer?
           end
         end
 
-        def initialize: (Configuration::OptionDefinition definition, Configuration::Settings context) -> void
+        def initialize: (OptionDefinition definition, Options::GenericSettingsClass context) -> void
 
-        def set: (untyped value, ?precedence: Precedence::Value) -> void
+        def set: (Object? value, ?precedence: Precedence::Value, ?resolved_env: String?) -> Object?
 
-        def get: () -> untyped
+        def get: () -> Object?
 
         def reset: () -> void
 
-        def default_value: () -> untyped
+        def default_value: () -> (OptionDefinition::option_type | Options::GenericSettingsClass)
 
-        def default_precedence?: () -> Precedence::Value?
+        def default_precedence?: () -> bool
 
         def unset: (Precedence::Value) -> void
 
         private
 
-        def coerce_env_variable: (untyped value) -> untyped
+        def coerce_env_variable: (String value) -> env_value
 
-        def validate_type: (untyped value) -> untyped
+        class InvalidDefinitionError < StandardError
+        end
 
-        def validate: (untyped type, untyped value) -> untyped
+        def validate_type: (Object? value) -> Object?
 
-        def context_exec: (*untyped args) { () -> untyped } -> untyped
+        def validate: (Symbol? type, Object? value) -> bool
 
-        def context_eval: () { () -> untyped } -> untyped
+        def internal_set: (Object? value, Precedence::Value precedence, String? resolved_env) -> Object?
+
+        def context_exec: [U] (*Object? args) { (?) [self: Options::GenericSettingsClass] -> U } -> U
+
+        def context_eval: [U] () { (Options::GenericSettingsClass settings) [self: Options::GenericSettingsClass] -> U } -> U
 
         def set_default_value: () -> void
 
@@ -62,7 +80,9 @@ module Datadog
 
         def set_fleet_stable_config_value: () -> void
 
-        def get_value_and_resolved_env_from: (Hash[String, String] env_vars, ?source: String) -> [Hash[String, String] | Array[String] | String | Integer | Float | bool, String | nil]
+        def get_value_and_resolved_env_from: (env_vars env_vars, ?source: String ) -> [env_value, String?]
+
+        UNSET: Object
       end
     end
   end
