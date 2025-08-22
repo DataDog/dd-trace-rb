@@ -20,7 +20,7 @@ module Datadog
       module_function def load_now
         should_propagate = false
 
-        probe_file_path = ENV['DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE']
+        probe_file_path = Datadog.get_environment_variable('DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE')
         if probe_file_path.nil? || probe_file_path.empty?
           return
         end
