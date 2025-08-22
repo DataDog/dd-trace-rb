@@ -100,7 +100,7 @@ module Datadog
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              conf_value('DD_AGENT_TRANSPORT', agent_transport, seq_id, 'unknown'),
+              conf_value('DD_AGENT_TRANSPORT', agent_transport, seq_id, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
 
               # writer_options is defined as an option that has a Hash value.
               conf_value(
