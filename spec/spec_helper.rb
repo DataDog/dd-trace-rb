@@ -269,6 +269,11 @@ RSpec.configure do |config|
   # put this code inside the test scope, interfering
   # with the test execution.
   config.around do |example|
+    # This is initialized during app startup and should not change during app lifecycle
+    # However in our tests, we change the environment variables without completely resetting the app
+    # This is why we reset this variable here.
+    Datadog.instance_variable_set(:@log_deprecations_called_with, nil)
+
     example.run.tap do
       tracer_shutdown!
     end
@@ -343,3 +348,9 @@ Timeout.ensure_timeout_thread_created if Timeout.respond_to?(:ensure_timeout_thr
 # mock objects in the test suite. Disable it and tests that need code tracking
 # will enable it back for themselves.
 Datadog::DI.deactivate_tracking! if defined?(Datadog::DI) && Datadog::DI.respond_to?(:deactivate_tracking!)
+
+# This variable is only used by config inversion.
+# We raise an error in our testsuite if we forget to add a new environment variable to the supported configurations file.
+# This way, we will not miss any tested env var, and it will return nil in production.
+# (acting as the env var is not set, without crashing the app).
+Datadog.send(:dd_test_environment!)
