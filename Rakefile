@@ -477,6 +477,53 @@ namespace :changelog do
   end
 end
 
+namespace :local_config_map do
+  require 'json'
+  # We only keep env vars as strings
+  data = JSON.parse(File.read('supported-configurations.json')).transform_keys(&:to_sym)
+  data[:supportedConfigurations].each_value { |config| config.transform_keys!(&:to_sym) }
+  alias_to_canonical = data[:aliases].each_with_object({}) do |(canonical, alias_list), h|
+    alias_list.each do |alias_name|
+      raise "The alias #{alias_name} is already used for #{h[alias_name]}." if h[alias_name]
+
+      h[alias_name] = canonical
+    end
+  end
+
+  # Read the data from the JSON file and generate AOT map for supported configurations, aliases and deprecations
+  task :generate do
+    File.write(
+      'lib/datadog/core/configuration/assets/supported_configurations.rb',
+      <<~RUBY
+        # frozen_string_literal: true
+
+        module Datadog
+          module Core
+            module Configuration
+              module Assets
+                SUPPORTED_CONFIG_DATA = #{data.inspect}
+
+                ALIAS_TO_CANONICAL = #{alias_to_canonical.inspect}
+              end
+            end
+          end
+        end
+      RUBY
+    )
+  end
+
+  # Validate that the generated data is the same as the one in the JSON file
+  task :validate do
+    require 'datadog/core/configuration/assets/supported_configurations'
+
+    if data != Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA ||
+        alias_to_canonical != Datadog::Core::Configuration::Assets::ALIAS_TO_CANONICAL
+      warn 'Configuration map mismatch between the JSON file and the generated file, please run `rake local_config_map:generate` and commit the changes'
+      exit 1
+    end
+  end
+end
+
 NATIVE_EXTS = [
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = 'ext/libdatadog_api'
