@@ -44,6 +44,7 @@ RSpec.describe 'gem release process' do
            |\.standard\.yml
            |\.standard_todo\.yml
            |.rspec-local.example
+           |supported-configurations\.json
           )
           $
         }x
