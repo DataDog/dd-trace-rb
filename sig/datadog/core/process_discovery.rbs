@@ -1,6 +1,8 @@
 module Datadog
   module Core
     class ProcessDiscovery
+      ACTIVATE_FORKING_PATCH: Datadog::Core::Utils::OnlyOnce
+
       # defined in C. struct containing int fd.
       class TracerMemfd
       end
@@ -18,6 +20,13 @@ module Datadog
       ) -> TracerMemfd?
 
       def self._native_close_tracer_memfd: (TracerMemfd tracer_memfd, Datadog::Core::Logger logger) -> void
+
+      def self._native_publish_otel_ctx_on_fork: (
+        String service_name,
+        String runtime_id,
+        String service_env,
+        Datadog::Core::Logger logger
+      ) -> bool
 
       def self.get_and_store_metadata: (
         Datadog::Core::Configuration::Settings settings,
