@@ -87,6 +87,18 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Integration do
           it { is_expected.to be false }
         end
       end
+
+      context 'and DISABLE_DATADOG_RAILS' do
+        context 'is set' do
+          around do |example|
+            ClimateControl.modify 'DISABLE_DATADOG_RAILS' => '1' do
+              example.run
+            end
+          end
+
+          it { is_expected.to be false }
+        end
+      end
     end
   end
 
