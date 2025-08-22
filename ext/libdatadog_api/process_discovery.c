@@ -4,6 +4,7 @@
 #include <datadog/library-config.h>
 
 #include "datadog_ruby_common.h"
+#include "otel_process_ctx.h"
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd);
@@ -36,6 +37,8 @@ void process_discovery_init(VALUE core_module) {
   rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 2);
 }
 
+static otel_process_ctx_result otel_ctx = {0};
+
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   VALUE logger;
   VALUE options;
@@ -59,6 +62,21 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ENFORCE_TYPE(service_name, T_STRING);
   ENFORCE_TYPE(service_env, T_STRING);
   ENFORCE_TYPE(service_version, T_STRING);
+
+  otel_process_ctx_data otel_ctx_data = {
+    .service_name = RSTRING_PTR(service_name),
+    .service_instance_id = RSTRING_PTR(runtime_id),
+    .deployment_environment_name = RSTRING_PTR(service_env),
+  };
+  otel_ctx = !otel_ctx.success ?
+    otel_process_ctx_publish(otel_ctx_data) :
+    otel_process_ctx_update(&otel_ctx, otel_ctx_data);
+
+  if (otel_ctx.success) {
+    rb_funcall(logger, rb_intern("info"), 1, rb_str_new2("OTEL process context publish successful"));
+  } else {
+    rb_funcall(logger, rb_intern("info"), 1, rb_sprintf("OTEL process context publish failed: %s", otel_ctx.error_message));
+  }
 
   ddog_Result_TracerMemfdHandle result = ddog_store_tracer_metadata(
     (uint8_t) NUM2UINT(schema_version),
@@ -95,6 +113,19 @@ static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd) {
 static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd, VALUE logger) {
   int *fd;
   TypedData_Get_Struct(tracer_memfd, int, &tracer_memfd_type, fd);
+
+  if (otel_ctx.success) {
+    bool result = otel_process_ctx_drop(&otel_ctx);
+    otel_ctx.success = false;
+    if (!result) {
+      rb_funcall(logger, rb_intern("info"), 1, rb_str_new2("OTEL process context drop failed"));
+    } else {
+      rb_funcall(logger, rb_intern("info"), 1, rb_str_new2("OTEL process context drop successful"));
+    }
+  } else {
+    rb_funcall(logger, rb_intern("info"), 1, rb_str_new2("OTEL process context drop no-op"));
+  }
+
   if (*fd == -1) {
     rb_funcall(logger, rb_intern("debug"), 1, rb_sprintf("The tracer configuration memory file descriptor has already been closed"));
     return Qnil;
