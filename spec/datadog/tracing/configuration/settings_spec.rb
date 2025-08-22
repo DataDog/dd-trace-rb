@@ -303,12 +303,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
       end
 
-      context "when #{Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER}" do
+      context 'when OTEL_TRACES_EXPORTER' do
         around do |example|
           ClimateControl.modify(
             {
               Datadog::Tracing::Configuration::Ext::ENV_ENABLED => dd_enable,
-              Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER => otel_exporter
+              'OTEL_TRACES_EXPORTER' => otel_exporter
             }
           ) do
             example.run
@@ -627,7 +627,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           let(:dd_sample_rate) { nil }
           around do |example|
             ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Sampling::ENV_OTEL_TRACES_SAMPLER => otel_sampler,
+              'OTEL_TRACES_SAMPLER' => otel_sampler,
               Datadog::Tracing::Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG => otel_sampler_arg,
               Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => dd_sample_rate,
             ) do
