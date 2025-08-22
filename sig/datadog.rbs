@@ -1,6 +1,7 @@
 module Datadog
   extend Core::Extensions
   extend Core::Configuration
+  extend Core::Configuration::ConfigHelper
 
   # Extended in datadog/tracing/contrib/extensions.rb
   extend Tracing::Contrib::Extensions::Helpers
