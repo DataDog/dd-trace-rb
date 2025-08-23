@@ -1,0 +1,40 @@
+- name: simple reference - local
+  ast:
+    ref: var
+  compiled: ref('var')
+  eval:
+    - locals:
+        var: 42
+      instance:
+        '@var': 44
+      result: 42
+      
+    - name: variable missing
+      # TODO raise exception?
+      result: 
+  
+- name: simple reference - instance
+  ast:
+    ref: '@var'
+  compiled: iref('@var')
+  eval:
+    - instance:
+        '@var': 42
+      locals:
+        var: 44
+      result: 42
+      
+    - name: variable missing
+      # TODO raise exception?
+      result: 
+  
+- name: simple reference - bogus type
+  ast:
+    ref: 123
+  error: 'Bad ref value type: Integer: 123'
+  
+- name: simple reference - non-string value
+  ast:
+    ref: '123'
+  # We currently do not validate variable name legality.
+  compiled: ref('123')
