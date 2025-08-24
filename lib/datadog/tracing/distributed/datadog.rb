@@ -46,9 +46,9 @@ module Datadog
           data[@sampling_priority_key] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
           data[@origin_key] = digest.trace_origin.to_s if digest.trace_origin
 
-          build_tags(digest).tap do |tags|
-            inject_tags!(tags, data) unless tags.empty?
-          end
+          tags = build_tags(digest)
+          inject_tags!(tags, data) unless tags.empty?
+
           data
         end
 
@@ -142,6 +142,7 @@ module Datadog
           ::Datadog.logger.warn(
             "Failed to inject x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
           )
+          nil
         end
 
         # Import `x-datadog-tags` tags as trace distributed tags.
@@ -168,6 +169,7 @@ module Datadog
           ::Datadog.logger.warn(
             "Failed to extract x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
           )
+          nil
         end
 
         def set_tags_propagation_error(reason:)
