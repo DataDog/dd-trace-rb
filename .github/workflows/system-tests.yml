@@ -6,7 +6,7 @@
 # * update docs/ForcingSystemTests.md
 # * update the cleanup task in the release process that cleans forced tests
 
-name: System Tests - Official
+name: System Tests
 on: # yamllint disable-line rule:truthy
   push:
     branches:

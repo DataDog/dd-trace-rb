@@ -1,4 +1,4 @@
-name: System Tests
+name: System Tests Legacy
 
 on: # yamllint disable-line rule:truthy
   push:
