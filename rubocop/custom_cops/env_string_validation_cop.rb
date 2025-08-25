@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../lib/datadog/core/configuration/assets/supported_configurations'
+require_relative '../../lib/datadog/core/configuration/supported_configurations'
 
 module CustomCops
   # Custom cop that validates environment variable strings starting with DD_ or OTEL_
@@ -27,7 +27,7 @@ module CustomCops
 
     # Configuration for allowed environment variable names
     # This list should be populated with the allowed environment variable names
-    ALLOWED_ENV_VARS = Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA[:supportedConfigurations].keys
+    ALLOWED_ENV_VARS = Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.keys
 
     def on_str(node)
       # Environment variable format: starts with DD_ or OTEL_

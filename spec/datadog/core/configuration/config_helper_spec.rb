@@ -12,40 +12,37 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
   around do |example|
     # Force reload of the constants with our mocked data
-    described_class.send(:remove_const, :SUPPORTED_CONFIGURATIONS)
-    described_class.const_set(:SUPPORTED_CONFIGURATIONS, supported_configurations)
-    described_class.send(:private_constant, :SUPPORTED_CONFIGURATIONS)
+    original_supported_configurations = Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS
+    original_aliases = Datadog::Core::Configuration::ALIASES
+    original_deprecations = Datadog::Core::Configuration::DEPRECATIONS
+    original_alias_to_canonical = Datadog::Core::Configuration::ALIAS_TO_CANONICAL
 
-    described_class.send(:remove_const, :ALIASES)
-    described_class.const_set(:ALIASES, aliases)
-    described_class.send(:private_constant, :ALIASES)
+    Datadog::Core::Configuration.send(:remove_const, :SUPPORTED_CONFIGURATIONS)
+    Datadog::Core::Configuration.const_set(:SUPPORTED_CONFIGURATIONS, supported_configurations)
 
-    described_class.send(:remove_const, :DEPRECATIONS)
-    described_class.const_set(:DEPRECATIONS, deprecations)
-    described_class.send(:private_constant, :DEPRECATIONS)
+    Datadog::Core::Configuration.send(:remove_const, :ALIASES)
+    Datadog::Core::Configuration.const_set(:ALIASES, aliases)
 
-    described_class.send(:remove_const, :ALIAS_TO_CANONICAL)
-    described_class.const_set(:ALIAS_TO_CANONICAL, alias_to_canonical)
-    described_class.send(:private_constant, :ALIAS_TO_CANONICAL)
+    Datadog::Core::Configuration.send(:remove_const, :DEPRECATIONS)
+    Datadog::Core::Configuration.const_set(:DEPRECATIONS, deprecations)
+
+    Datadog::Core::Configuration.send(:remove_const, :ALIAS_TO_CANONICAL)
+    Datadog::Core::Configuration.const_set(:ALIAS_TO_CANONICAL, alias_to_canonical)
 
     example.run
 
     # Revert the constants to their original values
-    described_class.send(:remove_const, :SUPPORTED_CONFIGURATIONS)
-    described_class.const_set(:SUPPORTED_CONFIGURATIONS, Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA[:supportedConfigurations] || {})
-    described_class.send(:private_constant, :SUPPORTED_CONFIGURATIONS)
+    Datadog::Core::Configuration.send(:remove_const, :SUPPORTED_CONFIGURATIONS)
+    Datadog::Core::Configuration.const_set(:SUPPORTED_CONFIGURATIONS, original_supported_configurations)
 
-    described_class.send(:remove_const, :ALIASES)
-    described_class.const_set(:ALIASES, Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA[:aliases] || {})
-    described_class.send(:private_constant, :ALIASES)
+    Datadog::Core::Configuration.send(:remove_const, :ALIASES)
+    Datadog::Core::Configuration.const_set(:ALIASES, original_aliases)
 
-    described_class.send(:remove_const, :DEPRECATIONS)
-    described_class.const_set(:DEPRECATIONS, Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA[:deprecations] || {})
-    described_class.send(:private_constant, :DEPRECATIONS)
+    Datadog::Core::Configuration.send(:remove_const, :DEPRECATIONS)
+    Datadog::Core::Configuration.const_set(:DEPRECATIONS, original_deprecations)
 
-    described_class.send(:remove_const, :ALIAS_TO_CANONICAL)
-    described_class.const_set(:ALIAS_TO_CANONICAL, Datadog::Core::Configuration::Assets::ALIAS_TO_CANONICAL || {})
-    described_class.send(:private_constant, :ALIAS_TO_CANONICAL)
+    Datadog::Core::Configuration.send(:remove_const, :ALIAS_TO_CANONICAL)
+    Datadog::Core::Configuration.const_set(:ALIAS_TO_CANONICAL, original_alias_to_canonical)
   end
 
   describe '#get_environment_variable' do
