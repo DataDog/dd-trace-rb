@@ -63,8 +63,6 @@ The cop automatically corrects the following patterns:
 - `ENV.has_key?('key')` → `!Datadog.get_environment_variable('key').nil?`
 - `ENV.include?('key')` → `!Datadog.get_environment_variable('key').nil?`
 - `ENV.member?('key')` → `!Datadog.get_environment_variable('key').nil?`
-- `ENV.values` → `Datadog.get_environment_variables.values`
-- `ENV.keys` → `Datadog.get_environment_variables.keys`
 
 ### Testing
 

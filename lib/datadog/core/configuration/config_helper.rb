@@ -9,9 +9,11 @@ module Datadog
     module Configuration
       module ConfigHelper
         # Returns the environment variable, if it's supported or a non Datadog
-        # configuration. Otherwise, it throws an error.
+        # configuration. Otherwise, it raises an error.
         #
         # @param name [String] Environment variable name
+        # @param env_vars [Hash] Environment variables to use (ENV, fleet config file hash or local config file hash)
+        # @param source [String] Source of the environment variables (can be 'environment' or 'local/fleet stable config)
         # @return [String, nil] The environment variable value
         # @raise [RuntimeError] if the configuration is not supported
         def get_environment_variable(name, env_vars: ENV, source: 'environment')
@@ -46,7 +48,6 @@ module Datadog
 
         private
 
-        # An env can be deprecated without a replacement (e.g.: if we remove a feature)
         def log_deprecations(env_vars, source)
           @log_deprecations_called_with ||= {}
           return if @log_deprecations_called_with[source]
