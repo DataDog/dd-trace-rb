@@ -97,7 +97,7 @@ Run the rake task to generate the Ruby configuration assets:
 bundle exec rake local_config_map:generate
 ```
 
-This task generates `lib/datadog/core/configuration/assets/supported_configurations.rb` ahead of time, so the tracer does not need to parse the JSON file every time.
+This task generates `lib/datadog/core/configuration/supported_configurations.rb` ahead of time, so the tracer does not need to parse the JSON file every time.
 
 ## RuboCop Integration
 

@@ -885,14 +885,20 @@ RSpec.describe Datadog::Core::Configuration::Option do
         # Because it does not start with DD_ or OTEL_, it does not need to be added in ['supportedConfigurations']
         # But aliases and deprecations are still supported.
         # It is also tested with an actual value (see spec/datadog/core/configuration/settings_spec.rb:693)
-        supported_config_data = Datadog::Core::Configuration::Assets::SUPPORTED_CONFIG_DATA
-        supported_config_data[:deprecations][deprecated_env] = ''
-        supported_config_data[:aliases][env] = [deprecated_env]
+        original_deprecations = Datadog::Core::Configuration::DEPRECATIONS
+        deprecations = original_deprecations.dup
+        deprecations[deprecated_env] = ''
+        Datadog::Core::Configuration::DEPRECATIONS = deprecations
+
+        original_aliases = Datadog::Core::Configuration::ALIASES
+        aliases = original_aliases.dup
+        aliases[env] = [deprecated_env]
+        Datadog::Core::Configuration::ALIASES = aliases
 
         example.run
 
-        supported_config_data[:deprecations].delete(deprecated_env)
-        supported_config_data[:aliases].delete(env)
+        Datadog::Core::Configuration::DEPRECATIONS = original_deprecations
+        Datadog::Core::Configuration::ALIASES = original_aliases
       end
 
       before do

@@ -80,7 +80,7 @@ The `CustomCops::EnvStringValidationCop` validates environment variable strings 
 
 ### Purpose
 
-This cop helps ensure that all environment variable strings (literal strings that look like Datadog or OpenTelemetry environment variables) are valid and documented. It validates against the `SUPPORTED_CONFIG_DATA` from `lib/datadog/core/configuration/assets/supported_configurations.rb`, which contains all officially supported environment variables and their aliases.
+This cop helps ensure that all environment variable strings (literal strings that look like Datadog or OpenTelemetry environment variables) are valid and documented. It validates against `SUPPORTED_CONFIGURATIONS`, `ALIASES` and `DEPRECATIONS` from `lib/datadog/core/configuration/supported_configurations.rb`, which contains all officially supported environment variables and their aliases.
 
 The cop may produce false positives for strings that are not actually used as environment variables but follow the naming pattern (e.g., telemetry keys, log messages). In such cases, you can disable the cop for specific lines with `# rubocop:disable CustomCops/EnvStringValidationCop`
 
@@ -137,4 +137,4 @@ If you need to use a new environment variable:
 
 1. Add it to the `supported-configurations.json` file
 2. Run the configuration asset generation rake task `bundle exec rake local_config_map:generate`
-3. The new variable will be automatically included in `SUPPORTED_CONFIG_DATA`
+3. The new variable will be automatically included in `Core::Configuration::SUPPORTED_CONFIGURATIONS`

@@ -20,4 +20,4 @@ CustomCops/EnvStringValidationCop:
     - "lib/**/*"
   Exclude:
     - "lib/datadog/core/configuration/config_helper.rb"
-    - "lib/datadog/core/configuration/assets/supported_configurations.rb"
+    - "lib/datadog/core/configuration/supported_configurations.rb"

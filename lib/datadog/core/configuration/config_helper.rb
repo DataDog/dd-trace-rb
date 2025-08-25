@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'assets/supported_configurations'
+require_relative 'supported_configurations'
 require_relative '../logger'
 require 'json'
 
@@ -8,19 +8,6 @@ module Datadog
   module Core
     module Configuration
       module ConfigHelper
-        # Load the supported configurations from JSON file. We will do this AOT.
-        SUPPORTED_CONFIGURATIONS = Assets::SUPPORTED_CONFIG_DATA[:supportedConfigurations] || {}
-        private_constant :SUPPORTED_CONFIGURATIONS
-
-        ALIASES = Assets::SUPPORTED_CONFIG_DATA[:aliases] || {}
-        private_constant :ALIASES
-
-        DEPRECATIONS = Assets::SUPPORTED_CONFIG_DATA[:deprecations] || {}
-        private_constant :DEPRECATIONS
-
-        ALIAS_TO_CANONICAL = Assets::ALIAS_TO_CANONICAL || {}
-        private_constant :ALIAS_TO_CANONICAL
-
         # Returns the environment variable, if it's supported or a non Datadog
         # configuration. Otherwise, it throws an error.
         #
@@ -70,7 +57,7 @@ module Datadog
           # At that point we don't have access yet to the logger configuration.
           # Log level is warn for deprecations, so we don't need to set the logger level according to `DD_TRACE_DEBUG`.
           @config_helper_logger ||= Core::Logger.new($stdout)
-          DEPRECATIONS&.each do |deprecation, message|
+          DEPRECATIONS.each do |deprecation, message|
             next unless env_vars[deprecation]
 
             # As we only use warn level, we can use a new logger.
