@@ -1,12 +1,5 @@
-# TODO list when we'll switch to the new system-tests workflow:
-# * remove this TODO
-# * uncomment the schedule trigger in this file
-# * uncomment the pull request trigger in this file
-# * delete .github/forced-tests-list.json (and check if .github/forced-tests-list.cfg is up-to-date)
-# * update docs/ForcingSystemTests.md
-# * update the cleanup task in the release process that cleans forced tests
-
 name: System Tests
+
 on: # yamllint disable-line rule:truthy
   push:
     branches:
@@ -16,12 +9,12 @@ on: # yamllint disable-line rule:truthy
       #
       # This is also useful for testing the workflow without opening a pull request.
       - tmp/*
-  # pull_request:  # To be uncommented if the guild chooses this workflow
-  #   branches:
-  #     - master
+  pull_request:
+    branches:
+      - master
   workflow_dispatch: {}
-  # schedule:  # To be uncommented if the guild chooses this workflow
-  #   - cron: "00 04 * * 2-6"
+  schedule:
+    - cron: "00 04 * * 2-6"
 
 # Default permissions for all jobs
 permissions: {}
