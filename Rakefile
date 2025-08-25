@@ -70,13 +70,13 @@ namespace :spec do
              :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-             :profiling, :crashtracking, :error_tracking, :process_discovery, :stable_config]
+             :profiling, :crashtracking, :error_tracking, :process_discovery, :stable_config, :local_config_map]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking,rubocop}/**/*_spec.rb,'\
-                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config}_spec.rb, spec/datadog/gem_packaging_spec.rb'
+                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,supported_configurations}_spec.rb, spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -425,6 +425,16 @@ namespace :spec do
   end
 
   task profiling: [:'profiling:all']
+
+  namespace :local_config_map do
+    # Validate that the generated data is the same as the one in the JSON file
+    RSpec::Core::RakeTask.new(:validate) do |t, args|
+      t.pattern = 'spec/datadog/core/configuration/supported_configurations_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+  end
+
+  task local_config_map: [:'local_config_map:validate']
 end
 
 if defined?(RuboCop::RakeTask)
