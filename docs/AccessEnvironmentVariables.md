@@ -21,7 +21,7 @@ timeout = ENV.fetch('DD_TIMEOUT', '30')
 
 # ✅ Good: Using Datadog.get_environment_variable
 api_key = Datadog.get_environment_variable('DD_API_KEY')
-timeout = Datadog.get_environment_variable('DD_TIMEOUT') || '30'
+timeout = Datadog.get_environment_variable('DD_TIMEOUT', '30')
 ```
 
 This is enforced by the `CustomCops::EnvUsageCop` cop.

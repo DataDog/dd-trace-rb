@@ -77,6 +77,14 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       it 'returns nil' do
         is_expected.to be_nil
       end
+
+      context 'when a default value is provided' do
+        subject(:get_env_var) { instance.get_environment_variable(name, 'default', env_vars: env_vars, source: source) }
+
+        it 'returns the default value' do
+          is_expected.to eq('default')
+        end
+      end
     end
 
     context 'when the environment variable has an alias' do

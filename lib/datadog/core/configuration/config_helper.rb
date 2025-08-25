@@ -12,11 +12,12 @@ module Datadog
         # configuration. Otherwise, it raises an error.
         #
         # @param name [String] Environment variable name
+        # @param default_value [String, nil] Default value to return if the environment variable is not set
         # @param env_vars [Hash] Environment variables to use (ENV, fleet config file hash or local config file hash)
         # @param source [String] Source of the environment variables (can be 'environment' or 'local/fleet stable config)
         # @return [String, nil] The environment variable value
         # @raise [RuntimeError] if the configuration is not supported
-        def get_environment_variable(name, env_vars: ENV, source: 'environment')
+        def get_environment_variable(name, default_value = nil, env_vars: ENV, source: 'environment')
           # Log deprecations once for environment, fleet config file and local config file.
           log_deprecations(env_vars, source)
 
@@ -43,7 +44,7 @@ module Datadog
             end
           end
 
-          config
+          config || default_value
         end
 
         private

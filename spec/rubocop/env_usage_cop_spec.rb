@@ -37,7 +37,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
 
       expect_correction(<<~RUBY)
-        Datadog.get_environment_variable('DATADOG_API_KEY') || 'default'
+        Datadog.get_environment_variable('DATADOG_API_KEY', 'default')
       RUBY
     end
 
