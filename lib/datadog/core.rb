@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'core/deprecations'
+require_relative 'core/configuration/config_helper'
 require_relative 'core/extensions'
 
 # We must load core extensions to make certain global APIs
@@ -21,6 +22,7 @@ module Datadog
       end
   end
 
+  extend Core::Configuration::ConfigHelper
   extend Core::Extensions
 
   # Add shutdown hook:

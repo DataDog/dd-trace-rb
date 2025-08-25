@@ -25,6 +25,7 @@ AllCops:
     - spec/datadog/di/**/*
     - spec/datadog/core/**/*
     - spec/datadog/appsec/**/*
+    - spec/rubocop/**/*
   NewCops: disable # Don't allow new cops to be enabled implicitly.
   SuggestExtensions: false # Stop pushing suggestions constantly.
 
