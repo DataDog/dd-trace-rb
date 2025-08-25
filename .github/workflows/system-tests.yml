@@ -126,7 +126,7 @@ jobs:
       skip_empty_scenarios: true
       ref: 4ea4c419151062ab3c2e4131962f24f73c8f3f5d  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
-      _experimental_parametric_job_count: 8
+      parametric_job_count: 8
 
   complete:
     name: System Tests (complete)
