@@ -6,7 +6,7 @@ This document explains how to properly access environment variables and manage c
 
 The dd-trace-rb library implements **central configuration inversion** through the `ConfigHelper` module to ensure all environment variable access is centralized, documented, and validated. This approach prevents direct `ENV` access and enforces that all supported environment variables are properly registered.
 
-Central configuration inversion name means that there is a single, centralized source of truth for configuration, and tracers uses that source to accept configurations or not. This inverts the previous process, where configurations were defined in each tracers and we attempted to create a source of truth  existing code, often leading to incomplete documentation.
+Central configuration inversion name means that there is a single, centralized source of truth for configuration, and libraries use that source to accept configurations or not. This inverts the previous process, where configurations were defined in each library and we attempted to create a source of truth from the existing code, often leading to incomplete documentation.
 
 ## Key Components
 

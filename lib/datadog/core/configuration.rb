@@ -37,10 +37,6 @@ module Datadog
       COMPONENTS_READ_LOCK = Mutex.new
       private_constant :COMPONENTS_READ_LOCK
 
-      def self.extended(base)
-        base.extend(ConfigHelper)
-      end
-
       attr_writer :configuration
 
       # Current Datadog configuration.
