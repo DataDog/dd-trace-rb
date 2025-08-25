@@ -38,7 +38,8 @@ config = {
 # These are the corrected versions:
 api_key = Datadog.get_environment_variable('DATADOG_API_KEY')
 debug_mode = Datadog.get_environment_variable('DEBUG')
-timeout = Datadog.get_environment_variable('TIMEOUT') || '30'
+# Supports default value like ENV.fetch
+timeout = Datadog.get_environment_variable('TIMEOUT', '30')
 
 if !Datadog.get_environment_variable('DATADOG_API_KEY').nil?
   puts 'API key is set'
@@ -58,7 +59,7 @@ The cop automatically corrects the following patterns:
 
 - `ENV['key']` → `Datadog.get_environment_variable('key')`
 - `ENV.fetch('key')` → `Datadog.get_environment_variable('key')`
-- `ENV.fetch('key', default)` → `Datadog.get_environment_variable('key') || default`
+- `ENV.fetch('key', default)` → `Datadog.get_environment_variable('key', default)`
 - `ENV.key?('key')` → `!Datadog.get_environment_variable('key').nil?`
 - `ENV.has_key?('key')` → `!Datadog.get_environment_variable('key').nil?`
 - `ENV.include?('key')` → `!Datadog.get_environment_variable('key').nil?`

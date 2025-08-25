@@ -57,14 +57,14 @@ module CustomCops
     end
 
     def correct_env_fetch(corrector, node)
-      # ENV.fetch('key', default) -> Datadog.get_environment_variable('key') || default
+      # ENV.fetch('key', default) -> Datadog.get_environment_variable('key', default)
       # ENV.fetch('key') -> Datadog.get_environment_variable('key')
       key_arg = node.arguments.first
       default_arg = node.arguments[1]
       return unless key_arg
 
       replacement = if default_arg
-        "Datadog.get_environment_variable(#{key_arg.source}) || #{default_arg.source}"
+        "Datadog.get_environment_variable(#{key_arg.source}, #{default_arg.source})"
       else
         "Datadog.get_environment_variable(#{key_arg.source})"
       end

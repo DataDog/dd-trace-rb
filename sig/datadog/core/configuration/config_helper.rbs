@@ -4,7 +4,7 @@ module Datadog
       module ConfigHelper
         type env_hash = RBS::Unnamed::ENVClass | Hash[String, String]
 
-        def get_environment_variable: (String name, ?env_vars: env_hash, ?source: String) -> String?
+        def get_environment_variable: (String name, ?String? default_value, ?env_vars: env_hash, ?source: String) -> String?
 
         private
 
