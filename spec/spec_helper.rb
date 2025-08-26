@@ -26,6 +26,7 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
 require 'support/core_helpers'
+require 'support/deprecation_helpers'
 require 'support/environment_helpers'
 require 'support/execute_in_fork'
 require 'support/faux_transport'
@@ -64,6 +65,7 @@ WebMock.disable!
 
 RSpec.configure do |config|
   config.include CoreHelpers
+  config.include DeprecationHelpers
   config.include HealthMetricHelpers
   config.include LogHelpers
   config.include NetworkHelpers
@@ -269,11 +271,6 @@ RSpec.configure do |config|
   # put this code inside the test scope, interfering
   # with the test execution.
   config.around do |example|
-    # This is initialized during app startup and should not change during app lifecycle
-    # However in our tests, we change the environment variables without completely resetting the app
-    # This is why we reset this variable here.
-    Datadog.instance_variable_set(:@log_deprecations_called_with, nil)
-
     example.run.tap do
       tracer_shutdown!
     end

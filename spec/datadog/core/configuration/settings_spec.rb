@@ -708,11 +708,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             context "is defined as #{value}" do
               let(:environment) { value.to_s }
 
-              before do
-                expect(Datadog::Core).to receive(:log_deprecation)
-                # Reinitialize components
-                Datadog.configure {}
-              end
+              include_context 'log deprecation when deprecated env var is set', /DD_PROFILING_PREVIEW_GVL_ENABLED/
 
               it { is_expected.to be value }
             end
