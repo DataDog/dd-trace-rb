@@ -146,10 +146,6 @@ module Datadog
           return @gc_tuning_info if defined?(@gc_tuning_info)
 
           @gc_tuning_info = RUBY_GC_TUNING_ENV_VARS.each_with_object({}) do |var, hash|
-            # None of these env vars starts with DD_ or OTEL_
-            # and are not defined as aliases in supported-configurations.json,
-            # so get_environment_variable(var) will never cause an error or return nil.
-            # If it adds too much overhead, we can use ENV and skip the Rubocop rule.
             current_value = Datadog.get_environment_variable(var)
             hash[var.to_sym] = current_value if current_value
           end.freeze
