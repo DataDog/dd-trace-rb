@@ -360,7 +360,7 @@ module Datadog
                 # @public_api
                 option :rules do |o|
                   o.type :string, nilable: true
-                  o.default { Datadog.get_environment_variable(Configuration::Ext::Sampling::ENV_RULES, nil) }
+                  o.default { Datadog.get_environment_variable(Configuration::Ext::Sampling::ENV_RULES) }
                 end
 
                 # Single span sampling rules.
