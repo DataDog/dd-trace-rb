@@ -12,9 +12,7 @@ module Datadog
 
         private
 
-        @dd_test_environment: bool?
-
-        def dd_test_environment!: () -> void
+        @raise_on_unknown_env_var: bool?
       end
     end
   end

@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       # Reset instance variables that might be set by previous tests
       instance.instance_variable_set(:@log_deprecations_called_with, nil)
       instance.instance_variable_set(:@config_helper_logger, nil)
-      instance.instance_variable_set(:@dd_test_environment, nil)
+      instance.instance_variable_set(:@raise_on_unknown_env_var, nil)
     end
 
     context 'when the environment variable is supported' do
@@ -133,7 +133,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       context 'when in test environment' do
         before do
-          instance.send(:dd_test_environment!)
+          instance.instance_variable_set(:@raise_on_unknown_env_var, true)
         end
 
         it 'raises an error for unsupported DD_ variables' do
@@ -157,7 +157,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       context 'when in test environment' do
         before do
-          instance.send(:dd_test_environment!)
+          instance.instance_variable_set(:@raise_on_unknown_env_var, true)
         end
 
         it 'raises an error suggesting the canonical name' do
