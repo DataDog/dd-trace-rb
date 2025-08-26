@@ -950,8 +950,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#experimental_runtime_id_enabled' do
       subject(:experimental_runtime_id_enabled) { settings.runtime_metrics.experimental_runtime_id_enabled }
 
-      let(:primary_env_var) { 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED' }
-      let(:fallback_env_var) { 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED' }
+      let(:primary_env_var) { 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED' }
+      let(:fallback_env_var) { 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED' }
 
       around do |example|
         ClimateControl.modify(
@@ -969,14 +969,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it { is_expected.to be false }
       end
 
-      context 'when only the primary env var DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED is set to true' do
+      context 'when only the primary env var DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED is set to true' do
         let(:primary_enabled) { 'true' }
         let(:fallback_enabled) { nil }
 
         it { is_expected.to be true }
       end
 
-      context 'when only the fallback env var DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED is set to true' do
+      context 'when only the fallback env var DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED is set to true' do
         let(:primary_enabled) { nil }
         let(:fallback_enabled) { 'true' }
 

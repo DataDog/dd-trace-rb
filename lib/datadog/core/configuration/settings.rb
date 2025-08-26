@@ -122,7 +122,7 @@ module Datadog
           # @default `DD_TRACE_DEBUG` environment variable, otherwise `false`
           # @return [Boolean]
           option :debug do |o|
-            # Alias defined in supported-configurations.json
+            # Note: Alias (OTEL_LOG_LEVEL) defined in supported-configurations.json
             o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED
             o.default false
             o.type :bool
@@ -486,7 +486,7 @@ module Datadog
             # @default `DD_PROFILING_GVL_ENABLED` environment variable as a boolean, otherwise `true`
             option :gvl_enabled do |o|
               o.type :bool
-              # Alias and deprecation defined in supported-configurations.json
+              # Note: Deprecated alias (DD_PROFILING_PREVIEW_GVL_ENABLED) defined in supported-configurations.json
               o.env 'DD_PROFILING_GVL_ENABLED'
               o.default true
             end
@@ -605,8 +605,8 @@ module Datadog
 
           option :experimental_runtime_id_enabled do |o|
             o.type :bool
-            # Alias defined in supported-configurations.json
-            o.env 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED'
+            # Note: Alias (DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED) defined in supported-configurations.json
+            o.env 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED'
             o.default false
           end
 
@@ -622,7 +622,7 @@ module Datadog
           o.type :string, nilable: true
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-          # Alias defined in supported-configurations.json
+          # Note: Alias (OTEL_SERVICE_NAME) defined in supported-configurations.json
           o.env Core::Environment::Ext::ENV_SERVICE
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
@@ -658,7 +658,7 @@ module Datadog
         # @return [Hash<String,String>]
         option :tags do |o|
           o.type :hash, nilable: true
-          # Alias defined in supported-configurations.json
+          # Note: Alias (OTEL_RESOURCE_ATTRIBUTES) defined in supported-configurations.json
           o.env Core::Environment::Ext::ENV_TAGS
           o.env_parser do |env_value|
             # Parses a string containing key-value pairs and returns a hash.
