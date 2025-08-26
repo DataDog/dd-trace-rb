@@ -6,6 +6,7 @@ require_relative 'framework'
 require_relative '../../response'
 require_relative '../rack/request_middleware'
 require_relative '../rack/request_body_middleware'
+require_relative '../../api_security/endpoint_discovery/telemetry_exporter'
 require_relative 'gateway/watcher'
 require_relative 'gateway/request'
 require_relative 'patches/render_to_body_patch'
@@ -38,6 +39,7 @@ module Datadog
             patch_before_initialize
             patch_after_initialize
             patch_action_controller
+            patch_after_routes_loaded
 
             Patcher.instance_variable_set(:@patched, true)
           end
@@ -111,6 +113,13 @@ module Datadog
           def patch_after_initialize
             ::ActiveSupport.on_load(:after_initialize) do
               Datadog::AppSec::Contrib::Rails::Patcher.after_initialize(self)
+            end
+          end
+
+          def patch_after_routes_loaded
+            ::ActiveSupport.on_load(:after_routes_loaded) do
+              serialized_routes = APISecurity::EndpointDiscovery::RailsRoutesSerializer.new(self.routes.routes).serialize
+              APISecurity::EndpointDiscovery::TelemetryExporter.export(serialized_routes)
             end
           end
 
