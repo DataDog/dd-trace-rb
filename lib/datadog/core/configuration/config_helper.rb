@@ -53,14 +53,14 @@ module Datadog
           # Once for all 3 sources (ENV, local config file and fleet config file).
           # At that point we don't have access yet to the logger configuration.
           # Log level is warn for deprecations, so we don't need to set the logger level according to `DD_TRACE_DEBUG`.
-          DEPRECATIONS.each do |deprecation, message|
-            next unless env_vars.key?(deprecation)
+          DEPRECATIONS.each do |deprecated_env_var, message|
+            next unless env_vars.key?(deprecated_env_var)
 
             # As we only use warn level, we can use a new logger.
             # Using logger_without_configuration is not possible as it uses an environment variable.
             Datadog::Core.log_deprecation(disallowed_next_major: false) do
-              "#{deprecation} #{source} variable is deprecated" +
-                (ALIAS_TO_CANONICAL[deprecation] ? ", use #{ALIAS_TO_CANONICAL[deprecation]} instead." : ". #{message}.")
+              "#{deprecated_env_var} #{source} variable is deprecated" +
+                (ALIAS_TO_CANONICAL[deprecated_env_var] ? ", use #{ALIAS_TO_CANONICAL[deprecated_env_var]} instead." : ". #{message}.")
             end
           end
         end

@@ -11,6 +11,7 @@
   'custom_cop' => {
     '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
   },
+  # No need to run it more than once as we only check that supported_configurations.rb and supported-configurations.json are in sync
   'local_config_map' => {
     '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ 3.4 / ❌ jruby'
   },
