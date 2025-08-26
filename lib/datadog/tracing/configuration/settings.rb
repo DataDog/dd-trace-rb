@@ -93,7 +93,7 @@ module Datadog
               # @return [Array<String>]
               option :propagation_style do |o|
                 o.type :array
-                # Alias defined in supported-configurations.json
+                # Note: Alias (DD_TRACE_PROPAGATION_STYLE) defined in supported-configurations.json
                 o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                 o.default []
                 o.after_set do |styles|
@@ -134,7 +134,7 @@ module Datadog
               # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :enabled do |o|
-                # Alias defined in supported-configurations.json
+                # Note: Alias (OTEL_TRACES_EXPORTER) defined in supported-configurations.json
                 o.env Tracing::Configuration::Ext::ENV_ENABLED
                 o.default true
                 o.type :bool
@@ -306,7 +306,7 @@ module Datadog
                 # @return [Float, nil]
                 option :default_rate do |o|
                   o.type :float, nilable: true
-                  # Alias defined in supported-configurations.json
+                  # Note: Alias (OTEL_TRACES_SAMPLER) defined in supported-configurations.json
                   o.env Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
                   o.env_parser do |value|
                     # Parse the value as a float
