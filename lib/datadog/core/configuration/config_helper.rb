@@ -23,7 +23,7 @@ module Datadog
           if !defined?(::Datadog::CI) &&
               (name.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[name]) &&
               !SUPPORTED_CONFIGURATIONS[name]
-            if defined?(@dd_test_environment) && @dd_test_environment
+            if defined?(@raise_on_unknown_env_var) && @raise_on_unknown_env_var
               if ALIAS_TO_CANONICAL[name]
                 raise "Please use #{ALIAS_TO_CANONICAL[name]} instead of #{name}."
               else
@@ -54,7 +54,7 @@ module Datadog
           # At that point we don't have access yet to the logger configuration.
           # Log level is warn for deprecations, so we don't need to set the logger level according to `DD_TRACE_DEBUG`.
           DEPRECATIONS.each do |deprecation, message|
-            next unless env_vars[deprecation]
+            next unless env_vars.key?(deprecation)
 
             # As we only use warn level, we can use a new logger.
             # Using logger_without_configuration is not possible as it uses an environment variable.
@@ -63,13 +63,6 @@ module Datadog
                 (ALIAS_TO_CANONICAL[deprecation] ? ", use #{ALIAS_TO_CANONICAL[deprecation]} instead." : ". #{message}.")
             end
           end
-        end
-
-        private
-
-        # This should never be used outside of datadog test environment.
-        def dd_test_environment!
-          @dd_test_environment = true
         end
       end
     end

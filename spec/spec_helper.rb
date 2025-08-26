@@ -353,4 +353,4 @@ Datadog::DI.deactivate_tracking! if defined?(Datadog::DI) && Datadog::DI.respond
 # We raise an error in our testsuite if we forget to add a new environment variable to the supported configurations file.
 # This way, we will not miss any tested env var, and it will return nil in production.
 # (acting as the env var is not set, without crashing the app).
-Datadog.send(:dd_test_environment!)
+Datadog.instance_variable_set(:@raise_on_unknown_env_var, true)
