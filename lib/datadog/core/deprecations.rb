@@ -14,10 +14,10 @@ module Datadog
       # @yieldreturn [String] a String with the lazily evaluated deprecation message.
       # @param [Boolean] disallowed_next_major whether this deprecation will be enforced in the next major release.
       # @param [Object] key A unique key for the deprecation. Only the first message with the same key will be logged.
-      def log_deprecation(disallowed_next_major: true, key: nil, logger: Datadog.logger)
+      def log_deprecation(disallowed_next_major: true, key: nil)
         return unless log_deprecation?(key)
 
-        logger.warn do
+        Datadog.logger.warn do
           message = yield
           message += ' This will be enforced in the next major release.' if disallowed_next_major
           message

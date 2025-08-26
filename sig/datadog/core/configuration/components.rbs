@@ -14,6 +14,8 @@ module Datadog
 
         def self.build_telemetry: (untyped settings) -> untyped
 
+        def self.log_deprecated_environment_variables: (?Hash[String, String] env_vars, source: String) -> void
+
         private
 
         def self.build_tracer_tags: (untyped settings) -> untyped

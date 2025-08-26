@@ -76,6 +76,14 @@ module Datadog
 
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
+
+          def log_deprecated_environment_variables
+            Datadog.log_deprecated_environment_variables(source: 'environment')
+            customer_config = StableConfig.configuration.dig(:local, :config)
+            Datadog.log_deprecated_environment_variables(env_vars: customer_config, source: 'local') if customer_config
+            fleet_config = StableConfig.configuration.dig(:fleet, :config)
+            Datadog.log_deprecated_environment_variables(env_vars: fleet_config, source: 'fleet') if fleet_config
+          end
         end
 
         include Datadog::Tracing::Component::InstanceMethods
@@ -97,6 +105,7 @@ module Datadog
         def initialize(settings)
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
+          self.class.log_deprecated_environment_variables
 
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend

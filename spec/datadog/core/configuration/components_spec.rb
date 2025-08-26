@@ -97,6 +97,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(described_class).to receive(:build_health_metrics)
         .with(settings, logger, telemetry)
         .and_return(health_metrics)
+
+      expect(described_class).to receive(:log_deprecated_environment_variables)
     end
 
     it do
@@ -441,6 +443,135 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it_behaves_like 'new runtime metrics worker' do
           let(:options) { opts }
         end
+      end
+    end
+  end
+
+  describe '::log_deprecated_environment_variables' do
+    around do |example|
+      # We simulate that the deprecated env is set in supported_configurations.rb.
+      # Because it does not start with DD_ or OTEL_, it does not need to be added in ['supportedConfigurations']
+      # But aliases and deprecations are still supported.
+      # It is also tested with an actual value (see spec/datadog/core/configuration/settings_spec.rb:693)
+      original_deprecations = Datadog::Core::Configuration::DEPRECATIONS
+      original_alias_to_canonical = Datadog::Core::Configuration::ALIAS_TO_CANONICAL
+      Datadog::Core::Configuration.send(:remove_const, :DEPRECATIONS)
+      Datadog::Core::Configuration.const_set(:DEPRECATIONS, deprecations)
+
+      Datadog::Core::Configuration.send(:remove_const, :ALIAS_TO_CANONICAL)
+      Datadog::Core::Configuration.const_set(:ALIAS_TO_CANONICAL, alias_to_canonical)
+
+      example.run
+
+      # Revert the constants to their original values
+      Datadog::Core::Configuration.send(:remove_const, :DEPRECATIONS)
+      Datadog::Core::Configuration.const_set(:DEPRECATIONS, original_deprecations)
+
+      Datadog::Core::Configuration.send(:remove_const, :ALIAS_TO_CANONICAL)
+      Datadog::Core::Configuration.const_set(:ALIAS_TO_CANONICAL, original_alias_to_canonical)
+    end
+
+    let(:env) { 'TEST' }
+    let(:deprecated_env) { 'DEPRECATED_TEST' }
+    let(:env_value) { 'test' }
+    let(:deprecated_env_value) { 'old test' }
+    let(:deprecations) { { deprecated_env => 'unused when there is an alias' } }
+    let(:alias_to_canonical) { { deprecated_env => env } }
+
+    context 'when deprecated env is set in ENV' do
+      context 'env and deprecated_env found' do
+        around do |example|
+          ClimateControl.modify(env => env_value, deprecated_env => deprecated_env_value) do
+            example.run
+          end
+        end
+
+        it 'log deprecation warning' do
+          expect(Datadog::Core).to receive(:log_deprecation)
+          described_class.log_deprecated_environment_variables
+        end
+      end
+
+      context 'env not found and deprecated_env found' do
+        around do |example|
+          ClimateControl.modify(deprecated_env => deprecated_env_value) do
+            example.run
+          end
+        end
+
+        it 'log deprecation warning' do
+          expect(Datadog::Core).to receive(:log_deprecation)
+          described_class.log_deprecated_environment_variables
+        end
+      end
+
+      context 'env and deprecated_env not found' do
+        it 'do not log deprecation warning' do
+          expect(Datadog::Core).to_not receive(:log_deprecation)
+          described_class.log_deprecated_environment_variables
+        end
+      end
+    end
+
+    context 'when deprecated env is set in local config' do
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return({
+          local: {
+            config: {
+              deprecated_env => deprecated_env_value
+            }
+          }
+        })
+      end
+
+      it 'log deprecation warning' do
+        expect(Datadog::Core).to receive(:log_deprecation)
+        described_class.log_deprecated_environment_variables
+      end
+    end
+
+    context 'when deprecated env is set in fleet config' do
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return({
+          fleet: {
+            config: {
+              deprecated_env => deprecated_env_value
+            }
+          }
+        })
+      end
+
+      it 'log deprecation warning' do
+        expect(Datadog::Core).to receive(:log_deprecation)
+        described_class.log_deprecated_environment_variables
+      end
+    end
+
+    context 'when deprecated env is set in ENV, local and fleet config' do
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return({
+          local: {
+            config: {
+              deprecated_env => deprecated_env_value
+            }
+          },
+          fleet: {
+            config: {
+              deprecated_env => deprecated_env_value
+            }
+          }
+        })
+      end
+
+      around do |example|
+        ClimateControl.modify(env => env_value, deprecated_env => deprecated_env_value) do
+          example.run
+        end
+      end
+
+      it 'log deprecation warning three times' do
+        expect(Datadog::Core).to receive(:log_deprecation).exactly(3).times
+        described_class.log_deprecated_environment_variables
       end
     end
   end
