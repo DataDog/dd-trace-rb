@@ -46,11 +46,10 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
   end
 
   describe '#get_environment_variable' do
-    subject(:get_env_var) { instance.get_environment_variable(name, env_vars: env_vars, source: source) }
+    subject(:get_env_var) { instance.get_environment_variable(name, env_vars: env_vars) }
 
     let(:name) { 'DD_TRACE_ENABLED' }
     let(:env_vars) { {} }
-    let(:source) { 'test' }
 
     before do
       # Reset instance variables that might be set by previous tests
@@ -79,7 +78,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       end
 
       context 'when a default value is provided' do
-        subject(:get_env_var) { instance.get_environment_variable(name, 'default', env_vars: env_vars, source: source) }
+        subject(:get_env_var) { instance.get_environment_variable(name, 'default', env_vars: env_vars) }
 
         it 'returns the default value' do
           is_expected.to eq('default')
@@ -175,49 +174,59 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         is_expected.to eq('value')
       end
     end
+  end
 
-    context 'with deprecation logging' do
-      let(:name) { 'DD_PROFILING_PREVIEW_GVL_ENABLED' }
+  describe '#log_deprecated_environment_variables' do
+    let(:mock_io) { StringIO.new }
+    let(:mock_logger) { Datadog::Core::Logger.new(mock_io) }
+
+    before do
+      allow(Datadog).to receive(:logger).and_return(mock_logger)
+    end
+
+    context 'when the deprecated environment variable has an alias' do
       let(:env_vars) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'true' } }
-      let(:supported_configurations) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => { version: ['A'] } } }
-      let(:aliases) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => ['DD_PROFILING_GVL_ENABLED'] } }
       let(:deprecations) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'Use DD_PROFILING_GVL_ENABLED instead' } }
       let(:alias_to_canonical) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'DD_PROFILING_GVL_ENABLED' } }
-      let(:mock_io) { StringIO.new }
-      let(:mock_logger) { Datadog::Core::Logger.new(mock_io) }
-
-      before do
-        allow(Datadog::Core::Logger).to receive(:new).and_return(mock_logger)
-      end
 
       it 'logs deprecation warnings for deprecated environment variables' do
-        get_env_var
+        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
         expect(mock_io.string).to include('DD_PROFILING_PREVIEW_GVL_ENABLED test variable is deprecated, use DD_PROFILING_GVL_ENABLED instead.')
       end
+    end
 
-      context 'when the environment variable does not have an alias' do
-        let(:deprecations) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'This will be removed in the next major version.' } }
-        let(:alias_to_canonical) { {} }
-        it 'logs deprecation warnings for deprecated environment variables with correct message' do
-          get_env_var
-          expect(mock_io.string).to include('DD_PROFILING_PREVIEW_GVL_ENABLED test variable is deprecated. This will be removed in the next major version.')
-        end
+    context 'when the environment variable does not have an alias' do
+      let(:env_vars) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'true' } }
+      let(:deprecations) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'This will be removed in the next major version.' } }
+      let(:alias_to_canonical) { {} }
+
+      it 'logs deprecation warnings for deprecated environment variables with correct message' do
+        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
+        expect(mock_io.string).to include('DD_PROFILING_PREVIEW_GVL_ENABLED test variable is deprecated. This will be removed in the next major version.')
       end
+    end
 
-      context 'when called multiple times with the same source' do
-        it 'only logs deprecations once per source' do
-          expect(Datadog::Core).to receive(:log_deprecation).once
-          instance.get_environment_variable(name, env_vars: env_vars, source: source)
-          instance.get_environment_variable(name, env_vars: env_vars, source: source)
-        end
+    context 'when called multiple times with the same source' do
+      let(:env_vars) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'true' } }
+      let(:deprecations) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'Use DD_PROFILING_GVL_ENABLED instead' } }
+      let(:alias_to_canonical) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'DD_PROFILING_GVL_ENABLED' } }
+
+      it 'only logs deprecations once per source' do
+        expect(Datadog::Core).to receive(:log_deprecation).once
+        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
+        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
       end
+    end
 
-      context 'when called with different sources' do
-        it 'logs deprecations for each source' do
-          expect(Datadog::Core).to receive(:log_deprecation).twice
-          instance.get_environment_variable(name, env_vars: env_vars, source: 'environment')
-          instance.get_environment_variable(name, env_vars: env_vars, source: 'config_file')
-        end
+    context 'when called with different sources' do
+      let(:env_vars) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'true' } }
+      let(:deprecations) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'Use DD_PROFILING_GVL_ENABLED instead' } }
+      let(:alias_to_canonical) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'DD_PROFILING_GVL_ENABLED' } }
+
+      it 'logs deprecations for each source' do
+        expect(Datadog::Core).to receive(:log_deprecation).twice
+        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'environment')
+        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'config_file')
       end
     end
   end

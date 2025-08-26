@@ -188,6 +188,10 @@ module Datadog
             values = value.split(',') # By default we only want to support comma separated strings
 
             values.each_with_object({}) do |v, hash| # $ Hash[String, String]
+              # DEV: CodeQL says this regexp is slow for strings with many repetitions of \t.
+              # In a later PR we should try to replace this with a simpler version.
+              #
+              # It removes any comma or whitespace at the beginning or end of a string.
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
               next if v.empty?
 
@@ -202,6 +206,10 @@ module Datadog
             values = value.split(',')
 
             values.each_with_object([]) do |v, arr| # $ Array[String]
+              # DEV: CodeQL says this regexp is slow for strings with many repetitions of \t.
+              # In a later PR we should try to replace this with a simpler version.
+              #
+              # It removes any comma or whitespace at the beginning or end of the string.
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
               next if v.empty?
 
@@ -314,7 +322,7 @@ module Datadog
           customer_config = StableConfig.configuration.dig(:local, :config)
           return if customer_config.nil?
 
-          value = get_value_from(customer_config, 'local stable config')
+          value = get_value_from(customer_config, 'local')
           set(value, precedence: Precedence::LOCAL_STABLE) unless value.nil?
         end
 
@@ -322,7 +330,7 @@ module Datadog
           fleet_config = StableConfig.configuration.dig(:fleet, :config)
           return if fleet_config.nil?
 
-          value = get_value_from(fleet_config, 'fleet stable config')
+          value = get_value_from(fleet_config, 'fleet')
           set(value, precedence: Precedence::FLEET_STABLE) unless value.nil?
         end
 
@@ -342,11 +350,11 @@ module Datadog
           env = definition.env
           return unless env
 
-          value = Datadog.get_environment_variable(env, env_vars: env_vars, source: source)
+          value = Datadog.get_environment_variable(env, env_vars: env_vars)
           coerce_env_variable(value) unless value.nil?
         rescue ArgumentError
           raise ArgumentError,
-            "Cannot resolve #{source} variable for option #{@definition.name}"
+            "Cannot resolve environment variable in #{source} configuration file for option #{@definition.name}"
         end
 
         # Anchor object that represents a value that is not set.

@@ -690,6 +690,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
         it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_GVL_ENABLED', default: true
 
+        # Defined in supported_configurations and deprecation logged during components initialization
         context 'when DD_PROFILING_PREVIEW_GVL_ENABLED' do
           around do |example|
             ClimateControl.modify('DD_PROFILING_PREVIEW_GVL_ENABLED' => environment) do
@@ -707,7 +708,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             context "is defined as #{value}" do
               let(:environment) { value.to_s }
 
-              before { expect(Datadog::Core).to receive(:log_deprecation) }
+              before do
+                expect(Datadog::Core).to receive(:log_deprecation)
+                # Reinitialize components
+                Datadog.configure {}
+              end
 
               it { is_expected.to be value }
             end
