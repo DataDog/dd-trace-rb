@@ -56,7 +56,7 @@ module Datadog
       private
 
       def agentless?(site, api_key)
-        site && api_key && Core::Environment::VariableHelpers.env_to_bool(Profiling::Ext::ENV_AGENTLESS, false)
+        site && api_key && %w[1 true].include?(ENV[Profiling::Ext::ENV_AGENTLESS] || '') # rubocop:disable CustomCops/EnvUsageCop
       end
 
       def config_without_api_key

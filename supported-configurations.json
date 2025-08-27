@@ -366,9 +366,6 @@
     "DD_TELEMETRY_AGENTLESS_URL": {
       "version": ["A"]
     },
-    "DD_PROFILING_AGENTLESS": {
-      "version": ["A"]
-    },
     "DD_INTEGRATION_SERVICE": {
       "version": ["A"]
     },
@@ -910,6 +907,6 @@
     "DD_TRACE_DEBUG": ["OTEL_LOG_LEVEL"]
   },
   "deprecations": {
-    "DD_PROFILING_PREVIEW_GVL_ENABLED": "DD_PROFILING_GVL_ENABLED"
+    "DD_PROFILING_PREVIEW_GVL_ENABLED": "(This doesn't need a deprecation message since there's an alias for it)"
   }
 }
