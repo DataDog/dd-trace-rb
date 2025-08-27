@@ -5,11 +5,15 @@ require 'rack/test'
 require 'securerandom'
 require 'sinatra/base'
 
+# Guard optional rack-contrib dependency in specs
 begin
   require 'rack/contrib/json_body_parser'
 rescue LoadError
-  # fallback for old rack-contrib
-  require 'rack/contrib/post_body_content_type_parser'
+  begin
+    require 'rack/contrib/post_body_content_type_parser'
+  rescue LoadError
+    # not available in this environment; tests that use it will skip inserting the middleware
+  end
 end
 
 require 'datadog/tracing'
@@ -365,6 +369,30 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
           end
+        end
+      end
+
+      describe 'with sample_delay' do
+        subject(:response) { head url, params, env }
+
+        let(:api_security_enabled) { true }
+        let(:api_security_sample) { 30 }
+
+        let(:url) { '/success' }
+        let(:params) { {} }
+        let(:headers) { {} }
+        let(:env) { {'REMOTE_ADDR' => remote_addr}.merge!(headers) }
+
+        it 'samples and caches check result' do
+          head url, params, env
+          first_span = spans.find { |s| s.name == 'rack.request' }
+          expect(first_span.tags).to have_key('_dd.appsec.s.req.headers')
+
+          clear_traces!
+
+          head url, params, env
+          second_span = spans.find { |s| s.name == 'rack.request' }
+          expect(second_span.tags).not_to have_key('_dd.appsec.s.req.headers')
         end
       end
 

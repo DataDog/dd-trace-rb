@@ -467,6 +467,38 @@ RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >=
         end
       end
 
+      describe 'with sample_delay' do
+        subject(:response) { head url, params, env }
+
+        let(:api_security_enabled) { true }
+        let(:api_security_sample) { 30 } # Default value
+
+        let(:routes) do
+          {
+            '/items/:id' => 'test#success'
+          }
+        end
+
+        let(:url) { '/items/123' }
+        let(:params) { {} }
+        let(:headers) { {} }
+        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
+
+        it 'samples and caches check result' do
+          # First HEAD request: expect schema extraction tags present
+          head url, params, env
+          first_span = spans.find { |s| s.name == 'rack.request' }
+          expect(first_span.tags).to have_key('_dd.appsec.s.req.headers')
+
+          clear_traces!
+
+          # Second identical HEAD request within delay window: expect schema tags absent
+          head url, params, env
+          second_span = spans.find { |s| s.name == 'rack.request' }
+          expect(second_span.tags).not_to have_key('_dd.appsec.s.req.headers')
+        end
+      end
+
       describe 'Nested apps' do
         let(:appsec_instrument_rack) { true }
         let(:middlewares) do
@@ -543,6 +575,115 @@ RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >=
               it_behaves_like 'a trace with AppSec events', {blocking: true}
             end
           end
+        end
+      end
+
+      describe 'Sinatra mounted app' do
+        subject(:response) { nil }
+
+        let(:api_security_enabled) { true }
+        let(:api_security_sample) { 30 }
+
+        let(:sinatra_app) do
+          stub_const(
+            'SinatraMountedApp',
+            Class.new(Sinatra::Base) do
+              get('/users/:id') { '' }
+              get('/projects/:id') { '' }
+            end
+          )
+        end
+
+        before do
+          skip 'sinatra gem not available' unless Gem.loaded_specs['sinatra']
+          require 'sinatra/base'
+
+          app_class = sinatra_app
+          rails_test_application.instance.routes.append do
+            mount app_class => '/sin'
+          end
+        end
+
+        it 'uses route pattern for sampling key (suppresses only same route)' do
+          allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(true)
+
+          # Freeze time to make sampling deterministic
+          t = Time.at(100)
+          allow(Datadog::Core::Utils::Time).to receive(:now).and_return(t)
+
+          decisions = []
+          allow_any_instance_of(Datadog::AppSec::APISecurity::Sampler).to receive(:sample?).and_wrap_original do |m, req, res|
+            result = m.call(req, res)
+            decisions << result
+            result
+          end
+
+          get '/sin/users/1', {}, {'REMOTE_ADDR' => remote_addr}
+          clear_traces!
+
+          # Same framework route pattern => suppressed within delay
+          get '/sin/users/2', {}, {'REMOTE_ADDR' => remote_addr}
+          clear_traces!
+
+          # Different framework route pattern => sampled despite delay
+          get '/sin/projects/1', {}, {'REMOTE_ADDR' => remote_addr}
+
+          expect(decisions).to eq([true, false, true])
+        end
+      end
+
+      describe 'Grape mounted app' do
+        subject(:response) { nil }
+
+        let(:api_security_enabled) { true }
+        let(:api_security_sample) { 30 }
+
+        let(:grape_api) do
+          stub_const(
+            'GrapeMountedApi',
+            Class.new(Grape::API) do
+              format :json
+              get('/users/:id') { { ok: true } }
+              get('/projects/:id') { { ok: true } }
+            end
+          )
+        end
+
+        before do
+          skip 'grape gem not available' unless Gem.loaded_specs['grape']
+          require 'grape'
+
+          api_class = grape_api
+          rails_test_application.instance.routes.append do
+            mount api_class => '/grape'
+          end
+        end
+
+        it 'uses route pattern for sampling key (suppresses only same route)' do
+          allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:priority_sampled?).and_return(true)
+
+          # Freeze time to make sampling deterministic
+          t = Time.at(100)
+          allow(Datadog::Core::Utils::Time).to receive(:now).and_return(t)
+
+          decisions = []
+          allow_any_instance_of(Datadog::AppSec::APISecurity::Sampler).to receive(:sample?).and_wrap_original do |m, req, res|
+            result = m.call(req, res)
+            decisions << result
+            result
+          end
+
+          get '/grape/users/1', {}, {'REMOTE_ADDR' => remote_addr}
+          clear_traces!
+
+          # Same framework route pattern => suppressed within delay
+          get '/grape/users/2', {}, {'REMOTE_ADDR' => remote_addr}
+          clear_traces!
+
+          # Different framework route pattern => sampled despite delay
+          get '/grape/projects/1', {}, {'REMOTE_ADDR' => remote_addr}
+
+          expect(decisions).to eq([true, false, true])
         end
       end
     end
