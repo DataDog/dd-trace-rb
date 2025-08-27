@@ -1,4 +1,5 @@
 {
+  "__comment": "See docs/AccessEnvironmentVariables.md",
   "supportedConfigurations": {
     "DD_AGENT_HOST": {
       "version": ["A"]

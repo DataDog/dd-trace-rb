@@ -70,7 +70,7 @@ Edit the `supported-configurations.json` file and add your variable:
 #### Configuration Structure
 
 - **supportedConfigurations**: Maps variable names to configuration metadata
-  - `version`: (Currently always set to `["A"]`) Array indicating which tracer versions change the behavior of the configuration
+  - `version`: (Currently always set to `["A"]`) Array indicating which implementations the tracer supports. Implementations are defined in the Feature Parity Dashboard and multiple implementations could be set for a single environment variable (e.g. the base one `A`, and an extra one `B` that adds new possible values)
 
   In the future, the structure will also contain more information such as the type, the default value...
 
