@@ -96,15 +96,24 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         before do
           allow(request).to receive(:env).and_return({
             'action_dispatch.routes' => route_set,
-            'action_dispatch.request.path_parameters' => {}
+            'action_dispatch.request.path_parameters' => {'controller' => 'users', 'action' => 'show', 'id' => '1'}
           })
+
+          allow(router).to receive(:recognize) do |rails_request, &blk|
+            blk.call(route, {}) if blk
+          end
         end
 
         let(:router) { double('ActionDispatch::Routing::RouteSet::Router') }
-        let(:route_set) { double('ActionDispatch::Routing::RouteSet', router: router) }
+        let(:route) { double('ActionDispatch::Journey::Route', path: double(spec: '/users/:id(.:format)')) }
+        let(:request_class) { double('ActionDispatch::RequestClass', new: rails_request) }
+        let(:route_set) { double('ActionDispatch::Routing::RouteSet', router: router, request_class: request_class) }
+        let(:rails_request) { double('ActionDispatch::Request') }
         let(:request) { double('Rack::Request', env: {}, script_name: '', path: '/users/1') }
 
-        it { expect(described_class.route_pattern(request)).to eq('/users/1') }
+        it 'uses router recognition and strips format suffix' do
+          expect(described_class.route_pattern(request)).to eq('/users/:id')
+        end
       end
 
       context 'when Rails router cannot recognize request' do

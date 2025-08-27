@@ -52,8 +52,9 @@ module Datadog
           elsif request.env.key?(RAILS_ROUTE_KEY)
             request.env[RAILS_ROUTE_KEY].delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTES_KEY) && !request.env.fetch(RAILS_PATH_PARAMS_KEY, {}).empty?
-            pattern = request.env[RAILS_ROUTES_KEY].router
-              .recognize(request) { |route, _| break route.path.spec.to_s }
+            route_set = request.env[RAILS_ROUTES_KEY]
+            rails_request = route_set.request_class.new(request.env)
+            pattern = route_set.router.recognize(rails_request) { |route, _| break route.path.spec.to_s }
 
             # NOTE: If rails is unable to recognize request it returns empty Array
             pattern = nil if pattern&.empty?
