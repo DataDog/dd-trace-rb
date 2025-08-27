@@ -5,29 +5,6 @@ require 'pp' # rubocop:disable Lint/RedundantRequireStatement
 
 # Pretty print setup
 class ConfigPrinter < ::PP
-  # Apply Ruby 3.4 `pp_hash_pair` method on all versions for consistency
-  # https://github.com/ruby/pp/commit/59844ba65aee5a0c1ef29bc79188228e03463d1d
-  # This way we can run this task on any version of Ruby
-  # On versions older than 3.4, the result would look like {:key=>'value'}
-  def pp_hash_pair(k, v)
-    if Symbol === k
-      sym_s = k.inspect
-      if sym_s[1].match?(/["$@!]/) || sym_s[-1].match?(/[%&*+\-\/<=>@\]^`|~]/)
-        text "#{k.to_s.inspect}:"
-      else
-        text "#{k}:"
-      end
-    else
-      pp k
-      text ' '
-      text '=>'
-    end
-    group(1) {
-      breakable
-      pp v
-    }
-  end
-
   def self.pp(data)
     output = +''
     q = new(output, 124)
@@ -50,11 +27,14 @@ namespace :local_config_map do
       h[alias_name] = canonical
     end
   end
-  data = data.map { |k, v| [k, v.sort.to_h] }.to_h
+  # Ignore comment field
+  data = data.map { |k, v| [k, v.is_a?(Hash) ? v.sort.to_h : v] }.to_h
   alias_to_canonical = alias_to_canonical.sort.to_h
 
   # Read the data from the JSON file and generate ahead-of-time map for supported configurations, aliases and deprecations
   task :generate do
+    # On versions older than 3.4, the result would look like {:key=>'value'}
+    raise('Please run this task on Ruby >= 3.4') unless RUBY_VERSION >= '3.4'
     File.write(
       'lib/datadog/core/configuration/supported_configurations.rb',
       <<~RUBY
