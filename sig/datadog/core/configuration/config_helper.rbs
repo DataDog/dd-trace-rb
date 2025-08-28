@@ -20,7 +20,9 @@ module Datadog
 
         def self.get_environment_variable: (String name, ?String? default_value, ?env_vars: env_hash) -> String?
 
-        def self.log_deprecated_environment_variables: (?env_vars: env_hash, ?source: String) -> void
+        def self.log_deprecated_environment_variables: (::Logger logger, ?env_vars: env_hash, ?source: String) -> void
+
+        def self.log_deprecations_from_all_sources: (::Logger logger) -> void
 
         private
 

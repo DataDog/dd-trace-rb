@@ -237,7 +237,6 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     let(:mock_logger) { Datadog::Core::Logger.new(mock_io) }
 
     before do
-      allow(Datadog).to receive(:logger).and_return(mock_logger)
       # Reset instance variables that might be set by previous tests
       described_class.instance_variable_set(:@log_deprecations_called_with, nil)
     end
@@ -248,7 +247,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       let(:alias_to_canonical) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'DD_PROFILING_GVL_ENABLED' } }
 
       it 'logs deprecation warnings for deprecated environment variables' do
-        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
+        described_class.log_deprecated_environment_variables(mock_logger, env_vars: env_vars, source: 'test')
         expect(mock_io.string).to include('DD_PROFILING_PREVIEW_GVL_ENABLED test variable is deprecated, use DD_PROFILING_GVL_ENABLED instead.')
       end
     end
@@ -259,7 +258,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       let(:alias_to_canonical) { {} }
 
       it 'logs deprecation warnings for deprecated environment variables with correct message' do
-        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
+        described_class.log_deprecated_environment_variables(mock_logger, env_vars: env_vars, source: 'test')
         expect(mock_io.string).to include('DD_PROFILING_PREVIEW_GVL_ENABLED test variable is deprecated. This will be removed in the next major version.')
       end
     end
@@ -271,8 +270,8 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       it 'only logs deprecations once per source' do
         expect(Datadog::Core).to receive(:log_deprecation).once
-        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
-        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
+        described_class.log_deprecated_environment_variables(mock_logger, env_vars: env_vars, source: 'test')
+        described_class.log_deprecated_environment_variables(mock_logger, env_vars: env_vars, source: 'test')
       end
     end
 
@@ -283,8 +282,121 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       it 'logs deprecations for each source' do
         expect(Datadog::Core).to receive(:log_deprecation).twice
-        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'environment')
-        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'config_file')
+        described_class.log_deprecated_environment_variables(mock_logger, env_vars: env_vars, source: 'environment')
+        described_class.log_deprecated_environment_variables(mock_logger, env_vars: env_vars, source: 'config_file')
+      end
+    end
+  end
+
+  describe '::log_deprecations_from_all_sources' do
+    let(:mock_io) { StringIO.new }
+    let(:mock_logger) { Datadog::Core::Logger.new(mock_io) }
+
+    let(:env) { 'TEST' }
+    let(:deprecated_env) { 'DEPRECATED_TEST' }
+    let(:env_value) { 'test' }
+    let(:deprecated_env_value) { 'old test' }
+    let(:deprecations) { { deprecated_env => 'unused when there is an alias' } }
+    let(:alias_to_canonical) { { deprecated_env => env } }
+
+    before do
+      Datadog::Core::Configuration::ConfigHelper.instance_variable_set(:@log_deprecations_called_with, nil)
+    end
+
+    context 'when deprecated env is set in ENV' do
+      context 'env and deprecated_env found' do
+        around do |example|
+          ClimateControl.modify(env => env_value, deprecated_env => deprecated_env_value) do
+            example.run
+          end
+        end
+
+        it 'log deprecation warning' do
+          expect(Datadog::Core).to receive(:log_deprecation)
+          described_class.log_deprecations_from_all_sources(mock_logger)
+        end
+      end
+
+      context 'env not found and deprecated_env found' do
+        around do |example|
+          ClimateControl.modify(deprecated_env => deprecated_env_value) do
+            example.run
+          end
+        end
+
+        it 'log deprecation warning' do
+          expect(Datadog::Core).to receive(:log_deprecation)
+          described_class.log_deprecations_from_all_sources(mock_logger)
+        end
+      end
+
+      context 'env and deprecated_env not found' do
+        it 'do not log deprecation warning' do
+          expect(Datadog::Core).to_not receive(:log_deprecation)
+          described_class.log_deprecations_from_all_sources(mock_logger)
+        end
+      end
+    end
+
+    context 'when deprecated env is set in local config' do
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return({
+          local: {
+            config: {
+              deprecated_env => deprecated_env_value
+            }
+          }
+        })
+      end
+
+      it 'log deprecation warning' do
+        expect(Datadog::Core).to receive(:log_deprecation)
+        described_class.log_deprecations_from_all_sources(mock_logger)
+      end
+    end
+
+    context 'when deprecated env is set in fleet config' do
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return({
+          fleet: {
+            config: {
+              deprecated_env => deprecated_env_value
+            }
+          }
+        })
+      end
+
+      it 'log deprecation warning' do
+        expect(Datadog::Core).to receive(:log_deprecation)
+        described_class.log_deprecations_from_all_sources(mock_logger)
+      end
+    end
+
+    context 'when deprecated env is set in ENV, local and fleet config' do
+      before do
+        allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return({
+          local: {
+            config: {
+              deprecated_env => deprecated_env_value
+            }
+          },
+          fleet: {
+            config: {
+              deprecated_env => deprecated_env_value
+            }
+          }
+        })
+      end
+
+      around do |example|
+        ClimateControl.modify(env => env_value, deprecated_env => deprecated_env_value) do
+          example.run
+        end
+      end
+
+      it 'log deprecation warning three times' do
+        expect(Datadog::Core).to receive(:log_deprecation).exactly(3).times
+        described_class.log_deprecations_from_all_sources(mock_logger)
       end
     end
   end
