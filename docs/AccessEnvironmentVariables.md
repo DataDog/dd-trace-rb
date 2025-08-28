@@ -157,8 +157,9 @@ To ensure your configuration changes are valid:
 
 ```bash
 # Validate that generated assets match the JSON file
-bundle exec rake spec:local_config_map:validate
+bundle exec rspec spec/datadog/core/configuration/supported_configurations_spec.rb
 ```
+This will also be run by the main RSpec rake task.
 
 This task will exit with an error if there's a mismatch between `supported-configurations.json` and the generated assets. It is run by the CI, thus a mismatch will make the CI fail.
 
