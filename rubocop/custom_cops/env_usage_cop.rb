@@ -27,7 +27,8 @@ module CustomCops
       return unless node.const_name == 'ENV'
 
       in_datadog_namespace = in_datadog_namespace?(node)
-      msg = "Avoid direct usage of ENV. Use #{"Datadog::" unless in_datadog_namespace}DATADOG_ENV to access environment variables."
+      msg = "Avoid direct usage of ENV. Use #{"Datadog::" unless in_datadog_namespace}DATADOG_ENV to access environment variables. " \
+            'See docs/AccessEnvironmentVariables.md for details.'
 
       # Check if this is part of a method call
       parent = node.parent
@@ -36,7 +37,8 @@ module CustomCops
           correct_env_usage(corrector, node, parent, in_datadog_namespace)
         end
       else
-        msg = "Avoid direct usage of ENV. Use #{"Datadog::" unless in_datadog_namespace}DATADOG_ENV with a method call to access environment variables."
+        msg = "Avoid direct usage of ENV. Use #{"Datadog::" unless in_datadog_namespace}DATADOG_ENV with a method call to access environment variables. " \
+              'See docs/AccessEnvironmentVariables.md for details.'
         add_offense(node, message: msg) do |corrector|
           # No correction for calling the ENV object directly
         end
