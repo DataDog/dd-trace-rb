@@ -78,11 +78,11 @@ module Datadog
           end
 
           def log_deprecated_environment_variables
-            Datadog.log_deprecated_environment_variables(source: 'environment')
+            ConfigHelper.log_deprecated_environment_variables(source: 'environment')
             customer_config = StableConfig.configuration.dig(:local, :config)
-            Datadog.log_deprecated_environment_variables(env_vars: customer_config, source: 'local') if customer_config
+            ConfigHelper.log_deprecated_environment_variables(env_vars: customer_config, source: 'local') if customer_config
             fleet_config = StableConfig.configuration.dig(:fleet, :config)
-            Datadog.log_deprecated_environment_variables(env_vars: fleet_config, source: 'fleet') if fleet_config
+            ConfigHelper.log_deprecated_environment_variables(env_vars: fleet_config, source: 'fleet') if fleet_config
           end
         end
 

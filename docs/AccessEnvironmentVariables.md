@@ -12,36 +12,46 @@ Central configuration inversion name means that there is a single, centralized s
 
 ### 1. Environment variables access
 
-Instead of accessing `ENV` directly, use `Datadog.get_environment_variable` to read environment variables:
+Instead of accessing `ENV` directly, use `DATADOG_ENV` to read environment variables:
 
 ```ruby
 # ❌ Bad: Direct ENV access
 api_key = ENV['DD_API_KEY']
-timeout = ENV.fetch('DD_TIMEOUT', '30')
+service = ENV.fetch('DD_SERVICE', 'default_service')
+timeout = ENV.fetch('DD_TIMEOUT') do |key|
+  return "#{key} not found"
+end
+has_service = ENV.key?('DD_SERVICE')
 
-# ✅ Good: Using Datadog.get_environment_variable
-api_key = Datadog.get_environment_variable('DD_API_KEY')
-timeout = Datadog.get_environment_variable('DD_TIMEOUT', '30')
+# ✅ Good: Using DATADOG_ENV
+api_key = DATADOG_ENV['DD_API_KEY']
+service = DATADOG_ENV.fetch('DD_SERVICE', 'default_service')
+timeout = DATADOG_ENV.fetch('DD_TIMEOUT', '30') do |key|
+  return "#{key} not found"
+end
+has_service = DATADOG_ENV.key?('DD_SERVICE')
 ```
+
+For rare cases where your code is outside of Datadog namespace, use `Datadog::DATADOG_ENV`.
 
 This is enforced by the `CustomCops::EnvUsageCop` cop.
 
 ### 2. Supported Configurations Registry
 
-All environment variables that start with `DD_` or `OTEL_` must be registered in the `supported-configurations.json` file to be accessible through `Datadog.get_environment_variable`.
+All environment variables that start with `DD_` or `OTEL_` must be registered in the `supported-configurations.json` file to be accessible through `DATADOG_ENV`.
 
 ### 3. Automatic Code Enforcement
 
 Custom RuboCop cops automatically detect and prevent direct `ENV` usage:
 
-- `CustomCops::EnvUsageCop` - Prevents direct `ENV` access and auto-corrects to use `Datadog.get_environment_variable`
+- `CustomCops::EnvUsageCop` - Prevents direct `ENV` access and auto-corrects to use `DATADOG_ENV`
 - `CustomCops::EnvStringValidationCop` - Validates that environment variable strings are registered in supported configurations
 
 ## How It Works
 
 The configuration inversion system works as follows:
 
-1. **Environment Variable Request**: Code calls `Datadog.get_environment_variable('DD_SOME_VAR')`
+1. **Environment Variable Request**: Code calls `DATADOG_ENV['DD_SOME_VAR']`
 2. **Validation**: The `ConfigHelper` checks if the variable is in the supported configurations
 3. **Access Control**:
    - If the variable starts with `DD_` or `OTEL_` but is NOT in supported configurations → returns `nil` (or raises error in test environment)
@@ -109,7 +119,7 @@ The custom cops will automatically:
 # This will be flagged by CustomCops/EnvUsageCop
 api_key = ENV['DD_API_KEY']
 # Auto-corrected to:
-api_key = Datadog.get_environment_variable('DD_API_KEY')
+api_key = DATADOG_ENV['DD_API_KEY']
 ```
 
 ### Validate Environment Variable Strings
@@ -135,7 +145,7 @@ In test environments, the system is stricter:
 ```ruby
 # In tests, unsupported DD_/OTEL_ variables will raise errors
 begin
-  Datadog.get_environment_variable('DD_UNSUPPORTED_VAR')
+  DATADOG_ENV['DD_UNSUPPORTED_VAR']
 rescue RuntimeError => e
   puts e.message # "Missing DD_UNSUPPORTED_VAR env/configuration in "supported-configurations.json" file."
 end
@@ -160,7 +170,7 @@ This error indicates you're trying to access a `DD_` or `OTEL_` environment vari
 
 ### RuboCop Cop Violations
 
-- `CustomCops/EnvUsageCop`: You're using direct `ENV` access. Replace with `Datadog.get_environment_variable`
+- `CustomCops/EnvUsageCop`: You're using direct `ENV` access. Replace with `DATADOG_ENV`
 - `CustomCops/EnvStringValidationCop`: You have a string that looks like an env var but isn't registered. Either add it to supported configurations or disable the cop if it's a false positive.
 
 ### Configuration Mismatch Warning

@@ -1,18 +1,34 @@
 module Datadog
   module Core
     module Configuration
-      module ConfigHelper
+      class ConfigHelper
         type env_hash = RBS::Unnamed::ENVClass | Hash[String, String]
 
-        @log_deprecations_called_with: Hash[String, bool]
+        @env_vars: env_hash
 
-        def get_environment_variable: (String name, ?String? default_value, ?env_vars: env_hash) -> String?
+        def initialize: (?env_vars: env_hash) -> void
 
-        def log_deprecated_environment_variables: (?env_vars: env_hash, ?source: String) -> void
+        def []: (String name) -> String?
+
+        def fetch: (String name, ?Object? default_value) { (?String name) -> Object? } -> Object?
+
+        def key?: (String name) -> bool
+
+        alias has_key? key?
+        alias include? key?
+        alias member? key?
+
+        def self.get_environment_variable: (String name, ?String? default_value, ?env_vars: env_hash) -> String?
+
+        def self.log_deprecated_environment_variables: (?env_vars: env_hash, ?source: String) -> void
 
         private
 
-        @raise_on_unknown_env_var: bool?
+        UNSET: Object
+
+        self.@log_deprecations_called_with: Hash[String, bool]
+
+        self.@raise_on_unknown_env_var: bool?
       end
     end
   end

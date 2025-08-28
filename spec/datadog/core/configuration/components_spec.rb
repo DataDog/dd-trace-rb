@@ -452,7 +452,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       # This is initialized during app startup and should not change during app lifecycle
       # However in our tests, we change the environment variables without completely resetting the app
       # This is why we reset this variable here.
-      Datadog.instance_variable_set(:@log_deprecations_called_with, nil)
+      Datadog::Core::Configuration::ConfigHelper.instance_variable_set(:@log_deprecations_called_with, nil)
 
       # We simulate that the deprecated env is set in supported_configurations.rb.
       # Because it does not start with DD_ or OTEL_, it does not need to be added in ['supportedConfigurations']

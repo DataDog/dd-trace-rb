@@ -11,12 +11,13 @@ module Datadog
         NO_SOURCE = [].freeze
 
         def self.fetch_service_name(env, default)
-          env_var = Datadog.get_environment_variable(env)
-          return env_var unless env_var.nil?
+          DATADOG_ENV.fetch(env) do
+            if Datadog.configuration.tracing.contrib.global_default_service_name.enabled
+              return Datadog.configuration.service
+            end
 
-          return Datadog.configuration.service if Datadog.configuration.tracing.contrib.global_default_service_name.enabled
-
-          default
+            default
+          end
         end
 
         def self.set_peer_service!(span, sources)
