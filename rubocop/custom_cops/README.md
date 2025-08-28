@@ -125,7 +125,7 @@ otel_service = "OTEL_SERVICE_NAME"
 otel_sampler = "OTEL_TRACES_SAMPLER"
 ```
 
-#### Handling False Positives
+### Handling False Positives
 
 For legitimate strings that are not environment variables but match the pattern:
 
@@ -139,10 +139,6 @@ telemetry_data = {
 logger.debug("Processing DD_CUSTOM_METRIC_NAME") # rubocop:disable CustomCops/EnvStringValidationCop
 ```
 
-### Adding New Environment Variables
+### Additional information
 
-If you need to use a new environment variable:
-
-1. Add it to the `supported-configurations.json` file
-2. Run the configuration asset generation rake task `bundle exec rake local_config_map:generate`
-3. The new variable will be automatically included in `Core::Configuration::SUPPORTED_CONFIGURATIONS`
+See docs/AccessEnvironmentVariables.md for details.

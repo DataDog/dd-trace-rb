@@ -7,45 +7,18 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
   let(:aliases) { {} }
   let(:alias_to_canonical) { {} }
   let(:deprecations) { {} }
+  subject { described_class.new }
 
-  around do |example|
+  before do
     # Force reload of the constants with our mocked data
-    original_supported_configurations = Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS
-    original_aliases = Datadog::Core::Configuration::ALIASES
-    original_deprecations = Datadog::Core::Configuration::DEPRECATIONS
-    original_alias_to_canonical = Datadog::Core::Configuration::ALIAS_TO_CANONICAL
-
-    Datadog::Core::Configuration.send(:remove_const, :SUPPORTED_CONFIGURATIONS)
-    Datadog::Core::Configuration.const_set(:SUPPORTED_CONFIGURATIONS, supported_configurations)
-
-    Datadog::Core::Configuration.send(:remove_const, :ALIASES)
-    Datadog::Core::Configuration.const_set(:ALIASES, aliases)
-
-    Datadog::Core::Configuration.send(:remove_const, :DEPRECATIONS)
-    Datadog::Core::Configuration.const_set(:DEPRECATIONS, deprecations)
-
-    Datadog::Core::Configuration.send(:remove_const, :ALIAS_TO_CANONICAL)
-    Datadog::Core::Configuration.const_set(:ALIAS_TO_CANONICAL, alias_to_canonical)
-
-    example.run
-
-    # Revert the constants to their original values
-    Datadog::Core::Configuration.send(:remove_const, :SUPPORTED_CONFIGURATIONS)
-    Datadog::Core::Configuration.const_set(:SUPPORTED_CONFIGURATIONS, original_supported_configurations)
-
-    Datadog::Core::Configuration.send(:remove_const, :ALIASES)
-    Datadog::Core::Configuration.const_set(:ALIASES, original_aliases)
-
-    Datadog::Core::Configuration.send(:remove_const, :DEPRECATIONS)
-    Datadog::Core::Configuration.const_set(:DEPRECATIONS, original_deprecations)
-
-    Datadog::Core::Configuration.send(:remove_const, :ALIAS_TO_CANONICAL)
-    Datadog::Core::Configuration.const_set(:ALIAS_TO_CANONICAL, original_alias_to_canonical)
+    stub_const('Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS', supported_configurations)
+    stub_const('Datadog::Core::Configuration::ALIASES', aliases)
+    stub_const('Datadog::Core::Configuration::DEPRECATIONS', deprecations)
+    stub_const('Datadog::Core::Configuration::ALIAS_TO_CANONICAL', alias_to_canonical)
   end
 
   describe '#[]' do
     context 'with ENV' do
-      let(:instance) { described_class.new }
       let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
 
       around do |example|
@@ -55,24 +28,23 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       end
 
       it 'returns the environment variable value' do
-        expect(instance['DD_TRACE_ENABLED']).to eq('true')
+        expect(subject['DD_TRACE_ENABLED']).to eq('true')
       end
     end
 
     context 'with a env var hash different from ENV' do
+      subject { (described_class.new(env_vars: source_env_vars)) }
       let(:source_env_vars) { { 'DD_TRACE_ENABLED' => 'true' } }
-      let(:instance) { described_class.new(env_vars: source_env_vars) }
       let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
 
       it 'returns the environment variable value' do
-        expect(instance['DD_TRACE_ENABLED']).to eq('true')
+        expect(subject['DD_TRACE_ENABLED']).to eq('true')
       end
     end
   end
 
   describe '#fetch' do
     context 'with env var set' do
-      let(:instance) { described_class.new }
       let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
 
       around do |example|
@@ -82,34 +54,32 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       end
 
       it 'returns the environment variable value' do
-        expect(instance.fetch('DD_TRACE_ENABLED')).to eq('true')
+        expect(subject.fetch('DD_TRACE_ENABLED')).to eq('true')
       end
     end
 
     context 'with env var not set' do
-      let(:instance) { described_class.new }
       let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
 
       it 'returns the default value when set' do
-        expect(instance.fetch('DD_TRACE_ENABLED', 'default')).to eq('default')
+        expect(subject.fetch('DD_TRACE_ENABLED', 'default')).to eq('default')
       end
 
       it 'runs the given block if set' do
-        expect(instance.fetch('DD_TRACE_ENABLED') { |k| "#{k} not found" }).to eq('DD_TRACE_ENABLED not found')
+        expect(subject.fetch('DD_TRACE_ENABLED') { |k| "#{k} not found" }).to eq('DD_TRACE_ENABLED not found')
       end
 
       it 'raises a KeyError if no default value is set' do
-        expect { instance.fetch('DD_TRACE_ENABLED') }.to raise_error(KeyError)
+        expect { subject.fetch('DD_TRACE_ENABLED') }.to raise_error(KeyError)
       end
     end
   end
 
   describe '#key?' do
-    let(:instance) { described_class.new }
     let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
 
     it 'returns false if the env var is not set' do
-      expect(instance.key?('DD_TRACE_ENABLED')).to be(false)
+      expect(subject.key?('DD_TRACE_ENABLED')).to be(false)
     end
 
     context 'with env var set' do
@@ -120,13 +90,13 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       end
 
       it 'returns true if the env var is set' do
-        expect(instance.key?('DD_TRACE_ENABLED')).to be(true)
+        expect(subject.key?('DD_TRACE_ENABLED')).to be(true)
       end
     end
   end
 
   describe '.get_environment_variable' do
-    subject(:get_env_var) { described_class.get_environment_variable(name, env_vars: env_vars) }
+    subject { described_class.get_environment_variable(name, env_vars: env_vars) }
 
     let(:name) { 'DD_TRACE_ENABLED' }
     let(:env_vars) { {} }
@@ -134,7 +104,6 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     before do
       # Reset instance variables that might be set by previous tests
       described_class.instance_variable_set(:@log_deprecations_called_with, nil)
-      described_class.instance_variable_set(:@raise_on_unknown_env_var, nil)
     end
 
     context 'when the environment variable is supported' do
@@ -157,7 +126,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       end
 
       context 'when a default value is provided' do
-        subject(:get_env_var) { described_class.get_environment_variable(name, 'default', env_vars: env_vars) }
+        subject { described_class.get_environment_variable(name, 'default', env_vars: env_vars) }
 
         it 'returns the default value' do
           is_expected.to eq('default')
@@ -205,18 +174,22 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       let(:supported_configurations) { {} } # Override to make it unsupported
 
       context 'when not in test environment' do
+        around do |example|
+          described_class.instance_variable_set(:@raise_on_unknown_env_var, nil)
+
+          example.run
+
+          described_class.instance_variable_set(:@raise_on_unknown_env_var, true)
+        end
+
         it 'returns nil' do
           is_expected.to be_nil
         end
       end
 
       context 'when in test environment' do
-        before do
-          described_class.instance_variable_set(:@raise_on_unknown_env_var, true)
-        end
-
         it 'raises an error for unsupported DD_ variables' do
-          expect { get_env_var }.to raise_error(RuntimeError, /Missing DD_UNSUPPORTED_VAR env\/configuration/)
+          expect { subject }.to raise_error(RuntimeError, /Missing DD_UNSUPPORTED_VAR env\/configuration/)
         end
       end
     end
@@ -229,18 +202,22 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       let(:alias_to_canonical) { { 'DISABLE_DATADOG_RAILS' => 'DD_DISABLE_DATADOG_RAILS' } }
 
       context 'when not in test environment' do
+        around do |example|
+          described_class.instance_variable_set(:@raise_on_unknown_env_var, nil)
+
+          example.run
+
+          described_class.instance_variable_set(:@raise_on_unknown_env_var, true)
+        end
+
         it 'returns the environment variable value' do
           is_expected.to eq(nil)
         end
       end
 
       context 'when in test environment' do
-        before do
-          described_class.instance_variable_set(:@raise_on_unknown_env_var, true)
-        end
-
         it 'raises an error suggesting the canonical name' do
-          expect { get_env_var }.to raise_error(RuntimeError, /Please use DD_DISABLE_DATADOG_RAILS instead/)
+          expect { subject }.to raise_error(RuntimeError, /Please use DD_DISABLE_DATADOG_RAILS instead/)
         end
       end
     end
@@ -263,7 +240,6 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       allow(Datadog).to receive(:logger).and_return(mock_logger)
       # Reset instance variables that might be set by previous tests
       described_class.instance_variable_set(:@log_deprecations_called_with, nil)
-      described_class.instance_variable_set(:@raise_on_unknown_env_var, nil)
     end
 
     context 'when the deprecated environment variable has an alias' do
@@ -311,5 +287,9 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'config_file')
       end
     end
+  end
+
+  describe 'test environment has @raise_on_unknown_env_var set to true' do
+    it { expect(Datadog::Core::Configuration::ConfigHelper.instance_variable_get(:@raise_on_unknown_env_var)).to be(true) }
   end
 end

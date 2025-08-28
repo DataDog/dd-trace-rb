@@ -32,6 +32,7 @@ namespace :local_config_map do
   alias_to_canonical = alias_to_canonical.sort.to_h
 
   # Read the data from the JSON file and generate ahead-of-time map for supported configurations, aliases and deprecations
+  desc 'Generate the supported configurations, aliases and deprecations map'
   task :generate do
     # On versions older than 3.4, the result would look like {:key=>'value'}
     raise('Please run this task on Ruby >= 3.4') unless RUBY_VERSION >= '3.4'
