@@ -7,8 +7,6 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
   let(:aliases) { {} }
   let(:alias_to_canonical) { {} }
   let(:deprecations) { {} }
-  let(:test_class) { Class.new { include Datadog::Core::Configuration::ConfigHelper } }
-  let(:instance) { test_class.new }
 
   around do |example|
     # Force reload of the constants with our mocked data
@@ -45,17 +43,98 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     Datadog::Core::Configuration.const_set(:ALIAS_TO_CANONICAL, original_alias_to_canonical)
   end
 
-  describe '#get_environment_variable' do
-    subject(:get_env_var) { instance.get_environment_variable(name, env_vars: env_vars) }
+  describe '#[]' do
+    context 'with ENV' do
+      let(:instance) { described_class.new }
+      let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
+
+      around do |example|
+        ClimateControl.modify('DD_TRACE_ENABLED' => 'true') do
+          example.run
+        end
+      end
+
+      it 'returns the environment variable value' do
+        expect(instance['DD_TRACE_ENABLED']).to eq('true')
+      end
+    end
+
+    context 'with a env var hash different from ENV' do
+      let(:source_env_vars) { { 'DD_TRACE_ENABLED' => 'true' } }
+      let(:instance) { described_class.new(env_vars: source_env_vars) }
+      let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
+
+      it 'returns the environment variable value' do
+        expect(instance['DD_TRACE_ENABLED']).to eq('true')
+      end
+    end
+  end
+
+  describe '#fetch' do
+    context 'with env var set' do
+      let(:instance) { described_class.new }
+      let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
+
+      around do |example|
+        ClimateControl.modify('DD_TRACE_ENABLED' => 'true') do
+          example.run
+        end
+      end
+
+      it 'returns the environment variable value' do
+        expect(instance.fetch('DD_TRACE_ENABLED')).to eq('true')
+      end
+    end
+
+    context 'with env var not set' do
+      let(:instance) { described_class.new }
+      let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
+
+      it 'returns the default value when set' do
+        expect(instance.fetch('DD_TRACE_ENABLED', 'default')).to eq('default')
+      end
+
+      it 'runs the given block if set' do
+        expect(instance.fetch('DD_TRACE_ENABLED') { |k| "#{k} not found" }).to eq('DD_TRACE_ENABLED not found')
+      end
+
+      it 'raises a KeyError if no default value is set' do
+        expect { instance.fetch('DD_TRACE_ENABLED') }.to raise_error(KeyError)
+      end
+    end
+  end
+
+  describe '#key?' do
+    let(:instance) { described_class.new }
+    let(:supported_configurations) { { 'DD_TRACE_ENABLED' => { version: ['A'] } } }
+
+    it 'returns false if the env var is not set' do
+      expect(instance.key?('DD_TRACE_ENABLED')).to be(false)
+    end
+
+    context 'with env var set' do
+      around do |example|
+        ClimateControl.modify('DD_TRACE_ENABLED' => 'anything') do
+          example.run
+        end
+      end
+
+      it 'returns true if the env var is set' do
+        expect(instance.key?('DD_TRACE_ENABLED')).to be(true)
+      end
+    end
+  end
+
+  describe '.get_environment_variable' do
+    subject(:get_env_var) { described_class.get_environment_variable(name, env_vars: env_vars) }
 
     let(:name) { 'DD_TRACE_ENABLED' }
     let(:env_vars) { {} }
 
     before do
       # Reset instance variables that might be set by previous tests
-      instance.instance_variable_set(:@log_deprecations_called_with, nil)
-      instance.instance_variable_set(:@config_helper_logger, nil)
-      instance.instance_variable_set(:@raise_on_unknown_env_var, nil)
+      described_class.instance_variable_set(:@log_deprecations_called_with, nil)
+      described_class.instance_variable_set(:@raise_on_unknown_env_var, nil)
     end
 
     context 'when the environment variable is supported' do
@@ -78,7 +157,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       end
 
       context 'when a default value is provided' do
-        subject(:get_env_var) { instance.get_environment_variable(name, 'default', env_vars: env_vars) }
+        subject(:get_env_var) { described_class.get_environment_variable(name, 'default', env_vars: env_vars) }
 
         it 'returns the default value' do
           is_expected.to eq('default')
@@ -133,7 +212,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       context 'when in test environment' do
         before do
-          instance.instance_variable_set(:@raise_on_unknown_env_var, true)
+          described_class.instance_variable_set(:@raise_on_unknown_env_var, true)
         end
 
         it 'raises an error for unsupported DD_ variables' do
@@ -157,7 +236,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       context 'when in test environment' do
         before do
-          instance.instance_variable_set(:@raise_on_unknown_env_var, true)
+          described_class.instance_variable_set(:@raise_on_unknown_env_var, true)
         end
 
         it 'raises an error suggesting the canonical name' do
@@ -176,12 +255,15 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     end
   end
 
-  describe '#log_deprecated_environment_variables' do
+  describe '.log_deprecated_environment_variables' do
     let(:mock_io) { StringIO.new }
     let(:mock_logger) { Datadog::Core::Logger.new(mock_io) }
 
     before do
       allow(Datadog).to receive(:logger).and_return(mock_logger)
+      # Reset instance variables that might be set by previous tests
+      described_class.instance_variable_set(:@log_deprecations_called_with, nil)
+      described_class.instance_variable_set(:@raise_on_unknown_env_var, nil)
     end
 
     context 'when the deprecated environment variable has an alias' do
@@ -190,7 +272,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       let(:alias_to_canonical) { { 'DD_PROFILING_PREVIEW_GVL_ENABLED' => 'DD_PROFILING_GVL_ENABLED' } }
 
       it 'logs deprecation warnings for deprecated environment variables' do
-        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
+        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
         expect(mock_io.string).to include('DD_PROFILING_PREVIEW_GVL_ENABLED test variable is deprecated, use DD_PROFILING_GVL_ENABLED instead.')
       end
     end
@@ -201,7 +283,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       let(:alias_to_canonical) { {} }
 
       it 'logs deprecation warnings for deprecated environment variables with correct message' do
-        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
+        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
         expect(mock_io.string).to include('DD_PROFILING_PREVIEW_GVL_ENABLED test variable is deprecated. This will be removed in the next major version.')
       end
     end
@@ -213,8 +295,8 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       it 'only logs deprecations once per source' do
         expect(Datadog::Core).to receive(:log_deprecation).once
-        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
-        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
+        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
+        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'test')
       end
     end
 
@@ -225,8 +307,8 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       it 'logs deprecations for each source' do
         expect(Datadog::Core).to receive(:log_deprecation).twice
-        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'environment')
-        instance.log_deprecated_environment_variables(env_vars: env_vars, source: 'config_file')
+        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'environment')
+        described_class.log_deprecated_environment_variables(env_vars: env_vars, source: 'config_file')
       end
     end
   end

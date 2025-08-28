@@ -326,7 +326,7 @@ module Datadog
                     when 'parentbased_always_off'
                       0.0
                     when 'parentbased_traceidratio'
-                      Datadog.get_environment_variable(Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
+                      DATADOG_ENV.fetch(Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
                     else
                       value.to_f
                     end
@@ -360,7 +360,7 @@ module Datadog
                 # @public_api
                 option :rules do |o|
                   o.type :string, nilable: true
-                  o.default { Datadog.get_environment_variable(Configuration::Ext::Sampling::ENV_RULES) }
+                  o.default { DATADOG_ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
                 end
 
                 # Single span sampling rules.
@@ -377,8 +377,8 @@ module Datadog
                 option :span_rules do |o|
                   o.type :string, nilable: true
                   o.default do
-                    rules = Datadog.get_environment_variable(Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES)
-                    rules_file = Datadog.get_environment_variable(Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE)
+                    rules = DATADOG_ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
+                    rules_file = DATADOG_ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
 
                     if rules
                       if rules_file

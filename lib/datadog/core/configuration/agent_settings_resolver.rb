@@ -68,7 +68,7 @@ module Datadog
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST} environment variable",
-              value: Datadog.get_environment_variable(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST)
+              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST]
             )
           )
         end
@@ -87,7 +87,7 @@ module Datadog
             ),
             try_parsing_as_integer(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT} environment variable",
-              value: Datadog.get_environment_variable(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT),
+              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT],
             )
           )
         end
@@ -118,7 +118,7 @@ module Datadog
             try_parsing_as_integer(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} " \
                 'environment variable',
-              value: Datadog.get_environment_variable(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS),
+              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS],
             )
           )
         end
@@ -256,7 +256,7 @@ module Datadog
         def parsed_url
           return @parsed_url if defined?(@parsed_url)
 
-          unparsed_url_from_env = Datadog.get_environment_variable(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL)
+          unparsed_url_from_env = DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL]
 
           @parsed_url =
             if unparsed_url_from_env

@@ -8,7 +8,7 @@ The `CustomCops::EnvUsageCop` prevents direct usage of the `ENV` hash to access 
 
 ### Purpose
 
-This cop prohibits usage of `ENV` and automatically corrects it to use `Datadog.get_environment_variable`. This ensures that environment variable usage is documented and follows the proper Datadog configuration pattern.
+This cop prohibits usage of `ENV` and automatically corrects it to use `DATADOG_ENV`. This ensures that environment variable usage is documented and follows the proper Datadog configuration pattern.
 
 ### Examples
 
@@ -16,54 +16,63 @@ This cop prohibits usage of `ENV` and automatically corrects it to use `Datadog.
 
 ```ruby
 # These will trigger offenses:
-api_key = ENV['DATADOG_API_KEY']
-debug_mode = ENV['DEBUG']
-timeout = ENV.fetch('TIMEOUT', '30')
+module Datadog
+  api_key = ENV['DD_API_KEY']
+  debug_mode = ENV['DEBUG']
+  timeout = ENV.fetch('TIMEOUT', '30')
 
-if ENV.key?('DATADOG_API_KEY')
-  puts 'API key is set'
+  if ENV.key?('DD_API_KEY')
+    puts 'API key is set'
+  end
+
+  puts "API Key: #{ENV['DD_API_KEY']}"
+
+  config = {
+    api_key: ENV['DD_API_KEY'],
+    debug: ENV['DEBUG']
+  }
 end
-
-puts "API Key: #{ENV['DATADOG_API_KEY']}"
-
-config = {
-  api_key: ENV['DATADOG_API_KEY'],
-  debug: ENV['DEBUG']
-}
+enabled = ENV['DD_TRACE_ENABLED']
 ```
 
-#### Good: Using `Datadog.get_environment_variable`
+#### Good: Using `DATADOG_ENV`
 
 ```ruby
 # These are the corrected versions:
-api_key = Datadog.get_environment_variable('DATADOG_API_KEY')
-debug_mode = Datadog.get_environment_variable('DEBUG')
-# Supports default value like ENV.fetch
-timeout = Datadog.get_environment_variable('TIMEOUT', '30')
+module Datadog
+  api_key = DATADOG_ENV['DATADOG_API_KEY']
+  debug_mode = DATADOG_ENV['DEBUG']
+  # Supports default value like ENV.fetch
+  timeout = DATADOG_ENV.fetch('TIMEOUT', '30')
 
-if !Datadog.get_environment_variable('DATADOG_API_KEY').nil?
-  puts 'API key is set'
+  if DATADOG_ENV.key?('DATADOG_API_KEY')
+    puts 'API key is set'
+  end
+
+  puts "API Key: #{DATADOG_ENV['DATADOG_API_KEY']}"
+
+  config = {
+    api_key: DATADOG_ENV['DATADOG_API_KEY'],
+    debug: DATADOG_ENV['DEBUG']
+  }
 end
-
-puts "API Key: #{Datadog.get_environment_variable('DATADOG_API_KEY')}"
-
-config = {
-  api_key: Datadog.get_environment_variable('DATADOG_API_KEY'),
-  debug: Datadog.get_environment_variable('DEBUG')
-}
+enabled = Datadog::DATADOG_ENV['DD_TRACE_ENABLED']
 ```
 
 ### Auto-correction
 
 The cop automatically corrects the following patterns:
 
-- `ENV['key']` → `Datadog.get_environment_variable('key')`
-- `ENV.fetch('key')` → `Datadog.get_environment_variable('key')`
-- `ENV.fetch('key', default)` → `Datadog.get_environment_variable('key', default)`
-- `ENV.key?('key')` → `!Datadog.get_environment_variable('key').nil?`
-- `ENV.has_key?('key')` → `!Datadog.get_environment_variable('key').nil?`
-- `ENV.include?('key')` → `!Datadog.get_environment_variable('key').nil?`
-- `ENV.member?('key')` → `!Datadog.get_environment_variable('key').nil?`
+- `ENV['key']` → `DATADOG_ENV['key']`
+- `ENV.fetch('key')` → `DATADOG_ENV.fetch('key')`
+- `ENV.fetch('key', default)` → `DATADOG_ENV.fetch('key', default)`
+- `ENV.fetch('key') { |k| return k }` → `DATADOG_ENV.fetch('key')  { |k| return k }`
+- `ENV.key?('key')` → `DATADOG_ENV.key?('key')`
+- `ENV.has_key?('key')` → `DATADOG_ENV.has_key?('key')`
+- `ENV.include?('key')` → `DATADOG_ENV.include?('key')`
+- `ENV.member?('key')` → `DATADOG_ENV.member?('key')`
+
+For `ENV` access outside of Datadog namespace, it will also autocorrect to `Datadog::DATADOG_ENV`
 
 ### Testing
 
