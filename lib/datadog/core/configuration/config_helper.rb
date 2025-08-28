@@ -77,7 +77,7 @@ module Datadog
             config || default_value
           end
 
-          def log_deprecated_environment_variables(env_vars: ENV, source: 'environment')
+          def log_deprecated_environment_variables(logger, env_vars: ENV, source: 'environment')
             @log_deprecations_called_with ||= {}
             return if @log_deprecations_called_with[source]
 
@@ -87,11 +87,19 @@ module Datadog
 
               # As we only use warn level, we can use a new logger.
               # Using logger_without_configuration is not possible as it uses an environment variable.
-              Datadog::Core.log_deprecation(disallowed_next_major: false) do
+              Datadog::Core.log_deprecation(disallowed_next_major: false, logger: logger) do
                 "#{deprecated_env_var} #{source} variable is deprecated" +
                   (ALIAS_TO_CANONICAL[deprecated_env_var] ? ", use #{ALIAS_TO_CANONICAL[deprecated_env_var]} instead." : ". #{message}.")
               end
             end
+          end
+
+          def log_deprecations_from_all_sources(logger)
+            ConfigHelper.log_deprecated_environment_variables(logger, source: 'environment')
+            customer_config = StableConfig.configuration.dig(:local, :config)
+            ConfigHelper.log_deprecated_environment_variables(logger, env_vars: customer_config, source: 'local') if customer_config
+            fleet_config = StableConfig.configuration.dig(:fleet, :config)
+            ConfigHelper.log_deprecated_environment_variables(logger, env_vars: fleet_config, source: 'fleet') if fleet_config
           end
         end
       end
