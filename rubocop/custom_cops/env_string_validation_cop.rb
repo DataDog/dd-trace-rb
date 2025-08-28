@@ -23,7 +23,8 @@ module CustomCops
 
     MSG = 'Environment variable string "%<var>s" is not in the supported configurations list. ' \
           'False positives are possible. If you are sure this string is NEVER used as an environment variable, ' \
-          'you can inline disable this cop using `rubocop:disable CustomCops/EnvStringValidationCop`.'
+          'you can inline disable this cop using `rubocop:disable CustomCops/EnvStringValidationCop`. ' \
+          'See docs/AccessEnvironmentVariables.md for details.'
 
     # Configuration for allowed environment variable names
     # This list should be populated with the allowed environment variable names

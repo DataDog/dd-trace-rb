@@ -56,11 +56,11 @@ module Datadog
             if !defined?(::Datadog::CI) &&
                 (name.start_with?('DD_', 'OTEL_') || ALIAS_TO_CANONICAL[name]) &&
                 !SUPPORTED_CONFIGURATIONS[name]
-              if defined?(@raise_on_unknown_env_var) && @raise_on_unknown_env_var
+              if defined?(@raise_on_unknown_env_var) && @raise_on_unknown_env_var # Only enabled for tests!
                 if ALIAS_TO_CANONICAL[name]
-                  raise "Please use #{ALIAS_TO_CANONICAL[name]} instead of #{name}."
+                  raise "Please use #{ALIAS_TO_CANONICAL[name]} instead of #{name}. See docs/AccessEnvironmentVariables.md for details."
                 else
-                  raise "Missing #{name} env/configuration in \"supported-configurations.json\" file."
+                  raise "Missing #{name} env/configuration in \"supported-configurations.json\" file. See docs/AccessEnvironmentVariables.md for details."
                 end
               end
               # TODO: Send telemetry to know if we ever miss an env var
@@ -82,10 +82,6 @@ module Datadog
             return if @log_deprecations_called_with[source]
 
             @log_deprecations_called_with[source] = true
-            # This will be executed after the logger is configured (core/components.rb:110)
-            # Once for all 3 sources (ENV, local config file and fleet config file).
-            # At that point we don't have access yet to the logger configuration.
-            # Log level is warn for deprecations, so we don't need to set the logger level according to `DD_TRACE_DEBUG`.
             DEPRECATIONS.each do |deprecated_env_var, message|
               next unless env_vars.key?(deprecated_env_var)
 

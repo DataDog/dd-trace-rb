@@ -65,7 +65,7 @@ To add support for a new environment variable:
 
 ### Step 1: Add to supported-configurations.json
 
-Edit the `supported-configurations.json` file and add your variable:
+Edit the `supported-configurations.json` file and add your variable (Please keep any new keys in the file sorted!):
 
 ```json
 {
@@ -80,7 +80,7 @@ Edit the `supported-configurations.json` file and add your variable:
 #### Configuration Structure
 
 - **supportedConfigurations**: Maps variable names to configuration metadata
-  - `version`: (Currently always set to `["A"]`) Array indicating which implementations the tracer supports. Implementations are defined in the Feature Parity Dashboard and multiple implementations could be set for a single environment variable (e.g. the base one `A`, and an extra one `B` that adds new possible values)
+  - `version`: (Currently always set to `["A"]`) Array indicating which implementations the tracer supports. Implementations are defined in the Feature Parity Dashboard and multiple implementations could be set for a single environment variable (e.g. the base one `A`, and an extra one `B` that adds new possible values). Versions are non-numeric to avoid confusion with library versions.
 
   In the future, the structure will also contain more information such as the type, the default value...
 
