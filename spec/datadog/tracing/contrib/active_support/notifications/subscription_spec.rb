@@ -85,6 +85,52 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
         end
       end
 
+      describe '#publish' do
+        subject(:result) { subscription.publish(name, time, end_time, id, payload) }
+
+        let(:name) { double('name') }
+        let(:time) { double('time') }
+        let(:end_time) { double('end_time') }
+        let(:id) { double('id') }
+        let(:span_op) { double('span_op') }
+
+        before do
+          allow(on_start_spy).to receive(:call)
+          allow(on_finish_spy).to receive(:call)
+        end
+
+        it 'calls both start and finish methods' do
+          expect(subscription).to receive(:start).with(name, id, payload).ordered
+          expect(subscription).to receive(:finish).with(name, id, payload).ordered
+          subject
+        end
+
+        context 'with a complete event lifecycle' do
+          let(:span_op) { instance_double(Datadog::Tracing::SpanOperation) }
+
+          it 'creates and finishes a span' do
+            expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op)
+            expect(on_start_spy).to receive(:call).with(span_op, name, id, payload)
+            expect(on_finish_spy).to receive(:call).with(span_op, name, id, payload)
+            expect(span_op).to receive(:finish).with(nil)
+
+            subject
+            expect(payload[:datadog_span]).to eq(span_op)
+          end
+        end
+
+        context 'with trace? returning false' do
+          let(:trace) { proc { |_name, _payload| false } }
+
+          it 'does not create a span but still calls finish' do
+            expect(Datadog::Tracing).not_to receive(:trace)
+            expect(on_start_spy).not_to receive(:call)
+            expect(on_finish_spy).not_to receive(:call)
+            subject
+          end
+        end
+      end
+
       describe '#before_trace' do
         context 'given a block' do
           let(:callback_block) { proc { callback_spy.call } }
