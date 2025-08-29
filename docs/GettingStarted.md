@@ -1168,7 +1168,7 @@ end
 
 The WaterDrop integration provides tracing of the `waterdrop` gem (a dependency of `karafka`, but also can be used standalone).
 
-This integration is automatically activated with the Karafka framework. If you're not using Karafka (e.g.: your app _produce_ messages for a different app _consume_), enable it through `Datadog.configure`:
+This integration activates automatically with the Karafka framework. If your application doesn’t use Karafka (for example, if it only produces messages consumed by another app), enable it manually with `Datadog.configure`:
 
 ```ruby
 require 'waterdrop'
