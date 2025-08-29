@@ -98,7 +98,7 @@ RSpec.describe CustomCops::EnvUsageCop do
         module MyApp
           module Datadog
             ENV['DATADOG_API_KEY']
-            ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use Datadog::DATADOG_ENV to access environment variables. See docs/AccessEnvironmentVariables.md for details.
+            ^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use ::Datadog::DATADOG_ENV to access environment variables. See docs/AccessEnvironmentVariables.md for details.
           end
         end
       RUBY
@@ -106,7 +106,7 @@ RSpec.describe CustomCops::EnvUsageCop do
       expect_correction(<<~RUBY)
         module MyApp
           module Datadog
-            Datadog::DATADOG_ENV['DATADOG_API_KEY']
+            ::Datadog::DATADOG_ENV['DATADOG_API_KEY']
           end
         end
       RUBY

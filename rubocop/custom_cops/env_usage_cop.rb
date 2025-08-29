@@ -26,18 +26,18 @@ module CustomCops
     def on_const(node)
       return unless node.const_name == 'ENV'
 
-      in_datadog_namespace = in_datadog_namespace?(node)
-      msg = "Avoid direct usage of ENV. Use #{"Datadog::" unless in_datadog_namespace}DATADOG_ENV to access environment variables. " \
+      prefix = datadog_prefix(node)
+      msg = "Avoid direct usage of ENV. Use #{prefix}DATADOG_ENV to access environment variables. " \
             'See docs/AccessEnvironmentVariables.md for details.'
 
       # Check if this is part of a method call
       parent = node.parent
       if parent&.send_type?
         add_offense(parent, message: msg) do |corrector|
-          correct_env_usage(corrector, node, parent, in_datadog_namespace)
+          correct_env_usage(corrector, node, parent, prefix)
         end
       else
-        msg = "Avoid direct usage of ENV. Use #{"Datadog::" unless in_datadog_namespace}DATADOG_ENV with a method call to access environment variables. " \
+        msg = "Avoid direct usage of ENV. Use #{prefix}DATADOG_ENV with a method call to access environment variables. " \
               'See docs/AccessEnvironmentVariables.md for details.'
         add_offense(node, message: msg) do |corrector|
           # No correction for calling the ENV object directly
@@ -48,21 +48,24 @@ module CustomCops
     private
 
     # As the interface of DATADOG_ENV is the same as ENV, we just replace ENV with DATADOG_ENV
-    def correct_env_usage(corrector, node, parent, in_datadog_namespace)
+    def correct_env_usage(corrector, node, parent, prefix)
       if %i[[] fetch key? include? member? has_key?].include?(parent.method_name)
-        if in_datadog_namespace
-          corrector.replace(node, "DATADOG_ENV")
-        else
-          corrector.replace(node, "Datadog::DATADOG_ENV")
-        end
+        corrector.replace(node, "#{prefix}DATADOG_ENV")
       end
     end
 
     # Check if top module is Datadog
-    def in_datadog_namespace?(node)
+    def datadog_prefix(node)
       module_ancestors = node.ancestors.select { |ancestor| ancestor.module_type? }
       top_module = module_ancestors.last
-      top_module&.defined_module&.const_name == 'Datadog'
+      return 'Datadog::' if top_module.nil?
+      return '' if top_module.defined_module&.const_name == 'Datadog'
+
+      on_node(:module, top_module) do |child|
+        return '::Datadog::' if child.defined_module&.const_name == 'Datadog'
+      end
+
+      'Datadog::'
     end
   end
 end
