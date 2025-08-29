@@ -1,0 +1,13 @@
+module Datadog
+  module Core
+    module Configuration
+      type env_var = String
+      type config_value = Hash[Symbol, Array[String]]
+
+      SUPPORTED_CONFIGURATIONS: Hash[env_var, config_value]
+      ALIASES: Hash[env_var, Array[env_var]]
+      DEPRECATIONS: Hash[env_var, String]
+      ALIAS_TO_CANONICAL: Hash[env_var, env_var]
+    end
+  end
+end

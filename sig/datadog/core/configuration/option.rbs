@@ -14,7 +14,6 @@ module Datadog
 
         attr_reader definition: OptionDefinition
         attr_reader precedence_set: Precedence::Value
-        attr_reader resolved_env: String?
 
         module Precedence
           REMOTE_CONFIGURATION: Value
@@ -43,7 +42,7 @@ module Datadog
 
         def initialize: (OptionDefinition definition, Options::GenericSettingsClass context) -> void
 
-        def set: (Object? value, ?precedence: Precedence::Value, ?resolved_env: String?) -> Object?
+        def set: (Object? value, ?precedence: Precedence::Value) -> Object?
 
         def get: () -> Object?
 
@@ -66,7 +65,7 @@ module Datadog
 
         def validate: (Symbol? type, Object? value) -> bool
 
-        def internal_set: (Object? value, Precedence::Value precedence, String? resolved_env) -> Object?
+        def internal_set: (Object? value, Precedence::Value precedence) -> Object?
 
         def context_exec: [U] (*Object? args) { (?) [self: Options::GenericSettingsClass] -> U } -> U
 
@@ -80,7 +79,9 @@ module Datadog
 
         def set_fleet_stable_config_value: () -> void
 
-        def get_value_and_resolved_env_from: (env_vars env_vars, ?source: String ) -> [env_value, String?]
+        def get_value_from_ENV: () -> env_value
+
+        def get_value_from: (env_vars env_vars, String source) -> env_value
 
         UNSET: Object
       end

@@ -154,7 +154,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               type: nil,
               type_options: {},
               env: nil,
-              deprecated_env: nil,
               env_parser: nil
             )
           end
@@ -319,16 +318,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#deprecated_env' do
-    subject(:deprecated_env) { builder.deprecated_env(value) }
-
-    context 'given a value' do
-      let(:value) { 'TEST' }
-
-      it { is_expected.to be value }
-    end
-  end
-
   describe '#env_parser' do
     subject(:env_parser) { builder.env_parser(&block) }
 
@@ -423,7 +412,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :type,
         :type_options,
         :env,
-        :deprecated_env,
         :env_parser,
       )
     end

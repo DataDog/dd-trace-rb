@@ -12,7 +12,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
       default: default,
       default_proc: default_proc,
       env: env,
-      deprecated_env: deprecated_env,
       env_parser: env_parser,
       after_set: nil,
       resetter: nil,
@@ -27,7 +26,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:env_parser) { nil }
   let(:type) { nil }
   let(:type_options) { {} }
-  let(:deprecated_env) { nil }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
   let(:context) { double('configuration object') }
@@ -876,152 +874,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         it_behaves_like 'env coercion'
         it_behaves_like 'with env_parser'
-      end
-    end
-
-    context 'when env is an Array' do
-      let(:env) { ['TEST_ENV_VAR', 'TEST_ENV_VAR2'] }
-      let(:setter) { proc { |value| value } }
-
-      around do |example|
-        ClimateControl.modify(set_envs) { example.run }
-      end
-
-      context 'and the first environmet variable is set' do
-        let(:set_envs) { { 'TEST_ENV_VAR' => 'val1' } }
-        it { is_expected.to eq('val1') }
-      end
-
-      context 'and the second environmet variable is set' do
-        let(:set_envs) { { 'TEST_ENV_VAR2' => 'val2' } }
-        it { is_expected.to eq('val2') }
-      end
-
-      context 'and both environmet variables are set' do
-        let(:set_envs) { { 'TEST_ENV_VAR' => 'val1', 'TEST_ENV_VAR2' => 'val2' } }
-        it { is_expected.to eq('val1') }
-      end
-
-      context 'and environmet variables are not set' do
-        let(:set_envs) { {} }
-        it { is_expected.to be(default) }
-      end
-    end
-
-    context 'when deprecated_env is defined' do
-      before do
-        allow(Datadog.logger).to receive(:warn) # For deprecation warnings
-        allow(context).to receive(:instance_exec) do |*args|
-          args[0]
-        end
-      end
-
-      let(:deprecated_env) { 'TEST' }
-      context 'when env var is not set' do
-        it do
-          expect(option.get).to be default
-        end
-      end
-
-      context 'when env var is set' do
-        around do |example|
-          ClimateControl.modify(deprecated_env => env_value) do
-            example.run
-          end
-        end
-
-        let(:env_value) { 'test' }
-
-        it 'uses env var value' do
-          expect(option.get).to eq 'test'
-        end
-
-        it 'set precedence_set to environment' do
-          option.get
-          expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
-        end
-
-        it 'log deprecation warning' do
-          expect(Datadog::Core).to receive(:log_deprecation)
-          option.get
-        end
-
-        it_behaves_like 'env coercion'
-        it_behaves_like 'with env_parser'
-      end
-    end
-
-    context 'when env and deprecated_env are defined' do
-      before do
-        allow(Datadog.logger).to receive(:warn) # For deprecation warnings
-        allow(context).to receive(:instance_exec) do |*args|
-          args[0]
-        end
-      end
-
-      let(:env) { 'TEST' }
-      let(:deprecated_env) { 'DEPRECATED_TEST' }
-      let(:env_value) { 'test' }
-      let(:deprecated_env_value) { 'old test' }
-
-      context 'env found' do
-        around do |example|
-          ClimateControl.modify(env => env_value, deprecated_env => deprecated_env_value) do
-            example.run
-          end
-        end
-
-        it 'uses env var value' do
-          expect(option.get).to eq 'test'
-        end
-
-        it 'set precedence_set to environment' do
-          option.get
-          expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
-        end
-
-        it 'do not log deprecation warning' do
-          expect(Datadog::Core).to_not receive(:log_deprecation)
-          option.get
-        end
-      end
-
-      context 'env not found and deprecated_env found' do
-        around do |example|
-          ClimateControl.modify(deprecated_env => deprecated_env_value) do
-            example.run
-          end
-        end
-
-        it 'uses env var value' do
-          expect(option.get).to eq 'old test'
-        end
-
-        it 'set precedence_set to environment' do
-          option.get
-          expect(option.send(:precedence_set)).to eq described_class::Precedence::ENVIRONMENT
-        end
-
-        it 'log deprecation warning' do
-          expect(Datadog::Core).to receive(:log_deprecation)
-          option.get
-        end
-      end
-
-      context 'env and deprecated_env not found' do
-        it 'uses default value' do
-          expect(option.get).to eq default
-        end
-
-        it 'set precedence_set to default' do
-          option.get
-          expect(option.send(:precedence_set)).to eq described_class::Precedence::DEFAULT
-        end
-
-        it 'do not log deprecation warning' do
-          expect(Datadog::Core).to_not receive(:log_deprecation)
-          option.get
-        end
       end
     end
 

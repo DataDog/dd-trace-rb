@@ -1,6 +1,14 @@
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
+begin
+  require 'rubocop'
+  require 'rubocop/rspec/support'
+  $LOAD_PATH.unshift File.expand_path('../rubocop', __dir__)
+rescue LoadError
+  # RuboCop not available in this gemfile, skip adding rubocop directory to load path
+end
+
 Thread.main.name = 'Thread.main' unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
 
 require 'pry'
@@ -343,3 +351,9 @@ Timeout.ensure_timeout_thread_created if Timeout.respond_to?(:ensure_timeout_thr
 # mock objects in the test suite. Disable it and tests that need code tracking
 # will enable it back for themselves.
 Datadog::DI.deactivate_tracking! if defined?(Datadog::DI) && Datadog::DI.respond_to?(:deactivate_tracking!)
+
+# This variable is only used by config inversion.
+# We raise an error in our testsuite if we forget to add a new environment variable to the supported configurations file.
+# This way, we will not miss any tested env var, and it will return nil in production.
+# (acting as the env var is not set, without crashing the app).
+Datadog::Core::Configuration::ConfigHelper.instance_variable_set(:@raise_on_unknown_env_var, true)

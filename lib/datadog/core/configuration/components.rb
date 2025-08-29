@@ -97,6 +97,7 @@ module Datadog
         def initialize(settings)
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
+          ConfigHelper.log_deprecations_from_all_sources(@logger)
 
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend
