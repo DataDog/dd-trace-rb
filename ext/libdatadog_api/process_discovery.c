@@ -27,23 +27,26 @@ static const rb_data_type_t tracer_memfd_type = {
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
 
-static otel_process_ctx_result otel_ctx = {0};
-
-static VALUE _native_publish_otel_ctx_on_fork(VALUE _self, VALUE service_name, VALUE runtime_id, VALUE service_env, VALUE logger) {
+static VALUE _native_publish_otel_ctx_on_fork(VALUE _self, VALUE env, VALUE hostname, VALUE runtime_id, VALUE service, VALUE version, VALUE tracer_version, VALUE logger) {
   otel_process_ctx_data otel_ctx_data = {
-    .service_name = RSTRING_PTR(service_name),
+    .deployment_environment_name = RSTRING_PTR(env),
+    .host_name = RSTRING_PTR(hostname),
     .service_instance_id = RSTRING_PTR(runtime_id),
-    .deployment_environment_name = RSTRING_PTR(service_env),
+    .service_name = RSTRING_PTR(service),
+    .service_version = RSTRING_PTR(version),
+    .telemetry_sdk_language = (char *) "ruby",
+    .telemetry_sdk_version = RSTRING_PTR(tracer_version),
+    .telemetry_sdk_name = (char *) "dd-trace-rb",
+    .resources = NULL, // TODO: Not supported yet for Ruby
   };
-  otel_ctx = !otel_ctx.success ?
-    otel_process_ctx_publish(otel_ctx_data) :
-    otel_process_ctx_update(&otel_ctx, otel_ctx_data);
 
-  if (otel_ctx.success) {
+  otel_process_ctx_result result = otel_process_ctx_publish(&otel_ctx_data);
+
+  if (result.success) {
     rb_funcall(logger, rb_intern("info"), 1, rb_str_new2("OTEL process context publish successful"));
     return Qtrue;
   } else {
-    rb_funcall(logger, rb_intern("info"), 1, rb_sprintf("OTEL process context publish failed: %s", otel_ctx.error_message));
+    rb_funcall(logger, rb_intern("info"), 1, rb_sprintf("OTEL process context publish failed: %s", result.error_message));
     return Qfalse;
   }
 }
@@ -56,7 +59,7 @@ void process_discovery_init(VALUE core_module) {
   rb_define_singleton_method(process_discovery_class, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
   rb_define_singleton_method(process_discovery_class, "_native_to_rb_int", _native_to_rb_int, 1);
   rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 2);
-  rb_define_singleton_method(process_discovery_class, "_native_publish_otel_ctx_on_fork", _native_publish_otel_ctx_on_fork, 4);
+  rb_define_singleton_method(process_discovery_class, "_native_publish_otel_ctx_on_fork", _native_publish_otel_ctx_on_fork, 7);
 }
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
@@ -83,7 +86,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ENFORCE_TYPE(service_env, T_STRING);
   ENFORCE_TYPE(service_version, T_STRING);
 
-  _native_publish_otel_ctx_on_fork(Qnil, service_name, runtime_id, service_env, logger);
+  _native_publish_otel_ctx_on_fork(Qnil, service_env, hostname, runtime_id, service_name, service_version, tracer_version, logger);
 
   ddog_Result_TracerMemfdHandle result = ddog_store_tracer_metadata(
     (uint8_t) NUM2UINT(schema_version),

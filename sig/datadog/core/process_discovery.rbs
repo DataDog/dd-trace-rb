@@ -22,9 +22,12 @@ module Datadog
       def self._native_close_tracer_memfd: (TracerMemfd tracer_memfd, Datadog::Core::Logger logger) -> void
 
       def self._native_publish_otel_ctx_on_fork: (
-        String service_name,
+        String env,
+        String hostname,
         String runtime_id,
-        String service_env,
+        String service,
+        String version,
+        String tracer_version,
         Datadog::Core::Logger logger
       ) -> bool
 
