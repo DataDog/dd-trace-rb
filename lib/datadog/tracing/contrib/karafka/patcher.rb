@@ -81,6 +81,9 @@ module Datadog
 
             ::Karafka::Instrumentation::Monitor.prepend(Monitor)
             ::Karafka::Messages::Messages.prepend(MessagesPatch)
+
+            # Activate tracing on components related to Karafka (e.g. WaterDrop)
+            Framework.setup
           end
         end
       end
