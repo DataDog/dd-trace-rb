@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
 # Cannot use `skip:` as it will still raise a NameError (uninitialized constant CustomCops::RuboCop)
-return if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
+return unless defined?(RuboCop)
 
-require 'rubocop'
-require 'rubocop/rspec/support'
-require_relative '../../rubocop/custom_cops/env_usage_cop'
+require 'spec_helper'
+require 'custom_cops/env_usage_cop'
 
 RSpec.describe CustomCops::EnvUsageCop do
   subject(:cop) { described_class.new }
