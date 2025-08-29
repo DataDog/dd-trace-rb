@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
 require 'datadog/core/process_discovery/tracer_memfd'
+require 'datadog/core/utils/at_fork_monkey_patch'
+require 'datadog/core/utils/only_once'
 
 module Datadog
   module Core
     # Class used to store tracer metadata in a native file descriptor.
     class ProcessDiscovery
+      ACTIVATE_FORKING_PATCH = Core::Utils::OnlyOnce.new
+
       def self.get_and_store_metadata(settings, logger)
         if (libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE)
           logger.debug("Cannot enable process discovery: #{libdatadog_api_failure}")
@@ -14,6 +18,19 @@ module Datadog
         metadata = get_metadata(settings)
         memfd = _native_store_tracer_metadata(logger, **metadata)
         memfd.logger = logger if memfd
+
+        ACTIVATE_FORKING_PATCH.run do
+          Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
+            settings = Datadog.configuration
+            Datadog::Core::ProcessDiscovery._native_publish_otel_ctx_on_fork(
+              settings.service || '',
+              Core::Environment::Identity.id,
+              settings.env || '',
+              Datadog.logger,
+            )
+          end
+        end
+
         memfd
       end
 

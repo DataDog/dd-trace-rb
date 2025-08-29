@@ -4,6 +4,7 @@
 #include <datadog/library-config.h>
 
 #include "datadog_ruby_common.h"
+#include "otel_process_ctx.h"
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd);
@@ -26,6 +27,30 @@ static const rb_data_type_t tracer_memfd_type = {
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
 
+static VALUE _native_publish_otel_ctx_on_fork(VALUE _self, VALUE env, VALUE hostname, VALUE runtime_id, VALUE service, VALUE version, VALUE tracer_version, VALUE logger) {
+  otel_process_ctx_data otel_ctx_data = {
+    .deployment_environment_name = RSTRING_PTR(env),
+    .host_name = RSTRING_PTR(hostname),
+    .service_instance_id = RSTRING_PTR(runtime_id),
+    .service_name = RSTRING_PTR(service),
+    .service_version = RSTRING_PTR(version),
+    .telemetry_sdk_language = (char *) "ruby",
+    .telemetry_sdk_version = RSTRING_PTR(tracer_version),
+    .telemetry_sdk_name = (char *) "dd-trace-rb",
+    .resources = NULL, // TODO: Not supported yet for Ruby
+  };
+
+  otel_process_ctx_result result = otel_process_ctx_publish(&otel_ctx_data);
+
+  if (result.success) {
+    rb_funcall(logger, rb_intern("info"), 1, rb_str_new2("OTEL process context publish successful"));
+    return Qtrue;
+  } else {
+    rb_funcall(logger, rb_intern("info"), 1, rb_sprintf("OTEL process context publish failed: %s", result.error_message));
+    return Qfalse;
+  }
+}
+
 void process_discovery_init(VALUE core_module) {
   VALUE process_discovery_class = rb_define_class_under(core_module, "ProcessDiscovery", rb_cObject);
   VALUE tracer_memfd_class = rb_define_class_under(process_discovery_class, "TracerMemfd", rb_cObject);
@@ -34,6 +59,7 @@ void process_discovery_init(VALUE core_module) {
   rb_define_singleton_method(process_discovery_class, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
   rb_define_singleton_method(process_discovery_class, "_native_to_rb_int", _native_to_rb_int, 1);
   rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 2);
+  rb_define_singleton_method(process_discovery_class, "_native_publish_otel_ctx_on_fork", _native_publish_otel_ctx_on_fork, 7);
 }
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
@@ -59,6 +85,8 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ENFORCE_TYPE(service_name, T_STRING);
   ENFORCE_TYPE(service_env, T_STRING);
   ENFORCE_TYPE(service_version, T_STRING);
+
+  _native_publish_otel_ctx_on_fork(Qnil, service_env, hostname, runtime_id, service_name, service_version, tracer_version, logger);
 
   ddog_Result_TracerMemfdHandle result = ddog_store_tracer_metadata(
     (uint8_t) NUM2UINT(schema_version),
@@ -95,6 +123,19 @@ static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd) {
 static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd, VALUE logger) {
   int *fd;
   TypedData_Get_Struct(tracer_memfd, int, &tracer_memfd_type, fd);
+
+  /*if (otel_ctx.success) {
+    bool result = otel_process_ctx_drop(&otel_ctx);
+    otel_ctx.success = false;
+    if (!result) {
+      rb_funcall(logger, rb_intern("info"), 1, rb_str_new2("OTEL process context drop failed"));
+    } else {
+      rb_funcall(logger, rb_intern("info"), 1, rb_str_new2("OTEL process context drop successful"));
+    }
+  } else {
+    rb_funcall(logger, rb_intern("info"), 1, rb_str_new2("OTEL process context drop no-op"));
+  }*/
+
   if (*fd == -1) {
     rb_funcall(logger, rb_intern("debug"), 1, rb_sprintf("The tracer configuration memory file descriptor has already been closed"));
     return Qnil;
