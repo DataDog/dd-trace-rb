@@ -66,7 +66,7 @@ end
 desc 'Run RSpec'
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
-  task all: [:main, :benchmark,
+  task all: [:main, :benchmark, :custom_cop,
              :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
@@ -75,13 +75,18 @@ namespace :spec do
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking}/**/*_spec.rb,'\
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking,rubocop}/**/*_spec.rb,'\
                         ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config}_spec.rb, spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
     t.pattern = 'spec/datadog/benchmark/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:custom_cop) do |t, args|
+    t.pattern = 'spec/rubocop/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 

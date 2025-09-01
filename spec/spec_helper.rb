@@ -1,14 +1,6 @@
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
-begin
-  require 'rubocop'
-  require 'rubocop/rspec/support'
-  $LOAD_PATH.unshift File.expand_path('../rubocop', __dir__)
-rescue LoadError
-  # RuboCop not available in this gemfile, skip adding rubocop directory to load path
-end
-
 Thread.main.name = 'Thread.main' unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
 
 require 'pry'

@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
-# Cannot use `skip:` as it will still raise a NameError (uninitialized constant CustomCops::RuboCop)
-return unless defined?(RuboCop)
-
 require 'spec_helper'
-require 'custom_cops/env_usage_cop'
+
+require 'rubocop'
+require 'rubocop/rspec/support'
+require 'rubocop/custom_cops/env_usage_cop'
 
 RSpec.describe CustomCops::EnvUsageCop do
+
   subject(:cop) { described_class.new }
 
   describe 'ENV usage detection' do
