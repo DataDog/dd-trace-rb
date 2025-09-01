@@ -1,5 +1,5 @@
 {
-  "__comment": "See docs/AccessEnvironmentVariables.md",
+  "__comment": "See docs/AccessEnvironmentVariables.md. Also PLEASE KEEP THE KEYS SORTED :)",
   "supportedConfigurations": {
     "DD_AGENT_HOST": {
       "version": ["A"]

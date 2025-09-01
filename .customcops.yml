@@ -10,6 +10,7 @@ CustomCops/EnvUsageCop:
     - "lib/**/*"
   Exclude:
     - "lib/datadog/core/configuration/config_helper.rb"
+    - "lib/datadog/core/configuration/deprecations.rb"
 
 # Custom cop to validate environment variable strings
 CustomCops/EnvStringValidationCop:
@@ -19,5 +20,4 @@ CustomCops/EnvStringValidationCop:
   Include:
     - "lib/**/*"
   Exclude:
-    - "lib/datadog/core/configuration/config_helper.rb"
     - "lib/datadog/core/configuration/supported_configurations.rb"

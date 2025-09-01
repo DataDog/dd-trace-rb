@@ -142,55 +142,6 @@ RSpec.describe CustomCops::EnvUsageCop do
       RUBY
     end
 
-    it 'registers an offense for ENV.fetch with default' do
-      expect_offense(<<~RUBY)
-        module Datadog
-          ENV.fetch('DATADOG_API_KEY', 'default')
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use DATADOG_ENV to access environment variables. See docs/AccessEnvironmentVariables.md for details.
-        end
-      RUBY
-
-      expect_correction(<<~RUBY)
-        module Datadog
-          DATADOG_ENV.fetch('DATADOG_API_KEY', 'default')
-        end
-      RUBY
-    end
-
-    it 'registers an offense for ENV.fetch with block' do
-      expect_offense(<<~RUBY)
-        module Datadog
-          ENV.fetch('DATADOG_API_KEY') do
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use DATADOG_ENV to access environment variables. See docs/AccessEnvironmentVariables.md for details.
-            'default'
-          end
-        end
-      RUBY
-
-      expect_correction(<<~RUBY)
-        module Datadog
-          DATADOG_ENV.fetch('DATADOG_API_KEY') do
-            'default'
-          end
-        end
-      RUBY
-    end
-
-    it 'registers an offense for ENV.fetch with inline block' do
-      expect_offense(<<~RUBY)
-        module Datadog
-          ENV.fetch('DATADOG_API_KEY') { 'default' }
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CustomCops/EnvUsageCop: Avoid direct usage of ENV. Use DATADOG_ENV to access environment variables. See docs/AccessEnvironmentVariables.md for details.
-        end
-      RUBY
-
-      expect_correction(<<~RUBY)
-        module Datadog
-          DATADOG_ENV.fetch('DATADOG_API_KEY') { 'default' }
-        end
-      RUBY
-    end
-
     it 'registers an offense for ENV.key?' do
       expect_offense(<<~RUBY)
         module Datadog

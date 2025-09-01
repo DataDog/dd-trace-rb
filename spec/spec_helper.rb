@@ -352,8 +352,8 @@ Timeout.ensure_timeout_thread_created if Timeout.respond_to?(:ensure_timeout_thr
 # will enable it back for themselves.
 Datadog::DI.deactivate_tracking! if defined?(Datadog::DI) && Datadog::DI.respond_to?(:deactivate_tracking!)
 
-# This variable is only used by config inversion.
-# We raise an error in our testsuite if we forget to add a new environment variable to the supported configurations file.
-# This way, we will not miss any tested env var, and it will return nil in production.
-# (acting as the env var is not set, without crashing the app).
-Datadog::Core::Configuration::ConfigHelper.instance_variable_set(:@raise_on_unknown_env_var, true)
+# Enable raising errors when accessing unknown datadog/otel environment variables
+# (Default is to return `nil`). See docs/AccessEnvironmentVariables.md for details.
+#
+# (Note that the `config_helper_spec.rb` checks this is enabled as well!)
+Datadog::DATADOG_ENV.instance_variable_set(:@raise_on_unknown_env_var, true)
