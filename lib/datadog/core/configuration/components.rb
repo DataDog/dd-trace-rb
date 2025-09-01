@@ -3,6 +3,7 @@
 require_relative 'agent_settings_resolver'
 require_relative 'components_state'
 require_relative 'ext'
+require_relative 'deprecations'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'
@@ -97,7 +98,7 @@ module Datadog
         def initialize(settings)
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
-          ConfigHelper.log_deprecations_from_all_sources(@logger)
+          Deprecations.log_deprecations_from_all_sources(@logger)
 
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend

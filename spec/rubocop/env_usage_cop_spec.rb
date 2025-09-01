@@ -7,7 +7,6 @@ require 'rubocop/rspec/support'
 require 'rubocop/custom_cops/env_usage_cop'
 
 RSpec.describe CustomCops::EnvUsageCop do
-
   subject(:cop) { described_class.new }
 
   describe 'ENV usage detection' do

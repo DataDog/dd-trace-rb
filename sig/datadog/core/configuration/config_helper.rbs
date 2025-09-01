@@ -5,8 +5,21 @@ module Datadog
         type env_hash = RBS::Unnamed::ENVClass | Hash[String, String]
 
         @env_vars: env_hash
+        @raise_on_unknown_env_var: bool
+        @source: String
+        @supported_configurations: Hash[String, config_value]
+        @aliases: Hash[String, Array[String]]
+        @deprecations: Hash[String, String]
+        @alias_to_canonical: Hash[String, String]
 
-        def initialize: (?env_vars: env_hash) -> void
+        def initialize: (
+          ?env_vars: env_hash,
+          ?source: String,
+          ?supported_configurations: Hash[String, config_value],
+          ?aliases: Hash[String, Array[String]],
+          ?alias_to_canonical: Hash[String, String],
+          ?raise_on_unknown_env_var: bool
+        ) -> void
 
         def []: (String name) -> String?
 
@@ -18,19 +31,9 @@ module Datadog
         alias include? key?
         alias member? key?
 
-        def self.get_environment_variable: (String name, ?String? default_value, ?env_vars: env_hash) -> String?
-
-        def self.log_deprecated_environment_variables: (::Logger logger, ?env_vars: env_hash, ?source: String) -> void
-
-        def self.log_deprecations_from_all_sources: (::Logger logger) -> void
-
-        private
+        def get_environment_variable: (String name, ?String? default_value, ?env_vars: env_hash) -> String?
 
         UNSET: Object
-
-        self.@log_deprecations_called_with: Hash[String, bool]
-
-        self.@raise_on_unknown_env_var: bool?
       end
     end
   end

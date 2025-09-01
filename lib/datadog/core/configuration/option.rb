@@ -342,9 +342,9 @@ module Datadog
           env = definition.env
           return unless env
 
-          # An instance of ConfigHelper could be used with any Hash (e.g. stable config)
-          # but this is the only place where we use it with an Hash other than ENV, let's keep it simple for now
-          value = ConfigHelper.get_environment_variable(env, env_vars: env_vars)
+          # An instance of ConfigHelper could be used with any Hash but this is the only place where
+          # it's used with something else than ENV, let's keep it simple for now by overriding the env_vars parameter.
+          value = DATADOG_ENV.get_environment_variable(env, env_vars: env_vars)
           coerce_env_variable(value) unless value.nil?
         rescue ArgumentError
           raise ArgumentError,

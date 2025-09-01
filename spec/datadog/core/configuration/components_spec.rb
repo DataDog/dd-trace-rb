@@ -98,7 +98,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .with(settings, logger, telemetry)
         .and_return(health_metrics)
 
-      expect(Datadog::Core::Configuration::ConfigHelper).to receive(:log_deprecations_from_all_sources)
+      expect(Datadog::Core::Configuration::Deprecations).to receive(:log_deprecations_from_all_sources)
         .with(logger)
     end
 
