@@ -69,14 +69,14 @@ module Datadog
             return nil
           end
 
-          config = source_env[name]
-          if config.nil? && @aliases[name]
+          env_value = source_env[name]
+          if env_value.nil? && @aliases[name]
             @aliases[name].each do |alias_name|
               return source_env[alias_name] if source_env[alias_name]
             end
           end
 
-          config || default_value
+          env_value || default_value
         end
 
         # Only used in error message creation. Match get_environment_variable logic to return the resolved environment variable name.
