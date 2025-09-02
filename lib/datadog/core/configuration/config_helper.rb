@@ -46,8 +46,8 @@ module Datadog
         alias_method :include?, :key?
         alias_method :member?, :key?
 
-        # Returns the environment variable, if it's supported or a non Datadog
-        # configuration. Otherwise, it raises an error.
+        # Returns the environment variable value if the environment variable is a supported Datadog configuration (starts with DD_ or OTEL_)
+        # or if it is not a Datadog configuration. Otherwise, it returns nil.
         #
         # @param name [String] Environment variable name
         # @param default_value [String, nil] Default value to return if the environment variable is not set

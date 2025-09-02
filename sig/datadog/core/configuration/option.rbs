@@ -79,7 +79,7 @@ module Datadog
 
         def set_fleet_stable_config_value: () -> void
 
-        def get_value_from_ENV: () -> env_value
+        def get_value_from_env: () -> env_value
 
         def get_value_from: (env_vars env_vars, String source) -> env_value
 

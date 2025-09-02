@@ -24,8 +24,6 @@ module Datadog
           deprecations.each do |deprecated_env_var, message|
             next unless env_vars.key?(deprecated_env_var)
 
-            # As we only use warn level, we can use a new logger.
-            # Using logger_without_configuration is not possible as it uses an environment variable.
             Datadog::Core.log_deprecation(disallowed_next_major: false, logger: logger) do
               "#{deprecated_env_var} #{source} variable is deprecated" +
                 (alias_to_canonical[deprecated_env_var] ? ", use #{alias_to_canonical[deprecated_env_var]} instead." : ". #{message}.")

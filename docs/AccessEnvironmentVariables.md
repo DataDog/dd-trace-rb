@@ -19,7 +19,7 @@ Instead of accessing `ENV` directly, use `DATADOG_ENV` to read environment varia
 api_key = ENV['DD_API_KEY']
 service = ENV.fetch('DD_SERVICE', 'default_service')
 timeout = ENV.fetch('DD_TIMEOUT') do |key|
-  return "#{key} not found"
+  "#{key} not found"
 end
 has_service = ENV.key?('DD_SERVICE')
 
@@ -27,7 +27,7 @@ has_service = ENV.key?('DD_SERVICE')
 api_key = DATADOG_ENV['DD_API_KEY']
 service = DATADOG_ENV.fetch('DD_SERVICE', 'default_service')
 timeout = DATADOG_ENV.fetch('DD_TIMEOUT', '30') do |key|
-  return "#{key} not found"
+  "#{key} not found"
 end
 has_service = DATADOG_ENV.key?('DD_SERVICE')
 ```

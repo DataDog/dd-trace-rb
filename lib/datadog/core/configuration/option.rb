@@ -306,7 +306,7 @@ module Datadog
         end
 
         def set_env_value
-          value = get_value_from_ENV
+          value = get_value_from_env
           set(value, precedence: Precedence::ENVIRONMENT) unless value.nil?
         end
 
@@ -326,14 +326,14 @@ module Datadog
           set(value, precedence: Precedence::FLEET_STABLE) unless value.nil?
         end
 
-        def get_value_from_ENV
+        def get_value_from_env
           env = definition.env
           return unless env
 
-          # Default value for env_vars is ENV
           value = DATADOG_ENV[env]
           coerce_env_variable(value) unless value.nil?
         rescue ArgumentError
+          # This will be raised when the type is set to :int or :float but an invalid env var value is provided.
           raise ArgumentError,
             "Cannot resolve environment variable for option #{@definition.name}"
         end
@@ -347,6 +347,7 @@ module Datadog
           value = DATADOG_ENV.get_environment_variable(env, env_vars: env_vars)
           coerce_env_variable(value) unless value.nil?
         rescue ArgumentError
+          # This will be raised when the type is set to :int or :float but an invalid env var value is provided.
           raise ArgumentError,
             "Cannot resolve environment variable in #{source} configuration file for option #{@definition.name}"
         end
