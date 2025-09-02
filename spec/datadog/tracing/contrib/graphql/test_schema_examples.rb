@@ -105,7 +105,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       ['graphql.analyze_multiplex', 'Users'],
       ['graphql.authorized', "#{prefix}TestGraphQLQuery.authorized"],
       ['graphql.authorized', "#{prefix}TestUser.authorized"],
-      ['graphql.execute', 'Users'],
+      ['graphql.execute', 'query Users'],
       ['graphql.execute_lazy', 'Users'],
       ['graphql.execute_multiplex', 'Users'],
       if Gem::Version.new(GraphQL::VERSION) < Gem::Version.new('2.2')
@@ -144,6 +144,8 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
           # graphql.variables.* in graphql.execute span are the ones defined outside the query
           # (variables part in JSON for example)
           expect(span.get_tag('graphql.variables.var')).to eq(1)
+
+          expect(span.get_tag('span.kind')).to eq('server')
         end
 
         if name == 'graphql.resolve' && resource == 'TestGraphQLQuery.user'
@@ -163,7 +165,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
       expect(result.to_h['data']).to eq('err1' => nil, 'err2' => nil)
 
-      expect(graphql_execute.resource).to eq('Error')
+      expect(graphql_execute.resource).to eq('query Error')
       expect(graphql_execute.service).to eq(service)
       expect(graphql_execute.type).to eq('graphql')
 
@@ -171,6 +173,8 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
 
       expect(graphql_execute.get_tag('graphql.operation.type')).to eq('query')
       expect(graphql_execute.get_tag('graphql.operation.name')).to eq('Error')
+
+      expect(graphql_execute.get_tag('span.kind')).to eq('server')
 
       expect(graphql_execute.events).to contain_exactly(
         a_span_event_with(

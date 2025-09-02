@@ -25,6 +25,11 @@ module GraphQL
 
       class Argument
       end
+
+      class OperationDefinition
+        def name: -> String?
+        def operation_type: -> Symbol?
+      end
     end
   end
 
