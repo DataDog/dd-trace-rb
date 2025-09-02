@@ -79,6 +79,17 @@ module Datadog
           config || default_value
         end
 
+        # Only used in error message creation. Match get_environment_variable logic to return the resolved environment variable name.
+        def resolve_env(name, source_env: @source_env)
+          if source_env[name].nil? && @aliases[name]
+            @aliases[name].each do |alias_name|
+              return alias_name if source_env[alias_name]
+            end
+          end
+
+          name
+        end
+
         # Anchor object that represents an undefined default value.
         # This is necessary because `nil` is a valid default value.
         UNSET = Object.new

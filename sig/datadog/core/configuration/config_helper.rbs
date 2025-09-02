@@ -31,6 +31,8 @@ module Datadog
 
         def get_environment_variable: (String name, ?String? default_value, ?source_env: env_hash) -> String?
 
+        def resolve_env: (String name, ?source_env: env_hash) -> String
+
         UNSET: Object
       end
     end

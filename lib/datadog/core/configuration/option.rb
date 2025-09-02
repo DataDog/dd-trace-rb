@@ -335,7 +335,10 @@ module Datadog
         rescue ArgumentError
           # This will be raised when the type is set to :int or :float but an invalid env var value is provided.
           raise ArgumentError,
-            "Cannot resolve environment variable for option #{@definition.name}"
+            # ArgumentError will be thrown from coerce_env_variable, so we've already checked that env is not nil.
+            # @type var env: String
+            "Expected environment variable #{DATADOG_ENV.resolve_env(env)} " \
+            "to be a #{definition.type}, but '#{value}' was provided."
         end
 
         def get_value_from(source_env, source_name)
@@ -349,7 +352,10 @@ module Datadog
         rescue ArgumentError
           # This will be raised when the type is set to :int or :float but an invalid env var value is provided.
           raise ArgumentError,
-            "Cannot resolve environment variable in #{source} configuration file for option #{@definition.name}"
+            # ArgumentError will be thrown from coerce_env_variable, so we've already checked that env is not nil.
+            # @type var env: String
+            "Expected #{source_name} configuration file variable #{DATADOG_ENV.resolve_env(env, source_env: source_env)} " \
+            "to be a #{definition.type}, but '#{value}' was provided."
         end
 
         # Anchor object that represents a value that is not set.
