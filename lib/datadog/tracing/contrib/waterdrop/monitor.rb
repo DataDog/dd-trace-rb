@@ -45,7 +45,9 @@ module Datadog
                 action = event_id.sub('message.produced', 'produce')
 
                 span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, payload[:message][:topic])
-                span.set_tag(Contrib::Karafka::Ext::TAG_PARTITION, payload[:message][:partition])
+
+                partition = payload[:message][:partition]
+                span.set_tag(Contrib::Karafka::Ext::TAG_PARTITION, partition) if partition
                 span.set_tag(Contrib::Karafka::Ext::TAG_MESSAGE_COUNT, 1)
 
                 inject(trace_digest, payload[:message]) if configuration[:distributed_tracing]
