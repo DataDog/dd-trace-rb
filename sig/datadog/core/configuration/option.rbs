@@ -81,7 +81,7 @@ module Datadog
 
         def get_value_from_env: () -> env_value
 
-        def get_value_from: (env_vars env_vars, String source) -> env_value
+        def get_value_from: (env_vars env_vars, String source_name) -> env_value
 
         UNSET: Object
       end

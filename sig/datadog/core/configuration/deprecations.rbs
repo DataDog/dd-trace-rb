@@ -8,7 +8,7 @@ module Datadog
 
         private
 
-        def self.log_deprecated_environment_variables: (Datadog::Core::Logger logger, ConfigHelper::env_hash env_vars, String source, Hash[String, String] deprecations, Hash[String, String] alias_to_canonical) -> void
+        def self.log_deprecated_environment_variables: (Datadog::Core::Logger logger, ConfigHelper::env_hash source_env, String source_name, Hash[String, String] deprecations, Hash[String, String] alias_to_canonical) -> void
       end
     end
   end

@@ -8,15 +8,13 @@ module Datadog
     module Configuration
       class ConfigHelper
         def initialize(
-          env_vars: ENV,
-          source: 'environment',
+          source_env: ENV,
           supported_configurations: SUPPORTED_CONFIGURATIONS,
           aliases: ALIASES,
           alias_to_canonical: ALIAS_TO_CANONICAL,
           raise_on_unknown_env_var: false
         )
-          @env_vars = env_vars
-          @source = source
+          @source_env = source_env
           @supported_configurations = supported_configurations
           @aliases = aliases
           @alias_to_canonical = alias_to_canonical
@@ -51,10 +49,10 @@ module Datadog
         #
         # @param name [String] Environment variable name
         # @param default_value [String, nil] Default value to return if the environment variable is not set
-        # @param env_vars [Hash[String, String]] Environment variables to use
+        # @param source_env [Hash[String, String]] Environment variables to use
         # @return [String, nil] The environment variable value
         # @raise [RuntimeError] if the configuration is not supported
-        def get_environment_variable(name, default_value = nil, env_vars: @env_vars)
+        def get_environment_variable(name, default_value = nil, source_env: @source_env)
           # datadog-ci-rb is using dd-trace-rb config DSL, which uses this method.
           # Until we've correctly implemented support for datadog-ci-rb, we disable config inversion if ci is enabled.
           if !defined?(::Datadog::CI) &&
@@ -71,10 +69,10 @@ module Datadog
             return nil
           end
 
-          config = env_vars[name]
+          config = source_env[name]
           if config.nil? && @aliases[name]
             @aliases[name].each do |alias_name|
-              return env_vars[alias_name] if env_vars[alias_name]
+              return source_env[alias_name] if source_env[alias_name]
             end
           end
 

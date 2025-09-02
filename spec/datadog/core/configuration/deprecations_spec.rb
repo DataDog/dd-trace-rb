@@ -120,23 +120,23 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
   describe '.log_deprecated_environment_variables' do
     let(:mock_io) { StringIO.new }
     let(:mock_logger) { Datadog::Core::Logger.new(mock_io) }
-    let(:env_vars) { {} }
-    let(:source) { 'test' }
+    let(:source_env) { {} }
+    let(:source_name) { 'test' }
     let(:deprecations) { {} }
     let(:alias_to_canonical) { {} }
 
     subject do
       described_class.send(:log_deprecated_environment_variables,
         mock_logger,
-        env_vars,
-        source,
+        source_env,
+        source_name,
         deprecations,
         alias_to_canonical
       )
     end
 
     context 'when the deprecated environment variable has an alias' do
-      let(:env_vars) { { 'DD_DEPRECATED_ENV_VAR' => 'true' } }
+      let(:source_env) { { 'DD_DEPRECATED_ENV_VAR' => 'true' } }
       let(:deprecations) { { 'DD_DEPRECATED_ENV_VAR' => 'This should not appear in the output' } }
       let(:alias_to_canonical) { { 'DD_DEPRECATED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR' } }
 
@@ -147,7 +147,7 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
     end
 
     context 'when the environment variable does not have an alias' do
-      let(:env_vars) { { 'DD_DEPRECATED_ENV_VAR' => 'true' } }
+      let(:source_env) { { 'DD_DEPRECATED_ENV_VAR' => 'true' } }
       let(:deprecations) { { 'DD_DEPRECATED_ENV_VAR' => 'This will be removed in the next major version.' } }
       let(:alias_to_canonical) { {} }
 

@@ -338,13 +338,13 @@ module Datadog
             "Cannot resolve environment variable for option #{@definition.name}"
         end
 
-        def get_value_from(env_vars, source)
+        def get_value_from(source_env, source_name)
           env = definition.env
           return unless env
 
           # An instance of ConfigHelper could be used with any Hash but this is the only place where
-          # it's used with something else than ENV, let's keep it simple for now by overriding the env_vars parameter.
-          value = DATADOG_ENV.get_environment_variable(env, env_vars: env_vars)
+          # it's used with something else than ENV, let's keep it simple for now by overriding the source_env parameter.
+          value = DATADOG_ENV.get_environment_variable(env, source_env: source_env)
           coerce_env_variable(value) unless value.nil?
         rescue ArgumentError
           # This will be raised when the type is set to :int or :float but an invalid env var value is provided.

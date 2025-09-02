@@ -7,8 +7,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     subject { described_class.new }
 
     it 'initializes with correct defaults' do
-      expect(subject.instance_variable_get(:@env_vars)).to eq(ENV)
-      expect(subject.instance_variable_get(:@source)).to eq('environment')
+      expect(subject.instance_variable_get(:@source_env)).to eq(ENV)
       expect(subject.instance_variable_get(:@supported_configurations)).to eq(Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS)
       expect(subject.instance_variable_get(:@aliases)).to eq(Datadog::Core::Configuration::ALIASES)
       expect(subject.instance_variable_get(:@alias_to_canonical)).to eq(Datadog::Core::Configuration::ALIAS_TO_CANONICAL)
@@ -19,7 +18,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
   describe '#[]' do
     subject do
       described_class.new(
-        env_vars: { 'DD_SUPPORTED_ENV_VAR' => 'true' },
+        source_env: { 'DD_SUPPORTED_ENV_VAR' => 'true' },
         supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } }
       )
     end
@@ -31,11 +30,11 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
   describe '#fetch' do
     subject do
-      described_class.new(env_vars: env_vars, supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } })
+      described_class.new(source_env: source_env, supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } })
     end
 
     context 'with env var set' do
-      let(:env_vars) { { 'DD_SUPPORTED_ENV_VAR' => 'true' } }
+      let(:source_env) { { 'DD_SUPPORTED_ENV_VAR' => 'true' } }
 
       it 'returns the environment variable value' do
         expect(subject.fetch('DD_SUPPORTED_ENV_VAR')).to eq('true')
@@ -43,7 +42,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     end
 
     context 'with env var not set' do
-      let(:env_vars) { {} }
+      let(:source_env) { {} }
 
       it 'returns the default value when set' do
         expect(subject.fetch('DD_SUPPORTED_ENV_VAR', 'default')).to eq('default')
@@ -61,11 +60,11 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
   describe '#key?' do
     subject do
-      described_class.new(env_vars: env_vars, supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } })
+      described_class.new(source_env: source_env, supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } })
     end
 
     context 'with env var not set' do
-      let(:env_vars) { {} }
+      let(:source_env) { {} }
 
       it 'returns false if the env var is not set' do
         expect(subject.key?('DD_SUPPORTED_ENV_VAR')).to be(false)
@@ -73,7 +72,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     end
 
     context 'with env var set' do
-      let(:env_vars) { { 'DD_SUPPORTED_ENV_VAR' => 'anything' } }
+      let(:source_env) { { 'DD_SUPPORTED_ENV_VAR' => 'anything' } }
 
       it 'returns true if the env var is set' do
         expect(subject.key?('DD_SUPPORTED_ENV_VAR')).to be(true)
@@ -84,8 +83,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
   describe '#get_environment_variable' do
     subject do
       described_class.new(
-        env_vars: env_vars,
-        source: 'test',
+        source_env: source_env,
         supported_configurations: supported_configurations,
         aliases: aliases,
         alias_to_canonical: alias_to_canonical,
@@ -96,7 +94,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when the environment variable is supported' do
       subject do
         described_class.new(
-          env_vars: { 'DD_SUPPORTED_ENV_VAR' => 'true' },
+          source_env: { 'DD_SUPPORTED_ENV_VAR' => 'true' },
           supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } }
         )
       end
@@ -109,7 +107,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when the environment variable is not set' do
       subject do
         described_class.new(
-          env_vars: {},
+          source_env: {},
           supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } }
         )
       end
@@ -128,7 +126,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when the environment variable has an alias' do
       subject do
         described_class.new(
-          env_vars: { 'OTEL_SUPPORTED_ENV_VAR' => 'my-service' },
+          source_env: { 'OTEL_SUPPORTED_ENV_VAR' => 'my-service' },
           supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
           aliases: { 'DD_SUPPORTED_ENV_VAR' => ['OTEL_SUPPORTED_ENV_VAR'] }
         )
@@ -141,7 +139,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       context 'when both main and alias are set' do
         subject do
           described_class.new(
-            env_vars: { 'DD_SUPPORTED_ENV_VAR' => 'main-service', 'OTEL_SUPPORTED_ENV_VAR' => 'alias-service' },
+            source_env: { 'DD_SUPPORTED_ENV_VAR' => 'main-service', 'OTEL_SUPPORTED_ENV_VAR' => 'alias-service' },
             supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
             aliases: { 'DD_SUPPORTED_ENV_VAR' => ['OTEL_SUPPORTED_ENV_VAR'] }
           )
@@ -160,7 +158,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       subject do
         described_class.new(
-          env_vars: { 'DD_UNSUPPORTED_VAR' => 'value' },
+          source_env: { 'DD_UNSUPPORTED_VAR' => 'value' },
           supported_configurations: {}
         )
       end
@@ -174,7 +172,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when environment variable starts with DD_ but is not supported' do
       subject do
         described_class.new(
-          env_vars: { 'DD_UNSUPPORTED_VAR' => 'value' },
+          source_env: { 'DD_UNSUPPORTED_VAR' => 'value' },
           supported_configurations: {},
           raise_on_unknown_env_var: raise_on_unknown_env_var
         )
@@ -200,7 +198,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when using a deprecated alias that does not start with DD_ or OTEL_' do
       subject do
         described_class.new(
-          env_vars: { 'SUPPORTED_ENV_VAR' => 'true' },
+          source_env: { 'SUPPORTED_ENV_VAR' => 'true' },
           supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
           aliases: { 'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR'] },
           alias_to_canonical: { 'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR' },
@@ -228,7 +226,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when environment variable does not start with DD_ or OTEL_' do
       subject do
         described_class.new(
-          env_vars: { 'SOME_OTHER_VAR' => 'value' },
+          source_env: { 'SOME_OTHER_VAR' => 'value' },
           supported_configurations: {},
         )
       end

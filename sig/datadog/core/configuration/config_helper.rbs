@@ -4,17 +4,15 @@ module Datadog
       class ConfigHelper
         type env_hash = RBS::Unnamed::ENVClass | Hash[String, String]
 
-        @env_vars: env_hash
+        @source_env: env_hash
         @raise_on_unknown_env_var: bool
-        @source: String
         @supported_configurations: Hash[String, config_value]
         @aliases: Hash[String, Array[String]]
         @deprecations: Hash[String, String]
         @alias_to_canonical: Hash[String, String]
 
         def initialize: (
-          ?env_vars: env_hash,
-          ?source: String,
+          ?source_env: env_hash,
           ?supported_configurations: Hash[String, config_value],
           ?aliases: Hash[String, Array[String]],
           ?alias_to_canonical: Hash[String, String],
@@ -31,7 +29,7 @@ module Datadog
         alias include? key?
         alias member? key?
 
-        def get_environment_variable: (String name, ?String? default_value, ?env_vars: env_hash) -> String?
+        def get_environment_variable: (String name, ?String? default_value, ?source_env: env_hash) -> String?
 
         UNSET: Object
       end
