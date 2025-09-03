@@ -824,6 +824,24 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(tracer.active_trace).to be original_trace
         end
+
+        it 'create a root span inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span).to be_root_span
+        end
+
+        it 'create two root spans inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
+          end
+
+          expect(spans).to have(2).items
+          expect(spans).to all(be_root_span)
+        end
       end
     end
 
@@ -866,6 +884,24 @@ RSpec.describe Datadog::Tracing::Tracer do
           end
 
           expect(tracer.active_trace).to be original_trace
+        end
+
+        it 'create a root span inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span).to be_root_span
+        end
+
+        it 'create two root spans inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
+          end
+
+          expect(spans).to have(2).items
+          expect(spans).to all(be_root_span)
         end
       end
     end
@@ -946,15 +982,21 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(tracer.active_trace).to be original_trace
         end
 
-        it 'creates spans within the block and continues the trace' do
-          tracer.continue_trace!(nil) do
-            tracer.trace('first_span') {}
-            tracer.trace('second_span') {}
+        it 'create a child span inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span.parent_id).to eq(digest.span_id)
+        end
+
+        it 'create two child spans inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
           end
 
           expect(spans).to have(2).items
-          expect(spans.map(&:name)).to contain_exactly('first_span', 'second_span')
-          expect(spans.map(&:trace_id)).to all(eq(digest.trace_id))
           expect(spans.map(&:parent_id)).to all(eq(digest.span_id))
         end
       end
