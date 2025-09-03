@@ -32,8 +32,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
           fd = described_class._native_to_rb_int(native_fd)
           buffer = IO.new(fd)
           buffer.rewind
-          raw_content = buffer.read
-          content = MessagePack.unpack(raw_content)
+          content = MessagePack.unpack(buffer.read)
 
           expect(content).to eq(
             {
@@ -67,8 +66,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
           fd = described_class._native_to_rb_int(native_fd)
           buffer = IO.new(fd)
           buffer.rewind
-          raw_content = buffer.read
-          content = MessagePack.unpack(raw_content)
+          content = MessagePack.unpack(buffer.read)
 
           # If the string is empty, it should be replaced by None when converting C strings to Rust types.
           # Thus not appearing in the content.
@@ -99,8 +97,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         fd = described_class._native_to_rb_int(native_fd)
         buffer = IO.new(fd)
         buffer.rewind
-        raw_content = buffer.read
-        content = MessagePack.unpack(raw_content)
+        content = MessagePack.unpack(buffer.read)
 
         expect(content).to eq(
           {
