@@ -7,7 +7,8 @@ gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 gem 'bigdecimal'
 gem 'climate_control', '~> 1.2.0'
-gem 'concurrent-ruby'
+# Pin concurrent-ruby to avoid Rails 7 boot issues (see rails-seven Gemfile comment)
+gem 'concurrent-ruby', '1.3.4'
 
 # Optional extensions
 # TODO: Move this to Appraisals?
@@ -30,27 +31,33 @@ gem 'os', '~> 1.1'
 
 # debug permits evaluating more expressions than byebug, however
 # debug does not show context on stack navigation.
-gem 'debug'
 gem 'byebug'
+gem 'debug'
 gem 'pry'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'rspec', '~> 3.13'
 gem 'rspec-collection_matchers', '~> 1.1'
-gem 'rspec-wait', '~> 0'
 gem 'rspec_junit_formatter', '>= 0.5.1'
+gem 'rspec-wait', '~> 0'
 
 gem 'simplecov', '~> 0.22.0'
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.8.2'
 
+# ActiveRecord 7 async query support for local specs
+# gem 'activerecord', '~> 7.0'
+gem 'pg', '>= 1.4', '< 2.0'
+gem 'sqlite3', '>= 1.5', '< 2.0'
+gem 'mysql2', '>= 0.5.4', '< 0.6.0'
+
 group :check do
   gem 'rbs', '~> 3.7', require: false
   # steep 1.10 produces additional errors
-  gem 'steep', '~> 1.9.1', require: false
   gem 'ruby_memcheck', '>= 3'
   gem 'standard', require: false
+  gem 'steep', '~> 1.9.1', require: false
 
   # Rubocop version must be pinned to major.minor because its demanded
   # style changes between minor versions.
@@ -63,9 +70,9 @@ group :check do
 end
 
 group :dev do
-  gem 'ruby-lsp', require: false
   gem 'appraisal', '~> 2.4.0', require: false
   gem 'pimpmychangelog', '~> 0.1.3', require: false
+  gem 'ruby-lsp', require: false
 end
 
 group :test do
@@ -73,3 +80,33 @@ group :test do
   # warning: ostruct was loaded from the standard library, but will no longer be part of the default gems starting from Ruby 3.5.0.
   gem 'ostruct'
 end
+
+gem "base64"
+gem "benchmark-ips", "~> 2.8"
+gem "benchmark-memory", "< 0.2"
+gem "bigdecimal"
+gem "climate_control", "~> 1.2.0"
+# gem "concurrent-ruby"
+gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
+gem "extlz4", "~> 0.3", ">= 0.3.3"
+gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
+gem "json-schema", "< 3"
+gem "memory_profiler", "~> 0.9"
+gem "mutex_m"
+gem "os", "~> 1.1"
+gem "debug"
+gem "byebug"
+gem "pry"
+gem "rake", ">= 10.5"
+gem "rake-compiler", "~> 1.1", ">= 1.1.1"
+gem "rspec", "~> 3.13"
+gem "rspec-collection_matchers", "~> 1.1"
+gem "rspec-wait", "~> 0"
+gem "rspec_junit_formatter", ">= 0.5.1"
+gem "simplecov", "~> 0.22.0"
+gem "simplecov-cobertura", "~> 2.1.0"
+gem "warning", "~> 1"
+gem "webmock", ">= 3.10.0"
+gem "webrick", ">= 1.8.2"
+gem "rails", "~> 7.1.0"
+gem "activerecord", "~> 7.1.0"

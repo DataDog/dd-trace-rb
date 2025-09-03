@@ -20,6 +20,8 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
     Datadog.configure do |c|
       c.tracing.instrument :active_record, configuration_options
+      c.tracing.instrument :concurrent_ruby
+      c.tracing.instrument :mysql2
     end
 
     raise_on_rails_deprecation!
@@ -161,6 +163,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
     context 'with adapter supporting background execution' do
       it 'parents the database span to the calling context' do
+        ::A = 1
         Datadog::Tracing.trace('root-span') do
           relation = Article.limit(1).load_async
 
@@ -174,11 +177,17 @@ RSpec.describe 'ActiveRecord instrumentation' do
         # Remove internal AR queries
         spans.reject! { |s| s.resource.start_with?('SET ') }
 
-        expect(spans).to have(2).items
+        pp spans
+
+        expect(spans).to have(3).items
 
         select = spans.find { |s| s.resource.include?('articles') }
 
         expect(select).to_not be_root_span
+
+        # select = spans.find { |s| s.resource.include?('articles') }
+        #
+        # expect(select).to_not be_root_span
       end
     end
   end
