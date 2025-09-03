@@ -93,7 +93,8 @@ module Datadog
           :error_tracking,
           :dynamic_instrumentation,
           :appsec,
-          :agent_info
+          :agent_info,
+          :process_discovery_fd
 
         def initialize(settings)
           @logger = self.class.build_logger(settings)

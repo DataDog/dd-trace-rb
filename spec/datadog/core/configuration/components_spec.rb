@@ -78,6 +78,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(described_class).to receive(:build_tracer)
         .with(settings, agent_settings, logger: logger)
         .and_return(tracer)
+
       crashtracker = double('crashtracker')
       expect(described_class).to receive(:build_crashtracker)
         .with(settings, agent_settings, logger: logger)
@@ -100,6 +101,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       expect(Datadog::Core::Configuration::Deprecations).to receive(:log_deprecations_from_all_sources)
         .with(logger)
+      process_discovery_fd = double('process_discovery_fd')
+      expect(Datadog::Core::ProcessDiscovery).to receive(:get_and_store_metadata)
+        .with(settings, logger)
+        .and_return(process_discovery_fd)
     end
 
     it do

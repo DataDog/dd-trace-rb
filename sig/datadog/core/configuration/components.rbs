@@ -38,6 +38,8 @@ module Datadog
 
         attr_reader agent_info: Datadog::Core::Environment::AgentInfo
 
+        attr_reader process_discovery_fd: ProcessDiscovery::TracerMemfd?
+
         def initialize: (untyped settings) -> untyped
 
         def startup!: (untyped settings) -> untyped

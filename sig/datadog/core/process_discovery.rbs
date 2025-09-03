@@ -5,6 +5,8 @@ module Datadog
       class TracerMemfd
       end
 
+      ONLY_ONCE: Core::Utils::OnlyOnce
+
       def self._native_store_tracer_metadata: (
         Datadog::Core::Logger logger,
         schema_version: Integer,
@@ -34,6 +36,8 @@ module Datadog
         service_env: String,
         service_version: String
       }
+
+      def self.apply_at_fork_patch: () -> void
     end
   end
 end

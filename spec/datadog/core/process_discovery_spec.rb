@@ -85,4 +85,34 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       end
     end
   end
+
+  describe 'when forked', skip: !LibdatadogHelpers.supported? do
+    before do
+      Datadog.configure do |c|
+        c.service = 'test-service' # Manually set so it isn't set to fallback service name that we don't control
+      end
+    end
+
+    it 'updates the process discovery file descriptor' do
+      expect_in_fork do
+        native_fd = Datadog.send(:components, allow_initialization: false).process_discovery_fd
+        fd = described_class._native_to_rb_int(native_fd)
+        buffer = IO.new(fd)
+        buffer.rewind
+        raw_content = buffer.read
+        content = MessagePack.unpack(raw_content)
+
+        expect(content).to eq(
+          {
+            'schema_version' => 1,
+            'runtime_id' => Datadog::Core::Environment::Identity.id,
+            'tracer_language' => Datadog::Core::Environment::Identity.lang,
+            'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
+            'hostname' => Datadog::Core::Environment::Socket.hostname,
+            'service_name' => 'test-service'
+          }
+        )
+      end
+    end
+  end
 end
