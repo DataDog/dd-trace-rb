@@ -20,8 +20,10 @@ module Datadog
         ONLY_ONCE.run { apply_at_fork_patch }
 
         metadata = get_metadata(settings)
+
         memfd = _native_store_tracer_metadata(logger, **metadata)
         memfd.logger = logger if memfd
+
         memfd
       end
 
@@ -47,8 +49,10 @@ module Datadog
 
           metadata = get_metadata(Datadog.configuration)
           logger = components.logger
+
           memfd = _native_store_tracer_metadata(logger, **metadata)
           memfd.logger = logger if memfd
+
           components.instance_variable_set(:@process_discovery_fd, memfd)
         end
       end
