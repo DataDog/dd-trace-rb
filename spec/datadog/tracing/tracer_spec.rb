@@ -945,6 +945,18 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(tracer.active_trace).to be original_trace
         end
+
+        it 'creates spans within the block and continues the trace' do
+          tracer.continue_trace!(nil) do
+            tracer.trace('first_span') {}
+            tracer.trace('second_span') {}
+          end
+
+          expect(spans).to have(2).items
+          expect(spans.map(&:name)).to contain_exactly('first_span', 'second_span')
+          expect(spans.map(&:trace_id)).to all(eq(digest.trace_id))
+          expect(spans.map(&:parent_id)).to all(eq(digest.span_id))
+        end
       end
     end
 

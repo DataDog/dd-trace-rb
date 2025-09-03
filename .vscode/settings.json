@@ -3,5 +3,34 @@
     "*.gemfile": "ruby",
     "Matrixfile": "ruby",
     "Dockerfile*": "dockerfile"
-  }
+  },
+  "rubyLsp.enabledFeatures": {
+    "diagnostics": false,
+    "documentHighlights": false,
+    "documentSymbols": true,
+    "foldingRanges": true,
+    "selectionRanges": true,
+    "semanticHighlighting": true,
+    "codeActions": false,
+    "codeActionsResolve": false,
+    "completion": true,
+    "definition": true,
+    "documentLink": true,
+    "hover": true,
+    "inlayHint": false,
+    "onTypeFormatting": false,
+    "references": true,
+    "rename": true,
+    "signatureHelp": true,
+    "typeDefinition": true
+  },
+  "rubyLsp.diagnostics": {
+    "enabled": false
+  },
+  "rubyLsp.formatter": "none",
+  "rubyLsp.lint": {
+    "enabled": false
+  },
+  "rubyLsp.logLevel": "debug",
+  "rubyLsp.trace": "verbose"
 }
