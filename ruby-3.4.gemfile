@@ -48,9 +48,9 @@ gem 'webrick', '>= 1.8.2'
 
 # ActiveRecord 7 async query support for local specs
 # gem 'activerecord', '~> 7.0'
-gem 'pg', '>= 1.4', '< 2.0'
-gem 'sqlite3', '>= 1.5', '< 2.0'
-gem 'mysql2', '>= 0.5.4', '< 0.6.0'
+# gem 'pg', '>= 1.4', '< 2.0'
+# gem 'sqlite3', '>= 1.5', '< 2.0'
+# gem 'mysql2', '>= 0.5.4', '< 0.6.0'
 
 group :check do
   gem 'rbs', '~> 3.7', require: false
