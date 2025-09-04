@@ -266,21 +266,21 @@ module Datadog
         # this trace. Subscribe to the trace finished event to do this.
         subscribe_trace_deactivation!(context, trace, original_trace) unless block
 
-                if block
-          # For block usage, manually flush when block completes
+        if block
+          # For block usage, ensure the trace stays active until the block completes.
           context.activate!(trace) do
             result = yield
 
-            # Manually flush any remaining spans when block completes
             if trace.finished_span_count > 0
-              # Create a trace segment from the finished spans and write it directly
-              write(trace_segment) if trace_segment && !trace_segment.empty?
+              # On block completion, forces the current trace to finish and flush its finished spans.
+              # Unfinished spans are lost as the trace context is no longer valid.
+              trace.finish!
+              flush_trace(trace)
             end
 
             result
           end
         else
-          # For non-block usage, use existing behavior
           context.activate!(trace)
         end
       end
