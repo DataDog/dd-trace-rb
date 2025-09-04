@@ -30,10 +30,11 @@ module Datadog
               @callbacks = Callbacks.new
             end
 
-            def publish(name, _time, _end, id, payload)
-              start(name, id, payload)
-              finish(name, id, payload)
-            end
+            # This will probably generate unwanted spans if not tested thoroughly
+            # def publish(name, _time, _end, id, payload)
+            #   start(name, id, payload)
+            #   finish(name, id, payload)
+            # end
 
             # Called by ActiveSupport on event start
             def start(name, id, payload)
