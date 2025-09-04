@@ -129,7 +129,7 @@ module Datadog
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
-          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
+          Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
 
           self.class.configure_tracing(settings)
         end
@@ -213,7 +213,7 @@ module Datadog
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
 
-          @process_discovery_fd&.shutdown!
+          Core::ProcessDiscovery.shutdown!
         end
 
         # Returns the current state of various components.
