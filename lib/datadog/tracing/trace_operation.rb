@@ -135,6 +135,18 @@ module Datadog
         @finished == true
       end
 
+      # Manually finish the trace, marking it as completed.
+      # Any unfinished spans are lost and will not be included in the trace.
+      # This is useful for trace_block traces where we want to flush
+      # finished spans without waiting for a root span to complete.
+      def finish!
+        @finished = true
+        @active_span = nil
+        @active_span_count = 0
+
+        events.trace_finished.publish(self)
+      end
+
       # Will this trace be flushed by the tracer transport?
       # This includes cases where the span is kept solely due to priority sampling.
       #
