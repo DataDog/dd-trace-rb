@@ -1,6 +1,12 @@
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License (Version 2.0).
+// This product includes software developed at Datadog (https://www.datadoghq.com/) Copyright 2025 Datadog, Inc.
+
 #include "otel_process_ctx.h"
 
-#include <limits.h>
+#ifndef _GNU_SOURCE
+  #define _GNU_SOURCE
+#endif
+
 #ifdef __cplusplus
   #include <atomic>
   using std::atomic_thread_fence;
@@ -44,7 +50,7 @@ static const otel_process_ctx_data empty_data = {
     return (otel_process_ctx_result) {.success = false, .error_message = "OTEL_PROCESS_CTX_NOOP mode is enabled - no-op implementation (" __FILE__ ":" ADD_QUOTES(__LINE__) ")"};
   }
 
-  bool otel_process_ctx_drop(void) {
+  bool otel_process_ctx_drop_current(void) {
     return true; // Nothing to do, this always succeeds
   }
 
@@ -99,7 +105,7 @@ static otel_process_ctx_state published_state;
 
 static otel_process_ctx_result otel_process_ctx_encode_payload(char **out, uint32_t *out_size, otel_process_ctx_data data);
 
-// We use a mapping size of 3 pages explicitly as a hint when running on legacy kernels that don't support the
+// We use a mapping size of 2 pages explicitly as a hint when running on legacy kernels that don't support the
 // PR_SET_VMA_ANON_NAME prctl call; see below for more details.
 static long size_for_mapping(void) {
   long page_size_bytes = sysconf(_SC_PAGESIZE);
@@ -208,7 +214,7 @@ bool otel_process_ctx_drop_current(void) {
   // (due to the MADV_DONTFORK) and we don't need to do anything to it.
   if (state.mapping != NULL && state.mapping != MAP_FAILED && getpid() == state.publisher_pid) {
     long mapping_size = size_for_mapping();
-    if (mapping_size == -1 || munmap(published_state.mapping, mapping_size) == -1) return false;
+    if (mapping_size == -1 || munmap(state.mapping, mapping_size) == -1) return false;
   }
 
   // The payload may have been inherited from a parent. This is a regular malloc so we need to free it so we don't leak.
@@ -321,15 +327,20 @@ static otel_process_ctx_result otel_process_ctx_encode_payload(char **out, uint3
 }
 
 #ifndef OTEL_PROCESS_CTX_NO_READ
+  #include <inttypes.h>
+  #include <limits.h>
+  #include <sys/uio.h>
+  #include <sys/utsname.h>
+
   // Note: The below parsing code is only for otel_process_ctx_read and is only provided for debugging
   // and testing purposes.
 
-  static bool is_otel_process_ctx_mapping(char *line) {
-    size_t name_len = sizeof("[anon:OTEL_CTX]") - 1;
-    size_t line_len = strlen(line);
-    if (line_len < name_len) return false;
-    if (line[line_len-1] == '\n') line[--line_len] = '\0';
-    return memcmp(line + (line_len - name_len), "[anon:OTEL_CTX]", name_len) == 0;
+  // Named mappings are supported on Linux 5.17+
+  static bool named_mapping_supported(void) {
+    struct utsname uts;
+    int major, minor;
+    if (uname(&uts) != 0 || sscanf(uts.release, "%d.%d", &major, &minor) != 2) return false;
+    return (major > 5) || (major == 5 && minor >= 17);
   }
 
   static void *parse_mapping_start(char *line) {
@@ -337,6 +348,41 @@ static otel_process_ctx_result otel_process_ctx_encode_payload(char **out, uint3
     unsigned long long start = strtoull(line, &endptr, 16);
     if (start == 0 || start == ULLONG_MAX) return NULL;
     return (void *)(uintptr_t) start;
+  }
+
+  static bool is_otel_process_ctx_mapping(char *line) {
+    size_t name_len = sizeof("[anon:OTEL_CTX]") - 1;
+    size_t line_len = strlen(line);
+    if (line_len < name_len) return false;
+    if (line[line_len-1] == '\n') line[--line_len] = '\0';
+
+    // Validate expected permission
+    if (strstr(line, " r--p ") == NULL) return false;
+
+    // Validate expected context size
+    int64_t start, end;
+    if (sscanf(line, "%" PRIx64 "-%" PRIx64, &start, &end) != 2) return false;
+    if (start == 0 || end == 0 || end <= start) return false;
+    if ((end - start) != size_for_mapping()) return false;
+
+    if (named_mapping_supported()) {
+      // On Linux 5.17+, check if the line ends with [anon:OTEL_CTX]
+      return memcmp(line + (line_len - name_len), "[anon:OTEL_CTX]", name_len) == 0;
+    } else {
+      // On older kernels, parse the address to to find the OTEL_CTX signature
+      void *addr = parse_mapping_start(line);
+      if (addr == NULL) return false;
+
+      // Read 8 bytes at the address using process_vm_readv (to avoid any issues with concurrency/races)
+      char buffer[8];
+      struct iovec local[] = {{.iov_base = buffer, .iov_len = sizeof(buffer)}};
+      struct iovec remote[] = {{.iov_base = addr, .iov_len = sizeof(buffer)}};
+
+      ssize_t bytes_read = process_vm_readv(getpid(), local, 1, remote, 1, 0);
+      if (bytes_read != sizeof(buffer)) return false;
+
+      return memcmp(buffer, "OTEL_CTX", sizeof(buffer)) == 0;
+    }
   }
 
   static otel_process_ctx_mapping *try_finding_mapping(void) {

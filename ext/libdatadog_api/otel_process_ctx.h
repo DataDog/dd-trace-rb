@@ -1,9 +1,12 @@
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache License (Version 2.0).
+// This product includes software developed at Datadog (https://www.datadoghq.com/) Copyright 2025 Datadog, Inc.
+
 #pragma once
 
 #define OTEL_PROCESS_CTX_VERSION_MAJOR 0
 #define OTEL_PROCESS_CTX_VERSION_MINOR 0
-#define OTEL_PROCESS_CTX_VERSION_PATCH 5
-#define OTEL_PROCESS_CTX_VERSION_STRING "0.0.5"
+#define OTEL_PROCESS_CTX_VERSION_PATCH 7
+#define OTEL_PROCESS_CTX_VERSION_STRING "0.0.7"
 
 #ifdef __cplusplus
 extern "C" {
