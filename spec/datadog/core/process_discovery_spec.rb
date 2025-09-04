@@ -16,6 +16,12 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
 
     context 'when libdatadog API is available' do
       context 'with all settings provided' do
+        before do
+          Datadog.configure do |c|
+            c.service = 'test-service' # Manually set so it isn't set to fallback service name that we don't control
+          end
+        end
+
         let(:settings) do
           instance_double(
             'Datadog::Core::Configuration::Setting',
@@ -26,11 +32,12 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         end
 
         it 'stores metadata successfully' do
-          native_fd = described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new(StringIO.new))
+          described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new(StringIO.new))
+          native_fd = described_class.instance_variable_get(:@file_descriptor)
 
           # Extract content from created memfd
           fd = described_class._native_to_rb_int(native_fd)
-          buffer = IO.new(fd)
+          buffer = IO.new(fd, autoclose: false)
           buffer.rewind
           content = MessagePack.unpack(buffer.read)
 
@@ -60,11 +67,12 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         end
 
         it 'stores metadata successfully' do
-          native_fd = described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new(StringIO.new))
+          described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new(StringIO.new))
+          native_fd = described_class.instance_variable_get(:@file_descriptor)
 
           # Extract content from created memfd
           fd = described_class._native_to_rb_int(native_fd)
-          buffer = IO.new(fd)
+          buffer = IO.new(fd, autoclose: false)
           buffer.rewind
           content = MessagePack.unpack(buffer.read)
 
@@ -93,9 +101,10 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
 
     it 'updates the process discovery file descriptor' do
       expect_in_fork do
-        native_fd = Datadog.send(:components, allow_initialization: false).process_discovery_fd
+        described_class.get_and_store_metadata(Datadog.configuration, Datadog::Core::Logger.new(StringIO.new))
+        native_fd = described_class.instance_variable_get(:@file_descriptor)
         fd = described_class._native_to_rb_int(native_fd)
-        buffer = IO.new(fd)
+        buffer = IO.new(fd, autoclose: false)
         buffer.rewind
         content = MessagePack.unpack(buffer.read)
 
