@@ -9,8 +9,6 @@ module Datadog
 
       self.@file_descriptor: TracerMemfd?
 
-      attr_accessor self.file_descriptor: TracerMemfd?
-
       def self._native_store_tracer_metadata: (
         Datadog::Core::Logger logger,
         schema_version: Integer,

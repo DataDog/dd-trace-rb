@@ -98,11 +98,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(described_class).to receive(:build_health_metrics)
         .with(settings, logger, telemetry)
         .and_return(health_metrics)
-
-      process_discovery_fd = double('process_discovery_fd')
-      expect(Datadog::Core::ProcessDiscovery).to receive(:get_and_store_metadata)
-        .with(settings, logger)
-        .and_return(process_discovery_fd)
     end
 
     it do
@@ -1136,6 +1131,13 @@ RSpec.describe Datadog::Core::Configuration::Components do
         receive(:collect_and_log!).with(
           environment_logger_extra.merge(dynamic_instrumentation_enabled: false)
         )
+
+      startup!
+    end
+
+    it 'calls ProcessDiscovery' do
+      expect(Datadog::Core::ProcessDiscovery).to receive(:get_and_store_metadata)
+        .with(settings, components.logger)
 
       startup!
     end
