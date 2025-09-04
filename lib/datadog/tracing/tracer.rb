@@ -260,13 +260,29 @@ module Datadog
         # Start a new trace from the digest
         context = call_context(key)
         original_trace = active_trace(key)
-        trace = start_trace(continue_from: digest)
+        trace = start_trace(continue_from: digest, trace_block: !!block)
 
         # If block hasn't been given; we need to manually deactivate
         # this trace. Subscribe to the trace finished event to do this.
         subscribe_trace_deactivation!(context, trace, original_trace) unless block
 
-        context.activate!(trace, &block)
+        if block
+          # For block usage, ensure the trace stays active until the block completes.
+          context.activate!(trace) do
+            result = yield
+
+            if trace.finished_span_count > 0
+              # On block completion, forces the current trace to finish and flush its finished spans.
+              # Unfinished spans are lost as the trace context is no longer valid.
+              trace.finish!
+              flush_trace(trace)
+            end
+
+            result
+          end
+        else
+          context.activate!(trace)
+        end
       end
 
       # Sample a span, tagging the trace as appropriate.
@@ -329,7 +345,7 @@ module Datadog
         @provider.context(key)
       end
 
-      def build_trace(digest = nil)
+      def build_trace(digest, trace_block)
         # Resolve hostname if configured
         hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
         hostname = (hostname && !hostname.empty?) ? hostname : nil
@@ -353,7 +369,8 @@ module Datadog
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
             remote_parent: digest.span_remote,
             tracer: self,
-            baggage: digest.baggage
+            baggage: digest.baggage,
+            trace_block: trace_block
           )
         else
           TraceOperation.new(
@@ -362,7 +379,8 @@ module Datadog
             profiling_enabled: profiling_enabled,
             apm_tracing_enabled: apm_tracing_enabled,
             remote_parent: false,
-            tracer: self
+            tracer: self,
+            trace_block: trace_block
           )
         end
       end
@@ -391,9 +409,9 @@ module Datadog
 
       # Creates a new TraceOperation, with events bounds to this Tracer instance.
       # @return [TraceOperation]
-      def start_trace(continue_from: nil)
+      def start_trace(continue_from: nil, trace_block: false)
         # Build a new trace using digest if provided.
-        trace = build_trace(continue_from)
+        trace = build_trace(continue_from, trace_block)
 
         # Bind trace events: sample trace, set default service, flush spans.
         bind_trace_events!(trace)

@@ -20,6 +20,8 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
     Datadog.configure do |c|
       c.tracing.instrument :active_record, configuration_options
+      c.tracing.instrument :concurrent_ruby
+      c.tracing.instrument :mysql2
     end
 
     raise_on_rails_deprecation!
@@ -33,8 +35,6 @@ RSpec.describe 'ActiveRecord instrumentation' do
   end
 
   context 'when query is made' do
-    before { Article.count }
-
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_SAMPLE_RATE }
@@ -158,6 +158,39 @@ RSpec.describe 'ActiveRecord instrumentation' do
             end
           end
         end
+      end
+    end
+
+    context 'with adapter supporting background execution' do
+      before { skip("Rails < 7 does not support async queries") if Rails::VERSION::MAJOR < 7 }
+
+      it 'parents the database span to the calling context' do
+        # TODO fix this test
+
+        Datadog::Tracing.trace('root-span') do
+          relation = Article.limit(1).load_async
+
+          # Confirm async execution (there's no public API to confirm it).
+          expect(relation.instance_variable_get(:@future_result)).to_not be_nil
+
+          # Ensure we didn't break the query
+          expect(relation.to_a).to be_a(Array)
+        end
+
+        # Remove internal AR queries
+        spans.reject! { |s| s.resource.start_with?('SET ') }
+
+        pp spans
+
+        expect(spans).to have(3).items
+
+        select = spans.find { |s| s.resource.include?('articles') }
+
+        expect(select).to_not be_root_span
+
+        # select = spans.find { |s| s.resource.include?('articles') }
+        #
+        # expect(select).to_not be_root_span
       end
     end
   end

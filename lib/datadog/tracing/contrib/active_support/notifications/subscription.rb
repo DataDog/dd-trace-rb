@@ -6,6 +6,7 @@ module Datadog
       module ActiveSupport
         module Notifications
           # An ActiveSupport::Notification subscription that wraps events with tracing.
+          # TODO: Inherit from {ActiveSupport::Subscriber}, to adhere to the public API.
           class Subscription
             attr_accessor \
               :span_name,
@@ -28,6 +29,12 @@ module Datadog
               @trace = trace
               @callbacks = Callbacks.new
             end
+
+            # This will probably generate unwanted spans if not tested thoroughly
+            # def publish(name, _time, _end, id, payload)
+            #   start(name, id, payload)
+            #   finish(name, id, payload)
+            # end
 
             # Called by ActiveSupport on event start
             def start(name, id, payload)
