@@ -162,8 +162,11 @@ RSpec.describe 'ActiveRecord instrumentation' do
     end
 
     context 'with adapter supporting background execution' do
+      before { skip("Rails < 7 does not support async queries") if Rails::VERSION::MAJOR < 7 }
+
       it 'parents the database span to the calling context' do
-        ::A = 1
+        # TODO fix this test
+
         Datadog::Tracing.trace('root-span') do
           relation = Article.limit(1).load_async
 
