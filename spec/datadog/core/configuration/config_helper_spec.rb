@@ -3,18 +3,6 @@ require 'spec_helper'
 require 'datadog/core/configuration/config_helper'
 
 RSpec.describe Datadog::Core::Configuration::ConfigHelper do
-  describe '#initialize' do
-    subject { described_class.new }
-
-    it 'initializes with correct defaults' do
-      expect(subject.instance_variable_get(:@source_env)).to eq(ENV)
-      expect(subject.instance_variable_get(:@supported_configurations)).to eq(Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS)
-      expect(subject.instance_variable_get(:@aliases)).to eq(Datadog::Core::Configuration::ALIASES)
-      expect(subject.instance_variable_get(:@alias_to_canonical)).to eq(Datadog::Core::Configuration::ALIAS_TO_CANONICAL)
-      expect(subject.instance_variable_get(:@raise_on_unknown_env_var)).to eq(false)
-    end
-  end
-
   describe '#[]' do
     subject do
       described_class.new(
@@ -81,14 +69,49 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
   end
 
   describe '#get_environment_variable' do
-    subject do
-      described_class.new(
-        source_env: source_env,
-        supported_configurations: supported_configurations,
-        aliases: aliases,
-        alias_to_canonical: alias_to_canonical,
-        raise_on_unknown_env_var: raise_on_unknown_env_var
-      )
+    context 'when using default source_env' do
+      subject do
+        described_class.new(
+          supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } }
+        )
+      end
+
+      around do |example|
+        ClimateControl.modify('DD_SUPPORTED_ENV_VAR' => 'true') do
+          example.run
+        end
+      end
+
+      it 'returns the environment variable value' do
+        expect(subject.get_environment_variable('DD_SUPPORTED_ENV_VAR')).to eq('true')
+      end
+    end
+
+    context 'when using default supported_configurations' do
+      subject do
+        described_class.new(
+          source_env: Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.transform_values { 'true' }
+        )
+      end
+
+      it 'returns the environment variable value' do
+        Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.each do |env_var_name, _|
+          expect(subject.get_environment_variable(env_var_name)).to eq('true')
+        end
+      end
+
+      context 'when using default aliases and alias_to_canonical' do
+        it 'returns the environment variable value of the alias when requesting the canonical name' do
+          # Because a single canonical name can have multiple aliases, we need to test each alias.
+          Datadog::Core::Configuration::ALIAS_TO_CANONICAL.each do |alias_name, canonical_name|
+            # cannot set `subject` inside `it` block
+            helper = described_class.new(
+              source_env: { alias_name => 'true' }
+            )
+            expect(helper.get_environment_variable(canonical_name)).to eq('true')
+          end
+        end
+      end
     end
 
     context 'when the environment variable is supported' do
@@ -170,16 +193,13 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     end
 
     context 'when environment variable starts with DD_ but is not supported' do
-      subject do
-        described_class.new(
-          source_env: { 'DD_UNSUPPORTED_VAR' => 'value' },
-          supported_configurations: {},
-          raise_on_unknown_env_var: raise_on_unknown_env_var
-        )
-      end
-
-      context 'when not in test environment' do
-        let(:raise_on_unknown_env_var) { false }
+      context 'when not in test environment (default)' do
+        subject do
+          described_class.new(
+            source_env: { 'DD_UNSUPPORTED_VAR' => 'value' },
+            supported_configurations: {}
+          )
+        end
 
         it 'returns nil' do
           expect(subject.get_environment_variable('DD_UNSUPPORTED_VAR')).to be_nil
@@ -187,7 +207,13 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       end
 
       context 'when in test environment' do
-        let(:raise_on_unknown_env_var) { true }
+        subject do
+          described_class.new(
+            source_env: { 'DD_UNSUPPORTED_VAR' => 'value' },
+            supported_configurations: {},
+            raise_on_unknown_env_var: true
+          )
+        end
 
         it 'raises an error for unsupported DD_ variables' do
           expect { subject.get_environment_variable('DD_UNSUPPORTED_VAR') }.to raise_error(RuntimeError, /Missing DD_UNSUPPORTED_VAR env\/configuration/)
@@ -196,18 +222,15 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     end
 
     context 'when using a deprecated alias that does not start with DD_ or OTEL_' do
-      subject do
-        described_class.new(
-          source_env: { 'SUPPORTED_ENV_VAR' => 'true' },
-          supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
-          aliases: { 'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR'] },
-          alias_to_canonical: { 'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR' },
-          raise_on_unknown_env_var: raise_on_unknown_env_var
-        )
-      end
-
-      context 'when not in test environment' do
-        let(:raise_on_unknown_env_var) { false }
+      context 'when not in test environment (default)' do
+        subject do
+          described_class.new(
+            source_env: { 'SUPPORTED_ENV_VAR' => 'true' },
+            supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
+            aliases: { 'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR'] },
+            alias_to_canonical: { 'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR' },
+          )
+        end
 
         it 'returns the environment variable value' do
           expect(subject.get_environment_variable('SUPPORTED_ENV_VAR')).to eq(nil)
@@ -215,7 +238,15 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       end
 
       context 'when in test environment' do
-        let(:raise_on_unknown_env_var) { true }
+        subject do
+          described_class.new(
+            source_env: { 'SUPPORTED_ENV_VAR' => 'true' },
+            supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
+            aliases: { 'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR'] },
+            alias_to_canonical: { 'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR' },
+            raise_on_unknown_env_var: true
+          )
+        end
 
         it 'raises an error suggesting the canonical name' do
           expect { subject.get_environment_variable('SUPPORTED_ENV_VAR') }.to raise_error(RuntimeError, /Please use DD_SUPPORTED_ENV_VAR instead/)
