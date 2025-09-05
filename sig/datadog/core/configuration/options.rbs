@@ -60,8 +60,6 @@ module Datadog
 
           def resolve_option: (Symbol name) -> Option
 
-          def resolved_env: (Symbol name) -> String?
-
           def assert_valid_option!: (Symbol name) -> void
         end
 

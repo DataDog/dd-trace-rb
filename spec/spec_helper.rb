@@ -343,3 +343,9 @@ Timeout.ensure_timeout_thread_created if Timeout.respond_to?(:ensure_timeout_thr
 # mock objects in the test suite. Disable it and tests that need code tracking
 # will enable it back for themselves.
 Datadog::DI.deactivate_tracking! if defined?(Datadog::DI) && Datadog::DI.respond_to?(:deactivate_tracking!)
+
+# Enable raising errors when accessing unknown datadog/otel environment variables
+# (Default is to return `nil`). See docs/AccessEnvironmentVariables.md for details.
+#
+# (Note that the `config_helper_spec.rb` checks this is enabled as well!)
+Datadog::DATADOG_ENV.instance_variable_set(:@raise_on_unknown_env_var, true)

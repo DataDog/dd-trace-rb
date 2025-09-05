@@ -87,12 +87,12 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL}" do
+      context 'when OTEL_LOG_LEVEL' do
         around do |example|
           ClimateControl.modify(
             {
               Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => dd_debug_env,
-              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL => otel_level_env
+              'OTEL_LOG_LEVEL' => otel_level_env
             }
           ) do
             example.run
@@ -690,6 +690,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
         it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_GVL_ENABLED', default: true
 
+        # Defined in supported_configurations and deprecation logged during components initialization
         context 'when DD_PROFILING_PREVIEW_GVL_ENABLED' do
           around do |example|
             ClimateControl.modify('DD_PROFILING_PREVIEW_GVL_ENABLED' => environment) do
@@ -706,8 +707,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           [true, false].each do |value|
             context "is defined as #{value}" do
               let(:environment) { value.to_s }
-
-              before { expect(Datadog::Core).to receive(:log_deprecation) }
 
               it { is_expected.to be value }
             end
@@ -945,8 +944,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#experimental_runtime_id_enabled' do
       subject(:experimental_runtime_id_enabled) { settings.runtime_metrics.experimental_runtime_id_enabled }
 
-      let(:primary_env_var) { 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED' }
-      let(:fallback_env_var) { 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED' }
+      let(:primary_env_var) { 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED' }
+      let(:fallback_env_var) { 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED' }
 
       around do |example|
         ClimateControl.modify(
@@ -964,14 +963,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it { is_expected.to be false }
       end
 
-      context 'when only the primary env var DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED is set to true' do
+      context 'when only the primary env var DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED is set to true' do
         let(:primary_enabled) { 'true' }
         let(:fallback_enabled) { nil }
 
         it { is_expected.to be true }
       end
 
-      context 'when only the fallback env var DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED is set to true' do
+      context 'when only the fallback env var DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED is set to true' do
         let(:primary_enabled) { nil }
         let(:fallback_enabled) { 'true' }
 
@@ -1066,7 +1065,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         around do |example|
           ClimateControl.modify(
             Datadog::Core::Environment::Ext::ENV_SERVICE => 'service-name-from-dd-service',
-            Datadog::Core::Environment::Ext::ENV_OTEL_SERVICE => 'otel-service-name'
+            'OTEL_SERVICE_NAME' => 'otel-service-name'
           ) do
             example.run
           end
@@ -1079,7 +1078,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       context 'and defined via OTEL_SERVICE_NAME' do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_OTEL_SERVICE => 'otel-service-name') do
+          ClimateControl.modify('OTEL_SERVICE_NAME' => 'otel-service-name') do
             example.run
           end
         end
@@ -1275,10 +1274,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
-    context "when #{Datadog::Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES}" do
+    context "when OTEL_RESOURCE_ATTRIBUTES" do
       around do |example|
         ClimateControl.modify(
-          Datadog::Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES => otel_tags,
+          'OTEL_RESOURCE_ATTRIBUTES' => otel_tags,
           Datadog::Core::Environment::Ext::ENV_TAGS => dd_tags
         ) do
           example.run

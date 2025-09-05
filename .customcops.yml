@@ -1,0 +1,23 @@
+require:
+  - ./rubocop/custom_cops
+
+# Custom cop to prevent ENV usage
+CustomCops/EnvUsageCop:
+  Enabled: true
+  Description: 'Prevents direct usage of ENV to access environment variables'
+  SafeAutoCorrect: false
+  Include:
+    - "lib/**/*"
+  Exclude:
+    - "lib/datadog/core/configuration/config_helper.rb"
+    - "lib/datadog/core/configuration/deprecations.rb"
+
+# Custom cop to validate environment variable strings
+CustomCops/EnvStringValidationCop:
+  Enabled: true
+  Description: 'Prevents usage of environment variables that are not in the allowed list'
+  Safe: false
+  Include:
+    - "lib/**/*"
+  Exclude:
+    - "lib/datadog/core/configuration/supported_configurations.rb"
