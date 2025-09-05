@@ -15,10 +15,10 @@ module Datadog
         # @return [TraceOperation]
         def start_trace_copy(trace, parent_span: nil)
           digest = if parent_span
-                     digest_with_parent_span(trace, parent_span)
-                   else
-                     trace.to_digest
-                   end
+            digest_with_parent_span(trace, parent_span)
+          else
+            trace.to_digest
+          end
 
           # Create a new TraceOperation, attached to the current Datadog Tracer.
           Datadog::Tracing.continue_trace!(digest)

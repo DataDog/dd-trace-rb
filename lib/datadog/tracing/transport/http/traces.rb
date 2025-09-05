@@ -95,10 +95,10 @@ module Datadog
                 env.body = env.request.parcel.data
 
                 # Query for response
-                http_response = super(env, &block)
+                http_response = super
 
                 # Process the response
-                response_options = { trace_count: env.request.parcel.trace_count }.tap do |options|
+                response_options = {trace_count: env.request.parcel.trace_count}.tap do |options|
                   # Parse service rates, if configured to do so.
                   if service_rates? && !http_response.payload.to_s.empty?
                     body = JSON.parse(http_response.payload)

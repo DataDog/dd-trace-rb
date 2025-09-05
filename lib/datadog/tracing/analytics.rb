@@ -16,7 +16,7 @@ module Datadog
         def set_measured(span_op, value = true)
           return if span_op.nil?
 
-          value = value == true || value == 1 ? 1 : 0
+          value = (value == true || value == 1) ? 1 : 0
           span_op.set_metric(Metadata::Ext::Analytics::TAG_MEASURED, value)
         end
       end

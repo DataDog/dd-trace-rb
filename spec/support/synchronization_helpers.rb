@@ -39,10 +39,7 @@ module SynchronizationHelpers
       stdout ||= File.read(fork_stdout.path)
       stderr ||= File.read(fork_stderr.path)
 
-      puts stdout
-      warn stderr
-
-      raise e
+      raise "Failure or timeout in `expect_in_fork`, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", cause: e
     ensure
       Process.kill('KILL', pid) rescue nil # Prevent zombie processes on failure
 
@@ -69,7 +66,7 @@ module SynchronizationHelpers
     spec = if seconds
              "#{seconds} seconds"
            elsif attempts || backoff
-             "#{attempts} attempts with backoff #{backoff}"
+             "#{attempts} attempts with backoff: #{backoff}"
            else
              'none'
            end

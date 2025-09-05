@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.19.0)
+    datadog (2.20.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
-      libddwaf (~> 1.24.1.0.3)
+      libddwaf (~> 1.24.1.1.0)
       logger
       msgpack
 
@@ -87,9 +87,9 @@ GEM
       addressable (>= 2.4)
     libdatadog (18.1.0.1.0-aarch64-linux)
     libdatadog (18.1.0.1.0-x86_64-linux)
-    libddwaf (1.24.1.0.3-aarch64-linux)
+    libddwaf (1.24.1.1.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.24.1.0.3-x86_64-linux)
+    libddwaf (1.24.1.1.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     lograge (0.12.0)

@@ -41,7 +41,7 @@ module Datadog
       # of being limiting span events to the size limit of a span tag.
       # All Datadog agents support this format.
       def to_hash
-        h = { 'name' => @name, 'time_unix_nano' => @time_unix_nano }
+        h = {'name' => @name, 'time_unix_nano' => @time_unix_nano}
         h['attributes'] = @attributes unless @attributes.empty?
         h
       end
@@ -51,15 +51,15 @@ module Datadog
       # This serialization format removes the serialization limitations of the `span.set_tag('events)` approach,
       # but is only supported by newer version of the Datadog agent.
       def to_native_format
-        h = { 'name' => @name, 'time_unix_nano' => @time_unix_nano }
+        h = {'name' => @name, 'time_unix_nano' => @time_unix_nano}
 
         attr = {}
         @attributes.each do |key, value|
           attr[key] = if value.is_a?(Array)
-                        { type: ARRAY_TYPE, array_value: { values: value.map { |v| serialize_native_attribute(v) } } }
-                      else
-                        serialize_native_attribute(value)
-                      end
+            {type: ARRAY_TYPE, array_value: {values: value.map { |v| serialize_native_attribute(v) }}}
+          else
+            serialize_native_attribute(value)
+          end
         end
 
         h['attributes'] = attr unless @attributes.empty?
@@ -144,13 +144,13 @@ module Datadog
       def serialize_native_attribute(value)
         case value
         when String
-          { type: STRING_TYPE, string_value: value }
+          {type: STRING_TYPE, string_value: value}
         when TrueClass, FalseClass
-          { type: BOOLEAN_TYPE, bool_value: value }
+          {type: BOOLEAN_TYPE, bool_value: value}
         when Integer
-          { type: INTEGER_TYPE, int_value: value }
+          {type: INTEGER_TYPE, int_value: value}
         when Float
-          { type: DOUBLE_TYPE, double_value: value }
+          {type: DOUBLE_TYPE, double_value: value}
         else
           # This is technically unreachable due to the validation in #initialize.
           raise ArgumentError, "Attribute must be a string, number, or boolean: #{value}."

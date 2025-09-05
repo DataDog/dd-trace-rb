@@ -20,7 +20,7 @@ module Datadog
           module ClassMethods
             def span_options
               if configuration[:service_name]
-                { service: configuration[:service_name] }
+                {service: configuration[:service_name]}
               else
                 {}
               end

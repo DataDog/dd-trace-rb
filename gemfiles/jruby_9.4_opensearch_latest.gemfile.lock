@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.19.0)
+    datadog (2.20.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
-      libddwaf (~> 1.24.1.0.3)
+      libddwaf (~> 1.24.1.1.0)
       logger
       msgpack
 
@@ -27,7 +27,7 @@ GEM
     diff-lcs (1.5.1)
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
-    faraday (2.13.2)
+    faraday (2.13.4)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
@@ -35,17 +35,17 @@ GEM
       net-http (>= 0.5.0)
     ffi (1.17.2-java)
     hashdiff (1.1.1)
-    json (2.12.2-java)
+    json (2.13.2-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (18.1.0.1.0)
-    libddwaf (1.24.1.0.3)
+    libddwaf (1.24.1.1.0)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
     msgpack (1.8.0-java)
-    multi_json (1.15.0)
+    multi_json (1.17.0)
     net-http (0.6.0)
       uri
     opensearch-ruby (3.4.0)

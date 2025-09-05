@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'libddwaf'
+
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_loader'
 
@@ -19,7 +21,7 @@ RSpec.describe Datadog::AppSec::Context do
   let(:context) { described_class.new(trace, span, waf_runner) }
 
   before do
-    Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
   end
 
   after do
@@ -212,6 +214,36 @@ RSpec.describe Datadog::AppSec::Context do
         expect(Datadog::AppSec::Metrics::Exporter).to receive(:export_rasp_metrics)
 
         context.export_metrics
+      end
+    end
+  end
+
+  describe '#mark_as_interrupted!, #interrupted?' do
+    it 'returns false when not interrupted' do
+      expect(context.interrupted?).to be false
+    end
+
+    it 'returns true when interrupted' do
+      context.mark_as_interrupted!
+
+      expect(context.interrupted?).to be true
+    end
+  end
+
+  describe '#export_request_telemetry' do
+    it 'calls telemetry exporter' do
+      expect(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_waf_request_metrics).with(anything, context)
+
+      context.export_request_telemetry
+    end
+
+    context 'when trace is not present' do
+      let(:context) { described_class.new(nil, span, waf_runner) }
+
+      it 'does not call telemetry exporter' do
+        expect(Datadog::AppSec::Metrics::TelemetryExporter).not_to receive(:export_waf_request_metrics)
+
+        context.export_request_telemetry
       end
     end
   end

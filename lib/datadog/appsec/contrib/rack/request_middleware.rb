@@ -46,33 +46,22 @@ module Datadog
             boot = Datadog::Core::Remote::Tie.boot
             Datadog::Core::Remote::Tie::Tracing.tag(boot, active_span)
 
-            security_engine = nil
-            ready = false
-            ctx = nil
-
             # For a given request, keep using the first Rack stack scope for
             # nested apps. Don't set `context` local variable so that on popping
             # out of this nested stack we don't finalize the parent's context
             return @app.call(env) if active_context(env)
 
-            Datadog::AppSec.reconfigure_lock do
-              security_engine = Datadog::AppSec.security_engine
-
-              if security_engine
-                ctx = Datadog::AppSec::Context.activate(
-                  Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner)
-                )
-
-                env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
-                ready = true
-              end
-            end
+            security_engine = Datadog::AppSec.security_engine
 
             # TODO: handle exceptions, except for @app.call
+            return @app.call(env) unless security_engine
 
-            return @app.call(env) unless ready
+            ctx = Datadog::AppSec::Context.activate(
+              Datadog::AppSec::Context.new(active_trace, active_span, security_engine.new_runner)
+            )
+            env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
 
-            add_appsec_tags(security_engine, ctx)
+            add_appsec_tags(ctx)
             add_request_tags(ctx, env)
 
             http_response = nil
@@ -97,6 +86,7 @@ module Datadog
             end
 
             if interrupt_params
+              ctx.mark_as_interrupted!
               http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
             end
 
@@ -128,6 +118,8 @@ module Datadog
           ensure
             if ctx
               ctx.export_metrics
+              ctx.export_request_telemetry
+
               Datadog::AppSec::Context.deactivate
             end
           end
@@ -156,7 +148,7 @@ module Datadog
           end
 
           # standard:disable Metrics/MethodLength
-          def add_appsec_tags(security_engine, context)
+          def add_appsec_tags(context)
             span = context.span
             trace = context.trace
 
@@ -166,15 +158,15 @@ module Datadog
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
-            if security_engine.ruleset_version
-              span.set_tag('_dd.appsec.event_rules.version', security_engine.ruleset_version)
+            if context.waf_runner_ruleset_version
+              span.set_tag('_dd.appsec.event_rules.version', context.waf_runner_ruleset_version)
 
               unless @oneshot_tags_sent
                 # Small race condition, but it's inoccuous: worst case the tags
                 # are sent a couple of times more than expected
                 @oneshot_tags_sent = true
 
-                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(security_engine.waf_addresses))
+                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(context.waf_runner_known_addresses))
 
                 # Ensure these tags reach the backend
                 trace.keep!

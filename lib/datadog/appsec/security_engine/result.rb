@@ -26,6 +26,10 @@ module Datadog
           def match?
             raise NotImplementedError
           end
+
+          def error?
+            raise NotImplementedError
+          end
         end
 
         # A result that indicates a security rule match
@@ -33,11 +37,19 @@ module Datadog
           def match?
             true
           end
+
+          def error?
+            false
+          end
         end
 
         # A result that indicates a successful security rules check without a match
         class Ok < Base
           def match?
+            false
+          end
+
+          def error?
             false
           end
         end
@@ -59,6 +71,10 @@ module Datadog
 
           def match?
             false
+          end
+
+          def error?
+            true
           end
         end
       end

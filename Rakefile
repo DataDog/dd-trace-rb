@@ -355,10 +355,16 @@ namespace :spec do
   task appsec: [:'appsec:all']
 
   namespace :di do
-    desc '' # "Explicitly hiding from `rake -T`"
-    RSpec::Core::RakeTask.new(:active_record) do |t, args|
-      t.pattern = 'spec/datadog/di/contrib/active_record/**/*_spec.rb'
-      t.rspec_opts = args.to_a.join(' ')
+    # Datadog DI integrations
+    [
+      :active_record,
+      :rails,
+    ].each do |contrib|
+      desc '' # "Explicitly hiding from `rake -T`"
+      RSpec::Core::RakeTask.new(contrib) do |t, args|
+        t.pattern = "spec/datadog/di/contrib/#{contrib}/**/*_spec.rb"
+        t.rspec_opts = args.to_a.join(' ')
+      end
     end
   end
 
@@ -512,7 +518,7 @@ namespace :native_dev do
 end
 
 desc 'Runs rubocop + main test suite'
-task default: ['rubocop', 'standard', 'typecheck', 'spec:main']
+task default: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['rubocop', 'standard', 'typecheck', 'spec:main']
+multitask fastdefault: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']

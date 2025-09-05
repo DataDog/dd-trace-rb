@@ -113,7 +113,7 @@ module Datadog
       def stopped?
         !@end_time.nil?
       end
-      alias :finished? :stopped?
+      alias_method :finished?, :stopped?
 
       def duration
         return @duration if @duration

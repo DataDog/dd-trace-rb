@@ -27,7 +27,7 @@ module Datadog
           end
 
           def self.version
-            Gem.loaded_specs['activerecord'] && Gem.loaded_specs['activerecord'].version
+            Gem.loaded_specs['activerecord']&.version
           end
 
           def self.loaded?

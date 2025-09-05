@@ -22,8 +22,17 @@ module Datadog
           # Represents an Option precedence level.
           # Each precedence has a `numeric` value; higher values means higher precedence.
           # `name` is for inspection purposes only.
-          Value = Struct.new(:numeric, :name, :origin) do
+
+          class Value
             include Comparable
+
+            attr_accessor :numeric, :name, :origin
+
+            def initialize(numeric, name, origin)
+              @numeric = numeric
+              @name = name
+              @origin = origin
+            end
 
             def <=>(other)
               return nil unless other.is_a?(Value)
@@ -172,20 +181,17 @@ module Datadog
         private
 
         def coerce_env_variable(value)
-          return context_exec(value, &@definition.env_parser) if @definition.env_parser
+          env_parser = @definition.env_parser
+          return context_exec(value, &env_parser) if env_parser
 
           case @definition.type
           when :hash
             values = value.split(',') # By default we only want to support comma separated strings
 
-            values.map! do |v|
+            values.each_with_object({}) do |v, hash| # $ Hash[String, String]
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+              next if v.empty?
 
-              v.empty? ? nil : v
-            end
-
-            values.compact!
-            values.each.with_object({}) do |v, hash|
               pair = v.split(':', 2)
               hash[pair[0]] = pair[1]
             end
@@ -196,14 +202,12 @@ module Datadog
           when :array
             values = value.split(',')
 
-            values.map! do |v|
+            values.each_with_object([]) do |v, arr| # $ Array[String]
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+              next if v.empty?
 
-              v.empty? ? nil : v
+              arr << v
             end
-
-            values.compact!
-            values
           when :bool
             string_value = value.strip
             string_value = string_value.downcase
@@ -329,18 +333,22 @@ module Datadog
           resolved_env = nil
 
           if definition.env
-            Array(definition.env).each do |env|
-              next if env_vars[env].nil?
+            # @type var env_and_aliases: Array[String]
+            env_and_aliases = Array(definition.env)
+            env_and_aliases.each do |env|
+              env_value = env_vars[env]
+              next if env_value.nil?
 
               resolved_env = env
-              value = coerce_env_variable(env_vars[env])
+              value = coerce_env_variable(env_value)
               break
             end
           end
 
-          if value.nil? && definition.deprecated_env && env_vars[definition.deprecated_env]
+          deprecated_env = definition.deprecated_env ? env_vars[definition.deprecated_env] : nil
+          if value.nil? && deprecated_env
             resolved_env = definition.deprecated_env
-            value = coerce_env_variable(env_vars[definition.deprecated_env])
+            value = coerce_env_variable(deprecated_env)
 
             Datadog::Core.log_deprecation do
               "#{definition.deprecated_env} #{source} is deprecated, use #{definition.env} instead."
@@ -349,9 +357,10 @@ module Datadog
 
           [value, resolved_env]
         rescue ArgumentError
+          env_value = resolved_env ? env_vars[resolved_env] : nil
           raise ArgumentError,
-            "Expected #{source} #{resolved_env} to be a #{@definition.type}, " \
-                              "but '#{env_vars[resolved_env]}' was provided"
+            "Expected #{source} #{resolved_env} to be a #{definition.type}, " \
+            "but '#{env_value}' was provided"
         end
 
         # Anchor object that represents a value that is not set.
