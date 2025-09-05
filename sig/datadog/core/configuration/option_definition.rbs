@@ -11,8 +11,7 @@ module Datadog
         type meta = {
           default: (option_type | option_proc | Options::GenericSettingsClass)?,
           default_proc: option_proc?,
-          env: (String | Array[String])?,
-          deprecated_env: String?,
+          env: String?,
           env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?,
           after_set: (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void)?,
           resetter: (^(option_type value) [self: Options::GenericSettingsClass] -> option_type)?,
@@ -27,9 +26,7 @@ module Datadog
 
         attr_reader default_proc: option_proc?
 
-        attr_reader env: String | Array[String] | nil
-
-        attr_reader deprecated_env: String?
+        attr_reader env: String?
 
         attr_reader env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?
 
@@ -55,8 +52,7 @@ module Datadog
 
           attr_reader helpers: Hash[Symbol, helper_proc]
 
-          @env: String | Array[String] | nil
-          @deprecated_env: String?
+          @env: String?
           @env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?
           @default: option_type | option_proc | Options::GenericSettingsClass
           @default_proc: option_proc?
@@ -70,9 +66,7 @@ module Datadog
 
           def initialize: (String | Symbol name, ?meta options) ?{ (Builder) -> void } -> void
 
-          def env: (String | Array[String] | nil value) -> void
-
-          def deprecated_env: (String? value) -> void
+          def env: (String? value) -> void
 
           def env_parser: () ?{ (String env_value) [self: Options::GenericSettingsClass] -> Option::env_value } -> void
 

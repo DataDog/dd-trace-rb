@@ -1,8 +1,0 @@
-coverage:
-  status:
-    project:
-      default:
-        informational: true  # Makes status non-blocking
-    patch:
-      default:
-        informational: true # Makes status non-blocking

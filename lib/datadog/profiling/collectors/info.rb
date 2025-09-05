@@ -146,7 +146,7 @@ module Datadog
           return @gc_tuning_info if defined?(@gc_tuning_info)
 
           @gc_tuning_info = RUBY_GC_TUNING_ENV_VARS.each_with_object({}) do |var, hash|
-            current_value = ENV[var]
+            current_value = DATADOG_ENV[var]
             hash[var.to_sym] = current_value if current_value
           end.freeze
         end

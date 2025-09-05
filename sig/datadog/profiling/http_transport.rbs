@@ -19,7 +19,7 @@ module Datadog
 
       private
 
-      def agentless?: (::String? site, ::String? api_key) -> bool
+      def agentless?: (::String? site, ::String? api_key) -> bool?
 
       def self._native_validate_exporter: (exporter_configuration_array exporter_configuration) -> [:ok | :error, ::String?]
 
