@@ -14,6 +14,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
   before do
     # Prevent extra spans during tests
     Article.count
+    clear_traces!
 
     # Reset options (that might linger from other tests)
     Datadog.configuration.tracing[:active_record].reset!
@@ -35,6 +36,10 @@ RSpec.describe 'ActiveRecord instrumentation' do
   end
 
   context 'when query is made' do
+    subject!(:count) { Article.count }
+
+    let(:span) { spans.find { |s| s.get_tag('component') == 'active_record' } }
+
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_SAMPLE_RATE }
@@ -162,13 +167,13 @@ RSpec.describe 'ActiveRecord instrumentation' do
     end
 
     context 'with adapter supporting background execution' do
-      before { skip("Rails < 7 does not support async queries") if Rails::VERSION::MAJOR < 7 }
+      before { skip("Rails < 7 does not support async queries") if ActiveRecord::VERSION::MAJOR < 7 }
+
+      subject { nil } # Delay query to inside the trace block
 
       it 'parents the database span to the calling context' do
-        # TODO fix this test
-
         Datadog::Tracing.trace('root-span') do
-          relation = Article.limit(1).load_async
+          relation = Article.limit(1).load_async # load_async was the only async method in Rails 7.0
 
           # Confirm async execution (there's no public API to confirm it).
           expect(relation.instance_variable_get(:@future_result)).to_not be_nil
@@ -182,7 +187,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
         pp spans
 
-        expect(spans).to have(3).items
+        expect(spans).to have(2).items
 
         select = spans.find { |s| s.resource.include?('articles') }
 
