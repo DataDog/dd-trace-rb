@@ -5,6 +5,10 @@ module Datadog
       class TracerMemfd
       end
 
+      ONLY_ONCE: Core::Utils::OnlyOnce
+
+      self.@file_descriptor: TracerMemfd?
+
       def self._native_store_tracer_metadata: (
         Datadog::Core::Logger logger,
         schema_version: Integer,
@@ -22,7 +26,9 @@ module Datadog
       def self.get_and_store_metadata: (
         Datadog::Core::Configuration::Settings settings,
         Datadog::Core::Logger logger
-      ) -> TracerMemfd?
+      ) -> void
+
+      def self.shutdown!: () -> void
 
       def self.get_metadata: (Datadog::Core::Configuration::Settings settings) -> {
         schema_version: Integer,
@@ -34,6 +40,8 @@ module Datadog
         service_env: String,
         service_version: String
       }
+
+      def self.apply_at_fork_patch: () -> void
     end
   end
 end
