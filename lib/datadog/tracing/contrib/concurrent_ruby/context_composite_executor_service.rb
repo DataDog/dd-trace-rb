@@ -19,17 +19,29 @@ module Datadog
           # post method runs the task within composited executor - in a different thread. The original arguments are
           # captured to be propagated to the composited executor post method
           def post(*args, &task)
-            digest = Tracing.active_trace&.to_digest
+            return super(*args, &task) unless datadog_configuration.enabled
+
             executor = @composited_executor.is_a?(Symbol) ? Concurrent.executor(@composited_executor) : @composited_executor
 
-            # Pass the original arguments to the composited executor, which
-            # pushes them (possibly transformed) as block args
-            executor.post(*args) do |*block_args|
-              Tracing.continue_trace!(digest)
+            if executor.is_a?(ExecutorService)
+              # If the composited executor is already patched, we can skip wrapping
+              return executor.post(*args, &task)
+            else
+              digest = Tracing.active_trace&.to_digest
 
-              # Pass the executor-provided block args as they should have been
-              # originally passed without composition, see ChainPromise#on_resolvable
-              yield(*block_args)
+              # Pass the original arguments to the composited executor, which
+              # pushes them (possibly transformed) as block args
+              executor.post(*args) do |*block_args|
+                if digest
+                  Tracing.continue_trace!(digest) do
+                    # Pass the executor-provided block args as they should have been
+                    # originally passed without composition, see ChainPromise#on_resolvable
+                    yield(*block_args)
+                  end
+                else
+                  yield(*block_args)
+                end
+              end
             end
           end
 

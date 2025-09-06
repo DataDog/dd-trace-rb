@@ -23,8 +23,8 @@ module Datadog
             patch_promises_future
             require_relative 'async_patch'
             async_patch
-            # Patch ExecutorService
-            patch_ruby_executor_service
+            require_relative 'executor_service'
+            patch_executor_service
           end
 
           # Propagate tracing context in Concurrent::Async
@@ -45,15 +45,8 @@ module Datadog
             ::Concurrent::Promises.singleton_class.prepend(PromisesFuturePatch) if defined?(::Concurrent::Promises::Future)
           end
 
-          # Propagate tracing context in Concurrent::RubyExecutorService
-          def patch_ruby_executor_service
-            begin
-              require 'concurrent/executor/ruby_executor_service'
-              require_relative 'ruby_executor_service_patch'
-              ::Concurrent::RubyExecutorService.prepend(RubyExecutorServicePatch)
-            rescue LoadError
-              # Older concurrent-ruby may not have RubyExecutorService
-            end
+          def patch_executor_service
+            ::Concurrent::ThreadPoolExecutor.prepend(ExecutorService)
           end
         end
       end
