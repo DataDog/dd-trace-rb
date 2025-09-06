@@ -14,6 +14,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     stub_const('Concurrent::Async::AsyncDelegator', ::Concurrent::Async.const_get(:AsyncDelegator).dup)
     stub_const('Concurrent::Promises', ::Concurrent::Promises.dup)
     stub_const('Concurrent::Future', ::Concurrent::Future.dup)
+    stub_const('Concurrent::ThreadPoolExecutor', ::Concurrent::ThreadPoolExecutor.dup)
   end
 
   after do
@@ -212,87 +213,23 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     end
   end
 
-  context 'Concurrent::RubyExecutorService' do
-    let(:mock_connection_pool) do
-      Class.new do
-        include ActiveRecord::ConnectionAdapters::AbstractPool
-
-        attr_reader :async_executor
-
-        def initialize
-          @async_executor = Concurrent::ThreadPoolExecutor.new(min_threads: 1, max_threads: 1)
-        end
-
-        def schedule_query(future_result)
-          @async_executor.post { future_result.execute_or_skip }
-          Thread.pass
-        end
-
-        def shutdown
-          @async_executor.shutdown
-          @async_executor.wait_for_termination(1)
-        end
-      end
-    end
-
-    let(:mock_future_result) do
-      Class.new do
-        def initialize(&block)
-          @block = block
-          @executed = false
-        end
-
-        def execute_or_skip
-          return if @executed
-
-          @executed = true
-          @block.call if @block
-        end
-
-        def pending?
-          !@executed
-        end
-      end
-    end
-
+  context 'Concurrent::ThreadPoolExecutor' do
     subject(:deferred_execution) do
-      pool = mock_connection_pool.new
       outer_span = tracer.trace('outer_span')
 
-      future_result = mock_future_result.new do
+      thread_pool_executor.post do
         tracer.trace('inner_span') {}
       end
 
-      pool.schedule_query(future_result)
-
-      # Wait for async execution
-      sleep(0.1)
       outer_span.finish
-      pool.shutdown
+
+      thread_pool_executor.shutdown
+      thread_pool_executor.wait_for_termination(5)
     end
 
-    describe 'patching' do
-      subject(:patch) do
-        Datadog.configure do |c|
-          c.tracing.instrument :concurrent_ruby
-        end
-      end
-
-      it 'adds ConnectionPoolPatch to ConnectionPool ancestors when ActiveRecord is available' do
-        # Skip if ActiveRecord ConnectionPool is not available
-        skip 'ActiveRecord ConnectionPool not available' unless defined?(::ActiveRecord::ConnectionAdapters::ConnectionPool)
-
-        expect { patch }.to change { ::ActiveRecord::ConnectionAdapters::ConnectionPool.ancestors.map(&:to_s) }
-          .to include('Datadog::Tracing::Contrib::ConcurrentRuby::ConnectionPoolPatch')
-      end
-    end
+    let(:thread_pool_executor) { Concurrent::ThreadPoolExecutor.new(max_threads: 2, max_queue: 2) }
 
     context 'when context propagation is disabled' do
-      before do
-        # Skip if ActiveRecord is not available
-        skip 'ActiveRecord not available' unless defined?(::ActiveRecord)
-      end
-
       it_behaves_like 'deferred execution'
 
       it 'inner span should not have parent' do
@@ -303,9 +240,6 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
     context 'when context propagation is enabled' do
       before do
-        # Skip if ActiveRecord is not available
-        skip 'ActiveRecord not available' unless defined?(::ActiveRecord)
-
         Datadog.configure do |c|
           c.tracing.instrument :concurrent_ruby
         end
@@ -322,32 +256,28 @@ RSpec.describe 'ConcurrentRuby integration tests' do
         let(:second_inner_span) { spans.find { |s| s.name == 'second_inner_span' } }
 
         subject(:multiple_deferred_executions) do
-          pool = mock_connection_pool.new
           barrier = Concurrent::CyclicBarrier.new(2)
 
           outer_span = tracer.trace('outer_span')
 
-          future_result_1 = mock_future_result.new do
+          thread_pool_executor.post do
             barrier.wait
             tracer.trace('inner_span') do
               barrier.wait
             end
           end
 
-          future_result_2 = mock_future_result.new do
+          thread_pool_executor.post do
             barrier.wait
             tracer.trace('second_inner_span') do
               barrier.wait
             end
           end
 
-          pool.schedule_query(future_result_1)
-          pool.schedule_query(future_result_2)
-
-          # Wait for tasks to complete
-          sleep(0.2)
           outer_span.finish
-          pool.shutdown
+
+          thread_pool_executor.shutdown
+          thread_pool_executor.wait_for_termination(5)
         end
 
         describe 'it correctly associates to the parent span' do
@@ -362,17 +292,12 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
       context 'when propagates without an active trace' do
         it 'creates a root span' do
-          pool = mock_connection_pool.new
-
-          future_result = mock_future_result.new do
+          thread_pool_executor.post do
             tracer.trace('inner_span') {}
           end
 
-          pool.schedule_query(future_result)
-
-          # Wait for task to complete
-          sleep(0.1)
-          pool.shutdown
+          thread_pool_executor.shutdown
+          thread_pool_executor.wait_for_termination(5)
 
           expect(inner_span).to be_root_span
         end

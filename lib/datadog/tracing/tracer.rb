@@ -269,16 +269,14 @@ module Datadog
         if block
           # For block usage, ensure the trace stays active until the block completes.
           context.activate!(trace) do
-            result = yield
-
+            yield
+          ensure
             if trace.finished_span_count > 0
               # On block completion, forces the current trace to finish and flush its finished spans.
               # Unfinished spans are lost as the trace context is no longer valid.
               trace.finish!
               flush_trace(trace)
             end
-
-            result
           end
         else
           context.activate!(trace)

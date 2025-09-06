@@ -172,7 +172,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
       subject { nil } # Delay query to inside the trace block
 
       it 'parents the database span to the calling context' do
-        Datadog::Tracing.trace('root-span') do
+        root_span = Datadog::Tracing.trace('root-span') do |span|
           relation = Article.limit(1).load_async # load_async was the only async method in Rails 7.0
 
           # Confirm async execution (there's no public API to confirm it).
@@ -180,22 +180,20 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
           # Ensure we didn't break the query
           expect(relation.to_a).to be_a(Array)
+
+          span
         end
 
-        # Remove internal AR queries
-        spans.reject! { |s| s.resource.start_with?('SET ') }
+        # Remove boilerplate DB spans, like `SET` statements.
+        select = spans.select { |s| s.resource =~ /select.*articles/i }
 
-        pp spans
+        # Ensure all DB spans are either children of the root span or nested spans.
+        expect(select).to all(not_be(be_root_span))
 
-        expect(spans).to have(2).items
+        ar_spans = select.select { |s| s.get_tag('component') == 'active_record' }
 
-        select = spans.find { |s| s.resource.include?('articles') }
-
-        expect(select).to_not be_root_span
-
-        # select = spans.find { |s| s.resource.include?('articles') }
-        #
-        # expect(select).to_not be_root_span
+        expect(ar_spans).to have(1).item
+        expect(ar_spans[0].parent_id).to eq(root_span.id)
       end
     end
   end
