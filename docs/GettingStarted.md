@@ -475,6 +475,7 @@ require 'datadog'
 
 Datadog.configure do |c|
   c.tracing.instrument :active_record, **options
+  c.tracing.instrument :concurrent_ruby # For Rails >= 7, enables tracing async queries
 end
 
 Dir::Tmpname.create(['test', '.sqlite']) do |db|

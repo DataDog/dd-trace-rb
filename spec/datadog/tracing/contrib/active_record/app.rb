@@ -9,6 +9,21 @@ end
 logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
+# Enable the async query executor, so we can test Relation#load_async.
+# It does not affect non-async queries.
+if defined?(ActiveRecord) && ActiveRecord.respond_to?(:async_query_executor=)
+  ActiveRecord.async_query_executor = :global_thread_pool
+  #
+  # REMOVE ME if all tests pass
+  #
+  # if defined?(ActiveRecord::ConnectionAdapters::ConnectionPool) &&
+  #     ActiveRecord::ConnectionAdapters::ConnectionPool.respond_to?(:install_executor_hooks)
+  #   ActiveRecord::ConnectionAdapters::ConnectionPool.install_executor_hooks
+  # end
+  # # Force initialization of global thread pool
+  # ActiveRecord.global_thread_pool_async_query_executor if ActiveRecord.respond_to?(:global_thread_pool_async_query_executor)
+end
+
 # connecting to any kind of database is enough to test the integration
 root_pw = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')
 host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
