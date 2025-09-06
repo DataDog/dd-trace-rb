@@ -167,7 +167,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
     end
 
     context 'with adapter supporting background execution' do
-      before { skip("Rails < 7 does not support async queries") if ActiveRecord::VERSION::MAJOR < 7 }
+      before { skip('Rails < 7 does not support async queries') if ActiveRecord::VERSION::MAJOR < 7 }
 
       subject { nil } # Delay query to inside the trace block
 

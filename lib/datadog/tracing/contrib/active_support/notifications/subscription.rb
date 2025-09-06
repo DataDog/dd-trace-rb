@@ -30,7 +30,19 @@ module Datadog
               @callbacks = Callbacks.new
             end
 
-            # This will probably generate unwanted spans if not tested thoroughly
+            # If the {#publish} method is implemented, this class can receive new notifications
+            # that are not sent through {#start}/{#finish}. This can very likely be a source
+            # of new useful telemetry.
+            # But some of these can be duplicated (e.g. ActiveRecord async queries),
+            # so we have to be careful when implementing this.
+            #
+            # For reference, the ActiveRecord async queries do not use this method
+            # because ActiveRecord collects all background ActiveSupport::Notifications,
+            # then later `#publish`es them in the main thread.
+            # This means that any non-ActiveRecord spans in the background thread are not
+            # captured and end up orphans (e.g. PG or MySQL spans).
+            # Thus, ActiveRecord async query spans are captured by patching Concurrent-Ruby.
+            #
             # def publish(name, _time, _end, id, payload)
             #   start(name, id, payload)
             #   finish(name, id, payload)

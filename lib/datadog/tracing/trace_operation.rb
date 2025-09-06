@@ -137,8 +137,10 @@ module Datadog
 
       # Manually finish the trace, marking it as completed.
       # Any unfinished spans are lost and will not be included in the trace.
-      # This is useful for trace_block traces where we want to flush
-      # finished spans without waiting for a root span to complete.
+      #
+      # This is useful for `trace_block == true` traces, where we want to flush
+      # the trace not when the root span finishes, but when the block
+      # given to {Tracer#continue_trace!} finishes.
       def finish!
         @finished = true
         @active_span = nil
