@@ -4,7 +4,10 @@ module Datadog
   module Tracing
     module Contrib
       module ConcurrentRuby
-        # This patches the RubyExecutorService - to provide tracing context propagation for direct usage
+        # Patch for the {Concurrent::ThreadPoolExecutor} class, which is essentially
+        # the public API of the private class Concurrent::ExecutorService.
+        #
+        # {Concurrent::ThreadPoolExecutor} is used by {ActiveRecord} to execute async queries.
         module ExecutorService
           def post(*args, &task)
             return super(*args, &task) unless datadog_configuration.enabled
