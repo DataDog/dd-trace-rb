@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require_relative '../support/helper'
 
-RSpec.describe 'Server internal tracer', skip: ENV['BATCHED_TASKS'] do
+RSpec.describe 'Server internal tracer' do
   include SidekiqServerExpectations
 
   before do
