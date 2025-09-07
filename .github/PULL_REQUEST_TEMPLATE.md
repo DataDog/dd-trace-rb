@@ -12,10 +12,17 @@ run the test suite, write new integrations, and more.
 <!-- What inspired you to submit this pull request? -->
 
 **Change log entry**
-<!-- If this is a customer-visible change, a brief summary to be placed
-into the change log.
-If you are not a Datadog employee, you can skip this section
-and it will be filled or deleted during PR review. -->
+<!--
+If you are a Datadog employee:
+
+If this is a customer-visible change, a brief summary to be placed
+into the change log. This will be the ONLY mention of the change in the
+release notes; it should be self-contained and understandable by customers.
+
+If you are not a Datadog employee:
+
+You can skip this section and it will be filled or deleted during PR review.
+-->
 
 **Additional Notes:**
 <!-- Anything else we should know when reviewing? -->
