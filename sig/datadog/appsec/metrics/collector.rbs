@@ -15,7 +15,9 @@ module Datadog
 
           attr_accessor duration_ext_ns: ::Integer
 
-          def self.new: (evals: ::Integer, matches: ::Integer, errors: ::Integer, timeouts: ::Integer, duration_ns: ::Integer, duration_ext_ns: ::Integer) -> void
+          attr_accessor input_truncated_count: ::Integer
+
+          def self.new: (evals: ::Integer, matches: ::Integer, errors: ::Integer, timeouts: ::Integer, duration_ns: ::Integer, duration_ext_ns: ::Integer, input_truncated_count: ::Integer) -> void
         end
 
         @mutex: Mutex

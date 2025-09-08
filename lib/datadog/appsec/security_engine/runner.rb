@@ -42,7 +42,7 @@ module Datadog
           report_execution(result)
 
           unless SUCCESSFUL_EXECUTION_CODES.include?(result.status)
-            return Result::Error.new(duration_ext_ns: stop_ns - start_ns)
+            return Result::Error.new(duration_ext_ns: stop_ns - start_ns, input_truncated: result.input_truncated?)
           end
 
           klass = (result.status == :match) ? Result::Match : Result::Ok
@@ -52,7 +52,8 @@ module Datadog
             derivatives: result.derivatives,
             timeout: result.timeout,
             duration_ns: result.total_runtime,
-            duration_ext_ns: (stop_ns - start_ns)
+            duration_ext_ns: (stop_ns - start_ns),
+            input_truncated: result.input_truncated?
           )
         ensure
           @mutex.unlock
