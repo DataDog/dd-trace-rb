@@ -6,11 +6,24 @@ require 'spec_helper'
 require 'datadog/core/process_discovery'
 
 RSpec.describe Datadog::Core::ProcessDiscovery do
-  describe '.get_and_store_metadata' do
+  let(:content) do
+    native_fd = described_class.instance_variable_get(:@file_descriptor)
+
+    # Extract content from created memfd
+    fd = described_class._native_to_rb_int(native_fd)
+    # This MUST have autoclose set to false, or the file descriptor will be closed when the buffer is garbage collected,
+    # causing an error when the tracer will be shutdown, or even closing the wrong file descriptor if it has been reused,
+    # causing flaky specs and other issues.
+    buffer = IO.new(fd, autoclose: false)
+    buffer.rewind
+    MessagePack.unpack(buffer.read)
+  end
+
+  describe '.publish' do
     context 'when libdatadog API is not available' do
       it 'returns nil' do
         stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', 'test')
-        expect(described_class.get_and_store_metadata(nil, Datadog::Core::Logger.new(StringIO.new))).to be_nil
+        expect(described_class.publish(nil)).to be_nil
       end
     end
 
@@ -32,14 +45,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         end
 
         it 'stores metadata successfully' do
-          described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new(StringIO.new))
-          native_fd = described_class.instance_variable_get(:@file_descriptor)
-
-          # Extract content from created memfd
-          fd = described_class._native_to_rb_int(native_fd)
-          buffer = IO.new(fd, autoclose: false)
-          buffer.rewind
-          content = MessagePack.unpack(buffer.read)
+          described_class.publish(settings)
 
           expect(content).to eq(
             {
@@ -67,14 +73,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         end
 
         it 'stores metadata successfully' do
-          described_class.get_and_store_metadata(settings, Datadog::Core::Logger.new(StringIO.new))
-          native_fd = described_class.instance_variable_get(:@file_descriptor)
-
-          # Extract content from created memfd
-          fd = described_class._native_to_rb_int(native_fd)
-          buffer = IO.new(fd, autoclose: false)
-          buffer.rewind
-          content = MessagePack.unpack(buffer.read)
+          described_class.publish(settings)
 
           # If the string is empty, it should be replaced by None when converting C strings to Rust types.
           # Thus not appearing in the content.
@@ -100,14 +99,10 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
 
     it 'updates the process discovery file descriptor' do
-      expect_in_fork do
-        described_class.get_and_store_metadata(Datadog.configuration, Datadog::Core::Logger.new(StringIO.new))
-        native_fd = described_class.instance_variable_get(:@file_descriptor)
-        fd = described_class._native_to_rb_int(native_fd)
-        buffer = IO.new(fd, autoclose: false)
-        buffer.rewind
-        content = MessagePack.unpack(buffer.read)
+      allow(described_class).to receive(:publish).and_call_original
 
+      expect_in_fork do
+        expect(described_class).to have_received(:publish)
         expect(content).to eq(
           {
             'schema_version' => 1,

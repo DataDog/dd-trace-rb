@@ -8,13 +8,13 @@ require_relative 'utils/only_once'
 module Datadog
   module Core
     # Class used to store tracer metadata in a native file descriptor.
-    class ProcessDiscovery
+    module ProcessDiscovery
       ONLY_ONCE = Core::Utils::OnlyOnce.new
 
       class << self
-        def get_and_store_metadata(settings, logger)
+        def publish(settings)
           if (libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE)
-            logger.debug("Cannot enable process discovery: #{libdatadog_api_failure}")
+            Datadog.logger.debug("Cannot enable process discovery: #{libdatadog_api_failure}")
             return
           end
 
@@ -23,8 +23,8 @@ module Datadog
           metadata = get_metadata(settings)
 
           shutdown!
-          @file_descriptor = _native_store_tracer_metadata(logger, **metadata)
-          @file_descriptor&.logger = logger
+          @file_descriptor = _native_store_tracer_metadata(Datadog.logger, **metadata)
+          @file_descriptor&.logger = Datadog.logger
         end
 
         def shutdown!
@@ -50,13 +50,9 @@ module Datadog
         end
 
         def apply_at_fork_patch
+          # The runtime-id changes after a fork. We apply this patch to at_fork to ensure that the runtime-id is updated.
           Utils::AtForkMonkeyPatch.apply!
-          Utils::AtForkMonkeyPatch.at_fork(:child) do
-            next if (components = Datadog.send(:components, allow_initialization: false)).nil?
-
-            logger = components.logger
-            get_and_store_metadata(Datadog.configuration, logger)
-          end
+          Utils::AtForkMonkeyPatch.at_fork(:child) { publish(Datadog.configuration) }
         end
       end
     end

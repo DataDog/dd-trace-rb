@@ -156,7 +156,10 @@ module Datadog
             remote&.start
           end
 
-          Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
+          # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
+          # initialize new components, shutdown old components, startup new components.
+          # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
+          Core::ProcessDiscovery.publish(settings)
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
         end

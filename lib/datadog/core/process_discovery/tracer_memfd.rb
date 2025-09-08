@@ -2,7 +2,7 @@
 
 module Datadog
   module Core
-    class ProcessDiscovery
+    module ProcessDiscovery
       class TracerMemfd
         attr_accessor :logger
 

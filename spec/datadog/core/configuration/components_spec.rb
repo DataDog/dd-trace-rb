@@ -1138,9 +1138,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
       startup!
     end
 
+    # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
+    # initialize new components, shutdown old components, startup new components.
+    # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
     it 'calls ProcessDiscovery' do
-      expect(Datadog::Core::ProcessDiscovery).to receive(:get_and_store_metadata)
-        .with(settings, components.logger)
+      expect(Datadog::Core::ProcessDiscovery).to receive(:publish)
+        .with(settings)
 
       startup!
     end
