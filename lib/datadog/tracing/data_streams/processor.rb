@@ -42,8 +42,9 @@ module Datadog
         end
 
         def decode_pathway_context(encoded_ctx)
-          nil unless @enabled
-          # TODO: Implement pathway context decoding from base64
+          return nil unless @enabled
+
+          PathwayContext.decode_b64(encoded_ctx)
         end
 
         def flush_stats
