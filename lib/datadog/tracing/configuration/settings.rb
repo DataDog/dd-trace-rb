@@ -3,6 +3,7 @@
 require_relative '../../tracing/configuration/ext'
 require_relative '../../core/environment/variable_helpers'
 require_relative 'http'
+require_relative '../data_streams/processor'
 
 module Datadog
   module Tracing
@@ -484,6 +485,15 @@ module Datadog
                   o.type :bool
                   o.env Tracing::Configuration::Ext::DataStreams::ENV_ENABLED
                   o.default false
+                end
+
+                # The Data Streams processor instance
+                # @return [Datadog::Tracing::DataStreams::Processor]
+                option :processor do |o|
+                  o.default { Datadog::Tracing::DataStreams::Processor.new }
+                  o.after_set do |processor|
+                    processor.enabled = enabled
+                  end
                 end
               end
 

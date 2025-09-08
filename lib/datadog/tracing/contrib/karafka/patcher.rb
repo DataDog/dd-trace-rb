@@ -27,12 +27,29 @@ module Datadog
             @messages_array.each do |message|
               if configuration[:distributed_tracing]
                 headers = if message.metadata.respond_to?(:raw_headers)
-                  message.metadata.raw_headers
-                else
-                  message.metadata.headers
-                end
+                            message.metadata.raw_headers
+                          else
+                            message.metadata.headers
+                          end
                 trace_digest = Karafka.extract(headers)
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
+              end
+
+              # DSM: Create checkpoint for each consumed message
+              if Datadog.configuration.tracing.data_streams.enabled
+                headers = if message.metadata.respond_to?(:raw_headers)
+                            message.metadata.raw_headers
+                          else
+                            message.metadata.headers
+                          end
+
+                processor = Datadog.configuration.tracing.data_streams.processor
+
+                # Extract and set pathway context from headers
+                processor.decode_and_set_pathway_context(headers)
+
+                # Create checkpoint with topic tag
+                processor.set_checkpoint(['topic:' + message.topic], Time.now.to_f)
               end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
