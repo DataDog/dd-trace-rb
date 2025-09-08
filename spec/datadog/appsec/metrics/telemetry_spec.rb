@@ -16,7 +16,8 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context 'when reporting a match run result' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -33,7 +34,8 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context 'when reporting a match run result with timeout' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -52,7 +54,8 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context 'when reporting a ok run result' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -67,7 +70,8 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context 'when reporting a ok run result with timeout' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -83,7 +87,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
 
     context 'when reporting a error run result' do
       let(:run_result) do
-        Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0)
+        Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0, input_truncated: false)
       end
 
       it 'does not set WAF metrics on the span' do
