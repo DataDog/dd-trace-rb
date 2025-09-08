@@ -13,7 +13,8 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -25,7 +26,8 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -34,7 +36,9 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
 
     context 'when WAF result is an error' do
       subject(:event) { described_class.new(waf_result, trace: trace, span: span) }
-      let(:waf_result) { Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0) }
+      let(:waf_result) do
+        Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0, input_truncated: false)
+      end
 
       it { expect(event).not_to be_attack }
     end
@@ -51,7 +55,8 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           derivatives: {'_dd.appsec.s.req.headers' => [{'host' => [8], 'version' => [8]}]},
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -68,7 +73,8 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           derivatives: {'not_schema' => 'value'},
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -87,7 +93,8 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           derivatives: {'_dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-'},
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -104,7 +111,8 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           derivatives: {'not_fingerprint' => 'value'},
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 

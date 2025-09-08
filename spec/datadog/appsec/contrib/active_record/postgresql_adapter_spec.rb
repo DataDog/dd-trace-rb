@@ -140,7 +140,8 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
           derivatives: {},
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 

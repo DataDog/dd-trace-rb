@@ -166,7 +166,7 @@ RSpec.describe Datadog::AppSec::Context do
       end
 
       let(:run_result) do
-        Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0)
+        Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0, input_truncated: false)
       end
       let(:persistent_data) do
         {'server.request.query' => {'q' => "1' OR 1=1;"}}

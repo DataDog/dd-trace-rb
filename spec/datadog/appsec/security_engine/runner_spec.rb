@@ -185,7 +185,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       end
 
       let(:waf_result) do
-        instance_double(Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout: false)
+        instance_double(
+          Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout: false, input_truncated?: false
+        )
       end
 
       it 'sends telemetry error' do
@@ -197,11 +199,13 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
 
       context 'when WAF::Result#input_truncated? is true' do
         let(:waf_result) do
-          instance_double(Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout: true)
+          instance_double(
+            Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout: true, input_truncated?: true
+          )
         end
 
         it 'returns result with input_trucnated set to true' do
-          expect(result.input_truncated?).to be true
+          expect(waf_result.input_truncated?).to be true
         end
       end
     end
@@ -224,7 +228,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
 
         expect(run_result).to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error)
         expect(run_result.duration_ext_ns).to be > 0
-        expect(result.input_truncated?).to be false
+        expect(run_result.input_truncated?).to be false
       end
     end
   end
