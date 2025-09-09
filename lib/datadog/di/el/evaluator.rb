@@ -5,14 +5,6 @@ module Datadog
     module EL
       # Evaluator for expression language.
       #
-      # TODO:
-      #
-      # - Verify when exceptions should be raised and when nil should
-      #   be returned
-      # - Exception for evaluation errors
-      # - Test error reporting
-      # - Report errors via telemetry?
-      #
       # @api private
       class Evaluator
         def initialize(context)
