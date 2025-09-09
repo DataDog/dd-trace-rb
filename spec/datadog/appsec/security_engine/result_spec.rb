@@ -23,7 +23,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       it { expect(result.derivatives).to eq({'3' => '3'}) }
       it { expect(result.duration_ns).to eq(400) }
       it { expect(result.duration_ext_ns).to eq(500) }
-      it { expect(result.input_truncated?).to eq(false) }
+      it { expect(result).not_to be_input_truncated }
     end
 
     context 'when initializing error result' do
@@ -35,7 +35,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       it { expect(result.derivatives).to eq({}) }
       it { expect(result.duration_ns).to eq(0) }
       it { expect(result.duration_ext_ns).to eq(100) }
-      it { expect(result.input_truncated?).to eq(false) }
+      it { expect(result).not_to be_input_truncated }
     end
   end
 
