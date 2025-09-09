@@ -14,7 +14,7 @@ module Datadog
       class << self
         def publish(settings)
           if (libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE)
-            Datadog.logger.debug("Cannot enable process discovery: #{libdatadog_api_failure}")
+            Datadog.logger.debug { "Cannot enable process discovery: #{libdatadog_api_failure}" }
             return
           end
 
