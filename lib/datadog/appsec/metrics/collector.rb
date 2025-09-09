@@ -12,7 +12,7 @@ module Datadog
           :timeouts,
           :duration_ns,
           :duration_ext_ns,
-          :input_truncated_count,
+          :inputs_truncated,
           keyword_init: true
         )
 
@@ -22,10 +22,10 @@ module Datadog
           @mutex = Mutex.new
 
           @waf = Store.new(
-            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0, input_truncated_count: 0
+            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0, inputs_truncated: 0
           )
           @rasp = Store.new(
-            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0, input_truncated_count: 0
+            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0, inputs_truncated: 0
           )
         end
 
@@ -37,7 +37,7 @@ module Datadog
             @waf.timeouts += 1 if result.timeout?
             @waf.duration_ns += result.duration_ns
             @waf.duration_ext_ns += result.duration_ext_ns
-            @waf.input_truncated_count += 1 if result.input_truncated?
+            @waf.inputs_truncated += 1 if result.input_truncated?
           end
         end
 
@@ -49,7 +49,7 @@ module Datadog
             @rasp.timeouts += 1 if result.timeout?
             @rasp.duration_ns += result.duration_ns
             @rasp.duration_ext_ns += result.duration_ext_ns
-            @rasp.input_truncated_count += 1 if result.input_truncated?
+            @rasp.inputs_truncated += 1 if result.input_truncated?
           end
         end
       end

@@ -19,7 +19,7 @@ module Datadog
               request_blocked: context.interrupted?.to_s,
               block_failure: 'false',
               rate_limited: (!context.trace.sampled?).to_s,
-              input_truncated: metrics.input_truncated_count.positive?.to_s,
+              input_truncated: metrics.inputs_truncated.positive?.to_s,
             }
           )
         end
