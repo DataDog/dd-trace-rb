@@ -19,6 +19,8 @@ module ELTestMod
 end
 
 RSpec.describe Datadog::DI::EL do
+  di_test
+
   let(:compiler) { Datadog::DI::EL::Compiler.new }
 
   dir = File.join(File.dirname(__FILE__), 'integration_cases')
