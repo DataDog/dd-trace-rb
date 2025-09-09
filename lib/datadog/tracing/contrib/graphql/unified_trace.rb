@@ -54,7 +54,6 @@ module Datadog
               lambda { |span|
                 # Ensure this span can be aggregated by in the Datadog App, and generates RED metrics.
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
-                span.set_tag('span.kind', 'server')
 
                 span.set_tag('graphql.source', query.query_string)
                 span.set_tag('graphql.operation.type', query.selected_operation.operation_type)
