@@ -326,4 +326,23 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
     end
   end
+
+  describe '#evaluate_template' do
+    context 'when there are variables to be substituted' do
+      let(:template) { "{@hello} {@world}" }
+      let(:vars) do
+        {
+          'hello' => 'test',
+          # We need double backslash to check for proper sub/gsub usage.
+          'world' => "\"'\\\\a\#{value}",
+        }
+      end
+
+      let(:expected) { "test \"'\\\\a\#{value}" }
+
+      it 'substitutes correctly' do
+        expect(builder.send(:evaluate_template, template, **vars)).to eq(expected)
+      end
+    end
+  end
 end
