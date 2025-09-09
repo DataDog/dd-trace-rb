@@ -106,7 +106,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result.derivatives).to eq({})
         expect(result.duration_ns).to eq(10)
         expect(result.duration_ext_ns).to be > result.duration_ns
-        expect(result.input_truncated?).to be false
+        expect(result).not_to be_input_truncated
       end
 
       context 'when WAF::Result#input_truncated? is true' do
@@ -126,7 +126,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         end
 
         it 'returns result with input_trucnated set to true' do
-          expect(result.input_truncated?).to be true
+          expect(result).to be_input_truncated
         end
       end
     end
@@ -160,7 +160,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result.derivatives).to eq({})
         expect(result.duration_ns).to eq(100)
         expect(result.duration_ext_ns).to be > result.duration_ns
-        expect(result.input_truncated?).to be false
+        expect(result).not_to be_input_truncated
       end
 
       context 'when WAF::Result#input_truncated? is true' do
@@ -172,7 +172,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         end
 
         it 'returns result with input_trucnated set to true' do
-          expect(result.input_truncated?).to be true
+          expect(result).to be_input_truncated
         end
       end
     end
@@ -205,7 +205,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         end
 
         it 'returns result with input_trucnated set to true' do
-          expect(waf_result.input_truncated?).to be true
+          expect(waf_result).to be_input_truncated
         end
       end
     end
@@ -228,7 +228,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
 
         expect(run_result).to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error)
         expect(run_result.duration_ext_ns).to be > 0
-        expect(run_result.input_truncated?).to be false
+        expect(run_result).not_to be_input_truncated
       end
     end
   end
