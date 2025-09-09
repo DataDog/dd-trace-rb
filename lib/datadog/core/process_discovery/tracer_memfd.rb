@@ -4,9 +4,7 @@ module Datadog
   module Core
     module ProcessDiscovery
       class TracerMemfd
-        attr_accessor :logger
-
-        def shutdown!
+        def shutdown!(logger)
           ProcessDiscovery._native_close_tracer_memfd(self, logger)
         end
       end

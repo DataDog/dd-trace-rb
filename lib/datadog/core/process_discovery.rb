@@ -24,11 +24,10 @@ module Datadog
 
           shutdown!
           @file_descriptor = _native_store_tracer_metadata(Datadog.logger, **metadata)
-          @file_descriptor&.logger = Datadog.logger
         end
 
         def shutdown!
-          @file_descriptor&.shutdown!
+          @file_descriptor&.shutdown!(Datadog.logger)
           @file_descriptor = nil
         end
 

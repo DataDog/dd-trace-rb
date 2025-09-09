@@ -101,6 +101,8 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     it 'updates the process discovery file descriptor' do
       allow(described_class).to receive(:publish).and_call_original
 
+      parent_runtime_id = Datadog::Core::Environment::Identity.id
+
       expect_in_fork do
         expect(described_class).to have_received(:publish)
         expect(content).to eq(
@@ -113,6 +115,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
             'service_name' => 'test-service'
           }
         )
+        expect(content.fetch('runtime_id')).to_not eq(parent_runtime_id)
       end
     end
   end
