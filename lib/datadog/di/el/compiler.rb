@@ -65,14 +65,13 @@ module Datadog
               when '@value'
                 'current_value'
               when '@return'
-                # TODO implement
-                raise NotImplementedError
+                # For @return, @duration and @exception we shadow
+                # instance variables.
+                "iref('@return')"
               when '@duration'
-                # TODO implement
-                raise NotImplementedError
+                "iref('@duration')"
               when '@exception'
-                # TODO implement
-                raise NotImplementedError
+                "iref('@exception')"
               else
                 # Ruby technically allows all kinds of symbols in variable
                 # names, for example spaces and many characters.
