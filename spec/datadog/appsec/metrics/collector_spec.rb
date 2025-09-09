@@ -14,7 +14,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.duration_ns).to eq(0)
         expect(collector.waf.duration_ext_ns).to eq(0)
-        expect(collector.waf.input_truncated_count).to eq(0)
+        expect(collector.waf.inputs_truncated).to eq(0)
       end
     end
 
@@ -35,7 +35,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.waf.timeouts).to eq(0)
         expect(collector.waf.duration_ns).to eq(100)
         expect(collector.waf.duration_ext_ns).to eq(200)
-        expect(collector.waf.input_truncated_count).to eq(0)
+        expect(collector.waf.inputs_truncated).to eq(0)
       end
     end
 
@@ -65,7 +65,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.waf.errors).to eq(0)
         expect(collector.waf.duration_ns).to eq(1100)
         expect(collector.waf.duration_ext_ns).to eq(1400)
-        expect(collector.waf.input_truncated_count).to eq(0)
+        expect(collector.waf.inputs_truncated).to eq(0)
       end
     end
 
@@ -101,7 +101,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.waf.timeouts).to eq(2)
         expect(collector.waf.duration_ns).to eq(500)
         expect(collector.waf.duration_ext_ns).to eq(2000)
-        expect(collector.waf.input_truncated_count).to eq(0)
+        expect(collector.waf.inputs_truncated).to eq(0)
       end
     end
   end
@@ -115,7 +115,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(0)
         expect(collector.rasp.duration_ext_ns).to eq(0)
-        expect(collector.rasp.input_truncated_count).to eq(0)
+        expect(collector.rasp.inputs_truncated).to eq(0)
       end
     end
 
@@ -136,7 +136,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(100)
         expect(collector.rasp.duration_ext_ns).to eq(200)
-        expect(collector.rasp.input_truncated_count).to eq(0)
+        expect(collector.rasp.inputs_truncated).to eq(0)
       end
     end
 
@@ -167,7 +167,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.timeouts).to eq(0)
         expect(collector.rasp.duration_ns).to eq(1100)
         expect(collector.rasp.duration_ext_ns).to eq(1400)
-        expect(collector.rasp.input_truncated_count).to eq(0)
+        expect(collector.rasp.inputs_truncated).to eq(0)
       end
     end
 
@@ -204,7 +204,7 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.timeouts).to eq(2)
         expect(collector.rasp.duration_ns).to eq(500)
         expect(collector.rasp.duration_ext_ns).to eq(2000)
-        expect(collector.rasp.input_truncated_count).to eq(0)
+        expect(collector.rasp.inputs_truncated).to eq(0)
       end
     end
   end
