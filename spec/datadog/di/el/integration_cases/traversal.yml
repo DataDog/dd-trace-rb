@@ -4,17 +4,17 @@
       - ref: arr
       - 1
   compiled: "index(ref('arr'), (1))"
-  
+
   eval:
     - locals:
         arr: [42, 43, 44]
       result: 43
-      
+
     - name: index out of bounds
       locals:
         arr: [42]
       result:
-      
+
     - name: target is not an array
       locals:
         arr:
@@ -27,19 +27,19 @@
       - ref: hash
       - x
   compiled: "index(ref('hash'), (\"x\"))"
-  
+
   eval:
     - locals:
         hash:
           x: 43
       result: 43
-      
+
     - name: key does not exist
       locals:
         hash:
           foo: 43
       result:
-      
+
     - name: target is not a hash
       locals:
         hash:
@@ -51,15 +51,15 @@
     getmember:
       - ref: var
       - ivar
-      
+
   compiled: getmember(ref('var'), ("ivar"))
-  
+
   eval:
     - locals:
         var: !ruby/object:ELTestIvarClass
           ivar: 50
       result: 50
-      
+
     - name: ivar missing
       locals:
         var: !ruby/object:ELTestIvarClass

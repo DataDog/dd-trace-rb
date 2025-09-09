@@ -1,33 +1,33 @@
 - name: startsWith
-  ast: 
+  ast:
     startsWith:
       - ref: var
       - hello
-      
+
   compiled: starts_with(ref('var'), ("hello"))
-  
+
   eval:
     - locals:
         var: hello_
       result: true
-      
+
     - locals:
         var: hel
       result: false
 
 - name: endsWith
-  ast: 
+  ast:
     endsWith:
       - ref: var
       - hello
-      
+
   compiled: ends_with(ref('var'), ("hello"))
-  
+
   eval:
     - locals:
         var: _hello
       result: true
-      
+
     - locals:
         var: hel
       result: false
@@ -38,9 +38,9 @@
       - ref: var
       - 4
       - 7
-      
+
   compiled: substring((ref('var')), (4), (7))
-  
+
   eval:
     - locals:
         var: abracadabra
@@ -51,20 +51,20 @@
     matches:
       - ref: var
       - hello[a-z]
-  
+
   compiled: matches(ref('var'), ("hello[a-z]"))
-  
+
   # TODO check esscaping
 
   eval:
     - locals:
         var: -hellow-
       result: true
-      
+
     - locals:
         var: -hello-
       result: false
-      
+
     - name: nil input
       locals:
         var:

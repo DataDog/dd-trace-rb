@@ -10,7 +10,7 @@
   ast:
     len: 5
   compiled: len(5, '(expression)')
-  
+
   eval:
     - locals:
         var: 'test'
@@ -21,7 +21,7 @@
     len:
       ref: var
   compiled: len(ref('var'), 'var')
-  
+
   eval:
     - locals:
         var: 'test'
@@ -33,7 +33,7 @@
       len:
         ref: var
   compiled: len(len(ref('var'), 'var'), '(expression)')
-  
+
   eval:
     - locals:
         var: 'test'

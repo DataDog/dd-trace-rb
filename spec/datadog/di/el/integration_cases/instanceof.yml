@@ -1,43 +1,43 @@
 - name: instanceof
   ast:
-    instanceof: 
+    instanceof:
       - ref: bar
       - Integer
-      
+
   compiled: "instanceof(ref('bar'), (\"Integer\"))"
-  
+
   eval:
     - locals:
         bar: 1
       result: true
-    
+
     - locals:
         bar: x
       result: false
 
 - name: instanceof - user class
   ast:
-    instanceof: 
+    instanceof:
       - ref: bar
       - ELTestIvarClass
-      
+
   compiled: "instanceof(ref('bar'), (\"ELTestIvarClass\"))"
-  
+
   eval:
     - locals:
         bar: !ruby/object:ELTestIvarClass
           ivar: 50
       result: true
-    
+
     - locals:
         bar: !ruby/object:SubELTestIvarClass
           ivar: 50
       result: true
-    
+
     - locals:
         bar: x
       result: false
-      
+
     - name: bare name does not match fully qualified name
       locals:
         bar: !ruby/object:ELTestMod::ELTestIvarClass

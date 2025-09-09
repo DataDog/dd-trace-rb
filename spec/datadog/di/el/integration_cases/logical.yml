@@ -2,9 +2,9 @@
   ast:
     not:
       ref: var
-      
+
   compiled: "!(ref('var'))"
-  
+
   eval:
     - locals:
         var: true
@@ -14,9 +14,9 @@
   ast:
     and:
       - ref: var
-      
+
   compiled: "((ref('var')))"
-  
+
   eval:
     - locals:
         var: 42
@@ -27,15 +27,15 @@
     and:
       - ref: var
       - ref: var2
-      
+
   compiled: "((ref('var')) && (ref('var2')))"
-  
+
   eval:
     - locals:
         var: 42
         var2: 43
       result: 43
-    
+
     - locals:
         var: 42
       result:
@@ -45,15 +45,15 @@
     or:
       - ref: var
       - ref: var2
-      
+
   compiled: "((ref('var')) || (ref('var2')))"
-  
+
   eval:
     - locals:
         var: 42
         var2: 43
       result: 42
-    
+
     - locals:
         var: 42
       result: 42
