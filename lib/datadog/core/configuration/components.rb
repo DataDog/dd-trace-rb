@@ -128,7 +128,6 @@ module Datadog
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
-          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
 
           self.class.configure_tracing(settings)
         end
@@ -156,6 +155,11 @@ module Datadog
             # remote should always be not nil here but steep doesn't know this.
             remote&.start
           end
+
+          # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
+          # initialize new components, shutdown old components, startup new components.
+          # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
+          Core::ProcessDiscovery.publish(settings)
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
         end
@@ -212,7 +216,7 @@ module Datadog
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
 
-          @process_discovery_fd&.shutdown!
+          Core::ProcessDiscovery.shutdown!
         end
 
         # Returns the current state of various components.
