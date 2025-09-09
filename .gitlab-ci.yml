@@ -29,6 +29,9 @@ default:
         - .gitlab-ci.yml         # list of images is here so it is a dependency too
       allow_failure: true
   image: $DOCKER_REGISTRY/docker:20.10.13
+  id_tokens:
+    DDSIGN_ID_TOKEN:
+      aud: image-integrity
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
@@ -40,6 +43,7 @@ default:
       --file .gitlab/Dockerfile-$RUBY_VERSION
       .
     - docker push --all-tags $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE
+    - ddsign sign $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID --digest-from-docker
 
 build-image-amd64:
   extends: .build-image-base
@@ -49,7 +53,7 @@ build-image-amd64:
 
 build-image-arm64:
   extends: .build-image-base
-  tags: ["runner:docker-arm", "platform:arm64"]
+  tags: ["docker-in-docker:arm64"]
   variables:
     ARCHITECTURE: arm64
 
@@ -137,7 +141,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 1c30358ee8c4ed3020040c2d63216e7e205cca31 # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_REF: 1fc343b8835463376056ad83d6e1bd5dddefb777 # Automated: This reference is automatically updated.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
 
 save_versions:
@@ -166,8 +170,9 @@ vaccine:
   image: registry.ddbuild.io/images/dd-octo-sts-ci-base:v68058725-73f34e7-2025.06-1
   tags: ["arch:amd64"]
   stage: vaccine
-  needs: [create-multiarch-lib-injection-image]
-
+  needs:
+    - create-multiarch-lib-injection-image
+    - kubernetes-injection-test-ecr-publish
   id_tokens:
     DDOCTOSTS_ID_TOKEN:
       aud: dd-octo-sts

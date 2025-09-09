@@ -306,6 +306,23 @@ You can also get the current active trace using the `active_trace` method. This 
 current_trace = Datadog::Tracing.active_trace
 ```
 
+### Adding span events
+
+Span events are timestamped annotations attached to a span, useful for recording structured logs, exceptions, or custom events during a span's lifetime. You can create and add custom span events to the current active span as follows:
+
+```ruby
+event = Datadog::Tracing::SpanEvent.new(
+ "custom.event.name",
+ attributes: { "key1" => "value1", "key2" => 123 }
+)
+
+span.span_events << event
+```
+
+You can add multiple events to a span. Each event **must** include a name, an optional set of attributes, and an optional timestamp (in nanoseconds). If no timestamp is provided, the current time is used.
+
+This is useful for recording application-specific events, errors, or milestones within a trace.
+
 ## Integration instrumentation
 
 Many popular libraries and frameworks are supported out-of-the-box, which can be auto-instrumented. Although they are not activated automatically, they can be easily activated and configured by using the `Datadog.configure` API:
@@ -2118,6 +2135,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.sampling.rules`                               | `DD_TRACE_SAMPLING_RULES`                               | `String`                              | `nil`                        | Sets trace-level sampling rules, matching against the local root span. The format is a `String` with JSON, containing an Array of Objects. Each Object must have a float attribute `sample_rate` (between 0.0 and 1.0, inclusive), and optionally `name`, `service`, `resource`, and `tags` string attributes. `name`, `service`, `resource`, and `tags` control to which traces this sampling rule applies; if they are all absent, then this rule applies to all traces. Rules are evaluated in order of declaration in the array; only the first to match is applied. If none apply, then `tracing.sampling.default_rate` is applied. |
 | `tracing.sampling.span_rules`                          | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `String`                              | `nil`                        | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `tracing.trace_id_128_bit_generation_enabled`          | `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED`           | `Bool`                                | `true`                       | `true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `tracing.baggage_tag_keys`                             | `DD_TRACE_BAGGAGE_TAG_KEYS`                             | `Array<String>`                       | `['user.id', 'session.id', 'account.id']` | Comma-separated list of baggage keys that should be converted to span tags. Baggage keys matching the exact, case-sensitive names in this list are converted to span tags with the prefix "baggage.". Special values: Empty string ("") disables baggage tag conversion, and Wildcard ("*") converts all baggage keys to span tags.                                                                                                                                                                                                                                                                                                   |
 | `tracing.report_hostname`                              | `DD_TRACE_REPORT_HOSTNAME`                              | `Bool`                                | `false`                      | Adds hostname tag to traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `apm.tracing.enabled`                                      | `DD_APM_TRACING_ENABLED`                                      | `Bool`                                | `true`                       | Enables or disables APM traces. If set to `false`, instrumentation will still run, but only one APM trace per minute will be sent to the Agent. The service will be considered alive by Datadog, allowing usage of other products in standalone mode. For now, only Application Security is supported.
 

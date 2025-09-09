@@ -2,49 +2,75 @@ module Datadog
   module Core
     module Configuration
       module Options
-        def self.included: (untyped base) -> untyped
+        extend _ClassMethods
+        include _InstanceMethods
+
+        def self.included: (Class | Module base) -> void
+
+        interface _ClassMethods
+          def options: () -> Hash[Symbol, OptionDefinition]
+
+          def option: (Symbol name, ?OptionDefinition::meta meta) ?{ (OptionDefinition::Builder) -> void } -> OptionDefinition
+        end
+
+        interface _InstanceMethods
+          def options: () -> Hash[Symbol, Option]
+
+          def set_option: (Symbol name, Object? value, ?precedence: Option::Precedence::Value) -> Object?
+
+          def unset_option: (Symbol name, ?precedence: Option::Precedence::Value) -> void
+
+          def get_option: (Symbol name) -> Object?
+
+          def reset_option: (Symbol name) -> void
+
+          def option_defined?: (Symbol name) -> bool
+
+          def using_default?: (Symbol name) -> bool
+
+          def options_hash: () -> Hash[Symbol, Object?]
+
+          def reset_options!: () -> void
+        end
 
         module ClassMethods
-          def options: () -> untyped
+          include _ClassMethods
 
-          def option: (untyped name, ?::Hash[untyped, untyped] meta) ?{ (OptionDefinition::Builder) -> untyped } -> untyped
+          @options: Hash[Symbol, OptionDefinition]
+          @settings_name: String?
 
           private
 
-          def default_helpers: (untyped name) -> ::Hash[untyped, untyped]
+          def default_helpers: (Symbol | String name) -> Hash[Symbol, OptionDefinition::helper_proc]
 
-          def define_helpers: (untyped helpers) -> untyped
+          def define_helpers: (Hash[Symbol, OptionDefinition::helper_proc] helpers) -> void
+
+          # Fake methods to make it work with RBS. RBS cannot understand that this module is only used in a class context.
+          def superclass: () -> singleton(Options)
+          def define_method: (Symbol name) { (?) [self: GenericSettingsClass] -> untyped } -> void
         end
 
         module InstanceMethods
-          def options: () -> untyped
+          extend _ClassMethods
+          include _InstanceMethods
 
-          def set_option: (untyped name, untyped value, precedence: Option::Precedence::Value) -> untyped
-
-          def get_option: (untyped name) -> untyped
-
-          def reset_option: (untyped name) -> untyped
-
-          def option_defined?: (untyped name) -> untyped
-
-          def unset_option: (untyped name, precedence: Option::Precedence::Value) -> void
-
-          def using_default?: (Symbol option) -> bool
-
-          def options_hash: () -> untyped
-
-          def reset_options!: () -> untyped
+          @options: Hash[Symbol, Option]
 
           private
 
           def resolve_option: (Symbol name) -> Option
 
-          def add_option: (untyped name) -> untyped
-
-          def assert_valid_option!: (untyped name) -> untyped
+          def assert_valid_option!: (Symbol name) -> void
         end
 
-        InvalidOptionError: untyped
+        class InvalidOptionError < StandardError
+        end
+
+        # Needs to be a class, not an interface, to use methods like instance_of?
+        class GenericSettingsClass
+          extend ClassMethods
+          include InstanceMethods
+        end
       end
     end
   end

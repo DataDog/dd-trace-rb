@@ -19,13 +19,13 @@ module Datadog
             protected
 
             def parse_matcher(matcher)
-              matcher = { url: matcher } if matcher.is_a?(String)
+              matcher = {url: matcher} if matcher.is_a?(String)
 
               normalize(connection_resolver.resolve(matcher))
             end
 
             def normalize(hash)
-              return { url: hash[:url] } if hash[:scheme] == UNIX_SCHEME
+              return {url: hash[:url]} if hash[:scheme] == UNIX_SCHEME
 
               # Connexion strings are always converted to host, port, db and scheme
               # but the host, port, db and scheme will generate the :url only after

@@ -23,7 +23,7 @@ module Datadog
           end
 
           def self.version
-            Gem.loaded_specs['actionpack'] && Gem.loaded_specs['actionpack'].version
+            Gem.loaded_specs['actionpack']&.version
           end
 
           def self.loaded?

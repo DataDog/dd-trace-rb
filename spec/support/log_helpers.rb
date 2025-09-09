@@ -117,7 +117,8 @@ module LogHelpers
   end
 
   def expect_lazy_log(logger, meth, expected_msg)
-    expect(logger).to receive(meth) do |&block|
+    expect(logger).to receive(meth) do |*_args, &block|
+      expect(block).not_to be nil
       if expected_msg.is_a?(String)
         expect(block.call).to eq(expected_msg)
       else
@@ -139,6 +140,28 @@ module LogHelpers
       when nil
         value = block.call
         raise "Logger #{logger} #{meth} called without an expectation set: #{value}"
+      end
+    end
+  end
+
+  def expect_lazy_log_at_least(logger, meth, *expectations)
+    raise ArgumentError, 'Must have at least one expectation' if expectations.empty?
+
+    invocations = []
+    expect(logger).to receive(meth).at_least(expectations.length).times do |*args, &block|
+      invocations << (block ? block.call : args.first)
+    end
+
+    yield
+
+    expectations.each do |expected_msg|
+      case expected_msg
+      when String
+        expect(invocations).to include(expected_msg)
+      when Regexp
+        expect(invocations.any? { |msg| msg =~ expected_msg }).to be true
+      else
+        raise "Missing or bogus expectation: #{expected_msg}"
       end
     end
   end

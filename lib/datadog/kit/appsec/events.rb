@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../identity'
+require_relative '../../appsec/trace_keeper'
 
 module Datadog
   module Kit
@@ -10,7 +11,7 @@ module Datadog
         LOGIN_SUCCESS_EVENT = 'users.login.success'
         LOGIN_FAILURE_EVENT = 'users.login.failure'
         SIGNUP_EVENT = 'users.signup'
-        USER_LOGIN_KEYS = ['usr.login', :'usr.login'].freeze
+        USER_LOGIN_KEYS = ['usr.login', :"usr.login"].freeze
 
         class << self
           # Attach login success event information to the trace
@@ -31,12 +32,12 @@ module Datadog
             set_trace_and_span_context('track_login_success', trace, span) do |active_trace, active_span|
               user_options = user.dup
               user_id = user_options.delete(:id)
-              user_login = user_options[:login] || others[:'usr.login'] || others['usr.login'] || user_id
+              user_login = user_options[:login] || others[:"usr.login"] || others['usr.login'] || user_id
 
               raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
 
               others = others.reject { |key, _| USER_LOGIN_KEYS.include?(key) }
-              others[:'usr.login'] = user_login
+              others[:"usr.login"] = user_login
               track(LOGIN_SUCCESS_EVENT, active_trace, active_span, **others)
 
               user_options[:login] = user_login
@@ -60,7 +61,7 @@ module Datadog
           #   event information to attach to the trace.
           def track_login_failure(trace = nil, span = nil, user_exists:, user_id: nil, **others)
             set_trace_and_span_context('track_login_failure', trace, span) do |active_trace, active_span|
-              others[:'usr.login'] = user_id if user_id && !others.key?(:'usr.login') && !others.key?('usr.login')
+              others[:"usr.login"] = user_id if user_id && !others.key?(:"usr.login") && !others.key?('usr.login')
               track(LOGIN_FAILURE_EVENT, active_trace, active_span, **others)
 
               active_span.set_tag('appsec.events.users.login.failure.usr.id', user_id) if user_id
@@ -86,12 +87,12 @@ module Datadog
             set_trace_and_span_context('track_signup', trace, span) do |active_trace, active_span|
               user_options = user.dup
               user_id = user_options.delete(:id)
-              user_login = user_options[:login] || others[:'usr.login'] || others['usr.login'] || user_id
+              user_login = user_options[:login] || others[:"usr.login"] || others['usr.login'] || user_id
 
               raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
 
               others = others.reject { |key, _| USER_LOGIN_KEYS.include?(key) }
-              others[:'usr.login'] = user_login
+              others[:"usr.login"] = user_login
               track(SIGNUP_EVENT, active_trace, active_span, **others)
 
               user_options[:login] = user_login
@@ -126,7 +127,7 @@ module Datadog
                 span.set_tag("appsec.events.#{event}.#{k}", v) unless v.nil?
               end
 
-              trace.keep!
+              ::Datadog::AppSec::TraceKeeper.keep!(trace)
             else
               set_trace_and_span_context('track', trace, span) do |active_trace, active_span|
                 active_span.set_tag("appsec.events.#{event}.track", 'true')
@@ -138,7 +139,7 @@ module Datadog
                   active_span.set_tag("appsec.events.#{event}.#{k}", v) unless v.nil?
                 end
 
-                active_trace.keep!
+                ::Datadog::AppSec::TraceKeeper.keep!(active_trace)
               end
             end
 
@@ -154,11 +155,11 @@ module Datadog
             end
 
             trace ||= Datadog::Tracing.active_trace
-            span ||=  trace && trace.active_span || Datadog::Tracing.active_span
+            span ||= trace&.active_span || Datadog::Tracing.active_span
 
             unless trace && span
               Datadog.logger.debug(
-                "Tracing not enabled. Method ##{method} is a no-op. Please enable tracing if you want ##{method}"\
+                "Tracing not enabled. Method ##{method} is a no-op. Please enable tracing if you want ##{method}" \
                 ' to track this events'
               )
               return

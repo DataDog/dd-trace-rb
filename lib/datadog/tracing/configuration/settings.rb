@@ -93,7 +93,8 @@ module Datadog
               # @return [Array<String>]
               option :propagation_style do |o|
                 o.type :array
-                o.env [Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE, Configuration::Ext::Distributed::ENV_OTEL_PROPAGATION_STYLE]
+                # Note: Alias (DD_TRACE_PROPAGATION_STYLE) defined in supported-configurations.json
+                o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                 o.default []
                 o.after_set do |styles|
                   next if styles.empty?
@@ -133,13 +134,16 @@ module Datadog
               # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :enabled do |o|
-                o.env [Tracing::Configuration::Ext::ENV_ENABLED, Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER]
+                # Note: Alias (OTEL_TRACES_EXPORTER) defined in supported-configurations.json
+                o.env Tracing::Configuration::Ext::ENV_ENABLED
                 o.default true
                 o.type :bool
                 o.env_parser do |value|
                   value = value&.downcase
                   # Tracing is disabled when OTEL_TRACES_EXPORTER is none or
                   # DD_TRACE_ENABLED is 0 or false.
+                  # DEV: The current implementation accepts all of the mentioned values
+                  # for both environment variables, which is incorrect.
                   if ['none', 'false', '0'].include?(value)
                     false
                   # Tracing is enabled when DD_TRACE_ENABLED is true or 1
@@ -168,6 +172,23 @@ module Datadog
                 o.type :array
                 o.default []
                 o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
+              end
+
+              # Comma-separated list of baggage keys that should be converted to span tags.
+              #
+              # Baggage keys matching the exact, case-sensitive names in this list will be converted
+              # to span tags with the prefix "baggage.".
+              #
+              # Special values:
+              # * Empty string ("") disables baggage tag conversion
+              # * Wildcard ("*") converts all baggage keys to span tags
+              #
+              # @default `DD_TRACE_BAGGAGE_TAG_KEYS` environment variable, otherwise `"user.id,session.id,account.id"`
+              # @return [Array<String>, Symbol, nil] processed baggage tag keys configuration
+              option :baggage_tag_keys do |o|
+                o.env Configuration::Ext::ENV_BAGGAGE_TAG_KEYS
+                o.type :array
+                o.default ['user.id', 'session.id', 'account.id']
               end
 
               # Enable 128 bit trace id generation.
@@ -285,7 +306,8 @@ module Datadog
                 # @return [Float, nil]
                 option :default_rate do |o|
                   o.type :float, nilable: true
-                  o.env [Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, Tracing::Configuration::Ext::Sampling::ENV_OTEL_TRACES_SAMPLER]
+                  # Note: Alias (OTEL_TRACES_SAMPLER) defined in supported-configurations.json
+                  o.env Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
                   o.env_parser do |value|
                     # Parse the value as a float
                     next if value.nil?
@@ -304,7 +326,7 @@ module Datadog
                     when 'parentbased_always_off'
                       0.0
                     when 'parentbased_traceidratio'
-                      ENV.fetch(Tracing::Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
+                      DATADOG_ENV.fetch(Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
                     else
                       value.to_f
                     end
@@ -338,7 +360,7 @@ module Datadog
                 # @public_api
                 option :rules do |o|
                   o.type :string, nilable: true
-                  o.default { ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
+                  o.default { DATADOG_ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
                 end
 
                 # Single span sampling rules.
@@ -355,8 +377,8 @@ module Datadog
                 option :span_rules do |o|
                   o.type :string, nilable: true
                   o.default do
-                    rules = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
-                    rules_file = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
+                    rules = DATADOG_ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
+                    rules_file = DATADOG_ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
 
                     if rules
                       if rules_file

@@ -303,12 +303,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
       end
 
-      context "when #{Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER}" do
+      context 'when OTEL_TRACES_EXPORTER' do
         around do |example|
           ClimateControl.modify(
             {
               Datadog::Tracing::Configuration::Ext::ENV_ENABLED => dd_enable,
-              Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER => otel_exporter
+              'OTEL_TRACES_EXPORTER' => otel_exporter
             }
           ) do
             example.run
@@ -393,6 +393,51 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           .to change { settings.tracing.header_tags }
           .from(->(actual) { expect(actual.to_s).to be_empty })
           .to(->(actual) { expect(actual.to_s).to eq('content-type') })
+      end
+    end
+
+    describe '#baggage_tag_keys' do
+      subject(:baggage_tag_keys) { settings.tracing.baggage_tag_keys }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_BAGGAGE_TAG_KEYS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_BAGGAGE_TAG_KEYS => env_var) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var) { nil }
+
+          it { is_expected.to eq(['user.id', 'session.id', 'account.id']) }
+        end
+
+        context 'is set to empty string' do
+          let(:env_var) { '' }
+
+          it { is_expected.to eq [] }
+        end
+
+        context 'is set to wildcard' do
+          let(:env_var) { '*' }
+
+          it { is_expected.to eq(['*']) }
+        end
+
+        context 'is set to custom keys' do
+          let(:env_var) { 'custom.key1,custom.key2' }
+
+          it { is_expected.to eq(['custom.key1', 'custom.key2']) }
+        end
+      end
+    end
+
+    describe '#baggage_tag_keys=' do
+      it 'updates the #baggage_tag_keys setting' do
+        expect { settings.tracing.baggage_tag_keys = ['new.key'] }
+          .to change { settings.tracing.baggage_tag_keys }
+          .from(['user.id', 'session.id', 'account.id'])
+          .to(['new.key'])
       end
     end
 
@@ -582,7 +627,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           let(:dd_sample_rate) { nil }
           around do |example|
             ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Sampling::ENV_OTEL_TRACES_SAMPLER => otel_sampler,
+              'OTEL_TRACES_SAMPLER' => otel_sampler,
               Datadog::Tracing::Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG => otel_sampler_arg,
               Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => dd_sample_rate,
             ) do

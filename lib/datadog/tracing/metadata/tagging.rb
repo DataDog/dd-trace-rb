@@ -51,7 +51,7 @@ module Datadog
             # Encode strings in UTF-8 to facilitate downstream serialization
             meta[Core::Utils.utf8_encode(key)] = Core::Utils.utf8_encode(value)
           end
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
         end
 
@@ -80,10 +80,10 @@ module Datadog
         end
 
         # Convenient interface for setting a single tag.
-        alias []= set_tag
+        alias_method :[]=, :set_tag
 
         # Convenient interface for getting a single tag.
-        alias [] get_tag
+        alias_method :[], :get_tag
 
         # Return the metric with the given key, nil if it doesn't exist.
         def get_metric(key)
@@ -101,7 +101,7 @@ module Datadog
 
           # Encode strings in UTF-8 to facilitate downstream serialization
           metrics[Core::Utils.utf8_encode(key)] = value
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
         end
 

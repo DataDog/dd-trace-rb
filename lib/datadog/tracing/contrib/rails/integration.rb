@@ -23,7 +23,7 @@ module Datadog
           register_as :rails, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['railties'] && Gem.loaded_specs['railties'].version
+            Gem.loaded_specs['railties']&.version
           end
 
           def self.loaded?
@@ -35,7 +35,7 @@ module Datadog
           end
 
           def self.patchable?
-            super && !ENV.key?(Ext::ENV_DISABLE)
+            super && !DATADOG_ENV.key?(Ext::ENV_DISABLE)
           end
 
           def new_configuration

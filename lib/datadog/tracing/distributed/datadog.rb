@@ -55,17 +55,16 @@ module Datadog
         def extract(data)
           fetcher = @fetcher.new(data)
 
-          trace_id  = parse_trace_id(fetcher)
+          trace_id = parse_trace_id(fetcher)
           parent_id = parse_parent_id(fetcher)
 
           sampling_priority = Helpers.parse_decimal_id(fetcher[@sampling_priority_key])
           origin = fetcher[@origin_key]
 
           # Return early if this propagation is not valid
-          # DEV: To be valid we need to have a trace id and a parent id
-          #      or when it is a synthetics trace, just the trace id.
+          # DEV: To be valid we need to have a trace id and a parent id or an origin id.
           # DEV: `Fetcher#id` will not return 0
-          return unless (trace_id && parent_id) || (origin && trace_id)
+          return if trace_id.nil? || parent_id.nil? && origin.nil?
 
           trace_distributed_tags = extract_tags(fetcher)
 
@@ -173,7 +172,7 @@ module Datadog
 
         def set_tags_propagation_error(reason:)
           active_trace = Tracing.active_trace
-          active_trace.set_tag('_dd.propagation_error', reason) if active_trace
+          active_trace&.set_tag('_dd.propagation_error', reason)
           nil
         end
 

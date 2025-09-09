@@ -13,7 +13,7 @@ module Datadog
               default_executor = ContextCompositeExecutorService.new(default_executor)
             end
 
-            super(default_executor, *args, &task)
+            super
           end
         end
       end

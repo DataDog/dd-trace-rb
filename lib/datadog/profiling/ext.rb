@@ -6,9 +6,10 @@ module Datadog
       ENV_ENABLED = "DD_PROFILING_ENABLED"
       ENV_UPLOAD_TIMEOUT = "DD_PROFILING_UPLOAD_TIMEOUT"
       ENV_MAX_FRAMES = "DD_PROFILING_MAX_FRAMES"
-      ENV_AGENTLESS = "DD_PROFILING_AGENTLESS"
       ENV_ENDPOINT_COLLECTION_ENABLED = "DD_PROFILING_ENDPOINT_COLLECTION_ENABLED"
 
+      # WARNING: This should not be used, only for internal testing
+      ENV_AGENTLESS = "DD_PROFILING_AGENTLESS" # rubocop:disable CustomCops/EnvStringValidationCop
       module Transport
         module HTTP
           FORM_FIELD_TAG_PROFILER_VERSION = "profiler_version"

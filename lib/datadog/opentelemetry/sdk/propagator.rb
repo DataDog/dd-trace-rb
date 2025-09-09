@@ -54,10 +54,10 @@ module Datadog
             tracestate = Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_tracestate, digest)
           else
             trace_flags = if Tracing::Sampling::PrioritySampler.sampled?(digest.trace_sampling_priority)
-                            ::OpenTelemetry::Trace::TraceFlags::SAMPLED
-                          else
-                            ::OpenTelemetry::Trace::TraceFlags::DEFAULT
-                          end
+              ::OpenTelemetry::Trace::TraceFlags::SAMPLED
+            else
+              ::OpenTelemetry::Trace::TraceFlags::DEFAULT
+            end
             tracestate = ::OpenTelemetry::Trace::Tracestate::DEFAULT
           end
 

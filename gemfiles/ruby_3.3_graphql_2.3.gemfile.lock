@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.19.0)
+    datadog (2.21.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
-      libddwaf (~> 1.24.1.0.0)
+      libddwaf (~> 1.24.1.1.0)
       logger
       msgpack
 
@@ -116,9 +116,9 @@ GEM
       addressable (>= 2.4)
     libdatadog (18.1.0.1.0-aarch64-linux)
     libdatadog (18.1.0.1.0-x86_64-linux)
-    libddwaf (1.24.1.0.0-aarch64-linux)
+    libddwaf (1.24.1.1.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.24.1.0.0-x86_64-linux)
+    libddwaf (1.24.1.1.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     lograge (0.14.0)
@@ -231,9 +231,6 @@ GEM
       docile (~> 1.1)
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
-    simplecov-cobertura (2.1.0)
-      rexml
-      simplecov (~> 0.19)
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
     sprockets (3.7.3)
@@ -290,7 +287,6 @@ DEPENDENCIES
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
   simplecov (~> 0.22.0)
-  simplecov-cobertura (~> 2.1.0)
   sprockets (< 4)
   warning (~> 1)
   webmock (>= 3.10.0)

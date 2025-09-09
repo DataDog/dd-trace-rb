@@ -16,16 +16,16 @@ module Datadog
             # but adjusted to parse only <scheme>://<host>:<port>/ components
             # and stop there, since we don't care about the path, query string,
             # and fragment components
-            RFC3986_URL_BASE = /\A(?<URI>(?<scheme>[A-Za-z][+\-.0-9A-Za-z]*+):(?<hier-part>\/\/(?<authority>(?:(?<userinfo>(?:%\h\h|[!$&-.0-;=A-Z_a-z~])*+)@)?(?<host>(?<IP-literal>\[(?:(?<IPv6address>(?:\h{1,4}:){6}(?<ls32>\h{1,4}:\h{1,4}|(?<IPv4address>(?<dec-octet>[1-9]\d|1\d{2}|2[0-4]\d|25[0-5]|\d)\.\g<dec-octet>\.\g<dec-octet>\.\g<dec-octet>))|::(?:\h{1,4}:){5}\g<ls32>|\h{1,4}?::(?:\h{1,4}:){4}\g<ls32>|(?:(?:\h{1,4}:)?\h{1,4})?::(?:\h{1,4}:){3}\g<ls32>|(?:(?:\h{1,4}:){,2}\h{1,4})?::(?:\h{1,4}:){2}\g<ls32>|(?:(?:\h{1,4}:){,3}\h{1,4})?::\h{1,4}:\g<ls32>|(?:(?:\h{1,4}:){,4}\h{1,4})?::\g<ls32>|(?:(?:\h{1,4}:){,5}\h{1,4})?::\h{1,4}|(?:(?:\h{1,4}:){,6}\h{1,4})?::)|(?<IPvFuture>v\h++\.[!$&-.0-;=A-Z_a-z~]++))\])|\g<IPv4address>|(?<reg-name>(?:%\h\h|[!$&-.0-9;=A-Z_a-z~])*+))(?::(?<port>\d*+))?)))(?:\/|\z)/.freeze # rubocop:disable Style/RegexpLiteral, Layout/LineLength
+            RFC3986_URL_BASE = /\A(?<URI>(?<scheme>[A-Za-z][+\-.0-9A-Za-z]*+):(?<hier-part>\/\/(?<authority>(?:(?<userinfo>(?:%\h\h|[!$&-.0-;=A-Z_a-z~])*+)@)?(?<host>(?<IP-literal>\[(?:(?<IPv6address>(?:\h{1,4}:){6}(?<ls32>\h{1,4}:\h{1,4}|(?<IPv4address>(?<dec-octet>[1-9]\d|1\d{2}|2[0-4]\d|25[0-5]|\d)\.\g<dec-octet>\.\g<dec-octet>\.\g<dec-octet>))|::(?:\h{1,4}:){5}\g<ls32>|\h{1,4}?::(?:\h{1,4}:){4}\g<ls32>|(?:(?:\h{1,4}:)?\h{1,4})?::(?:\h{1,4}:){3}\g<ls32>|(?:(?:\h{1,4}:){,2}\h{1,4})?::(?:\h{1,4}:){2}\g<ls32>|(?:(?:\h{1,4}:){,3}\h{1,4})?::\h{1,4}:\g<ls32>|(?:(?:\h{1,4}:){,4}\h{1,4})?::\g<ls32>|(?:(?:\h{1,4}:){,5}\h{1,4})?::\h{1,4}|(?:(?:\h{1,4}:){,6}\h{1,4})?::)|(?<IPvFuture>v\h++\.[!$&-.0-;=A-Z_a-z~]++))\])|\g<IPv4address>|(?<reg-name>(?:%\h\h|[!$&-.0-9;=A-Z_a-z~])*+))(?::(?<port>\d*+))?)))(?:\/|\z)/.freeze # rubocop:disable Layout/LineLength
 
             module_function
 
             def url(url, options = {})
               url!(url, options)
-            rescue StandardError
+            rescue
               placeholder = options[:placeholder] || PLACEHOLDER
 
-              options[:base] == :exclude ? placeholder : "#{base_url(url)}/#{placeholder}"
+              (options[:base] == :exclude) ? placeholder : "#{base_url(url)}/#{placeholder}"
             end
 
             def base_url(url, options = {})
@@ -43,7 +43,7 @@ module Datadog
                 # Format the query string
                 if uri.query
                   query = query(uri.query, options[:query])
-                  uri.query = (!query.nil? && query.empty? ? nil : query)
+                  uri.query = ((!query.nil? && query.empty?) ? nil : query)
                 end
 
                 # Remove any URI fragments
@@ -59,7 +59,7 @@ module Datadog
 
             def query(query, options = {})
               query!(query, options)
-            rescue StandardError
+            rescue
               options[:placeholder] || PLACEHOLDER
             end
 
@@ -78,7 +78,7 @@ module Datadog
                   if options[:exclude].include?(key)
                     [nil, nil]
                   else
-                    value = options[:show] == :all || options[:show].include?(key) ? value : nil
+                    value = (options[:show] == :all || options[:show].include?(key)) ? value : nil
                     [key, value]
                   end
                 end

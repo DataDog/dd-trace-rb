@@ -62,10 +62,10 @@ module Datadog
             # Quantizes a multi-command Redis pipeline execution
             def get_pipeline_commands(commands, command_args)
               list = if command_args
-                       commands.map { |c| Contrib::Redis::Quantize.format_command_args(c) }
-                     else
-                       commands.map { |c| Contrib::Redis::Quantize.get_verb(c) }
-                     end
+                commands.map { |c| Contrib::Redis::Quantize.format_command_args(c) }
+              else
+                commands.map { |c| Contrib::Redis::Quantize.get_verb(c) }
+              end
 
               list.empty? ? '(none)' : list.join("\n")
             end

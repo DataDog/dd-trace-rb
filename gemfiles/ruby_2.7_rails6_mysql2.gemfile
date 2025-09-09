@@ -21,13 +21,13 @@ gem "rspec-collection_matchers", "~> 1.1"
 gem "rspec-wait", "~> 0"
 gem "rspec_junit_formatter", ">= 0.5.1"
 gem "simplecov", "~> 0.22.0"
-gem "simplecov-cobertura", "~> 2.1.0"
 gem "warning", "~> 1"
 gem "webmock", ">= 3.10.0"
 gem "rails", "~> 6.0.0"
 gem "mysql2", "< 1", platform: :ruby
 gem "sprockets", "< 4"
 gem "lograge", "~> 0.11"
+gem "nio4r", ">= 2.5.9"
 
 group :check do
 

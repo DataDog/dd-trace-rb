@@ -45,21 +45,23 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       context 'with snapshot' do
-        let(:locals) do
-          double('local variables').tap do |locals|
-            # Adding instance variables to the locals
-            expect(locals).to receive(:merge).and_return(locals)
-          end
+        let(:serialized_locals) do
+          double('local variables')
         end
 
         let(:captures) do
           {lines: {1 => {
-            locals: locals,
+            locals: serialized_locals,
+            arguments: {self: {
+              type: 'Object',
+              fields: {},
+            }},
           }}}
         end
 
         it 'builds expected payload' do
-          payload = builder.build_snapshot(probe, locals: locals)
+          payload = builder.build_snapshot(probe,
+            serialized_locals: serialized_locals, target_self: Object.new)
           expect(payload).to be_a(Hash)
           expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to eq(captures)
         end
@@ -81,7 +83,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:instance_vars) do
-          {"@ivar": 42}
+          {type: 'X', fields: {"@ivar": 42}}
         end
 
         let(:expected_captures) do
@@ -90,11 +92,14 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
               arg1: {type: 'Integer', value: '1'},
               arg2: {type: 'String', value: 'hello'},
               foo: {type: 'Integer', value: '42'},
-              "@ivar": {type: 'Integer', value: '42'},
-            }, throwable: nil,
+              self: {type: 'Object', fields: {}},
+            },
           }, return: {
             arguments: {
-              :"@ivar" => {type: 'Integer', value: '42'},
+              :self => {
+                type: 'Object',
+                fields: {},
+              },
               :@return => {
                 type: 'NilClass',
                 isNull: true,
@@ -104,7 +109,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         it 'builds expected payload' do
-          payload = builder.build_snapshot(probe, args: args, kwargs: kwargs, instance_vars: instance_vars)
+          payload = builder.build_snapshot(
+            probe, args: args, kwargs: kwargs, target_self: Object.new
+          )
           expect(payload).to be_a(Hash)
           captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
           expect(captures).to eq(expected_captures)

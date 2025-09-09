@@ -8,6 +8,7 @@ require_relative 'framework'
 require_relative 'gateway/watcher'
 require_relative 'gateway/route_params'
 require_relative 'gateway/request'
+require_relative 'patches/json_patch'
 require_relative '../../../tracing/contrib/sinatra/framework'
 
 module Datadog
@@ -51,7 +52,6 @@ module Datadog
         module DispatchPatch
           def dispatch!
             env = @request.env
-
             context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
             return super unless context
@@ -59,7 +59,6 @@ module Datadog
             # TODO: handle exceptions, except for super
 
             gateway_request = Gateway::Request.new(env)
-
             request_return, _gateway_request = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
               super
             end
@@ -113,27 +112,18 @@ module Datadog
 
           def patch
             Gateway::Watcher.watch
-            patch_default_middlewares
-            patch_dispatch
-            patch_route
-            setup_security
+
+            ::Sinatra::Base.singleton_class.prepend(DefaultMiddlewarePatch)
+            ::Sinatra::Base.prepend(DispatchPatch)
+            ::Sinatra::Base.prepend(RoutePatch)
+            ::Sinatra::Base.prepend(Patches::JsonPatch) if patch_json?
+            ::Sinatra::Base.singleton_class.prepend(AppSecSetupPatch)
+
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def setup_security
-            ::Sinatra::Base.singleton_class.prepend(AppSecSetupPatch)
-          end
-
-          def patch_default_middlewares
-            ::Sinatra::Base.singleton_class.prepend(DefaultMiddlewarePatch)
-          end
-
-          def patch_dispatch
-            ::Sinatra::Base.prepend(DispatchPatch)
-          end
-
-          def patch_route
-            ::Sinatra::Base.prepend(RoutePatch)
+          def patch_json?
+            defined?(::Sinatra::JSON) && ::Sinatra::Base < ::Sinatra::JSON
           end
         end
       end

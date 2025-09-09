@@ -20,8 +20,6 @@ module Datadog
           exclusion_data
         ].freeze
 
-        attr_reader :waf_addresses, :ruleset_version
-
         def initialize(appsec_settings:, telemetry:)
           @default_ruleset = appsec_settings.ruleset
 
@@ -39,9 +37,9 @@ module Datadog
 
           diagnostics = load_default_config(telemetry: telemetry)
           report_configuration_diagnostics(diagnostics, action: 'init', telemetry: telemetry)
+          @ruleset_version = diagnostics['ruleset_version']
 
-          @waf_handle = @waf_builder.build_handle
-          @waf_addresses = @waf_handle.known_addresses
+          @handle_ref = ThreadSafeRef.new(@waf_builder.build_handle)
         rescue WAF::Error => e
           error_message = "AppSec security engine failed to initialize"
 
@@ -51,16 +49,8 @@ module Datadog
           raise e
         end
 
-        def finalize!
-          @waf_handle&.finalize!
-          @waf_builder&.finalize!
-
-          @waf_addresses = []
-          @ruleset_version = nil
-        end
-
         def new_runner
-          SecurityEngine::Runner.new(@waf_handle.build_context)
+          SecurityEngine::Runner.new(@handle_ref, ruleset_version: @ruleset_version)
         end
 
         def add_or_update_config(config, path:)
@@ -70,7 +60,7 @@ module Datadog
           remove_config_at_path(DEFAULT_RULES_CONFIG_PATH) if @is_ruleset_update
 
           diagnostics = @waf_builder.add_or_update_config(config, path: path)
-          @ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
+          @reconfigured_ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
           report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
 
           # we need to load default config if diagnostics contains top-level error for rules or processors
@@ -79,6 +69,7 @@ module Datadog
               diagnostics.dig('rules', 'error') ||
               diagnostics.dig('processors', 'errors'))
             diagnostics = load_default_config(telemetry: AppSec.telemetry)
+            @reconfigured_ruleset_version = diagnostics['ruleset_version']
             report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
           end
 
@@ -95,6 +86,7 @@ module Datadog
 
           if result && path != DEFAULT_RULES_CONFIG_PATH && path.include?('ASM_DD')
             diagnostics = load_default_config(telemetry: AppSec.telemetry)
+            @reconfigured_ruleset_version = diagnostics['ruleset_version']
             report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
           end
 
@@ -107,24 +99,17 @@ module Datadog
         end
 
         def reconfigure!
-          old_waf_handle = @waf_handle
+          new_waf_handle = @waf_builder.build_handle
+          @ruleset_version = @reconfigured_ruleset_version
 
-          @waf_handle = @waf_builder.build_handle
-          @waf_addresses = @waf_handle.known_addresses
-
-          old_waf_handle&.finalize!
+          @handle_ref.current = new_waf_handle
         rescue WAF::Error => e
-          error_message = "AppSec security engine failed to reconfigure"
+          # WAF::Error can only be raised during new WAF handle creation or when reading known addresses.
+          # This means that the current WAF handle was not yet substituted.
+          error_message = "AppSec security engine failed to reconfigure, reverting to the previous configuration"
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           AppSec.telemetry.report(e, description: error_message)
-
-          if old_waf_handle
-            Datadog.logger.warn("Reverting to the previous configuration")
-
-            @waf_handle = old_waf_handle
-            @waf_addresses = old_waf_handle.known_addresses
-          end
         end
 
         private
@@ -141,10 +126,7 @@ module Datadog
           # deprecated - ip passlist should be configured via RC
           config['exclusions'] ||= AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: @default_ip_passlist)
 
-          diagnostics = @waf_builder.add_or_update_config(config, path: DEFAULT_RULES_CONFIG_PATH)
-          @ruleset_version = diagnostics['ruleset_version']
-
-          diagnostics
+          @waf_builder.add_or_update_config(config, path: DEFAULT_RULES_CONFIG_PATH)
         end
 
         def report_configuration_diagnostics(diagnostics, action:, telemetry:)
@@ -152,7 +134,7 @@ module Datadog
 
           common_tags = {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-            event_rules_version: diagnostics.fetch('ruleset_version', @ruleset_version).to_s,
+            event_rules_version: diagnostics['ruleset_version'].to_s,
             action: action
           }
 

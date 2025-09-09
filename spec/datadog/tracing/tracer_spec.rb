@@ -14,6 +14,7 @@ require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_operation'
 require 'datadog/tracing/tracer'
+require 'datadog/tracing/transport/trace_formatter'
 require 'datadog/tracing/utils'
 require 'datadog/tracing/writer'
 
@@ -1061,6 +1062,8 @@ RSpec.describe Datadog::Tracing::Tracer do
   end
 
   describe '#baggage_tracing_interactions' do
+    before { Datadog.configure {} }
+
     it 'baggage set before active trace creates active trace' do
       Datadog::Tracing.baggage['key'] = 'value'
       Datadog::Tracing.trace('operation') do |_span, trace|
@@ -1075,19 +1078,53 @@ RSpec.describe Datadog::Tracing::Tracer do
       Datadog::Tracing.baggage['key'] = 'value'
       expect(Datadog::Tracing.active_trace.to_digest.baggage).to eq('key' => 'value')
     end
-  end
 
-  it 'baggage value is overridden inside an active trace' do
-    Datadog::Tracing.trace('operation') do |_span, trace|
-      Datadog::Tracing.baggage['key'] = 'value'
-      expect(trace.to_digest.baggage).to eq('key' => 'value')
+    it 'baggage value is overridden inside an active trace' do
+      Datadog::Tracing.trace('operation') do |_span, trace|
+        Datadog::Tracing.baggage['key'] = 'value'
+        expect(trace.to_digest.baggage).to eq('key' => 'value')
+      end
     end
-  end
 
-  it 'incoming headers overrides existing baggage' do
-    Datadog::Tracing.baggage['key'] = 'value'
-    Datadog::Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(baggage: { 'key1' => 'value1' }))
-    expect(Datadog::Tracing.active_trace.to_digest.baggage).to eq('key1' => 'value1')
+    it 'incoming headers overrides existing baggage' do
+      Datadog::Tracing.baggage['key'] = 'value'
+      Datadog::Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(baggage: { 'key1' => 'value1' }))
+      expect(Datadog::Tracing.active_trace.to_digest.baggage).to eq('key1' => 'value1')
+    end
+
+    it 'sets a trace tag for the respective baggage key' do
+      trace_digest = Datadog::Tracing::Contrib::HTTP.extract({ 'baggage' => 'user.id=test-id' })
+
+      Datadog::Tracing.trace('op', continue_from: trace_digest) do |_span, trace|
+        expect(trace.get_tag('baggage.user.id')).to eq('test-id')
+      end
+    end
+
+    it 'sets span tags for the respective baggage key after formatting' do
+      trace_digest = Datadog::Tracing::Contrib::HTTP.extract(
+        {
+          'baggage' => 'user.id=test-id,session.id=session-123,foo=bar'
+        }
+      )
+
+      tracer.trace('op', continue_from: trace_digest) do |_span, _trace|
+      end
+
+      # Get the completed trace and format it to copy trace tags to root span
+      expect(traces).to have(1).item
+      trace = traces.first
+      formatted_trace = Datadog::Tracing::Transport::TraceFormatter.format!(trace)
+
+      # Check that baggage tags were copied to the root span (span with parent_id=0)
+      root_span = formatted_trace.spans.find { |span| span.parent_id == 0 }
+      expect(root_span).not_to be_nil
+
+      # user.id and session.id are in default configuration
+      expect(root_span.get_tag('baggage.user.id')).to eq('test-id')
+      expect(root_span.get_tag('baggage.session.id')).to eq('session-123')
+      # don't expect foo to be set as a span tag (not in default config)
+      expect(root_span.get_tag('baggage.foo')).to be_nil
+    end
   end
 end
 

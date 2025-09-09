@@ -43,7 +43,11 @@ module Datadog
             available_services.each_with_object([]) do |service, constants|
               next if ::Aws.autoload?(service)
 
-              constants << ::Aws.const_get(service, false).const_get(:Client, false) rescue next
+              begin
+                constants << ::Aws.const_get(service, false).const_get(:Client, false)
+              rescue
+                next
+              end
             end
           end
 

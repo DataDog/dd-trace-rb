@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../identity'
+require_relative '../../../appsec/trace_keeper'
 
 module Datadog
   module Kit
@@ -60,7 +61,7 @@ module Datadog
               span.set_tag('appsec.events.users.login.success.track', 'true')
               span.set_tag('_dd.appsec.events.users.login.success.sdk', 'true')
 
-              trace.keep!
+              ::Datadog::AppSec::TraceKeeper.keep!(trace)
 
               record_event_telemetry_metric(LOGIN_SUCCESS_EVENT)
               ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', LOGIN_SUCCESS_EVENT)
@@ -116,7 +117,7 @@ module Datadog
               span.set_tag('appsec.events.users.login.failure.usr.login', login)
               span.set_tag('appsec.events.users.login.failure.usr.exists', user_exists.to_s)
 
-              trace.keep!
+              ::Datadog::AppSec::TraceKeeper.keep!(trace)
 
               record_event_telemetry_metric(LOGIN_FAILURE_EVENT)
               ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', LOGIN_FAILURE_EVENT)
@@ -148,9 +149,9 @@ module Datadog
 
               case user_or_id
               when nil
-                { login: login }
+                {login: login}
               when String
-                { login: login, id: user_or_id }
+                {login: login, id: user_or_id}
               when Hash
                 raise ArgumentError, 'missing required user key `:id`' unless user_or_id.key?(:id)
                 raise TypeError, 'user key `:id` must be a String' unless user_or_id[:id].is_a?(String)

@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.19.0)
+    datadog (2.21.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
-      libddwaf (~> 1.24.1.0.0)
+      libddwaf (~> 1.24.1.1.0)
       logger
       msgpack
 
@@ -29,7 +29,7 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.6.5)
     extlz4 (0.3.4)
-    faraday (2.13.2)
+    faraday (2.13.4)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
@@ -53,21 +53,21 @@ GEM
     google-protobuf (3.25.6-x86_64-darwin)
     google-protobuf (3.25.6-x86_64-linux)
     hashdiff (1.1.2)
-    json (2.12.2)
+    json (2.13.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (18.1.0.1.0)
     libdatadog (18.1.0.1.0-aarch64-linux)
     libdatadog (18.1.0.1.0-x86_64-linux)
-    libddwaf (1.24.1.0.0)
+    libddwaf (1.24.1.1.0)
       ffi (~> 1.0)
-    libddwaf (1.24.1.0.0-aarch64-linux)
+    libddwaf (1.24.1.1.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.24.1.0.0-arm64-darwin)
+    libddwaf (1.24.1.1.0-arm64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.24.1.0.0-x86_64-darwin)
+    libddwaf (1.24.1.1.0-x86_64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.24.1.0.0-x86_64-linux)
+    libddwaf (1.24.1.1.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
@@ -107,9 +107,6 @@ GEM
       docile (~> 1.1)
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
-    simplecov-cobertura (2.1.0)
-      rexml
-      simplecov (~> 0.19)
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
     uri (1.0.3)
@@ -158,7 +155,6 @@ DEPENDENCIES
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
   simplecov (~> 0.22.0)
-  simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.7.0)
