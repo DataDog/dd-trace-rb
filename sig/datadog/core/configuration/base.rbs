@@ -2,6 +2,11 @@ module Datadog
   module Core
     module Configuration
       module Base
+        include Options
+
+        extend ClassMethods
+        include InstanceMethods
+
         def self.included: (untyped base) -> untyped
 
         module ClassMethods

@@ -24,13 +24,9 @@ module Datadog
 
         ENV_SERVICE: String
 
-        ENV_OTEL_SERVICE: String
-
         ENV_SITE: String
 
         ENV_TAGS: String
-
-        ENV_OTEL_RESOURCE_ATTRIBUTES: String
 
         ENV_VERSION: String
 

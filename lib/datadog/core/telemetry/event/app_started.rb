@@ -100,7 +100,7 @@ module Datadog
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              conf_value('DD_AGENT_TRANSPORT', agent_transport, seq_id, 'unknown'),
+              conf_value('DD_AGENT_TRANSPORT', agent_transport, seq_id, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
 
               # writer_options is defined as an option that has a Hash value.
               conf_value(
@@ -177,7 +177,7 @@ module Datadog
             list.push(
               conf_value('instrumentation_source', instrumentation_source, seq_id, 'code'),
               conf_value('DD_INJECT_FORCE', Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false), seq_id, 'env_var'),
-              conf_value('DD_INJECTION_ENABLED', ENV['DD_INJECTION_ENABLED'] || '', seq_id, 'env_var'),
+              conf_value('DD_INJECTION_ENABLED', DATADOG_ENV['DD_INJECTION_ENABLED'] || '', seq_id, 'env_var'),
             )
 
             # Add some more custom additional payload values here

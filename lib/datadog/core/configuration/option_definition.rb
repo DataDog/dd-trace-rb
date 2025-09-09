@@ -13,7 +13,6 @@ module Datadog
           :default,
           :default_proc,
           :env,
-          :deprecated_env,
           :env_parser,
           :name,
           :after_set,
@@ -22,11 +21,10 @@ module Datadog
           :type,
           :type_options
 
-        def initialize(name, meta = {}, &block)
+        def initialize(name, meta, &block)
           @default = meta[:default]
           @default_proc = meta[:default_proc]
           @env = meta[:env]
-          @deprecated_env = meta[:deprecated_env]
           @env_parser = meta[:env_parser]
           @name = name.to_sym
           @after_set = meta[:after_set]
@@ -44,14 +42,13 @@ module Datadog
         # Acts as DSL for building OptionDefinitions
         # @public_api
         class Builder
-          class InvalidOptionError < StandardError; end
+          InvalidOptionError = Class.new(StandardError)
 
           attr_reader \
             :helpers
 
           def initialize(name, options = {})
             @env = nil
-            @deprecated_env = nil
             @env_parser = nil
             @default = nil
             @default_proc = nil
@@ -73,10 +70,6 @@ module Datadog
 
           def env(value) # standard:disable Style/TrivialAccessors
             @env = value
-          end
-
-          def deprecated_env(value) # standard:disable Style/TrivialAccessors
-            @deprecated_env = value
           end
 
           # Invoked when the option is first read, and {#env} is defined.
@@ -123,7 +116,6 @@ module Datadog
             default(options[:default]) if options.key?(:default)
             default_proc(&options[:default_proc]) if options.key?(:default_proc)
             env(options[:env]) if options.key?(:env)
-            deprecated_env(options[:deprecated_env]) if options.key?(:deprecated_env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             after_set(&options[:after_set]) if options.key?(:after_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
@@ -140,7 +132,6 @@ module Datadog
               default: @default,
               default_proc: @default_proc,
               env: @env,
-              deprecated_env: @deprecated_env,
               env_parser: @env_parser,
               after_set: @after_set,
               resetter: @resetter,

@@ -107,6 +107,36 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
         expect(span).to have_error_type('RuntimeError')
       end
     end
+
+    context 'with a file containing a namespace defined in config/initializers' do
+      let(:before_test_initialize_block) do
+        super_block = super()
+        proc do
+          instance_exec(&super_block)
+          test_namespace = Object.const_set('TestNamespace', Module.new)
+          test_namespace.const_set('Jobs', Module.new)
+        end
+      end
+
+      let(:source) do
+        <<~RUBY
+          module TestNamespace
+            puts Jobs.name
+          end
+        RUBY
+      end
+
+      it 'creates span for a file runner' do
+        expect { run }.to output("TestNamespace::Jobs\n").to_stdout
+
+        expect(span.name).to eq('rails.runner.file')
+        expect(span.resource).to eq(file_path)
+        expect(span.service).to eq(tracer.default_service)
+        expect(span.get_tag('source')).to eq("module TestNamespace\n  puts Jobs.name\nend\n")
+        expect(span.get_tag('component')).to eq('rails')
+        expect(span.get_tag('operation')).to eq('runner.file')
+      end
+    end
   end
 
   context 'from STDIN' do

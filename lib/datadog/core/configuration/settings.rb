@@ -122,8 +122,8 @@ module Datadog
           # @default `DD_TRACE_DEBUG` environment variable, otherwise `false`
           # @return [Boolean]
           option :debug do |o|
-            o.env [Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED,
-              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
+            # Note: Alias (OTEL_LOG_LEVEL) defined in supported-configurations.json
+            o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED
             o.default false
             o.type :bool
             o.env_parser do |value|
@@ -212,6 +212,7 @@ module Datadog
           # Log level for `Datadog.logger`.
           # @see Logger::Severity
           # @return Logger::Severity
+          # TODO: Add environment variable for this `DD_TRACE_LOG_LEVEL`
           option :level, default: ::Logger::INFO
         end
 
@@ -485,7 +486,7 @@ module Datadog
             # @default `DD_PROFILING_GVL_ENABLED` environment variable as a boolean, otherwise `true`
             option :gvl_enabled do |o|
               o.type :bool
-              o.deprecated_env 'DD_PROFILING_PREVIEW_GVL_ENABLED'
+              # Note: Deprecated alias (DD_PROFILING_PREVIEW_GVL_ENABLED) defined in supported-configurations.json
               o.env 'DD_PROFILING_GVL_ENABLED'
               o.default true
             end
@@ -604,7 +605,8 @@ module Datadog
 
           option :experimental_runtime_id_enabled do |o|
             o.type :bool
-            o.env ['DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED', 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED']
+            # Note: Alias (DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED) defined in supported-configurations.json
+            o.env 'DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED'
             o.default false
           end
 
@@ -620,7 +622,8 @@ module Datadog
           o.type :string, nilable: true
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-          o.env [Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::ENV_OTEL_SERVICE]
+          # Note: Alias (OTEL_SERVICE_NAME) defined in supported-configurations.json
+          o.env Core::Environment::Ext::ENV_SERVICE
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
@@ -655,7 +658,8 @@ module Datadog
         # @return [Hash<String,String>]
         option :tags do |o|
           o.type :hash, nilable: true
-          o.env [Core::Environment::Ext::ENV_TAGS, Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES]
+          # Note: Alias (OTEL_RESOURCE_ATTRIBUTES) defined in supported-configurations.json
+          o.env Core::Environment::Ext::ENV_TAGS
           o.env_parser do |env_value|
             # Parses a string containing key-value pairs and returns a hash.
             # Key-value pairs are delimited by ':' OR `=`, and pairs are separated by whitespace, comma, OR BOTH.

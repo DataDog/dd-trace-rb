@@ -22,7 +22,6 @@ RSpec.describe 'gem release process' do
            |\.rubocop_todo.yml
            |\.semgrepignore
            |\.simplecov
-           |\.codecov.yml
            |\.yardopts
            |\.yamllint.yml
            |ext/\.gitignore
@@ -44,6 +43,8 @@ RSpec.describe 'gem release process' do
            |\.standard\.yml
            |\.standard_todo\.yml
            |.rspec-local.example
+           |\.customcops\.yml
+           |supported-configurations\.json
           )
           $
         }x
@@ -66,6 +67,7 @@ RSpec.describe 'gem release process' do
             |yard
             |vendor/rbs
             |suppressions
+            |rubocop
           )/
         }x
 

@@ -78,6 +78,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(described_class).to receive(:build_tracer)
         .with(settings, agent_settings, logger: logger)
         .and_return(tracer)
+
       crashtracker = double('crashtracker')
       expect(described_class).to receive(:build_crashtracker)
         .with(settings, agent_settings, logger: logger)
@@ -97,6 +98,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(described_class).to receive(:build_health_metrics)
         .with(settings, logger, telemetry)
         .and_return(health_metrics)
+
+      expect(Datadog::Core::Configuration::Deprecations).to receive(:log_deprecations_from_all_sources)
+        .with(logger)
     end
 
     it do
@@ -1130,6 +1134,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
         receive(:collect_and_log!).with(
           environment_logger_extra.merge(dynamic_instrumentation_enabled: false)
         )
+
+      startup!
+    end
+
+    # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
+    # initialize new components, shutdown old components, startup new components.
+    # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
+    it 'calls ProcessDiscovery' do
+      expect(Datadog::Core::ProcessDiscovery).to receive(:publish)
+        .with(settings)
 
       startup!
     end

@@ -3,6 +3,7 @@
 require_relative 'agent_settings_resolver'
 require_relative 'components_state'
 require_relative 'ext'
+require_relative 'deprecations'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'
@@ -97,6 +98,7 @@ module Datadog
         def initialize(settings)
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
+          Deprecations.log_deprecations_from_all_sources(@logger)
 
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend
@@ -126,7 +128,6 @@ module Datadog
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
-          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
 
           self.class.configure_tracing(settings)
         end
@@ -154,6 +155,11 @@ module Datadog
             # remote should always be not nil here but steep doesn't know this.
             remote&.start
           end
+
+          # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
+          # initialize new components, shutdown old components, startup new components.
+          # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
+          Core::ProcessDiscovery.publish(settings)
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
         end
@@ -210,7 +216,7 @@ module Datadog
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
 
-          @process_discovery_fd&.shutdown!
+          Core::ProcessDiscovery.shutdown!
         end
 
         # Returns the current state of various components.

@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.20.0)
+    datadog (2.21.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 18.1.0.1.0)
       libddwaf (~> 1.24.1.1.0)
@@ -143,9 +143,6 @@ GEM
       docile (~> 1.1)
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
-    simplecov-cobertura (2.1.0)
-      rexml
-      simplecov (~> 0.19)
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
     sinatra (3.0.6)
@@ -208,7 +205,6 @@ DEPENDENCIES
   semantic_logger (~> 4.0)
   sidekiq (~> 7)
   simplecov (~> 0.22.0)
-  simplecov-cobertura (~> 2.1.0)
   sneakers (>= 2.12.0)
   sucker_punch
   warning (~> 1)

@@ -11,7 +11,7 @@ module Datadog
         NO_SOURCE = [].freeze
 
         def self.fetch_service_name(env, default)
-          ENV.fetch(env) do
+          DATADOG_ENV.fetch(env) do
             if Datadog.configuration.tracing.contrib.global_default_service_name.enabled
               return Datadog.configuration.service
             end
