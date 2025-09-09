@@ -23,7 +23,6 @@
         var: hello
       result: false
 
-  eval:
     - name: empty string
       locals:
         var: ""
