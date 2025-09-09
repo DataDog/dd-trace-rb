@@ -127,19 +127,25 @@ module Datadog
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
               start_time = Core::Utils::Time.get_time
-              # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
-              # for methods defined via method_missing.
-              rv = if args.any?
-                if kwargs.any?
-                  super(*args, **kwargs, &target_block)
+
+              rv = nil
+              begin
+                # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
+                # for methods defined via method_missing.
+                rv = if args.any?
+                  if kwargs.any?
+                    super(*args, **kwargs, &target_block)
+                  else
+                    super(*args, &target_block)
+                  end
+                elsif kwargs.any?
+                  super(**kwargs, &target_block)
                 else
-                  super(*args, &target_block)
+                  super(&target_block)
                 end
-              elsif kwargs.any?
-                super(**kwargs, &target_block)
-              else
-                super(&target_block)
+              rescue Exception => exc
               end
+
               duration = Core::Utils::Time.get_time - start_time
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
@@ -159,11 +165,15 @@ module Datadog
               caller_locs = method_frame + caller_locations # steep:ignore
               # TODO capture arguments at exit
               # & is to stop steep complaints, block is always present here.
-              block&.call(probe: probe, rv: rv,
+              block&.call(probe: probe, rv: rv, exception: exc,
                 duration: duration, caller_locations: caller_locs,
                 target_self: self,
                 serialized_entry_args: serialized_entry_args)
-              rv
+              if exc
+                raise exc
+              else
+                rv
+              end
             else
               # stop standard from trying to mess up my code
               _ = 42

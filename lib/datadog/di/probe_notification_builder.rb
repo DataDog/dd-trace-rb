@@ -41,10 +41,11 @@ module Datadog
       # Duration is in seconds.
       # path is the actual path of the instrumented file.
       def build_executed(probe,
-        path: nil, rv: nil, duration: nil, caller_locations: nil,
+        path: nil, rv: nil, exception: nil, duration: nil, caller_locations: nil,
         serialized_locals: nil, args: nil, kwargs: nil, target_self: nil,
         serialized_entry_args: nil)
-        build_snapshot(probe, rv: rv, serialized_locals: serialized_locals,
+        build_snapshot(probe, rv: rv, exception: exception,
+          serialized_locals: serialized_locals,
           # Actual path of the instrumented file.
           path: path,
           duration: duration,
@@ -57,7 +58,7 @@ module Datadog
           serialized_entry_args: serialized_entry_args)
       end
 
-      def build_snapshot(probe, rv: nil, serialized_locals: nil, path: nil,
+      def build_snapshot(probe, rv: nil, exception: nil, serialized_locals: nil, path: nil,
         # In Ruby everything is a method, therefore we should always have
         # a target self. However, if we are not capturing a snapshot,
         # there is no need to pass in the target self.

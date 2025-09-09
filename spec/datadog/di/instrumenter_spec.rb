@@ -59,7 +59,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:call_keys) do
-    %i[caller_locations duration probe rv serialized_entry_args target_self]
+    %i[caller_locations duration exception probe rv serialized_entry_args target_self]
   end
 
   shared_context 'with code tracking' do
@@ -707,6 +707,28 @@ RSpec.describe Datadog::DI::Instrumenter do
             include_examples 'does not invoke callback but invokes target method'
           end
         end
+      end
+    end
+
+    context 'when target method raises an exception' do
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'exception'}
+      end
+
+      it 'invokes callback' do
+        instrumenter.hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect do
+          HookTestClass.new.exception
+        end.to raise_error(HookTestClass::TestException)
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.keys.sort).to eq call_keys
+        expect(observed_calls.first[:rv]).to be nil
+        expect(observed_calls.first[:exception]).to be_a(HookTestClass::TestException)
+        expect(observed_calls.first[:duration]).to be_a(Float)
       end
     end
 
