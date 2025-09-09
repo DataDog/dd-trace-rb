@@ -1,4 +1,5 @@
 require 'spec_helper'
+require_relative '../spec_helper'
 require 'datadog/di/el'
 
 # standard:disable Lint/AssignmentInCondition
@@ -26,7 +27,7 @@ RSpec.describe Datadog::DI::EL do
 
     context basename do
       # Do not symbolize names when loading the specs because AST uses string keys
-      specs = YAML.load_file(File.join(dir, basename), permitted_classes: %i[
+      specs = load_yaml_file(File.join(dir, basename), permitted_classes: %i[
         ELTestIvarClass
         SubELTestIvarClass
         ELTestMod::ELTestIvarClass
