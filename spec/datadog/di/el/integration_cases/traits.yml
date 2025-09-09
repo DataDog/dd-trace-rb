@@ -28,7 +28,6 @@
         var: ""
       result: false
 
-  eval:
     - name: nil
       locals:
         var:
