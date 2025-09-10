@@ -338,7 +338,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         }
       end
 
-      let(:expected) { "test \"'\\\\a\#{value}" }
+      let(:expected) { %(test "'\\\\a\#{value}) }
 
       it 'substitutes correctly' do
         expect(builder.send(:evaluate_template, template, **vars)).to eq(expected)
