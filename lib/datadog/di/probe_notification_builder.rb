@@ -195,7 +195,7 @@ module Datadog
       def evaluate_template(template, **vars)
         message = template.dup
         vars.each do |key, value|
-          message.gsub!("{@#{key}}", value.to_s)
+          message.gsub!("{@#{key}}") { value.to_s }
         end
         message
       end
