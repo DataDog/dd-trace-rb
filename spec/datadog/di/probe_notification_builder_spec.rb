@@ -334,7 +334,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         {
           hello: 'test',
           # We need double backslash to check for proper sub/gsub usage.
-          world: "\"'\\\\a\#{value}",
+          world: %("'\\\\a\#{value}),
         }
       end
 
