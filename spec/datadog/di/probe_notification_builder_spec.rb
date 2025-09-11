@@ -172,7 +172,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     context 'with template' do
       let(:probe) do
         Datadog::DI::Probe.new(id: '123', type: :log, file: 'X', line_no: 1,
-          template_segments: ['hello world'])
+          template: 'hello world')
       end
 
       let(:expected) do
