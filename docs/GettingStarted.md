@@ -2082,7 +2082,10 @@ client.query("SELECT * FROM users WHERE group='x'")
 To change the default behavior of `datadog`, you can use, in order of priority, with 1 being the highest:
 
 1. [Remote Configuration](https://docs.datadoghq.com/agent/remote_config).
-2. Options set inside a `Datadog.configure` block, e.g.:
+
+   **Note**: By default, Remote Configuration is enabled. To disable it, set `DD_REMOTE_CONFIGURATION_ENABLED=false` or use `Datadog.configure { |c| c.remote.enabled = false }`. 
+
+1. Options set inside a `Datadog.configure` block, e.g.:
 
    ```ruby
    Datadog.configure do |c|
@@ -2093,7 +2096,7 @@ To change the default behavior of `datadog`, you can use, in order of priority, 
    end
    ```
 
-3. Environment variables.
+1. Environment variables.
 
 **If a higher priority value is set for an option, setting that option with a lower priority value will not change its effective value.**
 
