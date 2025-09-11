@@ -112,7 +112,7 @@ module Datadog
               block.call([key, value], key, value)
             end
           else
-            raise DI::Error::ExpressionEvaluationError, "Bad collection type for all: #{collection.class}}"
+            raise DI::Error::ExpressionEvaluationError, "Bad collection type for all: #{collection.class}"
           end
         end
 
@@ -129,7 +129,7 @@ module Datadog
               block.call([key, value], key, value)
             end
           else
-            raise DI::Error::ExpressionEvaluationError, "Bad collection type for any: #{collection.class}}"
+            raise DI::Error::ExpressionEvaluationError, "Bad collection type for any: #{collection.class}"
           end
         end
 
@@ -144,7 +144,7 @@ module Datadog
               block.call([key, value], key, value)
             end.to_h
           else
-            raise DI::Error::ExpressionEvaluationError, "Bad collection type for filter: #{collection.class}}"
+            raise DI::Error::ExpressionEvaluationError, "Bad collection type for filter: #{collection.class}"
           end
         end
 
