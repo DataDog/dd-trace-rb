@@ -40,33 +40,14 @@ module Datadog
 
       # Duration is in seconds.
       # path is the actual path of the instrumented file.
-      def build_executed(probe,
-        path: nil, rv: nil, exception: nil, duration: nil, caller_locations: nil,
-        serialized_locals: nil, args: nil, kwargs: nil, target_self: nil,
-        serialized_entry_args: nil)
-        build_snapshot(probe, rv: rv, exception: exception,
-          serialized_locals: serialized_locals,
-          # Actual path of the instrumented file.
-          path: path,
-          duration: duration,
-          # TODO check how many stack frames we should be keeping/sending,
-          # this should be all frames for enriched probes and no frames for
-          # non-enriched probes?
-          caller_locations: caller_locations,
-          args: args, kwargs: kwargs,
-          target_self: target_self,
-          serialized_entry_args: serialized_entry_args)
+      def build_executed(context)
+        build_snapshot(context)
       end
 
-      def build_snapshot(probe, rv: nil, exception: nil, serialized_locals: nil, path: nil,
-        # In Ruby everything is a method, therefore we should always have
-        # a target self. However, if we are not capturing a snapshot,
-        # there is no need to pass in the target self.
-        target_self: nil,
-        duration: nil, caller_locations: nil,
-        args: nil, kwargs: nil,
-        serialized_entry_args: nil)
-        if probe.capture_snapshot? && !target_self
+      def build_snapshot(context)
+        probe = context.probe
+
+        if probe.capture_snapshot? && !context.target_self
           raise ArgumentError, "Asked to build snapshot with snapshot capture but target_self is nil"
         end
 
@@ -75,22 +56,14 @@ module Datadog
         captures = if probe.capture_snapshot?
           if probe.method?
             return_arguments = {
-              "@return": serializer.serialize_value(rv,
+              "@return": serializer.serialize_value(context.return_value,
                 depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                 attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
-              self: serializer.serialize_value(target_self),
+              self: serializer.serialize_value(context.target_self),
             }
             {
               entry: {
-                # standard:disable all
-                arguments: if serialized_entry_args
-                  serialized_entry_args
-                else
-                  (args || kwargs) && serializer.serialize_args(args, kwargs, target_self,
-                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
-                end,
-                # standard:enable all
+                arguments: context.serialized_entry_args,
               },
               return: {
                 arguments: return_arguments,
@@ -99,10 +72,10 @@ module Datadog
             }
           elsif probe.line?
             {
-              lines: serialized_locals && {
+              lines: (locals = context.serialized_locals) && {
                 probe.line_no => {
-                  locals: serialized_locals,
-                  arguments: {self: serializer.serialize_value(target_self)},
+                  locals: locals,
+                  arguments: {self: serializer.serialize_value(context.target_self)},
                 },
               },
             }
@@ -111,7 +84,7 @@ module Datadog
 
         location = if probe.line?
           {
-            file: path,
+            file: context.path,
             lines: [probe.line_no],
           }
         elsif probe.method?
@@ -121,7 +94,7 @@ module Datadog
           }
         end
 
-        stack = if caller_locations
+        stack = if caller_locations = context.caller_locations
           format_caller_locations(caller_locations)
         end
 
@@ -144,7 +117,7 @@ module Datadog
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
-          duration: duration ? (duration * 10**9).to_i : 0,
+          duration: (duration = context.duration) ? (duration * 10**9).to_i : 0,
           host: nil,
           logger: {
             name: probe.file,

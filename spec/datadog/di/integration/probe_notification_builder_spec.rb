@@ -45,13 +45,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       context 'with snapshot' do
-        let(:serialized_locals) do
-          double('local variables')
+        let(:locals) do
+          {local: 'var'}
         end
 
         let(:captures) do
           {lines: {1 => {
-            locals: serialized_locals,
+            locals: {local: {type: 'String', value: 'var'}},
             arguments: {self: {
               type: 'Object',
               fields: {},
@@ -59,9 +59,14 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           }}}
         end
 
+        let(:context) do
+          Datadog::DI::EL::Context.new(
+            settings: settings, serializer: serializer,
+            probe: probe, locals: locals, target_self: Object.new)
+        end
+
         it 'builds expected payload' do
-          payload = builder.build_snapshot(probe,
-            serialized_locals: serialized_locals, target_self: Object.new)
+          payload = builder.build_snapshot(context)
           expect(payload).to be_a(Hash)
           expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to eq(captures)
         end
@@ -74,16 +79,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       context 'with snapshot' do
-        let(:args) do
-          [1, 'hello']
-        end
-
-        let(:kwargs) do
-          {foo: 42}
-        end
-
-        let(:instance_vars) do
-          {type: 'X', fields: {"@ivar": 42}}
+        let(:serialized_entry_args) do
+          {
+            arg1: {type: 'Integer', value: '1'},
+            arg2: {type: 'String', value: 'hello'},
+            foo: {type: 'Integer', value: '42'},
+            self: {type: 'Object', fields: {}},
+          }
         end
 
         let(:expected_captures) do
@@ -108,10 +110,15 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           }}
         end
 
+        let(:context) do
+          Datadog::DI::EL::Context.new(
+            settings: settings, serializer: serializer,
+            probe: probe, serialized_entry_args: serialized_entry_args,
+            target_self: Object.new)
+        end
+
         it 'builds expected payload' do
-          payload = builder.build_snapshot(
-            probe, args: args, kwargs: kwargs, target_self: Object.new
-          )
+          payload = builder.build_snapshot(context)
           expect(payload).to be_a(Hash)
           captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
           expect(captures).to eq(expected_captures)

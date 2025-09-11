@@ -164,11 +164,16 @@ module Datadog
               end
               caller_locs = method_frame + caller_locations # steep:ignore
               # TODO capture arguments at exit
+
+              context = EL::Context.new(locals: nil, target_self: self,
+                probe: probe, settings: settings, serializer: serializer,
+                serialized_entry_args: serialized_entry_args,
+                caller_locations: caller_locs,
+                return_value: rv, duration: duration, exception: exc,
+              )
+
               # & is to stop steep complaints, block is always present here.
-              block&.call(probe: probe, rv: rv, exception: exc,
-                duration: duration, caller_locations: caller_locs,
-                target_self: self,
-                serialized_entry_args: serialized_entry_args)
+              block&.call(context)
               if exc
                 raise exc
               else
@@ -337,32 +342,36 @@ module Datadog
               true
             end
 
-            continue &&= if condition = probe.condition
-              locals = Instrumenter.get_local_variables(tp)
-              context = EL::Context.new(locals: locals, target: tp.self)
-              condition.satisfied?(context)
-            else
-              true
+            if continue
+              if condition = probe.condition
+                context = EL::Context.new(
+                  locals: Instrumenter.get_local_variables(tp),
+                  target_self: tp.self,
+                  probe: probe, settings: settings, serializer: serializer,
+                  path: tp.path,
+                  caller_locations: caller_locations,
+                )
+                continue = condition.satisfied?(context)
+              end
             end
 
             continue &&= rate_limiter.nil? || rate_limiter.allow? # standard:disable Style/AndOr
 
             if continue
-              serialized_locals = if probe.capture_snapshot?
-                serializer.serialize_vars(locals || Instrumenter.get_local_variables(tp),
-                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
-              end
-              if probe.capture_snapshot?
-                serializer.serialize_value(tp.self,
-                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
-              end
-              # & is to stop steep complaints, block is always present here.
-              block&.call(probe: probe,
-                serialized_locals: serialized_locals,
+              # The context creation is relatively expensive and we don't
+              # want to run it if the callback won't be executed due to the
+              # rate limit.
+              # Thus the copy-paste of the creation call here.
+              context ||= EL::Context.new(
+                locals: Instrumenter.get_local_variables(tp),
                 target_self: tp.self,
-                path: tp.path, caller_locations: caller_locations)
+                probe: probe, settings: settings, serializer: serializer,
+                path: tp.path,
+                caller_locations: caller_locations,
+              )
+
+              # & is to stop steep complaints, block is always present here.
+              block&.call(context)
             end
           rescue => exc
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
