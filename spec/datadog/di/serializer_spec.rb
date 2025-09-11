@@ -105,20 +105,26 @@ RSpec.describe Datadog::DI::Serializer do
       # the lack of serialization of their messages (because we cannot do
       # so safely - guaranteeing not to invoke customer code).
       {name: 'Exception instance', input: IOError.new('test error'),
-      expected: {type: 'IOError', fields: {}}},
+       expected: {type: 'IOError', fields: {}}},
       {name: 'Exception instance with a field', input: DISerializerExceptionWithFieldsTestClass.new('test error'),
-      expected: {type: 'DISerializerExceptionWithFieldsTestClass', fields: {
-        '@test_field': {
-          value: 'bar', type: 'String'}}}},
+       expected: {type: 'DISerializerExceptionWithFieldsTestClass', fields: {
+         "@test_field": {
+           value: 'bar', type: 'String'
+         }
+       }}},
       {name: 'Exception instance with @message field', input: DISerializerExceptionWithMessageFieldTestClass.new('test error'),
-      expected: {type: 'DISerializerExceptionWithMessageFieldTestClass', fields: {
-        '@message': {
-          value: 'bar', type: 'String'}}}},
+       expected: {type: 'DISerializerExceptionWithMessageFieldTestClass', fields: {
+         "@message": {
+           value: 'bar', type: 'String'
+         }
+       }}},
       {name: 'Custom exception instance which raises in #message', input: DISerializerExceptionWithMessageRaiseTestClass.new('test error'),
-      expected: {type: 'DISerializerExceptionWithMessageRaiseTestClass', fields: {
-        # Fields are still serialized.
-        '@message': {
-          value: 'bar', type: 'String'}}}},
+       expected: {type: 'DISerializerExceptionWithMessageRaiseTestClass', fields: {
+         # Fields are still serialized.
+         "@message": {
+           value: 'bar', type: 'String'
+         }
+       }}},
     ]
 
     define_serialize_value_cases(cases)
