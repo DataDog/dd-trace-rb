@@ -135,7 +135,8 @@ module Datadog
           "dd.span_id": active_span&.id&.to_s,
           ddsource: 'dd_debugger',
           message: probe.template && evaluate_template(probe.template,
-            duration: duration ? duration * 1000 : 0),
+            context),
+            #duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
         }
       end
@@ -166,9 +167,9 @@ module Datadog
         end
       end
 
-      def evaluate_template(template, **vars)
+      def evaluate_template(template, context)
         message = template.dup
-        vars.each do |key, value|
+        context.locals&.each do |key, value|
           message.gsub!("{@#{key}}") { value.to_s }
         end
         message
