@@ -224,7 +224,7 @@
       "version": ["A"]
     },
     "DD_SERVICE": {
-      "version": ["A"]
+      "version": ["B"]
     },
     "DD_SITE": {
       "version": ["A"]
@@ -236,7 +236,7 @@
       "version": ["A"]
     },
     "DD_TAGS": {
-      "version": ["A"]
+      "version": ["B"]
     },
     "DD_TELEMETRY_AGENTLESS_URL": {
       "version": ["A"]
@@ -389,7 +389,7 @@
       "version": ["A"]
     },
     "DD_TRACE_DEBUG": {
-      "version": ["A"]
+      "version": ["B"]
     },
     "DD_TRACE_DELAYED_JOB_ANALYTICS_ENABLED": {
       "version": ["A"]
@@ -416,7 +416,7 @@
       "version": ["A"]
     },
     "DD_TRACE_ENABLED": {
-      "version": ["A"]
+      "version": ["B"]
     },
     "DD_TRACE_ETHON_ANALYTICS_ENABLED": {
       "version": ["A"]
@@ -683,7 +683,7 @@
       "version": ["A"]
     },
     "DD_TRACE_PROPAGATION_STYLE": {
-      "version": ["A"]
+      "version": ["B"]
     },
     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": {
       "version": ["A"]
@@ -794,7 +794,7 @@
       "version": ["A"]
     },
     "DD_TRACE_SAMPLE_RATE": {
-      "version": ["A"]
+      "version": ["B"]
     },
     "DD_TRACE_SAMPLING_RULES": {
       "version": ["A"]
