@@ -17,7 +17,7 @@ module Datadog
     # and remote config code must be prepared to deal with exceptions
     # raised by Probe constructor in particular. Therefore, Probe constructor
     # will raise an exception if it determines that there is not enough
-    # information (or confilcting information) in the arguments to create a
+    # information (or conflicting information) in the arguments to create a
     # functional probe, and upstream code is tasked with not spamming logs
     # with notifications of such errors (and potentially limiting the
     # attempts to construct probe from a given payload).

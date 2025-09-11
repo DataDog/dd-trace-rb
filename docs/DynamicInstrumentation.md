@@ -7,7 +7,7 @@ setting conditions on probes (support for message templates is coming soon).
 
 Ruby differs from other programming languages supported by Dynamic
 Instrumentation in that instance variables are prefixed with the `@` sign.
-This creates a confilct because expression language uses `@` to refer to
+This creates a conflict because expression language uses `@` to refer to
 the following special variables:
 
 - `@return`
