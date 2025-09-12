@@ -101,7 +101,7 @@ RSpec.describe Datadog::DI::Serializer do
       {name: 'DateTime value', input: DateTime.new(2020, 1, 2, 3, 4, 5),
        expected: {type: 'DateTime', value: '2020-01-02T03:04:05+00:00'}},
 
-      # Exception classes do not have a dedicated serialier, but document
+      # Exception classes do not have a dedicated serializer, but document
       # the lack of serialization of their messages (because we cannot do
       # so safely - guaranteeing not to invoke customer code).
       {name: 'Exception instance', input: IOError.new('test error'),
