@@ -19,8 +19,13 @@ module Datadog
 
               module_function
 
-              def on_start(span, _event, _id, payload)
+              def on_start(span, event, id, payload)
                 super
+
+                puts '=' * 100
+                puts "Payload: #{payload}"
+                puts "Keys: #{payload.keys}"
+                puts '=' * 100
 
                 span.resource = payload[:topic]
 

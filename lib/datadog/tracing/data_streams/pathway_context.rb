@@ -8,12 +8,13 @@ module Datadog
     module DataStreams
       # Represents a pathway context for data streams monitoring
       class PathwayContext
-        attr_reader :hash, :pathway_start_sec, :current_edge_start_sec
+        attr_reader :hash, :pathway_start_sec, :current_edge_start_sec, :parent_hash
 
-        def initialize(hash_value, pathway_start_sec, current_edge_start_sec)
+        def initialize(hash_value, pathway_start_sec, current_edge_start_sec, parent_hash = nil)
           @hash = hash_value
           @pathway_start_sec = pathway_start_sec
           @current_edge_start_sec = current_edge_start_sec
+          @parent_hash = parent_hash
         end
 
         def encode
