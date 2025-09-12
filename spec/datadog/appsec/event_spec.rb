@@ -54,7 +54,8 @@ RSpec.describe Datadog::AppSec::Event do
           },
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -210,7 +211,8 @@ RSpec.describe Datadog::AppSec::Event do
           derivatives: {},
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -282,7 +284,8 @@ RSpec.describe Datadog::AppSec::Event do
           derivatives: {'dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-1234567890'},
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -364,7 +367,8 @@ RSpec.describe Datadog::AppSec::Event do
           },
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
