@@ -1,0 +1,30 @@
+- name: filter - array
+  ast:
+    filter:
+      - ref: collection
+      - isEmpty:
+          ref: '@it'
+
+  compiled: "filter(ref('collection')) { |current_item, current_key, current_value| is_empty(current_item, '@it') }"
+
+  eval:
+    - locals:
+        collection: [abc, ""]
+      result: [""]
+
+- name: filter - hash
+  ast:
+    filter:
+      - ref: collection
+      - isEmpty:
+          ref: '@value'
+
+  compiled: "filter(ref('collection')) { |current_item, current_key, current_value| is_empty(current_value, '@value') }"
+
+  eval:
+    - locals:
+        collection:
+          x: ""
+          y: 42
+      result:
+        x: ""

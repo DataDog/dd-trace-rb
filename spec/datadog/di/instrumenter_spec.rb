@@ -22,6 +22,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
     allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
+    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
   end
 
   let(:redactor) do
@@ -1203,6 +1204,98 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls[0].keys.sort).to eq call_keys
           expect(observed_calls[0][:caller_locations]).to be_a(Array)
+        end
+      end
+    end
+
+    context 'when there is a condition' do
+      include_context 'with code tracking'
+
+      let(:probe) do
+        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 10,
+          id: 1, type: :log, rate_limit: rate_limit, condition: condition)
+      end
+
+      let(:condition) {}
+
+      before do
+        load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+      end
+
+      before do
+        instrumenter.hook_line(probe) do |payload|
+          observed_calls << payload
+        end
+      end
+
+      context 'when condition is on local variable' do
+        context 'when condition is met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              "ref('local') == 42"
+            )
+          end
+
+          it 'invokes the callback' do
+            expect(probe.condition).to receive(:satisfied?).and_call_original
+
+            expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
+            expect(observed_calls.length).to be 1
+          end
+        end
+
+        context 'when condition is not met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              "ref('local') == 43"
+            )
+          end
+
+          it 'does not invoke the callback' do
+            # Ensure the condition was evaluated
+            expect(probe.condition).to receive(:satisfied?).and_call_original
+
+            expect(HookLineLoadTestClass.new.test_method_with_local).to eq 42
+            expect(observed_calls.length).to be 0
+          end
+        end
+      end
+
+      context 'when condition is on instance variable' do
+        let(:probe) do
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 24,
+            id: 1, type: :log, rate_limit: rate_limit, condition: condition)
+        end
+
+        context 'when condition is met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              "iref('@ivar') == 42"
+            )
+          end
+
+          it 'invokes the callback' do
+            expect(probe.condition).to receive(:satisfied?).and_call_original
+
+            expect(HookLineIvarLoadTestClass.new.test_method).to eq 1337
+            expect(observed_calls.length).to be 1
+          end
+        end
+
+        context 'when condition is not met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              "iref('@ivar') == 43"
+            )
+          end
+
+          it 'does not invoke the callback' do
+            # Ensure the condition was evaluated
+            expect(probe.condition).to receive(:satisfied?).and_call_original
+
+            expect(HookLineIvarLoadTestClass.new.test_method).to eq 1337
+            expect(observed_calls.length).to be 0
+          end
         end
       end
     end

@@ -24,6 +24,8 @@ module Datadog
       def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?capture_snapshot: bool,
 	?max_capture_depth: Integer, ?max_capture_attribute_count: Integer?, ?rate_limit: Integer) -> void
 
+      attr_reader condition: DI::EL::Expression?
+
       attr_reader id: String
 
       attr_reader type: Symbol

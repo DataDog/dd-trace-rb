@@ -13,6 +13,12 @@ module Datadog
       end
       class MultiplePathsMatch < Error
       end
+      class InvalidExpression < Error
+      end
+      class BadVariableName < InvalidExpression
+      end
+      class ExpressionEvaluationError < Error
+      end
     end
   end
 end

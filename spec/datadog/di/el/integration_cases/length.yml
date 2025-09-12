@@ -1,0 +1,40 @@
+- name: length of variable
+  ast:
+    len:
+      ref: var
+  compiled: len(ref('var'), 'var')
+
+# The value here is of the wrong type, should fail compilation.
+# We should also use the value as the variable name.
+- name: length of literal value
+  ast:
+    len: 5
+  compiled: len(5, '(expression)')
+
+  eval:
+    - locals:
+        var: 'test'
+      error: 'Unsupported type for length'
+
+- name: length of local variable
+  ast:
+    len:
+      ref: var
+  compiled: len(ref('var'), 'var')
+
+  eval:
+    - locals:
+        var: 'test'
+      result: 4
+
+- name: length of complex expression
+  ast:
+    len:
+      len:
+        ref: var
+  compiled: len(len(ref('var'), 'var'), '(expression)')
+
+  eval:
+    - locals:
+        var: 'test'
+      error: 'Unsupported type for length'
