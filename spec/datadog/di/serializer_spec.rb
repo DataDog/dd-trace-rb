@@ -30,7 +30,32 @@ end
 # Should have no instance variables
 class DISerializerSpecTestClass; end
 
-class DISerializerCustomExceptionTestClass; end
+class DISerializerCustomExceptionTestClass < StandardError; end
+
+class DISerializerExceptionWithFieldsTestClass < StandardError
+  def initialize(message)
+    super
+    @test_field = 'bar'
+  end
+end
+
+class DISerializerExceptionWithMessageFieldTestClass < StandardError
+  def initialize(message)
+    super
+    @message = 'bar'
+  end
+end
+
+class DISerializerExceptionWithMessageRaiseTestClass < StandardError
+  def initialize(message)
+    super
+    @message = 'bar'
+  end
+
+  def message
+    raise 'uh oh'
+  end
+end
 
 RSpec.describe Datadog::DI::Serializer do
   di_test
@@ -75,6 +100,31 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {type: 'Date', value: '2020-01-02'}},
       {name: 'DateTime value', input: DateTime.new(2020, 1, 2, 3, 4, 5),
        expected: {type: 'DateTime', value: '2020-01-02T03:04:05+00:00'}},
+
+      # Exception classes do not have a dedicated serializer, but document
+      # the lack of serialization of their messages (because we cannot do
+      # so safely - guaranteeing not to invoke customer code).
+      {name: 'Exception instance', input: IOError.new('test error'),
+       expected: {type: 'IOError', fields: {}}},
+      {name: 'Exception instance with a field', input: DISerializerExceptionWithFieldsTestClass.new('test error'),
+       expected: {type: 'DISerializerExceptionWithFieldsTestClass', fields: {
+         "@test_field": {
+           value: 'bar', type: 'String'
+         }
+       }}},
+      {name: 'Exception instance with @message field', input: DISerializerExceptionWithMessageFieldTestClass.new('test error'),
+       expected: {type: 'DISerializerExceptionWithMessageFieldTestClass', fields: {
+         "@message": {
+           value: 'bar', type: 'String'
+         }
+       }}},
+      {name: 'Custom exception instance which raises in #message', input: DISerializerExceptionWithMessageRaiseTestClass.new('test error'),
+       expected: {type: 'DISerializerExceptionWithMessageRaiseTestClass', fields: {
+         # Fields are still serialized.
+         "@message": {
+           value: 'bar', type: 'String'
+         }
+       }}},
     ]
 
     define_serialize_value_cases(cases)
