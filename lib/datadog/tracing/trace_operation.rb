@@ -80,7 +80,8 @@ module Datadog
         trace_state_unknown_fields: nil,
         remote_parent: false,
         tracer: nil, # DEV-3.0: deprecated, remove in 3.0
-        baggage: nil
+        baggage: nil,
+        trace_block: false
       )
         @logger = logger
 
@@ -119,6 +120,7 @@ module Datadog
         @events = events || Events.new
         @finished = false
         @spans = []
+        @trace_block = trace_block
       end
 
       def full?
@@ -131,6 +133,20 @@ module Datadog
 
       def finished?
         @finished == true
+      end
+
+      # Manually finish the trace, marking it as completed.
+      # Any unfinished spans are lost and will not be included in the trace.
+      #
+      # This is useful for `trace_block == true` traces, where we want to flush
+      # the trace not when the root span finishes, but when the block
+      # given to {Tracer#continue_trace!} finishes.
+      def finish!
+        @finished = true
+        @active_span = nil
+        @active_span_count = 0
+
+        events.trace_finished.publish(self)
       end
 
       # Will this trace be flushed by the tracer transport?
@@ -460,7 +476,7 @@ module Datadog
 
         @active_span = span_op
 
-        set_root_span!(span_op) unless root_span
+        set_root_span!(span_op) if !root_span && !@trace_block
       end
 
       def deactivate_span!(span_op)
