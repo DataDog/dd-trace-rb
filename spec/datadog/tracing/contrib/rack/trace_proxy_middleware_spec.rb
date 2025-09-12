@@ -5,14 +5,10 @@ require 'datadog/tracing/contrib/rack/trace_proxy_middleware'
 RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
   describe '#call' do
     let(:service) { 'nginx' }
-    let(:env) { double('ENV') }
-
-    before do
-      allow(Datadog::Tracing::Contrib::Rack::QueueTime).to receive(:get_request_start).with(env).and_return(timestamp)
-    end
+    let(:env) { { 'HTTP_X_REQUEST_START' => timestamp.to_i * 1000 } }
 
     context 'when given timestamp' do
-      let(:timestamp) { Time.now.utc }
+      let(:timestamp) { Time.at(1757000000) }
 
       context 'when request_queuing: true' do
         it 'behaves like request_queuing: :exclude_request' do
