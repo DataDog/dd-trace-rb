@@ -76,7 +76,7 @@ module Datadog
 
           def execute_multiplex(*args, multiplex:, **kwargs)
             trace(proc { super }, 'execute_multiplex', multiplex_resource(multiplex), multiplex: multiplex) do |span|
-              span.set_tag('graphql.source', "Multiplex[#{multiplex.queries.map(&:query_string).join(", ")}]")
+              span.set_tag('graphql.source', "Multiplex[#{multiplex.queries.map(&:query_string).join(', ')}]")
             end
           end
 
@@ -97,9 +97,9 @@ module Datadog
                     query.selected_operation_name
                   )
                 end
-                query.variables.instance_variable_get(:@storage).each do |key, value|
-                  span.set_tag("graphql.variables.#{key}", value)
-                end
+
+                # Capture operation variables based on configuration
+                capture_operation_variables(span, query)
               },
               ->(span) { add_query_error_events(span, query.context.errors) },
               query: query,
@@ -108,10 +108,10 @@ module Datadog
 
           def execute_query_lazy(*args, query:, multiplex:, **kwargs)
             resource = if query
-              query.selected_operation_name || fallback_transaction_name(query.context)
-            else
-              multiplex_resource(multiplex)
-            end
+                         query.selected_operation_name || fallback_transaction_name(query.context)
+                       else
+                         multiplex_resource(multiplex)
+                       end
             trace(proc { super }, 'execute_lazy', resource, query: query, multiplex: multiplex)
           end
 
@@ -122,6 +122,7 @@ module Datadog
             if platform_key
               trace(callable, span_key, platform_key, **kwargs) do |span|
                 kwargs[:arguments].each do |key, value|
+                  # DEV-3.0: Misnamed tag: fields have arguments, not variables.
                   span.set_tag("graphql.variables.#{key}", value)
                 end
               end
@@ -177,6 +178,68 @@ module Datadog
           end
 
           private
+
+          # Captures GraphQL operation variables based on configuration settings
+          def capture_operation_variables(span, query)
+            config = Datadog.configuration.tracing[:graphql]
+            capture_config = config[:capture_variables]
+            capture_except_config = config[:capture_variables_except]
+
+            # If neither configuration is set, don't capture any variables
+            return if capture_config.empty? && capture_except_config.empty?
+
+            operation_name = query.selected_operation_name
+            return unless operation_name # Skip anonymous operations
+
+            query.variables.to_h.each do |variable_name, value|
+              variable_name_str = variable_name.to_s
+
+              should_capture = should_capture_variable?(
+                operation_name,
+                variable_name_str,
+                capture_config,
+                capture_except_config
+              )
+
+              if should_capture
+                serialized_value = serialize_variable_value(value)
+                span.set_tag("graphql.operation.variable.#{variable_name_str}", serialized_value)
+              end
+            end
+          end
+
+          # Determines if a variable should be captured based on configuration
+          def should_capture_variable?(operation_name, variable_name, capture_config, capture_except_config)
+            # Check if this operation:variable pair is in the capture list (O(1) lookup)
+            capture_match = capture_config.match?(operation_name, variable_name)
+
+            # Check if this operation:variable pair is in the except list (O(1) lookup)
+            except_match = capture_except_config.match?(operation_name, variable_name)
+
+            if !capture_config.empty?
+              # If capture list is set, capture only if in the list AND not in except list
+              capture_match && !except_match
+            elsif !capture_except_config.empty?
+              # If only except list is set, capture everything except what's in the except list
+              !except_match
+            else
+              # If neither configuration is set, don't capture anything
+              false
+            end
+          end
+
+          # Serializes a GraphQL variable value according to the spec
+          def serialize_variable_value(value)
+            case value
+            when TrueClass, FalseClass
+              value.to_s
+            when Integer, Float, String
+              value
+            else
+              # For custom types and ID types, convert to string
+              value.to_s
+            end
+          end
 
           # Traces the given callable with the given trace key, resource, and kwargs.
           #
@@ -239,22 +302,22 @@ module Datadog
           def add_query_error_events(span, errors)
             errors.each do |error|
               attributes = if !@error_extensions_config.empty? && (extensions = error.extensions)
-                # Capture extensions, ensuring all values are primitives
-                extensions.each_with_object({}) do |(key, value), hash|
-                  next unless @error_extensions_config.include?(key.to_s)
+                             # Capture extensions, ensuring all values are primitives
+                             extensions.each_with_object({}) do |(key, value), hash|
+                               next unless @error_extensions_config.include?(key.to_s)
 
-                  value = case value
-                  when TrueClass, FalseClass, Integer, Float
-                    value
-                  else
-                    value.to_s
-                  end
+                               value = case value
+                                       when TrueClass, FalseClass, Integer, Float
+                                         value
+                                       else
+                                         value.to_s
+                                       end
 
-                  hash[@extensions_key + key.to_s] = value
-                end
-              else
-                {}
-              end
+                               hash[@extensions_key + key.to_s] = value
+                             end
+                           else
+                             {}
+                           end
 
               # {::GraphQL::Error#to_h} returns the error formatted in compliance with the GraphQL spec.
               # This is an unwritten contract in the `graphql` library.
@@ -287,7 +350,7 @@ module Datadog
           #   ["3:10", "7:8"]
           def serialize_error_locations(locations)
             locations.map do |location|
-              "#{location["line"]}:#{location["column"]}"
+              "#{location['line']}:#{location['column']}"
             end
           end
         end

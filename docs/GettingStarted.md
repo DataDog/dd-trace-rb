@@ -913,6 +913,8 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | `service_name`           |                            | `String` | Service name used for graphql instrumentation                                                                                                                                                                   | `'ruby-graphql'` |
 | `error_extensions` | `DD_TRACE_GRAPHQL_ERROR_EXTENSIONS` | `Array` | List of extension keys to include in the span event reported for GraphQL queries with errors. | `[]` |
 | `error_tracking` | `DD_TRACE_GRAPHQL_ERROR_TRACKING` | `Bool` | (Recommended) Surface GraphQL errors in Error Tracking. | `false` |
+| `capture_variables` | `DD_TRACE_GRAPHQL_CAPTURE_VARIABLES` | `Array` | List of `operationName:variableName` pairs to capture as span tags. Format: `GetUser:id,CreatePost:title`. By default, no variables are captured. | `[]` |
+| `capture_variables_except` | `DD_TRACE_GRAPHQL_CAPTURE_VARIABLES_EXCEPT` | `Array` | List of `operationName:variableName` pairs to exclude from capture. When `DD_TRACE_GRAPHQL_CAPTURE_VARIABLES` is `nil`, all variables except those listed in this optiion are captured. | `[]` |
 
 
 Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy in the same Ruby process.

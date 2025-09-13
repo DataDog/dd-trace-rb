@@ -3,6 +3,7 @@
 require_relative '../../configuration/settings'
 require_relative '../ext'
 require_relative 'error_extension_env_parser'
+require_relative 'capture_variables'
 
 module Datadog
   module Tracing
@@ -64,6 +65,22 @@ module Datadog
               o.env Ext::ENV_ERROR_TRACKING
               o.type :bool
               o.default false
+            end
+
+            # Variables to capture in GraphQL operations
+            option :capture_variables do |o|
+              o.env Ext::ENV_CAPTURE_VARIABLES
+              o.type :array, nilable: false
+              o.default []
+              o.setter { |variable_tags, _| CaptureVariables.new(variable_tags) }
+            end
+
+            # Variables to exclude from capture in GraphQL operations
+            option :capture_variables_except do |o|
+              o.env Ext::ENV_CAPTURE_VARIABLES_EXCEPT
+              o.type :array, nilable: false
+              o.default []
+              o.setter { |variable_tags, _| CaptureVariables.new(variable_tags) }
             end
           end
         end

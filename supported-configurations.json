@@ -496,6 +496,12 @@
     "DD_TRACE_GRAPHQL_ERROR_TRACKING": {
       "version": ["A"]
     },
+    "DD_TRACE_GRAPHQL_CAPTURE_VARIABLES": {
+      "version": ["A"]
+    },
+    "DD_TRACE_GRAPHQL_CAPTURE_VARIABLES_EXCEPT": {
+      "version": ["A"]
+    },
     "DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER": {
       "version": ["A"]
     },

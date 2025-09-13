@@ -7,6 +7,12 @@ def load_test_schema(prefix: '')
   # rubocop:disable Security/Eval
   # rubocop:disable Style/DocumentDynamicEvalDefinition
   eval <<-RUBY, binding, __FILE__, __LINE__ + 1
+    class #{prefix}TestUserFilterInput < ::GraphQL::Schema::InputObject
+      argument :name, ::GraphQL::Types::String, required: false
+      argument :active, ::GraphQL::Types::Boolean, required: false
+      argument :min_age, ::GraphQL::Types::Int, required: false
+    end
+
     class #{prefix}TestUserType < ::GraphQL::Schema::Object
       field :id, ::GraphQL::Types::ID, null: false
       field :name, ::GraphQL::Types::String, null: true
@@ -27,6 +33,43 @@ def load_test_schema(prefix: '')
 
       def graphql_error
         raise 'GraphQL error'
+      end
+
+      field :user_with_org, #{prefix}TestUserType, null: false, description: 'Find user with org' do
+        argument :id, ::GraphQL::Types::ID, required: true
+        argument :org, ::GraphQL::Types::ID, required: true
+      end
+
+      def user_with_org(id:, org:)
+        OpenStruct.new(id: id, name: 'Bits', org: org)
+      end
+
+      field :user_with_filter, #{prefix}TestUserType, null: false, description: 'Find user with filter' do
+        argument :id, ::GraphQL::Types::ID, required: true
+        argument :active, ::GraphQL::Types::Boolean, required: true
+      end
+
+      def user_with_filter(id:, active:)
+        OpenStruct.new(id: id, name: 'Bits', active: active)
+      end
+
+      field :user_with_details, #{prefix}TestUserType, null: false, description: 'Find user with details' do
+        argument :id, ::GraphQL::Types::ID, required: true
+        argument :name, ::GraphQL::Types::String, required: false
+        argument :count, ::GraphQL::Types::Int, required: false
+      end
+
+      def user_with_details(id:, name: nil, count: nil)
+        OpenStruct.new(id: id, name: name || 'Bits', count: count)
+      end
+
+      field :user_with_input_filter, #{prefix}TestUserType, null: false, description: 'Find user with input filter' do
+        argument :id, ::GraphQL::Types::ID, required: true
+        argument :filter, #{prefix}TestUserFilterInput, required: true
+      end
+
+      def user_with_input_filter(id:, filter:)
+        OpenStruct.new(id: id, name: 'Bits', filter: filter)
       end
     end
 
@@ -51,6 +94,7 @@ def load_test_schema(prefix: '')
 end
 
 def unload_test_schema(prefix: '')
+  Object.send(:remove_const, :"#{prefix}TestUserFilterInput")
   Object.send(:remove_const, :"#{prefix}TestUserType")
   Object.send(:remove_const, :"#{prefix}TestGraphQLQuery")
   Object.send(:remove_const, :"#{prefix}TestGraphQLSchema")
@@ -141,15 +185,16 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
         if name == 'graphql.execute'
           expect(span.get_tag('graphql.operation.type')).to eq('query')
           expect(span.get_tag('graphql.operation.name')).to eq('Users')
-          # graphql.variables.* in graphql.execute span are the ones defined outside the query
-          # (variables part in JSON for example)
-          expect(span.get_tag('graphql.variables.var')).to eq(1)
+          # Variables are now only captured when explicitly configured
+          # By default, no variables are captured
+          expect(span.get_tag('graphql.variables.var')).to be_nil
 
           expect(span.get_tag('span.kind')).to eq('server')
         end
 
         if name == 'graphql.resolve' && resource == 'TestGraphQLQuery.user'
-          # During graphql.resolve, it converts it to string (as it builds an SQL query for example)
+          # Field arguments are still captured with legacy graphql.variables.* tags
+          # This is different from operation variables which use graphql.operation.variable.* tags
           expect(span.get_tag('graphql.variables.id')).to eq('1')
         end
       end
@@ -255,6 +300,184 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
             }
           )
         )
+      end
+    end
+  end
+
+  describe 'operation variable capture' do
+    let(:graphql_execute) { spans.find { |s| s.name == 'graphql.execute' } }
+
+    context 'with no configuration (default behavior)' do
+      it 'does not capture any variables' do
+        result = schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.var')).to be_nil
+      end
+    end
+
+    context 'with DD_TRACE_GRAPHQL_CAPTURE_VARIABLES configured' do
+      around do |ex|
+        ClimateControl.modify('DD_TRACE_GRAPHQL_CAPTURE_VARIABLES' => 'Users:var,GetUser:id') do
+          # Reset configuration to pick up environment variable
+          Datadog.configuration.tracing[:graphql].reset!
+          ex.run
+        end
+      end
+
+      it 'captures configured variables' do
+        result = schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.var')).to eq(1)
+      end
+
+      it 'does not capture unconfigured variables' do
+        result = schema.execute(
+          query: 'query GetUser($id: ID!, $org: ID!){ userWithOrg(id: $id, org: $org) { name } }',
+          variables: { id: 1, org: 2 }
+        )
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.id')).to eq(1)
+        expect(graphql_execute.get_tag('graphql.operation.variable.org')).to be_nil
+      end
+
+      it 'does not capture variables for different operations' do
+        result = schema.execute(query: 'query DifferentOp($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.var')).to be_nil
+      end
+    end
+
+    context 'with DD_TRACE_GRAPHQL_CAPTURE_VARIABLES_EXCEPT configured' do
+      around do |ex|
+        ClimateControl.modify(
+          'DD_TRACE_GRAPHQL_CAPTURE_VARIABLES' => 'Users:var,Users:org',
+          'DD_TRACE_GRAPHQL_CAPTURE_VARIABLES_EXCEPT' => 'Users:org'
+        ) do
+          Datadog.configuration.tracing[:graphql].reset!
+          ex.run
+        end
+      end
+
+      it 'captures variables except those in the except list' do
+        result = schema.execute(
+          query: 'query Users($var: ID!, $org: ID!){ userWithOrg(id: $var, org: $org) { name } }',
+          variables: { var: 1, org: 2 }
+        )
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.var')).to eq(1)
+        expect(graphql_execute.get_tag('graphql.operation.variable.org')).to be_nil
+      end
+    end
+
+    context 'with only DD_TRACE_GRAPHQL_CAPTURE_VARIABLES_EXCEPT configured' do
+      around do |ex|
+        ClimateControl.modify('DD_TRACE_GRAPHQL_CAPTURE_VARIABLES_EXCEPT' => 'Users:org') do
+          Datadog.configuration.tracing[:graphql].reset!
+          ex.run
+        end
+      end
+
+      it 'captures all variables except those in the except list' do
+        result = schema.execute(
+          query: 'query Users($var: ID!, $org: ID!){ userWithOrg(id: $var, org: $org) { name } }',
+          variables: { var: 1, org: 2 }
+        )
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.var')).to eq(1)
+        expect(graphql_execute.get_tag('graphql.operation.variable.org')).to be_nil
+      end
+    end
+
+    context 'with anonymous operations' do
+      around do |ex|
+        ClimateControl.modify('DD_TRACE_GRAPHQL_CAPTURE_VARIABLES_EXCEPT' => '') do
+          Datadog.configuration.tracing[:graphql].reset!
+          ex.run
+        end
+      end
+
+      it 'never captures variables for anonymous operations' do
+        result = schema.execute(query: '{ user(id: "1") { name } }')
+
+        expect(graphql_execute.resource).to eq('anonymous')
+        # No variables to check since query has no variables, but operation name is nil
+      end
+    end
+
+    context 'variable serialization' do
+      around do |ex|
+        ClimateControl.modify('DD_TRACE_GRAPHQL_CAPTURE_VARIABLES' => 'TestIntQuery:intVar,TestStringQuery:stringVar,TestBoolQuery:boolVar,TestIdQuery:idVar,TestInputQuery:inputVar') do
+          Datadog.configuration.tracing[:graphql].reset!
+          ex.run
+        end
+      end
+
+      it 'serializes integer variables correctly' do
+        result = schema.execute(
+          query: 'query TestIntQuery($intVar: Int!){ userWithDetails(id: "1", count: $intVar) { name } }',
+          variables: { intVar: 42 }
+        )
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.intVar')).to eq(42)
+      end
+
+      it 'serializes string variables correctly' do
+        result = schema.execute(
+          query: 'query TestStringQuery($stringVar: String!){ userWithDetails(id: "1", name: $stringVar) { name } }',
+          variables: { stringVar: 'hello' }
+        )
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.stringVar')).to eq('hello')
+      end
+
+      it 'serializes true boolean correctly' do
+        result = schema.execute(
+          query: 'query TestBoolQuery($boolVar: Boolean!){ userWithFilter(id: "1", active: $boolVar) { name } }',
+          variables: { boolVar: true }
+        )
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.boolVar')).to eq('true')
+      end
+
+      it 'serializes false boolean correctly' do
+        result = schema.execute(
+          query: 'query TestBoolQuery($boolVar: Boolean!){ userWithFilter(id: "1", active: $boolVar) { name } }',
+          variables: { boolVar: false }
+        )
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.boolVar')).to eq('false')
+      end
+
+      it 'serializes ID variables correctly' do
+        result = schema.execute(
+          query: 'query TestIdQuery($idVar: ID!){ user(id: $idVar) { name } }',
+          variables: { idVar: 'user123' }
+        )
+
+        expect(graphql_execute.get_tag('graphql.operation.variable.idVar')).to eq('user123')
+      end
+
+      it 'serializes custom input object variables correctly' do
+        # Create a Ruby hash that represents a GraphQL input object
+        # Use camelCase for GraphQL field names
+        input_object = { name: 'John', active: true, minAge: 18 }
+
+        # For schemas without prefix, use the base type name
+        input_type_name = if defined?(TraceWithTestUserFilterInput)
+                            'TraceWithTestUserFilterInput'
+                          else
+                            'TestUserFilterInput'
+                          end
+
+        result = schema.execute(
+          query: "query TestInputQuery($inputVar: #{input_type_name}!){ userWithInputFilter(id: \"1\", filter: $inputVar) { name } }",
+          variables: { inputVar: input_object }
+        )
+
+        # Custom input objects should be serialized as strings using to_s
+        # GraphQL converts hash keys from symbols to strings, so we expect the string key version
+        expected_serialized = { 'name' => 'John', 'active' => true, 'minAge' => 18 }.to_s
+        expect(graphql_execute.get_tag('graphql.operation.variable.inputVar')).to eq(expected_serialized)
       end
     end
   end
