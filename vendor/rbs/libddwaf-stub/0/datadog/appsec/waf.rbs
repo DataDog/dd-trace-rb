@@ -82,37 +82,51 @@ module Datadog
       end
 
       class Result
-        @status: untyped
+        @status: ::Symbol
 
-        @events: untyped
+        @events: WAF::data
 
-        @total_runtime: untyped
+        @actions: WAF::data
 
-        @timeout: untyped
+        @attributes: WAF::data
 
-        @actions: untyped
+        @duration: ::Integer
 
-        @derivatives: untyped
+        @timeout: bool
+
+        @keep: bool
 
         @input_truncated: bool
 
-        attr_reader status: untyped
+        attr_reader status: ::Symbol
 
-        attr_reader events: untyped
+        attr_reader events: WAF::data
 
-        attr_reader total_runtime: untyped
+        attr_reader actions: WAF::data
 
-        attr_reader timeout: untyped
+        attr_reader attributes: WAF::data
 
-        attr_reader actions: untyped
+        attr_reader duration: ::Integer
 
-        attr_reader derivatives: untyped
+        def initialize: (
+          status: ::Symbol,
+          events: WAF::data,
+          actions: WAF::data,
+          attributes: WAF::data,
+          duration: ::Integer,
+          timeout: bool,
+          keep: bool
+        ) -> void
 
-        def initialize: (untyped status, untyped events, untyped total_runtime, untyped timeout, untyped actions, untyped derivatives) -> void
+        def mark_input_truncated!: () -> bool
 
-        def mark_as_input_truncated!: () -> bool
+        def timeout?: () -> bool
+
+        def keep?: () -> bool
 
         def input_truncated?: () -> bool
+
+        def to_h: () -> ::Hash[::Symbol, WAF::data]
       end
 
       class Context
