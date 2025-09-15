@@ -514,7 +514,7 @@ RSpec.describe 'DI integration from remote config' do
           where: {
             sourceFile: 'hook_line_load.rb', lines: [14],
           },
-          when: {json: {'contains': [{'ref' => 'bar'}, 'baz']}},
+          when: {json: {'contains' => [{'ref' => 'bar'}, 'baz']}},
         }
       end
 
