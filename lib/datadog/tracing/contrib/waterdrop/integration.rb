@@ -12,9 +12,8 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          # Minimum version supported by Karafka v2.3.0
-          # @see Datadog::Tracing::Contrib::Karafka::Integration::MINIMUM_VERSION).
-          MINIMUM_VERSION = Gem::Version.new('2.6.12')
+          # WaterDrop added class-level instrumentation in version 2.8.8.rc1
+          MINIMUM_VERSION = Gem::Version.new('2.8.8.rc1')
 
           register_as :waterdrop, auto_patch: false
 
