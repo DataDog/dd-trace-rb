@@ -3,6 +3,14 @@
 ## Overview
 We'll implement DSM checkpointing for Ruby, following the Python implementation pattern. This system tracks data flow through services and message brokers, enabling monitoring of data pathways (e.g., Service → Kafka → Service → Kafka → Service).
 
+## CRITICAL DISCOVERY
+After examining the Python source code, we discovered that **DDSketch is REQUIRED for basic DSM functionality**, not just optimization. The Datadog agent expects:
+- **DDSketch protobuf distributions** (`stats.edge_latency.to_proto()`)
+- **msgpack + gzip encoding** (not JSON)
+- **Specific payload structure** matching Python exactly
+
+Our current Ruby implementation **will not work with the real agent** because it sends the wrong format entirely. We must fix the agent communication format before DSM can be functional.
+
 ## Python Implementation Reference
 Key files in dd-trace-py:
 - `processor.py`: Core DSM processor implementation
@@ -24,38 +32,59 @@ Core components:
 - [ ] Leverage existing `lib/datadog/tracing/data_streams/` structure
 - [ ] Create Karafka consumer test cases (producer strategy TBD)
 
-### Phase 2: Core Pathway Context
-- [ ] Test-drive FNV hashing implementation
-- [ ] Test-drive VarInt encoding/decoding
-- [ ] Implement DataStreamsCtx with tests
-- [ ] Add pathway context encoding/decoding tests
-- [ ] Implement header propagation for Kafka
+### Phase 2: Core Pathway Context ✅ COMPLETE
+- [x] Test-drive FNV hashing implementation
+- [x] Test-drive VarInt encoding/decoding
+- [x] Implement DataStreamsCtx with tests
+- [x] Add pathway context encoding/decoding tests
+- [x] Implement header propagation for Karafka
 
-### Phase 3: Checkpointing & Stats
-- [ ] Test-drive checkpoint creation and tracking
-- [ ] Implement pathway stats collection with tests
-- [ ] Add latency tracking (edge and full pathway)
-- [ ] Add Kafka offset tracking
-- [ ] Implement loop detection logic
+### Phase 3: Checkpointing & Stats ✅ COMPLETE
+- [x] Test-drive checkpoint creation and tracking
+- [x] Implement pathway stats collection with tests
+- [x] Add latency tracking (edge and full pathway)
+- [x] Add Kafka offset tracking
+- [x] Implement loop detection logic
 
-### Phase 4: Agent Communication
-- [ ] Test-drive stats serialization
-- [ ] Implement agent communication layer
-- [ ] Add periodic flushing mechanism
+### Phase 4: Agent Communication ❌ NEEDS MAJOR REWORK
+- [x] ~~Test-drive stats serialization~~ (WRONG FORMAT - used JSON instead of msgpack+DDSketch)
+- [ ] **CRITICAL: Implement DDSketch for latency distributions (REQUIRED, not optional)**
+- [ ] **Fix agent payload format to match Python implementation:**
+  - [ ] Use msgpack instead of JSON
+  - [ ] Use DDSketch.to_proto() for EdgeLatency and PathwayLatency
+  - [ ] Implement proper payload structure (Service, TracerVersion, Lang, Stats, Hostname)
+  - [ ] Add gzip compression
+- [ ] Implement periodic flushing mechanism
 - [ ] Implement error handling and retries
 
-### Phase 5: Perfect Karafka Integration
+### Phase 4.1: URGENT - DDSketch Native Extension Setup
+- [ ] Get libdatadog native extension working (DDSketch.supported? = true)
+- [ ] Verify DDSketch.new, .add(), .to_proto() methods work
+- [ ] Test DDSketch protobuf encoding/decoding
+
+### Phase 4.2: URGENT - Agent Payload Format Fix
+- [ ] Replace PathwayStats with DDSketch aggregation (like Python)
+- [ ] Implement msgpack encoding instead of JSON
+- [ ] Add gzip compression layer
+- [ ] Match Python payload structure exactly:
+  ```
+  {
+    "Service": service_name,
+    "TracerVersion": version,
+    "Lang": "ruby",
+    "Stats": [buckets_with_ddsketch_data],
+    "Hostname": hostname
+  }
+  ```
+- [ ] Test against real agent with proper format
+
+### Phase 5: Perfect Karafka Integration (AFTER agent format works)
 - [ ] Integration testing with real Karafka gem (not mocked classes)
-- [ ] Performance testing with DSM overhead measurement
+- [ ] Performance testing with DDSketch overhead measurement
 - [ ] Configuration options for DSM tuning (flush intervals, sampling, etc.)
-- [ ] Error handling and graceful degradation
-- [ ] Memory usage optimization and thread safety validation
-- [ ] Real Karafka app integration testing
 
 ### Phase 6: Additional Features & Hardening
-- [ ] DDSketch implementation for latency distributions
 - [ ] Advanced stats aggregation and sampling
-- [ ] Agent communication optimization (retries, batching)
 - [ ] Live Kafka integration testing
 
 ### Phase 7: Producer Integration (WaterDrop) - FUTURE
@@ -78,7 +107,7 @@ Core components:
 - Current Karafka integration only covers consumers - WaterDrop integration needed for complete DSM
 - Many Karafka users access producers via Karafka.producer or consumer convenience methods
 
-## Python Implementation Details to Remember
+## Python Implementation Details (VERIFIED FROM SOURCE)
 1. Pathway context format:
    - 8 bytes: hash value (little-endian)
    - VarInt: pathway start time (milliseconds)
@@ -86,11 +115,20 @@ Core components:
 
 2. Stats aggregation:
    - Uses time-based buckets (default 10s)
+   - **DDSketch REQUIRED**: `stats.edge_latency.add()` and `stats.full_pathway_latency.add()`
    - Tracks both produce and commit offsets for Kafka
-   - Uses DDSketch for latency distributions
+   - Agent expects DDSketch protobuf distributions via `to_proto()`
 
-3. Configuration:
+3. Agent payload format (CRITICAL):
+   - Content-Type: `application/msgpack` (NOT JSON)
+   - Content-Encoding: `gzip`
+   - Payload structure: `{"Service": "...", "TracerVersion": "...", "Lang": "python", "Stats": [buckets], "Hostname": "..."}`
+   - EdgeLatency/PathwayLatency: `stat_aggr.edge_latency.to_proto()` (DDSketch protobuf)
    - Agent endpoint: `/v0.1/pipeline_stats`
    - Default flush interval: 10 seconds
-   - Gzip compression for payloads
-   - Retry mechanism with fibonacci backoff
+
+4. Current Ruby implementation issues:
+   - ❌ Sends JSON instead of msgpack
+   - ❌ Sends raw latency floats instead of DDSketch protobuf
+   - ❌ Wrong payload structure
+   - ❌ Missing gzip compression

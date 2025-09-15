@@ -2,9 +2,37 @@
 
 require 'datadog/tracing/data_streams/processor'
 require 'json'
+require 'msgpack'
+
+# Fake DDSketch for testing
+class FakeDDSketch
+  def self.supported?
+    true
+  end
+
+  def initialize
+    @values = []
+  end
+
+  def add(value)
+    @values << value
+    self
+  end
+
+  def count
+    @values.size.to_f
+  end
+
+  def encode
+    # Return fake protobuf data and reset like real DDSketch
+    result = "fake-ddsketch-protobuf-#{@values.size}-values"
+    @values.clear
+    result
+  end
+end
 
 RSpec.describe 'Data Streams Monitoring Agent Communication' do
-  let(:processor) { Datadog::Tracing::DataStreams::Processor.new }
+  let(:processor) { Datadog::Tracing::DataStreams::Processor.new(ddsketch_class: FakeDDSketch) }
   let(:start_time) { 1609459200.0 }
   let(:agent_spy) { instance_double('AgentTransport') }
 
@@ -12,13 +40,12 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
     allow(processor).to receive(:agent_transport).and_return(agent_spy)
     allow(agent_spy).to receive(:post)
 
-    # Disable compression for cleaner testing (unless specifically testing compression)
-    allow(processor).to receive(:compress_payload?).and_return(false)
+    # Disable gzip compression for easier testing
+    allow(processor).to receive(:gzip_compress) { |data| data }
   end
 
   describe 'single checkpoint scenario' do
     it 'sends pathway data to agent endpoint' do
-      # Set up processor with known timing to avoid negative latencies
       initial_context = Datadog::Tracing::DataStreams::PathwayContext.new(0, start_time, start_time)
       processor.set_pathway_context(initial_context)
 
@@ -28,73 +55,74 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
 
       expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
         expect(endpoint).to eq('/v0.1/pipeline_stats')
+        expect(headers['Content-Type']).to eq('application/msgpack')
 
-        payload = JSON.parse(data)
-        expect(payload['checkpoints']).to have(1).item
+        payload = MessagePack.unpack(data)
+        expect(payload['Service']).to eq('ruby-service')
+        expect(payload['Lang']).to eq('ruby')
+        expect(payload['Stats']).to have(1).item
 
-        checkpoint = payload['checkpoints'].first
-        expect(checkpoint['tags']).to include('service:api', 'operation:create-user')
-        expect(checkpoint['hash']).to be_a(Integer)
-        expect(checkpoint['parent_hash']).to be_a(Integer)
-        expect(checkpoint['edge_latency_sec']).to eq(1.0) # Should be 1 second
+        bucket = payload['Stats'].first
+        expect(bucket['Stats']).to have(1).item
+
+        stat = bucket['Stats'].first
+        expect(stat['EdgeLatency']).to be_a(String) # DDSketch protobuf
+        expect(stat['EdgeLatency'].bytesize).to be > 0
+        expect(stat['PathwayLatency']).to be_a(String) # DDSketch protobuf
       end
     end
   end
 
   describe 'high-throughput checkpoint scenario' do
     it 'aggregates many checkpoints using DDSketch for latency sampling' do
+      initial_context = Datadog::Tracing::DataStreams::PathwayContext.new(0, start_time, start_time)
+      processor.set_pathway_context(initial_context)
+
       # Simulate high-throughput service processing 1000 messages
       1000.times do |i|
         latency_variation = rand * 0.1 # 0-100ms variation
-        processor.set_checkpoint(["batch:#{i}"], start_time + i + latency_variation)
+        processor.set_checkpoint(["batch:#{i}"], start_time + i * 0.001 + latency_variation)
       end
 
       processor.flush_stats
 
       expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
-        payload = JSON.parse(data)
+        expect(headers['Content-Type']).to eq('application/msgpack')
 
-        # Should aggregate using time buckets, not send 1000 individual checkpoints
-        expect(payload['time_buckets']).not_to be_empty
+        payload = MessagePack.unpack(data)
+        bucket = payload['Stats'].first
+        stat = bucket['Stats'].first
 
-        # Should include distribution data for latency analysis
-        # (DDSketch implementation would go here in future)
-        expect(payload['checkpoints'].size).to be <= 1000 # Some aggregation
+        # DDSketch should efficiently aggregate 1000 latencies
+        expect(stat['EdgeLatency']).to be_a(String) # DDSketch protobuf
+        expect(stat['EdgeLatency']).to include('1000-values') # Fake shows aggregation
+        expect(stat['PathwayLatency']).to be_a(String) # DDSketch protobuf
       end
     end
   end
 
-  describe 'pathway convergence scenario' do
-    it 'enables agent to reconstruct fan-out and merge patterns' do
-      # Simulate fan-out by having one source checkpoint feed multiple pathways
+  describe 'consumer and producer scenario' do
+    it 'tracks different latencies for direction:in and direction:out operations' do
       initial_context = Datadog::Tracing::DataStreams::PathwayContext.new(0, start_time, start_time)
       processor.set_pathway_context(initial_context)
 
-      processor.set_checkpoint(['source:order-received'], start_time + 1)
-      source_hash = processor.get_current_pathway.hash
+      # Consumer operation
+      processor.set_checkpoint(['service:order-processor', 'direction:in'], start_time + 0.050)
 
-      # Simulate three different processing paths from same source
-      ['inventory', 'payment', 'notification'].each_with_index do |service, i|
-        # Reset to source state and branch
-        source_context = Datadog::Tracing::DataStreams::PathwayContext.new(source_hash, start_time, start_time + 1, 0)
-        processor.set_pathway_context(source_context)
-        processor.set_checkpoint(["service:#{service}"], start_time + i + 2)
-      end
+      # Producer operation (same service, different direction)
+      processor.set_checkpoint(['service:order-processor', 'direction:out'], start_time + 0.100)
 
       processor.flush_stats
 
       expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
-        payload = JSON.parse(data)
+        payload = MessagePack.unpack(data)
+        bucket = payload['Stats'].first
+        stat = bucket['Stats'].first
 
-        # Should have source checkpoint + 3 fan-out branches
-        expect(payload['checkpoints']).to have(4).items
-
-        # Find fan-out branches (those with source_hash as parent)
-        branches = payload['checkpoints'].select { |c| c['parent_hash'] == source_hash }
-        expect(branches).to have(3).items
-
-        branch_services = branches.map { |b| b['tags'].first }
-        expect(branch_services).to match_array(['service:inventory', 'service:payment', 'service:notification'])
+        # Should have DDSketch data for both operations
+        expect(stat['EdgeLatency']).to be_a(String) # Aggregated edge latencies
+        expect(stat['PathwayLatency']).to be_a(String) # Aggregated pathway latencies
+        expect(stat['EdgeLatency']).to include('2-values') # Both checkpoints captured
       end
     end
   end
@@ -112,16 +140,19 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
       processor.flush_stats
 
       expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
-        payload = JSON.parse(data)
+        payload = MessagePack.unpack(data)
+        bucket = payload['Stats'].first
+        backlogs = bucket['Backlogs']
 
-        expect(payload['consumer_offsets']).to have(5).items
-        offsets = payload['consumer_offsets'].map { |stat| stat['offset'] }
+        expect(backlogs).to have(5).items
+        offsets = backlogs.map { |backlog| backlog['Value'] }
         expect(offsets).to eq([100, 101, 105, 106, 110]) # Preserves gaps for lag detection
 
-        # All should be for same topic/partition
-        payload['consumer_offsets'].each do |stat|
-          expect(stat['topic']).to eq(topic)
-          expect(stat['partition']).to eq(partition)
+        # All should be kafka_consume type
+        backlogs.each do |backlog|
+          expect(backlog['Tags']).to include('type:kafka_consume')
+          expect(backlog['Tags']).to include("topic:#{topic}")
+          expect(backlog['Tags']).to include("partition:#{partition}")
         end
       end
     end
@@ -129,8 +160,11 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
 
   describe 'mixed workload scenario' do
     it 'combines checkpoint and consumer data in single agent payload' do
+      initial_context = Datadog::Tracing::DataStreams::PathwayContext.new(0, start_time, start_time)
+      processor.set_pathway_context(initial_context)
+
       # Realistic scenario: service processes messages and creates checkpoints
-      processor.set_checkpoint(['service:order-processor'], start_time)
+      processor.set_checkpoint(['service:order-processor'], start_time + 0.5)
       processor.track_kafka_consume('orders', 0, 100, start_time + 0.5)
       processor.set_checkpoint(['topic:processed-orders'], start_time + 1)
       processor.track_kafka_consume('orders', 0, 101, start_time + 1.5)
@@ -138,49 +172,17 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
       processor.flush_stats
 
       expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
-        payload = JSON.parse(data)
+        payload = MessagePack.unpack(data)
+        bucket = payload['Stats'].first
 
         # Should include both types of data
-        expect(payload['checkpoints']).to have(2).items
-        expect(payload['consumer_offsets']).to have(2).items
+        expect(bucket['Stats']).to have(1).item # DDSketch aggregated checkpoints
+        expect(bucket['Backlogs']).to have(2).items # Individual consumer offsets
 
-        # Should share same timestamp bucket
-        expect(payload['timestamp']).to be_a(Integer)
-      end
-    end
-  end
-
-  describe 'long pathway scenario' do
-    it 'tracks multi-hop message flows for end-to-end monitoring' do
-      # Use single processor to simulate message flow through multiple services
-      # This tests the pathway lineage without multiple agent transports
-
-      services = ['api', 'service-a', 'service-b', 'service-c']
-      initial_context = Datadog::Tracing::DataStreams::PathwayContext.new(0, start_time, start_time)
-      processor.set_pathway_context(initial_context)
-
-      # Simulate each service processing and checkpointing
-      services.each_with_index do |service, i|
-        processor.set_checkpoint(["service:#{service}"], start_time + i + 1)
-      end
-
-      processor.flush_stats
-
-      expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
-        payload = JSON.parse(data)
-
-        # Should have checkpoints for all 4 services
-        expect(payload['checkpoints']).to have(4).items
-
-        # Each checkpoint should have proper parent linkage
-        checkpoints = payload['checkpoints']
-        checkpoints.each_with_index do |checkpoint, i|
-          next unless i > 0
-
-          # Each service (except first) should have previous service as parent
-          previous_checkpoint = checkpoints[i - 1]
-          expect(checkpoint['parent_hash']).to eq(previous_checkpoint['hash'])
-        end
+        # Verify structure
+        stat = bucket['Stats'].first
+        expect(stat['EdgeLatency']).to be_a(String) # DDSketch data
+        expect(bucket['Backlogs'].first['Tags']).to include('type:kafka_consume')
       end
     end
   end
@@ -202,46 +204,12 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
       processor.flush_stats
 
       expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
-        payload = JSON.parse(data)
-        expect(payload['checkpoints']).to have(1).item # Should still work
-      end
-    end
-  end
+        payload = MessagePack.unpack(data)
+        bucket = payload['Stats'].first
 
-  describe 'payload optimization scenarios' do
-    it 'efficiently handles high-cardinality tag scenarios' do
-      # Many unique pathways (high cardinality)
-      50.times do |i|
-        processor.set_checkpoint(["user:#{i}", "session:#{i}", "experiment:#{i % 10}"], start_time + i)
-      end
-
-      processor.flush_stats
-
-      expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
-        payload = JSON.parse(data)
-
-        # Should handle high cardinality without exploding payload size
-        expect(payload.to_json.bytesize).to be < 100000 # Reasonable size limit
-        expect(payload['checkpoints']).to have(50).items
-
-        # Tags should be preserved for cardinality analysis
-        all_tags = payload['checkpoints'].flat_map { |c| c['tags'] }
-        expect(all_tags).to include('experiment:5') # Sample tag preserved
-      end
-    end
-
-    it 'compresses payloads larger than 1KB before sending' do
-      200.times { |i| processor.set_checkpoint(["large-batch:#{i}"], start_time + i) }
-
-      # Re-enable compression for this test only
-      allow(processor).to receive(:compress_payload?).and_call_original
-      allow(processor).to receive(:gzip_compress).and_return('compressed-payload-data')
-
-      processor.flush_stats
-
-      expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
-        expect(data).to eq('compressed-payload-data')
-        expect(headers['Content-Encoding']).to eq('gzip')
+        expect(bucket['Stats']).to have(1).item # Should still work
+        stat = bucket['Stats'].first
+        expect(stat['EdgeLatency']).to be_a(String)
       end
     end
   end

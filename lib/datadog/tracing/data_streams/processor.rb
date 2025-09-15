@@ -11,12 +11,17 @@ module Datadog
       class Processor
         attr_accessor :enabled
 
-        def initialize
+        def initialize(ddsketch_class: Datadog::Core::DDSketch)
+          # DDSketch is required for DSM - disable processor if not supported
+          unless ddsketch_class.supported?
+            @enabled = false
+            return
+          end
+
           @enabled = true
           @pathway_context = PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
-
-          # Stats storage
-          @checkpoint_stats = []
+          @edge_latency_sketch = ddsketch_class.new
+          @full_pathway_latency_sketch = ddsketch_class.new
           @consumer_stats = []
           @stats_mutex = Mutex.new
         end
@@ -100,21 +105,30 @@ module Datadog
           return unless @enabled
 
           @stats_mutex.synchronize do
-            return if @checkpoint_stats.empty? && @consumer_stats.empty?
+            # Check if we have data to send
+            return if @edge_latency_sketch.count == 0 && @consumer_stats.empty?
 
-            # Build payload for agent
+            # Build payload matching Python implementation format
+            stats_buckets = serialize_buckets
+
             payload = {
-              checkpoints: @checkpoint_stats.dup,
-              consumer_offsets: @consumer_stats.dup,
-              timestamp: Time.now.to_i,
-              time_buckets: aggregate_stats_by_time_buckets
+              'Service' => 'ruby-service', # TODO: Get from config
+              'TracerVersion' => '2.0.0',  # TODO: Get actual version
+              'Lang' => 'ruby',
+              'Stats' => stats_buckets,
+              'Hostname' => hostname
             }
 
-            # Send to agent
+            # Send to agent (msgpack + gzip like Python)
             send_stats_to_agent(payload)
 
-            # Clear stats after successful send
-            @checkpoint_stats.clear
+            # Clear stats after successful send (DDSketch.encode resets automatically)
+            if @ddsketch_available
+              @edge_latency_sketch.encode # This resets the sketch
+              @full_pathway_latency_sketch.encode # This resets the sketch
+            else
+              @checkpoint_stats.clear
+            end
             @consumer_stats.clear
           end
         rescue => e
@@ -165,17 +179,15 @@ module Datadog
           hash_value
         end
 
-        # Record stats for this checkpoint
+        # Record stats for this checkpoint (matching Python implementation)
         def record_checkpoint_stats(hash:, parent_hash:, edge_latency_sec:, payload_size:, tags:, timestamp_sec:)
           @stats_mutex.synchronize do
-            @checkpoint_stats << {
-              hash: hash,
-              parent_hash: parent_hash,
-              edge_latency_sec: edge_latency_sec,
-              payload_size: payload_size,
-              tags: tags,
-              timestamp_sec: timestamp_sec
-            }
+            # Use DDSketch for latency distributions (like Python)
+            @edge_latency_sketch.add(edge_latency_sec)
+
+            # Calculate full pathway latency
+            full_pathway_latency_sec = timestamp_sec - @pathway_context.pathway_start_sec
+            @full_pathway_latency_sketch.add(full_pathway_latency_sec)
           end
         end
 
@@ -212,20 +224,25 @@ module Datadog
           buckets
         end
 
-        # Send stats payload to Datadog agent
+        # Send stats payload to Datadog agent (matching Python implementation)
         def send_stats_to_agent(payload)
-          # Compress if payload is large
-          if compress_payload?(payload)
-            compressed_data = gzip_compress(payload.to_json)
-            headers = { 'Content-Type' => 'application/json', 'Content-Encoding' => 'gzip' }
-            data = compressed_data
-          else
-            headers = { 'Content-Type' => 'application/json' }
-            data = payload.to_json
-          end
+          # Use msgpack encoding like Python
+          require 'msgpack'
+          msgpack_data = MessagePack.pack(payload)
+
+          # Always compress like Python implementation
+          compressed_data = gzip_compress(msgpack_data)
+
+          # Headers matching Python format
+          headers = {
+            'Content-Type' => 'application/msgpack',
+            'Content-Encoding' => 'gzip',
+            'Datadog-Meta-Lang' => 'ruby',
+            'Datadog-Meta-Tracer-Version' => '2.0.0' # TODO: Get actual version
+          }
 
           # Send to agent
-          agent_transport.post('/v0.1/pipeline_stats', data, headers)
+          agent_transport.post('/v0.1/pipeline_stats', compressed_data, headers)
         end
 
         # Check if payload should be compressed
@@ -237,6 +254,58 @@ module Datadog
         def gzip_compress(data)
           # TODO: Implement actual gzip compression
           "gzipped:#{data}"
+        end
+
+        # Serialize buckets to match Python implementation format
+        def serialize_buckets
+          # For now, create a single bucket (TODO: implement time-based bucketing)
+          bucket_time_ns = (Time.now.to_f * 1e9).to_i
+          bucket_duration_ns = 10 * 1e9 # 10 second buckets like Python
+
+          # Always use DDSketch format (real or fake)
+          bucket_stats = [{
+            'EdgeTags' => [], # TODO: Implement edge tag aggregation
+            'Hash' => 0,      # TODO: Implement pathway hash tracking
+            'ParentHash' => 0, # TODO: Implement parent hash tracking
+            'PathwayLatency' => @full_pathway_latency_sketch.encode,
+            'EdgeLatency' => @edge_latency_sketch.encode,
+          }]
+
+          # Create buckets array matching Python format
+          [{
+            'Start' => bucket_time_ns,
+            'Duration' => bucket_duration_ns,
+            'Stats' => bucket_stats,
+            'Backlogs' => serialize_consumer_backlogs
+          }]
+        end
+
+        # Serialize consumer offset data as backlogs (matching Python)
+        def serialize_consumer_backlogs
+          @consumer_stats.map do |stat|
+            {
+              'Tags' => [
+                'type:kafka_consume',
+                "topic:#{stat[:topic]}",
+                "partition:#{stat[:partition]}"
+              ],
+              'Value' => stat[:offset]
+            }
+          end
+        end
+
+        # Get hostname for agent payload
+        def hostname
+          # TODO: Use actual hostname detection
+          'ruby-host'
+        end
+
+        # Get default DDSketch class (real if available, fake for testing)
+        def get_default_ddsketch_class
+          require 'datadog/core/ddsketch'
+          Datadog::Core::DDSketch.supported? ? Datadog::Core::DDSketch : FakeDDSketch
+        rescue LoadError, NameError
+          FakeDDSketch
         end
 
         # Get agent transport (placeholder)
