@@ -11,22 +11,22 @@ module Karafka
       def initialize(messages_array)
         @messages_array = messages_array
       end
-      
+
       def each(&block)
         # This will be patched with our DSM integration
         @messages_array.each(&block)
       end
-      
+
       def count
         @messages_array.count
       end
-      
+
       def first
         @messages_array.first
       end
     end
   end
-  
+
   # Mock distributed tracing method
   def self.extract(headers)
     # Mock extraction - return nil for simplicity
@@ -47,7 +47,7 @@ def create_mock_message(topic: 'test_topic', partition: 0, offset: 100, headers:
   )
 end
 
-# Mock Karafka job structure for Monitor testing  
+# Mock Karafka job structure for Monitor testing
 def create_mock_job(topic: 'test_topic', partition: 0, messages: [])
   OpenStruct.new(
     messages: messages,
@@ -63,7 +63,7 @@ end
 
 require 'datadog'
 require 'datadog/tracing/contrib/karafka/integration'
-require 'datadog/tracing/contrib/karafka/monitor'  
+require 'datadog/tracing/contrib/karafka/monitor'
 require 'datadog/tracing/contrib/karafka/patcher'
 
 RSpec.describe 'Karafka Data Streams instrumentation' do
@@ -72,7 +72,7 @@ RSpec.describe 'Karafka Data Streams instrumentation' do
   before do
     # Manually patch Messages class since auto_patch is false for Karafka
     Karafka::Messages::Messages.prepend(Datadog::Tracing::Contrib::Karafka::MessagesPatch)
-    
+
     Datadog.configure do |c|
       c.tracing.instrument :karafka, configuration_options
       c.tracing.data_streams.enabled = true
@@ -309,7 +309,7 @@ RSpec.describe 'Karafka Data Streams instrumentation' do
         .and_return(mock_processor)
       allow(mock_processor).to receive(:set_checkpoint)
 
-      # Should decode empty context and create checkpoint  
+      # Should decode empty context and create checkpoint
       expect(mock_processor).to receive(:decode_and_set_pathway_context)
         .with({})
       expect(mock_processor).to receive(:set_checkpoint)
