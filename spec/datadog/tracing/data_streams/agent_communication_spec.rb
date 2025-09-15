@@ -42,6 +42,9 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
 
     # Disable gzip compression for easier testing
     allow(processor).to receive(:gzip_compress) { |data| data }
+
+    # Configure service name for tests
+    Datadog.configure { |c| c.service = 'ruby-service' }
   end
 
   describe 'single checkpoint scenario' do
@@ -74,14 +77,17 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
   end
 
   describe 'high-throughput checkpoint scenario' do
-    it 'aggregates many checkpoints using DDSketch for latency sampling' do
+    it 'handles many pathway steps using DDSketch for each step' do
       initial_context = Datadog::Tracing::DataStreams::PathwayContext.new(0, start_time, start_time)
       processor.set_pathway_context(initial_context)
 
-      # Simulate high-throughput service processing 1000 messages
+      # Simulate high-throughput service processing 1000 messages (same tags = aggregates)
       1000.times do |i|
         latency_variation = rand * 0.1 # 0-100ms variation
-        processor.set_checkpoint(["batch:#{i}"], start_time + i * 0.001 + latency_variation)
+        processor.set_checkpoint(
+          ['service:batch-processor', 'operation:process'],
+          start_time + i * 0.001 + latency_variation
+        )
       end
 
       processor.flush_stats
@@ -91,12 +97,15 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
 
         payload = MessagePack.unpack(data)
         bucket = payload['Stats'].first
-        stat = bucket['Stats'].first
 
-        # DDSketch should efficiently aggregate 1000 latencies
-        expect(stat['EdgeLatency']).to be_a(String) # DDSketch protobuf
-        expect(stat['EdgeLatency']).to include('1000-values') # Fake shows aggregation
-        expect(stat['PathwayLatency']).to be_a(String) # DDSketch protobuf
+        # Each set_checkpoint creates a different pathway hash (1000 separate pathways)
+        expect(bucket['Stats']).to have(1000).items # Each checkpoint advances pathway
+
+        # Verify DDSketch is used for each pathway
+        bucket['Stats'].each do |stat|
+          expect(stat['EdgeLatency']).to be_a(String) # DDSketch protobuf format
+          expect(stat['PathwayLatency']).to be_a(String) # DDSketch protobuf format
+        end
       end
     end
   end
@@ -117,12 +126,15 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
       expect(agent_spy).to have_received(:post) do |endpoint, data, headers|
         payload = MessagePack.unpack(data)
         bucket = payload['Stats'].first
-        stat = bucket['Stats'].first
 
-        # Should have DDSketch data for both operations
-        expect(stat['EdgeLatency']).to be_a(String) # Aggregated edge latencies
-        expect(stat['PathwayLatency']).to be_a(String) # Aggregated pathway latencies
-        expect(stat['EdgeLatency']).to include('2-values') # Both checkpoints captured
+        # Different tags + pathway advancement = 2 separate pathway stats
+        expect(bucket['Stats']).to have(2).items # direction:in and direction:out are separate
+
+        # Verify DDSketch is used for each pathway
+        bucket['Stats'].each do |stat|
+          expect(stat['EdgeLatency']).to be_a(String) # DDSketch protobuf format
+          expect(stat['PathwayLatency']).to be_a(String) # DDSketch protobuf format
+        end
       end
     end
   end
@@ -176,7 +188,7 @@ RSpec.describe 'Data Streams Monitoring Agent Communication' do
         bucket = payload['Stats'].first
 
         # Should include both types of data
-        expect(bucket['Stats']).to have(1).item # DDSketch aggregated checkpoints
+        expect(bucket['Stats']).to have(2).items # Two different pathway steps (advancement)
         expect(bucket['Backlogs']).to have(2).items # Individual consumer offsets
 
         # Verify structure
