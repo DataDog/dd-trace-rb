@@ -535,7 +535,6 @@ RSpec.describe 'DI integration from remote config' do
         rv = HookLineLoadTestClass.new.test_method_with_arg(5)
         expect(rv).to be 5
       end
-
     end
   end
 end
