@@ -3,7 +3,38 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'ostruct'
 
-# Mock message structure for Karafka
+# Mock Karafka classes for testing DSM integration without requiring the gem
+module Karafka
+  # Mock Messages collection
+  module Messages
+    class Messages
+      def initialize(messages_array)
+        @messages_array = messages_array
+      end
+      
+      def each(&block)
+        # This will be patched with our DSM integration
+        @messages_array.each(&block)
+      end
+      
+      def count
+        @messages_array.count
+      end
+      
+      def first
+        @messages_array.first
+      end
+    end
+  end
+  
+  # Mock distributed tracing method
+  def self.extract(headers)
+    # Mock extraction - return nil for simplicity
+    nil
+  end
+end
+
+# Mock message structure for Karafka DSM testing
 def create_mock_message(topic: 'test_topic', partition: 0, offset: 100, headers: {})
   OpenStruct.new(
     topic: topic,
@@ -16,12 +47,32 @@ def create_mock_message(topic: 'test_topic', partition: 0, offset: 100, headers:
   )
 end
 
+# Mock Karafka job structure for Monitor testing  
+def create_mock_job(topic: 'test_topic', partition: 0, messages: [])
+  OpenStruct.new(
+    messages: messages,
+    executor: OpenStruct.new(
+      topic: OpenStruct.new(
+        name: topic,
+        consumer: 'TestConsumer'
+      ),
+      partition: partition
+    )
+  )
+end
+
 require 'datadog'
+require 'datadog/tracing/contrib/karafka/integration'
+require 'datadog/tracing/contrib/karafka/monitor'  
+require 'datadog/tracing/contrib/karafka/patcher'
 
 RSpec.describe 'Karafka Data Streams instrumentation' do
   let(:configuration_options) { {} }
 
   before do
+    # Manually patch Messages class since auto_patch is false for Karafka
+    Karafka::Messages::Messages.prepend(Datadog::Tracing::Contrib::Karafka::MessagesPatch)
+    
     Datadog.configure do |c|
       c.tracing.instrument :karafka, configuration_options
       c.tracing.data_streams.enabled = true
@@ -238,9 +289,11 @@ RSpec.describe 'Karafka Data Streams instrumentation' do
         .and_return(mock_processor)
       allow(mock_processor).to receive(:set_checkpoint)
 
-      # Should decode context and continue pathway
-      expect(messages).to receive(:extract_dsm_context)
+      # Should decode context and create checkpoint
+      expect(mock_processor).to receive(:decode_and_set_pathway_context)
         .with({ 'dd-pathway-ctx-base64' => 'encoded-context-data' })
+      expect(mock_processor).to receive(:set_checkpoint)
+        .with(['topic:test_topic'], anything)
 
       messages.each { |message| message }
     end
@@ -256,10 +309,11 @@ RSpec.describe 'Karafka Data Streams instrumentation' do
         .and_return(mock_processor)
       allow(mock_processor).to receive(:set_checkpoint)
 
-      # Should create new pathway when no context in headers
-      expect(messages).to receive(:extract_dsm_context)
+      # Should decode empty context and create checkpoint  
+      expect(mock_processor).to receive(:decode_and_set_pathway_context)
         .with({})
-        .and_return(nil)
+      expect(mock_processor).to receive(:set_checkpoint)
+        .with(['topic:test_topic'], anything)
 
       messages.each { |message| message }
     end
