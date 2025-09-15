@@ -522,7 +522,7 @@ RSpec.describe 'DI integration from remote config' do
         load File.join(File.dirname(__FILE__), '../hook_line_load.rb')
       end
 
-      it 'executes target' do
+      it 'executes target code still' do
         expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
         # TODO report via evaluationErrors
         expect_lazy_log(logger, :debug, /unhandled exception in line trace point: .*Invalid arguments for contains:/)
@@ -530,8 +530,10 @@ RSpec.describe 'DI integration from remote config' do
 
         expect(probe_manager.installed_probes.length).to eq 1
         probe = probe_manager.installed_probes.values.first
+        expect(probe.condition).to be_a(Datadog::DI::EL::Expression)
 
-        HookLineLoadTestClass.new.test_method_with_arg(5)
+        rv = HookLineLoadTestClass.new.test_method_with_arg(5)
+        expect(rv).to be 5
       end
 
     end
