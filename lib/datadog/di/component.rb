@@ -115,6 +115,20 @@ module Datadog
 
       def parse_probe_spec_and_notify(probe_spec)
         probe = ProbeBuilder.build_from_remote_config(probe_spec)
+      rescue => exc
+        begin
+          probe = Struct.new(:id).new(
+            probe_spec['id'],
+          )
+          payload = probe_notification_builder.build_errored(probe, exc)
+          probe_notifier_worker.add_status(payload)
+        rescue
+        raise
+          # TODO report via instrumentation telemetry?
+        end
+
+        raise
+      else
         payload = probe_notification_builder.build_received(probe)
         probe_notifier_worker.add_status(payload)
         probe
