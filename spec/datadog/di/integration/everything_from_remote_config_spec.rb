@@ -502,5 +502,38 @@ RSpec.describe 'DI integration from remote config' do
         expect(probe_manager.installed_probes.length).to eq 0
       end
     end
+
+    context 'when condition evaluation fails at runtime' do
+      with_code_tracking
+
+      let(:propagate_all_exceptions) { false }
+
+      let(:probe_spec) do
+        {
+          id: '11', name: 'bar', type: 'LOG_PROBE',
+          where: {
+            sourceFile: 'hook_line_load.rb', lines: [14],
+          },
+          when: {json: {'contains': [{'ref' => 'bar'}, 'baz']}},
+        }
+      end
+
+      before do
+        load File.join(File.dirname(__FILE__), '../hook_line_load.rb')
+      end
+
+      it 'executes target' do
+        expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
+        # TODO report via evaluationErrors
+        expect_lazy_log(logger, :debug, /unhandled exception in line trace point: .*Invalid arguments for contains:/)
+        do_rc(expect_hook: :hook_line)
+
+        expect(probe_manager.installed_probes.length).to eq 1
+        probe = probe_manager.installed_probes.values.first
+
+        HookLineLoadTestClass.new.test_method_with_arg(5)
+      end
+
+    end
   end
 end
