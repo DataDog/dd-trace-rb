@@ -19,9 +19,16 @@ module Datadog
           end
 
           def patch
-            require_relative 'monitor'
+            require_relative 'producer'
+            require_relative 'middleware'
 
-            ::WaterDrop::Instrumentation::Monitor.prepend(Monitor)
+            ::WaterDrop::Producer.prepend(Producer)
+            ::WaterDrop.instrumentation.subscribe('producer.configured') do |event|
+              producer = event[:producer]
+
+              included_middlewares = producer.middleware.instance_variable_get(:@steps)
+              producer.middleware.append(Middleware) unless included_middlewares.include?(Middleware)
+            end
           end
         end
       end
