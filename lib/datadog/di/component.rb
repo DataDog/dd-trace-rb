@@ -122,9 +122,9 @@ module Datadog
           )
           payload = probe_notification_builder.build_errored(probe, exc)
           probe_notifier_worker.add_status(payload)
-        rescue
-        raise
+        rescue # standard:disable Lint/UselessRescue
           # TODO report via instrumentation telemetry?
+          raise
         end
 
         raise
