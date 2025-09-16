@@ -171,6 +171,7 @@ module Datadog
          "DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE" => {version: ["A"]},
          "DD_TRACE_GRAPHQL_ENABLED" => {version: ["A"]},
          "DD_TRACE_GRAPHQL_ERROR_EXTENSIONS" => {version: ["A"]},
+         "DD_TRACE_GRAPHQL_ERROR_TRACKING" => {version: ["A"]},
          "DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER" => {version: ["A"]},
          "DD_TRACE_GRPC_ANALYTICS_ENABLED" => {version: ["A"]},
          "DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE" => {version: ["A"]},
