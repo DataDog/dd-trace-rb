@@ -26,7 +26,8 @@ module Datadog
         end
 
         def len(var, var_name)
-          if [Array, String].include?(var.class)
+          case var
+          when Array, String
             var.length
           else
             raise DI::Error::ExpressionEvaluationError, "Unsupported type for length: #{var.class}: #{var_name}"
@@ -34,9 +35,10 @@ module Datadog
         end
 
         def is_empty(var, var_name)
-          if var.nil? || Numeric === var
+          case var
+          when nil, Numeric
             false
-          elsif [Array, String].include?(var.class)
+          when Array, String
             var.empty?
           else
             raise DI::Error::ExpressionEvaluationError, "Unsupported type for isEmpty: #{var.class}: #{var_name}"
