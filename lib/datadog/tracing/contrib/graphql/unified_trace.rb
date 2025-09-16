@@ -11,6 +11,8 @@ module Datadog
         # which is required to use features such as API Catalog.
         # DEV-3.0: This tracer should be the default one in the next major version.
         module UnifiedTrace
+          include ::GraphQL::Tracing::PlatformTrace
+
           def initialize(*args, **kwargs)
             @has_prepare_span = respond_to?(:prepare_span)
 
@@ -45,6 +47,8 @@ module Datadog
               @extensions_key = 'extensions.'
             end
           end
+
+          private :load_error_event_attributes
 
           def lex(*args, query_string:, **kwargs)
             trace(proc { super }, 'lex', query_string, query_string: query_string)
@@ -159,8 +163,6 @@ module Datadog
           def resolve_type_lazy(*args, **kwargs)
             resolve_type_span(proc { super }, 'resolve_type_lazy', **kwargs)
           end
-
-          include ::GraphQL::Tracing::PlatformTrace
 
           def platform_field_key(field, *args, **kwargs)
             field.path

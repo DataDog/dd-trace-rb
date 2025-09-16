@@ -47,4 +47,80 @@ module GraphQL
   class Error
     def to_h: -> Hash[String, untyped]
   end
+
+  module Tracing
+    class Trace
+      @multiplex: untyped
+
+      @query: untyped
+
+      def initialize: (?multiplex: untyped?, ?query: untyped?, **untyped _options) -> void
+
+      def lex: (query_string: untyped) { () -> untyped } -> untyped
+
+      def parse: (query_string: untyped) { () -> untyped } -> untyped
+
+      def validate: (query: untyped, validate: untyped) { () -> untyped } -> untyped
+
+      def begin_validate: (untyped query, untyped validate) -> nil
+
+      def end_validate: (untyped query, untyped validate, untyped errors) -> nil
+
+      def begin_analyze_multiplex: (untyped multiplex, untyped analyzers) -> nil
+
+      def end_analyze_multiplex: (untyped multiplex, untyped analyzers) -> nil
+
+      def analyze_multiplex: (multiplex: untyped) { () -> untyped } -> untyped
+
+      def analyze_query: (query: untyped) { () -> untyped } -> untyped
+
+      def execute_multiplex: (multiplex: untyped) { () -> untyped } -> untyped
+
+      def execute_query: (query: untyped) { () -> untyped } -> untyped
+
+      def execute_query_lazy: (query: untyped, multiplex: untyped) { () -> untyped } -> untyped
+
+      def begin_execute_field: (untyped field, untyped object, untyped arguments, untyped query) -> nil
+
+      def end_execute_field: (untyped field, untyped object, untyped arguments, untyped query, untyped result) -> nil
+
+      def execute_field: (field: untyped, query: untyped, ast_node: untyped, arguments: untyped, object: untyped) { () -> untyped } -> untyped
+
+      def execute_field_lazy: (field: untyped, query: untyped, ast_node: untyped, arguments: untyped, object: untyped) { () -> untyped } -> untyped
+
+      def authorized: (query: untyped, type: untyped, object: untyped) { () -> untyped } -> untyped
+
+      def begin_authorized: (untyped type, untyped object, untyped context) -> nil
+
+      def end_authorized: (untyped type, untyped object, untyped context, untyped authorized_result) -> nil
+
+      def authorized_lazy: (query: untyped, type: untyped, object: untyped) { () -> untyped } -> untyped
+
+      def resolve_type: (query: untyped, type: untyped, object: untyped) { () -> untyped } -> untyped
+
+      def resolve_type_lazy: (query: untyped, type: untyped, object: untyped) { () -> untyped } -> untyped
+
+      def begin_resolve_type: (untyped type, untyped value, untyped context) -> nil
+
+      def end_resolve_type: (untyped type, untyped value, untyped context, untyped resolved_type) -> nil
+
+      def begin_dataloader: (untyped dataloader) -> nil
+
+      def end_dataloader: (untyped dataloader) -> nil
+
+      def begin_dataloader_source: (untyped source) -> nil
+
+      def end_dataloader_source: (untyped source) -> nil
+
+      def dataloader_spawn_execution_fiber: (untyped jobs) -> nil
+
+      def dataloader_spawn_source_fiber: (untyped pending_sources) -> nil
+
+      def dataloader_fiber_exit: () -> nil
+
+      def dataloader_fiber_yield: (untyped source) -> nil
+
+      def dataloader_fiber_resume: (untyped source) -> nil
+    end
+  end
 end
