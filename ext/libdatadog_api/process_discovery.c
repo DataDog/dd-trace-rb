@@ -27,13 +27,13 @@ static const rb_data_type_t tracer_memfd_type = {
 };
 
 void process_discovery_init(VALUE core_module) {
-  VALUE process_discovery_class = rb_define_class_under(core_module, "ProcessDiscovery", rb_cObject);
-  VALUE tracer_memfd_class = rb_define_class_under(process_discovery_class, "TracerMemfd", rb_cObject);
+  VALUE process_discovery_module = rb_define_module_under(core_module, "ProcessDiscovery");
+  VALUE tracer_memfd_class = rb_define_class_under(process_discovery_module, "TracerMemfd", rb_cObject);
   rb_undef_alloc_func(tracer_memfd_class); // Class cannot be instantiated from Ruby
 
-  rb_define_singleton_method(process_discovery_class, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
-  rb_define_singleton_method(process_discovery_class, "_native_to_rb_int", _native_to_rb_int, 1);
-  rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 2);
+  rb_define_module_function(process_discovery_module, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
+  rb_define_module_function(process_discovery_module, "_native_to_rb_int", _native_to_rb_int, 1);
+  rb_define_module_function(process_discovery_module, "_native_close_tracer_memfd", _native_close_tracer_memfd, 2);
 }
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {

@@ -68,6 +68,8 @@ module Datadog
 
           def add_query_error_events: (SpanOperation span, Array[::GraphQL::Error] errors) -> void
 
+          def operation_resource: (GraphQL::Language::Nodes::OperationDefinition operation) -> String
+
           def serialize_error_locations: (Array[{"line" => Integer, "column" => Integer}] locations)-> Array[String]
 
           def trace: (Proc callable, String trace_key, String resource, ?Hash[Symbol, traceKwargsValues ] kwargs, ?before: ^(SpanOperation)-> void, ?after: ^(SpanOperation)-> void) ?{ (SpanOperation) -> void } -> traceResult
