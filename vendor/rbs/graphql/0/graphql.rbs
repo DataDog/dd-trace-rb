@@ -5,6 +5,9 @@ module GraphQL
     def query_string: () -> String
     def variables: () -> untyped
     def context: () -> untyped
+
+    class Result
+    end
   end
 
   class Schema
@@ -59,6 +62,9 @@ module GraphQL
       end
 
       class Document
+      end
+
+      class Argument
       end
     end
   end
