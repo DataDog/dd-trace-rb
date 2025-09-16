@@ -1,0 +1,151 @@
+module Karafka
+  class App
+    extend Setup::Dsl
+
+    def self.assignments: () -> untyped
+
+    def self.consumer_groups: () -> untyped
+
+    def self.debug!: (?untyped contexts) -> untyped
+
+    def self.done?: () -> untyped
+
+    def self.env: () -> untyped
+
+    def self.initialize!: () -> untyped
+
+    def self.initialized: () -> untyped
+
+    def self.initialized!: () -> untyped
+
+    def self.initialized?: () -> untyped
+
+    def self.initializing: () -> untyped
+
+    def self.initializing?: () -> untyped
+
+    def self.logger: () -> untyped
+
+    def self.monitor: () -> untyped
+
+    def self.pro?: () -> untyped
+
+    def self.producer: () -> untyped
+
+    def self.quiet: () -> untyped
+
+    def self.quiet!: () -> untyped
+
+    def self.quiet?: () -> untyped
+
+    def self.quieted!: () -> untyped
+
+    def self.quieting: () -> untyped
+
+    def self.quieting?: () -> untyped
+
+    def self.root: () -> untyped
+
+    alias self.routes self.consumer_groups
+
+    def self.run!: () -> untyped
+
+    def self.running: () -> untyped
+
+    def self.running?: () -> untyped
+
+    def self.stop!: () -> untyped
+
+    def self.stopped: () -> untyped
+
+    def self.stopped!: () -> untyped
+
+    def self.stopped?: () -> untyped
+
+    def self.stopping: () -> untyped
+
+    def self.stopping?: () -> untyped
+
+    def self.subscription_groups: () -> untyped
+
+    def self.supervise!: () -> untyped
+
+    def self.supervising: () -> untyped
+
+    def self.supervising?: () -> untyped
+
+    def self.terminate!: () -> untyped
+
+    def self.terminated: () -> untyped
+
+    def self.terminated?: () -> untyped
+
+    def self.warmup: () -> untyped
+  end
+
+  module Core
+    module Monitoring
+      class Monitor
+        def instrument: (untyped event_id, ?untyped payload) { (*untyped) -> untyped } -> untyped
+
+        def listeners: () -> untyped
+
+        def subscribe: (*untyped args) { (*untyped) -> untyped } -> untyped
+
+        private
+
+        def initialize: (untyped notifications_bus, ?untyped namespace) -> void
+      end
+    end
+  end
+
+  module Instrumentation
+    class Monitor < Core::Monitoring::Monitor
+      def notifications_bus: () -> untyped
+
+      private
+
+      def initialize: (?untyped notifications_bus, ?untyped namespace) -> void
+    end
+  end
+
+  module Messages
+    class Messages
+      include Enumerable[untyped]
+
+      alias count size
+
+      def deserialize!: () -> untyped
+
+      def each: () { (*untyped) -> untyped } -> untyped
+
+      def empty?: () -> untyped
+
+      def first: () -> untyped
+
+      def last: () -> untyped
+
+      def metadata: () -> untyped
+
+      def payloads: () -> untyped
+
+      def raw_payloads: () -> untyped
+
+      def size: () -> untyped
+
+      def to_a: () -> untyped
+
+      private
+
+      def initialize: (untyped messages_array, untyped metadata) -> void
+    end
+  end
+
+  module Setup
+    module Dsl
+      def config: () -> untyped
+
+      def setup: () { (*untyped) -> untyped } -> untyped
+    end
+  end
+end

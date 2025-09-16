@@ -76,7 +76,7 @@ module Datadog
 
           def execute_multiplex(*args, multiplex:, **kwargs)
             trace(proc { super }, 'execute_multiplex', multiplex_resource(multiplex), multiplex: multiplex) do |span|
-              span.set_tag('graphql.source', "Multiplex[#{multiplex.queries.map(&:query_string).join(", ")}]")
+              span.set_tag('graphql.source', "Multiplex[#{multiplex.queries.map(&:query_string).join(', ')}]")
             end
           end
 
@@ -90,7 +90,7 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
 
                 span.set_tag('graphql.source', query.query_string)
-                span.set_tag('graphql.operation.type', query.selected_operation.operation_type)
+                span.set_tag('graphql.operation.type', query.selected_operation&.operation_type)
                 if query.selected_operation_name
                   span.set_tag(
                     'graphql.operation.name',
@@ -108,10 +108,10 @@ module Datadog
 
           def execute_query_lazy(*args, query:, multiplex:, **kwargs)
             resource = if query
-              query.selected_operation_name || fallback_transaction_name(query.context)
-            else
-              multiplex_resource(multiplex)
-            end
+                         query.selected_operation_name || fallback_transaction_name(query.context)
+                       else
+                         multiplex_resource(multiplex)
+                       end
             trace(proc { super }, 'execute_lazy', resource, query: query, multiplex: multiplex)
           end
 
@@ -228,10 +228,10 @@ module Datadog
           end
 
           def operation_resource(operation)
-            if operation.name
+            if operation&.name
               "#{operation.operation_type} #{operation.name}"
             else
-              "anonymous"
+              'anonymous'
             end
           end
 
@@ -239,22 +239,22 @@ module Datadog
           def add_query_error_events(span, errors)
             errors.each do |error|
               attributes = if !@error_extensions_config.empty? && (extensions = error.extensions)
-                # Capture extensions, ensuring all values are primitives
-                extensions.each_with_object({}) do |(key, value), hash|
-                  next unless @error_extensions_config.include?(key.to_s)
+                             # Capture extensions, ensuring all values are primitives
+                             extensions.each_with_object({}) do |(key, value), hash|
+                               next unless @error_extensions_config.include?(key.to_s)
 
-                  value = case value
-                  when TrueClass, FalseClass, Integer, Float
-                    value
-                  else
-                    value.to_s
-                  end
+                               value = case value
+                                       when TrueClass, FalseClass, Integer, Float
+                                         value
+                                       else
+                                         value.to_s
+                                       end
 
-                  hash[@extensions_key + key.to_s] = value
-                end
-              else
-                {}
-              end
+                               hash[@extensions_key + key.to_s] = value
+                             end
+                           else
+                             {}
+                           end
 
               # {::GraphQL::Error#to_h} returns the error formatted in compliance with the GraphQL spec.
               # This is an unwritten contract in the `graphql` library.
@@ -287,7 +287,7 @@ module Datadog
           #   ["3:10", "7:8"]
           def serialize_error_locations(locations)
             locations.map do |location|
-              "#{location["line"]}:#{location["column"]}"
+              "#{location['line']}:#{location['column']}"
             end
           end
         end

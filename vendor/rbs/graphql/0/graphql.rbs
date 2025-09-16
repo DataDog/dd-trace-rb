@@ -1,126 +1,76 @@
 module GraphQL
+  class Query
+    def selected_operation: () -> Language::Nodes::OperationDefinition?
+    def selected_operation_name: () -> String?
+    def query_string: () -> String
+    def variables: () -> untyped
+    def context: () -> untyped
+  end
+
   class Schema
+    class Member
+      def self.graphql_name: () -> String
+    end
+
     class Field
+      def path: () -> String
     end
 
-    class Object
+    class Object < Member
+      def self.graphql_name: () -> String
     end
 
-    class Union
+    class Union < Member
+      def self.graphql_name: () -> String
     end
   end
 
   module Tracing
-    class Trace
+    module PlatformTrace
+      @platform_key_cache: Hash[untyped, untyped]
+
+      def initialize: (?trace_scalars: bool, **untyped) -> void
+      def self.included: (untyped child_class) -> untyped
+      def platform_execute_field_lazy: (*untyped args) { (*untyped) -> untyped } -> untyped
+      def platform_authorized_lazy: (untyped key) { (*untyped) -> untyped } -> untyped
+      def platform_resolve_type_lazy: (untyped key) { (*untyped) -> untyped } -> untyped
+
+      module BaseKeyCache
+        attr_reader platform_field_key_cache: untyped
+        attr_reader platform_authorized_key_cache: untyped
+        attr_reader platform_resolve_type_key_cache: untyped
+      end
+
+      private
+
+      def transaction_name: (untyped query) -> String
+      def fallback_transaction_name: (untyped context) -> String
     end
   end
 
   module Language
     module Nodes
-      class Document
+      class OperationDefinition
+        def name: () -> String?
+        def operation_type: () -> Symbol?
       end
 
       class Field
       end
 
-      class Argument
+      class Document
       end
-
-      class OperationDefinition
-        def name: -> String?
-        def operation_type: -> Symbol?
-      end
-    end
-  end
-
-  class Query
-    class Result
-      def initialize: (query: ::GraphQL::Query, values: Hash[String, untyped]) -> void
     end
   end
 
   module Execution
     class Multiplex
+      def queries: () -> Array[GraphQL::Query]
     end
   end
 
-  class Error
-    def to_h: -> Hash[String, untyped]
-  end
-
-  module Tracing
-    class Trace
-      @multiplex: untyped
-
-      @query: untyped
-
-      def initialize: (?multiplex: untyped?, ?query: untyped?, **untyped _options) -> void
-
-      def lex: (query_string: untyped) { () -> untyped } -> untyped
-
-      def parse: (query_string: untyped) { () -> untyped } -> untyped
-
-      def validate: (query: untyped, validate: untyped) { () -> untyped } -> untyped
-
-      def begin_validate: (untyped query, untyped validate) -> nil
-
-      def end_validate: (untyped query, untyped validate, untyped errors) -> nil
-
-      def begin_analyze_multiplex: (untyped multiplex, untyped analyzers) -> nil
-
-      def end_analyze_multiplex: (untyped multiplex, untyped analyzers) -> nil
-
-      def analyze_multiplex: (multiplex: untyped) { () -> untyped } -> untyped
-
-      def analyze_query: (query: untyped) { () -> untyped } -> untyped
-
-      def execute_multiplex: (multiplex: untyped) { () -> untyped } -> untyped
-
-      def execute_query: (query: untyped) { () -> untyped } -> untyped
-
-      def execute_query_lazy: (query: untyped, multiplex: untyped) { () -> untyped } -> untyped
-
-      def begin_execute_field: (untyped field, untyped object, untyped arguments, untyped query) -> nil
-
-      def end_execute_field: (untyped field, untyped object, untyped arguments, untyped query, untyped result) -> nil
-
-      def execute_field: (field: untyped, query: untyped, ast_node: untyped, arguments: untyped, object: untyped) { () -> untyped } -> untyped
-
-      def execute_field_lazy: (field: untyped, query: untyped, ast_node: untyped, arguments: untyped, object: untyped) { () -> untyped } -> untyped
-
-      def authorized: (query: untyped, type: untyped, object: untyped) { () -> untyped } -> untyped
-
-      def begin_authorized: (untyped type, untyped object, untyped context) -> nil
-
-      def end_authorized: (untyped type, untyped object, untyped context, untyped authorized_result) -> nil
-
-      def authorized_lazy: (query: untyped, type: untyped, object: untyped) { () -> untyped } -> untyped
-
-      def resolve_type: (query: untyped, type: untyped, object: untyped) { () -> untyped } -> untyped
-
-      def resolve_type_lazy: (query: untyped, type: untyped, object: untyped) { () -> untyped } -> untyped
-
-      def begin_resolve_type: (untyped type, untyped value, untyped context) -> nil
-
-      def end_resolve_type: (untyped type, untyped value, untyped context, untyped resolved_type) -> nil
-
-      def begin_dataloader: (untyped dataloader) -> nil
-
-      def end_dataloader: (untyped dataloader) -> nil
-
-      def begin_dataloader_source: (untyped source) -> nil
-
-      def end_dataloader_source: (untyped source) -> nil
-
-      def dataloader_spawn_execution_fiber: (untyped jobs) -> nil
-
-      def dataloader_spawn_source_fiber: (untyped pending_sources) -> nil
-
-      def dataloader_fiber_exit: () -> nil
-
-      def dataloader_fiber_yield: (untyped source) -> nil
-
-      def dataloader_fiber_resume: (untyped source) -> nil
-    end
+  class Error < StandardError
+    def to_h: () -> Hash[String, untyped]
+    def extensions: () -> Hash[String, untyped]?
   end
 end
