@@ -26,6 +26,26 @@ module Datadog
             super
           end
 
+          def load_error_event_attributes(error_tracking)
+            if error_tracking
+              @event_name = Tracing::Metadata::Ext::Errors::EVENT_NAME
+              @message_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_MESSAGE
+              @type_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_TYPE
+              @stacktrace_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_STACKTRACE
+              @locations_key = 'graphql.error.locations'
+              @path_key = 'graphql.error.path'
+              @extensions_key = 'graphql.error.extensions.'
+            else
+              @event_name = Ext::EVENT_QUERY_ERROR
+              @message_key = 'message'
+              @type_key = 'type'
+              @stacktrace_key = 'stacktrace'
+              @locations_key = 'locations'
+              @path_key = 'path'
+              @extensions_key = 'extensions.'
+            end
+          end
+
           def lex(*args, query_string:, **kwargs)
             trace(proc { super }, 'lex', query_string, query_string: query_string)
           end
@@ -250,28 +270,6 @@ module Datadog
                   @path_key => graphql_error['path'],
                 )
               )
-            end
-          end
-
-          # Do this once, to avoid rechecking configuration on every request
-          # and make the error handling code more readable.
-          def load_error_event_attributes(error_tracking)
-            if error_tracking
-              @event_name = Tracing::Metadata::Ext::Errors::EVENT_NAME
-              @message_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_MESSAGE
-              @type_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_TYPE
-              @stacktrace_key = Tracing::Metadata::Ext::Errors::ATTRIBUTE_STACKTRACE
-              @locations_key = 'graphql.error.locations'
-              @path_key = 'graphql.error.path'
-              @extensions_key = 'graphql.error.extensions.'
-            else
-              @event_name = Ext::EVENT_QUERY_ERROR
-              @message_key = 'message'
-              @type_key = 'type'
-              @stacktrace_key = 'stacktrace'
-              @locations_key = 'locations'
-              @path_key = 'path'
-              @extensions_key = 'extensions.'
             end
           end
 
