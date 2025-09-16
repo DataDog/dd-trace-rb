@@ -13,8 +13,12 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
+<<<<<<< HEAD
           events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
+=======
+          events: [], actions: {}, derivatives: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0
+>>>>>>> c0440f8c37 (Bump libddwaf version to 1.25.1.0.0)
         )
       end
 
@@ -26,8 +30,12 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
+<<<<<<< HEAD
           events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
+=======
+          events: [], actions: {}, derivatives: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0
+>>>>>>> c0440f8c37 (Bump libddwaf version to 1.25.1.0.0)
         )
       end
 
@@ -53,6 +61,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           events: [],
           actions: {},
           derivatives: {'_dd.appsec.s.req.headers' => [{'host' => [8], 'version' => [8]}]},
+          keep: false,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
@@ -71,6 +80,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           events: [],
           actions: {},
           derivatives: {'not_schema' => 'value'},
+          keep: false,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
@@ -91,6 +101,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           events: [],
           actions: {},
           derivatives: {'_dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-'},
+          keep: false,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
@@ -109,6 +120,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
           events: [],
           actions: {},
           derivatives: {'not_fingerprint' => 'value'},
+          keep: false,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
