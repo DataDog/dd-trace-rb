@@ -96,57 +96,25 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::CaptureVariabl
       end
     end
 
-    context 'with invalid characters in operation name' do
-      let(:input) { 'Get-Ad:bad,ListIp:geo' }
+    context 'with invalid configurations' do
+      let(:valid_fragment) { 'ListIp:geo' }
 
-      it 'skips invalid operation names' do
-        expect(config.match?('ListIp', 'geo')).to be true
-        expect(config.match?('Get-Ad', 'bad')).to be false
-      end
-    end
+      [
+        { input: 'Get-Ad:bad,ListIp:geo', desc: 'invalid characters in operation name', invalid: ['Get-Ad', 'bad'] },
+        { input: 'GetAd:in-valid,ListIp:geo', desc: 'invalid characters in variable name', invalid: ['GetAd', 'in-valid'] },
+        { input: 'GetAd : bad,ListIp:geo', desc: 'whitespace around colon', invalid: ['GetAd ', 'bad'] },
+        { input: 'GetAd,ListIp:geo', desc: 'missing colon', invalid: ['GetAd', ''] },
+        { input: ':id,ListIp:geo', desc: 'empty operation name', invalid: ['', 'id'] },
+        { input: 'GetAd:,ListIp:geo', desc: 'empty variable name', invalid: ['GetAd', ''] }
+      ].each do |test_case|
+        context "with #{test_case[:desc]}" do
+          let(:input) { test_case[:input] }
 
-    context 'with invalid characters in variable name' do
-      let(:input) { 'GetAd:in-valid,ListIp:geo' }
-
-      it 'skips invalid variable names' do
-        expect(config.match?('ListIp', 'geo')).to be true
-        expect(config.match?('GetAd', 'in-valid')).to be false
-      end
-    end
-
-    context 'with whitespace around colon' do
-      let(:input) { 'GetAd : bad,ListIp:geo' }
-
-      it 'treats whitespace as invalid' do
-        expect(config.match?('ListIp', 'geo')).to be true
-        expect(config.match?('GetAd ', 'bad')).to be false
-      end
-    end
-
-    context 'with missing colon' do
-      let(:input) { 'GetAd,ListIp:geo' }
-
-      it 'skips fragments without colon' do
-        expect(config.match?('ListIp', 'geo')).to be true
-        expect(config.match?('GetAd', '')).to be false
-      end
-    end
-
-    context 'with empty operation name' do
-      let(:input) { ':id,ListIp:geo' }
-
-      it 'skips empty operation names' do
-        expect(config.match?('ListIp', 'geo')).to be true
-        expect(config.match?('', 'id')).to be false
-      end
-    end
-
-    context 'with empty variable name' do
-      let(:input) { 'GetAd:,ListIp:geo' }
-
-      it 'skips empty variable names' do
-        expect(config.match?('ListIp', 'geo')).to be true
-        expect(config.match?('GetAd', '')).to be false
+          it 'skips invalid fragments but keeps valid ones' do
+            expect(config.match?('ListIp', 'geo')).to be true
+            expect(config.match?(test_case[:invalid][0], test_case[:invalid][1])).to be false
+          end
+        end
       end
     end
 
@@ -187,16 +155,14 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::CaptureVariabl
     end
 
     context 'with unconfigured combinations' do
-      it 'returns false for GetUser:title' do
-        expect(config.match?('GetUser', 'title')).to be false
-      end
-
-      it 'returns false for GetPost:id' do
-        expect(config.match?('GetPost', 'id')).to be false
-      end
-
-      it 'returns false for UnknownOperation:id' do
-        expect(config.match?('UnknownOperation', 'id')).to be false
+      [
+        ['GetUser', 'title'],
+        ['GetPost', 'id'],
+        ['UnknownOperation', 'id']
+      ].each do |operation, variable|
+        it "returns false for #{operation}:#{variable}" do
+          expect(config.match?(operation, variable)).to be false
+        end
       end
     end
   end

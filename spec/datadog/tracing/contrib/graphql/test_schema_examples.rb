@@ -309,7 +309,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
 
     context 'with no configuration (default behavior)' do
       it 'does not capture any variables' do
-        result = schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+        schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
 
         expect(graphql_execute.get_tag('graphql.operation.variable.var')).to be_nil
       end
@@ -325,13 +325,13 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       end
 
       it 'captures configured variables' do
-        result = schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+        schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
 
         expect(graphql_execute.get_tag('graphql.operation.variable.var')).to eq(1)
       end
 
       it 'does not capture unconfigured variables' do
-        result = schema.execute(
+        schema.execute(
           query: 'query GetUser($id: ID!, $org: ID!){ userWithOrg(id: $id, org: $org) { name } }',
           variables: { id: 1, org: 2 }
         )
@@ -341,7 +341,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       end
 
       it 'does not capture variables for different operations' do
-        result = schema.execute(query: 'query DifferentOp($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+        schema.execute(query: 'query DifferentOp($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
 
         expect(graphql_execute.get_tag('graphql.operation.variable.var')).to be_nil
       end
@@ -359,7 +359,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       end
 
       it 'captures variables except those in the except list' do
-        result = schema.execute(
+        schema.execute(
           query: 'query Users($var: ID!, $org: ID!){ userWithOrg(id: $var, org: $org) { name } }',
           variables: { var: 1, org: 2 }
         )
@@ -378,7 +378,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       end
 
       it 'captures all variables except those in the except list' do
-        result = schema.execute(
+        schema.execute(
           query: 'query Users($var: ID!, $org: ID!){ userWithOrg(id: $var, org: $org) { name } }',
           variables: { var: 1, org: 2 }
         )
@@ -397,10 +397,9 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       end
 
       it 'never captures variables for anonymous operations' do
-        result = schema.execute(query: '{ user(id: "1") { name } }')
+        schema.execute(query: '{ user(id: "1") { name } }')
 
         expect(graphql_execute.resource).to eq('anonymous')
-        # No variables to check since query has no variables, but operation name is nil
       end
     end
 
@@ -413,7 +412,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       end
 
       it 'serializes integer variables correctly' do
-        result = schema.execute(
+        schema.execute(
           query: 'query TestIntQuery($intVar: Int!){ userWithDetails(id: "1", count: $intVar) { name } }',
           variables: { intVar: 42 }
         )
@@ -422,7 +421,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       end
 
       it 'serializes string variables correctly' do
-        result = schema.execute(
+        schema.execute(
           query: 'query TestStringQuery($stringVar: String!){ userWithDetails(id: "1", name: $stringVar) { name } }',
           variables: { stringVar: 'hello' }
         )
@@ -430,26 +429,22 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
         expect(graphql_execute.get_tag('graphql.operation.variable.stringVar')).to eq('hello')
       end
 
-      it 'serializes true boolean correctly' do
-        result = schema.execute(
-          query: 'query TestBoolQuery($boolVar: Boolean!){ userWithFilter(id: "1", active: $boolVar) { name } }',
-          variables: { boolVar: true }
-        )
+      [
+        { value: true, expected: 'true' },
+        { value: false, expected: 'false' }
+      ].each do |test_case|
+        it "serializes #{test_case[:value]} boolean correctly" do
+          schema.execute(
+            query: 'query TestBoolQuery($boolVar: Boolean!){ userWithFilter(id: "1", active: $boolVar) { name } }',
+            variables: { boolVar: test_case[:value] }
+          )
 
-        expect(graphql_execute.get_tag('graphql.operation.variable.boolVar')).to eq('true')
-      end
-
-      it 'serializes false boolean correctly' do
-        result = schema.execute(
-          query: 'query TestBoolQuery($boolVar: Boolean!){ userWithFilter(id: "1", active: $boolVar) { name } }',
-          variables: { boolVar: false }
-        )
-
-        expect(graphql_execute.get_tag('graphql.operation.variable.boolVar')).to eq('false')
+          expect(graphql_execute.get_tag('graphql.operation.variable.boolVar')).to eq(test_case[:expected])
+        end
       end
 
       it 'serializes ID variables correctly' do
-        result = schema.execute(
+        schema.execute(
           query: 'query TestIdQuery($idVar: ID!){ user(id: $idVar) { name } }',
           variables: { idVar: 'user123' }
         )
@@ -469,7 +464,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
                             'TestUserFilterInput'
                           end
 
-        result = schema.execute(
+        schema.execute(
           query: "query TestInputQuery($inputVar: #{input_type_name}!){ userWithInputFilter(id: \"1\", filter: $inputVar) { name } }",
           variables: { inputVar: input_object }
         )

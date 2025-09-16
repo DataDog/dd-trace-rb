@@ -185,11 +185,10 @@ module Datadog
             capture_config = config[:capture_variables]
             capture_except_config = config[:capture_variables_except]
 
-            # If neither configuration is set, don't capture any variables
             return if capture_config.empty? && capture_except_config.empty?
 
             operation_name = query.selected_operation_name
-            return unless operation_name # Skip anonymous operations
+            return unless operation_name
 
             query.variables.to_h.each do |variable_name, value|
               variable_name_str = variable_name.to_s
@@ -208,27 +207,19 @@ module Datadog
             end
           end
 
-          # Determines if a variable should be captured based on configuration
           def should_capture_variable?(operation_name, variable_name, capture_config, capture_except_config)
-            # Check if this operation:variable pair is in the capture list (O(1) lookup)
             capture_match = capture_config.match?(operation_name, variable_name)
-
-            # Check if this operation:variable pair is in the except list (O(1) lookup)
             except_match = capture_except_config.match?(operation_name, variable_name)
 
             if !capture_config.empty?
-              # If capture list is set, capture only if in the list AND not in except list
               capture_match && !except_match
             elsif !capture_except_config.empty?
-              # If only except list is set, capture everything except what's in the except list
               !except_match
             else
-              # If neither configuration is set, don't capture anything
               false
             end
           end
 
-          # Serializes a GraphQL variable value according to the spec
           def serialize_variable_value(value)
             case value
             when TrueClass, FalseClass
@@ -236,7 +227,6 @@ module Datadog
             when Integer, Float, String
               value
             else
-              # For custom types and ID types, convert to string
               value.to_s
             end
           end
