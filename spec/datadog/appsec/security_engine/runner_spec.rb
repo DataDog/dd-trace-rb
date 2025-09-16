@@ -29,6 +29,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           actions: {},
           attributes: {},
           duration: 100,
+          keep?: false,
           timeout?: false,
           input_truncated?: false
         )
@@ -96,13 +97,15 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           input_truncated?: false
           attributes: {},
           duration: 10,
-          timeout?: false
+          keep?: false,
+          timeout?: false,
         )
       end
       let(:result) { runner.run({'addr.a' => 'a'}, {}, 1_000) }
 
       it 'returns match result with filled fields' do
         expect(result).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Match)
+        expect(result).not_to be_keep
         expect(result).not_to be_timeout
         expect(result.events).to eq([])
         expect(result.actions).to eq(
@@ -151,6 +154,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           actions: {},
           attributes: {},
           duration: 100,
+          keep?: true,
           timeout?: true,
           input_truncated?: false
         )
@@ -159,6 +163,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
 
       it 'returns match result with filled fields' do
         expect(result).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Ok)
+        expect(result).to be_keep
         expect(result).to be_timeout
         expect(result.events).to eq([])
         expect(result.actions).to eq({})

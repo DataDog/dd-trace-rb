@@ -138,6 +138,7 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
           events: [],
           actions: {'generate_stack' => {'stack_id' => 'some-id'}},
           derivatives: {},
+          keep: false,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,

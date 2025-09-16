@@ -52,6 +52,7 @@ RSpec.describe Datadog::AppSec::Event do
           derivatives: {
             '_dd.appsec.s.req.headers' => [{'host' => [8], 'version' => [8]}]
           },
+          keep: false,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
@@ -209,6 +210,7 @@ RSpec.describe Datadog::AppSec::Event do
           events: [1],
           actions: {},
           derivatives: {},
+          keep: false,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
@@ -282,6 +284,7 @@ RSpec.describe Datadog::AppSec::Event do
           events: [],
           actions: {},
           derivatives: {'dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-1234567890'},
+          keep: false,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
@@ -365,6 +368,7 @@ RSpec.describe Datadog::AppSec::Event do
           derivatives: {
             '_dd.appsec.s.req.headers' => [{'host' => [8], 'version' => [8]}]
           },
+          keep: false,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
