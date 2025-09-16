@@ -7,16 +7,6 @@ module Datadog
       #
       # @api private
       class Evaluator
-        def initialize(context)
-          @context = context
-        end
-
-        def evaluate(compiled)
-          instance_exec do
-            eval(compiled) # standard:disable Security/Eval
-          end
-        end
-
         def ref(var)
           @context.fetch(var)
         end

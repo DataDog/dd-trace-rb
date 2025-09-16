@@ -59,11 +59,6 @@ RSpec.describe Datadog::DI::EL do
                 expect(e.message).to start_with(expected_compile_error)
               end
             end
-          else
-            it 'compiles as expected' do
-              expect(compiled).to be_a(Datadog::DI::EL::Expression)
-              expect(compiled.compiled_expr).to eq(expected)
-            end
           end
 
           if evals = spec['eval']
