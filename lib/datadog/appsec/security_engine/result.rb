@@ -9,11 +9,12 @@ module Datadog
         class Base
           attr_reader :events, :actions, :derivatives, :duration_ns, :duration_ext_ns
 
-          def initialize(events:, actions:, derivatives:, timeout:, duration_ns:, duration_ext_ns:, input_truncated:)
+          def initialize(events:, actions:, derivatives:, duration_ns:, duration_ext_ns:, timeout:, keep:, input_truncated:)
             @events = events
             @actions = actions
             @derivatives = derivatives
 
+            @keep = keep
             @timeout = timeout
             @duration_ns = duration_ns
             @duration_ext_ns = duration_ext_ns
@@ -22,6 +23,10 @@ module Datadog
 
           def timeout?
             !!@timeout
+          end
+
+          def keep?
+            !!@keep
           end
 
           def match?
@@ -69,6 +74,12 @@ module Datadog
             @duration_ns = 0
             @duration_ext_ns = duration_ext_ns
             @input_truncated = input_truncated
+          end
+
+          # NOTE: If an error happened we definitely would like to have access to
+          #       the span or the trace to be able to detect an issue.
+          def keep?
+            true
           end
 
           def timeout?

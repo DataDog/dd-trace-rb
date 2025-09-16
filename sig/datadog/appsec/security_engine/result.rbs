@@ -15,6 +15,8 @@ module Datadog
 
           @derivatives: derivatives
 
+          @keep: bool
+
           @timeout: bool
 
           @duration_ns: ::Integer
@@ -33,7 +35,9 @@ module Datadog
 
           attr_reader duration_ext_ns: ::Integer
 
-          def initialize: (events: events, actions: actions, derivatives: derivatives, timeout: bool, duration_ns: ::Integer, duration_ext_ns: ::Integer, input_truncated: bool) -> void
+          def initialize: (events: events, actions: actions, derivatives: derivatives, duration_ns: ::Integer, duration_ext_ns: ::Integer, timeout: bool, keep: bool, input_truncated: bool) -> void
+
+          def keep?: () -> bool
 
           def timeout?: () -> bool
 
@@ -83,6 +87,8 @@ module Datadog
           attr_reader duration_ext_ns: ::Integer
 
           def initialize: (duration_ext_ns: ::Integer, input_truncated: bool) -> void
+
+          def keep?: () -> true
 
           def timeout?: () -> false
 

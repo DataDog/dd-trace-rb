@@ -50,6 +50,7 @@ module Datadog
             events: result.events,
             actions: result.actions,
             derivatives: result.attributes,
+            keep: result.keep?,
             timeout: result.timeout?,
             duration_ns: result.duration,
             duration_ext_ns: (stop_ns - start_ns)
