@@ -22,6 +22,7 @@ release notes; it should be self-contained and understandable by customers.
 If you are not a Datadog employee:
 
 You can skip this section and it will be filled or deleted during PR review.
+Please do not remove this section from the PR though.
 -->
 
 **Additional Notes:**
