@@ -1,7 +1,6 @@
 # Datadog Trace Client
 
 [![Gem](https://img.shields.io/gem/v/datadog)](https://rubygems.org/gems/datadog/)
-[![codecov](https://codecov.io/gh/DataDog/dd-trace-rb/branch/master/graph/badge.svg)](https://app.codecov.io/gh/DataDog/dd-trace-rb/branch/master)
 [![YARD documentation](https://img.shields.io/badge/YARD-documentation-blue)][api docs]
 
 ``datadog`` is Datadog's client library for Ruby. It includes a suite of tools which provide visibility into the performance and security of Ruby applications, to enable Ruby developers to identify bottlenecks and other issues.

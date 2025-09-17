@@ -10,7 +10,7 @@ module Datadog
       type key = _Hashing
 
       @logged_deprecations: ::Hash[key, ::Integer]
-      def log_deprecation: (?disallowed_next_major: bool, ?key: key?) { () -> String } -> void
+      def log_deprecation: (?disallowed_next_major: bool, ?key: key?, ?logger: ::Logger) { () -> String } -> void
 
       private
       def log_deprecation?: (key key) -> bool
