@@ -6,17 +6,13 @@ module Datadog
 
         @handle_ref: ThreadSafeRef
 
-        @waf_addresses: ::Array[::String]
-
         @ruleset_version: ::String
+
+        @reconfigured_ruleset_version: ::String?
 
         DEFAULT_RULES_CONFIG_PATH: ::String
         TELEMETRY_ACTIONS: ::Array[::String]
         DIAGNOSTICS_CONFIG_KEYS: ::Array[::String]
-
-        attr_reader waf_addresses: ::Array[::String]
-
-        attr_reader ruleset_version: ::String
 
         def initialize: (appsec_settings: Core::Configuration::Settings::_AppSec, telemetry: Core::Telemetry::Component) -> void
 
@@ -24,7 +20,7 @@ module Datadog
 
         def release_waf_handle: (WAF::Handle waf_handle) -> void
 
-        def add_or_update_config: (::Hash[::String, untyped] config, path: ::String) -> void
+        def add_or_update_config: (::Hash[::String, untyped] config, path: ::String) -> WAF::diagnostics
 
         def remove_config_at_path: (::String path) -> void
 
@@ -32,9 +28,9 @@ module Datadog
 
         private
 
-        def load_default_config: (telemetry: Core::Telemetry::Component) -> void
+        def load_default_config: (telemetry: Core::Telemetry::Component) -> WAF::diagnostics
 
-        def report_configuration_diagnostics: (untyped diagnostics, action: ::String, telemetry: Core::Telemetry::Component) -> void
+        def report_configuration_diagnostics: (WAF::diagnostics diagnostics, action: ::String, telemetry: Core::Telemetry::Component) -> void
       end
     end
   end

@@ -112,6 +112,27 @@ module Datadog
         probe_manager.close
         probe_notifier_worker.stop
       end
+
+      def parse_probe_spec_and_notify(probe_spec)
+        probe = ProbeBuilder.build_from_remote_config(probe_spec)
+      rescue => exc
+        begin
+          probe = Struct.new(:id).new(
+            probe_spec['id'],
+          )
+          payload = probe_notification_builder.build_errored(probe, exc)
+          probe_notifier_worker.add_status(payload)
+        rescue # standard:disable Lint/UselessRescue
+          # TODO report via instrumentation telemetry?
+          raise
+        end
+
+        raise
+      else
+        payload = probe_notification_builder.build_received(probe)
+        probe_notifier_worker.add_status(payload)
+        probe
+      end
     end
   end
 end

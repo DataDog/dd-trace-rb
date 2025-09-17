@@ -307,7 +307,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
         it 'records item count truncation telemetry' do
           expect(telemetry).to receive(:inc).with(
             'instrumentation_telemetry_data.tracers',
-            'context_header_style.truncated',
+            'context_header.truncated',
             1,
             tags: { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded' }
           )
@@ -334,7 +334,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
         it 'records byte count truncation telemetry' do
           expect(telemetry).to receive(:inc).with(
             'instrumentation_telemetry_data.tracers',
-            'context_header_style.truncated',
+            'context_header.truncated',
             1,
             tags: { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded' }
           )

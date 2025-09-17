@@ -35,7 +35,7 @@ module Datadog
           end
 
           def self.patchable?
-            super && !ENV.key?(Ext::ENV_DISABLE)
+            super && !DATADOG_ENV.key?(Ext::ENV_DISABLE)
           end
 
           def new_configuration

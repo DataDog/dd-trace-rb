@@ -18,50 +18,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
   end
 
   describe '.new' do
-    let(:default_ruleset) do
-      {
-        version: '2.2',
-        metadata: {
-          rules_version: '1.0.0'
-        },
-        rules: [
-          {
-            id: 'rasp-003-001',
-            name: 'SQL Injection',
-            tags: {
-              type: 'sql_injection',
-              category: 'exploit',
-              module: 'rasp'
-            },
-            conditions: [
-              {
-                operator: 'sqli_detector',
-                parameters: {
-                  resource: [{address: 'server.db.statement'}],
-                  params: [{address: 'server.request.query'}],
-                  db_type: [{address: 'server.db.system'}]
-                }
-              }
-            ],
-            on_match: ['block-sqli']
-          }
-        ]
-      }
-    end
-
     subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
-
-    before do
-      appsec_settings.ruleset = default_ruleset
-    end
-
-    it 'sets waf_addresses' do
-      expect(engine.waf_addresses).to match_array(%w[server.db.statement server.request.query server.db.system])
-    end
-
-    it 'sets ruleset_version' do
-      expect(engine.ruleset_version).to eq('1.0.0')
-    end
 
     context 'when libddwaf handle cannot be initialized' do
       before do
@@ -123,10 +80,53 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
   end
 
   describe '#new_runner' do
+    let(:default_ruleset) do
+      {
+        version: '2.2',
+        metadata: {
+          rules_version: '1.0.0'
+        },
+        rules: [
+          {
+            id: 'rasp-003-001',
+            name: 'SQL Injection',
+            tags: {
+              type: 'sql_injection',
+              category: 'exploit',
+              module: 'rasp'
+            },
+            conditions: [
+              {
+                operator: 'sqli_detector',
+                parameters: {
+                  resource: [{address: 'server.db.statement'}],
+                  params: [{address: 'server.request.query'}],
+                  db_type: [{address: 'server.db.system'}]
+                }
+              }
+            ],
+            on_match: ['block-sqli']
+          }
+        ]
+      }
+    end
+
     subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
+
+    before do
+      appsec_settings.ruleset = default_ruleset
+    end
 
     it 'returns an instance of SecurityEngine::Runner' do
       expect(engine.new_runner).to be_a(Datadog::AppSec::SecurityEngine::Runner)
+    end
+
+    it 'sets waf_addresses' do
+      expect(engine.new_runner.waf_addresses).to match_array(%w[server.db.statement server.request.query server.db.system])
+    end
+
+    it 'sets ruleset_version' do
+      expect(engine.new_runner.ruleset_version).to eq('1.0.0')
     end
   end
 
@@ -211,7 +211,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           2,
           tags: {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-            event_rules_version: engine.ruleset_version,
+            event_rules_version: '',
             action: 'update',
             config_key: 'custom_rules',
             scope: 'item'
@@ -248,7 +248,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           1,
           tags: {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-            event_rules_version: engine.ruleset_version,
+            event_rules_version: '',
             action: 'update',
             scope: 'top-level'
           }
@@ -286,7 +286,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           1,
           tags: {
             waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-            event_rules_version: engine.ruleset_version,
+            event_rules_version: '',
             action: 'update',
             config_key: 'custom_rules',
             scope: 'top-level'
@@ -362,19 +362,19 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         engine.add_or_update_config(asm_dd_config, path: 'datadog/603646/ASM_DD/latest/config')
         engine.reconfigure!
 
-        expect(engine.waf_addresses).to match_array(%w[server.db.statement server.request.query server.db.system])
+        expect(engine.new_runner.waf_addresses).to match_array(%w[server.db.statement server.request.query server.db.system])
       end
 
       it 'updates ruleset_version' do
         engine.add_or_update_config(asm_dd_config, path: 'datadog/603646/ASM_DD/latest/config')
+        engine.reconfigure!
 
-        expect(engine.ruleset_version).to eq('1.0.0')
+        expect(engine.new_runner.ruleset_version).to eq('1.0.0')
       end
 
       context 'when adding of config fails' do
         let(:invalid_config) do
           {
-            ruleset_version: '1.0.0',
             rules: ''
           }
         end
@@ -391,7 +391,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             1,
             tags: {
               waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-              event_rules_version: engine.ruleset_version,
+              event_rules_version: '',
               action: 'update',
               config_key: 'rules',
               scope: 'top-level'
@@ -411,12 +411,14 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           expect do
             engine.add_or_update_config(invalid_config, path: 'datadog/603646/ASM_DD/latest/config')
             engine.reconfigure!
-          end.not_to change(engine, :waf_addresses)
+          end.not_to change { engine.new_runner.waf_addresses }
         end
 
         it 'does not change ruleset_version' do
-          expect { engine.add_or_update_config(invalid_config, path: 'datadog/603646/ASM_DD/latest/config') }
-            .not_to change(engine, :ruleset_version)
+          expect do
+            engine.add_or_update_config(invalid_config, path: 'datadog/603646/ASM_DD/latest/config')
+            engine.reconfigure!
+          end.not_to change { engine.new_runner.ruleset_version }
         end
       end
     end
@@ -520,7 +522,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           engine.remove_config_at_path('datadog/603646/ASM_DD/latest/config')
           engine.reconfigure!
         end.to(
-          change(engine, :waf_addresses)
+          change { engine.new_runner.waf_addresses }
             .from(match_array(%w[server.db.statement server.request.query server.db.system]))
             .to(match_array(%w[server.io.net.url server.request.query server.request.body server.request.path_params]))
         )
@@ -566,14 +568,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       engine.add_or_update_config(asm_dd_config, path: 'datadog/603646/ASM_DD/latest/config')
     end
 
-    xit 'finalizes old handle' do
-      expect(engine.instance_variable_get(:@waf_handle)).to receive(:finalize!)
-
-      engine.reconfigure!
-    end
-
     it 'updates waf_addresses' do
-      expect { engine.reconfigure! }.to(change { engine.waf_addresses })
+      expect { engine.reconfigure! }.to(change { engine.new_runner.waf_addresses })
     end
 
     context 'when a new handle cannot be build' do
@@ -593,12 +589,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         allow(telemetry).to receive(:report)
       end
 
-      xit 'does not change @waf_handle' do
-        expect { engine.reconfigure! }.not_to(change { engine.instance_variable_get(:@waf_handle) })
-      end
-
       it 'does not change waf_addresses' do
-        expect { engine.reconfigure! }.not_to(change { engine.waf_addresses })
+        expect { engine.reconfigure! }.not_to(change { engine.new_runner.waf_addresses })
       end
 
       it 'reports error though telemetry' do

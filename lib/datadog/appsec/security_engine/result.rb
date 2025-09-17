@@ -9,7 +9,7 @@ module Datadog
         class Base
           attr_reader :events, :actions, :derivatives, :duration_ns, :duration_ext_ns
 
-          def initialize(events:, actions:, derivatives:, timeout:, duration_ns:, duration_ext_ns:)
+          def initialize(events:, actions:, derivatives:, timeout:, duration_ns:, duration_ext_ns:, input_truncated:)
             @events = events
             @actions = actions
             @derivatives = derivatives
@@ -17,6 +17,7 @@ module Datadog
             @timeout = timeout
             @duration_ns = duration_ns
             @duration_ext_ns = duration_ext_ns
+            @input_truncated = input_truncated
           end
 
           def timeout?
@@ -26,12 +27,24 @@ module Datadog
           def match?
             raise NotImplementedError
           end
+
+          def error?
+            raise NotImplementedError
+          end
+
+          def input_truncated?
+            @input_truncated
+          end
         end
 
         # A result that indicates a security rule match
         class Match < Base
           def match?
             true
+          end
+
+          def error?
+            false
           end
         end
 
@@ -40,17 +53,22 @@ module Datadog
           def match?
             false
           end
+
+          def error?
+            false
+          end
         end
 
         # A result that indicates an internal security library error
         class Error
           attr_reader :events, :actions, :derivatives, :duration_ns, :duration_ext_ns
 
-          def initialize(duration_ext_ns:)
+          def initialize(duration_ext_ns:, input_truncated:)
             @events = []
             @actions = @derivatives = {}
             @duration_ns = 0
             @duration_ext_ns = duration_ext_ns
+            @input_truncated = input_truncated
           end
 
           def timeout?
@@ -59,6 +77,14 @@ module Datadog
 
           def match?
             false
+          end
+
+          def error?
+            true
+          end
+
+          def input_truncated?
+            @input_truncated
           end
         end
       end

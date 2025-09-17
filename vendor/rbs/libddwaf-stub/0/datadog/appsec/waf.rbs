@@ -2,6 +2,9 @@ module Datadog
   module AppSec
     # rubocop:disable Metrics/ModuleLength
     module WAF
+      type known_addresses = ::Array[::String]
+      type diagnostics = ::Hash[::String, untyped]
+
       # retain logging proc if set properly
       self.@log_callback: untyped
 
@@ -71,7 +74,7 @@ module Datadog
 
         def build_context: () -> Context
 
-        def known_addresses: () -> ::Array[::String?]
+        def known_addresses: () -> ::Array[::String]
 
         private
 
@@ -91,6 +94,8 @@ module Datadog
 
         @derivatives: untyped
 
+        @input_truncated: bool
+
         attr_reader status: untyped
 
         attr_reader events: untyped
@@ -104,6 +109,10 @@ module Datadog
         attr_reader derivatives: untyped
 
         def initialize: (untyped status, untyped events, untyped total_runtime, untyped timeout, untyped actions, untyped derivatives) -> void
+
+        def mark_as_input_truncated!: () -> bool
+
+        def input_truncated?: () -> bool
       end
 
       class Context

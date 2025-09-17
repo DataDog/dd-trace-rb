@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../identity'
+require_relative '../../appsec/trace_keeper'
 
 module Datadog
   module Kit
@@ -126,7 +127,7 @@ module Datadog
                 span.set_tag("appsec.events.#{event}.#{k}", v) unless v.nil?
               end
 
-              trace.keep!
+              ::Datadog::AppSec::TraceKeeper.keep!(trace)
             else
               set_trace_and_span_context('track', trace, span) do |active_trace, active_span|
                 active_span.set_tag("appsec.events.#{event}.track", 'true')
@@ -138,7 +139,7 @@ module Datadog
                   active_span.set_tag("appsec.events.#{event}.#{k}", v) unless v.nil?
                 end
 
-                active_trace.keep!
+                ::Datadog::AppSec::TraceKeeper.keep!(active_trace)
               end
             end
 

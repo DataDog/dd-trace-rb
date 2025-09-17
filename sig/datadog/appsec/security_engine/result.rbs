@@ -21,6 +21,8 @@ module Datadog
 
           @duration_ext_ns: ::Integer
 
+          @input_truncated: bool
+
           attr_reader events: events
 
           attr_reader actions: actions
@@ -31,21 +33,29 @@ module Datadog
 
           attr_reader duration_ext_ns: ::Integer
 
-          def initialize: (events: events, actions: actions, derivatives: derivatives, timeout: bool, duration_ns: ::Integer, duration_ext_ns: ::Integer) -> void
+          def initialize: (events: events, actions: actions, derivatives: derivatives, timeout: bool, duration_ns: ::Integer, duration_ext_ns: ::Integer, input_truncated: bool) -> void
 
           def timeout?: () -> bool
 
           def match?: () -> bool
+
+          def error?: () -> bool
+
+          def input_truncated?: () -> bool
         end
 
         # A result that indicates a security rule match
         class Match < Base
           def match?: () -> true
+
+          def error?: () -> false
         end
 
         # A result that indicates a successful security rules check without a match
         class Ok < Base
           def match?: () -> false
+
+          def error?: () -> false
         end
 
         # A result that indicates an internal security library error
@@ -60,6 +70,8 @@ module Datadog
 
           @duration_ext_ns: ::Integer
 
+          @input_truncated: bool
+
           attr_reader events: events
 
           attr_reader actions: actions
@@ -70,11 +82,15 @@ module Datadog
 
           attr_reader duration_ext_ns: ::Integer
 
-          def initialize: (duration_ext_ns: ::Integer) -> void
+          def initialize: (duration_ext_ns: ::Integer, input_truncated: bool) -> void
 
           def timeout?: () -> false
 
           def match?: () -> false
+
+          def error?: () -> true
+
+          def input_truncated?: () -> bool
         end
       end
     end

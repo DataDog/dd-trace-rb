@@ -20,8 +20,8 @@ module Datadog
         # @return [default] if the environment value is not found
         def env_to_bool(var, default = nil, deprecation_warning: true)
           var = decode_array(var, deprecation_warning)
-          if var && ENV.key?(var)
-            value = ENV[var].to_s.strip
+          if var && DATADOG_ENV.key?(var)
+            value = DATADOG_ENV[var].to_s.strip
             value.downcase!
             value == 'true' || value == '1'
           else
@@ -34,7 +34,7 @@ module Datadog
         def decode_array(var, deprecation_warning)
           if var.is_a?(Array)
             var.find.with_index do |env_var, i|
-              found = ENV.key?(env_var)
+              found = DATADOG_ENV.key?(env_var)
 
               # Check if we are using a non-preferred environment variable
               if deprecation_warning && found && i != 0

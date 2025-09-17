@@ -15,7 +15,6 @@ lib-injection/ @DataDog/lang-platform-ruby
 lib/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 lib/datadog/profiling.rb @DataDog/profiling-rb @DataDog/ruby-guild
 ext/ @DataDog/profiling-rb @DataDog/ruby-guild
-ext/libdatadog_api/ @DataDog/profiling-rb @DataDog/apm-sdk-api-ruby
 
 # RBS signatures
 sig/datadog/appsec/ @DataDog/asm-ruby

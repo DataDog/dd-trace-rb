@@ -9,10 +9,13 @@ module Datadog
       class Runner
         SUCCESSFUL_EXECUTION_CODES = [:ok, :match].freeze
 
-        def initialize(handle_ref)
+        attr_reader :ruleset_version
+
+        def initialize(handle_ref, ruleset_version:)
           @mutex = Mutex.new
           @handle_ref = handle_ref
           @waf_handle = handle_ref.acquire
+          @ruleset_version = ruleset_version
 
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
@@ -39,7 +42,7 @@ module Datadog
           report_execution(result)
 
           unless SUCCESSFUL_EXECUTION_CODES.include?(result.status)
-            return Result::Error.new(duration_ext_ns: stop_ns - start_ns)
+            return Result::Error.new(duration_ext_ns: stop_ns - start_ns, input_truncated: result.input_truncated?)
           end
 
           klass = (result.status == :match) ? Result::Match : Result::Ok
@@ -49,7 +52,8 @@ module Datadog
             derivatives: result.derivatives,
             timeout: result.timeout,
             duration_ns: result.total_runtime,
-            duration_ext_ns: (stop_ns - start_ns)
+            duration_ext_ns: (stop_ns - start_ns),
+            input_truncated: result.input_truncated?
           )
         ensure
           @mutex.unlock
@@ -57,6 +61,10 @@ module Datadog
 
         def waf_context
           @waf_context ||= @waf_handle.build_context
+        end
+
+        def waf_addresses
+          @waf_handle.known_addresses
         end
 
         def finalize!
