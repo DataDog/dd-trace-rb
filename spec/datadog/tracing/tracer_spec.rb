@@ -824,6 +824,24 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(tracer.active_trace).to be original_trace
         end
+
+        it 'create a root span inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span).to be_root_span
+        end
+
+        it 'create two root spans inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
+          end
+
+          expect(spans).to have(2).items
+          expect(spans).to all(be_root_span)
+        end
       end
     end
 
@@ -866,6 +884,24 @@ RSpec.describe Datadog::Tracing::Tracer do
           end
 
           expect(tracer.active_trace).to be original_trace
+        end
+
+        it 'create a root span inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span).to be_root_span
+        end
+
+        it 'create two root spans inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
+          end
+
+          expect(spans).to have(2).items
+          expect(spans).to all(be_root_span)
         end
       end
     end
@@ -944,6 +980,24 @@ RSpec.describe Datadog::Tracing::Tracer do
           end
 
           expect(tracer.active_trace).to be original_trace
+        end
+
+        it 'create a child span inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span.parent_id).to eq(digest.span_id)
+        end
+
+        it 'create two child spans inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
+          end
+
+          expect(spans).to have(2).items
+          expect(spans.map(&:parent_id)).to all(eq(digest.span_id))
         end
       end
     end
