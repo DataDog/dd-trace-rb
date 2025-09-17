@@ -3,78 +3,103 @@ module Datadog
     module Contrib
       module GraphQL
         module UnifiedTrace
-          @analytics_enabled: bool
-
-          @analytics_sample_rate: Float
+          @has_prepare_span: bool
 
           @service_name: String?
 
-          @has_prepare_span: bool
-          def initialize: (?analytics_enabled: bool, ?analytics_sample_rate: Float, ?service: String?, **Hash[Symbol, Object] kwargs) -> self
-                        
-          type lexerArray = Array[Integer | Symbol | String | nil | lexerArray]
+          @analytics_enabled: bool?
 
-          def lex: (query_string: String) -> lexerArray
+          @analytics_sample_rate: Float?
 
-          def parse: (query_string: String) -> GraphQL::Language::Nodes::Document
+          @error_extensions_config: Array[String]
 
-          def validate: (query: GraphQL::Query, validate: bool) -> { remaining_timeout: Float?, error: Array[StandardError] }
+          @event_name: String
 
-          def analyze_multiplex: (multiplex: GraphQL::Execution::Multiplex) -> Array[Object]
+          @message_key: String
 
-          def analyze_query: (query: GraphQL::Query) -> Array[Object]
+          @type_key: String
 
-          def execute_multiplex: (multiplex: GraphQL::Execution::Multiplex) -> Array[GraphQL::Query::Result]
+          @stacktrace_key: String
 
-          def execute_query: (query: GraphQL::Query) -> GraphQL::Query::Result
+          @locations_key: String
 
-          def execute_query_lazy: (query: GraphQL::Query, multiplex: GraphQL::Execution::Multiplex) -> GraphQL::Query::Result
-                                
-          type executeFieldKwargs = {query: GraphQL::Query, field: GraphQL::Schema::Field, ast_node: GraphQL::Language::Nodes::Field, arguments: Hash[Symbol, String], object: GraphQL::Schema::Object?}
+          @path_key: String
 
-          def execute_field_span: (Proc callable, String span_key, **executeFieldKwargs kwargs) -> Array[Object]
+          @extensions_key: String
 
-          def execute_field: (**executeFieldKwargs kwargs) -> Array[Object]
+          @platform_key_cache: untyped
 
-          def execute_field_lazy: (**executeFieldKwargs kwargs) -> Array[Object]
-                                
-          type authorizedKwargs = {query: GraphQL::Query, type: GraphQL::Schema::Object, object: GraphQL::Schema::Object?}
+          include ::GraphQL::Tracing::PlatformTrace
 
-          def authorized_span: (Proc callable, String span_key, **authorizedKwargs kwargs) -> GraphQL::Schema::Object?
-
-          def authorized: (**authorizedKwargs kwargs) -> GraphQL::Schema::Object?
-
-          def authorized_lazy: (**authorizedKwargs kwargs) -> GraphQL::Schema::Object?
-                             
-          type resolveTypeKwargs = {query: GraphQL::Query, type: GraphQL::Schema::Union, object: GraphQL::Schema::Object?}
-
-          def resolve_type_span: (Proc callable, String span_key, **resolveTypeKwargs kwargs) -> [GraphQL::Schema::Object, nil]
-
-          def resolve_type: (**resolveTypeKwargs kwargs) -> [GraphQL::Schema::Object, nil]
-
-          def resolve_type_lazy: (**resolveTypeKwargs kwargs) -> [GraphQL::Schema::Object, nil]
-
-          def platform_field_key: (GraphQL::Schema::Field field) -> String
-
-          def platform_authorized_key: (GraphQL::Schema::Object type) -> String
-
-          def platform_resolve_type_key: (GraphQL::Schema::Union type) -> String
+          def initialize: (*untyped args, **untyped kwargs) -> void
 
           private
 
-          type traceKwargsValues = GraphQL::Query | GraphQL::Schema::Union | GraphQL::Schema::Object | GraphQL::Schema::Field | GraphQL::Execution::Multiplex | GraphQL::Language::Nodes::Field | Hash[Symbol, String] | String | bool | nil
+          def load_error_event_attributes: (bool error_tracking) -> void
 
-          type traceResult = lexerArray | GraphQL::Language::Nodes::Document | { remaining_timeout: Float?, error: Array[StandardError] } | Array[Object] | GraphQL::Schema::Object? | [GraphQL::Schema::Object, nil]
+          public
 
-          def add_query_error_events: (SpanOperation span, Array[::GraphQL::Error] errors) -> void
+          type lexerArray = Array[Integer | Symbol | String | nil | lexerArray]
 
-          def operation_resource: (GraphQL::Language::Nodes::OperationDefinition operation) -> String
+          def lex: (*untyped args, query_string: String, **untyped kwargs) -> untyped
 
-          def serialize_error_locations: (Array[{"line" => Integer, "column" => Integer}] locations)-> Array[String]
+          def parse: (*untyped args, query_string: String, **untyped kwargs) -> untyped
 
-          def trace: (Proc callable, String trace_key, String resource, ?Hash[Symbol, traceKwargsValues ] kwargs, ?before: ^(SpanOperation)-> void, ?after: ^(SpanOperation)-> void) ?{ (SpanOperation) -> void } -> traceResult
+          def validate: (*untyped args, query: GraphQL::Query, validate: bool, **untyped kwargs) -> untyped
 
-          def multiplex_resource: (GraphQL::Execution::Multiplex multiplex) -> String?
+          def analyze_multiplex: (*untyped args, multiplex: GraphQL::Execution::Multiplex, **untyped kwargs) -> untyped
+
+          def analyze_query: (*untyped args, query: GraphQL::Query, **untyped kwargs) -> untyped
+
+          def execute_multiplex: (*untyped args, multiplex: GraphQL::Execution::Multiplex, **untyped kwargs) -> untyped
+
+          def execute_query: (*untyped args, query: GraphQL::Query, **untyped kwargs) -> untyped
+
+          def execute_query_lazy: (*untyped args, query: GraphQL::Query?, multiplex: GraphQL::Execution::Multiplex?, **untyped kwargs) -> untyped
+
+          type executeFieldKwargs = {field: GraphQL::Schema::Field, ast_node: GraphQL::Language::Nodes::Field, query: GraphQL::Query, object: untyped, arguments: Hash[untyped, untyped]}
+
+          def execute_field_span: (Proc callable, String span_key, **executeFieldKwargs kwargs) -> untyped
+
+          def execute_field: (*untyped args, **executeFieldKwargs kwargs) -> untyped
+
+          def execute_field_lazy: (*untyped args, **executeFieldKwargs kwargs) -> untyped
+
+          type authorizedKwargs = {query: GraphQL::Query, type: singleton(GraphQL::Schema::Member), object: untyped}
+
+          def authorized_span: (Proc callable, String span_key, **authorizedKwargs kwargs) -> untyped
+
+          def authorized: (*untyped args, **authorizedKwargs kwargs) -> untyped
+
+          def authorized_lazy: (*untyped args, **authorizedKwargs kwargs) -> untyped
+
+          type resolveTypeKwargs = {query: GraphQL::Query, type: singleton(GraphQL::Schema::Member), object: untyped}
+
+          def resolve_type_span: (Proc callable, String span_key, **resolveTypeKwargs kwargs) -> untyped
+
+          def resolve_type: (*untyped args, **resolveTypeKwargs kwargs) -> untyped
+
+          def resolve_type_lazy: (*untyped args, **resolveTypeKwargs kwargs) -> untyped
+
+          def platform_field_key: (GraphQL::Schema::Field field, *untyped args, **untyped kwargs) -> String
+
+          def platform_authorized_key: (singleton(GraphQL::Schema::Member) type, *untyped args, **untyped kwargs) -> String
+
+          def platform_resolve_type_key: (singleton(GraphQL::Schema::Member) type, *untyped args, **untyped kwargs) -> String
+
+          def prepare_span: (String trace_key, Hash[Symbol, untyped] kwargs, SpanOperation span) -> void
+
+          private
+
+          def trace: (Proc callable, String trace_key, (String | nil) resource, ?^(SpanOperation) -> void before, ?^(SpanOperation) -> void after, **untyped kwargs) ?{ (SpanOperation) -> void } -> untyped
+
+          def multiplex_resource: (GraphQL::Execution::Multiplex? multiplex) -> String?
+
+          def operation_resource: (GraphQL::Language::Nodes::OperationDefinition? operation) -> String
+
+          def add_query_error_events: (SpanOperation span, Array[GraphQL::Error] errors) -> void
+
+          def serialize_error_locations: (Array[Hash[String, Integer]] locations) -> Array[String]
         end
       end
     end

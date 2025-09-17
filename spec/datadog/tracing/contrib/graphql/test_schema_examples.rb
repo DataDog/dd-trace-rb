@@ -230,5 +230,32 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
         expect(graphql_execute.events[0].attributes).to_not include('extensions.extra-int')
       end
     end
+
+    context 'with error tracking enabled' do
+      around do |ex|
+        ClimateControl.modify(
+          'DD_TRACE_GRAPHQL_ERROR_TRACKING' => 'true',
+          'DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => 'int'
+        ) { ex.run }
+      end
+
+      it 'creates exception span events with OpenTelemetry semantics and extensions' do
+        expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
+
+        expect(graphql_execute.events[0]).to match(
+          a_span_event_with(
+            name: 'exception',
+            attributes: {
+              'exception.message' => 'GraphQL error',
+              'exception.type' => 'GraphQL::ExecutionError',
+              'exception.stacktrace' => include(__FILE__),
+              'graphql.error.path' => ['err1'],
+              'graphql.error.locations' => ['1:14'],
+              'graphql.error.extensions.int' => 1,
+            }
+          )
+        )
+      end
+    end
   end
 end
