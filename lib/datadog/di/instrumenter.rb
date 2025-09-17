@@ -310,9 +310,16 @@ module Datadog
             if iseq || tp.lineno == probe.line_no && (
               probe.file == tp.path || probe.file_matches?(tp.path)
             )
-              if rate_limiter.nil? || rate_limiter.allow?
+              continue = if condition = probe.condition
+                locals = Instrumenter.get_local_variables(tp)
+                context = EL::Context.new(locals: locals, target: tp.self)
+                condition.satisfied?(context)
+              else
+                true
+              end
+              if continue and rate_limiter.nil? || rate_limiter.allow? # standard:disable Style/AndOr
                 serialized_locals = if probe.capture_snapshot?
-                  serializer.serialize_vars(Instrumenter.get_local_variables(tp),
+                  serializer.serialize_vars(locals || Instrumenter.get_local_variables(tp),
                     depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                     attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
                 end

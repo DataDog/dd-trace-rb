@@ -238,8 +238,14 @@ RSpec.describe 'DI integration from remote config' do
     double(Datadog::DI::Transport::Input::Transport)
   end
 
-  def do_rc(expect_hook: :hook_method)
-    expect(probe_manager).to receive(:add_probe).and_call_original
+  def do_rc(expect_add_probe: true, expect_hook: :hook_method)
+    if expect_add_probe
+      expect(probe_manager).to receive(:add_probe).and_call_original
+    else
+      # If we do not make it past probe addition, there will not be hooking
+      expect_hook = false
+    end
+
     if expect_hook
       expect(instrumenter).to receive(expect_hook).and_call_original
     end
@@ -371,9 +377,44 @@ RSpec.describe 'DI integration from remote config' do
         expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
         do_rc
+
+        expect(payloads.length).to be 3
+        payload = payloads.shift
+        expect(payload).to be_a(Hash)
+        expect(payload[:message]).to match(
+          /Instrumentation for probe .* failed: Unrecognized probe type: UNKNOWN_PROBE/,
+        )
+
         assert_received_and_installed
 
         expect(probe_manager.installed_probes.length).to eq 1
+      end
+    end
+
+    context 'invalid expression language expression' do
+      let(:probe_spec) do
+        {
+          id: '11', name: 'bar', type: 'LOG_PROBE',
+          where: {
+            typeName: 'EverythingFromRemoteConfigSpecTestClass', methodName: 'target_method',
+          },
+          when: {json: {foo: 'bar'}},
+        }
+      end
+
+      let(:propagate_all_exceptions) { false }
+
+      it 'catches the exception' do
+        expect_lazy_log(logger, :debug, /di: unhandled exception handling a probe in DI remote receiver: Datadog::DI::Error::InvalidExpression: Unknown operation: foo/)
+
+        do_rc(expect_add_probe: false)
+        expect(probe_manager.installed_probes.length).to eq 0
+
+        payload = payloads.first
+        expect(payload).to be_a(Hash)
+        expect(payload[:message]).to match(
+          /Instrumentation for probe .* failed: Unknown operation: foo/,
+        )
       end
     end
   end
@@ -459,6 +500,40 @@ RSpec.describe 'DI integration from remote config' do
         assert_received_and_errored
 
         expect(probe_manager.installed_probes.length).to eq 0
+      end
+    end
+
+    context 'when condition evaluation fails at runtime' do
+      with_code_tracking
+
+      let(:propagate_all_exceptions) { false }
+
+      let(:probe_spec) do
+        {
+          id: '11', name: 'bar', type: 'LOG_PROBE',
+          where: {
+            sourceFile: 'hook_line_load.rb', lines: [14],
+          },
+          when: {json: {'contains' => [{'ref' => 'bar'}, 'baz']}},
+        }
+      end
+
+      before do
+        load File.join(File.dirname(__FILE__), '../hook_line_load.rb')
+      end
+
+      it 'executes target code still' do
+        expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
+        # TODO report via evaluationErrors
+        expect_lazy_log(logger, :debug, /unhandled exception in line trace point: .*Invalid arguments for contains:/)
+        do_rc(expect_hook: :hook_line)
+
+        expect(probe_manager.installed_probes.length).to eq 1
+        probe = probe_manager.installed_probes.values.first
+        expect(probe.condition).to be_a(Datadog::DI::EL::Expression)
+
+        rv = HookLineLoadTestClass.new.test_method_with_arg(5)
+        expect(rv).to be 5
       end
     end
   end

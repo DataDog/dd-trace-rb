@@ -1,0 +1,28 @@
+- name: contains
+  ast:
+    contains:
+      - ref: var
+      - hello
+
+  compiled: contains(ref('var'), ("hello"))
+
+  eval:
+    - name: string arg - present
+      locals:
+        var: -hello-
+      result: true
+
+    - name: string arg - absent
+      locals:
+        var: hel lo
+      result: false
+
+    - name: array arg - present
+      locals:
+        var: [hello]
+      result: true
+
+    - name: array arg - absent
+      locals:
+        var: [-hello-]
+      result: false
