@@ -27,7 +27,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           actions: {},
           derivatives: {},
           total_runtime: 100,
-          timeout: false
+          timeout: false,
+          input_truncated?: false
         )
       end
 
@@ -89,7 +90,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           },
           derivatives: {},
           timeout: false,
-          total_runtime: 10
+          total_runtime: 10,
+          input_truncated?: false
         )
       end
       let(:result) { runner.run({'addr.a' => 'a'}, {}, 1_000) }
@@ -104,6 +106,28 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result.derivatives).to eq({})
         expect(result.duration_ns).to eq(10)
         expect(result.duration_ext_ns).to be > result.duration_ns
+        expect(result).not_to be_input_truncated
+      end
+
+      context 'when WAF::Result#input_truncated? is true' do
+        let(:waf_result) do
+          instance_double(
+            Datadog::AppSec::WAF::Result,
+            status: :match,
+            events: [],
+            actions: {
+              'block_request' => {'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto'}
+            },
+            derivatives: {},
+            timeout: false,
+            total_runtime: 10,
+            input_truncated?: true
+          )
+        end
+
+        it 'returns result with input_trucnated set to true' do
+          expect(result).to be_input_truncated
+        end
       end
     end
 
@@ -122,7 +146,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           actions: {},
           derivatives: {},
           timeout: true,
-          total_runtime: 100
+          total_runtime: 100,
+          input_truncated?: false
         )
       end
       let(:result) { runner.run({'addr.a' => 'a'}, {}, 1_000) }
@@ -135,6 +160,20 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result.derivatives).to eq({})
         expect(result.duration_ns).to eq(100)
         expect(result.duration_ext_ns).to be > result.duration_ns
+        expect(result).not_to be_input_truncated
+      end
+
+      context 'when WAF::Result#input_truncated? is true' do
+        let(:waf_result) do
+          instance_double(
+            Datadog::AppSec::WAF::Result, status: :ok, events: [], actions: {}, derivatives: {},
+            timeout: false, total_runtime: 10, input_truncated?: true
+          )
+        end
+
+        it 'returns result with input_trucnated set to true' do
+          expect(result).to be_input_truncated
+        end
       end
     end
 
@@ -146,7 +185,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
       end
 
       let(:waf_result) do
-        instance_double(Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout: false)
+        instance_double(
+          Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout: false, input_truncated?: false
+        )
       end
 
       it 'sends telemetry error' do
@@ -154,6 +195,18 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           .with(/libddwaf:[\d.]+ method:ddwaf_run execution error: :err_invalid_object/)
 
         runner.run({'addr.a' => 'a'}, {}, 1_000)
+      end
+
+      context 'when WAF::Result#input_truncated? is true' do
+        let(:waf_result) do
+          instance_double(
+            Datadog::AppSec::WAF::Result, status: :err_invalid_object, timeout: true, input_truncated?: true
+          )
+        end
+
+        it 'returns result with input_trucnated set to true' do
+          expect(waf_result).to be_input_truncated
+        end
       end
     end
 
@@ -175,6 +228,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
 
         expect(run_result).to be_kind_of(Datadog::AppSec::SecurityEngine::Result::Error)
         expect(run_result.duration_ext_ns).to be > 0
+        expect(run_result).not_to be_input_truncated
       end
     end
   end
