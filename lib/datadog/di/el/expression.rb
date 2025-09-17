@@ -14,7 +14,7 @@ module Datadog
 
           cls = Class.new(Evaluator)
           cls.class_exec do
-            eval(<<-RUBY, TOPLEVEL_BINDING, __FILE__, __LINE__ + 1) # standard:disable Security/Eval
+            eval(<<-RUBY, Object.new.send(:binding), __FILE__, __LINE__ + 1) # standard:disable Security/Eval
               def evaluate(context)
                 @context = context
                 #{compiled_expr}
