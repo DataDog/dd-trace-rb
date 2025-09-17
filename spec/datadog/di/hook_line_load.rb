@@ -30,7 +30,7 @@ class HookLineIvarLoadTestClass
   def test_exception
     local = 42
     raise TestException, 'Intentional exception'       # Line 32
-    local               # Line 33
+    local               # Line 33 # standard:ignore Lint/UnreachableCode
   end
 end
 
