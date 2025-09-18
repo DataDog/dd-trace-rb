@@ -310,7 +310,8 @@ module Datadog
           }
 
           # Send to agent
-          agent_transport.post('/v0.1/pipeline_stats', compressed_data, headers)
+          response = agent_transport[:post].call('/v0.1/pipeline_stats', compressed_data, headers)
+          Datadog.logger.debug("DSM stats sent to agent: #{response.code} #{response.message}")
         end
 
         # Check if payload should be compressed
@@ -424,10 +425,29 @@ module Datadog
 
         # Get agent transport (using actual Datadog HTTP transport)
         def agent_transport
-          @agent_transport ||= Datadog::Tracing::Transport::HTTP.default(
-            agent_settings: Datadog.configuration.agent,
-            logger: Datadog.logger
-          )
+          @agent_transport ||= begin
+            require 'net/http'
+            require 'uri'
+            
+            # Create a simple HTTP client for DSM stats
+            agent_host = Datadog.configuration.agent.host
+            agent_port = Datadog.configuration.agent.port
+            
+            {
+              post: lambda do |path, data, headers|
+                uri = URI("http://#{agent_host}:#{agent_port}#{path}")
+                http = Net::HTTP.new(uri.host, uri.port)
+                http.use_ssl = false
+                
+                request = Net::HTTP::Post.new(uri)
+                headers.each { |k, v| request[k] = v }
+                request.body = data
+                
+                response = http.request(request)
+                response
+              end
+            }
+          end
         end
       end
     end
