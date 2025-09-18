@@ -48,8 +48,8 @@ module Datadog
                 # Extract and set pathway context from headers
                 processor.decode_and_set_pathway_context(headers)
 
-                # Create checkpoint with topic tag
-                processor.set_checkpoint(['topic:' + message.topic], Time.now.to_f)
+                # Create checkpoint with topic tag and direction (consumer = in)
+                processor.set_checkpoint(['topic:' + message.topic, 'direction:in'], Time.now.to_f)
               end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|

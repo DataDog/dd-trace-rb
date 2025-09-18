@@ -21,7 +21,13 @@ module Datadog
                   puts 'deliver_messages (DSM enabled)'
 
                   processor = Datadog.configuration.tracing.data_streams.processor
+
+                  # Create checkpoint for producer (direction:out)
                   messages.each do |message|
+                    # Create checkpoint with direction:out for producer
+                    processor.set_checkpoint(['direction:out', 'type:kafka'], Time.now.to_f)
+
+                    # Set pathway context in headers for downstream consumers
                     message[:headers] ||= {}
                     message[:headers]['dd-pathway-ctx-base64'] = processor.encode_pathway_context
                   end
@@ -39,7 +45,17 @@ module Datadog
                 if Datadog.configuration.tracing.data_streams.enabled
                   puts 'send_messages (DSM enabled)'
 
-                  # TODO: Add DSM instrumentation for async sends
+                  processor = Datadog.configuration.tracing.data_streams.processor
+
+                  # Create checkpoint for async producer (direction:out)
+                  messages.each do |message|
+                    # Create checkpoint with direction:out for producer
+                    processor.set_checkpoint(['direction:out', 'type:kafka'], Time.now.to_f)
+
+                    # Set pathway context in headers for downstream consumers
+                    message[:headers] ||= {}
+                    message[:headers]['dd-pathway-ctx-base64'] = processor.encode_pathway_context
+                  end
                 else
                   puts 'send_messages (DSM disabled)'
                 end

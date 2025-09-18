@@ -8,13 +8,19 @@ module Datadog
     module DataStreams
       # Represents a pathway context for data streams monitoring
       class PathwayContext
-        attr_reader :hash, :pathway_start_sec, :current_edge_start_sec, :parent_hash
+        attr_accessor :hash, :pathway_start_sec, :current_edge_start_sec, :parent_hash
+        attr_accessor :previous_direction, :closest_opposite_direction_hash, :closest_opposite_direction_edge_start
 
         def initialize(hash_value, pathway_start_sec, current_edge_start_sec, parent_hash = nil)
           @hash = hash_value
           @pathway_start_sec = pathway_start_sec
           @current_edge_start_sec = current_edge_start_sec
           @parent_hash = parent_hash
+
+          # Loop detection fields (matching Python DataStreamsCtx)
+          @previous_direction = ""
+          @closest_opposite_direction_hash = 0
+          @closest_opposite_direction_edge_start = current_edge_start_sec
         end
 
         def encode
@@ -23,7 +29,7 @@ module Datadog
           # - VarInt: pathway start time (milliseconds)
           # - VarInt: current edge start time (milliseconds)
           [
-            [@hash].pack('Q<'),
+            [@hash].pack('Q'),
             encode_var_int_64((@pathway_start_sec * 1000).to_i),
             encode_var_int_64((@current_edge_start_sec * 1000).to_i)
           ].join
@@ -53,7 +59,7 @@ module Datadog
           reader = StringIO.new(binary_data)
 
           # Extract 8-byte hash (little-endian)
-          hash_value = reader.read(8).unpack1('Q<')
+          hash_value = reader.read(8).unpack1('Q')
 
           # Extract pathway start time (VarInt milliseconds)
           pathway_start_ms = decode_varint(reader)

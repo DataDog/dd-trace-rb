@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'datadog/core/ddsketch'
 require_relative 'pathway_context'
 require_relative '../../version'
 
@@ -38,34 +39,66 @@ module Datadog
           return nil unless @enabled
 
           now_sec ||= Time.now.to_f
-          current_context = @pathway_context
 
-          # Calculate new pathway hash from current hash + tags
-          new_hash = compute_pathway_hash(current_context.hash, tags)
+          # Get or create current context (matching Python threading.local behavior)
+          current_context = get_current_context
 
-          # Calculate edge latency (time since last checkpoint)
-          edge_latency_sec = now_sec - current_context.current_edge_start_sec
+          # Sort tags like Python (line 471)
+          tags = tags.sort
+
+          # Extract direction like Python (lines 472-476)
+          direction = ""
+          tags.each do |tag|
+            if tag.start_with?("direction:")
+              direction = tag
+              break
+            end
+          end
+
+          # Loop detection logic (matching Python lines 477-489)
+          # Only apply loop detection if there's a direction tag and it matches the previous direction
+          if !direction.empty? && direction == current_context.previous_direction
+            # Same direction - reuse hash from opposite direction
+            current_context.hash = current_context.closest_opposite_direction_hash
+            if current_context.hash == 0
+              # Restart pathway if no opposite direction hash
+              current_context.current_edge_start_sec = now_sec
+              current_context.pathway_start_sec = now_sec
+            else
+              # Reuse edge start from opposite direction
+              current_context.current_edge_start_sec = current_context.closest_opposite_direction_edge_start
+            end
+          else
+            # New direction or no direction - store current state for future reuse
+            current_context.previous_direction = direction
+            current_context.closest_opposite_direction_hash = current_context.hash
+            current_context.closest_opposite_direction_edge_start = now_sec
+          end
+
+          # Calculate new pathway hash from current hash + tags (matching Python line 498)
+          parent_hash = current_context.hash
+          new_hash = compute_pathway_hash(parent_hash, tags)
+
+          # Calculate edge latency (time since last checkpoint) - matching Python line 501
+          edge_latency_sec = [now_sec - current_context.current_edge_start_sec, 0.0].max
+          full_pathway_latency_sec = [now_sec - current_context.pathway_start_sec, 0.0].max
 
           # Record stats for this checkpoint
           record_checkpoint_stats(
             hash: new_hash,
-            parent_hash: current_context.hash,
+            parent_hash: parent_hash,
             edge_latency_sec: edge_latency_sec,
             payload_size: payload_size,
             tags: tags,
             timestamp_sec: now_sec
           )
 
-          # Advance pathway: new edge starts now, but keep original pathway start
-          @pathway_context = PathwayContext.new(
-            new_hash,
-            current_context.pathway_start_sec,  # Keep original pathway start
-            now_sec,                            # New edge starts now
-            current_context.hash                # Track parent hash for lineage
-          )
+          # Update pathway context (matching Python lines 503-504)
+          current_context.hash = new_hash
+          current_context.current_edge_start_sec = now_sec
 
           # Return encoded context for propagation
-          @pathway_context.encode_b64
+          current_context.encode_b64
         end
 
         def track_kafka_produce(topic, partition, offset, now_sec)
@@ -171,13 +204,24 @@ module Datadog
         def get_current_pathway
           return nil unless @enabled
 
-          @pathway_context
+          get_current_context
+        end
+
+        # Get or create current context (matching Python threading.local behavior)
+        def get_current_context
+          @pathway_context ||= PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
         end
 
         def set_pathway_context(ctx)
           return unless @enabled
 
-          @pathway_context = ctx if ctx
+          if ctx
+            @pathway_context = ctx
+            # Reset loop detection fields when setting new context (new service)
+            @pathway_context.previous_direction = ""
+            @pathway_context.closest_opposite_direction_hash = 0
+            @pathway_context.closest_opposite_direction_edge_start = @pathway_context.current_edge_start_sec
+          end
         end
 
         def decode_and_set_pathway_context(headers)
@@ -190,24 +234,39 @@ module Datadog
 
         private
 
-        # Compute new pathway hash using FNV-1a algorithm
-        # Combines current hash with tags to create unique pathway identifier
+        # Compute new pathway hash using FNV-1a algorithm (matching Python implementation)
+        # Combines service, env, tags, and parent hash to create unique pathway identifier
         def compute_pathway_hash(current_hash, tags)
+          # Get service and environment (matching Python: self.service + self.env)
+          service = Datadog.configuration.service || 'ruby-service'
+          env = Datadog.configuration.env || 'none'
+
+          # Build byte string: service + env + tags (matching Python)
+          bytes = service.bytes + env.bytes
+          tags.each { |tag| bytes += tag.bytes }
+
+          # Convert to string for FNV function
+          byte_string = bytes.pack('C*')
+
+          # First hash: FNV-1a of service + env + tags (matching Python node_hash)
+          node_hash = fnv1_64(byte_string)
+
+          # Second hash: FNV-1a of (node_hash + parent_hash) (matching Python)
+          combined_bytes = [node_hash, current_hash].pack('QQ') # Little-endian 64-bit
+          fnv1_64(combined_bytes)
+        end
+
+        # FNV-1a 64-bit hash function (matching Python fnv1_64)
+        def fnv1_64(data)
           # FNV-1a 64-bit constants
           fnv_offset_basis = 14695981039346656037 # 0xcbf29ce484222325
           fnv_prime = 1099511628211 # 0x100000001b3
 
-          # Start with current hash as basis
-          hash_value = current_hash ^ fnv_offset_basis
-
-          # Hash each tag
-          tags.each do |tag|
-            tag.each_byte do |byte|
-              hash_value ^= byte
-              hash_value = (hash_value * fnv_prime) & 0xFFFFFFFFFFFFFFFF
-            end
+          hash_value = fnv_offset_basis
+          data.each_byte do |byte|
+            hash_value ^= byte
+            hash_value = (hash_value * fnv_prime) & 0xFFFFFFFFFFFFFFFF
           end
-
           hash_value
         end
 
@@ -309,9 +368,29 @@ module Datadog
             'Datadog-Meta-Tracer-Version' => Datadog::VERSION::STRING
           }
 
-          # Send to agent
-          response = agent_transport[:post].call('/v0.1/pipeline_stats', compressed_data, headers)
+          # Send to agent using proper transport infrastructure
+          response = send_dsm_payload(compressed_data, headers)
           Datadog.logger.debug("DSM stats sent to agent: #{response.code} #{response.message}")
+        end
+
+        # Send DSM payload using proper transport infrastructure
+        def send_dsm_payload(data, headers)
+          require 'net/http'
+          require 'uri'
+
+          # Create HTTP request to DSM endpoint
+          agent_host = Datadog.configuration.agent.host
+          agent_port = Datadog.configuration.agent.port
+          uri = URI("http://#{agent_host}:#{agent_port}/v0.1/pipeline_stats")
+
+          http = Net::HTTP.new(uri.host, uri.port)
+          http.use_ssl = false
+
+          request = Net::HTTP::Post.new(uri)
+          headers.each { |k, v| request[k] = v }
+          request.body = data
+
+          http.request(request)
         end
 
         # Check if payload should be compressed
@@ -423,30 +502,17 @@ module Datadog
           FakeDDSketch
         end
 
-        # Get agent transport (using actual Datadog HTTP transport)
+        # Get agent transport (using proper Datadog HTTP transport)
         def agent_transport
           @agent_transport ||= begin
-            require 'net/http'
-            require 'uri'
-            
-            # Create a simple HTTP client for DSM stats
-            agent_host = Datadog.configuration.agent.host
-            agent_port = Datadog.configuration.agent.port
-            
-            {
-              post: lambda do |path, data, headers|
-                uri = URI("http://#{agent_host}:#{agent_port}#{path}")
-                http = Net::HTTP.new(uri.host, uri.port)
-                http.use_ssl = false
-                
-                request = Net::HTTP::Post.new(uri)
-                headers.each { |k, v| request[k] = v }
-                request.body = data
-                
-                response = http.request(request)
-                response
-              end
-            }
+            require_relative '../../transport/http'
+
+            # Use the same transport infrastructure as traces
+            agent_settings = Datadog.configuration.agent
+            Datadog::Tracing::Transport::HTTP.default(
+              agent_settings: agent_settings,
+              logger: Datadog.logger
+            )
           end
         end
       end
