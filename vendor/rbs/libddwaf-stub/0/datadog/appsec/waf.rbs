@@ -4,6 +4,7 @@ module Datadog
     module WAF
       type known_addresses = ::Array[::String]
       type diagnostics = ::Hash[::String, untyped]
+      type data = bool | ::String | ::Integer | ::Array[data] | ::Hash[::String, data]
 
       # retain logging proc if set properly
       self.@log_callback: untyped
@@ -84,11 +85,11 @@ module Datadog
       class Result
         @status: ::Symbol
 
-        @events: WAF::data
+        @events: ::Array[WAF::data]
 
-        @actions: WAF::data
+        @actions: ::Hash[::String, WAF::data]
 
-        @attributes: WAF::data
+        @attributes: ::Hash[::String, WAF::data]
 
         @duration: ::Integer
 
@@ -100,19 +101,19 @@ module Datadog
 
         attr_reader status: ::Symbol
 
-        attr_reader events: WAF::data
+        attr_reader events: ::Array[WAF::data]
 
-        attr_reader actions: WAF::data
+        attr_reader actions: ::Hash[::String, WAF::data]
 
-        attr_reader attributes: WAF::data
+        attr_reader attributes: ::Hash[::String, WAF::data]
 
         attr_reader duration: ::Integer
 
         def initialize: (
           status: ::Symbol,
-          events: WAF::data,
-          actions: WAF::data,
-          attributes: WAF::data,
+          events: ::Array[WAF::data],
+          actions: ::Hash[::String, WAF::data],
+          attributes: ::Hash[WAF::data],
           duration: ::Integer,
           timeout: bool,
           keep: bool
