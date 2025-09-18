@@ -16,7 +16,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context 'when reporting a match run result' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, derivatives: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
         )
       end
@@ -34,7 +34,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context 'when reporting a match run result with timeout' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, derivatives: {}, keep: false, timeout: true, duration_ns: 0, duration_ext_ns: 0,
+          events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
         )
       end
@@ -54,7 +54,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context 'when reporting a ok run result' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
         )
       end
@@ -70,7 +70,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     context 'when reporting a ok run result with timeout' do
       let(:run_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, derivatives: {}, keep: false, timeout: true, duration_ns: 0, duration_ext_ns: 0,
+          events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
         )
       end

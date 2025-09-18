@@ -39,7 +39,7 @@ module Datadog
 
                 result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                if result.match? || result.derivatives.any?
+                if result.match? || result.attributes.any?
                   context.events.push(
                     AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
                   )
@@ -63,7 +63,7 @@ module Datadog
                 persistent_data = {"server.business_logic.#{kind}" => ARBITRARY_VALUE}
                 result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                if result.match? || result.derivatives.any?
+                if result.match? || result.attributes.any?
                   context.events.push(
                     AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
                   )

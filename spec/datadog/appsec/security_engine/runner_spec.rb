@@ -111,7 +111,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result.actions).to eq(
           {'block_request' => {'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto'}}
         )
-        expect(result.derivatives).to eq({})
+        expect(result.attributes).to eq({})
         expect(result.duration_ns).to eq(10)
         expect(result.duration_ext_ns).to be > result.duration_ns
         expect(result).not_to be_input_truncated
@@ -167,7 +167,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result).to be_timeout
         expect(result.events).to eq([])
         expect(result.actions).to eq({})
-        expect(result.derivatives).to eq({})
+        expect(result.attributes).to eq({})
         expect(result.duration_ns).to eq(100)
         expect(result.duration_ext_ns).to be > result.duration_ns
         expect(result).not_to be_input_truncated

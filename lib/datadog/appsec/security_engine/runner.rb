@@ -49,7 +49,7 @@ module Datadog
           klass.new(
             events: result.events,
             actions: result.actions,
-            derivatives: result.attributes,
+            attributes: result.attributes,
             keep: result.keep?,
             timeout: result.timeout?,
             duration_ns: result.duration,

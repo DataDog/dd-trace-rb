@@ -13,12 +13,8 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-<<<<<<< HEAD
           events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
-=======
-          events: [], actions: {}, derivatives: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0
->>>>>>> c0440f8c37 (Bump libddwaf version to 1.25.1.0.0)
+          keep: false, input_truncated: false
         )
       end
 
@@ -30,12 +26,8 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-<<<<<<< HEAD
           events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          input_truncated: false
-=======
-          events: [], actions: {}, derivatives: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0
->>>>>>> c0440f8c37 (Bump libddwaf version to 1.25.1.0.0)
+          keep: false, input_truncated: false
         )
       end
 
@@ -53,14 +45,14 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
   end
 
   describe '#schema?' do
-    context 'when WAF result contains schema derivatives' do
+    context 'when WAF result contains schema attributes' do
       subject(:event) { described_class.new(waf_result, trace: trace, span: span) }
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
           actions: {},
-          derivatives: {'_dd.appsec.s.req.headers' => [{'host' => [8], 'version' => [8]}]},
+          attributes: {'_dd.appsec.s.req.headers' => [{'host' => [8], 'version' => [8]}]},
           keep: false,
           timeout: false,
           duration_ns: 0,
@@ -72,14 +64,14 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
       it { expect(event).to be_schema }
     end
 
-    context 'when WAF result does not contain schema derivatives' do
+    context 'when WAF result does not contain schema attributes' do
       subject(:event) { described_class.new(waf_result, trace: trace, span: span) }
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
           actions: {},
-          derivatives: {'not_schema' => 'value'},
+          attributes: {'not_schema' => 'value'},
           keep: false,
           timeout: false,
           duration_ns: 0,
@@ -93,14 +85,14 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
   end
 
   describe '#fingerprint?' do
-    context 'when WAF result contains fingerprint derivatives' do
+    context 'when WAF result contains fingerprint attributes' do
       subject(:event) { described_class.new(waf_result, trace: trace, span: span) }
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
           actions: {},
-          derivatives: {'_dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-'},
+          attributes: {'_dd.appsec.fp.http.endpoint' => 'http-post-c1525143-2d711642-'},
           keep: false,
           timeout: false,
           duration_ns: 0,
@@ -112,14 +104,14 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
       it { expect(event).to be_fingerprint }
     end
 
-    context 'when WAF result does not contain fingerprint derivatives' do
+    context 'when WAF result does not contain fingerprint attributes' do
       subject(:event) { described_class.new(waf_result, trace: trace, span: span) }
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
           actions: {},
-          derivatives: {'not_fingerprint' => 'value'},
+          attributes: {'not_fingerprint' => 'value'},
           keep: false,
           timeout: false,
           duration_ns: 0,
