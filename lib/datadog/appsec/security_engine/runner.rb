@@ -53,7 +53,7 @@ module Datadog
             keep: result.keep?,
             timeout: result.timeout?,
             duration_ns: result.duration,
-            duration_ext_ns: (stop_ns - start_ns)
+            duration_ext_ns: (stop_ns - start_ns),
             input_truncated: result.input_truncated?
           )
         ensure
