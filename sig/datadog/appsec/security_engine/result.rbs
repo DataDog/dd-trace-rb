@@ -6,14 +6,16 @@ module Datadog
         type events = ::Array[::Hash[::String, data]]
         type action = ::Hash[::String, ::String]
         type actions = ::Hash[::String, action]
-        type derivatives = ::Hash[::String, data]
+        type attributes = ::Hash[::String, data]
 
         class Base
           @events: events
 
           @actions: actions
 
-          @derivatives: derivatives
+          @attributes: attributes
+
+          @keep: bool
 
           @timeout: bool
 
@@ -27,13 +29,15 @@ module Datadog
 
           attr_reader actions: actions
 
-          attr_reader derivatives: derivatives
+          attr_reader attributes: attributes
 
           attr_reader duration_ns: ::Integer
 
           attr_reader duration_ext_ns: ::Integer
 
-          def initialize: (events: events, actions: actions, derivatives: derivatives, timeout: bool, duration_ns: ::Integer, duration_ext_ns: ::Integer, input_truncated: bool) -> void
+          def initialize: (events: events, actions: actions, attributes: attributes, duration_ns: ::Integer, duration_ext_ns: ::Integer, timeout: bool, keep: bool, input_truncated: bool) -> void
+
+          def keep?: () -> bool
 
           def timeout?: () -> bool
 
@@ -64,7 +68,7 @@ module Datadog
 
           @actions: actions
 
-          @derivatives: derivatives
+          @attributes: attributes
 
           @duration_ns: ::Integer
 
@@ -76,13 +80,15 @@ module Datadog
 
           attr_reader actions: actions
 
-          attr_reader derivatives: derivatives
+          attr_reader attributes: attributes
 
           attr_reader duration_ns: ::Integer
 
           attr_reader duration_ext_ns: ::Integer
 
           def initialize: (duration_ext_ns: ::Integer, input_truncated: bool) -> void
+
+          def keep?: () -> true
 
           def timeout?: () -> false
 
