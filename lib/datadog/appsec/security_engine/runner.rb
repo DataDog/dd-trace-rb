@@ -45,7 +45,7 @@ module Datadog
             return Result::Error.new(duration_ext_ns: stop_ns - start_ns, input_truncated: result.input_truncated?)
           end
 
-          klass = result.status == :match ? Result::Match : Result::Ok
+          klass = (result.status == :match) ? Result::Match : Result::Ok
           klass.new(
             events: result.events,
             actions: result.actions,
