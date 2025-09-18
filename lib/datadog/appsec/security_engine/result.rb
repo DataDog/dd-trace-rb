@@ -7,21 +7,30 @@ module Datadog
       module Result
         # A generic result without indication of its type.
         class Base
-          attr_reader :events, :actions, :derivatives, :duration_ns, :duration_ext_ns
+          attr_reader :events, :actions, :attributes, :duration_ns, :duration_ext_ns
 
-          def initialize(events:, actions:, derivatives:, timeout:, duration_ns:, duration_ext_ns:, input_truncated:)
+          def initialize(events:, actions:, attributes:, duration_ns:, duration_ext_ns:, timeout:, keep:, input_truncated:)
             @events = events
             @actions = actions
-            @derivatives = derivatives
-
-            @timeout = timeout
+            @attributes = attributes
             @duration_ns = duration_ns
             @duration_ext_ns = duration_ext_ns
-            @input_truncated = input_truncated
+
+            @keep = !!keep
+            @timeout = !!timeout
+            @input_truncated = !!input_truncated
           end
 
           def timeout?
-            !!@timeout
+            @timeout
+          end
+
+          def keep?
+            @keep
+          end
+
+          def input_truncated?
+            @input_truncated
           end
 
           def match?
@@ -30,10 +39,6 @@ module Datadog
 
           def error?
             raise NotImplementedError
-          end
-
-          def input_truncated?
-            @input_truncated
           end
         end
 
@@ -61,18 +66,26 @@ module Datadog
 
         # A result that indicates an internal security library error
         class Error
-          attr_reader :events, :actions, :derivatives, :duration_ns, :duration_ext_ns
+          attr_reader :events, :actions, :attributes, :duration_ns, :duration_ext_ns
 
           def initialize(duration_ext_ns:, input_truncated:)
             @events = []
-            @actions = @derivatives = {}
+            @actions = @attributes = {}
             @duration_ns = 0
             @duration_ext_ns = duration_ext_ns
-            @input_truncated = input_truncated
+            @input_truncated = !!input_truncated
+          end
+
+          def keep?
+            false
           end
 
           def timeout?
             false
+          end
+
+          def input_truncated?
+            @input_truncated
           end
 
           def match?
@@ -81,10 +94,6 @@ module Datadog
 
           def error?
             true
-          end
-
-          def input_truncated?
-            @input_truncated
           end
         end
       end

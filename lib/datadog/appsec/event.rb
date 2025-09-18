@@ -9,8 +9,8 @@ module Datadog
   module AppSec
     # AppSec event
     module Event
-      DERIVATIVE_SCHEMA_KEY_PREFIX = '_dd.appsec.s.'
-      DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE = 25000
+      ATTRIBUTES_SCHEMA_KEY_PREFIX = '_dd.appsec.s.'
+      ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE = 25000
       ALLOWED_REQUEST_HEADERS = %w[
         x-forwarded-for
         x-client-ip
@@ -106,13 +106,13 @@ module Datadog
           tags = security_events.each_with_object({}) do |security_event, memo|
             triggers.concat(security_event.waf_result.events)
 
-            security_event.waf_result.derivatives.each do |key, value|
-              next memo[key] = value unless key.start_with?(DERIVATIVE_SCHEMA_KEY_PREFIX)
+            security_event.waf_result.attributes.each do |key, value|
+              next memo[key] = value unless key.start_with?(ATTRIBUTES_SCHEMA_KEY_PREFIX)
 
               value = CompressedJson.dump(value)
               next if value.nil?
 
-              if value.size >= DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE
+              if value.size >= ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE
                 Datadog.logger.debug { "AppSec: Schema key '#{key}' will not be included into span tags due to it's size" }
                 next
               end
