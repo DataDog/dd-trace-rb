@@ -50,16 +50,16 @@ module Datadog
 
         # A result that indicates a security rule match
         class Match < Base
-          def match?: () -> true
+          def match?: () -> bool
 
-          def error?: () -> false
+          def error?: () -> bool
         end
 
         # A result that indicates a successful security rules check without a match
         class Ok < Base
-          def match?: () -> false
+          def match?: () -> bool
 
-          def error?: () -> false
+          def error?: () -> bool
         end
 
         # A result that indicates an internal security library error
@@ -88,13 +88,13 @@ module Datadog
 
           def initialize: (duration_ext_ns: ::Integer, input_truncated: bool) -> void
 
-          def keep?: () -> true
+          def keep?: () -> bool
 
-          def timeout?: () -> false
+          def timeout?: () -> bool
 
-          def match?: () -> false
+          def match?: () -> bool
 
-          def error?: () -> true
+          def error?: () -> bool
 
           def input_truncated?: () -> bool
         end

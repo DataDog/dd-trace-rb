@@ -4,7 +4,8 @@ module Datadog
     module WAF
       type known_addresses = ::Array[::String]
       type diagnostics = ::Hash[::String, untyped]
-      type data = bool | ::String | ::Integer | ::Array[data] | ::Hash[::String, data]
+      type input = nil | bool | ::String | ::Symbol | ::Integer | ::Float | ::Array[input] | ::Hash[input, input]
+      type output = nil | bool | ::String | ::Integer | ::Float | ::Array[output] | ::Hash[::String, output]
 
       # retain logging proc if set properly
       self.@log_callback: untyped
@@ -75,7 +76,7 @@ module Datadog
 
         def build_context: () -> Context
 
-        def known_addresses: () -> ::Array[::String]
+        def known_addresses: () -> WAF::known_addresses
 
         private
 
@@ -83,13 +84,16 @@ module Datadog
       end
 
       class Result
+        type list = ::Array[WAF::output]
+        type map = ::Hash[::String, WAF::output]
+
         @status: ::Symbol
 
-        @events: ::Array[WAF::data]
+        @events: list
 
-        @actions: ::Hash[::String, WAF::data]
+        @actions: map
 
-        @attributes: ::Hash[::String, WAF::data]
+        @attributes: map
 
         @duration: ::Integer
 
@@ -101,19 +105,19 @@ module Datadog
 
         attr_reader status: ::Symbol
 
-        attr_reader events: ::Array[WAF::data]
+        attr_reader events: list
 
-        attr_reader actions: ::Hash[::String, WAF::data]
+        attr_reader actions: map
 
-        attr_reader attributes: ::Hash[::String, WAF::data]
+        attr_reader attributes: map
 
         attr_reader duration: ::Integer
 
         def initialize: (
           status: ::Symbol,
-          events: ::Array[WAF::data],
-          actions: ::Hash[::String, WAF::data],
-          attributes: ::Hash[WAF::data],
+          events: list,
+          actions: map,
+          attributes: map,
           duration: ::Integer,
           timeout: bool,
           keep: bool
@@ -127,13 +131,13 @@ module Datadog
 
         def input_truncated?: () -> bool
 
-        def to_h: () -> ::Hash[::Symbol, WAF::data]
+        def to_h: () -> ::Hash[::Symbol, (::Symbol | WAF::output)]
       end
 
       class Context
         @context_ptr: ::FFI::Pointer
 
-        @retained: Array[untyped]
+        @retained: Array[top]
 
         RESULT_CODE: ::Hash[::Symbol, ::Symbol]
 
@@ -141,13 +145,13 @@ module Datadog
 
         def finalize!: () -> void
 
-        def run: (WAF::data persistent_data, WAF::data ephemeral_data, ?::Integer timeout) -> Result
+        def run: (WAF::input persistent_data, WAF::input ephemeral_data, ?::Integer timeout) -> Result
 
         private
 
         def ensure_pointer_presence!: () -> void
 
-        def retained: () -> Array[untyped]
+        def retained: () -> Array[top]
 
         def retain: (top object) -> void
 
