@@ -20,25 +20,25 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
 
       it { expect(result).to be_keep }
       it { expect(result).to be_timeout }
+      it { expect(result).not_to be_input_truncated }
       it { expect(result.events).to eq([1]) }
       it { expect(result.actions).to eq({'2' => '2'}) }
       it { expect(result.attributes).to eq({'3' => '3'}) }
       it { expect(result.duration_ns).to eq(400) }
       it { expect(result.duration_ext_ns).to eq(500) }
-      it { expect(result).not_to be_input_truncated }
     end
 
     context 'when initializing error result' do
       subject(:result) { described_class::Error.new(duration_ext_ns: 100, input_truncated: false) }
 
-      it { expect(result).to be_keep }
+      it { expect(result).not_to be_keep }
       it { expect(result).not_to be_timeout }
+      it { expect(result).not_to be_input_truncated }
       it { expect(result.events).to eq([]) }
       it { expect(result.actions).to eq({}) }
       it { expect(result.attributes).to eq({}) }
       it { expect(result.duration_ns).to eq(0) }
       it { expect(result.duration_ext_ns).to eq(100) }
-      it { expect(result).not_to be_input_truncated }
     end
   end
 
@@ -174,7 +174,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is an "error" type' do
       subject(:result) { described_class::Error.new(duration_ext_ns: 0, input_truncated: false) }
 
-      it { expect(result).to be_keep }
+      it { expect(result).not_to be_keep }
     end
   end
 end

@@ -76,10 +76,8 @@ module Datadog
             @input_truncated = !!input_truncated
           end
 
-          # NOTE: If an error happened we definitely would like to have access to
-          #       the span or the trace to be able to detect an issue.
           def keep?
-            true
+            false
           end
 
           def timeout?

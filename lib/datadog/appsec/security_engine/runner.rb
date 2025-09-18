@@ -47,9 +47,9 @@ module Datadog
 
           klass = (result.status == :match) ? Result::Match : Result::Ok
           klass.new(
-            events: result.events,         # : SecurityEngine::Result::events
-            actions: result.actions,       # : SecurityEngine::Result::actions
-            attributes: result.attributes, # : SecurityEngine::Result::attributes
+            events: result.events,         #: SecurityEngine::Result::events
+            actions: result.actions,       #: SecurityEngine::Result::actions
+            attributes: result.attributes, #: SecurityEngine::Result::attributes
             keep: result.keep?,
             timeout: result.timeout?,
             duration_ns: result.duration,
@@ -88,8 +88,8 @@ module Datadog
             actions: {},
             attributes: {},
             duration: 0,
-            timeout: false,
-            keep: false
+            keep: false,
+            timeout: false
           )
         end
 
