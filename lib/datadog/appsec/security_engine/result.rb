@@ -13,20 +13,24 @@ module Datadog
             @events = events
             @actions = actions
             @attributes = attributes
-
-            @keep = keep
-            @timeout = timeout
             @duration_ns = duration_ns
             @duration_ext_ns = duration_ext_ns
-            @input_truncated = input_truncated
+
+            @keep = !!keep
+            @timeout = !!timeout
+            @input_truncated = !!input_truncated
           end
 
           def timeout?
-            !!@timeout
+            @timeout
           end
 
           def keep?
-            !!@keep
+            @keep
+          end
+
+          def input_truncated?
+            @input_truncated
           end
 
           def match?
@@ -35,10 +39,6 @@ module Datadog
 
           def error?
             raise NotImplementedError
-          end
-
-          def input_truncated?
-            @input_truncated
           end
         end
 
@@ -73,7 +73,7 @@ module Datadog
             @actions = @attributes = {}
             @duration_ns = 0
             @duration_ext_ns = duration_ext_ns
-            @input_truncated = input_truncated
+            @input_truncated = !!input_truncated
           end
 
           # NOTE: If an error happened we definitely would like to have access to
@@ -86,16 +86,16 @@ module Datadog
             false
           end
 
+          def input_truncated?
+            @input_truncated
+          end
+
           def match?
             false
           end
 
           def error?
             true
-          end
-
-          def input_truncated?
-            @input_truncated
           end
         end
       end

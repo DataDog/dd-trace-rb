@@ -46,7 +46,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result indicates timeout' do
       subject(:result) do
         described_class::Ok.new(
-          events: [], actions: {}, attributes: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0, keep: false
+          events: [], actions: {}, attributes: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0, keep: false,
           input_truncated: false
         )
       end
@@ -57,7 +57,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result does not indicate timeout' do
       subject(:result) do
         described_class::Ok.new(
-          events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false
+          events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false,
           input_truncated: false
         )
       end
@@ -70,7 +70,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is a generic type' do
       subject(:result) do
         described_class::Base.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
         )
       end
@@ -81,7 +81,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is a "match" type' do
       subject(:result) do
         described_class::Match.new(
-          events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false
+          events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false,
           input_truncated: false
         )
       end
@@ -92,7 +92,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is an "ok" type' do
       subject(:result) do
         described_class::Ok.new(
-          events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false
+          events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0, keep: false,
           input_truncated: false
         )
       end
@@ -111,7 +111,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is a generic type' do
       subject(:result) do
         described_class::Base.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
         )
       end
@@ -122,7 +122,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is a "match" type' do
       subject(:result) do
         described_class::Match.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
         )
       end
@@ -133,7 +133,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is an "ok" type' do
       subject(:result) do
         described_class::Ok.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 0, duration_ext_ns: 0,
           input_truncated: false
         )
       end
@@ -152,7 +152,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is a "match" type' do
       subject(:result) do
         described_class::Match.new(
-          events: [], actions: {}, attributes: {}, timeout: false, keep: true, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, attributes: {}, timeout: false, keep: true, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -162,7 +163,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is an "ok" type' do
       subject(:result) do
         described_class::Ok.new(
-          events: [], actions: {}, attributes: {}, timeout: false, keep: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, attributes: {}, timeout: false, keep: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -170,7 +172,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     end
 
     context 'when result is an "error" type' do
-      subject(:result) { described_class::Error.new(duration_ext_ns: 0) }
+      subject(:result) { described_class::Error.new(duration_ext_ns: 0, input_truncated: false) }
 
       it { expect(result).to be_keep }
     end
