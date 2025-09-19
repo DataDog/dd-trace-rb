@@ -197,10 +197,7 @@ module Datadog
           return unless @enabled
 
           @stats_mutex.synchronize do
-            puts "🔍 [FLUSH DEBUG] Starting flush_stats"
-            puts "🔍 [FLUSH DEBUG] Buckets count: #{@buckets.size}"
-            puts "🔍 [FLUSH DEBUG] Consumer stats count: #{@consumer_stats.size}"
-            
+
             # Check if we have data to send
             return if @buckets.empty? && @consumer_stats.empty?
 
@@ -215,15 +212,6 @@ module Datadog
               'Hostname' => hostname
             }
 
-            puts "🔍 [FLUSH DEBUG] Final payload structure:"
-            puts "   Service: #{payload['Service']}"
-            puts "   TracerVersion: #{payload['TracerVersion']}"
-            puts "   Lang: #{payload['Lang']}"
-            puts "   Hostname: #{payload['Hostname']}"
-            puts "   Stats buckets count: #{payload['Stats'].size}"
-            payload['Stats'].each_with_index do |bucket, index|
-              puts "     Bucket #{index}: Start=#{bucket['Start']}, Stats count=#{bucket['Stats'].size}"
-            end
 
             # Send to agent (msgpack + gzip like Python)
             send_stats_to_agent(payload)
@@ -314,17 +302,17 @@ module Datadog
             # Calculate bucket time (align to bucket boundaries like Python)
             now_ns = (timestamp_sec * 1e9).to_i
             bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
-            
+
 
             # Get or create bucket for this time window
             bucket = @buckets[bucket_time_ns] ||= create_bucket
 
             # Get or create stats for this pathway (Python: aggr_key = (",".join(edge_tags), hash_value, parent_hash))
             aggr_key = [tags.join(','), hash, parent_hash]
-            
-            
+
+
             stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
-            
+
 
 
             # Add latencies to DDSketch (like Python)
@@ -402,7 +390,7 @@ module Datadog
           payload['Stats'].each_with_index do |bucket, i|
             puts "   Bucket #{i}: #{bucket['Stats'].size} pathway stats"
           end
-          
+
           # Use msgpack encoding like Python
           require 'msgpack'
           msgpack_data = MessagePack.pack(payload)
@@ -440,7 +428,7 @@ module Datadog
 
           request = Net::HTTP::Post.new(uri)
           headers.each { |k, v| request[k] = v }
-          
+
           # Set binary data with proper encoding
           request.body = data.force_encoding('ASCII-8BIT')
 
@@ -460,31 +448,25 @@ module Datadog
 
         # Serialize buckets to match Python implementation format
         def serialize_buckets
-          puts "🔍 [SERIALIZE DEBUG] Starting serialize_buckets"
-          puts "🔍 [SERIALIZE DEBUG] Total buckets: #{@buckets.size}"
-          
+
           serialized_buckets = []
           bucket_keys_to_clear = []
 
           @buckets.each do |bucket_time_ns, bucket|
-            puts "🔍 [SERIALIZE DEBUG] Processing bucket: #{bucket_time_ns}"
-            puts "🔍 [SERIALIZE DEBUG] Bucket pathway_stats count: #{bucket[:pathway_stats].size}"
-            
+
             bucket_keys_to_clear << bucket_time_ns
 
             # Serialize pathway stats for this bucket
             bucket_stats = []
             bucket[:pathway_stats].each_with_index do |(aggr_key, stats), index|
               edge_tags_str, hash_value, parent_hash = aggr_key
-              puts "🔍 [SERIALIZE DEBUG] Entry #{index}:"
-              puts "   Aggr key: #{aggr_key.inspect}"
-              puts "   Edge tags str: '#{edge_tags_str}'"
-              puts "   Hash value: #{hash_value}"
-              puts "   Parent hash: #{parent_hash}"
-              puts "   Stats keys: #{stats.keys}"
+
+              edge_tags_array = edge_tags_str.split(',')
+              puts "🔍 [DIRECTION DEBUG] EdgeTags being sent: #{edge_tags_array.inspect}"
+              puts "🔍 [DIRECTION DEBUG] EdgeTags string: '#{edge_tags_str}'"
               
               bucket_stats << {
-                'EdgeTags' => edge_tags_str.split(','),
+                'EdgeTags' => edge_tags_array,
                 'Hash' => hash_value,
                 'ParentHash' => parent_hash,
                 'PathwayLatency' => stats[:full_pathway_latency].encode,
@@ -509,9 +491,7 @@ module Datadog
               }
             end
 
-            puts "🔍 [SERIALIZE DEBUG] Final bucket_stats count: #{bucket_stats.size}"
-            puts "🔍 [SERIALIZE DEBUG] Final backlogs count: #{backlogs.size}"
-            
+
             serialized_buckets << {
               'Start' => bucket_time_ns,
               'Duration' => @bucket_size_ns,
@@ -520,14 +500,6 @@ module Datadog
             }
           end
 
-          puts "🔍 [SERIALIZE DEBUG] Total serialized buckets: #{serialized_buckets.size}"
-          puts "🔍 [SERIALIZE DEBUG] Serialized buckets structure:"
-          serialized_buckets.each_with_index do |bucket, index|
-            puts "   Bucket #{index}: Start=#{bucket['Start']}, Stats count=#{bucket['Stats'].size}"
-            bucket['Stats'].each_with_index do |stat, stat_index|
-              puts "     Stat #{stat_index}: EdgeTags=#{stat['EdgeTags']}, Hash=#{stat['Hash']}, ParentHash=#{stat['ParentHash']}"
-            end
-          end
 
           # Clear processed buckets (like Python)
           bucket_keys_to_clear.each { |key| @buckets.delete(key) }
