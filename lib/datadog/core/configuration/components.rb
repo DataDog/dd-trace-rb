@@ -134,7 +134,7 @@ module Datadog
         # Hot-swaps with a new sampler.
         # This operation acquires the Components lock to ensure
         # there is no concurrent modification of the sampler.
-        def reconfigure_live_sampler(settings = Datadog.configuration)
+        def reconfigure_sampler(settings = Datadog.configuration)
           sampler = Datadog::Tracing::Component.build_sampler(settings)
           Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
         end

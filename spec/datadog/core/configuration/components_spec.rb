@@ -442,8 +442,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
-  describe '#reconfigure_live_sampler' do
-    subject(:reconfigure_live_sampler) { components.reconfigure_live_sampler }
+  describe '#reconfigure_sampler' do
+    subject(:reconfigure_sampler) { components.reconfigure_live_sampler }
 
     context 'with configuration changes' do
       before do
@@ -451,11 +451,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       it 'does not change the sampler delegator object' do
-        expect { reconfigure_live_sampler }.to_not(change { components.tracer.sampler })
+        expect { reconfigure_sampler }.to_not(change { components.tracer.sampler })
       end
 
       it "changes the sampler delegator's delegatee" do
-        expect { reconfigure_live_sampler }.to(
+        expect { reconfigure_sampler }.to(
           change do
             components.tracer.sampler.sampler.priority_sampler.rate_limiter.rate
           end.from(100).to(123)
