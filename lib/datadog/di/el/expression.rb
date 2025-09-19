@@ -11,18 +11,23 @@ module Datadog
           unless String === compiled_expr
             raise ArgumentError, "compiled_expr must be a string"
           end
-          @compiled_expr = compiled_expr
+
+          cls = Class.new(Evaluator)
+          cls.class_exec do
+            eval(<<-RUBY, Object.new.send(:binding), __FILE__, __LINE__ + 1) # standard:disable Security/Eval
+              def evaluate(context)
+                @context = context
+                #{compiled_expr}
+              end
+            RUBY
+          end
+          @evaluator = cls.new
         end
 
-        attr_reader :compiled_expr
-
-        def ==(other)
-          other.is_a?(self.class) &&
-            compiled_expr == other.compiled_expr
-        end
+        attr_reader :evaluator
 
         def evaluate(context)
-          Evaluator.new(context).evaluate(compiled_expr)
+          @evaluator.evaluate(context)
         end
 
         def satisfied?(context)
