@@ -66,23 +66,35 @@ module Datadog
 
           # Loop detection logic (matching Python lines 477-489)
           # Only apply loop detection if there's a direction tag and it matches the previous direction
+          puts "   🔍 [LOOP DEBUG] Direction: '#{direction}'"
+          puts "   🔍 [LOOP DEBUG] Previous direction: '#{current_context.previous_direction}'"
+          puts "   🔍 [LOOP DEBUG] Direction match: #{!direction.empty? && direction == current_context.previous_direction}"
+          puts "   🔍 [LOOP DEBUG] Current hash before loop detection: #{current_context.hash}"
+          puts "   🔍 [LOOP DEBUG] Closest opposite direction hash: #{current_context.closest_opposite_direction_hash}"
+          
           if !direction.empty? && direction == current_context.previous_direction
             # Same direction - reuse hash from opposite direction
+            puts "   🔍 [LOOP DEBUG] SAME DIRECTION - reusing opposite direction hash"
             current_context.hash = current_context.closest_opposite_direction_hash
             if current_context.hash == 0
               # Restart pathway if no opposite direction hash
+              puts "   🔍 [LOOP DEBUG] Restarting pathway (hash was 0)"
               current_context.current_edge_start_sec = now_sec
               current_context.pathway_start_sec = now_sec
             else
               # Reuse edge start from opposite direction
+              puts "   🔍 [LOOP DEBUG] Reusing edge start from opposite direction"
               current_context.current_edge_start_sec = current_context.closest_opposite_direction_edge_start
             end
           else
             # New direction or no direction - store current state for future reuse
+            puts "   🔍 [LOOP DEBUG] NEW DIRECTION - storing current state"
             current_context.previous_direction = direction
             current_context.closest_opposite_direction_hash = current_context.hash
-            current_context.closest_opposite_direction_edge_start = now_sec
+            current_context.closest_opposite_direction_edge_start = current_context.current_edge_start_sec
           end
+          
+          puts "   🔍 [LOOP DEBUG] Hash after loop detection: #{current_context.hash}"
 
           # Calculate new pathway hash from current hash + tags (matching Python line 498)
           parent_hash = current_context.hash
