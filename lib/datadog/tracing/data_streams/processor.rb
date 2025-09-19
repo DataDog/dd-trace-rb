@@ -66,44 +66,28 @@ module Datadog
 
           # Loop detection logic (matching Python lines 477-489)
           # Only apply loop detection if there's a direction tag and it matches the previous direction
-          puts "   🔍 [LOOP DEBUG] Direction: '#{direction}'"
-          puts "   🔍 [LOOP DEBUG] Previous direction: '#{current_context.previous_direction}'"
-          puts "   🔍 [LOOP DEBUG] Direction match: #{!direction.empty? && direction == current_context.previous_direction}"
-          puts "   🔍 [LOOP DEBUG] Current hash before loop detection: #{current_context.hash}"
-          puts "   🔍 [LOOP DEBUG] Closest opposite direction hash: #{current_context.closest_opposite_direction_hash}"
-
           if !direction.empty? && direction == current_context.previous_direction
             # Same direction - reuse hash from opposite direction
-            puts "   🔍 [LOOP DEBUG] SAME DIRECTION - reusing opposite direction hash"
             current_context.hash = current_context.closest_opposite_direction_hash
             if current_context.hash == 0
               # Restart pathway if no opposite direction hash
-              puts "   🔍 [LOOP DEBUG] Restarting pathway (hash was 0)"
               current_context.current_edge_start_sec = now_sec
               current_context.pathway_start_sec = now_sec
             else
               # Reuse edge start from opposite direction
-              puts "   🔍 [LOOP DEBUG] Reusing edge start from opposite direction"
               current_context.current_edge_start_sec = current_context.closest_opposite_direction_edge_start
             end
           else
             # New direction or no direction - store current state for future reuse
-            puts "   🔍 [LOOP DEBUG] NEW DIRECTION - storing current state"
             current_context.previous_direction = direction
             current_context.closest_opposite_direction_hash = current_context.hash
             current_context.closest_opposite_direction_edge_start = current_context.current_edge_start_sec
           end
 
-          puts "   🔍 [LOOP DEBUG] Hash after loop detection: #{current_context.hash}"
-
           # Calculate new pathway hash from current hash + tags (matching Python line 498)
           parent_hash = current_context.hash
           new_hash = compute_pathway_hash(parent_hash, tags)
 
-          # DEBUG: Log hash computation details
-          puts "   Computed new_hash: #{new_hash}"
-          puts "   Parent hash used: #{parent_hash}"
-          puts "   Tags used for hash: #{tags.inspect}"
 
           # Calculate edge latency (time since last checkpoint) - matching Python line 501
           edge_latency_sec = [now_sec - current_context.current_edge_start_sec, 0.0].max
@@ -306,17 +290,6 @@ module Datadog
           combined_bytes = [node_hash, current_hash].pack('QQ') # Little-endian 64-bit
           final_hash = fnv1_64(combined_bytes)
 
-          # DEBUG: Log hash computation details
-          puts "   🔍 [HASH DEBUG] compute_pathway_hash:"
-          puts "      Service: '#{service}'"
-          puts "      Env: '#{env}'"
-          puts "      Tags: #{tags.inspect}"
-          puts "      Byte string length: #{byte_string.length}"
-          puts "      Byte string hex: #{byte_string.unpack('H*').first}"
-          puts "      Node hash: #{node_hash}"
-          puts "      Parent hash: #{current_hash}"
-          puts "      Combined bytes hex: #{combined_bytes.unpack('H*').first}"
-          puts "      Final hash: #{final_hash}"
 
           final_hash
         end
@@ -342,12 +315,6 @@ module Datadog
             now_ns = (timestamp_sec * 1e9).to_i
             bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
             
-            puts "🔍 [BUCKET TIME DEBUG] Bucket time calculation:"
-            puts "   Timestamp sec: #{timestamp_sec}"
-            puts "   Now ns: #{now_ns}"
-            puts "   Bucket size ns: #{@bucket_size_ns}"
-            puts "   Now % bucket_size: #{now_ns % @bucket_size_ns}"
-            puts "   Calculated bucket_time_ns: #{bucket_time_ns}"
 
             # Get or create bucket for this time window
             bucket = @buckets[bucket_time_ns] ||= create_bucket
@@ -355,26 +322,10 @@ module Datadog
             # Get or create stats for this pathway (Python: aggr_key = (",".join(edge_tags), hash_value, parent_hash))
             aggr_key = [tags.join(','), hash, parent_hash]
             
-            puts "🔍 [BUCKET DEBUG] Before adding to bucket:"
-            puts "   Bucket time: #{bucket_time_ns}"
-            puts "   Existing pathway_stats keys: #{bucket[:pathway_stats].keys.map(&:inspect)}"
-            puts "   New aggr_key: #{aggr_key.inspect}"
-            puts "   Key exists? #{bucket[:pathway_stats].key?(aggr_key)}"
             
             stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
             
-            puts "🔍 [BUCKET DEBUG] After adding to bucket:"
-            puts "   Total pathway_stats keys: #{bucket[:pathway_stats].keys.size}"
-            puts "   All keys: #{bucket[:pathway_stats].keys.map(&:inspect)}"
 
-            # DEBUG: Log aggregation key details
-            puts "   🔍 [AGGREGATION DEBUG] record_checkpoint_stats:"
-            puts "      Tags: #{tags.inspect}"
-            puts "      Tags joined: '#{tags.join(',')}'"
-            puts "      Hash: #{hash}"
-            puts "      Parent hash: #{parent_hash}"
-            puts "      Aggregation key: #{aggr_key.inspect}"
-            puts "      Bucket time: #{bucket_time_ns}"
 
             # Add latencies to DDSketch (like Python)
             full_pathway_latency_sec = timestamp_sec - @pathway_context.pathway_start_sec
@@ -445,28 +396,11 @@ module Datadog
 
         # Send stats payload to Datadog agent (matching Python implementation)
         def send_stats_to_agent(payload)
-          puts "🔍 [AGENT PAYLOAD DEBUG] Raw payload being sent to agent:"
+          puts "🔍 [AGENT PAYLOAD DEBUG] Sending DSM payload to agent:"
           puts "   Service: #{payload['Service']}"
-          puts "   TracerVersion: #{payload['TracerVersion']}"
-          puts "   Lang: #{payload['Lang']}"
-          puts "   Hostname: #{payload['Hostname']}"
-          puts "   Stats count: #{payload['Stats'].size}"
-          
-          payload['Stats'].each_with_index do |bucket, bucket_index|
-            puts "   Bucket #{bucket_index}:"
-            puts "     Start: #{bucket['Start']}"
-            puts "     Duration: #{bucket['Duration']}"
-            puts "     Stats count: #{bucket['Stats'].size}"
-            puts "     Backlogs count: #{bucket['Backlogs'].size}"
-            
-            bucket['Stats'].each_with_index do |stat, stat_index|
-              puts "     Stat #{stat_index}:"
-              puts "       EdgeTags: #{stat['EdgeTags']}"
-              puts "       Hash: #{stat['Hash']}"
-              puts "       ParentHash: #{stat['ParentHash']}"
-              puts "       PathwayLatency: #{stat['PathwayLatency'].class} (encoded)"
-              puts "       EdgeLatency: #{stat['EdgeLatency'].class} (encoded)"
-            end
+          puts "   Stats buckets: #{payload['Stats'].size}"
+          payload['Stats'].each_with_index do |bucket, i|
+            puts "   Bucket #{i}: #{bucket['Stats'].size} pathway stats"
           end
           
           # Use msgpack encoding like Python
@@ -484,10 +418,7 @@ module Datadog
             'Datadog-Meta-Tracer-Version' => Datadog::VERSION::STRING
           }
 
-          puts "🔍 [AGENT PAYLOAD DEBUG] Payload sizes:"
-          puts "   Raw payload size: #{payload.to_json.bytesize} bytes"
-          puts "   Msgpack size: #{msgpack_data.bytesize} bytes"
-          puts "   Compressed size: #{compressed_data.bytesize} bytes"
+          puts "🔍 [AGENT PAYLOAD DEBUG] Payload sizes: msgpack=#{msgpack_data.bytesize}b, compressed=#{compressed_data.bytesize}b"
 
           # Send to agent using proper transport infrastructure
           response = send_dsm_payload(compressed_data, headers)
@@ -509,7 +440,9 @@ module Datadog
 
           request = Net::HTTP::Post.new(uri)
           headers.each { |k, v| request[k] = v }
-          request.body = data
+          
+          # Set binary data with proper encoding
+          request.body = data.force_encoding('ASCII-8BIT')
 
           http.request(request)
         end
