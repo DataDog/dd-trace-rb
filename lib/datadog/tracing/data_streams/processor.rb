@@ -44,7 +44,16 @@ module Datadog
           current_context = get_current_context
 
           # Sort tags like Python (line 471)
+          original_tags = tags.dup
           tags = tags.sort
+          
+          # DEBUG: Log the checkpoint creation details
+          puts "🔍 [DSM DEBUG] set_checkpoint called:"
+          puts "   Original tags: #{original_tags.inspect}"
+          puts "   Sorted tags: #{tags.inspect}"
+          puts "   Current context hash: #{current_context.hash}"
+          puts "   Current context parent_hash: #{current_context.parent_hash}"
+          puts "   Current context previous_direction: '#{current_context.previous_direction}'"
 
           # Extract direction like Python (lines 472-476)
           direction = ""
@@ -78,10 +87,19 @@ module Datadog
           # Calculate new pathway hash from current hash + tags (matching Python line 498)
           parent_hash = current_context.hash
           new_hash = compute_pathway_hash(parent_hash, tags)
+          
+          # DEBUG: Log hash computation details
+          puts "   Computed new_hash: #{new_hash}"
+          puts "   Parent hash used: #{parent_hash}"
+          puts "   Tags used for hash: #{tags.inspect}"
 
           # Calculate edge latency (time since last checkpoint) - matching Python line 501
           edge_latency_sec = [now_sec - current_context.current_edge_start_sec, 0.0].max
           full_pathway_latency_sec = [now_sec - current_context.pathway_start_sec, 0.0].max
+          
+          # DEBUG: Log latency calculations
+          puts "   Edge latency: #{edge_latency_sec}s"
+          puts "   Full pathway latency: #{full_pathway_latency_sec}s"
 
           # Record stats for this checkpoint
           record_checkpoint_stats(
@@ -96,6 +114,13 @@ module Datadog
           # Update pathway context (matching Python lines 503-504)
           current_context.hash = new_hash
           current_context.current_edge_start_sec = now_sec
+          
+          # DEBUG: Log final state
+          puts "   Final context hash: #{current_context.hash}"
+          puts "   Final context parent_hash: #{current_context.parent_hash}"
+          puts "   Final context previous_direction: '#{current_context.previous_direction}'"
+          puts "   Final context closest_opposite_direction_hash: #{current_context.closest_opposite_direction_hash}"
+          puts "🔍 [DSM DEBUG] set_checkpoint completed\n"
 
           # Return encoded context for propagation
           current_context.encode_b64
@@ -253,7 +278,21 @@ module Datadog
 
           # Second hash: FNV-1a of (node_hash + parent_hash) (matching Python)
           combined_bytes = [node_hash, current_hash].pack('QQ') # Little-endian 64-bit
-          fnv1_64(combined_bytes)
+          final_hash = fnv1_64(combined_bytes)
+          
+          # DEBUG: Log hash computation details
+          puts "   🔍 [HASH DEBUG] compute_pathway_hash:"
+          puts "      Service: '#{service}'"
+          puts "      Env: '#{env}'"
+          puts "      Tags: #{tags.inspect}"
+          puts "      Byte string length: #{byte_string.length}"
+          puts "      Byte string hex: #{byte_string.unpack('H*').first}"
+          puts "      Node hash: #{node_hash}"
+          puts "      Parent hash: #{current_hash}"
+          puts "      Combined bytes hex: #{combined_bytes.unpack('H*').first}"
+          puts "      Final hash: #{final_hash}"
+          
+          final_hash
         end
 
         # FNV-1a 64-bit hash function (matching Python fnv1_64)
@@ -283,6 +322,15 @@ module Datadog
             # Get or create stats for this pathway (Python: aggr_key = (",".join(edge_tags), hash_value, parent_hash))
             aggr_key = [tags.join(','), hash, parent_hash]
             stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
+            
+            # DEBUG: Log aggregation key details
+            puts "   🔍 [AGGREGATION DEBUG] record_checkpoint_stats:"
+            puts "      Tags: #{tags.inspect}"
+            puts "      Tags joined: '#{tags.join(',')}'"
+            puts "      Hash: #{hash}"
+            puts "      Parent hash: #{parent_hash}"
+            puts "      Aggregation key: #{aggr_key.inspect}"
+            puts "      Bucket time: #{bucket_time_ns}"
 
             # Add latencies to DDSketch (like Python)
             full_pathway_latency_sec = timestamp_sec - @pathway_context.pathway_start_sec
