@@ -26,8 +26,6 @@ module Datadog
       # Global components for the trace library.
       class Components
         class << self
-          include Datadog::Tracing::Component
-
           def build_health_metrics(settings, logger, telemetry)
             settings = settings.health_metrics
             options = {enabled: settings.enabled}
@@ -79,10 +77,9 @@ module Datadog
           end
         end
 
-        include Datadog::Tracing::Component::InstanceMethods
-
         attr_reader \
           :health_metrics,
+          :settings,
           :logger,
           :remote,
           :profiler,
@@ -96,6 +93,7 @@ module Datadog
           :agent_info
 
         def initialize(settings)
+          @settings = settings
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
           Deprecations.log_deprecations_from_all_sources(@logger)
@@ -111,7 +109,7 @@ module Datadog
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 
           @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
-          @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
+          @tracer = Datadog::Tracing::Component.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
@@ -129,7 +127,16 @@ module Datadog
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
-          self.class.configure_tracing(settings)
+          # Configure non-privileged components.
+          Datadog::Tracing::Contrib::Component.configure(settings)
+        end
+
+        # Hot-swaps with a new sampler.
+        # This operation acquires the Components lock to ensure
+        # there is no concurrent modification of the sampler.
+        def reconfigure_sampler(settings = Datadog.configuration)
+          sampler = Datadog::Tracing::Component.build_sampler(settings)
+          Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
         end
 
         # Starts up components

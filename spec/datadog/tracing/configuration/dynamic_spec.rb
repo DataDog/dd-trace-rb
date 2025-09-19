@@ -75,7 +75,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRate do
     config_object: Datadog.configuration.tracing.sampling
 
   it 'reconfigures the live sampler' do
-    expect(Datadog.send(:components)).to receive(:reconfigure_live_sampler)
+    expect(Datadog.send(:components)).to receive(:reconfigure_sampler)
     option.call(new_value)
   end
 end
@@ -108,7 +108,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
   end
 
   it 'reconfigures the live sampler' do
-    expect(Datadog.send(:components)).to receive(:reconfigure_live_sampler)
+    expect(Datadog.send(:components)).to receive(:reconfigure_sampler)
     option.call(new_value)
   end
 end
