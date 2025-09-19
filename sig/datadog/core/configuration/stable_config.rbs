@@ -3,7 +3,11 @@ module Datadog
     module Configuration
       module StableConfig
 
-        type stable_config = Hash[Symbol, Hash[String, String]]
+        type stable_config = {
+          ?logs: String?,
+          ?local: Hash[String, String],
+          ?fleet: Hash[String, String]
+        }
 
         class Configurator
           def initialize: -> void
