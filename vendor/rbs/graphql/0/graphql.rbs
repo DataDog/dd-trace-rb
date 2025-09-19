@@ -1,50 +1,82 @@
 module GraphQL
+  class Query
+    def selected_operation: () -> Language::Nodes::OperationDefinition?
+    def selected_operation_name: () -> String?
+    def query_string: () -> String
+    def variables: () -> untyped
+    def context: () -> untyped
+
+    class Result
+    end
+  end
+
   class Schema
+    class Member
+      def self.graphql_name: () -> String
+    end
+
     class Field
+      def path: () -> String
     end
 
-    class Object
+    class Object < Member
+      def self.graphql_name: () -> String
     end
 
-    class Union
+    class Union < Member
+      def self.graphql_name: () -> String
     end
   end
 
   module Tracing
-    class Trace
+    module PlatformTrace
+      @platform_key_cache: Hash[untyped, untyped]
+
+      def initialize: (?trace_scalars: bool, **untyped) -> void
+      def self.included: (untyped child_class) -> untyped
+      def platform_execute_field_lazy: (*untyped args) { (*untyped) -> untyped } -> untyped
+      def platform_authorized_lazy: (untyped key) { (*untyped) -> untyped } -> untyped
+      def platform_resolve_type_lazy: (untyped key) { (*untyped) -> untyped } -> untyped
+
+      module BaseKeyCache
+        attr_reader platform_field_key_cache: untyped
+        attr_reader platform_authorized_key_cache: untyped
+        attr_reader platform_resolve_type_key_cache: untyped
+      end
+
+      private
+
+      def transaction_name: (untyped query) -> String
+      def fallback_transaction_name: (untyped context) -> String
     end
   end
 
   module Language
     module Nodes
-      class Document
+      class OperationDefinition
+        def name: () -> String?
+        def operation_type: () -> Symbol?
       end
 
       class Field
       end
 
+      class Document
+      end
+
       class Argument
       end
-
-      class OperationDefinition
-        def name: -> String?
-        def operation_type: -> Symbol?
-      end
-    end
-  end
-
-  class Query
-    class Result
-      def initialize: (query: ::GraphQL::Query, values: Hash[String, untyped]) -> void
     end
   end
 
   module Execution
     class Multiplex
+      def queries: () -> Array[GraphQL::Query]
     end
   end
 
-  class Error
-    def to_h: -> Hash[String, untyped]
+  class Error < StandardError
+    def to_h: () -> Hash[String, untyped]
+    def extensions: () -> Hash[String, untyped]?
   end
 end

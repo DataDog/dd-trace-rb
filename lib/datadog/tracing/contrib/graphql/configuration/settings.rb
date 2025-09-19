@@ -58,6 +58,13 @@ module Datadog
               o.default []
               o.env_parser { |v| ErrorExtensionEnvParser.call(v) }
             end
+
+            # Surface GraphQL errors in Error Tracking.
+            option :error_tracking do |o|
+              o.env Ext::ENV_ERROR_TRACKING
+              o.type :bool
+              o.default false
+            end
           end
         end
       end

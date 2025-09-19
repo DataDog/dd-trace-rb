@@ -12,7 +12,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
           derivatives: {'3' => '3'},
           timeout: true,
           duration_ns: 400,
-          duration_ext_ns: 500
+          duration_ext_ns: 500,
+          input_truncated: false
         )
       end
 
@@ -22,10 +23,11 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       it { expect(result.derivatives).to eq({'3' => '3'}) }
       it { expect(result.duration_ns).to eq(400) }
       it { expect(result.duration_ext_ns).to eq(500) }
+      it { expect(result).not_to be_input_truncated }
     end
 
     context 'when initializing error result' do
-      subject(:result) { described_class::Error.new(duration_ext_ns: 100) }
+      subject(:result) { described_class::Error.new(duration_ext_ns: 100, input_truncated: false) }
 
       it { expect(result).not_to be_timeout }
       it { expect(result.events).to eq([]) }
@@ -33,6 +35,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
       it { expect(result.derivatives).to eq({}) }
       it { expect(result.duration_ns).to eq(0) }
       it { expect(result.duration_ext_ns).to eq(100) }
+      it { expect(result).not_to be_input_truncated }
     end
   end
 
@@ -40,7 +43,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result indicates timeout' do
       subject(:result) do
         described_class::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: true, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -50,7 +54,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result does not indicate timeout' do
       subject(:result) do
         described_class::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -62,7 +67,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is a generic type' do
       subject(:result) do
         described_class::Base.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -72,7 +78,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is a "match" type' do
       subject(:result) do
         described_class::Match.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -82,7 +89,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is an "ok" type' do
       subject(:result) do
         described_class::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -90,7 +98,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     end
 
     context 'when result is an "error" type' do
-      subject(:result) { described_class::Error.new(duration_ext_ns: 0) }
+      subject(:result) { described_class::Error.new(duration_ext_ns: 0, input_truncated: false) }
 
       it { expect(result).not_to be_match }
     end
@@ -100,7 +108,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is a generic type' do
       subject(:result) do
         described_class::Base.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -110,7 +119,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is a "match" type' do
       subject(:result) do
         described_class::Match.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -120,7 +130,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     context 'when result is an "ok" type' do
       subject(:result) do
         described_class::Ok.new(
-          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
@@ -128,7 +139,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Result do
     end
 
     context 'when result is an "error" type' do
-      subject(:result) { described_class::Error.new(duration_ext_ns: 0) }
+      subject(:result) { described_class::Error.new(duration_ext_ns: 0, input_truncated: false) }
 
       it { expect(result).to be_error }
     end

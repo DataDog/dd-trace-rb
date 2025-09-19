@@ -886,6 +886,37 @@ RSpec.describe Datadog::DI::Instrumenter do
       %i[caller_locations path probe serialized_locals target_self]
     end
 
+    shared_examples 'multiple invocations' do
+      # Since the instrumentation mutates the state of the probe,
+      # verify that the state mutation is not breaking the instrumentation.
+      context 'when the code is executed multiple times' do
+        before do
+          load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+        end
+
+        let(:probe) do
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 5,
+            id: 1, type: :log, rate_limit: rate_limit)
+        end
+
+        it 'invokes the instrumentation every time' do
+          expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
+
+          instrumenter.hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineLoadTestClass.new.test_method
+          HookLineLoadTestClass.new.test_method
+
+          expect(observed_calls.length).to eq 2
+
+          expect(observed_calls[0].keys.sort).to eq(call_keys)
+          expect(observed_calls[1].keys.sort).to eq(call_keys)
+        end
+      end
+    end
+
     context 'when called without a block' do
       let(:probe) do
         instance_double(Datadog::DI::Probe)
@@ -999,7 +1030,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
-    context 'line inside of method' do
+    context 'line inside of method without code tracking' do
       before do
         # We need untargeted trace points for this test since the line
         # being instrumented has already been loaded.
@@ -1035,6 +1066,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(File.basename(frame.path)).to eq 'hook_line.rb'
         end
       end
+
+      include_examples 'multiple invocations'
     end
 
     context 'when hooking same line twice with identical but different probes' do
@@ -1116,6 +1149,51 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(observed_calls.first).to be_a(Hash)
       end
 
+      context 'end line of a method' do
+        before do
+          load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+        end
+
+        let(:probe) do
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 6,
+            id: 1, type: :log, rate_limit: rate_limit)
+        end
+
+        it 'invokes the instrumentation' do
+          expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
+
+          instrumenter.hook_line(probe) do |payload|
+            observed_calls << payload
+          end
+
+          HookLineLoadTestClass.new.test_method
+
+          expect(observed_calls.length).to eq 1
+
+          expect(observed_calls[0].keys.sort).to eq(call_keys)
+        end
+
+        # Since the instrumentation mutates the state of the probe,
+        # verify that the state mutation is not breaking the instrumentation.
+        context 'when the code is executed multiple times' do
+          it 'invokes the instrumentation every time' do
+            expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
+
+            instrumenter.hook_line(probe) do |payload|
+              observed_calls << payload
+            end
+
+            HookLineLoadTestClass.new.test_method
+            HookLineLoadTestClass.new.test_method
+
+            expect(observed_calls.length).to eq 2
+
+            expect(observed_calls[0].keys.sort).to eq(call_keys)
+            expect(observed_calls[1].keys.sort).to eq(call_keys)
+          end
+        end
+      end
+
       context 'when instrumenting a line in loaded but not tracked file' do
         let(:probe) do
           Datadog::DI::Probe.new(file: 'hook_line.rb', line_no: 3,
@@ -1129,6 +1207,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
         end
       end
+
+      include_examples 'multiple invocations'
     end
 
     context 'when method is recursive' do
@@ -1205,6 +1285,39 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls[0].keys.sort).to eq call_keys
           expect(observed_calls[0][:caller_locations]).to be_a(Array)
         end
+      end
+    end
+
+    context 'when the instrumented line raises an exception' do
+      include_context 'with code tracking'
+
+      before do
+        load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 32,
+          id: 1, type: :log, rate_limit: rate_limit)
+      end
+
+      let(:payload) do
+        expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
+
+        instrumenter.hook_line(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect do
+          HookLineIvarLoadTestClass.new.test_exception
+        end.to raise_error(HookLineIvarLoadTestClass::TestException)
+
+        expect(observed_calls.length).to eq 1
+        observed_calls.first
+      end
+
+      it 'invokes callback with expected keys' do
+        expect(payload).to be_a(Hash)
+        expect(payload.keys.sort).to eq(call_keys)
       end
     end
 
