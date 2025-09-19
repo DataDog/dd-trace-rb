@@ -341,6 +341,13 @@ module Datadog
             # Calculate bucket time (align to bucket boundaries like Python)
             now_ns = (timestamp_sec * 1e9).to_i
             bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
+            
+            puts "🔍 [BUCKET TIME DEBUG] Bucket time calculation:"
+            puts "   Timestamp sec: #{timestamp_sec}"
+            puts "   Now ns: #{now_ns}"
+            puts "   Bucket size ns: #{@bucket_size_ns}"
+            puts "   Now % bucket_size: #{now_ns % @bucket_size_ns}"
+            puts "   Calculated bucket_time_ns: #{bucket_time_ns}"
 
             # Get or create bucket for this time window
             bucket = @buckets[bucket_time_ns] ||= create_bucket
@@ -438,6 +445,30 @@ module Datadog
 
         # Send stats payload to Datadog agent (matching Python implementation)
         def send_stats_to_agent(payload)
+          puts "🔍 [AGENT PAYLOAD DEBUG] Raw payload being sent to agent:"
+          puts "   Service: #{payload['Service']}"
+          puts "   TracerVersion: #{payload['TracerVersion']}"
+          puts "   Lang: #{payload['Lang']}"
+          puts "   Hostname: #{payload['Hostname']}"
+          puts "   Stats count: #{payload['Stats'].size}"
+          
+          payload['Stats'].each_with_index do |bucket, bucket_index|
+            puts "   Bucket #{bucket_index}:"
+            puts "     Start: #{bucket['Start']}"
+            puts "     Duration: #{bucket['Duration']}"
+            puts "     Stats count: #{bucket['Stats'].size}"
+            puts "     Backlogs count: #{bucket['Backlogs'].size}"
+            
+            bucket['Stats'].each_with_index do |stat, stat_index|
+              puts "     Stat #{stat_index}:"
+              puts "       EdgeTags: #{stat['EdgeTags']}"
+              puts "       Hash: #{stat['Hash']}"
+              puts "       ParentHash: #{stat['ParentHash']}"
+              puts "       PathwayLatency: #{stat['PathwayLatency'].class} (encoded)"
+              puts "       EdgeLatency: #{stat['EdgeLatency'].class} (encoded)"
+            end
+          end
+          
           # Use msgpack encoding like Python
           require 'msgpack'
           msgpack_data = MessagePack.pack(payload)
@@ -452,6 +483,11 @@ module Datadog
             'Datadog-Meta-Lang' => 'ruby',
             'Datadog-Meta-Tracer-Version' => Datadog::VERSION::STRING
           }
+
+          puts "🔍 [AGENT PAYLOAD DEBUG] Payload sizes:"
+          puts "   Raw payload size: #{payload.to_json.bytesize} bytes"
+          puts "   Msgpack size: #{msgpack_data.bytesize} bytes"
+          puts "   Compressed size: #{compressed_data.bytesize} bytes"
 
           # Send to agent using proper transport infrastructure
           response = send_dsm_payload(compressed_data, headers)
