@@ -20,6 +20,8 @@ module Datadog
       @capture_snapshot: bool
 
       @rate_limiter: Datadog::Core::RateLimiter
+      
+      @executed_on_line: bool?
 
       def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?capture_snapshot: bool,
 	?max_capture_depth: Integer, ?max_capture_attribute_count: Integer?, ?rate_limit: Integer) -> void
@@ -51,6 +53,9 @@ module Datadog
       def line_no!: () -> Integer
       def location: () -> ::String
       def file_matches?: (String path) -> bool
+      
+      def executed_on_line!: -> void
+      def executed_on_line?: -> bool
       
       attr_accessor instrumentation_module: Module?
       attr_accessor instrumentation_trace_point: TracePoint?

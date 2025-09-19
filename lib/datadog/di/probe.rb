@@ -190,6 +190,15 @@ module Datadog
       def emitting_notified?
         !!@emitting_notified
       end
+
+      def executed_on_line?
+        !!@executed_on_line
+      end
+
+      def executed_on_line!
+        # TODO lock?
+        @executed_on_line = true
+      end
     end
   end
 end

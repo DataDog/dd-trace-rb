@@ -307,33 +307,52 @@ module Datadog
             # are invoked for *each* line of Ruby executed.
             # TODO find out exactly when the path in trace point is relative.
             # Looks like this is the case when line trace point is not targeted?
-            if iseq || tp.lineno == probe.line_no && (
+            continue = iseq || tp.lineno == probe.line_no && (
               probe.file == tp.path || probe.file_matches?(tp.path)
             )
-              continue = if condition = probe.condition
-                locals = Instrumenter.get_local_variables(tp)
-                context = EL::Context.new(locals: locals, target: tp.self)
-                condition.satisfied?(context)
-              else
-                true
+
+            # We set the trace point on :return to be able to instrument
+            # 'end' lines. This also causes the trace point to be invoked on
+            # non-'end' lines when a line raises an exception, since the
+            # exception causes the method to stop executing and stack unwends.
+            # We do not want two invocations of the trace point.
+            # Therefore, if a trace point is invoked with a :line event,
+            # mark it as such and ignore subsequent :return events.
+            continue &&= if probe.executed_on_line?
+              tp.event == :line
+            else
+              if tp.event == :line
+                probe.executed_on_line!
               end
-              if continue and rate_limiter.nil? || rate_limiter.allow? # standard:disable Style/AndOr
-                serialized_locals = if probe.capture_snapshot?
-                  serializer.serialize_vars(locals || Instrumenter.get_local_variables(tp),
-                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
-                end
-                if probe.capture_snapshot?
-                  serializer.serialize_value(tp.self,
-                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
-                end
-                # & is to stop steep complaints, block is always present here.
-                block&.call(probe: probe,
-                  serialized_locals: serialized_locals,
-                  target_self: tp.self,
-                  path: tp.path, caller_locations: caller_locations)
+              true
+            end
+
+            continue &&= if condition = probe.condition
+              locals = Instrumenter.get_local_variables(tp)
+              context = EL::Context.new(locals: locals, target: tp.self)
+              condition.satisfied?(context)
+            else
+              true
+            end
+
+            continue &&= rate_limiter.nil? || rate_limiter.allow? # standard:disable Style/AndOr
+
+            if continue
+              serialized_locals = if probe.capture_snapshot?
+                serializer.serialize_vars(locals || Instrumenter.get_local_variables(tp),
+                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
               end
+              if probe.capture_snapshot?
+                serializer.serialize_value(tp.self,
+                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
+              end
+              # & is to stop steep complaints, block is always present here.
+              block&.call(probe: probe,
+                serialized_locals: serialized_locals,
+                target_self: tp.self,
+                path: tp.path, caller_locations: caller_locations)
             end
           rescue => exc
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions

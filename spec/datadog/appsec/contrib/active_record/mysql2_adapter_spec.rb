@@ -133,7 +133,8 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
           derivatives: {},
           timeout: false,
           duration_ns: 0,
-          duration_ext_ns: 0
+          duration_ext_ns: 0,
+          input_truncated: false
         )
       end
 
