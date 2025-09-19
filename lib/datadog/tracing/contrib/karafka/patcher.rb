@@ -49,7 +49,13 @@ module Datadog
                 processor.decode_and_set_pathway_context(headers)
 
                 # Create checkpoint with topic tag and direction (consumer = in)
-                processor.set_checkpoint(['topic:' + message.topic, 'direction:in', 'type:kafka'], Time.now.to_f)
+                # Try to get consumer group from Karafka app configuration
+                consumer_group = 'default' # Default fallback
+                if defined?(::Karafka::App) && ::Karafka::App.config
+                  consumer_group = ::Karafka::App.config.client_id || 'default'
+                end
+                
+                processor.set_checkpoint(['topic:' + message.topic, 'direction:in', 'type:kafka', 'group:' + consumer_group], Time.now.to_f)
               end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
