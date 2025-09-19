@@ -49,7 +49,7 @@ module Datadog
                 processor.decode_and_set_pathway_context(headers)
 
                 # Create checkpoint with topic tag and direction (consumer = in)
-                processor.set_checkpoint(['topic:' + message.topic, 'direction:in'], Time.now.to_f)
+                processor.set_checkpoint(['topic:' + message.topic, 'direction:in', 'type:kafka'], Time.now.to_f)
               end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
