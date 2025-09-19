@@ -46,7 +46,7 @@ module Datadog
           # Sort tags like Python (line 471)
           original_tags = tags.dup
           tags = tags.sort
-          
+
           # DEBUG: Log the checkpoint creation details
           puts "🔍 [DSM DEBUG] set_checkpoint called:"
           puts "   Original tags: #{original_tags.inspect}"
@@ -71,7 +71,7 @@ module Datadog
           puts "   🔍 [LOOP DEBUG] Direction match: #{!direction.empty? && direction == current_context.previous_direction}"
           puts "   🔍 [LOOP DEBUG] Current hash before loop detection: #{current_context.hash}"
           puts "   🔍 [LOOP DEBUG] Closest opposite direction hash: #{current_context.closest_opposite_direction_hash}"
-          
+
           if !direction.empty? && direction == current_context.previous_direction
             # Same direction - reuse hash from opposite direction
             puts "   🔍 [LOOP DEBUG] SAME DIRECTION - reusing opposite direction hash"
@@ -93,13 +93,13 @@ module Datadog
             current_context.closest_opposite_direction_hash = current_context.hash
             current_context.closest_opposite_direction_edge_start = current_context.current_edge_start_sec
           end
-          
+
           puts "   🔍 [LOOP DEBUG] Hash after loop detection: #{current_context.hash}"
 
           # Calculate new pathway hash from current hash + tags (matching Python line 498)
           parent_hash = current_context.hash
           new_hash = compute_pathway_hash(parent_hash, tags)
-          
+
           # DEBUG: Log hash computation details
           puts "   Computed new_hash: #{new_hash}"
           puts "   Parent hash used: #{parent_hash}"
@@ -108,7 +108,7 @@ module Datadog
           # Calculate edge latency (time since last checkpoint) - matching Python line 501
           edge_latency_sec = [now_sec - current_context.current_edge_start_sec, 0.0].max
           full_pathway_latency_sec = [now_sec - current_context.pathway_start_sec, 0.0].max
-          
+
           # DEBUG: Log latency calculations
           puts "   Edge latency: #{edge_latency_sec}s"
           puts "   Full pathway latency: #{full_pathway_latency_sec}s"
@@ -126,7 +126,7 @@ module Datadog
           # Update pathway context (matching Python lines 503-504)
           current_context.hash = new_hash
           current_context.current_edge_start_sec = now_sec
-          
+
           # DEBUG: Log final state
           puts "   Final context hash: #{current_context.hash}"
           puts "   Final context parent_hash: #{current_context.parent_hash}"
@@ -213,6 +213,10 @@ module Datadog
           return unless @enabled
 
           @stats_mutex.synchronize do
+            puts "🔍 [FLUSH DEBUG] Starting flush_stats"
+            puts "🔍 [FLUSH DEBUG] Buckets count: #{@buckets.size}"
+            puts "🔍 [FLUSH DEBUG] Consumer stats count: #{@consumer_stats.size}"
+            
             # Check if we have data to send
             return if @buckets.empty? && @consumer_stats.empty?
 
@@ -226,6 +230,16 @@ module Datadog
               'Stats' => stats_buckets,
               'Hostname' => hostname
             }
+
+            puts "🔍 [FLUSH DEBUG] Final payload structure:"
+            puts "   Service: #{payload['Service']}"
+            puts "   TracerVersion: #{payload['TracerVersion']}"
+            puts "   Lang: #{payload['Lang']}"
+            puts "   Hostname: #{payload['Hostname']}"
+            puts "   Stats buckets count: #{payload['Stats'].size}"
+            payload['Stats'].each_with_index do |bucket, index|
+              puts "     Bucket #{index}: Start=#{bucket['Start']}, Stats count=#{bucket['Stats'].size}"
+            end
 
             # Send to agent (msgpack + gzip like Python)
             send_stats_to_agent(payload)
@@ -291,7 +305,7 @@ module Datadog
           # Second hash: FNV-1a of (node_hash + parent_hash) (matching Python)
           combined_bytes = [node_hash, current_hash].pack('QQ') # Little-endian 64-bit
           final_hash = fnv1_64(combined_bytes)
-          
+
           # DEBUG: Log hash computation details
           puts "   🔍 [HASH DEBUG] compute_pathway_hash:"
           puts "      Service: '#{service}'"
@@ -303,7 +317,7 @@ module Datadog
           puts "      Parent hash: #{current_hash}"
           puts "      Combined bytes hex: #{combined_bytes.unpack('H*').first}"
           puts "      Final hash: #{final_hash}"
-          
+
           final_hash
         end
 
@@ -333,8 +347,19 @@ module Datadog
 
             # Get or create stats for this pathway (Python: aggr_key = (",".join(edge_tags), hash_value, parent_hash))
             aggr_key = [tags.join(','), hash, parent_hash]
+            
+            puts "🔍 [BUCKET DEBUG] Before adding to bucket:"
+            puts "   Bucket time: #{bucket_time_ns}"
+            puts "   Existing pathway_stats keys: #{bucket[:pathway_stats].keys.map(&:inspect)}"
+            puts "   New aggr_key: #{aggr_key.inspect}"
+            puts "   Key exists? #{bucket[:pathway_stats].key?(aggr_key)}"
+            
             stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
             
+            puts "🔍 [BUCKET DEBUG] After adding to bucket:"
+            puts "   Total pathway_stats keys: #{bucket[:pathway_stats].keys.size}"
+            puts "   All keys: #{bucket[:pathway_stats].keys.map(&:inspect)}"
+
             # DEBUG: Log aggregation key details
             puts "   🔍 [AGGREGATION DEBUG] record_checkpoint_stats:"
             puts "      Tags: #{tags.inspect}"
@@ -466,16 +491,29 @@ module Datadog
 
         # Serialize buckets to match Python implementation format
         def serialize_buckets
+          puts "🔍 [SERIALIZE DEBUG] Starting serialize_buckets"
+          puts "🔍 [SERIALIZE DEBUG] Total buckets: #{@buckets.size}"
+          
           serialized_buckets = []
           bucket_keys_to_clear = []
 
           @buckets.each do |bucket_time_ns, bucket|
+            puts "🔍 [SERIALIZE DEBUG] Processing bucket: #{bucket_time_ns}"
+            puts "🔍 [SERIALIZE DEBUG] Bucket pathway_stats count: #{bucket[:pathway_stats].size}"
+            
             bucket_keys_to_clear << bucket_time_ns
 
             # Serialize pathway stats for this bucket
             bucket_stats = []
-            bucket[:pathway_stats].each do |aggr_key, stats|
+            bucket[:pathway_stats].each_with_index do |(aggr_key, stats), index|
               edge_tags_str, hash_value, parent_hash = aggr_key
+              puts "🔍 [SERIALIZE DEBUG] Entry #{index}:"
+              puts "   Aggr key: #{aggr_key.inspect}"
+              puts "   Edge tags str: '#{edge_tags_str}'"
+              puts "   Hash value: #{hash_value}"
+              puts "   Parent hash: #{parent_hash}"
+              puts "   Stats keys: #{stats.keys}"
+              
               bucket_stats << {
                 'EdgeTags' => edge_tags_str.split(','),
                 'Hash' => hash_value,
@@ -502,12 +540,24 @@ module Datadog
               }
             end
 
+            puts "🔍 [SERIALIZE DEBUG] Final bucket_stats count: #{bucket_stats.size}"
+            puts "🔍 [SERIALIZE DEBUG] Final backlogs count: #{backlogs.size}"
+            
             serialized_buckets << {
               'Start' => bucket_time_ns,
               'Duration' => @bucket_size_ns,
               'Stats' => bucket_stats,
               'Backlogs' => backlogs + serialize_consumer_backlogs
             }
+          end
+
+          puts "🔍 [SERIALIZE DEBUG] Total serialized buckets: #{serialized_buckets.size}"
+          puts "🔍 [SERIALIZE DEBUG] Serialized buckets structure:"
+          serialized_buckets.each_with_index do |bucket, index|
+            puts "   Bucket #{index}: Start=#{bucket['Start']}, Stats count=#{bucket['Stats'].size}"
+            bucket['Stats'].each_with_index do |stat, stat_index|
+              puts "     Stat #{stat_index}: EdgeTags=#{stat['EdgeTags']}, Hash=#{stat['Hash']}, ParentHash=#{stat['ParentHash']}"
+            end
           end
 
           # Clear processed buckets (like Python)
