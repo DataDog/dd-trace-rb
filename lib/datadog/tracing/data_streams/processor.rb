@@ -22,8 +22,7 @@ module Datadog
 
           @enabled = true
           @pathway_context = PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
-          @bucket_size_ns = (10 * 1e9).to_i # 10 second buckets like Python
-          @buckets = {} # Time-based buckets for stats
+          @bucket_size_ns = (10 * 1e9).to_i # 10 second buckets           @buckets = {} # Time-based buckets for stats
           @consumer_stats = []
           @stats_mutex = Mutex.new
           @ddsketch_class = ddsketch_class # Store for creating new sketches
@@ -40,23 +39,11 @@ module Datadog
 
           now_sec ||= Time.now.to_f
 
-          # Get or create current context (matching Python threading.local behavior)
+          # Get or create current context ( threading.local behavior)
           current_context = get_current_context
-
-          # Sort tags like Python (line 471)
-          original_tags = tags.dup
           tags = tags.sort
 
-          # DEBUG: Log the checkpoint creation details
-          puts "🔍 [DSM DEBUG] set_checkpoint called:"
-          puts "   Original tags: #{original_tags.inspect}"
-          puts "   Sorted tags: #{tags.inspect}"
-          puts "   Current context hash: #{current_context.hash}"
-          puts "   Current context parent_hash: #{current_context.parent_hash}"
-          puts "   Current context previous_direction: '#{current_context.previous_direction}'"
-
-          # Extract direction like Python (lines 472-476)
-          direction = ""
+          # Extract direction            direction = ""
           tags.each do |tag|
             if tag.start_with?("direction:")
               direction = tag
@@ -64,7 +51,7 @@ module Datadog
             end
           end
 
-          # Loop detection logic (matching Python lines 477-489)
+          # Loop detection logic ( lines 477-489)
           # Only apply loop detection if there's a direction tag and it matches the previous direction
           if !direction.empty? && direction == current_context.previous_direction
             # Same direction - reuse hash from opposite direction
@@ -84,12 +71,9 @@ module Datadog
             current_context.closest_opposite_direction_edge_start = current_context.current_edge_start_sec
           end
 
-          # Calculate new pathway hash from current hash + tags (matching Python line 498)
           parent_hash = current_context.hash
           new_hash = compute_pathway_hash(parent_hash, tags)
 
-
-          # Calculate edge latency (time since last checkpoint) - matching Python line 501
           edge_latency_sec = [now_sec - current_context.current_edge_start_sec, 0.0].max
           full_pathway_latency_sec = [now_sec - current_context.pathway_start_sec, 0.0].max
 
@@ -107,16 +91,11 @@ module Datadog
             timestamp_sec: now_sec
           )
 
-          # Update pathway context (matching Python lines 503-504)
+          # Update pathway context ( lines 503-504)
           current_context.hash = new_hash
           current_context.current_edge_start_sec = now_sec
 
           # DEBUG: Log final state
-          puts "   Final context hash: #{current_context.hash}"
-          puts "   Final context parent_hash: #{current_context.parent_hash}"
-          puts "   Final context previous_direction: '#{current_context.previous_direction}'"
-          puts "   Final context closest_opposite_direction_hash: #{current_context.closest_opposite_direction_hash}"
-          puts "🔍 [DSM DEBUG] set_checkpoint completed\n"
 
           # Return encoded context for propagation
           current_context.encode_b64
@@ -129,11 +108,11 @@ module Datadog
           partition_key = "#{topic}:#{partition}"
 
           @stats_mutex.synchronize do
-            # Calculate bucket time (align to bucket boundaries like Python)
+            # Calculate bucket time (align to bucket boundaries )
             bucket_size_ns = 10 * 1e9 # 10 second buckets
             bucket_time_ns = now_ns - (now_ns % bucket_size_ns)
 
-            # Track latest produce offset for this partition (like Python)
+            # Track latest produce offset for this partition ()
             @produce_offsets ||= {}
             @produce_offsets[bucket_time_ns] ||= {}
             @produce_offsets[bucket_time_ns][partition_key] = [
@@ -152,11 +131,11 @@ module Datadog
           consumer_key = "#{group}:#{topic}:#{partition}"
 
           @stats_mutex.synchronize do
-            # Calculate bucket time (align to bucket boundaries like Python)
+            # Calculate bucket time (align to bucket boundaries )
             bucket_size_ns = 10 * 1e9 # 10 second buckets
             bucket_time_ns = now_ns - (now_ns % bucket_size_ns)
 
-            # Track latest commit offset for this consumer group/partition (like Python)
+            # Track latest commit offset for this consumer group/partition ()
             @commit_offsets ||= {}
             @commit_offsets[bucket_time_ns] ||= {}
             @commit_offsets[bucket_time_ns][consumer_key] = [
@@ -201,7 +180,7 @@ module Datadog
             # Check if we have data to send
             return if @buckets.empty? && @consumer_stats.empty?
 
-            # Build payload matching Python implementation format
+            # Build payload  implementation format
             stats_buckets = serialize_buckets
 
             payload = {
@@ -213,7 +192,7 @@ module Datadog
             }
 
 
-            # Send to agent (msgpack + gzip like Python)
+            # Send to agent (msgpack + gzip )
             send_stats_to_agent(payload)
 
             # Clear consumer stats after successful send (buckets cleared in serialize_buckets)
@@ -230,7 +209,7 @@ module Datadog
           get_current_context
         end
 
-        # Get or create current context (matching Python threading.local behavior)
+        # Get or create current context ( threading.local behavior)
         def get_current_context
           @pathway_context ||= PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
         end
@@ -257,24 +236,24 @@ module Datadog
 
         private
 
-        # Compute new pathway hash using FNV-1a algorithm (matching Python implementation)
+        # Compute new pathway hash using FNV-1a algorithm ( implementation)
         # Combines service, env, tags, and parent hash to create unique pathway identifier
         def compute_pathway_hash(current_hash, tags)
-          # Get service and environment (matching Python: self.service + self.env)
+          # Get service and environment (: self.service + self.env)
           service = Datadog.configuration.service || 'ruby-service'
           env = Datadog.configuration.env || 'none'
 
-          # Build byte string: service + env + tags (matching Python)
+          # Build byte string: service + env + tags ()
           bytes = service.bytes + env.bytes
           tags.each { |tag| bytes += tag.bytes }
 
           # Convert to string for FNV function
           byte_string = bytes.pack('C*')
 
-          # First hash: FNV-1a of service + env + tags (matching Python node_hash)
+          # First hash: FNV-1a of service + env + tags ( node_hash)
           node_hash = fnv1_64(byte_string)
 
-          # Second hash: FNV-1a of (node_hash + parent_hash) (matching Python)
+          # Second hash: FNV-1a of (node_hash + parent_hash) ()
           combined_bytes = [node_hash, current_hash].pack('QQ') # Little-endian 64-bit
           final_hash = fnv1_64(combined_bytes)
 
@@ -282,7 +261,7 @@ module Datadog
           final_hash
         end
 
-        # FNV-1a 64-bit hash function (matching Python fnv1_64)
+        # FNV-1a 64-bit hash function ( fnv1_64)
         def fnv1_64(data)
           # FNV-1a 64-bit constants
           fnv_offset_basis = 14695981039346656037 # 0xcbf29ce484222325
@@ -296,10 +275,10 @@ module Datadog
           hash_value
         end
 
-        # Record stats for this checkpoint (matching Python implementation)
+        # Record stats for this checkpoint ( implementation)
         def record_checkpoint_stats(hash:, parent_hash:, edge_latency_sec:, payload_size:, tags:, timestamp_sec:)
           @stats_mutex.synchronize do
-            # Calculate bucket time (align to bucket boundaries like Python)
+            # Calculate bucket time (align to bucket boundaries )
             now_ns = (timestamp_sec * 1e9).to_i
             bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
 
@@ -307,7 +286,7 @@ module Datadog
             # Get or create bucket for this time window
             bucket = @buckets[bucket_time_ns] ||= create_bucket
 
-            # Get or create stats for this pathway (Python: aggr_key = (",".join(edge_tags), hash_value, parent_hash))
+            # Get or create stats for this pathway ( aggr_key = (",".join(edge_tags), hash_value, parent_hash))
             aggr_key = [tags.join(','), hash, parent_hash]
 
 
@@ -315,7 +294,7 @@ module Datadog
 
 
 
-            # Add latencies to DDSketch (like Python)
+            # Add latencies to DDSketch ()
             full_pathway_latency_sec = timestamp_sec - @pathway_context.pathway_start_sec
             stats[:edge_latency].add(edge_latency_sec)
             stats[:full_pathway_latency].add(full_pathway_latency_sec)
@@ -382,23 +361,16 @@ module Datadog
           buckets
         end
 
-        # Send stats payload to Datadog agent (matching Python implementation)
+        # Send stats payload to Datadog agent ( implementation)
         def send_stats_to_agent(payload)
-          puts "🔍 [AGENT PAYLOAD DEBUG] Sending DSM payload to agent:"
-          puts "   Service: #{payload['Service']}"
-          puts "   Stats buckets: #{payload['Stats'].size}"
-          payload['Stats'].each_with_index do |bucket, i|
-            puts "   Bucket #{i}: #{bucket['Stats'].size} pathway stats"
-          end
 
-          # Use msgpack encoding like Python
-          require 'msgpack'
+          # Use msgpack encoding           require 'msgpack'
           msgpack_data = MessagePack.pack(payload)
 
-          # Always compress like Python implementation
+          # Always compress  implementation
           compressed_data = gzip_compress(msgpack_data)
 
-          # Headers matching Python format
+          # Headers  format
           headers = {
             'Content-Type' => 'application/msgpack',
             'Content-Encoding' => 'gzip',
@@ -406,7 +378,6 @@ module Datadog
             'Datadog-Meta-Tracer-Version' => Datadog::VERSION::STRING
           }
 
-          puts "🔍 [AGENT PAYLOAD DEBUG] Payload sizes: msgpack=#{msgpack_data.bytesize}b, compressed=#{compressed_data.bytesize}b"
 
           # Send to agent using proper transport infrastructure
           response = send_dsm_payload(compressed_data, headers)
@@ -446,7 +417,7 @@ module Datadog
           Zlib.gzip(data)
         end
 
-        # Serialize buckets to match Python implementation format
+        # Serialize buckets
         def serialize_buckets
 
           serialized_buckets = []
@@ -462,9 +433,7 @@ module Datadog
               edge_tags_str, hash_value, parent_hash = aggr_key
 
               edge_tags_array = edge_tags_str.split(',')
-              puts "🔍 [DIRECTION DEBUG] EdgeTags being sent: #{edge_tags_array.inspect}"
-              puts "🔍 [DIRECTION DEBUG] EdgeTags string: '#{edge_tags_str}'"
-              
+
               bucket_stats << {
                 'EdgeTags' => edge_tags_array,
                 'Hash' => hash_value,
@@ -501,13 +470,13 @@ module Datadog
           end
 
 
-          # Clear processed buckets (like Python)
+          # Clear processed buckets ()
           bucket_keys_to_clear.each { |key| @buckets.delete(key) }
 
           serialized_buckets
         end
 
-        # Serialize consumer offset data as backlogs (matching Python)
+        # Serialize consumer offset data as backlogs ()
         def serialize_consumer_backlogs
           @consumer_stats.map do |stat|
             {
@@ -526,7 +495,7 @@ module Datadog
           Core::Environment::Socket.hostname
         end
 
-        # Create a new time bucket (matching Python bucket structure)
+        # Create a new time bucket ( bucket structure)
         def create_bucket
           {
             pathway_stats: {},
@@ -535,7 +504,7 @@ module Datadog
           }
         end
 
-        # Create pathway stats with DDSketch instances (matching Python PathwayStats)
+        # Create pathway stats with DDSketch instances ( PathwayStats)
         def create_pathway_stats
           {
             edge_latency: @ddsketch_class.new,

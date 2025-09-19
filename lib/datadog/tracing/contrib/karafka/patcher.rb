@@ -54,7 +54,7 @@ module Datadog
                 if defined?(::Karafka::App) && ::Karafka::App.config
                   consumer_group = ::Karafka::App.config.client_id || 'default'
                 end
-                
+
                 processor.set_checkpoint(['topic:' + message.topic, 'direction:in', 'type:kafka', 'group:' + consumer_group], Time.now.to_f)
               end
 
