@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Event
+        class AppEndpointsLoaded < Base
+          type serialized_endpoint = Hash[Symbol, String]
+
+          def initialize: (Array[serialized_endpoint] serialized_endpoints) -> void
+
+          def type: () -> "app-endpoints"
+
+          def payload: (is_first: bool) -> Hash[Symbol, bool | Array[serialized_endpoint]]
+        end
+      end
+    end
+  end
+end

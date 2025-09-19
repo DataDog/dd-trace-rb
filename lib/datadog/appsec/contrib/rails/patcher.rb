@@ -38,6 +38,7 @@ module Datadog
             patch_before_initialize
             patch_after_initialize
             patch_action_controller
+            subscribe_to_routes_loaded
 
             Patcher.instance_variable_set(:@patched, true)
           end
@@ -128,6 +129,15 @@ module Datadog
               GUARD_ACTION_CONTROLLER_ONCE_PER_APP[self].run do
                 ::ActionController::Base.prepend(Patches::RenderToBodyPatch)
               end
+            end
+          end
+
+          def subscribe_to_routes_loaded
+            ::ActiveSupport.on_load(:after_routes_loaded) do |app|
+              APISecurity::EndpointCollection::TelemetryReporter.new(
+                routes: app.routes.routes,
+                serializer: APISecurity::EndpointCollection::RailsRoutesSerializer
+              )
             end
           end
 
