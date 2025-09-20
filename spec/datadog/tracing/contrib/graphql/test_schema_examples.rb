@@ -2,6 +2,9 @@ require 'graphql'
 require 'ostruct'
 
 require_relative 'test_helpers'
+require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/graphql/unified_trace_patcher'
+require 'datadog'
 
 def load_test_schema(prefix: '')
   # rubocop:disable Security/Eval
@@ -142,7 +145,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
   let(:service) { defined?(super) ? super() : tracer.default_service }
 
   describe 'query trace' do
-    subject(:result) { schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 }) }
+    subject(:result) { schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: {var: 1}) }
 
     matrix = [
       ['graphql.analyze', 'query Users($var: ID!){ user(id: $var) { name } }'],
@@ -168,7 +171,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
     matrix.each_with_index do |(name, resource), index|
       it "creates #{name} span with #{resource} resource" do
         expect(result.to_h['errors']).to be nil
-        expect(result.to_h['data']).to eq({ 'user' => { 'name' => 'Bits' } })
+        expect(result.to_h['data']).to eq({'user' => {'name' => 'Bits'}})
 
         expect(spans).to have(matrix.length).items
         span = spans[index]
@@ -266,7 +269,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
               'extensions.bool' => true,
               'extensions.str' => '1',
               'extensions.array-1-2' => '[1, "2"]',
-              'extensions.hash-a-b' => { a: 'b' }.to_s, # Hash#to_s changes per Ruby version: 3.3: '{:a=>1}', 3.4: '{a: 1}'
+              'extensions.hash-a-b' => {a: 'b'}.to_s, # Hash#to_s changes per Ruby version: 3.3: '{:a=>1}', 3.4: '{a: 1}'
               'extensions.object' => start_with('#<Object:'),
             }
           )
@@ -309,7 +312,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
 
     context 'with no configuration (default behavior)' do
       it 'does not capture any variables' do
-        schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+        schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: {var: 1})
 
         expect(graphql_execute.get_tag('graphql.operation.variable.var')).to be_nil
       end
@@ -325,7 +328,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       end
 
       it 'captures configured variables' do
-        schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+        schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: {var: 1})
 
         expect(graphql_execute.get_tag('graphql.operation.variable.var')).to eq(1)
       end
@@ -333,7 +336,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       it 'does not capture unconfigured variables' do
         schema.execute(
           query: 'query GetUser($id: ID!, $org: ID!){ userWithOrg(id: $id, org: $org) { name } }',
-          variables: { id: 1, org: 2 }
+          variables: {id: 1, org: 2}
         )
 
         expect(graphql_execute.get_tag('graphql.operation.variable.id')).to eq(1)
@@ -341,7 +344,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       end
 
       it 'does not capture variables for different operations' do
-        schema.execute(query: 'query DifferentOp($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+        schema.execute(query: 'query DifferentOp($var: ID!){ user(id: $var) { name } }', variables: {var: 1})
 
         expect(graphql_execute.get_tag('graphql.operation.variable.var')).to be_nil
       end
@@ -361,7 +364,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       it 'captures variables except those in the except list' do
         schema.execute(
           query: 'query Users($var: ID!, $org: ID!){ userWithOrg(id: $var, org: $org) { name } }',
-          variables: { var: 1, org: 2 }
+          variables: {var: 1, org: 2}
         )
 
         expect(graphql_execute.get_tag('graphql.operation.variable.var')).to eq(1)
@@ -380,7 +383,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       it 'captures all variables except those in the except list' do
         schema.execute(
           query: 'query Users($var: ID!, $org: ID!){ userWithOrg(id: $var, org: $org) { name } }',
-          variables: { var: 1, org: 2 }
+          variables: {var: 1, org: 2}
         )
 
         expect(graphql_execute.get_tag('graphql.operation.variable.var')).to eq(1)
@@ -414,7 +417,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       it 'serializes integer variables correctly' do
         schema.execute(
           query: 'query TestIntQuery($intVar: Int!){ userWithDetails(id: "1", count: $intVar) { name } }',
-          variables: { intVar: 42 }
+          variables: {intVar: 42}
         )
 
         expect(graphql_execute.get_tag('graphql.operation.variable.intVar')).to eq(42)
@@ -423,20 +426,20 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       it 'serializes string variables correctly' do
         schema.execute(
           query: 'query TestStringQuery($stringVar: String!){ userWithDetails(id: "1", name: $stringVar) { name } }',
-          variables: { stringVar: 'hello' }
+          variables: {stringVar: 'hello'}
         )
 
         expect(graphql_execute.get_tag('graphql.operation.variable.stringVar')).to eq('hello')
       end
 
       [
-        { value: true, expected: 'true' },
-        { value: false, expected: 'false' }
+        {value: true, expected: 'true'},
+        {value: false, expected: 'false'}
       ].each do |test_case|
         it "serializes #{test_case[:value]} boolean correctly" do
           schema.execute(
             query: 'query TestBoolQuery($boolVar: Boolean!){ userWithFilter(id: "1", active: $boolVar) { name } }',
-            variables: { boolVar: test_case[:value] }
+            variables: {boolVar: test_case[:value]}
           )
 
           expect(graphql_execute.get_tag('graphql.operation.variable.boolVar')).to eq(test_case[:expected])
@@ -446,7 +449,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       it 'serializes ID variables correctly' do
         schema.execute(
           query: 'query TestIdQuery($idVar: ID!){ user(id: $idVar) { name } }',
-          variables: { idVar: 'user123' }
+          variables: {idVar: 'user123'}
         )
 
         expect(graphql_execute.get_tag('graphql.operation.variable.idVar')).to eq('user123')
@@ -455,23 +458,23 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
       it 'serializes custom input object variables correctly' do
         # Create a Ruby hash that represents a GraphQL input object
         # Use camelCase for GraphQL field names
-        input_object = { name: 'John', active: true, minAge: 18 }
+        input_object = {name: 'John', active: true, minAge: 18}
 
         # For schemas without prefix, use the base type name
         input_type_name = if defined?(TraceWithTestUserFilterInput)
-                            'TraceWithTestUserFilterInput'
-                          else
-                            'TestUserFilterInput'
-                          end
+          'TraceWithTestUserFilterInput'
+        else
+          'TestUserFilterInput'
+        end
 
         schema.execute(
           query: "query TestInputQuery($inputVar: #{input_type_name}!){ userWithInputFilter(id: \"1\", filter: $inputVar) { name } }",
-          variables: { inputVar: input_object }
+          variables: {inputVar: input_object}
         )
 
         # Custom input objects should be serialized as strings using to_s
         # GraphQL converts hash keys from symbols to strings, so we expect the string key version
-        expected_serialized = { 'name' => 'John', 'active' => true, 'minAge' => 18 }.to_s
+        expected_serialized = {'name' => 'John', 'active' => true, 'minAge' => 18}.to_s
         expect(graphql_execute.get_tag('graphql.operation.variable.inputVar')).to eq(expected_serialized)
       end
     end

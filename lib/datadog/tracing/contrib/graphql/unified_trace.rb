@@ -23,6 +23,17 @@ module Datadog
             @analytics_sample_rate = config[:analytics_sample_rate]
             @error_extensions_config = config[:error_extensions]
 
+            @capture_variables = config[:capture_variables]
+            @capture_variables_except = config[:capture_variables_except]
+
+            @capture_mode = if !@capture_variables.empty?
+              :allowlist
+            elsif !@capture_variables_except.empty?
+              :denylist
+            else
+              nil # No variable capture configured
+            end
+
             load_error_event_attributes(config[:error_tracking])
 
             super
@@ -98,7 +109,6 @@ module Datadog
                   )
                 end
 
-                # Capture operation variables based on configuration
                 capture_operation_variables(span, query)
               },
               ->(span) { add_query_error_events(span, query.context.errors) },
@@ -179,44 +189,31 @@ module Datadog
 
           private
 
-          # Captures GraphQL operation variables based on configuration settings
           def capture_operation_variables(span, query)
-            config = Datadog.configuration.tracing[:graphql]
-            capture_config = config[:capture_variables]
-            capture_except_config = config[:capture_variables_except]
-
-            return if capture_config.empty? && capture_except_config.empty?
+            return unless @capture_mode
 
             operation_name = query.selected_operation_name
             return unless operation_name
 
-            query.variables.to_h.each do |variable_name, value|
-              variable_name_str = variable_name.to_s
+            capture_vars = @capture_variables.matcher_for(operation_name)
+            except_vars = @capture_variables_except.matcher_for(operation_name)
 
-              should_capture = should_capture_variable?(
-                operation_name,
-                variable_name_str,
-                capture_config,
-                capture_except_config
-              )
-
-              if should_capture
-                serialized_value = serialize_variable_value(value)
-                span.set_tag("graphql.operation.variable.#{variable_name_str}", serialized_value)
+            query.variables.to_h.each do |name, value|
+              if capture_variable?(name, capture_vars, except_vars)
+                # GraphQL variable `name` is always a valid span tag name, as per GraphQL spec
+                span.set_tag(
+                  "graphql.operation.variable.#{name}",
+                  serialize_variable_value(value)
+                )
               end
             end
           end
 
-          def should_capture_variable?(operation_name, variable_name, capture_config, capture_except_config)
-            capture_match = capture_config.match?(operation_name, variable_name)
-            except_match = capture_except_config.match?(operation_name, variable_name)
-
-            if !capture_config.empty?
-              capture_match && !except_match
-            elsif !capture_except_config.empty?
-              !except_match
-            else
-              false
+          def capture_variable?(name, capture_vars, except_vars)
+            if @capture_mode == :allowlist # Is in capture list and not in except list
+              capture_vars.member?(name) && !except_vars.member?(name)
+            elsif @capture_mode == :denylist # Capture if not in except list
+              !except_vars.member?(name)
             end
           end
 
@@ -227,6 +224,7 @@ module Datadog
             when Integer, Float, String
               value
             else
+              # Fallback for string representation for other types
               value.to_s
             end
           end
