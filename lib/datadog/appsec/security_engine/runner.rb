@@ -47,11 +47,12 @@ module Datadog
 
           klass = (result.status == :match) ? Result::Match : Result::Ok
           klass.new(
-            events: result.events,
-            actions: result.actions,
-            derivatives: result.derivatives,
-            timeout: result.timeout,
-            duration_ns: result.total_runtime,
+            events: result.events,         #: SecurityEngine::Result::events
+            actions: result.actions,       #: SecurityEngine::Result::actions
+            attributes: result.attributes, #: SecurityEngine::Result::attributes
+            keep: result.keep?,
+            timeout: result.timeout?,
+            duration_ns: result.duration,
             duration_ext_ns: (stop_ns - start_ns),
             input_truncated: result.input_truncated?
           )
@@ -81,11 +82,19 @@ module Datadog
           Datadog.logger.debug { "#{@debug_tag} execution error: #{e} backtrace: #{e.backtrace&.first(3)}" }
           AppSec.telemetry.report(e, description: 'libddwaf-rb internal low-level error')
 
-          WAF::Result.new(:err_internal, [], 0, false, [], [])
+          WAF::Result.new(
+            status: :err_internal,
+            events: [],
+            actions: {},
+            attributes: {},
+            duration: 0,
+            keep: false,
+            timeout: false
+          )
         end
 
         def report_execution(result)
-          Datadog.logger.debug { "#{@debug_tag} execution timed out: #{result.inspect}" } if result.timeout
+          Datadog.logger.debug { "#{@debug_tag} execution timed out: #{result.inspect}" } if result.timeout?
 
           if SUCCESSFUL_EXECUTION_CODES.include?(result.status)
             Datadog.logger.debug { "#{@debug_tag} execution result: #{result.inspect}" }
