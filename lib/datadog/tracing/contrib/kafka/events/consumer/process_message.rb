@@ -22,11 +22,6 @@ module Datadog
               def on_start(span, event, id, payload)
                 super
 
-                puts '=' * 100
-                puts "Payload: #{payload}"
-                puts "Keys: #{payload.keys}"
-                puts '=' * 100
-
                 span.resource = payload[:topic]
 
                 span.set_tag(Ext::TAG_TOPIC, payload[:topic]) if payload.key?(:topic)
