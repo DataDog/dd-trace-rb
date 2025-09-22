@@ -272,6 +272,44 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
+  describe '#app_endpoints_loaded' do
+    let(:serialized_endpoints) do
+      [{
+        type: "REST",
+        resource_name: "GET /events",
+        operation_name: "http.request",
+        method: "GET",
+        path: "/events"
+      }]
+    end
+
+    after do
+      telemetry.shutdown!
+    end
+
+    context 'when disabled' do
+      let(:enabled) { false }
+
+      it do
+        telemetry.app_endpoints_loaded(serialized_endpoints, is_first_event: true)
+
+        expect(worker).not_to have_received(:enqueue)
+      end
+    end
+
+    context 'when enabled' do
+      let(:enabled) { true }
+
+      it do
+        telemetry.app_endpoints_loaded(serialized_endpoints, is_first_event: true)
+
+        expect(worker).to have_received(:enqueue).with(
+          an_instance_of(Datadog::Core::Telemetry::Event::AppEndpointsLoaded)
+        )
+      end
+    end
+  end
+
   describe 'includes Datadog::Core::Telemetry::Logging' do
     after do
       telemetry.shutdown!
