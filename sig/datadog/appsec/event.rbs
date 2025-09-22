@@ -14,9 +14,9 @@ module Datadog
 
       type tags = ::Hash[::String, ::String]
 
-      DERIVATIVE_SCHEMA_KEY_PREFIX: ::String
+      ATTRIBUTES_SCHEMA_KEY_PREFIX: ::String
 
-      DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE: ::Integer
+      ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE: ::Integer
 
       ALLOWED_REQUEST_HEADERS: ::Array[::String]
 

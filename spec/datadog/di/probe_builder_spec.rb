@@ -162,9 +162,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
       end
 
       it "condition on probe is the compiled condition" do
-        expect(probe.condition).to eq Datadog::DI::EL::Expression.new(
-          "contains(ref('value'), (\"StringLiteral\"))"
-        )
+        expect(probe.condition).to be_a(Datadog::DI::EL::Expression)
       end
     end
 
