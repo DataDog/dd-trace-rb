@@ -19,7 +19,7 @@ module Datadog
 
           def payload
             {
-              is_first_event: @is_first_event,
+              is_first: @is_first_event,
               endpoints: @serialized_endpoints
             }
           end
