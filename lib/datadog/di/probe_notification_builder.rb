@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# rubocop:disable Lint/AssignmentInCondition
+
 module Datadog
   module DI
     # Builds probe status notification and snapshot payloads.
@@ -193,3 +195,5 @@ module Datadog
     end
   end
 end
+
+# rubocop:enable Lint/AssignmentInCondition

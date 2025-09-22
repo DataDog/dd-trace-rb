@@ -145,7 +145,7 @@ module Datadog
                 end
               rescue NoMemoryError, Interrupt, SystemExit
                 raise
-              rescue Exception => exc
+              rescue Exception => exc # standard:disable Lint/RescueException
                 # We will raise the exception captured here later, after
                 # the instrumentation callback runs.
               end
