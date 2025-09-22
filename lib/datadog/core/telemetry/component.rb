@@ -165,6 +165,13 @@ module Datadog
           @worker.enqueue(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
         end
 
+        # Report application endpoints
+        def app_endpoints_loaded(serialized_endpoints, is_first_event:)
+          return if !@enabled || forked?
+
+          @worker.enqueue(Event::AppEndpointsLoaded.new(serialized_endpoints, is_first_event: is_first_event))
+        end
+
         # Increments a count metric.
         def inc(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.inc(namespace, metric_name, value, tags: tags, common: common)
