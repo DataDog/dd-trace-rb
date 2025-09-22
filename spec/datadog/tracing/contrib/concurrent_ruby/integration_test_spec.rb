@@ -227,7 +227,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       thread_pool_executor.wait_for_termination(5)
     end
 
-    let(:thread_pool_executor) { Concurrent::ThreadPoolExecutor.new(max_threads: 2, max_queue: 2) }
+    let(:thread_pool_executor) { Concurrent::ThreadPoolExecutor.new(  min_threads: 2,max_threads: 2, max_queue: 2) }
 
     context 'when context propagation is disabled' do
       it_behaves_like 'deferred execution'
