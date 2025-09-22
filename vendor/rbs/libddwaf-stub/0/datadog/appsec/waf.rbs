@@ -171,7 +171,7 @@ module Datadog
       class Context
         @context_ptr: ::FFI::Pointer
 
-        @retained: Array[top]
+        @retained: Array[untyped]
 
         RESULT_CODE: ::Hash[::Symbol, ::Symbol]
 
@@ -185,7 +185,7 @@ module Datadog
 
         def ensure_pointer_presence!: () -> void
 
-        def retained: () -> Array[top]
+        def retained: () -> Array[untyped]
 
         def retain: (top object) -> void
 
