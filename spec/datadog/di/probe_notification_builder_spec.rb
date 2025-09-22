@@ -173,7 +173,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     context 'with template' do
       let(:probe) do
         Datadog::DI::Probe.new(id: '123', type: :log, file: 'X', line_no: 1,
-          template: 'hello world')
+          template_segments: ['hello world'])
       end
 
       let(:expected) do
@@ -342,7 +342,16 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
   describe '#evaluate_template' do
     context 'when there are variables to be substituted' do
-      let(:template) { "{@hello} {@world}" }
+      let(:compiler) { Datadog::DI::EL::Compiler.new }
+
+      let(:template_segments) do
+        [
+          compiler.compile('ref' => 'hello'),
+          ' ',
+          compiler.compile('ref' => 'world'),
+        ]
+      end
+
       let(:vars) do
         {
           hello: 'test',
@@ -362,7 +371,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       let(:expected) { %(test "'\\\\a\#{value}) }
 
       it 'substitutes correctly' do
-        expect(builder.send(:evaluate_template, template, context)).to eq(expected)
+        expect(builder.send(:evaluate_template, template_segments, context)).to eq(expected)
       end
     end
   end
