@@ -41,7 +41,7 @@ module Datadog
           # Ensures sampler is rebuilt and new configuration is applied
           def call(tracing_sampling_rate)
             super
-            Datadog.send(:components).reconfigure_live_sampler
+            Datadog.send(:components).reconfigure_sampler
           end
 
           protected
@@ -79,7 +79,7 @@ module Datadog
             end
 
             super
-            Datadog.send(:components).reconfigure_live_sampler
+            Datadog.send(:components).reconfigure_sampler
           end
 
           protected
