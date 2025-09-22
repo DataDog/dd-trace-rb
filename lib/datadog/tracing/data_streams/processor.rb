@@ -3,6 +3,7 @@
 require 'json'
 require 'datadog/core/ddsketch'
 require_relative 'pathway_context'
+require_relative 'pathway_codec'
 require_relative '../../version'
 
 module Datadog

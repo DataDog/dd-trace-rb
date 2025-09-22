@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../../data_streams/pathway_codec'
+
 module Datadog
   module Tracing
     module Contrib
@@ -27,9 +29,10 @@ module Datadog
                     # Create checkpoint with direction:out for producer
                     processor.set_checkpoint(['direction:out', 'type:kafka'], Time.now.to_f)
 
-                    # Set pathway context in headers for downstream consumers
+                    # Set pathway context in headers for downstream consumers using codec
                     message[:headers] ||= {}
-                    message[:headers]['dd-pathway-ctx-base64'] = processor.encode_pathway_context
+                    current_context = processor.get_current_pathway
+                    DataStreams::PathwayCodec.encode(current_context, message[:headers])
                   end
                 else
                   puts 'deliver_messages (DSM disabled)'
@@ -52,9 +55,10 @@ module Datadog
                     # Create checkpoint with direction:out for producer
                     processor.set_checkpoint(['direction:out', 'type:kafka'], Time.now.to_f)
 
-                    # Set pathway context in headers for downstream consumers
+                    # Set pathway context in headers for downstream consumers using codec
                     message[:headers] ||= {}
-                    message[:headers]['dd-pathway-ctx-base64'] = processor.encode_pathway_context
+                    current_context = processor.get_current_pathway
+                    DataStreams::PathwayCodec.encode(current_context, message[:headers])
                   end
                 else
                   puts 'send_messages (DSM disabled)'

@@ -3,6 +3,7 @@
 require_relative '../patcher'
 require_relative 'ext'
 require_relative 'distributed/propagation'
+require_relative '../../data_streams/pathway_codec'
 
 module Datadog
   module Tracing
@@ -45,8 +46,9 @@ module Datadog
 
                 processor = Datadog.configuration.tracing.data_streams.processor
 
-                # Extract and set pathway context from headers
-                processor.decode_and_set_pathway_context(headers)
+                # Extract and set pathway context from headers using codec
+                pathway_context = DataStreams::PathwayCodec.decode(headers, processor)
+                processor.set_pathway_context(pathway_context) if pathway_context
 
                 # Create checkpoint with topic tag and direction (consumer = in)
                 # Try to get consumer group from Karafka app configuration
@@ -55,7 +57,11 @@ module Datadog
                   consumer_group = ::Karafka::App.config.client_id || 'default'
                 end
 
-                processor.set_checkpoint(['topic:' + message.topic, 'direction:in', 'type:kafka', 'group:' + consumer_group], Time.now.to_f)
+                processor.set_checkpoint(
+                  ['topic:' + message.topic, 'direction:in', 'type:kafka',
+                   'group:' + consumer_group],
+                  Time.now.to_f
+                )
               end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
