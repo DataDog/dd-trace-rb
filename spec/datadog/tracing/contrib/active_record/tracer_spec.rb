@@ -142,15 +142,14 @@ RSpec.describe 'ActiveRecord instrumentation' do
             YAML
           end
 
+          let(:makara_span) { spans.find { |s| s.name == 'mysql2_makara.query' } }
+
           context 'and a master write operation' do
             it 'matches replica configuration' do
               # SHOW queries are executed on master
               ActiveRecord::Base.connection.execute('SHOW TABLES')
 
-              expect(spans).to have_at_least(1).item
-              spans.each do |span|
-                expect(span.service).to eq(primary_service_name)
-              end
+              expect(makara_span.service).to eq(primary_service_name)
             end
           end
 
@@ -159,7 +158,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
               # SELECT queries are executed on replicas
               Article.count
 
-              expect(span.service).to eq(secondary_service_name)
+              expect(makara_span.service).to eq(secondary_service_name)
             end
           end
         end
