@@ -173,8 +173,7 @@ module Datadog
                 probe: probe, settings: settings, serializer: serializer,
                 serialized_entry_args: serialized_entry_args,
                 caller_locations: caller_locs,
-                return_value: rv, duration: duration, exception: exc,
-              )
+                return_value: rv, duration: duration, exception: exc,)
 
               # & is to stop steep complaints, block is always present here.
               block&.call(context)

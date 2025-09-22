@@ -62,7 +62,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         let(:context) do
           Datadog::DI::EL::Context.new(
             settings: settings, serializer: serializer,
-            probe: probe, locals: locals, target_self: Object.new)
+            probe: probe, locals: locals, target_self: Object.new
+          )
         end
 
         it 'builds expected payload' do
@@ -114,7 +115,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           Datadog::DI::EL::Context.new(
             settings: settings, serializer: serializer,
             probe: probe, serialized_entry_args: serialized_entry_args,
-            target_self: Object.new)
+            target_self: Object.new
+          )
         end
 
         it 'builds expected payload' do

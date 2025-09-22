@@ -136,7 +136,7 @@ module Datadog
           ddsource: 'dd_debugger',
           message: probe.template && evaluate_template(probe.template,
             context),
-            #duration: duration ? duration * 1000 : 0),
+          #duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
         }
       end
