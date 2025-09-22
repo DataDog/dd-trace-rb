@@ -166,6 +166,9 @@ module Datadog
         end
 
         # Report application endpoints
+        #
+        # `is_first_event` attribute is set to true when endpoint data that is being sent
+        # should be appended to the endpoint data that we already have sent
         def app_endpoints_loaded(serialized_endpoints, is_first_event:)
           return if !@enabled || forked?
 
