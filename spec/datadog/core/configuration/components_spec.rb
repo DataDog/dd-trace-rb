@@ -443,7 +443,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '#reconfigure_sampler' do
-    subject(:reconfigure_sampler) { components.reconfigure_live_sampler }
+    subject(:reconfigure_sampler) { components.reconfigure_sampler }
 
     context 'with configuration changes' do
       before do
