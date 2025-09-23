@@ -29,13 +29,13 @@ module Datadog
 
             @messages_array.each do |message|
               trace_digest = if configuration[:distributed_tracing]
-                               headers = if message.metadata.respond_to?(:raw_headers)
-                                           message.metadata.raw_headers
-                                         else
-                                           message.metadata.headers
-                                         end
-                               Karafka.extract(headers)
-                             end
+                headers = if message.metadata.respond_to?(:raw_headers)
+                  message.metadata.raw_headers
+                else
+                  message.metadata.headers
+                end
+                Karafka.extract(headers)
+              end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME, continue_from: trace_digest) do |span, trace|
                 span.set_tag(Ext::TAG_OFFSET, message.metadata.offset)
