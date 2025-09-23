@@ -81,7 +81,7 @@ module Datadog
 
       def combine_args(args, kwargs, target_self)
         counter = 0
-        combined = args.each_with_object({}) do |value, c|
+        args.each_with_object({}) do |value, c|
           counter += 1
           # Conversion to symbol is needed here to put args ahead of
           # kwargs when they are merged below.

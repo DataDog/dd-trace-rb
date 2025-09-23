@@ -3,6 +3,7 @@
 require_relative '../core/utils/time'
 
 # rubocop:disable Lint/AssignmentInCondition
+# rubocop:disable Style/AndOr
 
 module Datadog
   module DI
@@ -516,3 +517,4 @@ module Datadog
 end
 
 # rubocop:enable Lint/AssignmentInCondition
+# rubocop:enable Style/AndOr
