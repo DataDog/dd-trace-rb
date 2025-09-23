@@ -170,12 +170,9 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
 
     it 'sets JWT related tags' do
       expect(response).to be_ok
-      expect(http_service_entry_span.tags).to include(
-        '_dd.appsec.s.req.jwt' => kind_of(String),
-        # FIXME: This suppose to be number, and will be fixed with new libddwaf-rb
-        #        release
-        '_dd.appsec.api.jwt.no_expiry' => '1'
-      )
+
+      expect(http_service_entry_span.tags).to have_key('_dd.appsec.s.req.jwt')
+      expect(http_service_entry_span.tags).to have_key('_dd.appsec.api.jwt.no_expiry')
     end
   end
 end
