@@ -41,7 +41,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
     context 'line probe' do
       let(:probe) do
-        Datadog::DI::Probe.new(id: '123', type: :log, file: 'X', line_no: 1, capture_snapshot: true)
+        Datadog::DI::Probe.new(
+          id: '123', type: :log, file: 'X', line_no: 1,
+          capture_snapshot: true)
       end
 
       context 'with snapshot' do
@@ -125,6 +127,57 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
           expect(captures).to eq(expected_captures)
         end
+      end
+
+      context 'with template segments' do
+        let(:probe_spec) do
+          {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
+            typeName: 'Foo', methodName: 'bar'},
+            segments: [
+              {str: 'hello'},
+              {json: {ref: 'bar'}},
+            ],
+          }
+        end
+
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+        end
+
+        let(:context) do
+          Datadog::DI::EL::Context.new(
+            settings: settings, serializer: serializer,
+            probe: probe,
+            target_self: Object.new,
+            locals: {
+              bar: 42,
+            },
+          )
+        end
+
+        it 'builds expected message' do
+          payload = builder.build_snapshot(context)
+          expect(payload).to be_a(Hash)
+          expect(payload[:message]).to eq 'hello42'
+        end
+
+        context 'when variables are referenced but none are passed in' do
+          let(:context) do
+            Datadog::DI::EL::Context.new(
+              settings: settings, serializer: serializer,
+              probe: probe,
+              target_self: Object.new,
+            )
+          end
+
+          it 'builds message with nothing substituted for variables' do
+            payload = builder.build_snapshot(context)
+            expect(payload).to be_a(Hash)
+            expect(payload[:message]).to eq 'hello'
+          end
+
+        end
+
       end
     end
   end
