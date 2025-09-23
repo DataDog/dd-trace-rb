@@ -23,7 +23,8 @@ module Datadog
 
           @enabled = true
           @pathway_context = PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
-          @bucket_size_ns = (10 * 1e9).to_i # 10 second buckets           @buckets = {} # Time-based buckets for stats
+          @bucket_size_ns = (10 * 1e9).to_i # 10 second buckets
+          @buckets = {} # Time-based buckets for stats
           @consumer_stats = []
           @stats_mutex = Mutex.new
           @ddsketch_class = ddsketch_class # Store for creating new sketches
