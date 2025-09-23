@@ -20,13 +20,21 @@ module Datadog
           end
 
           def patch
+            puts "🔍 [WATERDROP PATCHER] Patch method called"
             # Patch WaterDrop::Producer to add our middleware and event subscription
-            patch_producer if defined?(::WaterDrop::Producer)
+            if defined?(::WaterDrop::Producer)
+              puts "🔍 [WATERDROP PATCHER] WaterDrop::Producer is defined, patching..."
+              patch_producer
+            else
+              puts "🔍 [WATERDROP PATCHER] WaterDrop::Producer is NOT defined, skipping patch"
+            end
           end
 
           def patch_producer
+            puts "🔍 [WATERDROP PATCHER] Patching WaterDrop::Producer"
             require_relative 'instrumentation/producer'
             ::WaterDrop::Producer.prepend(Instrumentation::Producer)
+            puts "🔍 [WATERDROP PATCHER] WaterDrop::Producer patched successfully"
           end
         end
       end
