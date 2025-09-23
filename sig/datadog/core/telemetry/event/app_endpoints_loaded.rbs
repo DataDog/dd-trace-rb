@@ -12,9 +12,9 @@ module Datadog
           }
 
           @endpoints: Array[endpoint]
-          @is_initial: bool
+          @is_first: bool
 
-          def initialize: (Array[endpoint] endpoints, is_initial: bool) -> void
+          def initialize: (Array[endpoint] endpoints, is_first: bool) -> void
 
           def type: () -> "app-endpoints"
 

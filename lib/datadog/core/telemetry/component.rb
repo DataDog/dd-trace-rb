@@ -170,7 +170,7 @@ module Datadog
           return if !@enabled || forked?
 
           endpoints.each_slice(page_size).with_index do |endpoints_slice, i|
-            @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints_slice, is_initial: i.zero?))
+            @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints_slice, is_first: i.zero?))
           end
         end
 

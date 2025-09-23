@@ -3,7 +3,7 @@ require "spec_helper"
 require "datadog/core/telemetry/event/app_endpoints_loaded"
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppEndpointsLoaded do
-  subject(:event) { described_class.new(endpoints, is_initial: false) }
+  subject(:event) { described_class.new(endpoints, is_first: false) }
 
   let(:endpoints) do
     [{

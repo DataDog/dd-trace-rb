@@ -8,9 +8,9 @@ module Datadog
       module Event
         # Telemetry event class for sending 'app-endpoints' payload
         class AppEndpointsLoaded < Base
-          def initialize(endpoints, is_initial:)
+          def initialize(endpoints, is_first:)
             @endpoints = endpoints
-            @is_initial = !!is_initial
+            @is_first = !!is_first
           end
 
           def type
@@ -19,7 +19,7 @@ module Datadog
 
           def payload
             {
-              is_first: @is_initial,
+              is_first: @is_first,
               endpoints: @endpoints
             }
           end
