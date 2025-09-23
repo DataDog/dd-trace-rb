@@ -273,7 +273,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   end
 
   describe '#app_endpoints_loaded' do
-    let(:serialized_endpoints) do
+    let(:endpoints) do
       [{
         type: "REST",
         resource_name: "GET /events",
@@ -291,7 +291,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       let(:enabled) { false }
 
       it do
-        telemetry.app_endpoints_loaded(serialized_endpoints, is_first_event: true)
+        telemetry.app_endpoints_loaded(endpoints, is_initial: true)
 
         expect(worker).not_to have_received(:enqueue)
       end
@@ -301,7 +301,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       let(:enabled) { true }
 
       it do
-        telemetry.app_endpoints_loaded(serialized_endpoints, is_first_event: true)
+        telemetry.app_endpoints_loaded(endpoints, is_initial: true)
 
         expect(worker).to have_received(:enqueue).with(
           an_instance_of(Datadog::Core::Telemetry::Event::AppEndpointsLoaded)

@@ -3,9 +3,9 @@ require "spec_helper"
 require "datadog/core/telemetry/event/app_endpoints_loaded"
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppEndpointsLoaded do
-  subject(:event) { described_class.new(serialized_endpoints, is_first_event: false) }
+  subject(:event) { described_class.new(endpoints, is_initial: false) }
 
-  let(:serialized_endpoints) do
+  let(:endpoints) do
     [{
       type: "REST",
       resource_name: "GET /events",
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppEndpointsLoaded do
 
   describe "#payload" do
     it "has endpoints attribute" do
-      expect(event.payload.fetch(:endpoints)).to eq(serialized_endpoints)
+      expect(event.payload.fetch(:endpoints)).to eq(endpoints)
     end
 
     it "has is_first attribute" do

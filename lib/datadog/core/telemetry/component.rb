@@ -167,12 +167,12 @@ module Datadog
 
         # Report application endpoints
         #
-        # `is_first_event` needs to be set to `false` when endpoint data that is being sent
+        # `is_initial` needs to be set to `false` when endpoint data that is being sent
         # should be appended in the backend to endpoint data that we already have sent
-        def app_endpoints_loaded(serialized_endpoints, is_first_event:)
+        def app_endpoints_loaded(endpoints, is_initial:)
           return if !@enabled || forked?
 
-          @worker.enqueue(Event::AppEndpointsLoaded.new(serialized_endpoints, is_first_event: is_first_event))
+          @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints, is_initial: is_initial))
         end
 
         # Increments a count metric.

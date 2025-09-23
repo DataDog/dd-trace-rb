@@ -32,7 +32,7 @@ module Datadog
 
         def integrations_change!: () -> void
 
-        def app_endpoints_loaded: (Array[Datadog::Core::Telemetry::Event::AppEndpointsLoaded::serialized_endpoint], is_first_event: bool) -> void
+        def app_endpoints_loaded: (Array[Event::AppEndpointsLoaded::endpoint] endpoints, is_initial: bool) -> void
 
         def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
