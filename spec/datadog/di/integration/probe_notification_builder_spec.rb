@@ -43,8 +43,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: '123', type: :log, file: 'X', line_no: 1,
-          capture_snapshot: true
-        )
+          capture_snapshot: true)
       end
 
       context 'with snapshot' do
@@ -133,12 +132,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       context 'with template segments' do
         let(:probe_spec) do
           {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
-                                                       typeName: 'Foo', methodName: 'bar'
-                                                     },
-           segments: [
-             {str: 'hello'},
-             {json: {ref: 'bar'}},
-           ],}
+            typeName: 'Foo', methodName: 'bar'},
+            segments: [
+              {str: 'hello'},
+              {json: {ref: 'bar'}},
+            ],
+          }
         end
 
         let(:probe) do
@@ -160,6 +159,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           payload = builder.build_snapshot(context)
           expect(payload).to be_a(Hash)
           expect(payload[:message]).to eq 'hello42'
+
+          # We asked to not create a snapshot
+          expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
         end
 
         context 'when variables are referenced but none are passed in' do
@@ -175,8 +177,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             payload = builder.build_snapshot(context)
             expect(payload).to be_a(Hash)
             expect(payload[:message]).to eq 'hello'
+
+            # We asked to not create a snapshot
+          expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
           end
+
         end
+
       end
     end
   end
