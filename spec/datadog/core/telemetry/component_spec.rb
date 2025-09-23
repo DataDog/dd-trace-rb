@@ -310,31 +310,26 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       let(:enabled) { true }
 
       it 'enqueues event with all endpoints when they are within page size limit' do
-        expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new).with(
-          endpoints, is_first: true
-        ).and_call_original
+        expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new)
+          .with(endpoints, is_first: true).and_call_original
 
         telemetry.app_endpoints_loaded(endpoints)
 
-        expect(worker).to have_received(:enqueue).with(
-          an_instance_of(Datadog::Core::Telemetry::Event::AppEndpointsLoaded)
-        ).once
+        expect(worker).to have_received(:enqueue)
+          .with(an_instance_of(Datadog::Core::Telemetry::Event::AppEndpointsLoaded)).once
       end
 
       it 'enqueues event with paginated endpoints when they are not within page size limit' do
-        expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new).with(
-          endpoints[0, 1], is_first: true
-        ).and_call_original
+        expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new)
+          .with(endpoints[0, 1], is_first: true).and_call_original
 
-        expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new).with(
-          endpoints[1, 1], is_first: false
-        ).and_call_original
+        expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new)
+          .with(endpoints[1, 1], is_first: false).and_call_original
 
         telemetry.app_endpoints_loaded(endpoints, page_size: 1)
 
-        expect(worker).to have_received(:enqueue).with(
-          an_instance_of(Datadog::Core::Telemetry::Event::AppEndpointsLoaded)
-        ).twice
+        expect(worker).to have_received(:enqueue)
+          .with(an_instance_of(Datadog::Core::Telemetry::Event::AppEndpointsLoaded)).twice
       end
     end
   end

@@ -10,15 +10,19 @@ module Datadog
             method: String,
             path: String
           }
+          type endpoints = Array[endpoint]
 
-          @endpoints: Array[endpoint]
+          @endpoints: endpoints
           @is_first: bool
 
-          def initialize: (Array[endpoint] endpoints, is_first: bool) -> void
+          def initialize: (endpoints endpoints, is_first: bool) -> void
 
           def type: () -> "app-endpoints"
 
-          def payload: () -> Hash[Symbol, bool | Array[endpoint]]
+          def payload: () -> {
+            is_first: bool,
+            endpoints: endpoints
+          }
         end
       end
     end
