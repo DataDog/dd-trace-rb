@@ -83,6 +83,10 @@ module Datadog
           # DEBUG: Log latency calculations
           puts "   Edge latency: #{edge_latency_sec}s"
           puts "   Full pathway latency: #{full_pathway_latency_sec}s"
+          
+          # Manual flush for testing
+          puts "🔍 [DSM DEBUG] Manually flushing stats to test agent communication..."
+          flush_stats
 
           # Record stats for this checkpoint
           record_checkpoint_stats(
