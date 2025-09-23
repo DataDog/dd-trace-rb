@@ -10,23 +10,45 @@ module Datadog
         # These run AFTER successful message production
         module Events
           def self.subscribe!(producer)
+            puts "🔍 [WATERDROP EVENTS] Subscribing to WaterDrop events"
+            
             # Subscribe to async message production events
-            producer.monitor.subscribe('message.produced_async') do |event|
-              handle_message_produced(event)
+            begin
+              producer.monitor.subscribe('message.produced_async') do |event|
+                handle_message_produced(event)
+              end
+              puts "🔍 [WATERDROP EVENTS] Subscribed to message.produced_async"
+            rescue => e
+              puts "🔍 [WATERDROP EVENTS] Failed to subscribe to message.produced_async: #{e.message}"
             end
 
             # Subscribe to sync message production events
-            producer.monitor.subscribe('message.produced_sync') do |event|
-              handle_message_produced(event)
+            begin
+              producer.monitor.subscribe('message.produced_sync') do |event|
+                handle_message_produced(event)
+              end
+              puts "🔍 [WATERDROP EVENTS] Subscribed to message.produced_sync"
+            rescue => e
+              puts "🔍 [WATERDROP EVENTS] Failed to subscribe to message.produced_sync: #{e.message}"
             end
 
             # Subscribe to batch production events if they exist
-            producer.monitor.subscribe('message.produced_many_async') do |event|
-              handle_batch_produced(event)
+            begin
+              producer.monitor.subscribe('message.produced_many_async') do |event|
+                handle_batch_produced(event)
+              end
+              puts "🔍 [WATERDROP EVENTS] Subscribed to message.produced_many_async"
+            rescue => e
+              puts "🔍 [WATERDROP EVENTS] Failed to subscribe to message.produced_many_async: #{e.message}"
             end
 
-            producer.monitor.subscribe('message.produced_many_sync') do |event|
-              handle_batch_produced(event)
+            begin
+              producer.monitor.subscribe('message.produced_many_sync') do |event|
+                handle_batch_produced(event)
+              end
+              puts "🔍 [WATERDROP EVENTS] Subscribed to message.produced_many_sync"
+            rescue => e
+              puts "🔍 [WATERDROP EVENTS] Failed to subscribe to message.produced_many_sync: #{e.message}"
             end
           end
 
