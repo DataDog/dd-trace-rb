@@ -167,8 +167,9 @@ module Datadog
 
         # Report application endpoints
         #
-        # `is_initial` needs to be set to `false` when endpoint data that is being sent
-        # should be appended in the backend to endpoint data that we already have sent
+        # `is_initial` must be set to `false`` when the endpoint data being sent
+        # should be merged with previously sent data on the backend,
+        # rather than treated as a new initial dataset.
         def app_endpoints_loaded(endpoints, is_initial:)
           return if !@enabled || forked?
 
