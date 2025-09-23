@@ -2,6 +2,7 @@
 
 require_relative 'component'
 require_relative 'waterdrop/integration'
+require_relative 'waterdrop/distributed/propagation'
 
 module Datadog
   module Tracing
@@ -24,8 +25,8 @@ module Datadog
           tracing = config.tracing
           tracing.propagation_style
 
-          # For WaterDrop, we use the standard propagation since it's Kafka-based
-          @propagation = Contrib::Propagation::Kafka.new(
+          # For WaterDrop, we use the Kafka-based propagation
+          @propagation = WaterDrop::Distributed::Propagation.new(
             propagation_style_inject: tracing.propagation_style_inject,
             propagation_style_extract: tracing.propagation_style_extract,
             propagation_extract_first: tracing.propagation_extract_first
