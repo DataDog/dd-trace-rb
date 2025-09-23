@@ -179,6 +179,12 @@ module Datadog
           PathwayContext.decode_b64(encoded_ctx)
         end
 
+        def decode_pathway_b64(encoded_ctx)
+          return nil unless @enabled
+
+          PathwayContext.decode_b64(encoded_ctx)
+        end
+
         def flush_stats
           return unless @enabled
 
