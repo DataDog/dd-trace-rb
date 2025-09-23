@@ -1,0 +1,30 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Event
+        class AppEndpointsLoaded < Base
+          type endpoint = {
+            type: String,
+            resource_name: String,
+            operation_name: String,
+            method: String,
+            path: String
+          }
+          type endpoints = Array[endpoint]
+
+          @endpoints: endpoints
+          @is_first: bool
+
+          def initialize: (endpoints endpoints, is_first: bool) -> void
+
+          def type: () -> "app-endpoints"
+
+          def payload: () -> {
+            is_first: bool,
+            endpoints: endpoints
+          }
+        end
+      end
+    end
+  end
+end
