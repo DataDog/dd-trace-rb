@@ -166,14 +166,12 @@ module Datadog
         end
 
         # Report application endpoints
-        #
-        # `is_initial` must be set to `false`` when the endpoint data being sent
-        # should be merged with previously sent data on the backend,
-        # rather than treated as a new initial dataset.
-        def app_endpoints_loaded(endpoints, is_initial:)
+        def app_endpoints_loaded(endpoints, page_size: 300)
           return if !@enabled || forked?
 
-          @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints, is_initial: is_initial))
+          endpoints.each_slice(page_size).with_index do |endpoints_slice, i|
+            @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints_slice, is_initial: i.zero?))
+          end
         end
 
         # Increments a count metric.
