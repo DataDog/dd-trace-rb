@@ -1,7 +1,7 @@
 {
   "version": "2.2",
   "metadata": {
-    "rules_version": "1.14.2"
+    "rules_version": "1.15.1"
   },
   "rules": [
     {
@@ -1746,6 +1746,7 @@
       "transformers": []
     }
   ],
+  "rules_compat": [],
   "processors": [
     {
       "id": "http-endpoint-fingerprint",
@@ -1949,6 +1950,28 @@
       },
       "evaluate": true,
       "output": true
+    },
+    {
+      "id": "decode-auth-jwt",
+      "generator": "jwt_decode",
+      "min_version": "1.25.0",
+      "parameters": {
+        "mappings": [
+          {
+            "inputs": [
+              {
+                "address": "server.request.headers.no_cookies",
+                "key_path": [
+                  "authorization"
+                ]
+              }
+            ],
+            "output": "server.request.jwt"
+          }
+        ]
+      },
+      "evaluate": true,
+      "output": false
     },
     {
       "id": "http-network-fingerprint",
@@ -2792,6 +2815,24 @@
         "type": "card",
         "card_type": "mastercard",
         "category": "payment"
+      }
+    },
+    {
+      "id": "c542c147-3883-43d6-a067-178e4a7bd65d",
+      "name": "Password",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\bpass(?:[_-]?word|wd)?\\b|\\bpwd\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "tags": {
+        "type": "password",
+        "category": "credentials"
       }
     },
     {
