@@ -79,6 +79,16 @@ module Datadog
       attr_reader :redactor
       attr_reader :telemetry
 
+      def combine_args(args, kwargs, target_self)
+        counter = 0
+        combined = args.each_with_object({}) do |value, c|
+          counter += 1
+          # Conversion to symbol is needed here to put args ahead of
+          # kwargs when they are merged below.
+          c[:"arg#{counter}"] = value
+        end.update(kwargs).update(self: target_self)
+      end
+
       # Serializes positional and keyword arguments to a method,
       # as obtained by a method probe.
       #
@@ -93,13 +103,7 @@ module Datadog
       def serialize_args(args, kwargs, target_self,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
-        counter = 0
-        combined = args.each_with_object({}) do |value, c|
-          counter += 1
-          # Conversion to symbol is needed here to put args ahead of
-          # kwargs when they are merged below.
-          c[:"arg#{counter}"] = value
-        end.update(kwargs).update(self: target_self)
+        combined = combine_args(args, kwargs, target_self)
         serialize_vars(combined, depth: depth, attribute_count: attribute_count)
       end
 

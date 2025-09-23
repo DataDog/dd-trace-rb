@@ -118,7 +118,26 @@ module Datadog
 
         mod = Module.new do
           define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore
-            if rate_limiter.nil? || rate_limiter.allow?
+            continue = true
+            if condition = probe.condition
+              begin
+                # This context will be recreated later, unlike for line probes.
+                context = EL::Context.new(
+                  locals: serializer.combine_args(args, kwargs, self),
+                  target_self: self,
+                  probe: probe, settings: settings, serializer: serializer,
+                  caller_locations: caller_locations,
+                )
+                continue = condition.satisfied?(context)
+              rescue
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                # TODO log / report via telemetry?
+                continue = false
+              end
+            end
+
+            if continue and rate_limiter.nil? || rate_limiter.allow?
               # Arguments may be mutated by the method, therefore
               # they need to be serialized prior to method invocation.
               serialized_entry_args = if probe.capture_snapshot?

@@ -13,6 +13,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   di_test
 
   let(:observed_calls) { [] }
+  let(:propagate_all_exceptions) { true }
 
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
@@ -22,7 +23,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
     allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
+    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(propagate_all_exceptions)
   end
 
   let(:redactor) do
@@ -891,6 +892,99 @@ RSpec.describe Datadog::DI::Instrumenter do
           # the callback should be invoked.
           expect(observed_calls).to eq []
         end
+      end
+    end
+
+    context 'when there is a condition' do
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'hook_test_method_with_pos_and_kwarg',
+         condition: condition}
+      end
+
+      let(:target_call) do
+        expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(41, kwarg: 42)).to eq [41, 42]
+      end
+
+      shared_examples 'reports the call' do
+        it 'reports the call' do
+          instrumenter.hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          target_call
+
+          expect(observed_calls.length).to eq 1
+        end
+      end
+
+      shared_examples 'does not report the call' do
+        it 'does not report the call' do
+          instrumenter.hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          target_call
+
+          expect(observed_calls.length).to eq 0
+        end
+      end
+
+      context 'when condition is on positional argument' do
+        context 'when condition is met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              # We use "arg1" here, actual variable name is not currently available
+              "ref('arg1') == 41"
+            )
+          end
+
+          include_examples 'reports the call'
+        end
+
+        context 'when condition is not met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              # We use "arg1" here, actual variable name is not currently available
+              "ref('arg1') == 42"
+            )
+          end
+
+          include_examples 'does not report the call'
+        end
+      end
+
+      context 'when condition is on keyword argument' do
+        context 'when condition is met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              "ref('kwarg') == 42"
+            )
+          end
+
+          include_examples 'reports the call'
+        end
+
+        context 'when condition is not met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              "ref('kwarg') == 41"
+            )
+          end
+
+          include_examples 'does not report the call'
+        end
+      end
+
+      context 'when expression evaluation fails' do
+        let(:propagate_all_exceptions) { false }
+
+        let(:condition) do
+          Datadog::DI::EL::Expression.new(
+            "unknown_function('kwarg') == 42"
+          )
+        end
+
+        include_examples 'does not report the call'
       end
     end
   end
