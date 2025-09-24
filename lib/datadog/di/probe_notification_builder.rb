@@ -136,8 +136,10 @@ module Datadog
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
           ddsource: 'dd_debugger',
-          message: probe.template && evaluate_template(probe.template,
-            context),
+          message: probe.template_segments && evaluate_template(
+            probe.template_segments,
+            context
+          ),
           #duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
         }
@@ -169,12 +171,17 @@ module Datadog
         end
       end
 
-      def evaluate_template(template, context)
-        message = template.dup
-        context.locals&.each do |key, value|
-          message.gsub!("{@#{key}}") { value.to_s }
-        end
-        message
+      def evaluate_template(template_segments, context)
+        template_segments.map do |segment|
+          case segment
+          when String
+            segment
+          when EL::Expression
+            segment.evaluate(context).to_s
+          else
+            raise ArgumentError, "Invalid template segment type: #{segment}"
+          end
+        end.join('')
       end
 
       def timestamp_now
