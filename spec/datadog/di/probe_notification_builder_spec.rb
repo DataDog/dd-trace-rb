@@ -161,7 +161,14 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   end
 
   describe '#build_executed' do
-    let(:payload) { builder.build_executed(probe) }
+    let(:payload) { builder.build_executed(context) }
+
+    let(:context) do
+      Datadog::DI::EL::Context.new(
+        settings: settings, serializer: serializer,
+        probe: probe
+      )
+    end
 
     context 'with template' do
       let(:probe) do
@@ -265,9 +272,15 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           capture_snapshot: true,)
       end
 
-      let(:payload) do
-        builder.build_executed(probe, path: '/foo.rb',
-          serialized_locals: serialized_locals, target_self: Object.new)
+      let(:context) do
+        Datadog::DI::EL::Context.new(probe: probe,
+          settings: settings, serializer: serializer,
+          path: '/foo.rb',
+          locals: locals, target_self: Object.new)
+      end
+
+      let(:locals) do
+        {foo: 1234}
       end
 
       let(:serialized_locals) do
@@ -338,10 +351,18 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         }
       end
 
+      let(:context) do
+        Datadog::DI::EL::Context.new(
+          settings: settings, serializer: serializer,
+          locals: vars,
+          probe: probe
+        )
+      end
+
       let(:expected) { %(test "'\\\\a\#{value}) }
 
       it 'substitutes correctly' do
-        expect(builder.send(:evaluate_template, template, **vars)).to eq(expected)
+        expect(builder.send(:evaluate_template, template, context)).to eq(expected)
       end
     end
   end

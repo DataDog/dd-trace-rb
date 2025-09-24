@@ -272,6 +272,68 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
+  describe '#app_endpoints_loaded' do
+    let(:endpoints) do
+      [
+        {
+          type: 'REST',
+          resource_name: 'GET /events',
+          operation_name: 'http.request',
+          method: 'GET',
+          path: '/events'
+        },
+        {
+          type: 'REST',
+          resource_name: 'GET /events/:id',
+          operation_name: 'http.request',
+          method: 'GET',
+          path: '/event/:id'
+        }
+      ]
+    end
+
+    after do
+      telemetry.shutdown!
+    end
+
+    context 'when disabled' do
+      let(:enabled) { false }
+
+      it do
+        telemetry.app_endpoints_loaded(endpoints)
+
+        expect(worker).not_to have_received(:enqueue)
+      end
+    end
+
+    context 'when enabled' do
+      let(:enabled) { true }
+
+      it 'enqueues event with all endpoints when they are within page size limit' do
+        expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new)
+          .with(endpoints, is_first: true).and_call_original
+
+        telemetry.app_endpoints_loaded(endpoints)
+
+        expect(worker).to have_received(:enqueue)
+          .with(an_instance_of(Datadog::Core::Telemetry::Event::AppEndpointsLoaded)).once
+      end
+
+      it 'enqueues event with paginated endpoints when they are not within page size limit' do
+        expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new)
+          .with(endpoints[0, 1], is_first: true).and_call_original
+
+        expect(Datadog::Core::Telemetry::Event::AppEndpointsLoaded).to receive(:new)
+          .with(endpoints[1, 1], is_first: false).and_call_original
+
+        telemetry.app_endpoints_loaded(endpoints, page_size: 1)
+
+        expect(worker).to have_received(:enqueue)
+          .with(an_instance_of(Datadog::Core::Telemetry::Event::AppEndpointsLoaded)).twice
+      end
+    end
+  end
+
   describe 'includes Datadog::Core::Telemetry::Logging' do
     after do
       telemetry.shutdown!
