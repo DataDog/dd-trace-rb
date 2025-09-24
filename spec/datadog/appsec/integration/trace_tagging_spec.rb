@@ -60,7 +60,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
             'event' => false,
             'keep' => false,
             'attributes' => {
-              '_dd.appsec.trace.integer' => {'value' => 662607015},
+              '_dd.appsec.trace.integer' => {'value' => 1},
               '_dd.appsec.trace.agent' => {
                 'address' => 'server.request.headers.no_cookies',
                 'key_path' => ['user-agent']
@@ -91,7 +91,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
             'event' => false,
             'keep' => true,
             'attributes' => {
-              '_dd.appsec.trace.integer' => {'value' => 602214076},
+              '_dd.appsec.trace.integer' => {'value' => 2},
               '_dd.appsec.trace.agent' => {
                 'address' => 'server.request.headers.no_cookies',
                 'key_path' => ['user-agent']
@@ -122,7 +122,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
             'event' => true,
             'keep' => true,
             'attributes' => {
-              '_dd.appsec.trace.integer' => {'value' => 299792458},
+              '_dd.appsec.trace.integer' => {'value' => 3},
               '_dd.appsec.trace.agent' => {
                 'address' => 'server.request.headers.no_cookies',
                 'key_path' => ['user-agent']
@@ -153,7 +153,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
             'event' => true,
             'keep' => false,
             'attributes' => {
-              '_dd.appsec.trace.integer' => {'value' => 1729},
+              '_dd.appsec.trace.integer' => {'value' => 4},
               '_dd.appsec.trace.agent' => {
                 'address' => 'server.request.headers.no_cookies',
                 'key_path' => ['user-agent']
@@ -216,15 +216,11 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
     before { get('/test', {}, {'HTTP_USER_AGENT' => 'TraceTagging/v2'}) }
 
     it 'XXX' do
-      # FIXME: Suppose to be "_dd.appsec.trace.integer"=>602214076 (but get string)
-      #        Check it in libddwaf itself and rules
-
-      # @actions={},
-      # @attributes={"_dd.appsec.trace.agent"=>"TraceTagging/v2", "_dd.appsec.trace.integer"=>"602214076"},
-      # @duration_ext_ns=61000,
-
       expect(response).to be_ok
-      expect(http_service_entry_span.tags).to be_empty
+      expect(http_service_entry_span.tags).to include(
+        '_dd.appsec.trace.integer' => 2,
+        '_dd.appsec.trace.agent' => 'TraceTagging/v2'
+      )
     end
   end
 end
