@@ -1,12 +1,8 @@
 # frozen_string_literal: true
 
-puts "🔍 [WATERDROP INTEGRATION] Loading WaterDrop integration file..."
-
 require_relative '../integration'
 require_relative 'configuration/settings'
 require_relative 'patcher'
-
-puts "🔍 [WATERDROP INTEGRATION] Required files loaded"
 
 module Datadog
   module Tracing
@@ -16,15 +12,11 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          puts "🔍 [WATERDROP INTEGRATION] Integration class defined"
-
           # Minimum version of the WaterDrop library that we support
           MINIMUM_VERSION = Gem::Version.new('2.0.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :waterdrop, auto_patch: true
-
-          puts "🔍 [WATERDROP INTEGRATION] Registered as :waterdrop with auto_patch: true"
 
           def self.gem_name
             'waterdrop'
@@ -35,11 +27,20 @@ module Datadog
           end
 
           def self.loaded?
-            !defined?(::WaterDrop).nil?
+            loaded = !defined?(::WaterDrop).nil?
+            puts "🔍 [WATERDROP INTEGRATION] loaded? = #{loaded} (defined?(::WaterDrop) = #{defined?(::WaterDrop)})"
+            loaded
           end
 
           def self.compatible?
-            super && version >= MINIMUM_VERSION
+            compatible = super && version >= MINIMUM_VERSION
+            puts "🔍 [WATERDROP INTEGRATION] compatible? = #{compatible} (version: #{version}, MINIMUM: #{MINIMUM_VERSION})"
+            compatible
+          end
+
+          def self.auto_instrument?
+            puts "🔍 [WATERDROP INTEGRATION] auto_instrument? = true"
+            true
           end
 
           def new_configuration
