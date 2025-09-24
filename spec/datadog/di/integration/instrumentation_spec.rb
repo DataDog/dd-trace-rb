@@ -510,6 +510,7 @@ RSpec.describe 'Instrumentation integration' do
             [
               {str: 'hello '},
               {json: {ref: '@duration'}},
+              {str: ' ms'},
             ]
           end
 

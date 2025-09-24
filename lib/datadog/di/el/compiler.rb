@@ -70,10 +70,11 @@ module Datadog
                 "context.return_value"
               when '@duration'
                 # There is no way to explicitly format the duration.
-                # We store it in seconds and it's a very small value.
-                # Format it to a string with three digits of precision
-                # (effectively, microseconds).
-                "('%.3f ms' % (1000 * context.duration))"
+                # TODO come up with better formatting?
+                # We could format to a string here but what if customer
+                # has @duration as part of an expression and wants
+                # to retain it as a number?
+                "(context.duration * 1000)"
               when '@exception'
                 "context.exception"
               else
