@@ -67,11 +67,15 @@ module Datadog
               when '@return'
                 # For @return, @duration and @exception we shadow
                 # instance variables.
-                "iref('@return')"
+                "context.return_value"
               when '@duration'
-                "iref('@duration')"
+                # There is no way to explicitly format the duration.
+                # We store it in seconds and it's a very small value.
+                # Format it to a string with three digits of precision
+                # (effectively, microseconds).
+                "('%.3f ms' % (1000 * context.duration))"
               when '@exception'
-                "iref('@exception')"
+                "context.exception"
               else
                 # Ruby technically allows all kinds of symbols in variable
                 # names, for example spaces and many characters.

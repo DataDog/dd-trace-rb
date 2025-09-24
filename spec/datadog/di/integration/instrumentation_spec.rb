@@ -513,7 +513,13 @@ RSpec.describe 'Instrumentation integration' do
               expect(status).to match(expected_emitting_payload)
             end
             expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
-              expect(snapshot.fetch(:message)).to eq 'foo'
+              expect(snapshot.fetch(:message)).to match(/\Ahello (\d+\.\d+) ms\z/)
+              snapshot.fetch(:message) =~ /\Ahello (\d+\.\d+) ms\z/
+              value = Float($1)
+              # Actual execution time will change but it should be under
+              # a second and it should be positive.
+              expect(value).to be > 0
+              expect(value).to be < 1
             end
             expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
             component.probe_notifier_worker.flush
