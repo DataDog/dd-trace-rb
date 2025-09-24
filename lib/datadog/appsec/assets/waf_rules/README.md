@@ -2,51 +2,45 @@ AppSec WAF rules based on [appsec-event-rules](https://github.com/datadog/appsec
 
 ## How to update
 
-> [!WARNING]
-> This process is a temporary workaround to maintain compatibility with the existing code structure and will be changed.
+In order to update rules, download `recommended.json` and `strict.json` of the desired version from [appsec-event-rules](https://github.com/datadog/appsec-event-rules) (example: [v1.13.3](https://github.com/DataDog/appsec-event-rules/tree/1.13.3/build))
 
-1. Download `recommended.json` and `strict.json` of the desired version from [appsec-event-rules](https://github.com/datadog/appsec-event-rules) (example: [v1.13.3](https://github.com/DataDog/appsec-event-rules/tree/1.13.3/build))
-2. Run the script below inside `waf_rules` folder to extract scanners and processors into separate files
+You can store the following code as a `Rakefile` under `lib/datadog/appsec/assets/waf_rules`
 
-    ```ruby
-    require 'json'
+```ruby
+def download(filename)
+  build_path = 'repos/DataDog/appsec-event-rules/contents/build'
 
-    recommended_rules = JSON.parse(File.read(File.expand_path('recommended.json', __dir__)))
-    strict_rules = JSON.parse(File.read(File.expand_path('strict.json', __dir__)))
+  system("gh api #{build_path}/#{filename} --jq '.content' | base64 -d > #{filename}")
+end
 
-    recommended_processors = recommended_rules.delete('processors')
-    strict_processors = strict_rules.delete('processors')
+task default: :update
 
-    if recommended_processors.sort_by { |processor| processor['id'] } !=
-        strict_processors.sort_by { |processor| processor['id'] }
-      raise 'Processors are not the same, unable to extract them'
-    end
+task :verify_dependencies do
+  next if system('which gh 1>/dev/null')
 
-    puts 'Extracting processors...'
-    File.open(File.expand_path('processors.json', __dir__), 'wb') do |file|
-      file.write(JSON.pretty_generate(recommended_processors))
-    end
+  abort <<~MESSAGE
+    \033[0;33mNOTE: To successfully execute that task make sure you have
+          GitHub CLI installed and authenticated https://cli.github.com/\033[0m
+  MESSAGE
+end
 
-    recommended_scanners = recommended_rules.delete('scanners')
-    strict_scanners = strict_rules.delete('scanners')
+desc 'Update recommended.json and strict.json to the latest version'
+task update: :verify_dependencies do
+  download('strict.json')
+  download('recommended.json')
 
-    if recommended_scanners.sort_by { |processor| processor['id'] } !=
-        strict_scanners.sort_by { |processor| processor['id'] }
-      raise 'Scanners are not the same, unable to extract them'
-    end
+  puts "\033[0;32mSuccess!\033[0m"
+end
+```
 
-    puts 'Extracting scanners...'
-    File.open(File.expand_path('scanners.json', __dir__), 'wb') do |file|
-      file.write(JSON.pretty_generate(recommended_scanners))
-    end
+And run the following command
 
-    puts 'Updating rules...'
+> [!IMPORTANT]
+> To run that command you will need to install GitHub CLI tool and authenticate it
+> See: https://cli.github.com/ (or ddtool)
 
-    File.open(File.expand_path('recommended.json', __dir__), 'wb') do |file|
-      file.write(JSON.pretty_generate(recommended_rules))
-    end
 
-    File.open(File.expand_path('strict.json', __dir__), 'wb') do |file|
-      file.write(JSON.pretty_generate(strict_rules))
-    end
-    ```
+```console
+$ bundle exec rake update
+Success!
+```
