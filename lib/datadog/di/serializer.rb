@@ -81,12 +81,14 @@ module Datadog
 
       def combine_args(args, kwargs, target_self)
         counter = 0
-        args.each_with_object({}) do |value, c|
+        combined = args.each_with_object({}) do |value, c|
           counter += 1
           # Conversion to symbol is needed here to put args ahead of
           # kwargs when they are merged below.
           c[:"arg#{counter}"] = value
-        end.update(kwargs).update(self: target_self)
+        end.update(kwargs)
+        combined[:self] = target_self
+        combined
       end
 
       # Serializes positional and keyword arguments to a method,
