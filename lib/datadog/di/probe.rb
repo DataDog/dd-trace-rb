@@ -46,6 +46,17 @@ module Datadog
           raise ArgumentError, "Unknown probe type: #{type}"
         end
 
+        # TODO Probe should be inferred to be a line probe if the specification
+        # contains a line number. This how Java tracer works and Go tracer
+        # is implementing the same behavior, and Go will have all 3 fields
+        # (file path, line number and method name) for line probes.
+        # Do not raise if line number and method name both exist - instead
+        # treat the probe as a line probe.
+        #
+        # In the future we want to provide type name and method name to line
+        # probes, so that the library can verify that the instrumented line
+        # is in the method that the frontend showed to the user when the
+        # user created the probe.
         if line_no && method_name
           raise ArgumentError, "Probe contains both line number and method name: #{id}"
         end
