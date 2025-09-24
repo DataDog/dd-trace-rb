@@ -483,6 +483,44 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
       end
+
+      context 'when message template references special variables' do
+        context '@duration' do
+          let(:probe) do
+            Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          end
+
+          let(:probe_spec) do
+            {
+              id: '1234',
+              type: 'LOG_PROBE',
+              where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+              segments: segments,
+            }
+          end
+
+          let(:segments) do
+            [
+              {str: 'hello '},
+              {json: {ref: '@duration'}},
+            ]
+          end
+
+          it 'substitutes the expected value' do
+            probe_manager.add_probe(probe)
+
+            expect(component.probe_notifier_worker).to receive(:add_status) do |status|
+              expect(status).to match(expected_emitting_payload)
+            end
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+              expect(snapshot.fetch(:message)).to eq 'foo'
+            end
+            expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+            component.probe_notifier_worker.flush
+          end
+
+        end
+      end
     end
 
     context 'line probe' do
