@@ -581,6 +581,15 @@ RSpec.describe 'Instrumentation integration' do
           end
 
           context 'when method does raises an exception' do
+            let(:probe_spec) do
+              {
+                id: '1234',
+                type: 'LOG_PROBE',
+                where: {typeName: 'InstrumentationSpecTestClass', methodName: 'exception_method'},
+                segments: segments,
+              }
+            end
+
             it 'substitutes the expected value' do
               probe_manager.add_probe(probe)
 
@@ -588,7 +597,7 @@ RSpec.describe 'Instrumentation integration' do
                 expect(status).to match(expected_emitting_payload)
               end
               expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
-                expect(snapshot.fetch(:message)).to eq 'hello 42'
+                expect(snapshot.fetch(:message)).to eq 'hello Test exception'
               end
               expect do
                 InstrumentationSpecTestClass.new.exception_method
