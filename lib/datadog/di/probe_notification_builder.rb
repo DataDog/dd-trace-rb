@@ -181,6 +181,14 @@ module Datadog
           when String
             segment
           when EL::Expression
+            # TODO be more sophisticated than just calling to_s.
+            # The return value could be customer data (@return, or any
+            # local variable reference).
+            # Special cases also include @exception and @duration.
+            # We need to use our serialization logic here but we don't want
+            # to serialize to the same format that we use for snapshots,
+            # since this output is supposed to be human-readable.
+            # We need a simpler, "human-friendly" serializer.
             segment.evaluate(context).to_s
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"

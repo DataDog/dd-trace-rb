@@ -601,6 +601,7 @@ RSpec.describe 'Instrumentation integration' do
               end
               expect do
                 InstrumentationSpecTestClass.new.exception_method
+              # TODO the exception class name should be in the assertion.
               end.to raise_error(InstrumentationSpecTestClass::TestException, /Test exception/)
               component.probe_notifier_worker.flush
             end
