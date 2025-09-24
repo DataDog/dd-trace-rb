@@ -9,6 +9,9 @@ require 'datadog/di'
 # rubocop:disable Style/RescueModifier
 
 class InstrumentationSpecTestClass
+  class TestException < StandardError
+  end
+
   def initialize
     @ivar = 'start value'
   end
@@ -23,6 +26,10 @@ class InstrumentationSpecTestClass
 
   def ivar_mutating_method
     @ivar.sub!('start value', 'altered value')
+  end
+
+  def exception_method
+    raise TestException, 'Test exception'
   end
 end
 
@@ -485,20 +492,20 @@ RSpec.describe 'Instrumentation integration' do
       end
 
       context 'when message template references special variables' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+            segments: segments,
+          }
+        end
+
         context '@duration' do
-          let(:probe) do
-            Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
-          end
-
-          let(:probe_spec) do
-            {
-              id: '1234',
-              type: 'LOG_PROBE',
-              where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
-              segments: segments,
-            }
-          end
-
           let(:segments) do
             [
               {str: 'hello '},
@@ -523,6 +530,71 @@ RSpec.describe 'Instrumentation integration' do
             end
             expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
             component.probe_notifier_worker.flush
+          end
+
+        end
+
+        context '@return' do
+          let(:segments) do
+            [
+              {str: 'hello '},
+              {json: {ref: '@return'}},
+            ]
+          end
+
+          it 'substitutes the expected value' do
+            probe_manager.add_probe(probe)
+
+            expect(component.probe_notifier_worker).to receive(:add_status) do |status|
+              expect(status).to match(expected_emitting_payload)
+            end
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+              expect(snapshot.fetch(:message)).to eq 'hello 42'
+            end
+            expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+            component.probe_notifier_worker.flush
+          end
+
+        end
+
+        context '@exception' do
+          let(:segments) do
+            [
+              {str: 'hello '},
+              {json: {ref: '@exception'}},
+            ]
+          end
+
+          context 'when method does not raise an exception' do
+            it 'substitutes nil' do
+              probe_manager.add_probe(probe)
+
+              expect(component.probe_notifier_worker).to receive(:add_status) do |status|
+                expect(status).to match(expected_emitting_payload)
+              end
+              expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+                expect(snapshot.fetch(:message)).to eq 'hello '
+              end
+              expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+              component.probe_notifier_worker.flush
+            end
+          end
+
+          context 'when method does raises an exception' do
+            it 'substitutes the expected value' do
+              probe_manager.add_probe(probe)
+
+              expect(component.probe_notifier_worker).to receive(:add_status) do |status|
+                expect(status).to match(expected_emitting_payload)
+              end
+              expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+                expect(snapshot.fetch(:message)).to eq 'hello 42'
+              end
+              expect do
+                InstrumentationSpecTestClass.new.exception_method
+              end.to raise_error(InstrumentationSpecTestClass::TestException, /Test exception/)
+              component.probe_notifier_worker.flush
+            end
           end
 
         end
