@@ -176,19 +176,17 @@ module Datadog
       def evaluate_template(template_segments, context)
         evaluation_errors = []
         message = template_segments.map do |segment|
-          begin
-            case segment
-            when String
-              segment
-            when EL::Expression
-              segment.evaluate(context).to_s
-            else
-              raise ArgumentError, "Invalid template segment type: #{segment}"
-            end
-          rescue => exc
-            evaluation_errors << "#{exc.class}: #{exc}"
-            '[evaluation error]'
+          case segment
+          when String
+            segment
+          when EL::Expression
+            segment.evaluate(context).to_s
+          else
+            raise ArgumentError, "Invalid template segment type: #{segment}"
           end
+        rescue => exc
+          evaluation_errors << "#{exc.class}: #{exc}"
+          '[evaluation error]'
         end.join('')
         [message, evaluation_errors]
       end

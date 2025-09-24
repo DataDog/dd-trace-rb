@@ -140,9 +140,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
         let(:segments) do
           [
-             {str: 'hello'},
-             {json: {ref: 'bar'}},
-           ]
+            {str: 'hello'},
+            {json: {ref: 'bar'}},
+          ]
         end
 
         let(:probe) do
@@ -170,12 +170,11 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         context 'when there is an evaluation error' do
-
           let(:segments) do
             [
-               {str: 'hello'},
-               {json: {substring: ['bar', 'baz', 3]}},
-             ]
+              {str: 'hello'},
+              {json: {substring: ['bar', 'baz', 3]}},
+            ]
           end
 
           it 'replaces bogus expressions with [evaluation error] and fills out evaluation errors' do
@@ -190,14 +189,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         context 'when there are multiple evaluation errors' do
-
           let(:segments) do
             [
-               {str: 'hello'},
-               {json: {substring: ['bar', 'baz', 3]}},
-               {json: {filter: ['bar', 'baz']}},
-               {str: 'hello'},
-             ]
+              {str: 'hello'},
+              {json: {substring: ['bar', 'baz', 3]}},
+              {json: {filter: ['bar', 'baz']}},
+              {str: 'hello'},
+            ]
           end
 
           it 'attempts to evaluate all expressions' do
@@ -207,7 +205,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             expect(payload[:"debugger.snapshot"][:evaluationErrors]).to eq [
               'ArgumentError: bad value for range',
               'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: String',
-              ]
+            ]
 
             # We asked to not create a snapshot
             expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
