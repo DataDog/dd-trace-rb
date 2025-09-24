@@ -101,12 +101,17 @@ module Datadog
         end
 
         timestamp = timestamp_now
+        message = nil
+        evaluation_errors = []
+        if segments = probe.template_segments
+          message, evaluation_errors = evaluate_template(segments, context)
+        end
         {
           service: settings.service,
           "debugger.snapshot": {
             id: SecureRandom.uuid,
             timestamp: timestamp,
-            evaluationErrors: [],
+            evaluationErrors: evaluation_errors,
             probe: {
               id: probe.id,
               version: 0,
@@ -136,10 +141,7 @@ module Datadog
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
           ddsource: 'dd_debugger',
-          message: probe.template_segments && evaluate_template(
-            probe.template_segments,
-            context
-          ),
+          message: message,
           #duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
         }
@@ -172,16 +174,23 @@ module Datadog
       end
 
       def evaluate_template(template_segments, context)
-        template_segments.map do |segment|
-          case segment
-          when String
-            segment
-          when EL::Expression
-            segment.evaluate(context).to_s
-          else
-            raise ArgumentError, "Invalid template segment type: #{segment}"
+        evaluation_errors = []
+        message = template_segments.map do |segment|
+          begin
+            case segment
+            when String
+              segment
+            when EL::Expression
+              segment.evaluate(context).to_s
+            else
+              raise ArgumentError, "Invalid template segment type: #{segment}"
+            end
+          rescue => exc
+            evaluation_errors << "#{exc.class}: #{exc}"
+            '[evaluation error]'
           end
         end.join('')
+        [message, evaluation_errors]
       end
 
       def timestamp_now
