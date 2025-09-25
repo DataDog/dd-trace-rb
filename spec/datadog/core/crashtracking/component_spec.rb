@@ -197,7 +197,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       let(:parsed_request) { JSON.parse(request.body, symbolize_names: true) }
       let(:crash_report) { parsed_request.fetch(:payload).first }
       let(:crash_report_message) { JSON.parse(crash_report.fetch(:message), symbolize_names: true) }
-      let(:stack_trace) { crash_report_message.fetch(:error).fetch(:stack).fetch(:frames) }
+      let(:stack_trace) { crash_report[:stack_trace] }
 
       # NOTE: If any of these tests seem flaky, the `upload_timeout_seconds` may need to be raised (or otherwise
       # we need to tweak libdatadog to not need such high timeouts).
@@ -213,19 +213,15 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             trigger.call
           end
 
-          expect(stack_trace).to match(array_including(hash_including(function: function)))
-          expect(stack_trace.size).to be > 10
+          expect(crash_report_message[:siginfo][:si_signo]).to eq(11)
+          expect(crash_report_message[:siginfo][:si_signo_human_readable]).to eq('SIGSEGV')
+          expect(crash_report_message[:kind]).to eq('Crash ping')
 
           expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
 
-          expect(crash_report_message[:metadata]).to include(
-            library_name: 'dd-trace-rb',
-            library_version: Datadog::VERSION::STRING,
-            family: 'ruby',
-            tags: ['tag1:value1', 'tag2:value2', 'language:ruby-testing-123', 'service:ruby-testing-123'],
-          )
-          expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
-          expect(crash_report_message[:os_info]).to_not be_empty
+          expect(crash_report_message[:version]).to eq('1.0')
+          expect(crash_report_message[:kind]).to eq('Crash ping')
+          expect(crash_report_message[:crash_uuid]).to_not be_nil
           expect(parsed_request.fetch(:application)).to include(
             service_name: 'ruby-testing-123',
             language_name: 'ruby-testing-123',
@@ -251,12 +247,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           Fiddle.free(42)
         end
 
-        expect(crash_report_message[:metadata]).to include(
-          library_name: 'dd-trace-rb',
-          library_version: Datadog::VERSION::STRING,
-          family: 'ruby',
-          tags: ['latest_settings:included'],
-        )
+        expect(crash_report_message[:version]).to eq('1.0')
+        expect(crash_report_message[:kind]).to eq('Crash ping')
+        expect(crash_report_message[:crash_uuid]).to_not be_nil
       end
 
       context 'via unix domain socket' do
@@ -272,12 +265,13 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             Fiddle.free(42)
           end
 
-          expect(stack_trace).to_not be_empty
+          expect(crash_report_message[:siginfo][:si_signo]).to eq(11)
+          expect(crash_report_message[:siginfo][:si_signo_human_readable]).to eq('SIGSEGV')
+          expect(crash_report_message[:kind]).to eq('Crash ping')
           expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
 
-          expect(crash_report_message[:metadata]).to_not be_empty
-          expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
-          expect(crash_report_message[:os_info]).to_not be_empty
+          expect(crash_report_message[:version]).to eq('1.0')
+          expect(crash_report_message[:crash_uuid]).to_not be_nil
         end
       end
 
