@@ -7,21 +7,21 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
   let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
   let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
 
-  describe '#attack?' do
-    context 'when WAF result is a match' do
+  describe '#keep?' do
+    context 'when WAF result is a keep' do
       subject(:event) { described_class.new(waf_result, trace: trace, span: span) }
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
           events: [], actions: {}, attributes: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0,
-          keep: false, input_truncated: false
+          keep: true, input_truncated: false
         )
       end
 
-      it { expect(event).to be_attack }
+      it { expect(event).to be_keep }
     end
 
-    context 'when WAF result is an ok' do
+    context 'when WAF result is a no keep' do
       subject(:event) { described_class.new(waf_result, trace: trace, span: span) }
 
       let(:waf_result) do
@@ -31,7 +31,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
         )
       end
 
-      it { expect(event).not_to be_attack }
+      it { expect(event).not_to be_keep }
     end
 
     context 'when WAF result is an error' do
