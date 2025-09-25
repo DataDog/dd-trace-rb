@@ -10,6 +10,7 @@ require_relative 'gateway/watcher'
 require_relative 'gateway/request'
 require_relative 'patches/render_to_body_patch'
 require_relative 'patches/process_action_patch'
+require_relative '../../api_security/endpoint_collection/rails_routes_serializer'
 
 require_relative '../../../tracing/contrib/rack/middlewares'
 
@@ -38,6 +39,7 @@ module Datadog
             patch_before_initialize
             patch_after_initialize
             patch_action_controller
+            subscribe_to_routes_loaded
 
             Patcher.instance_variable_set(:@patched, true)
           end
@@ -128,6 +130,14 @@ module Datadog
               GUARD_ACTION_CONTROLLER_ONCE_PER_APP[self].run do
                 ::ActionController::Base.prepend(Patches::RenderToBodyPatch)
               end
+            end
+          end
+
+          def subscribe_to_routes_loaded
+            ::ActiveSupport.on_load(:after_routes_loaded) do |app|
+              AppSec.telemetry.app_endpoints_loaded(
+                APISecurity::EndpointCollection::RailsRoutesSerializer.new(app.routes.routes).to_enum
+              )
             end
           end
 
