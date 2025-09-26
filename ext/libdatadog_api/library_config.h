@@ -13,7 +13,8 @@ static inline bool is_config_loaded(void) {
 
 static inline VALUE log_warning_without_config(VALUE warning) {
   VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  VALUE logger = rb_funcall(datadog_module, rb_intern("logger_without_configuration"), 0);
+  // We only log warnings here so we don't care about logging debug logs or not, hence we pass Qnil
+  VALUE logger = rb_funcall(datadog_module, rb_intern("logger_without_configuration"), 1, Qnil);
 
   return rb_funcall(logger, rb_intern("warn"), 1, warning);
 }
