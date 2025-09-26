@@ -254,6 +254,34 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         it { expect(trace_op.send(:metrics)).to eq({ 'baz' => 42.0 }) }
       end
+
+      context ':trace_block' do
+        subject(:options) { { trace_block: trace_block } }
+
+        context 'when true' do
+          let(:trace_block) { true }
+
+          it 'sets trace_block to true' do
+            expect(trace_op.instance_variable_get(:@trace_block)).to be true
+          end
+        end
+
+        context 'when false' do
+          let(:trace_block) { false }
+
+          it 'sets trace_block to false' do
+            expect(trace_op.instance_variable_get(:@trace_block)).to be false
+          end
+        end
+
+        context 'when not provided' do
+          let(:options) { {} }
+
+          it 'defaults to false' do
+            expect(trace_op.instance_variable_get(:@trace_block)).to be false
+          end
+        end
+      end
     end
   end
 
@@ -749,6 +777,99 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         # When flushed
         trace_op.flush!
         expect(trace_op.finished?).to be true
+      end
+    end
+  end
+
+  describe '#finish!' do
+    subject(:finish!) { trace_op.finish! }
+
+    it 'marks the trace as finished' do
+      expect { finish! }.to change { trace_op.finished? }.from(false).to(true)
+    end
+
+    it 'sets active_span to nil' do
+      span = trace_op.build_span('test')
+      span.start
+      trace_op.send(:activate_span!, span)
+      expect(trace_op.active_span).to eq(span)
+
+      finish!
+
+      expect(trace_op.active_span).to be_nil
+    end
+
+    it 'sets active_span_count to 0' do
+      span = trace_op.build_span('test')
+      span.start
+      trace_op.send(:activate_span!, span)
+      expect(trace_op.active_span_count).to eq(1)
+
+      finish!
+
+      expect(trace_op.active_span_count).to eq(0)
+    end
+
+    it 'publishes trace_finished event' do
+      event_spy = spy('event_spy')
+      trace_op.events.trace_finished.subscribe(&event_spy)
+
+      finish!
+
+      expect(event_spy).to have_received(:call).with(trace_op)
+    end
+
+    context 'when trace_block is true' do
+      let(:options) { { trace_block: true } }
+
+      it 'can be finished manually' do
+        span = trace_op.build_span('test')
+        span.start
+
+        expect(trace_op.finished?).to be false
+
+        finish!
+
+        expect(trace_op.finished?).to be true
+      end
+
+      it 'does not set root span when building spans' do
+        span = trace_op.build_span('test')
+        span.start
+
+        expect(trace_op.send(:root_span)).to be_nil
+      end
+    end
+
+    context 'when trace_block is false' do
+      let(:options) { { trace_block: false } }
+
+      it 'sets root span when building spans' do
+        span = trace_op.build_span('test')
+        span.start
+
+        expect(trace_op.send(:root_span)).to eq(span)
+      end
+    end
+
+    context 'with unfinished spans' do
+      it 'loses unfinished spans when manually finished' do
+        finished_span = trace_op.build_span('finished')
+        finished_span.start
+        finished_span.finish
+
+        unfinished_span = trace_op.build_span('unfinished')
+        unfinished_span.start
+        # Don't finish this span
+
+        expect(trace_op.finished_span_count).to eq(1)
+
+        finish!
+
+        # Only finished spans should be available
+        flushed_trace = trace_op.flush!
+        expect(flushed_trace.spans).to have(1).item
+        expect(flushed_trace.spans.first.name).to eq('finished')
       end
     end
   end

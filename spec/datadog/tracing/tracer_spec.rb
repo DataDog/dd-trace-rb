@@ -1020,6 +1020,58 @@ RSpec.describe Datadog::Tracing::Tracer do
             trace_id: a_kind_of(Integer)
           )
         end
+
+        context 'and a block raising an error handling' do
+          it 'flushes trace and restore context' do
+            original_trace = tracer.active_trace
+
+            expect do
+              tracer.continue_trace!(digest) do
+                tracer.trace('span-1') {} # This span finishes
+                raise StandardError, 'test error'
+              end
+            end.to raise_error(StandardError, 'test error')
+
+            expect(spans).to have(1).item
+            expect(span.name).to eq('span-1')
+            expect(tracer.active_trace).to be original_trace
+          end
+        end
+
+        context 'and a block with flush conditions' do
+          it 'flushes trace only when finished_span_count > 0' do
+            tracer.continue_trace!(digest) do
+              tracer.trace('span-1') {} # This completes
+            end
+
+            expect(spans).to have(1).item
+            expect(span.name).to eq('span-1')
+          end
+
+          it 'does not flush trace when finished_span_count is 0' do
+            tracer.continue_trace!(digest) do
+              span_op = tracer.trace('span-1')
+              span_op.start
+              # Don't finish the span, so finished_span_count remains 0
+            end
+
+            # No spans should be flushed
+            expect(spans).to be_empty
+          end
+
+          it 'flushes multiple finished spans' do
+            tracer.continue_trace!(digest) do
+              tracer.trace('span-1') {}
+              tracer.trace('span-2') {}
+              span_op = tracer.trace('span-3')
+              span_op.start # Start but don't finish this one
+            end
+
+            # Only the finished spans should be flushed
+            expect(spans).to have(2).items
+            expect(spans.map(&:name)).to contain_exactly('span-1', 'span-2')
+          end
+        end
       end
     end
   end
