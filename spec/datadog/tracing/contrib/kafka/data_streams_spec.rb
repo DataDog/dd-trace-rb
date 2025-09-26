@@ -145,10 +145,17 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     let(:consumer) { test_consumer_class.new }
 
-    it 'processes messages (DSM handled in ProcessMessage event handler)' do
-      # DSM is now properly implemented in ProcessMessage event handler with real topic access
+    it 'creates checkpoint on message consume' do
+      mock_processor = instance_double('DataStreamsProcessor')
+      expect(Datadog.configuration.tracing.data_streams).to receive(:processor).and_return(mock_processor)
+      expect(mock_processor).to receive(:set_consume_checkpoint).with('kafka', 'test_topic') do |type, topic, &block|
+        # Simulate the block call with empty headers
+        block.call('dd-pathway-ctx-base64', nil) if block
+        'test-pathway-context'
+      end
+
       consumer.each_message do |msg|
-        # Message is processed - DSM checkpointing happens in event handler
+        # Message is processed - DSM checkpointing happens in instrumentation
       end
     end
   end
