@@ -46,9 +46,17 @@ module Datadog
           raise ArgumentError, "Unknown probe type: #{type}"
         end
 
-        if line_no && method_name
-          raise ArgumentError, "Probe contains both line number and method name: #{id}"
-        end
+        # Probe should be inferred to be a line probe if the specification
+        # contains a line number. This how Java tracer works and Go tracer
+        # is implementing the same behavior, and Go will have all 3 fields
+        # (file path, line number and method name) for line probes.
+        # Do not raise if line number and method name both exist - instead
+        # treat the probe as a line probe.
+        #
+        # In the future we want to provide type name and method name to line
+        # probes, so that the library can verify that the instrumented line
+        # is in the method that the frontend showed to the user when the
+        # user created the probe.
 
         if line_no && !file
           raise ArgumentError, "Probe contains line number but not file: #{id}"
@@ -56,6 +64,10 @@ module Datadog
 
         if type_name && !method_name || method_name && !type_name
           raise ArgumentError, "Partial method probe definition: #{id}"
+        end
+
+        if line_no.nil? && method_name.nil?
+          raise ArgumentError, "Unhandled probe type: neither method nor line probe: #{id}"
         end
 
         @id = id
@@ -70,14 +82,6 @@ module Datadog
         @max_capture_depth = max_capture_depth
         @max_capture_attribute_count = max_capture_attribute_count
         @condition = condition
-
-        # These checks use instance methods that have more complex logic
-        # than checking a single argument value. To avoid duplicating
-        # the logic here, use the methods and perform these checks after
-        # instance variable assignment.
-        unless method? || line?
-          raise ArgumentError, "Unhandled probe type: neither method nor line probe: #{id}"
-        end
 
         @rate_limit = rate_limit || (@capture_snapshot ? 1 : 5000)
         @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
@@ -129,7 +133,7 @@ module Datadog
 
       # Returns whether the probe is a method probe.
       def method?
-        !!(type_name && method_name)
+        line_no.nil?
       end
 
       # Returns the line number associated with the probe, raising
