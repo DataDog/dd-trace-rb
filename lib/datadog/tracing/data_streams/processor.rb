@@ -91,8 +91,7 @@ module Datadog
           full_pathway_latency_sec = [now_sec - current_context.pathway_start_sec, 0.0].max
 
           # DEBUG: Log latency calculations
-          puts "   Edge latency: #{edge_latency_sec}s"
-          puts "   Full pathway latency: #{full_pathway_latency_sec}s"
+          Datadog.logger.debug { "DataStreams checkpoint - Edge latency: #{edge_latency_sec}s, Full pathway latency: #{full_pathway_latency_sec}s" }
 
           # Record stats for this checkpoint
           record_checkpoint_stats(
@@ -254,11 +253,11 @@ module Datadog
 
           tags = ["type:#{typ}", "topic:#{target}", "direction:out", "manual_checkpoint:true"]
           pathway = set_checkpoint(tags)
-          
+
           if pathway && block_given?
             yield('dd-pathway-ctx-base64', pathway)
           end
-          
+
           pathway
         end
 
@@ -279,7 +278,7 @@ module Datadog
 
           tags = ["type:#{typ}", "topic:#{source}", "direction:in"]
           tags << "manual_checkpoint:true" if manual_checkpoint
-          
+
           set_checkpoint(tags)
         end
 
