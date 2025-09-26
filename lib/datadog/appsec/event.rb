@@ -53,24 +53,24 @@ module Datadog
         def record(context, request: nil, response: nil)
           return if context.events.empty? || context.span.nil?
 
-          Datadog::AppSec::RateLimiter.thread_local.limit do
-            context.events.group_by(&:trace).each do |trace, event_group|
-              unless trace
-                next Datadog.logger.debug do
-                  "AppSec: Cannot record event group with #{event_group.count} events because it has no trace"
-                end
+          context.events.group_by(&:trace).each do |trace, event_group|
+            unless trace
+              next Datadog.logger.debug do
+                "AppSec: Cannot record event group with #{event_group.count} events because it has no trace"
               end
+            end
 
-              if event_group.any? { |event| event.keep? || event.schema? }
+            if event_group.any? { |event| event.keep? || event.schema? }
+              Datadog::AppSec::RateLimiter.thread_local.limit do
                 TraceKeeper.keep!(trace)
 
                 context.span['_dd.origin'] = 'appsec'
                 context.span.set_tags(request_tags(request)) if request
                 context.span.set_tags(response_tags(response)) if response
               end
-
-              context.span.set_tags(waf_tags(event_group))
             end
+
+            context.span.set_tags(waf_tags(event_group))
           end
         end
 
