@@ -244,6 +244,45 @@ module Datadog
           @pathway_context ||= PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
         end
 
+        # Set a produce checkpoint (for producers)
+        # @param typ [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
+        # @param target [String] The destination (e.g., topic, exchange, stream name)
+        # @param carrier_set [Proc] Function to inject context into carrier: proc { |key, value| ... }
+        # @return [String, nil] Base64 encoded pathway context or nil if disabled
+        def set_produce_checkpoint(typ, target, carrier_set = nil)
+          return nil unless @enabled
+
+          tags = ["type:#{typ}", "topic:#{target}", "direction:out", "manual_checkpoint:true"]
+          pathway = set_checkpoint(tags)
+          
+          if pathway && carrier_set
+            carrier_set.call('dd-pathway-ctx-base64', pathway)
+          end
+          
+          pathway
+        end
+
+        # Set a consume checkpoint (for consumers)
+        # @param typ [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
+        # @param source [String] The source (e.g., topic, exchange, stream name)
+        # @param carrier_get [Proc] Function to extract context from carrier: proc { |key| value }
+        # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set
+        # @return [String, nil] Base64 encoded pathway context or nil if disabled
+        def set_consume_checkpoint(typ, source, carrier_get = nil, manual_checkpoint: true)
+          return nil unless @enabled
+
+          # Decode pathway context from carrier if provided
+          if carrier_get
+            pathway_ctx = carrier_get.call('dd-pathway-ctx-base64')
+            decode_pathway_b64(pathway_ctx) if pathway_ctx
+          end
+
+          tags = ["type:#{typ}", "topic:#{source}", "direction:in"]
+          tags << "manual_checkpoint:true" if manual_checkpoint
+          
+          set_checkpoint(tags)
+        end
+
         def set_pathway_context(ctx)
           return unless @enabled
 
