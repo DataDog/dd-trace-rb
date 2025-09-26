@@ -17,10 +17,8 @@ module Datadog
         @span = span
       end
 
-      def attack?
-        return @is_attack if defined?(@is_attack)
-
-        @is_attack = @waf_result.is_a?(SecurityEngine::Result::Match)
+      def keep?
+        @waf_result.keep?
       end
 
       def schema?

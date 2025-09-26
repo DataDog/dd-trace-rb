@@ -161,7 +161,7 @@ module Datadog
             if context.waf_runner_ruleset_version
               span.set_tag('_dd.appsec.event_rules.version', context.waf_runner_ruleset_version)
 
-              unless @oneshot_tags_sent
+              unless oneshot_tags_sent?
                 # Small race condition, but it's inoccuous: worst case the tags
                 # are sent a couple of times more than expected
                 @oneshot_tags_sent = true
@@ -203,6 +203,10 @@ module Datadog
             end
           end
           # standard:enable Metrics/MethodLength
+
+          def oneshot_tags_sent?
+            @oneshot_tags_sent
+          end
 
           def to_rack_header(header)
             @rack_headers[header] ||= Datadog::Tracing::Contrib::Rack::Header.to_rack_header(header)
