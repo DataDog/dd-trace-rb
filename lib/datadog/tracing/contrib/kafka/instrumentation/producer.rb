@@ -24,10 +24,10 @@ module Datadog
 
                   processor = Datadog.configuration.tracing.data_streams.processor
 
-                  # Create checkpoint for producer (direction:out)
                   messages.each do |message|
-                    # Create checkpoint with direction:out for producer
-                    processor.set_checkpoint(['direction:out', 'type:kafka'], Time.now.to_f)
+                    processor.set_produce_checkpoint('kafka', message[:topic]) do |key, value|
+                      message[:headers][key] = value
+                    end
 
                     # Set pathway context in headers for downstream consumers using codec
                     message[:headers] ||= {}
@@ -52,8 +52,8 @@ module Datadog
 
                   # Create checkpoint for async producer (direction:out)
                   messages.each do |message|
-                    # Create checkpoint with direction:out for producer
-                    processor.set_checkpoint(['direction:out', 'type:kafka'], Time.now.to_f)
+                    # Use new API method for produce checkpoint
+                    processor.set_produce_checkpoint('kafka', message[:topic]) { |key, value| message[:headers][key] = value }
 
                     # Set pathway context in headers for downstream consumers using codec
                     message[:headers] ||= {}
