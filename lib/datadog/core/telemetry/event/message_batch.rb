@@ -19,12 +19,6 @@ module Datadog
 
           def payload
             @events.map do |event|
-              if event.type == 'app-endpoints'
-                puts '*****'
-                pp event.payload
-                puts '*****'
-              end
-
               {
                 request_type: event.type,
                 payload: event.payload,
