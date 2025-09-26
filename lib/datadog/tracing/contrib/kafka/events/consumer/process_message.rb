@@ -36,9 +36,9 @@ module Datadog
                   
                   processor = Datadog.configuration.tracing.data_streams.processor
                   
-                  # Extract pathway context from message headers if available
-                  headers = payload[:headers] || {}
-                  processor.set_consume_checkpoint('kafka', payload[:topic]) { |key| headers[key] }
+                  # ProcessMessage event doesn't have access to message headers
+                  # Create consume checkpoint without pathway context
+                  processor.set_consume_checkpoint('kafka', payload[:topic])
                 end
               end
 
