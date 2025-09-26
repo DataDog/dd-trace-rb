@@ -101,12 +101,18 @@ module Datadog
         end
 
         timestamp = timestamp_now
+        message = nil
+        evaluation_errors = []
+        if segments = probe.template_segments
+          message, evaluation_errors = evaluate_template(segments, context)
+        end
+        duration = context.duration
         {
           service: settings.service,
           "debugger.snapshot": {
             id: SecureRandom.uuid,
             timestamp: timestamp,
-            evaluationErrors: [],
+            evaluationErrors: evaluation_errors,
             probe: {
               id: probe.id,
               version: 0,
@@ -119,7 +125,7 @@ module Datadog
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
-          duration: (duration = context.duration) ? (duration * 10**9).to_i : 0,
+          duration: duration ? (duration * 10**9).to_i : 0,
           host: nil,
           logger: {
             name: probe.file,
@@ -136,11 +142,8 @@ module Datadog
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
           ddsource: 'dd_debugger',
-          message: probe.template_segments && evaluate_template(
-            probe.template_segments,
-            context
-          ),
-          #duration: duration ? duration * 1000 : 0),
+          message: message,
+          duration: duration ? duration * 1000 : 0,
           timestamp: timestamp,
         }
       end
@@ -172,16 +175,29 @@ module Datadog
       end
 
       def evaluate_template(template_segments, context)
-        template_segments.map do |segment|
+        evaluation_errors = []
+        message = template_segments.map do |segment|
           case segment
           when String
             segment
           when EL::Expression
+            # TODO be more sophisticated than just calling to_s.
+            # The return value could be customer data (@return, or any
+            # local variable reference).
+            # Special cases also include @exception and @duration.
+            # We need to use our serialization logic here but we don't want
+            # to serialize to the same format that we use for snapshots,
+            # since this output is supposed to be human-readable.
+            # We need a simpler, "human-friendly" serializer.
             segment.evaluate(context).to_s
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
+        rescue => exc
+          evaluation_errors << "#{exc.class}: #{exc}"
+          '[evaluation error]'
         end.join('')
+        [message, evaluation_errors]
       end
 
       def timestamp_now

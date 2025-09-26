@@ -65,14 +65,18 @@ module Datadog
               when '@value'
                 'current_value'
               when '@return'
-                # TODO implement
-                raise NotImplementedError
+                # For @return, @duration and @exception we shadow
+                # instance variables.
+                "context.return_value"
               when '@duration'
-                # TODO implement
-                raise NotImplementedError
+                # There is no way to explicitly format the duration.
+                # TODO come up with better formatting?
+                # We could format to a string here but what if customer
+                # has @duration as part of an expression and wants
+                # to retain it as a number?
+                "(context.duration * 1000)"
               when '@exception'
-                # TODO implement
-                raise NotImplementedError
+                "context.exception"
               else
                 # Ruby technically allows all kinds of symbols in variable
                 # names, for example spaces and many characters.
