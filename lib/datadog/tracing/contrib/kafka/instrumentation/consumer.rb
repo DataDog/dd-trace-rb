@@ -16,7 +16,7 @@ module Datadog
               # Monkey patch for each_message method
               def each_message(**kwargs, &block)
                 # Wrap the block to add DSM processing for each message
-                wrapped_block = if block_given? && Datadog.configuration.tracing.data_streams.enabled
+                wrapped_block = if Datadog.configuration.tracing.data_streams.enabled
                   proc do |message|
                     # DSM: Create checkpoint for consumed message
                     Datadog.logger.debug { "Kafka each_message: DSM enabled for topic #{message.topic}" }
@@ -27,8 +27,8 @@ module Datadog
                     headers = message.headers || {}
                     processor.set_consume_checkpoint('kafka', message.topic) { |key| headers[key] }
                     
-                    # Call the original block
-                    block.call(message)
+                    # Call the original block if provided
+                    block.call(message) if block_given?
                   end
                 else
                   block
@@ -41,7 +41,7 @@ module Datadog
               # Monkey patch for each_batch method
               def each_batch(**kwargs, &block)
                 # Wrap the block to add DSM processing for each batch
-                wrapped_block = if block_given? && Datadog.configuration.tracing.data_streams.enabled
+                wrapped_block = if Datadog.configuration.tracing.data_streams.enabled
                   proc do |batch|
                     # DSM: Create checkpoint for consumed batch
                     Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
@@ -52,8 +52,8 @@ module Datadog
                     # so we create a consume checkpoint without pathway context
                     processor.set_consume_checkpoint('kafka', batch.topic)
                     
-                    # Call the original block
-                    block.call(batch)
+                    # Call the original block if provided
+                    block.call(batch) if block_given?
                   end
                 else
                   block
