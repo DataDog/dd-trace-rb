@@ -134,6 +134,8 @@ module Datadog
           end
 
           def subscribe_to_routes_loaded
+            return unless Datadog.configuration.appsec.api_security.endpoint_collection.enabled
+
             ::ActiveSupport.on_load(:after_routes_loaded) do |app|
               AppSec.telemetry.app_endpoints_loaded(
                 APISecurity::EndpointCollection::RailsRoutesSerializer.new(app.routes.routes).to_enum
