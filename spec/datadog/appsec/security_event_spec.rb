@@ -40,7 +40,7 @@ RSpec.describe Datadog::AppSec::SecurityEvent do
         Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0, input_truncated: false)
       end
 
-      it { expect(event).not_to be_attack }
+      it { expect(event).not_to be_keep }
     end
   end
 
