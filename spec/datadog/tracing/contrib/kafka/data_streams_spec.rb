@@ -94,19 +94,33 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     let(:message) { { topic: 'test_topic', value: 'test_value' } }
 
     it 'injects pathway context into message headers' do
+      mock_processor = instance_double('DataStreamsProcessor')
+      expect(Datadog.configuration.tracing.data_streams).to receive(:processor).and_return(mock_processor)
+      expect(mock_processor).to receive(:set_produce_checkpoint).with('kafka', 'test_topic') do |type, topic, &block|
+        block.call('dd-pathway-ctx-base64', 'test-pathway-context')
+        'test-pathway-context'
+      end
+
       producer.deliver_messages([message])
 
       # Initial test just verifies basic structure until we implement context
       expect(message[:headers]).to include('dd-pathway-ctx-base64')
-      expect(message[:headers]['dd-pathway-ctx-base64']).to be_a(String)
+      expect(message[:headers]['dd-pathway-ctx-base64']).to eq('test-pathway-context')
     end
 
     it 'creates new pathway context for first message' do
+      mock_processor = instance_double('DataStreamsProcessor')
+      expect(Datadog.configuration.tracing.data_streams).to receive(:processor).and_return(mock_processor)
+      expect(mock_processor).to receive(:set_produce_checkpoint).with('kafka', 'test_topic') do |type, topic, &block|
+        block.call('dd-pathway-ctx-base64', 'test-pathway-context')
+        'test-pathway-context'
+      end
+
       producer.deliver_messages([message])
 
       # We'll expand this once we implement context decoding
       encoded_ctx = message[:headers]['dd-pathway-ctx-base64']
-      expect(encoded_ctx).not_to be_nil
+      expect(encoded_ctx).to eq('test-pathway-context')
     end
   end
 
@@ -131,11 +145,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     let(:consumer) { test_consumer_class.new }
 
-    it 'creates checkpoint on message consume' do
-      # This will fail until we implement checkpointing
-      expect(Datadog.configuration.tracing.data_streams).to receive(:processor)
-        .and_return(instance_double('DataStreamsProcessor', set_consume_checkpoint: true, encode_pathway_context: 'test-context'))
-
+    it 'processes messages without DSM checkpointing (handled in event handlers)' do
+      # DSM is handled at the individual message level in event handlers, not in each_message
       consumer.each_message do |msg|
         # Message is processed
       end
