@@ -177,5 +177,81 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
       end
     end
   end
+
+  describe 'API consistency with Python/Node.js' do
+    let(:mock_ddsketch_instance) { double('DDSketchInstance', add: true, encode: 'encoded_data') }
+    let(:mock_ddsketch) { double('DDSketch', supported?: true, new: mock_ddsketch_instance) }
+    let(:processor) { described_class.new(ddsketch_class: mock_ddsketch) }
+
+    describe '#set_produce_checkpoint' do
+      it 'creates produce checkpoint with correct tags' do
+        carrier_set = double('carrier_set')
+        expect(carrier_set).to receive(:call).with('dd-pathway-ctx-base64', anything)
+        
+        result = processor.set_produce_checkpoint('kafka', 'orders-topic', carrier_set)
+        
+        expect(result).to be_a(String)
+        expect(result).not_to be_empty
+      end
+
+      it 'works without carrier_set function' do
+        result = processor.set_produce_checkpoint('kafka', 'orders-topic')
+        
+        expect(result).to be_a(String)
+        expect(result).not_to be_empty
+      end
+
+      it 'returns nil when processor disabled' do
+        processor.enabled = false
+        
+        result = processor.set_produce_checkpoint('kafka', 'orders-topic')
+        
+        expect(result).to be_nil
+      end
+    end
+
+    describe '#set_consume_checkpoint' do
+      it 'creates consume checkpoint with correct tags' do
+        carrier_get = double('carrier_get')
+        expect(carrier_get).to receive(:call).with('dd-pathway-ctx-base64').and_return(nil)
+        
+        result = processor.set_consume_checkpoint('kafka', 'orders-topic', carrier_get)
+        
+        expect(result).to be_a(String)
+        expect(result).not_to be_empty
+      end
+
+      it 'decodes pathway context from carrier' do
+        encoded_context = 'encoded_pathway_context'
+        carrier_get = double('carrier_get')
+        expect(carrier_get).to receive(:call).with('dd-pathway-ctx-base64').and_return(encoded_context)
+        expect(processor).to receive(:decode_pathway_b64).with(encoded_context)
+        
+        processor.set_consume_checkpoint('kafka', 'orders-topic', carrier_get)
+      end
+
+      it 'works without carrier_get function' do
+        result = processor.set_consume_checkpoint('kafka', 'orders-topic')
+        
+        expect(result).to be_a(String)
+        expect(result).not_to be_empty
+      end
+
+      it 'respects manual_checkpoint parameter' do
+        result = processor.set_consume_checkpoint('kafka', 'orders-topic', nil, manual_checkpoint: false)
+        
+        expect(result).to be_a(String)
+        expect(result).not_to be_empty
+      end
+
+      it 'returns nil when processor disabled' do
+        processor.enabled = false
+        
+        result = processor.set_consume_checkpoint('kafka', 'orders-topic')
+        
+        expect(result).to be_nil
+      end
+    end
+  end
 end
 
