@@ -35,7 +35,7 @@ module Datadog
                       AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
                     )
 
-                    AppSec::Event.tag_and_keep!(context, result)
+                    AppSec::Event.tag(context, result)
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
@@ -57,7 +57,7 @@ module Datadog
                       AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
                     )
 
-                    AppSec::Event.tag_and_keep!(context, result)
+                    AppSec::Event.tag(context, result)
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
