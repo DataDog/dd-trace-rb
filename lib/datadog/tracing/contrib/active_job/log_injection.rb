@@ -6,15 +6,11 @@ module Datadog
       module ActiveJob
         # Active Job log injection wrapped around job execution
         module LogInjection
-          def self.included(base)
-            base.class_eval do
-              around_perform do |_, block|
-                if Datadog.configuration.tracing.log_injection && logger.respond_to?(:tagged)
-                  logger.tagged(Tracing.log_correlation, &block)
-                else
-                  block.call
-                end
-              end
+          def perform_now
+            if Datadog.configuration.tracing.log_injection && logger.respond_to?(:tagged)
+              logger.tagged(Tracing.log_correlation) { super }
+            else
+              super
             end
           end
         end
