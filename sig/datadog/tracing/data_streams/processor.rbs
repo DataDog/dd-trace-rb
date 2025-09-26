@@ -1,0 +1,71 @@
+module Datadog
+  module Tracing
+    module DataStreams
+      class Processor < Core::Worker
+        PROPAGATION_KEY: ::String
+
+        @enabled: untyped
+
+        @pathway_context: untyped
+
+        @bucket_size_ns: untyped
+
+        @buckets: untyped
+
+        @consumer_stats: untyped
+
+        @stats_mutex: untyped
+
+        @agent_transport: untyped
+
+        include Core::Workers::Polling
+        include Core::Workers::IntervalLoop
+
+        attr_accessor enabled: untyped
+
+        def initialize: (?interval: untyped?) -> void
+        def track_kafka_produce: (untyped topic, untyped partition, untyped offset, untyped now_sec) -> (nil | true)
+        def track_kafka_commit: (untyped group, untyped topic, untyped partition, untyped offset, untyped now_sec) -> (nil | true)
+        def track_kafka_consume: (untyped topic, untyped partition, untyped offset, ?untyped? now_sec) -> (nil | true)
+        def set_produce_checkpoint: (untyped type, untyped target, ?manual_checkpoint: bool) ?{ (untyped, untyped) -> untyped } -> (nil | untyped)
+        def set_consume_checkpoint: (untyped type, untyped source, ?manual_checkpoint: bool) ?{ (untyped) -> untyped } -> (nil | untyped)
+
+        private
+
+        def encode_pathway_context: () -> (nil | untyped)
+
+        def set_checkpoint: (untyped tags, ?untyped? now_sec, ?::Integer payload_size, ?untyped? span) -> (nil | untyped)
+
+        def decode_pathway_context: (untyped encoded_ctx) -> (nil | untyped)
+
+        def decode_pathway_b64: (untyped encoded_ctx) -> (nil | untyped)
+        def perform: () -> untyped
+
+        def get_current_pathway: () -> (nil | untyped)
+        def start: () -> (nil | untyped)
+        def stop: (?bool force_stop, ?::Integer timeout) -> untyped
+        def get_current_context: () -> untyped
+
+        def set_pathway_context: (untyped ctx) -> (nil | untyped)
+
+        def decode_and_set_pathway_context: (untyped headers) -> (nil | untyped)
+        def compute_pathway_hash: (untyped current_hash, untyped tags) -> untyped
+        def fnv1_64: (untyped data) -> untyped
+        def record_checkpoint_stats: (hash: untyped, parent_hash: untyped, edge_latency_sec: untyped, payload_size: untyped, tags: untyped, timestamp_sec: untyped) -> untyped
+        def record_consumer_stats: (topic: untyped, partition: untyped, offset: untyped, timestamp_sec: untyped) -> untyped
+        def aggregate_consumer_stats_by_partition: (untyped topic, untyped partition, untyped offset, untyped timestamp_sec) -> untyped
+        def aggregate_stats_by_time_buckets: () -> untyped
+        def send_stats_to_agent: (untyped payload) -> untyped
+        def send_dsm_payload: (untyped data, untyped headers) -> untyped
+        def compress_payload?: (untyped payload) -> untyped
+        def gzip_compress: (untyped data) -> untyped
+        def serialize_buckets: () -> untyped
+        def serialize_consumer_backlogs: () -> untyped
+        def hostname: () -> untyped
+        def create_bucket: () -> { pathway_stats: ::Hash[untyped, untyped], latest_produce_offsets: ::Hash[untyped, untyped], latest_commit_offsets: ::Hash[untyped, untyped] }
+        def create_pathway_stats: () -> { edge_latency: untyped, full_pathway_latency: untyped, payload_size_sum: 0, payload_size_count: 0 }
+        def agent_transport: () -> untyped
+      end
+    end
+  end
+end

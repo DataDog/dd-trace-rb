@@ -154,6 +154,9 @@ module Datadog
             end
           end
 
+          # Start Data Streams Monitoring processor if enabled
+          settings.tracing.data_streams.processor.start if settings.tracing.data_streams.enabled
+
           if settings.remote.enabled && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
@@ -194,6 +197,9 @@ module Datadog
 
           # Shutdown workers
           runtime_metrics.stop(true, close_metrics: false)
+
+          # Shutdown Data Streams Monitoring processor
+          settings.tracing.data_streams.processor.stop(true, 1) if settings.tracing.data_streams.enabled
 
           # Shutdown the old metrics, unless they are still being used.
           # (e.g. custom Statsd instances.)

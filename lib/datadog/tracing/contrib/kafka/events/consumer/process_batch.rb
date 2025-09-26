@@ -31,17 +31,6 @@ module Datadog
                   span.set_tag(Ext::TAG_HIGHWATER_MARK_OFFSET, payload[:highwater_mark_offset])
                 end
                 span.set_tag(Ext::TAG_OFFSET_LAG, payload[:offset_lag]) if payload.key?(:offset_lag)
-
-                # DSM: Create checkpoint for consumed batch
-                if Datadog.configuration.tracing.data_streams.enabled && payload.key?(:topic)
-                  Datadog.logger.debug { "Kafka ProcessBatch: DSM enabled for topic #{payload[:topic]}" }
-                  
-                  processor = Datadog.configuration.tracing.data_streams.processor
-                  
-                  # For batch processing, we don't have individual message headers
-                  # so we create a consume checkpoint without pathway context
-                  processor.set_consume_checkpoint('kafka', payload[:topic])
-                end
               end
 
               def span_name

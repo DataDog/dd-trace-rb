@@ -1,0 +1,47 @@
+module Datadog
+  module Tracing
+    module DataStreams
+      class PathwayContext
+        @hash: untyped
+
+        @pathway_start_sec: untyped
+
+        @current_edge_start_sec: untyped
+
+        @parent_hash: untyped
+        @previous_direction: untyped
+
+        @closest_opposite_direction_hash: untyped
+
+        @closest_opposite_direction_edge_start: untyped
+
+        attr_accessor hash: untyped
+
+        attr_accessor pathway_start_sec: untyped
+
+        attr_accessor current_edge_start_sec: untyped
+
+        attr_accessor parent_hash: untyped
+
+        attr_accessor previous_direction: untyped
+
+        attr_accessor closest_opposite_direction_hash: untyped
+
+        attr_accessor closest_opposite_direction_edge_start: untyped
+
+        def initialize: (untyped hash_value, untyped pathway_start_sec, untyped current_edge_start_sec, ?untyped? parent_hash) -> void
+
+        def encode: () -> untyped
+
+        def encode_b64: () -> untyped
+        def self.decode_b64: (untyped encoded_ctx) -> (nil | untyped)
+        def self.decode: (untyped binary_data) -> untyped
+
+        private
+
+        def encode_var_int_64: (untyped value) -> untyped
+        def self.decode_varint: (untyped io) -> untyped
+      end
+    end
+  end
+end
