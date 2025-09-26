@@ -33,8 +33,9 @@ static const rb_data_type_t configurator_typed_data = {
 static void config_logged_result_free(void *config_logged_result_ptr) {
   ddog_LibraryConfigLoggedResult *config_logged_result = (ddog_LibraryConfigLoggedResult *)config_logged_result_ptr;
 
-  ddog_library_config_drop(*config_logged_result);
-  ruby_xfree(config_logged_result_ptr);
+  // Note: In v21, we don't need to call ddog_library_config_drop on the vec itself
+  // The drop function now takes the full result structure
+  ruby_xfree(config_vec_ptr);
 }
 
 static const rb_data_type_t config_logged_result_typed_data = {
@@ -99,6 +100,7 @@ static VALUE _native_configurator_get(VALUE self) {
   ddog_Configurator *configurator;
   TypedData_Get_Struct(self, ddog_Configurator, &configurator_typed_data, configurator);
 
+<<<<<<< HEAD
   // Wrapping config_logged_result into a Ruby object enables the Ruby GC to manage its memory
   // We need to allocate memory for config_logged_result because once it is out of scope, it will be freed (at the end of this function)
   // So we cannot reference it with &config_logged_result
@@ -110,12 +112,19 @@ static VALUE _native_configurator_get(VALUE self) {
 
   if (configurator_logged_result->tag == DDOG_LIBRARY_CONFIG_LOGGED_RESULT_ERR) {
     ddog_Error err = configurator_logged_result->err;
+=======
+  struct ddog_LibraryConfigLoggedResult configurator_result = ddog_library_configurator_get(configurator);
+
+  if (configurator_result.tag == DDOG_LIBRARY_CONFIG_LOGGED_RESULT_ERR) {
+    ddog_Error err = configurator_result.err;
+>>>>>>> d158a22317 (Add DSM and Karafka integration support)
     VALUE message = get_error_details_and_drop(&err);
     if (is_config_loaded()) {
       log_warning(message);
     } else {
       log_warning_without_config(message);
     }
+<<<<<<< HEAD
     RB_GC_GUARD(config_logged_result_rb);
     return rb_hash_new();
   }
@@ -126,6 +135,21 @@ static VALUE _native_configurator_get(VALUE self) {
   }
 
   ddog_Vec_LibraryConfig config_vec = configurator_logged_result->ok.value;
+=======
+    // Drop the result structure to free memory
+    ddog_library_config_drop(configurator_result);
+    return rb_hash_new();
+  }
+
+  // Wrapping config_vec into a Ruby object enables the Ruby GC to manage its memory
+  // We need to allocate memory for config_vec because once it is out of scope, it will be freed (at the end of this function)
+  // So we cannot reference it with &config_vec
+  // We are doing this in case one of the ruby API raises an exception before the end of this function,
+  // so the allocated memory will still be freed
+  ddog_Vec_LibraryConfig *config_vec = ruby_xmalloc(sizeof(ddog_Vec_LibraryConfig));
+  *config_vec = configurator_result.ok.value;
+  VALUE config_vec_rb = TypedData_Wrap_Struct(config_vec_class, &config_vec_typed_data, config_vec);
+>>>>>>> d158a22317 (Add DSM and Karafka integration support)
 
   VALUE local_config_hash = rb_hash_new();
   VALUE fleet_config_hash = rb_hash_new();
@@ -167,6 +191,13 @@ static VALUE _native_configurator_get(VALUE self) {
   rb_hash_aset(result, ID2SYM(rb_intern("local")), local_hash);
   rb_hash_aset(result, ID2SYM(rb_intern("fleet")), fleet_hash);
 
+<<<<<<< HEAD
   RB_GC_GUARD(config_logged_result_rb);
+=======
+  // Drop the result structure to free memory
+  ddog_library_config_drop(configurator_result);
+
+  RB_GC_GUARD(config_vec_rb);
+>>>>>>> d158a22317 (Add DSM and Karafka integration support)
   return result;
 }

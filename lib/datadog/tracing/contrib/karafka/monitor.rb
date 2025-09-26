@@ -24,19 +24,19 @@ module Datadog
               consumer = job.executor.topic.consumer
 
               action = case job_type
-              when 'Periodic', 'PeriodicNonBlocking'
-                'tick'
-              when 'Shutdown'
-                'shutdown'
-              when 'Revoked', 'RevokedNonBlocking'
-                'revoked'
-              when 'Idle'
-                'idle'
-              when 'Eofed', 'EofedNonBlocking'
-                'eofed'
-              else
-                'consume'
-              end
+                       when 'Periodic', 'PeriodicNonBlocking'
+                         'tick'
+                       when 'Shutdown'
+                         'shutdown'
+                       when 'Revoked', 'RevokedNonBlocking'
+                         'revoked'
+                       when 'Idle'
+                         'idle'
+                       when 'Eofed', 'EofedNonBlocking'
+                         'eofed'
+                       else
+                         'consume'
+                       end
 
               span.resource = "#{consumer}##{action}"
 
@@ -47,6 +47,19 @@ module Datadog
                 span.set_tag(Ext::TAG_CONSUMER, consumer)
                 span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, job.executor.topic.name)
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
+
+                # DSM: Track consumer offset stats for batch processing
+                if Datadog.configuration.tracing.data_streams.enabled
+                  processor = Datadog.configuration.tracing.data_streams.processor
+                  job.messages.each do |message|
+                    processor.track_kafka_consume(
+                      job.executor.topic.name,
+                      job.executor.partition,
+                      message.metadata.offset,
+                      Time.now.to_f
+                    )
+                  end
+                end
               end
 
               super
