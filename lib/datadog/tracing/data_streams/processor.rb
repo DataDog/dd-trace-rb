@@ -5,25 +5,35 @@ require 'datadog/core/ddsketch'
 require_relative 'pathway_context'
 require_relative 'pathway_codec'
 require_relative '../../version'
+require_relative '../../../datadog/core/worker'
+require_relative '../../../datadog/core/workers/polling'
 
 module Datadog
   module Tracing
     module DataStreams
       # Processor for Data Streams Monitoring
       # This class is responsible for collecting and reporting pathway stats
-      class Processor
+      # Periodically (every interval, 10 seconds by default) flushes stats to the Datadog agent.
+      class Processor < Core::Worker
+        include Core::Workers::Polling
+
         attr_accessor :enabled
 
-        def initialize(ddsketch_class: Datadog::Core::DDSketch)
+        def initialize(ddsketch_class: Datadog::Core::DDSketch, interval: nil)
           # DDSketch is required for DSM - disable processor if not supported
           unless ddsketch_class.supported?
             @enabled = false
             return
           end
 
+          # Set up periodic worker
+          interval ||= ENV.fetch('_DD_TRACE_STATS_WRITER_INTERVAL', '10.0').to_f
+          super() # Initialize Core::Worker
+          self.loop_base_interval = interval
+
           @enabled = true
           @pathway_context = PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
-          @bucket_size_ns = (10 * 1e9).to_i # 10 second buckets
+          @bucket_size_ns = (interval * 1e9).to_i # Match interval for bucket size
           @buckets = {} # Time-based buckets for stats
           @consumer_stats = []
           @stats_mutex = Mutex.new
@@ -83,10 +93,6 @@ module Datadog
           # DEBUG: Log latency calculations
           puts "   Edge latency: #{edge_latency_sec}s"
           puts "   Full pathway latency: #{full_pathway_latency_sec}s"
-
-          # Manual flush for testing
-          puts "🔍 [DSM DEBUG] Manually flushing stats to test agent communication..."
-          flush_stats
 
           # Record stats for this checkpoint
           record_checkpoint_stats(
@@ -185,15 +191,15 @@ module Datadog
           PathwayContext.decode_b64(encoded_ctx)
         end
 
-        def flush_stats
+        # Called periodically by the worker to flush stats to the agent
+        def perform
           return unless @enabled
 
           @stats_mutex.synchronize do
-
             # Check if we have data to send
             return if @buckets.empty? && @consumer_stats.empty?
 
-            # Build payload  implementation format
+            # Build payload in agent format
             stats_buckets = serialize_buckets
 
             payload = {
@@ -204,8 +210,7 @@ module Datadog
               'Hostname' => hostname
             }
 
-
-            # Send to agent (msgpack + gzip )
+            # Send to agent (msgpack + gzip)
             send_stats_to_agent(payload)
 
             # Clear consumer stats after successful send (buckets cleared in serialize_buckets)
@@ -220,6 +225,18 @@ module Datadog
           return nil unless @enabled
 
           get_current_context
+        end
+
+        # Start the periodic worker for automatic stats flushing
+        def start
+          return unless @enabled
+
+          super
+        end
+
+        # Stop the periodic worker
+        def stop(force_stop = false, timeout = 1)
+          super(force_stop, timeout)
         end
 
         # Get or create current context ( threading.local behavior)
