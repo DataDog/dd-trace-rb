@@ -10,6 +10,7 @@ module Datadog
         {"DD_AGENT_HOST" => {version: ["A"]},
          "DD_API_KEY" => {version: ["A"]},
          "DD_API_SECURITY_ENABLED" => {version: ["A"]},
+         "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED" => {version: ["A"]},
          "DD_API_SECURITY_REQUEST_SAMPLE_RATE" => {version: ["A"]},
          "DD_API_SECURITY_SAMPLE_DELAY" => {version: ["A"]},
          "DD_APM_TRACING_ENABLED" => {version: ["A"]},
