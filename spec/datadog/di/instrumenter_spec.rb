@@ -709,7 +709,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
     context 'when target method raises an exception' do
       let(:probe_args) do
-        {type_name: 'HookTestClass', method_name: 'exception'}
+        {type_name: 'HookTestClass', method_name: 'exception_method'}
       end
 
       it 'invokes callback' do
@@ -718,7 +718,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         expect do
-          HookTestClass.new.exception
+          HookTestClass.new.exception_method
         end.to raise_error(HookTestClass::TestException)
 
         expect(observed_calls.length).to eq 1

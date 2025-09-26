@@ -54,7 +54,7 @@ class HookTestClass
     [arg, options]
   end
 
-  def exception
+  def exception_method
     raise TestException, 'Test exception'
   end
 end
