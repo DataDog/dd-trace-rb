@@ -135,10 +135,14 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
                                                        typeName: 'Foo', methodName: 'bar'
                                                      },
-           segments: [
-             {str: 'hello'},
-             {json: {ref: 'bar'}},
-           ],}
+           segments: segments}
+        end
+
+        let(:segments) do
+          [
+            {str: 'hello'},
+            {json: {ref: 'bar'}},
+          ]
         end
 
         let(:probe) do
@@ -163,6 +167,49 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
           # We asked to not create a snapshot
           expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+        end
+
+        context 'when there is an evaluation error' do
+          let(:segments) do
+            [
+              {str: 'hello'},
+              {json: {substring: ['bar', 'baz', 3]}},
+            ]
+          end
+
+          it 'replaces bogus expressions with [evaluation error] and fills out evaluation errors' do
+            payload = builder.build_snapshot(context)
+            expect(payload).to be_a(Hash)
+            expect(payload[:message]).to eq "hello[evaluation error]"
+            expect(payload[:"debugger.snapshot"][:evaluationErrors]).to eq ['ArgumentError: bad value for range']
+
+            # We asked to not create a snapshot
+            expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+          end
+        end
+
+        context 'when there are multiple evaluation errors' do
+          let(:segments) do
+            [
+              {str: 'hello'},
+              {json: {substring: ['bar', 'baz', 3]}},
+              {json: {filter: ['bar', 'baz']}},
+              {str: 'hello'},
+            ]
+          end
+
+          it 'attempts to evaluate all expressions' do
+            payload = builder.build_snapshot(context)
+            expect(payload).to be_a(Hash)
+            expect(payload[:message]).to eq "hello[evaluation error][evaluation error]hello"
+            expect(payload[:"debugger.snapshot"][:evaluationErrors]).to eq [
+              'ArgumentError: bad value for range',
+              'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: String',
+            ]
+
+            # We asked to not create a snapshot
+            expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+          end
         end
 
         context 'when variables are referenced but none are passed in' do
