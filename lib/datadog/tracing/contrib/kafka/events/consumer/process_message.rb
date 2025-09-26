@@ -29,6 +29,17 @@ module Datadog
                 span.set_tag(Ext::TAG_PARTITION, payload[:partition]) if payload.key?(:partition)
                 span.set_tag(Ext::TAG_OFFSET, payload[:offset]) if payload.key?(:offset)
                 span.set_tag(Ext::TAG_OFFSET_LAG, payload[:offset_lag]) if payload.key?(:offset_lag)
+
+                # DSM: Create checkpoint for consumed message
+                if Datadog.configuration.tracing.data_streams.enabled && payload.key?(:topic)
+                  Datadog.logger.debug { "Kafka ProcessMessage: DSM enabled for topic #{payload[:topic]}" }
+                  
+                  processor = Datadog.configuration.tracing.data_streams.processor
+                  
+                  # Extract pathway context from message headers if available
+                  headers = payload[:headers] || {}
+                  processor.set_consume_checkpoint('kafka', payload[:topic]) { |key| headers[key] }
+                end
               end
 
               def span_name
