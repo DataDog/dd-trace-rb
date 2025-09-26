@@ -36,7 +36,8 @@ module Datadog
 
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
-        template: nil, capture_snapshot: false, max_capture_depth: nil,
+        template: nil, template_segments: nil,
+        capture_snapshot: false, max_capture_depth: nil,
         max_capture_attribute_count: nil, condition: nil,
         rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
@@ -64,6 +65,7 @@ module Datadog
         @type_name = type_name
         @method_name = method_name
         @template = template
+        @template_segments = template_segments
         @capture_snapshot = !!capture_snapshot
         @max_capture_depth = max_capture_depth
         @max_capture_attribute_count = max_capture_attribute_count
@@ -90,6 +92,7 @@ module Datadog
       attr_reader :type_name
       attr_reader :method_name
       attr_reader :template
+      attr_reader :template_segments
 
       # The compiled condition for the probe, as a String.
       attr_reader :condition

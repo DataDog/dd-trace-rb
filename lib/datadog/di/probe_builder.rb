@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# rubocop:disable Lint/AssignmentInCondition
+
 require_relative "probe"
 require_relative 'el'
 
@@ -22,7 +24,9 @@ module Datadog
         'LOG_PROBE' => :log,
       }.freeze
 
-      module_function def build_from_remote_config(config)
+      module_function
+
+      def build_from_remote_config(config)
         # The validations here are not yet comprehensive.
         type = config.fetch('type')
         type_symbol = PROBE_TYPES[type] or raise ArgumentError, "Unrecognized probe type: #{type}"
@@ -35,7 +39,10 @@ module Datadog
           line_no: config["where"]&.[]("lines")&.compact&.map(&:to_i)&.first,
           type_name: config["where"]&.[]("typeName"),
           method_name: config["where"]&.[]("methodName"),
+          # We should not be using the template for anything - we instead
+          # use +segments+ - but keep the template for debugging.
           template: config["template"],
+          template_segments: build_template_segments(config['segments']),
           capture_snapshot: !!config["captureSnapshot"],
           max_capture_depth: config["capture"]&.[]("maxReferenceDepth"),
           max_capture_attribute_count: config["capture"]&.[]("maxFieldCount"),
@@ -45,6 +52,24 @@ module Datadog
       rescue KeyError => exc
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc}: #{config}"
       end
+
+      def build_template_segments(segments)
+        segments&.map do |segment|
+          if Hash === segment
+            if str = segment['str']
+              str
+            elsif ast = segment['json']
+              EL::Compiler.new.compile(ast)
+            else
+              # TODO report to telemetry?
+            end
+          else
+            # TODO report to telemetry?
+          end
+        end&.compact
+      end
     end
   end
 end
+
+# rubocop:enable Lint/AssignmentInCondition

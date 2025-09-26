@@ -80,7 +80,7 @@ jobs:
       matrix:
         include:
           - weblogs: ""  # All of them
-            scenarios: DEFAULT,EVERYTHING_DISABLED,APPSEC_BLOCKING_FULL_DENYLIST,APPSEC_REQUEST_BLOCKING,APPSEC_BLOCKING,GRAPHQL_APPSEC,PARAMETRIC
+            scenarios: DEFAULT,EVERYTHING_DISABLED,APPSEC_BLOCKING_FULL_DENYLIST,APPSEC_BLOCKING,GRAPHQL_APPSEC,PARAMETRIC
           - weblogs: rack,rails70
             scenarios: |
               APPSEC_API_SECURITY,

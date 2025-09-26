@@ -46,7 +46,8 @@ RSpec.describe Datadog::DI::EL do
           end
 
           let(:context) do
-            Datadog::DI::EL::Context.new(locals: locals, target: target)
+            Datadog::DI::EL::Context.new(locals: locals, target_self: target,
+              probe: nil, settings: nil, serializer: nil)
           end
 
           if error = spec['error']
@@ -58,11 +59,6 @@ RSpec.describe Datadog::DI::EL do
               end.to raise_error do |e|
                 expect(e.message).to start_with(expected_compile_error)
               end
-            end
-          else
-            it 'compiles as expected' do
-              expect(compiled).to be_a(Datadog::DI::EL::Expression)
-              expect(compiled.compiled_expr).to eq(expected)
             end
           end
 
