@@ -25,14 +25,10 @@ module Datadog
                   processor = Datadog.configuration.tracing.data_streams.processor
 
                   messages.each do |message|
+                    message[:headers] ||= {}
                     processor.set_produce_checkpoint('kafka', message[:topic]) do |key, value|
                       message[:headers][key] = value
                     end
-
-                    # Set pathway context in headers for downstream consumers using codec
-                    message[:headers] ||= {}
-                    current_context = processor.get_current_pathway
-                    DataStreams::PathwayCodec.encode(current_context, message[:headers])
                   end
                 else
                   puts 'deliver_messages (DSM disabled)'
@@ -52,13 +48,8 @@ module Datadog
 
                   # Create checkpoint for async producer (direction:out)
                   messages.each do |message|
-                    # Use new API method for produce checkpoint
-                    processor.set_produce_checkpoint('kafka', message[:topic]) { |key, value| message[:headers][key] = value }
-
-                    # Set pathway context in headers for downstream consumers using codec
                     message[:headers] ||= {}
-                    current_context = processor.get_current_pathway
-                    DataStreams::PathwayCodec.encode(current_context, message[:headers])
+                    processor.set_produce_checkpoint('kafka', message[:topic]) { |key, value| message[:headers][key] = value }
                   end
                 else
                   puts 'send_messages (DSM disabled)'
