@@ -26,7 +26,11 @@ module Datadog
 
           def inject_log_correlation
             ::ActiveSupport.on_load(:active_job) do
-              include LogInjection
+              if target_version < Gem::Version.new('6.0.0')
+                include LogInjection::ActiveJob4
+              else
+                include LogInjection::ActiveJob6
+              end
             end
           end
         end
