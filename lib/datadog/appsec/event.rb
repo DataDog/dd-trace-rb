@@ -40,16 +40,14 @@ module Datadog
       ].freeze
 
       class << self
-        def tag_and_keep!(context, waf_result)
-          TraceKeeper.keep!(context.trace)
+        def tag(context, waf_result)
+          return if context.span.nil?
 
-          if context.span
-            if waf_result.actions.key?('block_request') || waf_result.actions.key?('redirect_request')
-              context.span.set_tag('appsec.blocked', 'true')
-            end
-
-            context.span.set_tag('appsec.event', 'true')
+          if waf_result.actions.key?('block_request') || waf_result.actions.key?('redirect_request')
+            context.span.set_tag('appsec.blocked', 'true')
           end
+
+          context.span.set_tag('appsec.event', 'true')
         end
 
         def record(context, request: nil, response: nil)
@@ -63,7 +61,7 @@ module Datadog
                 end
               end
 
-              if event_group.any? { |event| event.attack? || event.schema? }
+              if event_group.any? { |event| event.keep? || event.schema? }
                 TraceKeeper.keep!(trace)
 
                 context.span['_dd.origin'] = 'appsec'

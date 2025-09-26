@@ -86,11 +86,6 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      it 'marks the trace to be kept and sets the sampling priority to ASM' do
-        expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-        expect(trace.sampling_decision_maker).to eq(Datadog::Tracing::Sampling::Ext::Decision::ASM)
-      end
-
       it 'does not set AppSec information on non-top-level spans' do
         other_spans = trace.spans.reject { |span| span == top_level_span }
 
@@ -210,7 +205,7 @@ RSpec.describe Datadog::AppSec::Event do
           events: [1],
           actions: {},
           attributes: {},
-          keep: false,
+          keep: true,
           timeout: false,
           duration_ns: 0,
           duration_ext_ns: 0,
@@ -408,7 +403,7 @@ RSpec.describe Datadog::AppSec::Event do
   end
 
   # NOTE: Next adjustments here require a refactor of the written tests.
-  describe '.tag_and_keep!' do
+  describe '.tag' do
     let(:with_trace) { true }
     let(:with_span) { true }
 
@@ -443,15 +438,13 @@ RSpec.describe Datadog::AppSec::Event do
       # prevent rate limiter to bias tests
       Datadog::AppSec::RateLimiter.reset!
 
-      described_class.tag_and_keep!(context, waf_result)
+      described_class.tag(context, waf_result)
     end
 
     context 'with no actions' do
       it 'does not add appsec.blocked tag to span' do
         expect(context.span.send(:meta)).to_not include('appsec.blocked')
         expect(context.span.send(:meta)['appsec.event']).to eq('true')
-        expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
-        expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
       end
     end
 
@@ -463,8 +456,6 @@ RSpec.describe Datadog::AppSec::Event do
       it 'adds appsec.blocked tag to span' do
         expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
         expect(context.span.send(:meta)['appsec.event']).to eq('true')
-        expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
-        expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
       end
     end
 
@@ -476,16 +467,6 @@ RSpec.describe Datadog::AppSec::Event do
       it 'adds appsec.blocked tag to span' do
         expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
         expect(context.span.send(:meta)['appsec.event']).to eq('true')
-      end
-    end
-
-    context 'without span' do
-      let(:with_span) { false }
-
-      it 'does not add appsec span tags but still add distributed tags' do
-        expect(context.span).to be nil
-        expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
-        expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
       end
     end
 

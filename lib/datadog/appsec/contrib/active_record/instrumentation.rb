@@ -31,7 +31,7 @@ module Datadog
             result = context.run_rasp(Ext::RASP_SQLI, {}, ephemeral_data, waf_timeout)
 
             if result.match?
-              AppSec::Event.tag_and_keep!(context, result)
+              AppSec::Event.tag(context, result)
 
               context.events.push(
                 AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
