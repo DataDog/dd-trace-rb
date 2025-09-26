@@ -43,18 +43,14 @@ module Datadog
       # rubocop:disable Style/TrivialAccessors
       def onto(obj)
         unless obj.respond_to? :datadog_pin=
-          obj.instance_exec do
-            def datadog_pin=(pin)
-              @datadog_pin = pin
-            end
+          obj.define_singleton_method(:datadog_pin=) do |pin|
+            @datadog_pin = pin
           end
         end
 
         unless obj.respond_to? :datadog_pin
-          obj.instance_exec do
-            def datadog_pin
-              @datadog_pin
-            end
+          obj.define_singleton_method(:datadog_pin) do
+            @datadog_pin
           end
         end
 
