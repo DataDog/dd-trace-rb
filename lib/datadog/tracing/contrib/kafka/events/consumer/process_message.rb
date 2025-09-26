@@ -30,16 +30,7 @@ module Datadog
                 span.set_tag(Ext::TAG_OFFSET, payload[:offset]) if payload.key?(:offset)
                 span.set_tag(Ext::TAG_OFFSET_LAG, payload[:offset_lag]) if payload.key?(:offset_lag)
 
-                # DSM: Create checkpoint for consumed message
-                if Datadog.configuration.tracing.data_streams.enabled && payload.key?(:topic)
-                  Datadog.logger.debug { "Kafka ProcessMessage: DSM enabled for topic #{payload[:topic]}" }
-                  
-                  processor = Datadog.configuration.tracing.data_streams.processor
-                  
-                  # ProcessMessage event doesn't have access to message headers
-                  # Create consume checkpoint without pathway context
-                  processor.set_consume_checkpoint('kafka', payload[:topic])
-                end
+                # DSM is handled in the consumer instrumentation, not in event handlers
               end
 
               def span_name
