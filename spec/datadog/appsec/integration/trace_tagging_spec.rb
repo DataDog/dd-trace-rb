@@ -203,6 +203,11 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
       .and_return(true)
+
+    # NOTE: We want to exclude "initial" request behavior as it always alters the
+    #       sampling priority
+    allow_any_instance_of(Datadog::AppSec::Contrib::Rack::RequestMiddleware).to receive(:oneshot_tags_sent?)
+      .and_return(true)
   end
 
   after do
@@ -212,14 +217,62 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
 
   subject(:response) { last_response }
 
-  context 'when rule configured to generate event and not alter sampling' do
-    before { get('/test', {}, {'HTTP_USER_AGENT' => 'TraceTagging/v2'}) }
+  context 'when rule configured to not generate event and not alter sampling' do
+    before { get('/test', {}, {'HTTP_USER_AGENT' => 'TraceTagging/v1', 'HTTP_VIA' => 'test'}) }
 
-    it 'XXX' do
+    it 'does not alter sampling priority and does not include extended tags' do
       expect(response).to be_ok
+      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.json')
+      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.via')
       expect(http_service_entry_span.tags).to include(
-        '_dd.appsec.trace.integer' => 2,
-        '_dd.appsec.trace.agent' => 'TraceTagging/v2'
+        '_sampling_priority_v1' => 1.0,
+        '_dd.appsec.trace.integer' => 1.0,
+        '_dd.appsec.trace.agent' => 'TraceTagging/v1'
+      )
+    end
+  end
+
+  context 'when rule configured to not generate event and to alter sampling' do
+    before { get('/test', {}, {'HTTP_USER_AGENT' => 'TraceTagging/v2', 'HTTP_VIA' => 'test'}) }
+
+    it 'alters sampling priority and includes extended tags' do
+      expect(response).to be_ok
+      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.json')
+      expect(http_service_entry_span.tags).to include(
+        '_sampling_priority_v1' => 2.0,
+        '_dd.appsec.trace.integer' => 2.0,
+        '_dd.appsec.trace.agent' => 'TraceTagging/v2',
+        'http.request.headers.via' => 'test'
+      )
+    end
+  end
+
+  context 'when rule configured to generate event and to alter sampling' do
+    before { get('/test', {}, {'HTTP_USER_AGENT' => 'TraceTagging/v3', 'HTTP_VIA' => 'test'}) }
+
+    it 'alters sampling priority and includes extended tags' do
+      expect(response).to be_ok
+      expect(http_service_entry_span.tags).to have_key('_dd.appsec.json')
+      expect(http_service_entry_span.tags).to include(
+        '_sampling_priority_v1' => 2.0,
+        '_dd.appsec.trace.integer' => 3.0,
+        '_dd.appsec.trace.agent' => 'TraceTagging/v3',
+        'http.request.headers.via' => 'test'
+      )
+    end
+  end
+
+  context 'when rule configured to generate event and to alter sampling' do
+    before { get('/test', {}, {'HTTP_USER_AGENT' => 'TraceTagging/v4', 'HTTP_VIA' => 'test'}) }
+
+    it 'alters sampling priority and includes extended tags' do
+      expect(response).to be_ok
+      expect(http_service_entry_span.tags).to have_key('_dd.appsec.json')
+      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.via')
+      expect(http_service_entry_span.tags).to include(
+        '_sampling_priority_v1' => 1.0,
+        '_dd.appsec.trace.integer' => 4.0,
+        '_dd.appsec.trace.agent' => 'TraceTagging/v4'
       )
     end
   end
