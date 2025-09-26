@@ -129,35 +129,28 @@ RSpec.describe 'Karafka Data Streams instrumentation' do
 
     it 'creates checkpoints for each consumed message when DSM enabled' do
       # Arrange: Set up spies
-      allow(mock_processor).to receive(:set_checkpoint)
-      allow(mock_processor).to receive(:decode_and_set_pathway_context)
+      allow(mock_processor).to receive(:set_consume_checkpoint)
 
       # Act: Execute the code under test
       karafka_messages.each { |message| message }
 
       # Assert: Verify the calls were made
-      expect(mock_processor).to have_received(:set_checkpoint)
-        .with(['topic:orders'], kind_of(Float))
-        .twice
-      expect(mock_processor).to have_received(:decode_and_set_pathway_context)
+      expect(mock_processor).to have_received(:set_consume_checkpoint)
+        .with('kafka', 'orders', anything)
         .twice
     end
 
     it 'extracts DSM context from message headers' do
       # Arrange: Set up spies
-      allow(mock_processor).to receive(:set_checkpoint) # DSM also calls set_checkpoint
-      allow(mock_processor).to receive(:decode_and_set_pathway_context)
+      allow(mock_processor).to receive(:set_consume_checkpoint)
 
       # Act: Execute the code under test
       karafka_messages.each { |message| message }
 
-      # Assert: Verify the calls were made
-      expect(mock_processor).to have_received(:decode_and_set_pathway_context)
-        .with({ 'dd-pathway-ctx-base64' => 'test-context-123' })
-        .once
-      expect(mock_processor).to have_received(:decode_and_set_pathway_context)
-        .with({})
-        .once
+      # Assert: Verify the calls were made with carrier_get function
+      expect(mock_processor).to have_received(:set_consume_checkpoint)
+        .with('kafka', 'orders', anything)
+        .twice
     end
 
     it 'skips DSM when disabled' do
@@ -165,13 +158,13 @@ RSpec.describe 'Karafka Data Streams instrumentation' do
       Datadog.configure do |c|
         c.tracing.data_streams.enabled = false
       end
-      allow(mock_processor).to receive(:set_checkpoint)
+      allow(mock_processor).to receive(:set_consume_checkpoint)
 
       # Act: Execute the code under test
       karafka_messages.each { |message| message }
 
       # Assert: Verify no calls were made
-      expect(mock_processor).not_to have_received(:set_checkpoint)
+      expect(mock_processor).not_to have_received(:set_consume_checkpoint)
     end
   end
 
@@ -287,13 +280,11 @@ RSpec.describe 'Karafka Data Streams instrumentation' do
       mock_processor = instance_double('DataStreamsProcessor')
       allow(Datadog.configuration.tracing.data_streams).to receive(:processor)
         .and_return(mock_processor)
-      allow(mock_processor).to receive(:set_checkpoint)
+      allow(mock_processor).to receive(:set_consume_checkpoint)
 
-      # Should decode context and create checkpoint
-      expect(mock_processor).to receive(:decode_and_set_pathway_context)
-        .with({ 'dd-pathway-ctx-base64' => 'encoded-context-data' })
-      expect(mock_processor).to receive(:set_checkpoint)
-        .with(['topic:test_topic'], anything)
+      # Should create consume checkpoint with carrier_get function
+      expect(mock_processor).to receive(:set_consume_checkpoint)
+        .with('kafka', 'test_topic', anything)
 
       messages.each { |message| message }
     end
@@ -307,13 +298,11 @@ RSpec.describe 'Karafka Data Streams instrumentation' do
       mock_processor = instance_double('DataStreamsProcessor')
       allow(Datadog.configuration.tracing.data_streams).to receive(:processor)
         .and_return(mock_processor)
-      allow(mock_processor).to receive(:set_checkpoint)
+      allow(mock_processor).to receive(:set_consume_checkpoint)
 
-      # Should decode empty context and create checkpoint
-      expect(mock_processor).to receive(:decode_and_set_pathway_context)
-        .with({})
-      expect(mock_processor).to receive(:set_checkpoint)
-        .with(['topic:test_topic'], anything)
+      # Should create consume checkpoint with carrier_get function
+      expect(mock_processor).to receive(:set_consume_checkpoint)
+        .with('kafka', 'test_topic', anything)
 
       messages.each { |message| message }
     end

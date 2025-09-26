@@ -134,7 +134,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     it 'creates checkpoint on message consume' do
       # This will fail until we implement checkpointing
       expect(Datadog.configuration.tracing.data_streams).to receive(:processor)
-        .and_return(instance_double('DataStreamsProcessor', set_checkpoint: true, encode_pathway_context: 'test-context'))
+        .and_return(instance_double('DataStreamsProcessor', set_consume_checkpoint: true, encode_pathway_context: 'test-context'))
 
       consumer.each_message do |msg|
         # Message is processed
@@ -165,7 +165,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
       expect(Datadog.configuration.tracing.data_streams).to receive(:processor)
         .and_return(instance_double(
           'DataStreamsProcessor',
-          track_kafka_produce: true,
+          set_produce_checkpoint: true,
           encode_pathway_context: 'test-context'
         ))
 
