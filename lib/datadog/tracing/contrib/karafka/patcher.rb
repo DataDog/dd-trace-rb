@@ -3,6 +3,7 @@
 require_relative '../patcher'
 require_relative 'ext'
 require_relative 'distributed/propagation'
+require_relative '../../data_streams/pathway_codec'
 
 module Datadog
   module Tracing
@@ -27,12 +28,40 @@ module Datadog
             @messages_array.each do |message|
               if configuration[:distributed_tracing]
                 headers = if message.metadata.respond_to?(:raw_headers)
-                  message.metadata.raw_headers
-                else
-                  message.metadata.headers
-                end
+                            message.metadata.raw_headers
+                          else
+                            message.metadata.headers
+                          end
                 trace_digest = Karafka.extract(headers)
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
+              end
+
+              # DSM: Create checkpoint for each consumed message
+              if Datadog.configuration.tracing.data_streams.enabled
+                headers = if message.metadata.respond_to?(:raw_headers)
+                            message.metadata.raw_headers
+                          else
+                            message.metadata.headers
+                          end
+
+                processor = Datadog.configuration.tracing.data_streams.processor
+
+                # Extract and set pathway context from headers using codec
+                pathway_context = DataStreams::PathwayCodec.decode(headers, processor)
+                processor.set_pathway_context(pathway_context) if pathway_context
+
+                # Create checkpoint with topic tag and direction (consumer = in)
+                # Try to get consumer group from Karafka app configuration
+                consumer_group = 'default' # Default fallback
+                if defined?(::Karafka::App) && ::Karafka::App.config
+                  consumer_group = ::Karafka::App.config.client_id || 'default'
+                end
+
+                processor.set_checkpoint(
+                  ['topic:' + message.topic, 'direction:in', 'type:kafka',
+                   'group:' + consumer_group],
+                  Time.now.to_f
+                )
               end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
