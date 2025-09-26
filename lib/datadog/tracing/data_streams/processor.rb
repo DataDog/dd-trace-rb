@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'datadog/core/ddsketch'
 require_relative 'pathway_context'
-require_relative 'pathway_codec'
 require_relative '../../version'
 require_relative '../../../datadog/core/worker'
 require_relative '../../../datadog/core/workers/polling'
@@ -17,28 +15,182 @@ module Datadog
       class Processor < Core::Worker
         include Core::Workers::Polling
 
-        attr_accessor :enabled
+        PROPAGATION_KEY = 'dd-pathway-ctx-base64'
 
-        def initialize(ddsketch_class: Datadog::Core::DDSketch, interval: nil)
+        attr_accessor :enabled
+        attr_reader :pathway_context
+
+        def initialize(interval: nil)
+          # Lazy-require DDSketch to avoid circular dependency
+          require 'datadog/core/ddsketch'
+
+          # Initialize instance variables first to avoid nil errors
+          interval_str = DATADOG_ENV.fetch('_DD_TRACE_STATS_WRITER_INTERVAL') { '10.0' }
+          interval ||= interval_str.to_s.to_f
+
+          @pathway_context = PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
+          @bucket_size_ns = (interval * 1e9).to_i
+          @buckets = {}
+          @consumer_stats = []
+          @stats_mutex = Mutex.new
+
           # DDSketch is required for DSM - disable processor if not supported
-          unless ddsketch_class.supported?
+          unless Datadog::Core::DDSketch.supported?
             @enabled = false
             return
           end
 
           # Set up periodic worker
-          interval ||= ENV.fetch('_DD_TRACE_STATS_WRITER_INTERVAL', '10.0').to_f
           super() # Initialize Core::Worker
           self.loop_base_interval = interval
-
           @enabled = true
-          @pathway_context = PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
-          @bucket_size_ns = (interval * 1e9).to_i # Match interval for bucket size
-          @buckets = {} # Time-based buckets for stats
-          @consumer_stats = []
-          @stats_mutex = Mutex.new
-          @ddsketch_class = ddsketch_class # Store for creating new sketches
         end
+
+        # Track Kafka produce offset for lag monitoring
+        # @param topic [String] The Kafka topic name
+        # @param partition [Integer] The partition number
+        # @param offset [Integer] The offset of the produced message
+        # @param now_sec [Float] Timestamp in seconds (defaults to current time)
+        # @return [Boolean, nil] true if tracking succeeded, nil if disabled
+        def track_kafka_produce(topic, partition, offset, now_sec)
+          return nil unless @enabled
+
+          now_ns = (now_sec * 1e9).to_i
+          partition_key = "#{topic}:#{partition}"
+
+          @stats_mutex.synchronize do
+            # Calculate bucket time (align to bucket boundaries )
+            bucket_size_ns = 10 * 1e9 # 10 second buckets
+            bucket_time_ns = now_ns - (now_ns % bucket_size_ns)
+
+            # Track latest produce offset for this partition ()
+            @produce_offsets ||= {}
+            @produce_offsets[bucket_time_ns] ||= {}
+            @produce_offsets[bucket_time_ns][partition_key] = [
+              offset,
+              @produce_offsets[bucket_time_ns][partition_key] || 0
+            ].max
+          end
+
+          true
+        end
+
+        # Track Kafka offset commit for consumer lag monitoring
+        # @param group [String] The consumer group name
+        # @param topic [String] The Kafka topic name
+        # @param partition [Integer] The partition number
+        # @param offset [Integer] The committed offset
+        # @param now_sec [Float] Timestamp in seconds (defaults to current time)
+        # @return [Boolean, nil] true if tracking succeeded, nil if disabled
+        def track_kafka_commit(group, topic, partition, offset, now_sec)
+          return nil unless @enabled
+
+          now_ns = (now_sec * 1e9).to_i
+          consumer_key = "#{group}:#{topic}:#{partition}"
+
+          @stats_mutex.synchronize do
+            # Calculate bucket time (align to bucket boundaries )
+            bucket_size_ns = 10 * 1e9 # 10 second buckets
+            bucket_time_ns = now_ns - (now_ns % bucket_size_ns)
+
+            # Track latest commit offset for this consumer group/partition ()
+            @commit_offsets ||= {}
+            @commit_offsets[bucket_time_ns] ||= {}
+            @commit_offsets[bucket_time_ns][consumer_key] = [
+              offset,
+              @commit_offsets[bucket_time_ns][consumer_key] || 0
+            ].max
+          end
+
+          true
+        end
+
+        # Track Kafka message consumption for consumer lag monitoring
+        # @param topic [String] The Kafka topic name
+        # @param partition [Integer] The partition number
+        # @param offset [Integer] The offset of the consumed message
+        # @param now_sec [Float, nil] Timestamp in seconds (defaults to current time)
+        # @return [Boolean, nil] true if tracking succeeded, nil if disabled
+        def track_kafka_consume(topic, partition, offset, now_sec = nil)
+          return nil unless @enabled
+
+          now_sec ||= Time.now.to_f
+
+          # Record stats for this consumer operation
+          record_consumer_stats(
+            topic: topic,
+            partition: partition,
+            offset: offset,
+            timestamp_sec: now_sec
+          )
+
+          # Aggregate stats by topic/partition for reporting
+          aggregate_consumer_stats_by_partition(topic, partition, offset, now_sec)
+
+          true
+        end
+
+        # Set a produce checkpoint
+        # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
+        # @param target [String] The destination (e.g., topic, exchange, stream name)
+        # @yield [key, value] Block to inject context into carrier
+        # @return [String, nil] Base64 encoded pathway context or nil if disabled
+        def set_produce_checkpoint(type, target, manual_checkpoint: false, &block)
+          return nil unless @enabled
+
+          tags = ["type:#{type}", "topic:#{target}", 'direction:out']
+          tags << 'manual_checkpoint:true' if manual_checkpoint
+
+          # Grab active span to link DSM pathway to APM trace
+          span = Datadog::Tracing.active_span
+
+          pathway = set_checkpoint(tags, nil, 0, span)
+
+          yield(PROPAGATION_KEY, pathway) if pathway && block
+
+          pathway
+        end
+
+        # Set a consume checkpoint
+        # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
+        # @param source [String] The source (e.g., topic, exchange, stream name)
+        # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set (defaults to true for manual instrumentation)
+        # @yield [key] Block to extract context from carrier
+        # @return [String, nil] Base64 encoded pathway context or nil if disabled
+        def set_consume_checkpoint(type, source, manual_checkpoint: true, &block)
+          return nil unless @enabled
+
+          # Decode pathway context from carrier if provided
+          if block
+            pathway_ctx = yield(PROPAGATION_KEY)
+            if pathway_ctx
+              decoded_ctx = decode_pathway_b64(pathway_ctx)
+              set_pathway_context(decoded_ctx)
+            end
+          end
+
+          tags = ["type:#{type}", "topic:#{source}", 'direction:in']
+          tags << 'manual_checkpoint:true' if manual_checkpoint
+
+          # Grab active span to link DSM pathway to APM trace
+          span = Datadog::Tracing.active_span
+
+          set_checkpoint(tags, nil, 0, span)
+        end
+
+        # Start the periodic worker for automatic stats flushing
+        def start
+          return unless @enabled
+
+          perform
+        end
+
+        # Stop the periodic worker
+        def stop(force_stop = false, timeout = 1)
+          super
+        end
+
+        private
 
         def encode_pathway_context
           return nil unless @enabled
@@ -56,9 +208,9 @@ module Datadog
           tags = tags.sort
 
           # Extract direction
-          direction = ""
+          direction = ''
           tags.each do |tag|
-            if tag.start_with?("direction:")
+            if tag.start_with?('direction:')
               direction = tag
               break
             end
@@ -87,11 +239,16 @@ module Datadog
           parent_hash = current_context.hash
           new_hash = compute_pathway_hash(parent_hash, tags)
 
+          # Tag span with pathway hash to link DSM pathway to APM trace
+          span&.set_tag('pathway.hash', new_hash.to_s)
+
           edge_latency_sec = [now_sec - current_context.current_edge_start_sec, 0.0].max
           full_pathway_latency_sec = [now_sec - current_context.pathway_start_sec, 0.0].max
 
           # DEBUG: Log latency calculations
-          Datadog.logger.debug { "DataStreams checkpoint - Edge latency: #{edge_latency_sec}s, Full pathway latency: #{full_pathway_latency_sec}s" }
+          Datadog.logger.debug do
+            "DataStreams checkpoint - Edge latency: #{edge_latency_sec}s, Full pathway latency: #{full_pathway_latency_sec}s"
+          end
 
           # Record stats for this checkpoint
           record_checkpoint_stats(
@@ -103,79 +260,11 @@ module Datadog
             timestamp_sec: now_sec
           )
 
-          # Update pathway context ( lines 503-504)
+          current_context.parent_hash = current_context.hash
           current_context.hash = new_hash
           current_context.current_edge_start_sec = now_sec
 
-          # DEBUG: Log final state
-
-          # Return encoded context for propagation
           current_context.encode_b64
-        end
-
-        def track_kafka_produce(topic, partition, offset, now_sec)
-          return nil unless @enabled
-
-          now_ns = (now_sec * 1e9).to_i
-          partition_key = "#{topic}:#{partition}"
-
-          @stats_mutex.synchronize do
-            # Calculate bucket time (align to bucket boundaries )
-            bucket_size_ns = 10 * 1e9 # 10 second buckets
-            bucket_time_ns = now_ns - (now_ns % bucket_size_ns)
-
-            # Track latest produce offset for this partition ()
-            @produce_offsets ||= {}
-            @produce_offsets[bucket_time_ns] ||= {}
-            @produce_offsets[bucket_time_ns][partition_key] = [
-              offset,
-              @produce_offsets[bucket_time_ns][partition_key] || 0
-            ].max
-          end
-
-          true
-        end
-
-        def track_kafka_commit(group, topic, partition, offset, now_sec)
-          return nil unless @enabled
-
-          now_ns = (now_sec * 1e9).to_i
-          consumer_key = "#{group}:#{topic}:#{partition}"
-
-          @stats_mutex.synchronize do
-            # Calculate bucket time (align to bucket boundaries )
-            bucket_size_ns = 10 * 1e9 # 10 second buckets
-            bucket_time_ns = now_ns - (now_ns % bucket_size_ns)
-
-            # Track latest commit offset for this consumer group/partition ()
-            @commit_offsets ||= {}
-            @commit_offsets[bucket_time_ns] ||= {}
-            @commit_offsets[bucket_time_ns][consumer_key] = [
-              offset,
-              @commit_offsets[bucket_time_ns][consumer_key] || 0
-            ].max
-          end
-
-          true
-        end
-
-        def track_kafka_consume(topic, partition, offset, now_sec = nil)
-          return nil unless @enabled
-
-          now_sec ||= Time.now.to_f
-
-          # Record stats for this consumer operation
-          record_consumer_stats(
-            topic: topic,
-            partition: partition,
-            offset: offset,
-            timestamp_sec: now_sec
-          )
-
-          # Aggregate stats by topic/partition for reporting
-          aggregate_consumer_stats_by_partition(topic, partition, offset, now_sec)
-
-          true
         end
 
         def decode_pathway_context(encoded_ctx)
@@ -226,60 +315,9 @@ module Datadog
           get_current_context
         end
 
-        # Start the periodic worker for automatic stats flushing
-        def start
-          return unless @enabled
-
-          super
-        end
-
-        # Stop the periodic worker
-        def stop(force_stop = false, timeout = 1)
-          super(force_stop, timeout)
-        end
-
         # Get or create current context ( threading.local behavior)
         def get_current_context
           @pathway_context ||= PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
-        end
-
-        # Set a produce checkpoint (for producers)
-        # @param typ [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
-        # @param target [String] The destination (e.g., topic, exchange, stream name)
-        # @yield [key, value] Block to inject context into carrier
-        # @return [String, nil] Base64 encoded pathway context or nil if disabled
-        def set_produce_checkpoint(typ, target, &block)
-          return nil unless @enabled
-
-          tags = ["type:#{typ}", "topic:#{target}", "direction:out", "manual_checkpoint:true"]
-          pathway = set_checkpoint(tags)
-
-          if pathway && block_given?
-            yield('dd-pathway-ctx-base64', pathway)
-          end
-
-          pathway
-        end
-
-        # Set a consume checkpoint (for consumers)
-        # @param typ [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
-        # @param source [String] The source (e.g., topic, exchange, stream name)
-        # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set
-        # @yield [key] Block to extract context from carrier
-        # @return [String, nil] Base64 encoded pathway context or nil if disabled
-        def set_consume_checkpoint(typ, source, manual_checkpoint: true, &block)
-          return nil unless @enabled
-
-          # Decode pathway context from carrier if provided
-          if block_given?
-            pathway_ctx = yield('dd-pathway-ctx-base64')
-            decode_pathway_b64(pathway_ctx) if pathway_ctx
-          end
-
-          tags = ["type:#{typ}", "topic:#{source}", "direction:in"]
-          tags << "manual_checkpoint:true" if manual_checkpoint
-
-          set_checkpoint(tags)
         end
 
         def set_pathway_context(ctx)
@@ -288,7 +326,7 @@ module Datadog
           if ctx
             @pathway_context = ctx
             # Reset loop detection fields when setting new context (new service)
-            @pathway_context.previous_direction = ""
+            @pathway_context.previous_direction = ''
             @pathway_context.closest_opposite_direction_hash = 0
             @pathway_context.closest_opposite_direction_edge_start = @pathway_context.current_edge_start_sec
           end
@@ -301,8 +339,6 @@ module Datadog
           pathway_ctx = decode_pathway_context(headers['dd-pathway-ctx-base64'])
           set_pathway_context(pathway_ctx) if pathway_ctx
         end
-
-        private
 
         # Compute new pathway hash using FNV-1a algorithm ( implementation)
         # Combines service, env, tags, and parent hash to create unique pathway identifier
@@ -323,10 +359,7 @@ module Datadog
 
           # Second hash: FNV-1a of (node_hash + parent_hash) ()
           combined_bytes = [node_hash, current_hash].pack('QQ') # Little-endian 64-bit
-          final_hash = fnv1_64(combined_bytes)
-
-
-          final_hash
+          fnv1_64(combined_bytes)
         end
 
         # FNV-1a 64-bit hash function ( fnv1_64)
@@ -345,32 +378,33 @@ module Datadog
 
         # Record stats for this checkpoint ( implementation)
         def record_checkpoint_stats(hash:, parent_hash:, edge_latency_sec:, payload_size:, tags:, timestamp_sec:)
+          return nil unless @enabled
+
           @stats_mutex.synchronize do
             # Calculate bucket time (align to bucket boundaries )
             now_ns = (timestamp_sec * 1e9).to_i
             bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
-
 
             # Get or create bucket for this time window
             bucket = @buckets[bucket_time_ns] ||= create_bucket
 
             # Get or create stats for this pathway ( aggr_key = (",".join(edge_tags), hash_value, parent_hash))
             aggr_key = [tags.join(','), hash, parent_hash]
-
-
             stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
-
-
 
             # Add latencies to DDSketch ()
             full_pathway_latency_sec = timestamp_sec - @pathway_context.pathway_start_sec
             stats[:edge_latency].add(edge_latency_sec)
             stats[:full_pathway_latency].add(full_pathway_latency_sec)
           end
+
+          true
         end
 
         # Record consumer offset stats for DSM reporting
         def record_consumer_stats(topic:, partition:, offset:, timestamp_sec:)
+          return nil unless @enabled
+
           @stats_mutex.synchronize do
             @consumer_stats << {
               topic: topic,
@@ -431,7 +465,6 @@ module Datadog
 
         # Send stats payload to Datadog agent ( implementation)
         def send_stats_to_agent(payload)
-
           # Use msgpack encoding           require 'msgpack'
           msgpack_data = MessagePack.pack(payload)
 
@@ -445,7 +478,6 @@ module Datadog
             'Datadog-Meta-Lang' => 'ruby',
             'Datadog-Meta-Tracer-Version' => Datadog::VERSION::STRING
           }
-
 
           # Send to agent using proper transport infrastructure
           response = send_dsm_payload(compressed_data, headers)
@@ -462,7 +494,8 @@ module Datadog
           agent_port = Datadog.configuration.agent.port
           uri = URI("http://#{agent_host}:#{agent_port}/v0.1/pipeline_stats")
 
-          http = Net::HTTP.new(uri.host, uri.port)
+          host = uri.host || agent_host || 'localhost'
+          http = Net::HTTP.new(host, uri.port)
           http.use_ssl = false
 
           request = Net::HTTP::Post.new(uri)
@@ -487,17 +520,15 @@ module Datadog
 
         # Serialize buckets
         def serialize_buckets
-
           serialized_buckets = []
           bucket_keys_to_clear = []
 
           @buckets.each do |bucket_time_ns, bucket|
-
             bucket_keys_to_clear << bucket_time_ns
 
             # Serialize pathway stats for this bucket
             bucket_stats = []
-            bucket[:pathway_stats].each_with_index do |(aggr_key, stats), index|
+            bucket[:pathway_stats].each do |aggr_key, stats|
               edge_tags_str, hash_value, parent_hash = aggr_key
 
               edge_tags_array = edge_tags_str.split(',')
@@ -528,7 +559,6 @@ module Datadog
               }
             end
 
-
             serialized_buckets << {
               'Start' => bucket_time_ns,
               'Duration' => @bucket_size_ns,
@@ -536,7 +566,6 @@ module Datadog
               'Backlogs' => backlogs + serialize_consumer_backlogs
             }
           end
-
 
           # Clear processed buckets ()
           bucket_keys_to_clear.each { |key| @buckets.delete(key) }
@@ -575,19 +604,11 @@ module Datadog
         # Create pathway stats with DDSketch instances ( PathwayStats)
         def create_pathway_stats
           {
-            edge_latency: @ddsketch_class.new,
-            full_pathway_latency: @ddsketch_class.new,
+            edge_latency: Datadog::Core::DDSketch.new,
+            full_pathway_latency: Datadog::Core::DDSketch.new,
             payload_size_sum: 0,
             payload_size_count: 0
           }
-        end
-
-        # Get default DDSketch class (real if available, fake for testing)
-        def get_default_ddsketch_class
-          require 'datadog/core/ddsketch'
-          Datadog::Core::DDSketch.supported? ? Datadog::Core::DDSketch : FakeDDSketch
-        rescue LoadError, NameError
-          FakeDDSketch
         end
 
         # Get agent transport (using proper Datadog HTTP transport)

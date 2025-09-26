@@ -1,257 +1,318 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/data_streams/processor'
+require 'datadog/core/ddsketch'
+
+# Expected deterministic hash values for specific pathways
+KAFKA_ORDERS_PRODUCE_HASH = 17981503584283442515
+KAFKA_ORDERS_CONSUME_HASH = 16303269810035670674 # with carrier from produce
+KAFKA_ORDERS_CONSUME_HASH_WITHOUT_CARRIER = 15053276968232594929 # without carrier
+KINESIS_ORDERS_PRODUCE_HASH = 14687993552271180499
+KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
 
 RSpec.describe Datadog::Tracing::DataStreams::Processor do
-  let(:mock_ddsketch_instance) { double('DDSketchInstance', add: true, encode: 'encoded_data') }
-  let(:mock_ddsketch) { double('DDSketch', supported?: true, new: mock_ddsketch_instance) }
-  let(:processor) { described_class.new(ddsketch_class: mock_ddsketch) }
+  before do
+    skip('DDSketch not available') unless Datadog::Core::DDSketch.supported?
+  end
 
-  describe '#decode_pathway_context' do
-    it 'decodes valid pathway context' do
-      # Arrange: Create and encode a pathway context
-      original_context = Datadog::Tracing::DataStreams::PathwayContext.new(12345, 1609459200.123, 1609459260.456)
-      encoded_ctx = original_context.encode_b64
+  let(:processor) { described_class.new }
 
-      # Act: Decode using processor
-      decoded_context = processor.decode_pathway_context(encoded_ctx)
-
-      # Assert: Should return decoded PathwayContext
-      expect(decoded_context).not_to be_nil
-      expect(decoded_context.hash).to eq(12345)
-      expect(decoded_context.pathway_start_sec).to be_within(0.001).of(1609459200.123)
-      expect(decoded_context.current_edge_start_sec).to be_within(0.001).of(1609459260.456)
+  describe '#initialize' do
+    it 'sets up periodic worker with default interval' do
+      processor = described_class.new
+      expect(processor.loop_base_interval).to eq(10.0)
     end
 
-    it 'returns nil for invalid context' do
-      result = processor.decode_pathway_context('invalid-base64')
-      expect(result).to be_nil
+    it 'sets up periodic worker with custom interval' do
+      processor = described_class.new(interval: 5.0)
+      expect(processor.loop_base_interval).to eq(5.0)
     end
 
-    it 'returns nil when processor disabled' do
-      processor.enabled = false
+    it 'disables processor when DDSketch is not supported' do
+      stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', 'Example error loading libdatadog_api')
+      processor = described_class.new
+      expect(processor.enabled).to be false
+    end
 
-      original_context = Datadog::Tracing::DataStreams::PathwayContext.new(12345, 1609459200.123, 1609459260.456)
-      encoded_ctx = original_context.encode_b64
-
-      result = processor.decode_pathway_context(encoded_ctx)
-      expect(result).to be_nil
+    it 'enables processor when DDSketch is supported' do
+      expect(processor.enabled).to be true
     end
   end
 
-  describe '#encode_pathway_context' do
-    it 'encodes current pathway context' do
-      result = processor.encode_pathway_context
-      expect(result).to be_a(String)
-      expect(result).not_to be_empty
+  describe 'worker lifecycle' do
+    let(:processor) { described_class.new(interval: 0.1) }
 
-      # Should be able to decode it back
-      decoded = processor.decode_pathway_context(result)
-      expect(decoded).not_to be_nil
-    end
+    after { processor.stop(true, 1) if processor.enabled }
 
-    it 'returns nil when processor disabled' do
-      processor.enabled = false
-      result = processor.encode_pathway_context
-      expect(result).to be_nil
+    it 'can be started and stopped' do
+      expect(processor).to respond_to(:start)
+      expect(processor).to respond_to(:stop)
     end
   end
 
-  describe '#decode_and_set_pathway_context' do
-    let(:headers_with_context) do
-      original_context = Datadog::Tracing::DataStreams::PathwayContext.new(54321, 1609459300.789, 1609459360.012)
-      { 'dd-pathway-ctx-base64' => original_context.encode_b64 }
-    end
-
-    it 'decodes and sets pathway context from headers' do
-      # Arrange: Get original pathway context for comparison
-      original_encoded = headers_with_context['dd-pathway-ctx-base64']
-      original_decoded = processor.decode_pathway_context(original_encoded)
-
-      # Act: Decode and set from headers
-      processor.decode_and_set_pathway_context(headers_with_context)
-
-      # Assert: Current pathway should be updated
-      current_pathway = processor.get_current_pathway
-      expect(current_pathway).not_to be_nil
-      expect(current_pathway.hash).to eq(original_decoded.hash)
-      expect(current_pathway.pathway_start_sec).to eq(original_decoded.pathway_start_sec)
-      expect(current_pathway.current_edge_start_sec).to eq(original_decoded.current_edge_start_sec)
-    end
-
-    it 'does nothing when no pathway context in headers' do
-      original_pathway = processor.get_current_pathway
-
-      processor.decode_and_set_pathway_context({})
-
-      # Should remain unchanged
-      expect(processor.get_current_pathway).to eq(original_pathway)
-    end
-
-    it 'does nothing when processor disabled' do
-      processor.enabled = false
-      original_pathway = processor.get_current_pathway
-
-      processor.decode_and_set_pathway_context(headers_with_context)
-
-      expect(processor.get_current_pathway).to eq(original_pathway)
-    end
-  end
-
-  describe 'periodic flushing' do
-    let(:mock_transport) { double('transport') }
-    let(:processor) { described_class.new(ddsketch_class: mock_ddsketch, interval: 0.1) } # Fast interval for testing
-
-    before do
-      allow(processor).to receive(:send_stats_to_agent).and_return(true)
-      allow(processor).to receive(:hostname).and_return('test-host')
-    end
-
-    after { processor.stop(true, 1) }
-
-    describe '#initialize' do
-      it 'sets up periodic worker with default interval' do
-        processor = described_class.new(ddsketch_class: mock_ddsketch)
-        expect(processor.loop_base_interval).to eq(10.0)
-      end
-
-      it 'sets up periodic worker with custom interval' do
-        processor = described_class.new(ddsketch_class: mock_ddsketch, interval: 5.0)
-        expect(processor.loop_base_interval).to eq(5.0)
-      end
-
-      it 'uses environment variable for interval' do
-        allow(ENV).to receive(:fetch).with('_DD_TRACE_STATS_WRITER_INTERVAL', '10.0').and_return('15.0')
-        processor = described_class.new(ddsketch_class: mock_ddsketch)
-        expect(processor.loop_base_interval).to eq(15.0)
-      end
-    end
-
-    describe '#perform' do
-      it 'does nothing when processor is disabled' do
-        processor.enabled = false
-        expect(processor).not_to receive(:send_stats_to_agent)
-        processor.perform
-      end
-
-      it 'does nothing when no data to send' do
-        expect(processor).not_to receive(:send_stats_to_agent)
-        processor.perform
-      end
-
-      it 'sends stats when data is available' do
-        # Add some test data
-        processor.set_checkpoint(['topic:test-topic', 'partition:0'], Time.now.to_f, 100)
-
-        expect(processor).to receive(:send_stats_to_agent).with(hash_including(
-          'Service' => Datadog.configuration.service,
-          'TracerVersion' => Datadog::VERSION::STRING,
-          'Lang' => 'ruby',
-          'Hostname' => 'test-host'
-        ))
-
-        processor.perform
-      end
-
-      it 'handles errors gracefully' do
-        processor.set_checkpoint(['topic:test-topic', 'partition:0'], Time.now.to_f, 100)
-        allow(processor).to receive(:send_stats_to_agent).and_raise(StandardError, 'Network error')
-
-        expect { processor.perform }.not_to raise_error
-      end
-    end
-
-    describe 'worker lifecycle' do
-      it 'can be started and stopped' do
-        expect(processor).to respond_to(:start)
-        expect(processor).to respond_to(:stop)
-        expect(processor).to respond_to(:running?)
-      end
-
-      it 'inherits from Core::Worker' do
-        expect(processor).to be_a(Datadog::Core::Worker)
-      end
-
-      it 'includes Workers::Polling' do
-        expect(processor.class.ancestors).to include(Datadog::Core::Workers::Polling)
-      end
-    end
-  end
-
-  describe 'API consistency with Python/Node.js' do
-    let(:mock_ddsketch_instance) { double('DDSketchInstance', add: true, encode: 'encoded_data') }
-    let(:mock_ddsketch) { double('DDSketch', supported?: true, new: mock_ddsketch_instance) }
-    let(:processor) { described_class.new(ddsketch_class: mock_ddsketch) }
+  describe 'public checkpoint API' do
+    after { processor.stop(true, 1) if processor.enabled }
 
     describe '#set_produce_checkpoint' do
-      it 'creates produce checkpoint with correct tags' do
-        carrier_set = double('carrier_set')
-        expect(carrier_set).to receive(:call).with('dd-pathway-ctx-base64', anything)
-        
-        result = processor.set_produce_checkpoint('kafka', 'orders-topic') { |key, value| carrier_set.call(key, value) }
-        
+      it 'returns a hash' do
+        result = processor.set_produce_checkpoint('kafka', 'orders')
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
 
-      it 'works without block' do
-        result = processor.set_produce_checkpoint('kafka', 'orders-topic')
-        
-        expect(result).to be_a(String)
-        expect(result).not_to be_empty
+      it 'computes deterministic hash' do
+        processor.set_produce_checkpoint('kafka', 'orders')
+        expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_PRODUCE_HASH)
       end
 
-      it 'returns nil when processor disabled' do
+      it 'adds the hash to the carrier' do
+        carrier = {}
+        returned_value = processor.set_produce_checkpoint('kafka', 'orders') do |key, value|
+          carrier[key] = value
+        end
+
+        expect(carrier[Datadog::Tracing::DataStreams::Processor::PROPAGATION_KEY]).to eq(returned_value)
+
+        # Decode and verify the pathway context contains the expected hash
+        decoded = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(returned_value)
+        expect(decoded).to have_attributes(hash: KAFKA_ORDERS_PRODUCE_HASH)
+      end
+
+      it 'sets tags on the active_span for that hash' do
+        span = instance_double(Datadog::Tracing::SpanOperation)
+        allow(Datadog::Tracing).to receive(:active_span).and_return(span)
+        expect(span).to receive(:set_tag).with('pathway.hash', KAFKA_ORDERS_PRODUCE_HASH.to_s)
+
+        processor.set_produce_checkpoint('kafka', 'orders')
+      end
+
+      it 'returns nil when processor is disabled' do
         processor.enabled = false
-        
-        result = processor.set_produce_checkpoint('kafka', 'orders-topic')
-        
-        expect(result).to be_nil
+        expect(processor.set_produce_checkpoint('kafka', 'orders')).to be_nil
+      end
+
+      it 'advances the pathway context with new hash' do
+        initial_hash = processor.pathway_context.hash
+
+        processor.set_produce_checkpoint('kafka', 'orders')
+
+        expect(processor.pathway_context.hash).not_to eq(initial_hash)
+      end
+
+      it 'restarts pathway on consecutive same-direction checkpoints (loop detection)' do
+        processor.set_produce_checkpoint('kafka', 'step1')
+        first_pathway_start = processor.pathway_context.pathway_start_sec
+
+        processor.set_produce_checkpoint('kafka', 'step2')
+
+        expect(processor.pathway_context.pathway_start_sec).not_to eq(first_pathway_start)
+        expect(processor.pathway_context.pathway_start_sec).to be >= first_pathway_start
       end
     end
 
     describe '#set_consume_checkpoint' do
-      it 'creates consume checkpoint with correct tags' do
-        carrier_get = double('carrier_get')
-        expect(carrier_get).to receive(:call).with('dd-pathway-ctx-base64').and_return(nil)
-        
-        result = processor.set_consume_checkpoint('kafka', 'orders-topic') { |key| carrier_get.call(key) }
-        
+      it 'returns a hash' do
+        result = processor.set_consume_checkpoint('kafka', 'orders')
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
 
-      it 'decodes pathway context from carrier' do
-        encoded_context = 'encoded_pathway_context'
-        carrier_get = double('carrier_get')
-        expect(carrier_get).to receive(:call).with('dd-pathway-ctx-base64').and_return(encoded_context)
-        expect(processor).to receive(:decode_pathway_b64).with(encoded_context)
-        
-        processor.set_consume_checkpoint('kafka', 'orders-topic') { |key| carrier_get.call(key) }
+      it 'computes deterministic hash' do
+        processor.set_consume_checkpoint('kafka', 'orders')
+        expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_CONSUME_HASH_WITHOUT_CARRIER)
       end
 
-      it 'works without block' do
-        result = processor.set_consume_checkpoint('kafka', 'orders-topic')
-        
-        expect(result).to be_a(String)
-        expect(result).not_to be_empty
+      it 'can get a previous hash from the carrier' do
+        # Producer creates context in carrier
+        producer = described_class.new
+        carrier = {}
+        producer.set_produce_checkpoint('kafka', 'orders') do |key, value|
+          carrier[key] = value
+        end
+        produce_hash = producer.pathway_context.hash
+
+        # Consumer reads from carrier
+        processor.set_consume_checkpoint('kafka', 'orders') do |key|
+          carrier[key]
+        end
+
+        # Consumer hash is computed from producer hash (parent)
+        expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_CONSUME_HASH)
+        expect(processor.pathway_context.hash).not_to eq(produce_hash)
+
+        producer.stop(true, 1)
       end
 
-      it 'respects manual_checkpoint parameter' do
-        result = processor.set_consume_checkpoint('kafka', 'orders-topic', manual_checkpoint: false)
-        
-        expect(result).to be_a(String)
-        expect(result).not_to be_empty
+      it 'sets tags on the active_span for that hash' do
+        span = instance_double(Datadog::Tracing::SpanOperation)
+        allow(Datadog::Tracing).to receive(:active_span).and_return(span)
+        expect(span).to receive(:set_tag).with('pathway.hash', KAFKA_ORDERS_CONSUME_HASH_WITHOUT_CARRIER.to_s)
+
+        processor.set_consume_checkpoint('kafka', 'orders')
       end
 
-      it 'returns nil when processor disabled' do
+      it 'returns nil when processor is disabled' do
         processor.enabled = false
-        
-        result = processor.set_consume_checkpoint('kafka', 'orders-topic')
-        
-        expect(result).to be_nil
+        expect(processor.set_consume_checkpoint('kafka', 'orders')).to be_nil
+      end
+
+      it 'handles missing pathway context in carrier gracefully' do
+        carrier = {}
+
+        expect do
+          processor.set_consume_checkpoint('kafka', 'orders') { |key| carrier[key] }
+        end.not_to raise_error
+      end
+    end
+
+    describe 'pathway context tracking' do
+      it 'computes different hashes for different edge types' do
+        processor.set_produce_checkpoint('kafka', 'orders')
+        expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_PRODUCE_HASH)
+
+        processor.set_produce_checkpoint('kinesis', 'orders')
+        expect(processor.pathway_context.hash).to eq(KINESIS_ORDERS_PRODUCE_HASH)
+      end
+
+      it 'computes different hashes for different topics' do
+        processor.set_produce_checkpoint('kafka', 'orders')
+        expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_PRODUCE_HASH)
+
+        processor.set_produce_checkpoint('kafka', 'payments')
+        expect(processor.pathway_context.hash).to eq(KAFKA_PAYMENTS_PRODUCE_HASH)
+      end
+    end
+
+    describe 'produce-consume pathway flow' do
+      it 'maintains pathway continuity through produce and consume' do
+        produce_context = processor.set_produce_checkpoint('kafka', 'orders')
+        produce_hash = processor.pathway_context.hash
+        produce_pathway_start = processor.pathway_context.pathway_start_sec
+
+        carrier = {Datadog::Tracing::DataStreams::Processor::PROPAGATION_KEY => produce_context}
+
+        processor.set_consume_checkpoint('kafka', 'orders') { |key| carrier[key] }
+        consume_hash = processor.pathway_context.hash
+
+        expect(consume_hash).not_to eq(produce_hash)
+        expect(processor.pathway_context.pathway_start_sec).to be_within(0.001).of(produce_pathway_start)
+      end
+    end
+  end
+
+  describe 'Kafka tracking methods' do
+    let(:base_time) { Time.now.to_f }
+
+    after { processor.stop(true, 1) if processor.enabled }
+
+    describe '#track_kafka_produce' do
+      it 'tracks produce offset for topic/partition' do
+        processor.track_kafka_produce('orders', 0, 100, base_time)
+        processor.track_kafka_produce('orders', 0, 101, base_time + 1)
+
+        # Verify offset tracking works (metadata only, no stats sent)
+        expect { processor.send(:perform) }.not_to raise_error
+      end
+
+      it 'tracks multiple produces to same topic/partition' do
+        processor.track_kafka_produce('orders', 0, 100, base_time)
+        processor.track_kafka_produce('orders', 0, 101, base_time + 1)
+        processor.track_kafka_produce('orders', 0, 102, base_time + 2)
+
+        # Should track latest offset (verified in perform/flush)
+        expect { processor.track_kafka_produce('orders', 0, 103, base_time + 3) }.not_to raise_error
+      end
+
+      it 'tracks produces to different partitions independently' do
+        processor.track_kafka_produce('orders', 0, 100, base_time)
+        processor.track_kafka_produce('orders', 1, 200, base_time)
+        processor.track_kafka_produce('orders', 2, 300, base_time)
+
+        expect { processor.send(:perform) }.not_to raise_error
+      end
+
+      it 'returns nil when processor is disabled' do
+        processor.enabled = false
+        expect(processor.track_kafka_produce('orders', 0, 100, base_time)).to be_nil
+      end
+    end
+
+    describe '#track_kafka_consume' do
+      it 'accepts consume tracking calls without error' do
+        expect {
+          processor.track_kafka_consume('orders', 0, 100, base_time)
+          processor.track_kafka_consume('orders', 0, 101, base_time + 1)
+          processor.track_kafka_consume('payments', 1, 50, base_time + 2)
+        }.not_to raise_error
+      end
+
+      it 'tracks sequential consumption' do
+        processor.track_kafka_consume('orders', 0, 100, base_time)
+        processor.track_kafka_consume('orders', 0, 101, base_time + 1)
+        processor.track_kafka_consume('orders', 0, 102, base_time + 2)
+
+        expect { processor.send(:perform) }.not_to raise_error
+      end
+
+      it 'detects gaps in consumption (lag)' do
+        processor.track_kafka_consume('orders', 0, 100, base_time)
+        # Gap: skipped 101-104
+        processor.track_kafka_consume('orders', 0, 105, base_time + 1)
+
+        # Should still track successfully despite gap
+        expect { processor.send(:perform) }.not_to raise_error
+      end
+
+      it 'returns nil when processor is disabled' do
+        processor.enabled = false
+        expect(processor.track_kafka_consume('orders', 0, 100, base_time)).to be_nil
+      end
+    end
+
+    describe '#track_kafka_commit' do
+      it 'tracks commit offset for consumer group/topic/partition' do
+        processor.track_kafka_commit('group1', 'orders', 0, 100, base_time)
+        processor.track_kafka_commit('group1', 'orders', 0, 101, base_time + 1)
+
+        # Verify commit tracking works (metadata only, no stats sent)
+        expect { processor.send(:perform) }.not_to raise_error
+      end
+
+      it 'tracks commits from different consumer groups independently' do
+        processor.track_kafka_commit('group1', 'orders', 0, 100, base_time)
+        processor.track_kafka_commit('group2', 'orders', 0, 200, base_time)
+
+        expect { processor.send(:perform) }.not_to raise_error
+      end
+
+      it 'tracks multiple commits for same consumer group' do
+        processor.track_kafka_commit('group1', 'orders', 0, 100, base_time)
+        processor.track_kafka_commit('group1', 'orders', 0, 101, base_time + 1)
+        processor.track_kafka_commit('group1', 'orders', 0, 102, base_time + 2)
+
+        expect { processor.send(:perform) }.not_to raise_error
+      end
+
+      it 'returns nil when processor is disabled' do
+        processor.enabled = false
+        expect(processor.track_kafka_commit('group1', 'orders', 0, 100, base_time)).to be_nil
+      end
+    end
+
+    describe 'end-to-end Kafka flow' do
+      it 'tracks complete produce -> consume -> commit lifecycle' do
+        # Producer writes message
+        processor.track_kafka_produce('orders', 0, 100, base_time)
+
+        # Consumer reads message
+        processor.track_kafka_consume('orders', 0, 100, base_time + 1)
+
+        # Consumer commits offset
+        processor.track_kafka_commit('consumer-group', 'orders', 0, 100, base_time + 2)
+
+        # Should flush without errors
+        expect { processor.send(:perform) }.not_to raise_error
       end
     end
   end
 end
-

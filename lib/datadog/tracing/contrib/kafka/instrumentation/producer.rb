@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../../../data_streams/pathway_codec'
-
 module Datadog
   module Tracing
     module Contrib
@@ -15,17 +13,23 @@ module Datadog
 
             # Instance methods for producer instrumentation
             module InstanceMethods
-              def deliver_messages(messages = nil, **kwargs)
+              def deliver_messages(**kwargs)
                 # Only run data streams code if enabled
                 if Datadog.configuration.tracing.data_streams.enabled
                   Datadog.logger.debug { 'Kafka producer deliver_messages: DSM enabled' }
 
                   processor = Datadog.configuration.tracing.data_streams.processor
 
-                  messages.each do |message|
-                    message[:headers] ||= {}
-                    processor.set_produce_checkpoint('kafka', message[:topic]) do |key, value|
-                      message[:headers][key] = value
+                  # Access the producer's internal pending message queue
+                  # ruby-kafka stores pending messages in @pending_message_queue
+                  pending_messages = instance_variable_get(:@pending_message_queue)
+
+                  if pending_messages && !pending_messages.empty?
+                    pending_messages.each do |message|
+                      message.headers ||= {}
+                      processor.set_produce_checkpoint('kafka', message.topic) do |key, value|
+                        message.headers[key] = value
+                      end
                     end
                   end
                 else
@@ -33,7 +37,7 @@ module Datadog
                 end
 
                 # Call the original method - spans are created by ActiveSupport::Notifications
-                super(messages, **kwargs)
+                super
               end
 
               # Monkey patch for send_messages method (async producer)
@@ -47,14 +51,16 @@ module Datadog
                   # Create checkpoint for async producer (direction:out)
                   messages.each do |message|
                     message[:headers] ||= {}
-                    processor.set_produce_checkpoint('kafka', message[:topic]) { |key, value| message[:headers][key] = value }
+                    processor.set_produce_checkpoint('kafka', message[:topic]) do |key, value|
+                      message[:headers][key] = value
+                    end
                   end
                 else
                   Datadog.logger.debug { 'Kafka producer send_messages: DSM disabled' }
                 end
 
                 # Call the original method - spans are created by ActiveSupport::Notifications
-                super(messages, **kwargs)
+                super
               end
             end
           end

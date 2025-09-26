@@ -1,15 +1,20 @@
 # frozen_string_literal: true
 
-require 'base64'
 require 'stringio'
+require 'datadog/core/utils/base64'
 
 module Datadog
   module Tracing
     module DataStreams
       # Represents a pathway context for data streams monitoring
       class PathwayContext
-        attr_accessor :hash, :pathway_start_sec, :current_edge_start_sec, :parent_hash
-        attr_accessor :previous_direction, :closest_opposite_direction_hash, :closest_opposite_direction_edge_start
+        attr_accessor :hash,
+          :pathway_start_sec,
+          :current_edge_start_sec,
+          :parent_hash,
+          :previous_direction,
+          :closest_opposite_direction_hash,
+          :closest_opposite_direction_edge_start
 
         def initialize(hash_value, pathway_start_sec, current_edge_start_sec, parent_hash = nil)
           @hash = hash_value
@@ -18,7 +23,7 @@ module Datadog
           @parent_hash = parent_hash
 
           # Loop detection fields (matching Python DataStreamsCtx)
-          @previous_direction = ""
+          @previous_direction = ''
           @closest_opposite_direction_hash = 0
           @closest_opposite_direction_edge_start = current_edge_start_sec
         end
@@ -36,7 +41,7 @@ module Datadog
         end
 
         def encode_b64
-          Base64.strict_encode64(encode)
+          Core::Utils::Base64.strict_encode64(encode)
         end
 
         # Decode pathway context from base64 encoded string
@@ -44,9 +49,9 @@ module Datadog
           return nil unless encoded_ctx && !encoded_ctx.empty?
 
           begin
-            binary_data = Base64.strict_decode64(encoded_ctx)
+            binary_data = Core::Utils::Base64.strict_decode64(encoded_ctx)
             decode(binary_data)
-          rescue => e
+          rescue
             # Invalid base64 or decode error
             nil
           end
@@ -59,7 +64,10 @@ module Datadog
           reader = StringIO.new(binary_data)
 
           # Extract 8-byte hash (little-endian)
-          hash_value = reader.read(8).unpack1('Q')
+          hash_bytes = reader.read(8)
+          return nil unless hash_bytes
+
+          hash_value = hash_bytes.unpack1('Q')
 
           # Extract pathway start time (VarInt milliseconds)
           pathway_start_ms = decode_varint(reader)
@@ -118,6 +126,7 @@ module Datadog
         rescue EOFError
           nil
         end
+        private_class_method :decode_varint
       end
     end
   end

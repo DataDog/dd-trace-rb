@@ -3,7 +3,6 @@
 require_relative '../patcher'
 require_relative 'ext'
 require_relative 'distributed/propagation'
-require_relative '../../data_streams/pathway_codec'
 
 module Datadog
   module Tracing
@@ -28,10 +27,10 @@ module Datadog
             @messages_array.each do |message|
               if configuration[:distributed_tracing]
                 headers = if message.metadata.respond_to?(:raw_headers)
-                            message.metadata.raw_headers
-                          else
-                            message.metadata.headers
-                          end
+                  message.metadata.raw_headers
+                else
+                  message.metadata.headers
+                end
                 trace_digest = Karafka.extract(headers)
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
               end
@@ -39,10 +38,10 @@ module Datadog
               # DSM: Create checkpoint for each consumed message
               if Datadog.configuration.tracing.data_streams.enabled
                 headers = if message.metadata.respond_to?(:raw_headers)
-                            message.metadata.raw_headers
-                          else
-                            message.metadata.headers
-                          end
+                  message.metadata.raw_headers
+                else
+                  message.metadata.headers
+                end
 
                 processor = Datadog.configuration.tracing.data_streams.processor
 
