@@ -145,10 +145,10 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     let(:consumer) { test_consumer_class.new }
 
-    it 'processes messages without DSM checkpointing (handled in event handlers)' do
-      # DSM is handled at the individual message level in event handlers, not in each_message
+    it 'processes messages (DSM handled in ProcessMessage event handler)' do
+      # DSM is now properly implemented in ProcessMessage event handler with real topic access
       consumer.each_message do |msg|
-        # Message is processed
+        # Message is processed - DSM checkpointing happens in event handler
       end
     end
   end
