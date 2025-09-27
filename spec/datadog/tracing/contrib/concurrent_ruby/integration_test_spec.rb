@@ -14,6 +14,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     stub_const('Concurrent::Async::AsyncDelegator', ::Concurrent::Async.const_get(:AsyncDelegator).dup)
     stub_const('Concurrent::Promises', ::Concurrent::Promises.dup)
     stub_const('Concurrent::Future', ::Concurrent::Future.dup)
+    stub_const('Concurrent::ThreadPoolExecutor', ::Concurrent::ThreadPoolExecutor.dup)
   end
 
   after do
@@ -208,6 +209,98 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       it 'inner span parent should be included in outer span' do
         deferred_execution
         expect(inner_span.parent_id).to eq(outer_span.id)
+      end
+    end
+  end
+
+  context 'Concurrent::ThreadPoolExecutor' do
+    subject(:deferred_execution) do
+      outer_span = tracer.trace('outer_span')
+
+      thread_pool_executor.post do
+        tracer.trace('inner_span') {}
+      end
+
+      outer_span.finish
+
+      thread_pool_executor.shutdown
+      thread_pool_executor.wait_for_termination(5)
+    end
+
+    let(:thread_pool_executor) { Concurrent::ThreadPoolExecutor.new(  min_threads: 2,max_threads: 2, max_queue: 2) }
+
+    context 'when context propagation is disabled' do
+      it_behaves_like 'deferred execution'
+
+      it 'inner span should not have parent' do
+        deferred_execution
+        expect(inner_span).to be_root_span
+      end
+    end
+
+    context 'when context propagation is enabled' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.instrument :concurrent_ruby
+        end
+      end
+
+      it_behaves_like 'deferred execution'
+
+      it 'inner span parent should be included in outer span' do
+        deferred_execution
+        expect(inner_span.parent_id).to eq(outer_span.id)
+      end
+
+      context 'when there are multiple async queries with inner spans that have the same parent' do
+        let(:second_inner_span) { spans.find { |s| s.name == 'second_inner_span' } }
+
+        subject(:multiple_deferred_executions) do
+          barrier = Concurrent::CyclicBarrier.new(2)
+
+          outer_span = tracer.trace('outer_span')
+
+          thread_pool_executor.post do
+            barrier.wait
+            tracer.trace('inner_span') do
+              barrier.wait
+            end
+          end
+
+          thread_pool_executor.post do
+            barrier.wait
+            tracer.trace('second_inner_span') do
+              barrier.wait
+            end
+          end
+
+          outer_span.finish
+
+          thread_pool_executor.shutdown
+          thread_pool_executor.wait_for_termination(5)
+        end
+
+        describe 'it correctly associates to the parent span' do
+          it 'both inner span parents should be included in same outer span' do
+            multiple_deferred_executions
+
+            expect(inner_span.parent_id).to eq(outer_span.id)
+            expect(second_inner_span.parent_id).to eq(outer_span.id)
+          end
+        end
+      end
+
+      context 'when propagates without an active trace' do
+        it 'creates a root span' do
+          thread_pool_executor.post do
+            tracer.trace('inner_span') {}
+          end
+
+          thread_pool_executor.shutdown
+          thread_pool_executor.wait_for_termination(5)
+
+          expect(inner_span).to be_root_span
+        end
       end
     end
   end

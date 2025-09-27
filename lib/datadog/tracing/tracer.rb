@@ -241,10 +241,19 @@ module Datadog
         trace.to_correlation
       end
 
-      # Setup a new trace to continue from where another
+      # Setup a new trace execution context to continue from where another
       # trace left off.
+      # This is useful to continue distributed or async traces.
       #
-      # Used to continue distributed or async traces.
+      # The first span created in the restored context is a direct child of the span
+      # from which the {Datadog::Tracing::TraceDigest} was created.
+      #
+      # When no block is given, the trace context is restored in the current thread.
+      # It remains active until the first span created in the restored context is finished.
+      # After that, if a new span is created, it start a new trace.
+      #
+      # When a block is given, the trace context is restored inside the block execution.
+      # It remains active until the block ends, even when the first span created finishes.
       #
       # @param [Datadog::Tracing::TraceDigest] digest continue from the {Datadog::Tracing::TraceDigest}.
       # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
@@ -260,13 +269,27 @@ module Datadog
         # Start a new trace from the digest
         context = call_context(key)
         original_trace = active_trace(key)
-        trace = start_trace(continue_from: digest)
+        trace = start_trace(continue_from: digest, trace_block: !!block)
 
         # If block hasn't been given; we need to manually deactivate
         # this trace. Subscribe to the trace finished event to do this.
         subscribe_trace_deactivation!(context, trace, original_trace) unless block
 
-        context.activate!(trace, &block)
+        if block
+          # For block usage, ensure the trace stays active until the block completes.
+          context.activate!(trace) do
+            yield
+          ensure
+            if trace.finished_span_count > 0
+              # On block completion, forces the current trace to finish and flush its finished spans.
+              # Unfinished spans are lost as the trace context is no longer valid.
+              trace.finish!
+              flush_trace(trace)
+            end
+          end
+        else
+          context.activate!(trace)
+        end
       end
 
       # Sample a span, tagging the trace as appropriate.
@@ -329,7 +352,7 @@ module Datadog
         @provider.context(key)
       end
 
-      def build_trace(digest = nil)
+      def build_trace(digest, trace_block)
         # Resolve hostname if configured
         hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
         hostname = (hostname && !hostname.empty?) ? hostname : nil
@@ -353,7 +376,8 @@ module Datadog
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
             remote_parent: digest.span_remote,
             tracer: self,
-            baggage: digest.baggage
+            baggage: digest.baggage,
+            trace_block: trace_block
           )
         else
           TraceOperation.new(
@@ -362,7 +386,8 @@ module Datadog
             profiling_enabled: profiling_enabled,
             apm_tracing_enabled: apm_tracing_enabled,
             remote_parent: false,
-            tracer: self
+            tracer: self,
+            trace_block: trace_block
           )
         end
       end
@@ -391,9 +416,9 @@ module Datadog
 
       # Creates a new TraceOperation, with events bounds to this Tracer instance.
       # @return [TraceOperation]
-      def start_trace(continue_from: nil)
+      def start_trace(continue_from: nil, trace_block: false)
         # Build a new trace using digest if provided.
-        trace = build_trace(continue_from)
+        trace = build_trace(continue_from, trace_block)
 
         # Bind trace events: sample trace, set default service, flush spans.
         bind_trace_events!(trace)
