@@ -241,10 +241,19 @@ module Datadog
         trace.to_correlation
       end
 
-      # Setup a new trace to continue from where another
+      # Setup a new trace execution context to continue from where another
       # trace left off.
+      # This is useful to continue distributed or async traces.
       #
-      # Used to continue distributed or async traces.
+      # The first span created in the restored context is a direct child of the span
+      # from which the {Datadog::Tracing::TraceDigest} was created.
+      #
+      # When no block is given, the trace context is restored in the current thread.
+      # It remains active until the first span created in the restored context is finished.
+      # After that, if a new span is created, it start a new trace.
+      #
+      # When a block is given, the trace context is restored inside the block execution.
+      # It remains active until the block ends, even when the first span created finishes.
       #
       # @param [Datadog::Tracing::TraceDigest] digest continue from the {Datadog::Tracing::TraceDigest}.
       # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
