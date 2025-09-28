@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module AwsLambdaRic
+        class Integration
+          include Contrib::Integration
+
+          MINIMUM_VERSION: untyped
+
+          def self.gem_name: () -> "aws_lambda_ric"
+
+          def self.version: () -> (untyped | nil)
+
+          def self.loaded?: () -> untyped
+
+          def self.compatible?: () -> untyped
+
+          def new_configuration: () -> untyped
+
+          def patcher: () -> untyped
+        end
+      end
+    end
+  end
+end
