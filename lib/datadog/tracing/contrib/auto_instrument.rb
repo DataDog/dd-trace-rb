@@ -30,9 +30,7 @@ module Datadog
             # patching them on their own automatically outside of the rails integration context would
             # cause undesirable service naming, so we exclude them based their auto_instrument? setting.
             # we also don't want to mix rspec/cucumber integration in as rspec is env we run tests in.
-            next unless integration.klass.auto_instrument?
-
-            integrations << integration.name
+            integrations << integration.name if integration.klass.auto_instrument?
           end
 
           Datadog.configure do |c|
@@ -41,7 +39,11 @@ module Datadog
 
             # Activate instrumentation for each integration
             integrations.each do |integration_name|
-              c.tracing.instrument integration_name
+              begin
+                c.tracing.instrument integration_name
+              rescue => e
+                Datadog.logger.debug("Failed to auto-instrument #{integration_name}: #{e.message}")
+              end
             end
           end
         end

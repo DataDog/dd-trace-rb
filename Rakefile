@@ -22,6 +22,13 @@ Dir.glob('tasks/*.rake').each { |r| import r }
 
 TEST_METADATA = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
+CORE_WITH_LIBDATADOG_API = [
+  'spec/datadog/core/crashtracking/**/*_spec.rb',
+  'spec/datadog/core/process_discovery_spec.rb',
+  'spec/datadog/core/configuration/stable_config_spec.rb',
+  'spec/datadog/core/ddsketch_spec.rb',
+].freeze
+
 # rubocop:disable Metrics/BlockLength
 namespace :test do
   desc 'Run all tests'
@@ -48,8 +55,8 @@ namespace :test do
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
-        total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
-        current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
+        total_executors = Datadog::DATADOG_ENV.key?('CIRCLE_NODE_TOTAL') ? Datadog::DATADOG_ENV['CIRCLE_NODE_TOTAL'].to_i : nil
+        current_executor = Datadog::DATADOG_ENV.key?('CIRCLE_NODE_INDEX') ? Datadog::DATADOG_ENV['CIRCLE_NODE_INDEX'].to_i : nil
 
         if total_executors && current_executor && total_executors > 1
           @execution_count ||= 0
@@ -75,8 +82,9 @@ namespace :spec do
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking,rubocop}/**/*_spec.rb,'\
-                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config}_spec.rb, spec/datadog/gem_packaging_spec.rb'
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking,rubocop}/**/*_spec.rb, ' \
+                        'spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config}_spec.rb, spec/datadog/gem_packaging_spec.rb, ' \
+                        "#{CORE_WITH_LIBDATADOG_API.join(', ')}"
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -202,27 +210,8 @@ namespace :spec do
   end
 
   # rubocop:disable Style/MultilineBlockChain
-  RSpec::Core::RakeTask.new(:crashtracking) do |t, args|
-    t.pattern = 'spec/datadog/core/crashtracking/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
-  end.tap do |t|
-    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
-  end
-  # rubocop:enable Style/MultilineBlockChain
-
-  # rubocop:disable Style/MultilineBlockChain
-  RSpec::Core::RakeTask.new(:process_discovery) do |t, args|
-    t.pattern = 'spec/datadog/core/process_discovery_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
-  end.tap do |t|
-    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
-  end
-  # rubocop:enable Style/MultilineBlockChain
-
-  # rubocop:disable Style/MultilineBlockChain
-  desc '' # "Explicitly hiding from `rake -T`"
-  RSpec::Core::RakeTask.new(:stable_config) do |t, args|
-    t.pattern = 'spec/datadog/core/configuration/stable_config_spec.rb'
+  RSpec::Core::RakeTask.new(:core_with_libdatadog_api) do |t, args|
+    t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end.tap do |t|
     Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
@@ -441,11 +430,11 @@ namespace :coverage do
   task :report do
     require 'simplecov'
 
-    resultset_files = Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/.resultset.json"] +
-      Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/**/.resultset.json"]
+    resultset_files = Dir["#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/.resultset.json"] +
+      Dir["#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/**/.resultset.json"]
 
     SimpleCov.collate resultset_files do
-      coverage_dir "#{ENV.fetch('COVERAGE_DIR', 'coverage')}/report"
+      coverage_dir "#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/report"
       formatter SimpleCov::Formatter::HTMLFormatter
     end
   end
@@ -455,11 +444,11 @@ namespace :coverage do
     require 'simplecov'
     require_relative 'spec/support/simplecov_fix'
 
-    versions = Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/*"].map { |f| File.basename(f) }
+    versions = Dir["#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/*"].map { |f| File.basename(f) }
     versions.map do |version|
       puts "Generating report for: #{version}"
-      SimpleCov.collate Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/#{version}/**/.resultset.json"] do
-        coverage_dir "#{ENV.fetch('COVERAGE_DIR', 'coverage')}/report/versions/#{version}"
+      SimpleCov.collate Dir["#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/#{version}/**/.resultset.json"] do
+        coverage_dir "#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/report/versions/#{version}"
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
