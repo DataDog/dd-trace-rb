@@ -29,8 +29,6 @@ module Datadog
                 span.set_tag(Ext::TAG_PARTITION, payload[:partition]) if payload.key?(:partition)
                 span.set_tag(Ext::TAG_OFFSET, payload[:offset]) if payload.key?(:offset)
                 span.set_tag(Ext::TAG_OFFSET_LAG, payload[:offset_lag]) if payload.key?(:offset_lag)
-
-                # DSM is handled in the consumer instrumentation, not in event handlers
               end
 
               def span_name
