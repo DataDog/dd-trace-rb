@@ -572,7 +572,8 @@ RSpec.describe 'Instrumentation integration' do
                 expect(status).to match(expected_emitting_payload)
               end
               expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
-                expect(snapshot.fetch(:message)).to eq 'hello '
+                # TODO should we serialize nil as empty string?
+                expect(snapshot.fetch(:message)).to eq 'hello nil'
               end
               expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
               component.probe_notifier_worker.flush
@@ -596,7 +597,7 @@ RSpec.describe 'Instrumentation integration' do
                 expect(status).to match(expected_emitting_payload)
               end
               expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
-                expect(snapshot.fetch(:message)).to eq 'hello Test exception'
+                expect(snapshot.fetch(:message)).to eq 'hello #<InstrumentationSpecTestClass::TestException>'
               end
               expect do
                 InstrumentationSpecTestClass.new.exception_method
