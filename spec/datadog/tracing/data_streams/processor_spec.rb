@@ -187,25 +187,25 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
       it 'creates produce checkpoint with correct tags' do
         carrier_set = double('carrier_set')
         expect(carrier_set).to receive(:call).with('dd-pathway-ctx-base64', anything)
-        
+
         result = processor.set_produce_checkpoint('kafka', 'orders-topic') { |key, value| carrier_set.call(key, value) }
-        
+
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
 
       it 'works without block' do
         result = processor.set_produce_checkpoint('kafka', 'orders-topic')
-        
+
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
 
       it 'returns nil when processor disabled' do
         processor.enabled = false
-        
+
         result = processor.set_produce_checkpoint('kafka', 'orders-topic')
-        
+
         expect(result).to be_nil
       end
     end
@@ -214,9 +214,9 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
       it 'creates consume checkpoint with correct tags' do
         carrier_get = double('carrier_get')
         expect(carrier_get).to receive(:call).with('dd-pathway-ctx-base64').and_return(nil)
-        
+
         result = processor.set_consume_checkpoint('kafka', 'orders-topic') { |key| carrier_get.call(key) }
-        
+
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
@@ -226,29 +226,29 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
         carrier_get = double('carrier_get')
         expect(carrier_get).to receive(:call).with('dd-pathway-ctx-base64').and_return(encoded_context)
         expect(processor).to receive(:decode_pathway_b64).with(encoded_context)
-        
+
         processor.set_consume_checkpoint('kafka', 'orders-topic') { |key| carrier_get.call(key) }
       end
 
       it 'works without block' do
         result = processor.set_consume_checkpoint('kafka', 'orders-topic')
-        
+
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
 
       it 'respects manual_checkpoint parameter' do
         result = processor.set_consume_checkpoint('kafka', 'orders-topic', manual_checkpoint: false)
-        
+
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
 
       it 'returns nil when processor disabled' do
         processor.enabled = false
-        
+
         result = processor.set_consume_checkpoint('kafka', 'orders-topic')
-        
+
         expect(result).to be_nil
       end
     end

@@ -20,13 +20,13 @@ module Datadog
                   proc do |message|
                     # DSM: Create checkpoint for consumed message
                     Datadog.logger.debug { "Kafka each_message: DSM enabled for topic #{message.topic}" }
-                    
+
                     processor = Datadog.configuration.tracing.data_streams.processor
-                    
+
                     # Extract pathway context from message headers if available
                     headers = message.headers || {}
                     processor.set_consume_checkpoint('kafka', message.topic) { |key| headers[key] }
-                    
+
                     # Call the original block if provided
                     block.call(message) if block_given?
                   end
@@ -45,13 +45,13 @@ module Datadog
                   proc do |batch|
                     # DSM: Create checkpoint for consumed batch
                     Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
-                    
+
                     processor = Datadog.configuration.tracing.data_streams.processor
-                    
+
                     # For batch processing, we don't have individual message headers
                     # so we create a consume checkpoint without pathway context
                     processor.set_consume_checkpoint('kafka', batch.topic)
-                    
+
                     # Call the original block if provided
                     block.call(batch) if block_given?
                   end
