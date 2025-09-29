@@ -135,20 +135,6 @@ module Datadog
         @finished == true
       end
 
-      # Manually finish the trace, marking it as completed.
-      # Any unfinished spans are lost and will not be included in the trace.
-      #
-      # This is useful for `trace_block == true` traces, where we want to flush
-      # the trace not when the root span finishes, but when the block
-      # given to {Tracer#continue_trace!} finishes.
-      def finish!
-        @finished = true
-        @active_span = nil
-        @active_span_count = 0
-
-        events.trace_finished.publish(self)
-      end
-
       # Will this trace be flushed by the tracer transport?
       # This includes cases where the span is kept solely due to priority sampling.
       #
@@ -161,7 +147,7 @@ module Datadog
         @sampled == true || priority_sampled?
       end
 
-      # Has the priority sampling chosen to keep this span?
+      # Has the priority sampling chosen to keeÏp this span?
       # @return [Boolean]
       def priority_sampled?
         !@sampling_priority.nil? && @sampling_priority > 0
@@ -332,6 +318,30 @@ module Datadog
 
         # Use them to build a trace
         build_trace(spans, !finished)
+      end
+
+      # Manually finish the trace, marking it as completed.
+      #
+      # This is in contrast the usual trace finishing flow,
+      # which happens when the first span in this trace finishes.
+      #
+      # This is useful when the active trace context is forced to finish.
+      # For example, when the trace context is bound to Ruby block and
+      # that block finishes.
+      #
+      # Unfinished spans are discarded.
+      #
+      # This method is idempotent and safe to call after the trace is finished.
+      #
+      # @!visibility private
+      def finish!
+        return if finished?
+
+        @finished = true
+        @active_span = nil
+        @active_span_count = 0
+
+        events.trace_finished.publish(self)
       end
 
       # Returns a set of trace headers used for continuing traces.

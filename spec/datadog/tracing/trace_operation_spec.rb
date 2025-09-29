@@ -811,12 +811,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     it 'publishes trace_finished event' do
-      event_spy = spy('event_spy')
-      trace_op.events.trace_finished.subscribe(&event_spy)
+      published_trace = nil
+      trace_op.send(:events).trace_finished.subscribe { |trace| published_trace = trace }
 
       finish!
 
-      expect(event_spy).to have_received(:call).with(trace_op)
+      expect(published_trace).to be trace_op
     end
 
     context 'when trace_block is true' do
