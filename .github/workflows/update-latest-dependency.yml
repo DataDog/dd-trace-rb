@@ -23,6 +23,8 @@ jobs:
         engine:
           # ADD NEW RUBIES HERE
           - name: ruby
+            version: '3.5'
+          - name: ruby
             version: '3.4'
           - name: ruby
             version: '3.3'
