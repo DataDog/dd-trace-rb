@@ -2,6 +2,7 @@
 
 require_relative 'core'
 require_relative 'tracing/pipeline'
+require_relative 'tracing/data_streams'
 
 module Datadog
   # Datadog APM tracing public API.
