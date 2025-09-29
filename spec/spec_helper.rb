@@ -68,7 +68,7 @@ RSpec.configure do |config|
   config.include LogHelpers
   config.include NetworkHelpers
   config.include LoadedGem
-  config.extend  LoadedGem::Helpers
+  config.extend LoadedGem::Helpers
   config.include LoadedGem::Helpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
@@ -76,7 +76,7 @@ RSpec.configure do |config|
   config.include TracerHelpers
   config.include TestHelpers::RSpec::Integration, :integration
   config.include HttpServerHelpers
-  config.extend  PlatformHelpers::ClassMethods
+  config.extend PlatformHelpers::ClassMethods
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
@@ -315,11 +315,15 @@ if ENV.key?('CI')
         backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
 
         msg = "#{idx}: #{t} (#{t.class.name})",
-              'Thread Backtrace:',
-              backtrace.map { |l| "\t#{l}" }.join("\n"),
-              "\n"
+          'Thread Backtrace:',
+          backtrace.map { |l| "\t#{l}" }.join("\n"),
+          "\n"
 
-        warn(msg) rescue puts(msg)
+        begin
+          warn(msg)
+        rescue
+          puts(msg)
+        end
       end
 
       Kernel.exit(1)

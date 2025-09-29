@@ -77,11 +77,9 @@ RSpec.describe Datadog::Core::Error do
         end
 
         let(:value) do
-          begin
-            clazz.new.call
-          rescue => e
-            puts e
-          end
+          clazz.new.call
+        rescue => e
+          puts e
         end
 
         it 'reports nested errors' do
@@ -119,15 +117,17 @@ RSpec.describe Datadog::Core::Error do
 
           let(:value) do
             begin
-              begin
-                raise 'first error'
-              rescue => e
-                raise 'second error' rescue ex2 = $ERROR_INFO
-                raise e, cause: ex2 # raises ArgumentError('circular causes') on Ruby >= 2.6
-              end
+              raise 'first error'
             rescue => e
-              e
+              begin
+                raise 'second error'
+              rescue
+                ex2 = $ERROR_INFO
+              end
+              raise e, cause: ex2 # raises ArgumentError('circular causes') on Ruby >= 2.6
             end
+          rescue => e
+            e
           end
 
           it 'reports errors only once', if: RUBY_VERSION < '2.6' ||
@@ -171,7 +171,8 @@ RSpec.describe Datadog::Core::Error do
         context 'with nil message' do
           let(:cause) do
             Class.new(StandardError) do
-              def message; end
+              def message
+              end
             end
           end
           let(:value) { begin; raise cause; rescue => e; e; end }

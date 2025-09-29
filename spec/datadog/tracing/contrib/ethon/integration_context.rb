@@ -27,7 +27,7 @@ RSpec.shared_context 'integration context' do
   let(:timeout) { 5 }
   let(:return_headers) { false }
   let(:query) do
-    query = { status: status }
+    query = {status: status}
     query[:return_headers] = 'true' if return_headers
     query[:simulate_timeout] = 'true' if simulate_timeout
   end

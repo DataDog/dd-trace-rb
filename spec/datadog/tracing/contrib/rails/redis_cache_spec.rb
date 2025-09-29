@@ -119,7 +119,7 @@ MESSAGE
       expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
       cache, *redises = spans
       expect(redises).to have(fetch ? 2 : 1).items # Fetch will have an extra MSET redis span
-      redis = Rails::VERSION::MAJOR < 5 ? redises.first : redises.last
+      redis = (Rails::VERSION::MAJOR < 5) ? redises.first : redises.last
       expect(cache.get_tag('rails.cache.backend')).to eq(cache_store_name)
 
       expect(redis.name).to eq('redis.command')

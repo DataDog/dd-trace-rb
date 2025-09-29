@@ -32,7 +32,7 @@ module PlatformHelpers
     operator, guard_version = matcher_with_ruby_version.split(' ', 2).tap { |array| array.unshift('==') if array.size == 1 }
 
     unless ALLOWED_COMPARISON_OPERATORS.include?(operator)
-      message = "Unsupported operator: #{operator}. Supported operators: #{ALLOWED_COMPARISON_OPERATORS.join(', ')}"
+      message = "Unsupported operator: #{operator}. Supported operators: #{ALLOWED_COMPARISON_OPERATORS.join(", ")}"
       raise ArgumentError, message
     end
 

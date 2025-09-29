@@ -32,7 +32,7 @@ RSpec.describe 'contrib integration testing', :integration do
     end
 
     let(:stub_rc!) { stub_dynamic_configuration_request(dynamic_configuration) }
-    let(:info_response) { { endpoints: ['/v0.7/config'] }.to_json }
+    let(:info_response) { {endpoints: ['/v0.7/config']}.to_json }
     let(:product) { 'APM_TRACING' }
 
     before do
@@ -80,9 +80,9 @@ RSpec.describe 'contrib integration testing', :integration do
         }
 
         targets_targets[target] = {
-          'custom' => { 'v' => 1 },
+          'custom' => {'v' => 1},
           'length' => 0,
-          'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw) },
+          'hashes' => {'sha256' => Digest::SHA256.hexdigest(raw)},
         }
         client_configs << target
       end
@@ -96,7 +96,7 @@ RSpec.describe 'contrib integration testing', :integration do
 
     context 'with dynamic configuration data' do
       let(:dynamic_configuration) { new_dynamic_configuration(product, data) }
-      let(:data) { { 'lib_config' => lib_config } }
+      let(:data) { {'lib_config' => lib_config} }
       let(:lib_config) do
         {
           'log_injection_enabled' => false,
@@ -106,7 +106,7 @@ RSpec.describe 'contrib integration testing', :integration do
       end
 
       let(:tracing_sampling_rate) { 0.7 }
-      let(:tracing_header_tags) { [{ 'header' => 'test-header', 'tag_name' => '' }] }
+      let(:tracing_header_tags) { [{'header' => 'test-header', 'tag_name' => ''}] }
 
       it 'overrides the local values' do
         Datadog::Core::Remote.active_remote.barrier(:once)
@@ -125,7 +125,7 @@ RSpec.describe 'contrib integration testing', :integration do
       context 'when remote configuration is later removed' do
         let(:empty_configuration) { stub_dynamic_configuration_request(empty_dynamic_configuration) }
         let(:empty_dynamic_configuration) { new_dynamic_configuration(product, empty_data) }
-        let(:empty_data) { { 'lib_config' => {} } }
+        let(:empty_data) { {'lib_config' => {}} }
 
         it 'restore the local values' do
           Datadog::Core::Remote.active_remote.barrier(:once)
@@ -145,12 +145,12 @@ RSpec.describe 'contrib integration testing', :integration do
       end
 
       context 'for tracing_header_tags' do
-        let(:tracing_header_tags) { [{ 'header' => 'test-header', 'tag_name' => '' }] }
+        let(:tracing_header_tags) { [{'header' => 'test-header', 'tag_name' => ''}] }
         http_server do |http_server|
           app = Rack::Builder.new do
             use Datadog::Tracing::Contrib::Rack::TraceMiddleware
             map '/' do
-              run ->(_env) { [200, { 'test-header' => 'test-response' }, ['Page Not Found!']] }
+              run ->(_env) { [200, {'test-header' => 'test-response'}, ['Page Not Found!']] }
             end
           end.to_app
 
@@ -162,7 +162,7 @@ RSpec.describe 'contrib integration testing', :integration do
         end
 
         let(:uri) { URI("http://localhost:#{http_server_port}/") }
-        let(:request) { Net::HTTP::Get.new(uri, { 'test-header' => 'test-request' }) }
+        let(:request) { Net::HTTP::Get.new(uri, {'test-header' => 'test-request'}) }
 
         before do
           Datadog.configure do |c|

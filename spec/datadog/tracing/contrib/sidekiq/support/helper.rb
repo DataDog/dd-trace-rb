@@ -14,7 +14,8 @@ RSpec.shared_context 'Sidekiq testing' do
       'EmptyWorker',
       Class.new do
         include Sidekiq::Worker
-        def perform; end
+        def perform
+        end
       end
     )
   end
@@ -32,11 +33,11 @@ module SidekiqTestingConfiguration
     redis_url = "redis://#{redis_host}:#{redis_port}"
 
     Sidekiq.configure_client do |config|
-      config.redis = { url: redis_url }
+      config.redis = {url: redis_url}
     end
 
     Sidekiq.configure_server do |config|
-      config.redis = { url: redis_url }
+      config.redis = {url: redis_url}
     end
 
     Sidekiq::Testing.inline!
@@ -106,22 +107,22 @@ module SidekiqServerExpectations
       # Change options and constants for Sidekiq to stop faster:
       # Reduce number of threads and shutdown timeout.
       options = if Sidekiq.respond_to? :default_configuration
-                  Sidekiq.default_configuration.tap do |c|
-                    c[:concurrency] = 1
-                    c[:timeout] = 0
-                  end
-                else
-                  Sidekiq.options.tap do |c|
-                    c[:concurrency] = 1
-                    c[:timeout] = 0
+        Sidekiq.default_configuration.tap do |c|
+          c[:concurrency] = 1
+          c[:timeout] = 0
+        end
+      else
+        Sidekiq.options.tap do |c|
+          c[:concurrency] = 1
+          c[:timeout] = 0
 
-                    unless c.respond_to? :logger
-                      def c.logger
-                        Sidekiq.logger
-                      end
-                    end
-                  end
-                end
+          unless c.respond_to? :logger
+            def c.logger
+              Sidekiq.logger
+            end
+          end
+        end
+      end
 
       # `Sidekiq::Launcher#stop` sleeps before actually starting to shutting down Sidekiq.
       # Settings `Manager::PAUSE_TIME` to zero removes that wait.

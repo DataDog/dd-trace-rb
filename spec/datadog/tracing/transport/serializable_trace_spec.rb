@@ -111,7 +111,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                   trace_state: 'vendor1=value,v2=v,dd=s:1',
                   trace_sampling_priority: 0x1,
                 ),
-                attributes: { 'link.name' => 'test_link' }
+                attributes: {'link.name' => 'test_link'}
               ),
               Datadog::Tracing::SpanLink.new(
                 Datadog::Tracing::TraceDigest.new(
@@ -138,17 +138,17 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
               'span_id' => 1,
               'trace_id' => 0xffffffffffffffff,
               'trace_id_high' => 0xaaaaaaaaaaaaaaaa,
-              'attributes' => { 'link.name' => 'test_link' },
+              'attributes' => {'link.name' => 'test_link'},
               'flags' => 2147483649,
               'tracestate' => 'vendor1=value,v2=v,dd=s:1',
             },
-             {
-               'span_id' => 2,
-               'trace_id' => 0x0123456789abcdef,
-               'trace_id_high' => 10,
-               'flags' => 0
-             },
-             { 'span_id' => 0, 'trace_id' => 0, 'flags' => 0 }]
+              {
+                'span_id' => 2,
+                'trace_id' => 0x0123456789abcdef,
+                'trace_id_high' => 10,
+                'flags' => 0
+              },
+              {'span_id' => 0, 'trace_id' => 0, 'flags' => 0}]
           )
         )
       end
@@ -167,7 +167,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
               Datadog::Tracing::SpanEvent.new(
                 "Another Event #{i}!",
                 time_unix_nano: 456,
-                attributes: { id: i, required: (i == 1) },
+                attributes: {id: i, required: (i == 1)},
               ),
             ],
           )
@@ -202,16 +202,16 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
           ).to eq(
             [
               [
-                { 'name' => 'First Event', 'time_unix_nano' => 123 },
-                { 'name' => 'Another Event 0!', 'time_unix_nano' => 456, 'attributes' => {
-                  'id' => { 'int_value' => 0, 'type' => 2 }, 'required' => { 'bool_value' => false, 'type' => 1 }
-                } }
+                {'name' => 'First Event', 'time_unix_nano' => 123},
+                {'name' => 'Another Event 0!', 'time_unix_nano' => 456, 'attributes' => {
+                  'id' => {'int_value' => 0, 'type' => 2}, 'required' => {'bool_value' => false, 'type' => 1}
+                }}
               ],
               [
-                { 'name' => 'First Event', 'time_unix_nano' => 123 },
-                { 'name' => 'Another Event 1!', 'time_unix_nano' => 456, 'attributes' => {
-                  'id' => { 'int_value' => 1, 'type' => 2 }, 'required' => { 'bool_value' => true, 'type' => 1 }
-                } }
+                {'name' => 'First Event', 'time_unix_nano' => 123},
+                {'name' => 'Another Event 1!', 'time_unix_nano' => 456, 'attributes' => {
+                  'id' => {'int_value' => 1, 'type' => 2}, 'required' => {'bool_value' => true, 'type' => 1}
+                }}
               ],
             ]
           )

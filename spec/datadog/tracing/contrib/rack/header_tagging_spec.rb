@@ -6,7 +6,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
   describe '.tag_response_headers' do
     before do
       Datadog.configure do |c|
-        c.tracing.instrument :rack, headers: { response: ['foo'] }
+        c.tracing.instrument :rack, headers: {response: ['foo']}
       end
     end
 
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
 
     context 'when given a header with a single value from response headers' do
       let(:headers) do
-        Rack::Response.new('', 200, { 'foo' => 'bar' }).headers
+        Rack::Response.new('', 200, {'foo' => 'bar'}).headers
       end
 
       it do
@@ -59,7 +59,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
       context 'when given a concatentated string' do
         # Rack 2.x returns a concatentated string for multiple values
         let(:headers) do
-          { 'foo' => 'bar,baz' }
+          {'foo' => 'bar,baz'}
         end
 
         it do
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderTagging do
       context 'when given an array of strings' do
         # Rack 3.x returns an array of strings for multiple values
         let(:headers) do
-          { 'foo' => ['bar', 'baz'] }
+          {'foo' => ['bar', 'baz']}
         end
 
         it do

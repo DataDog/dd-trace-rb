@@ -7,7 +7,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
   subject(:worker) { described_class.new(telemetry: telemetry, **options) }
 
   let(:metrics) { instance_double(Datadog::Core::Runtime::Metrics, close: nil) }
-  let(:options) { { metrics: metrics, enabled: true } }
+  let(:options) { {metrics: metrics, enabled: true} }
 
   let(:logger) { logger_allowing_debug }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
@@ -226,7 +226,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
     end
 
     context 'with close_metrics: false' do
-      let(:kwargs) { { close_metrics: false } }
+      let(:kwargs) { {close_metrics: false} }
 
       it 'does not close metrics, but stops worker' do
         stop

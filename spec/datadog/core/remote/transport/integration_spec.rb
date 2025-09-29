@@ -26,9 +26,9 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response) }
 
       it { is_expected.to be_ok }
-      it { is_expected.to_not have_attributes(:version => be_nil) }
-      it { is_expected.to_not have_attributes(:endpoints => be_nil) }
-      it { is_expected.to_not have_attributes(:config => be_nil) }
+      it { is_expected.to_not have_attributes(version: be_nil) }
+      it { is_expected.to_not have_attributes(endpoints: be_nil) }
+      it { is_expected.to_not have_attributes(config: be_nil) }
     end
   end
 
@@ -104,8 +104,8 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Config::Response) }
 
       it { is_expected.to be_ok }
-      it { is_expected.to_not have_attributes(:roots => be_nil) }
-      it { is_expected.to_not have_attributes(:targets => be_nil) }
+      it { is_expected.to_not have_attributes(roots: be_nil) }
+      it { is_expected.to_not have_attributes(targets: be_nil) }
     end
   end
 end

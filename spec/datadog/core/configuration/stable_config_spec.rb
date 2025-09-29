@@ -50,17 +50,17 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       context 'with config_id' do
         let(:local_config_content) do
           <<~YAML
-          config_id: 12345
-          apm_configuration_default:
-            DD_LOGS_INJECTION: false
+            config_id: 12345
+            apm_configuration_default:
+              DD_LOGS_INJECTION: false
           YAML
         end
 
         let(:fleet_config_content) do
           <<~YAML
-          config_id: 56789
-          apm_configuration_default:
-            DD_APPSEC_ENABLED: true
+            config_id: 56789
+            apm_configuration_default:
+              DD_APPSEC_ENABLED: true
           YAML
         end
 
@@ -77,15 +77,15 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
       context 'without config_id' do
         let(:local_config_content) do
           <<~YAML
-          apm_configuration_default:
-            DD_LOGS_INJECTION: false
+            apm_configuration_default:
+              DD_LOGS_INJECTION: false
           YAML
         end
 
         let(:fleet_config_content) do
           <<~YAML
-          apm_configuration_default:
-            DD_APPSEC_ENABLED: true
+            apm_configuration_default:
+              DD_APPSEC_ENABLED: true
           YAML
         end
 

@@ -7,7 +7,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
   let(:event) { described_class.new }
 
   let(:event) { described_class.new(changes, origin) }
-  let(:changes) { { name => value } }
+  let(:changes) { {name => value} }
   let(:origin) { double('origin') }
   let(:name) { 'key' }
   let(:value) { 'value' }
@@ -45,8 +45,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
         is_expected.to eq(
           configuration:
           [
-            { name: name, value: value, origin: origin, seq_id: id },
-            { name: 'appsec.sca_enabled', value: false, origin: 'code', seq_id: id }
+            {name: name, value: value, origin: origin, seq_id: id},
+            {name: 'appsec.sca_enabled', value: false, origin: 'code', seq_id: id}
           ]
         )
       end
@@ -54,20 +54,20 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
   end
 
   it 'all events to be the same' do
-    events =     [
-      described_class.new({ 'key' => 'value' }, 'origin'),
-      described_class.new({ 'key' => 'value' }, 'origin'),
+    events = [
+      described_class.new({'key' => 'value'}, 'origin'),
+      described_class.new({'key' => 'value'}, 'origin'),
     ]
 
     expect(events.uniq).to have(1).item
   end
 
   it 'all events to be different' do
-    events =     [
-      described_class.new({ 'key' => 'value' }, 'origin'),
-      described_class.new({ 'key' => 'value' }, 'origin2'),
-      described_class.new({ 'key' => 'value2' }, 'origin'),
-      described_class.new({ 'key2' => 'value' }, 'origin'),
+    events = [
+      described_class.new({'key' => 'value'}, 'origin'),
+      described_class.new({'key' => 'value'}, 'origin2'),
+      described_class.new({'key' => 'value2'}, 'origin'),
+      described_class.new({'key2' => 'value'}, 'origin'),
       described_class.new({}, 'origin'),
     ]
 

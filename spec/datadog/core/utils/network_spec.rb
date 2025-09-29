@@ -8,9 +8,9 @@ RSpec.describe Datadog::Core::Utils::Network do
       context 'iterates over the default headers (DEFAULT_IP_HEADERS_NAMES) in order' do
         it 'returns the first valid public IP value' do
           headers = Datadog::Core::HeaderCollection.from_hash(
-            { 'X-Forwarded-For' => '10.42.42.42',
-              'True-Client-Ip' => '43.43.43.43',
-              'X-Cluster-Client-Ip' => '10.0.0.1', }
+            {'X-Forwarded-For' => '10.42.42.42',
+             'True-Client-Ip' => '43.43.43.43',
+             'X-Cluster-Client-Ip' => '10.0.0.1',}
           )
 
           result = described_class.stripped_ip_from_request_headers(headers)
@@ -20,7 +20,7 @@ RSpec.describe Datadog::Core::Utils::Network do
 
       context 'multiple IP addresses present in the header' do
         it 'returns the first valid public IP address' do
-          headers = Datadog::Core::HeaderCollection.from_hash({ 'X-Forwarded-For' => '10.42.42.42,43.43.43.43,fe80::1' })
+          headers = Datadog::Core::HeaderCollection.from_hash({'X-Forwarded-For' => '10.42.42.42,43.43.43.43,fe80::1'})
 
           result = described_class.stripped_ip_from_request_headers(headers)
           expect(result).to eq('43.43.43.43')
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Core::Utils::Network do
         end
 
         it 'returns nil if header value is not valid' do
-          headers = Datadog::Core::HeaderCollection.from_hash({ 'test-header' => 'dd' })
+          headers = Datadog::Core::HeaderCollection.from_hash({'test-header' => 'dd'})
 
           result = described_class.stripped_ip_from_request_headers(headers, ip_headers_to_check: ['test-header'])
           expect(result).to be_nil
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Core::Utils::Network do
 
       it 'returns nil if no public valid IP addresss present in the headers' do
         headers = Datadog::Core::HeaderCollection.from_hash(
-          { 'X-Forwarded-For' => '10.42.42.42' }
+          {'X-Forwarded-For' => '10.42.42.42'}
         )
 
         result = described_class.stripped_ip_from_request_headers(headers)

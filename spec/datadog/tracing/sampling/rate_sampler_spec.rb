@@ -143,7 +143,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
         trace_expectations.each do |id, expected|
           trace = Datadog::Tracing::TraceOperation.new(id: id)
           expect(sampler.sample!(trace)).to eq(expected),
-            "Expected trace ID #{id} to be #{expected ? 'sampled' : 'not sampled'}"
+            "Expected trace ID #{id} to be #{expected ? "sampled" : "not sampled"}"
         end
       end
     end

@@ -6,14 +6,14 @@ RSpec.describe Datadog::Core::Utils::Hash::CaseInsensitiveWrapper do
   subject(:wrapper) { described_class.new(hash) }
 
   context 'for a populated hash' do
-    let(:hash) { { 'lower' => 'lower_value', 'UPPER' => 'upper_value', non_string_key: 'oops' } }
+    let(:hash) { {'lower' => 'lower_value', 'UPPER' => 'upper_value', :non_string_key => 'oops'} }
 
     {
       'lower' => 'lower_value',
       'LoWeR' => 'lower_value',
       'UPPER' => 'upper_value',
       'uPpEr' => 'upper_value',
-      non_string_key: nil,
+      :non_string_key => nil,
     }.each do |key, expected_value|
       context "for key #{key.inspect}" do
         let(:key) { key }

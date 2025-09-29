@@ -251,7 +251,7 @@ RSpec.describe 'Tracer integration tests' do
         let!(:trace) do
           # Force configuration before span is traced
           # DEV: Use MIN because 0.0 is "auto-corrected" to 1.0
-          tracer.sampler.update({ 'service:,env:' => Float::MIN })
+          tracer.sampler.update({'service:,env:' => Float::MIN})
 
           super()
         end
@@ -312,7 +312,7 @@ RSpec.describe 'Tracer integration tests' do
 
         context 'set through DD_TRACE_SAMPLING_RULES environment variable' do
           include_context 'DD_TRACE_SAMPLING_RULES configuration' do
-            let(:rule) { { name: 'my.op', sample_rate: 1.0 } }
+            let(:rule) { {name: 'my.op', sample_rate: 1.0} }
           end
 
           it_behaves_like 'flushed trace'
@@ -324,7 +324,7 @@ RSpec.describe 'Tracer integration tests' do
 
         context 'with a matching resource name' do
           include_context 'DD_TRACE_SAMPLING_RULES configuration' do
-            let(:rule) { { resource: 'my.resource', sample_rate: 1.0 } }
+            let(:rule) { {resource: 'my.resource', sample_rate: 1.0} }
           end
 
           it_behaves_like 'flushed trace'
@@ -336,7 +336,7 @@ RSpec.describe 'Tracer integration tests' do
 
         context 'with a matching service name' do
           include_context 'DD_TRACE_SAMPLING_RULES configuration' do
-            let(:rule) { { service: 'my.service', sample_rate: 1.0 } }
+            let(:rule) { {service: 'my.service', sample_rate: 1.0} }
           end
 
           it_behaves_like 'flushed trace'
@@ -348,7 +348,7 @@ RSpec.describe 'Tracer integration tests' do
 
         context 'with matching tags' do
           include_context 'DD_TRACE_SAMPLING_RULES configuration' do
-            let(:rule) { { tags: { tag: 'tag_value', tag2: 'tag_value2' }, sample_rate: 1.0 } }
+            let(:rule) { {tags: {tag: 'tag_value', tag2: 'tag_value2'}, sample_rate: 1.0} }
           end
 
           it_behaves_like 'flushed trace'
@@ -361,8 +361,8 @@ RSpec.describe 'Tracer integration tests' do
         context 'with matching tags and matching service and matching resource' do
           include_context 'DD_TRACE_SAMPLING_RULES configuration' do
             let(:rule) do
-              { resource: 'my.resource', service: 'my.service', tags: { tag: 'tag_value', tag2: 'tag_value2' },
-                sample_rate: 1.0 }
+              {resource: 'my.resource', service: 'my.service', tags: {tag: 'tag_value', tag2: 'tag_value2'},
+               sample_rate: 1.0}
             end
           end
 
@@ -376,8 +376,8 @@ RSpec.describe 'Tracer integration tests' do
         context 'with not matching tags and matching service and matching resource' do
           include_context 'DD_TRACE_SAMPLING_RULES configuration' do
             let(:rule) do
-              { resource: 'my.resource', service: 'my.service', tags: { tag: 'wrong_tag_value' },
-                sample_rate: 1.0 }
+              {resource: 'my.resource', service: 'my.service', tags: {tag: 'wrong_tag_value'},
+               sample_rate: 1.0}
             end
           end
 
@@ -391,8 +391,8 @@ RSpec.describe 'Tracer integration tests' do
         context 'drop with matching tags and matching service and matching resource' do
           include_context 'DD_TRACE_SAMPLING_RULES configuration' do
             let(:rule) do
-              { resource: 'my.resource', service: 'my.service', tags: { tag: 'tag_value' },
-                sample_rate: 0 }
+              {resource: 'my.resource', service: 'my.service', tags: {tag: 'tag_value'},
+               sample_rate: 0}
             end
           end
 
@@ -414,7 +414,7 @@ RSpec.describe 'Tracer integration tests' do
 
           context 'set through DD_TRACE_SAMPLING_RULES environment variable' do
             include_context 'DD_TRACE_SAMPLING_RULES configuration' do
-              let(:rule) { { sample_rate: Float::MIN } }
+              let(:rule) { {sample_rate: Float::MIN} }
             end
 
             it_behaves_like 'flushed trace'
@@ -426,7 +426,7 @@ RSpec.describe 'Tracer integration tests' do
         end
 
         context 'rate limited' do
-          let(:rule_sampler_opt) { { rate_limit: Float::MIN } }
+          let(:rule_sampler_opt) { {rate_limit: Float::MIN} }
 
           it_behaves_like 'flushed trace'
           it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
@@ -448,7 +448,7 @@ RSpec.describe 'Tracer integration tests' do
 
         context 'set through DD_TRACE_SAMPLING_RULES environment variable' do
           include_context 'DD_TRACE_SAMPLING_RULES configuration' do
-            let(:rule) { { name: 'not.my.op' } }
+            let(:rule) { {name: 'not.my.op'} }
 
             it_behaves_like 'flushed trace'
             # The PrioritySampler was responsible for the sampling decision, not the Rule Sampler.
@@ -560,13 +560,13 @@ RSpec.describe 'Tracer integration tests' do
 
         context 'with rule matching' do
           context 'with a dropped span' do
-            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
+            let(:rules) { [{name: 'single.sampled_span', sample_rate: 0.0}] }
 
             it_behaves_like 'flushed complete trace'
             it_behaves_like 'does not modify spans'
 
             context 'by rate limiting' do
-              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
+              let(:rules) { [{name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0}] }
 
               it_behaves_like 'flushed complete trace'
               it_behaves_like 'does not modify spans'
@@ -574,7 +574,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           context 'with a kept span' do
-            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
+            let(:rules) { [{name: 'single.sampled_span', sample_rate: 1.0}] }
 
             # it_behaves_like 'flushed complete trace'
             it_behaves_like 'set single span sampling tags'
@@ -585,7 +585,7 @@ RSpec.describe 'Tracer integration tests' do
       context 'ensures correct stats calculation in the agent' do
         it 'sets the Datadog-Client-Computed-Top-Level header to a non-empty value' do
           expect(WebMock)
-            .to have_requested(:post, %r{/traces}).with(headers: { 'Datadog-Client-Computed-Top-Level' => /.+/ })
+            .to have_requested(:post, %r{/traces}).with(headers: {'Datadog-Client-Computed-Top-Level' => /.+/})
         end
       end
     end
@@ -642,7 +642,11 @@ RSpec.describe 'Tracer integration tests' do
 
         # Kill the process
         write.close
-        Process.kill('TERM', fork_id) rescue nil
+        begin
+          Process.kill('TERM', fork_id)
+        rescue
+          nil
+        end
 
         # Read and return any output
         read.read.tap do
@@ -721,7 +725,7 @@ RSpec.describe 'Tracer integration tests' do
 
       after { WebMock.disable! }
 
-      let(:service_rates) { { rate_by_service: { 'service:kept,env:' => 1.0, 'service:dropped,env:' => Float::MIN } } }
+      let(:service_rates) { {rate_by_service: {'service:kept,env:' => 1.0, 'service:dropped,env:' => Float::MIN}} }
 
       let(:set_agent_rates!) do
         # Send span to receive response from "agent" with mocked service rates above.
@@ -767,7 +771,7 @@ RSpec.describe 'Tracer integration tests' do
         end
 
         let(:service_rates) do
-          { rate_by_service: { 'service:kept,env:test' => 1.0, 'service:dropped,env:' => Float::MIN } }
+          {rate_by_service: {'service:kept,env:test' => 1.0, 'service:dropped,env:' => Float::MIN}}
         end
 
         context 'with a span matching the environment rates' do
@@ -868,7 +872,7 @@ RSpec.describe 'Tracer integration tests' do
           span.span_events << Datadog::Tracing::SpanEvent.new(
             'event_name',
             time_unix_nano: 123,
-            attributes: { 'key' => 'value' }
+            attributes: {'key' => 'value'}
           )
         end
 
@@ -907,11 +911,11 @@ RSpec.describe 'Tracer integration tests' do
           expect(flushed_trace['meta']).to_not have_key('events')
           expect(flushed_trace['span_events']).to eq(
             [
-              { 'name' => 'event_name',
-                'time_unix_nano' => 123,
-                'attributes' => { 'key' => {
-                  'string_value' => 'value', 'type' => 0
-                } }, }
+              {'name' => 'event_name',
+               'time_unix_nano' => 123,
+               'attributes' => {'key' => {
+                 'string_value' => 'value', 'type' => 0
+               }},}
             ]
           )
         end
@@ -926,9 +930,9 @@ RSpec.describe 'Tracer integration tests' do
           expect(flushed_trace['meta']['events']).to eq(
             JSON.dump(
               [
-                { 'name' => 'event_name',
-                  'time_unix_nano' => 123,
-                  'attributes' => { 'key' => 'value' } }
+                {'name' => 'event_name',
+                 'time_unix_nano' => 123,
+                 'attributes' => {'key' => 'value'}}
               ]
             )
           )

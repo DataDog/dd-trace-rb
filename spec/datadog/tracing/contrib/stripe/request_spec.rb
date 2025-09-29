@@ -14,11 +14,11 @@ RSpec.describe Datadog::Tracing::Contrib::Stripe::Request do
     end
 
     stub_request(:get, 'https://api.stripe.com/v1/customers/cus_123')
-      .with(headers: { 'Authorization' => 'Bearer sk_test_123' })
+      .with(headers: {'Authorization' => 'Bearer sk_test_123'})
       .to_return(
         status: 200,
-        body: { id: 'cus_123', object: 'customer' }.to_json,
-        headers: { 'Request-Id' => 'abc-123-def-456' },
+        body: {id: 'cus_123', object: 'customer'}.to_json,
+        headers: {'Request-Id' => 'abc-123-def-456'},
       )
   end
 

@@ -93,8 +93,8 @@ RSpec.describe 'net/http requests' do
       context 'when configured with global tag headers' do
         subject(:response) { client.get(path, request_headers) }
 
-        let(:request_headers) { { 'Request-Id' => 'test-request' } }
-        let(:response_headers) { { 'Response-Id' => 'test-response' } }
+        let(:request_headers) { {'Request-Id' => 'test-request'} }
+        let(:response_headers) { {'Response-Id' => 'test-response'} }
 
         include_examples 'with request tracer header tags' do
           let(:request_header_tag) { 'request-id' }
@@ -218,7 +218,7 @@ RSpec.describe 'net/http requests' do
 
   describe 'with an internal HTTP request' do
     subject(:response) { client.get(path, headers) }
-    let(:headers) { { 'DD-Internal-Untraced-Request' => '1' } }
+    let(:headers) { {'DD-Internal-Untraced-Request' => '1'} }
 
     before { stub_request(:get, "#{uri}#{path}") }
 

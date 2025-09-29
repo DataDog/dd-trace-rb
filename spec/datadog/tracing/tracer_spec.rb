@@ -91,7 +91,7 @@ RSpec.describe Datadog::Tracing::Tracer do
     shared_examples 'shared #trace behavior' do
       context 'with options to be forwarded to the span' do
         context 'service:' do
-          let(:options) { { service: service } }
+          let(:options) { {service: service} }
           let(:service) { 'my-service' }
 
           it 'sets the span service' do
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
 
         context 'resource:' do
-          let(:options) { { resource: resource } }
+          let(:options) { {resource: resource} }
           let(:resource) { 'my-resource' }
 
           it 'sets the span resource' do
@@ -109,7 +109,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
 
         context 'span_type:' do
-          let(:options) { { type: span_type } }
+          let(:options) { {type: span_type} }
           let(:span_type) { 'my-span_type' }
 
           it 'sets the span resource' do
@@ -118,8 +118,8 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
 
         context 'tags:' do
-          let(:options) { { tags: tags } }
-          let(:tags) { { tag_name => tag_value } }
+          let(:options) { {tags: tags} }
+          let(:tags) { {tag_name => tag_value} }
           let(:tag_name) { 'my' }
           let(:tag_value) { 'tag' }
 
@@ -129,9 +129,9 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           context 'contains version and the span service name' do
             let(:tracer_options) do
-              { default_service: 'global-service', tags: { Datadog::Core::Environment::Ext::TAG_VERSION => '1.1.0' } }
+              {default_service: 'global-service', tags: {Datadog::Core::Environment::Ext::TAG_VERSION => '1.1.0'}}
             end
-            let(:options) { { service: service } }
+            let(:options) { {service: service} }
 
             context 'is nil' do
               let(:service) { nil }
@@ -170,9 +170,9 @@ RSpec.describe Datadog::Tracing::Tracer do
           end
 
           context 'and default tags are set on the tracer' do
-            let(:tracer_options) { { tags: default_tags } }
+            let(:tracer_options) { {tags: default_tags} }
 
-            let(:default_tags) { { default_tag_name => default_tag_value } }
+            let(:default_tags) { {default_tag_name => default_tag_value} }
             let(:default_tag_name) { 'default_tag' }
             let(:default_tag_value) { 'default_value' }
 
@@ -203,7 +203,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         before { trace }
 
         context 'start_time:' do
-          let(:options) { { start_time: start_time } }
+          let(:options) { {start_time: start_time} }
           let(:start_time) { Time.utc(2021, 8, 3) }
 
           it 'is ignored' do
@@ -600,7 +600,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         let(:span) { trace }
 
         context 'start_time:' do
-          let(:options) { { start_time: start_time } }
+          let(:options) { {start_time: start_time} }
           let(:start_time) { Time.utc(2021, 8, 3) }
 
           it 'sets the span start_time' do
@@ -874,7 +874,7 @@ RSpec.describe Datadog::Tracing::Tracer do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
           span_id: Datadog::Tracing::Utils.next_id,
-          trace_distributed_tags: { '_dd.p.test' => 'value' },
+          trace_distributed_tags: {'_dd.p.test' => 'value'},
           trace_id: Datadog::Tracing::Utils.next_id,
           trace_origin: 'synthetics',
           trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
@@ -979,7 +979,7 @@ RSpec.describe Datadog::Tracing::Tracer do
     subject(:default_service) { tracer.default_service }
 
     context 'when tracer is initialized with a default_service' do
-      let(:tracer_options) { { **super(), default_service: default_service_value } }
+      let(:tracer_options) { {**super(), default_service: default_service_value} }
       let(:default_service_value) { 'test_default_service' }
 
       it { is_expected.to be default_service_value }
@@ -1031,7 +1031,7 @@ RSpec.describe Datadog::Tracing::Tracer do
     let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
     context 'when the tracer is enabled' do
-      let(:tracer_options) { { enabled: true } }
+      let(:tracer_options) { {enabled: true} }
 
       context 'when writer is nil' do
         let(:writer) { nil }
@@ -1052,7 +1052,7 @@ RSpec.describe Datadog::Tracing::Tracer do
     end
 
     context 'when the tracer is disabled' do
-      let(:tracer_options) { { enabled: false } }
+      let(:tracer_options) { {enabled: false} }
 
       it do
         expect(writer).to_not receive(:stop)
@@ -1088,12 +1088,12 @@ RSpec.describe Datadog::Tracing::Tracer do
 
     it 'incoming headers overrides existing baggage' do
       Datadog::Tracing.baggage['key'] = 'value'
-      Datadog::Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(baggage: { 'key1' => 'value1' }))
+      Datadog::Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(baggage: {'key1' => 'value1'}))
       expect(Datadog::Tracing.active_trace.to_digest.baggage).to eq('key1' => 'value1')
     end
 
     it 'sets a trace tag for the respective baggage key' do
-      trace_digest = Datadog::Tracing::Contrib::HTTP.extract({ 'baggage' => 'user.id=test-id' })
+      trace_digest = Datadog::Tracing::Contrib::HTTP.extract({'baggage' => 'user.id=test-id'})
 
       Datadog::Tracing.trace('op', continue_from: trace_digest) do |_span, trace|
         expect(trace.get_tag('baggage.user.id')).to eq('test-id')

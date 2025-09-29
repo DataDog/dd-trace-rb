@@ -19,18 +19,18 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
       it 'sends a log event to via telemetry' do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
-            logs: [{ message: 'RuntimeError', level: 'ERROR', count: 1,
-                     stack_trace: a_string_including('REDACTED') }]
+            logs: [{message: 'RuntimeError', level: 'ERROR', count: 1,
+                    stack_trace: a_string_including('REDACTED')}]
           )
           expect(event.payload).to include(
-            logs: [{ message: 'RuntimeError', level: 'ERROR', count: 1,
-                     stack_trace: a_string_including("\n/spec/") }]
+            logs: [{message: 'RuntimeError', level: 'ERROR', count: 1,
+                    stack_trace: a_string_including("\n/spec/")}]
           )
         end
 
         begin
           raise 'Invalid token: p@ssw0rd'
-        rescue StandardError => e
+        rescue => e
           component.report(e, level: :error)
         end
       end
@@ -39,18 +39,18 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         it 'sends a log event to via telemetry' do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
-              logs: [{ message: 'RuntimeError: Must not contain PII', level: 'ERROR', count: 1,
-                       stack_trace: a_string_including('REDACTED') }]
+              logs: [{message: 'RuntimeError: Must not contain PII', level: 'ERROR', count: 1,
+                      stack_trace: a_string_including('REDACTED')}]
             )
             expect(event.payload).to include(
-              logs: [{ message: 'RuntimeError: Must not contain PII', level: 'ERROR', count: 1,
-                       stack_trace: a_string_including("\n/spec/") }]
+              logs: [{message: 'RuntimeError: Must not contain PII', level: 'ERROR', count: 1,
+                      stack_trace: a_string_including("\n/spec/")}]
             )
           end
 
           begin
             raise 'Invalid token: p@ssw0rd'
-          rescue StandardError => e
+          rescue => e
             component.report(e, level: :error, description: 'Must not contain PII')
           end
         end
@@ -61,12 +61,12 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
       it 'sends a log event to via telemetry' do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
-            logs: [{ message: /#<Class:/, level: 'ERROR', count: 1,
-                     stack_trace: a_string_including('REDACTED') }]
+            logs: [{message: /#<Class:/, level: 'ERROR', count: 1,
+                    stack_trace: a_string_including('REDACTED')}]
           )
           expect(event.payload).to include(
-            logs: [{ message: /#<Class:/, level: 'ERROR', count: 1,
-                     stack_trace: a_string_including("\n/spec/") }]
+            logs: [{message: /#<Class:/, level: 'ERROR', count: 1,
+                    stack_trace: a_string_including("\n/spec/")}]
           )
         end
 
@@ -74,7 +74,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
 
         begin
           raise customer_exception, 'Invalid token: p@ssw0rd'
-        rescue StandardError => e
+        rescue => e
           component.report(e, level: :error)
         end
       end
@@ -114,7 +114,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
     context 'with description' do
       it 'sends a log event to via telemetry' do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
-          expect(event.payload).to include(logs: [{ message: 'Must not contain PII', level: 'ERROR', count: 1 }])
+          expect(event.payload).to include(logs: [{message: 'Must not contain PII', level: 'ERROR', count: 1}])
         end
 
         component.error('Must not contain PII')
@@ -145,7 +145,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging::DatadogStackTrace do
     it 'returns redacted stack trace' do
       begin
         raise 'Invalid token: p@ssw0rd'
-      rescue StandardError => e
+      rescue => e
         result = described_class.from(e)
       end
 

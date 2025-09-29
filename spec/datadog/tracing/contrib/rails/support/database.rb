@@ -17,23 +17,21 @@ module Datadog
                 'activerecord-trilogy-adapter', # Must come before `trilogy`, as the adapter takes precedence when available
                 'trilogy', # Uses the built-in adapter, since Rails 7.1
               ].each do |adapter|
-                begin
-                  require adapter
+                require adapter
 
-                  if adapter == 'pg' || adapter.include?('postgres')
-                    connector = postgres_url
-                  elsif adapter.include?('mysql')
-                    connector = mysql_url
-                  elsif adapter.include?('trilogy')
-                    connector = mysql_url('trilogy')
-                  else
-                    raise "Unknown adapter to create DATABASE_URL from: #{adapter}. Please add a URL generator for it."
-                  end
-                rescue LoadError
-                  puts "#{adapter} gem not found, trying another connector"
+                if adapter == 'pg' || adapter.include?('postgres')
+                  connector = postgres_url
+                elsif adapter.include?('mysql')
+                  connector = mysql_url
+                elsif adapter.include?('trilogy')
+                  connector = mysql_url('trilogy')
                 else
-                  return connector
+                  raise "Unknown adapter to create DATABASE_URL from: #{adapter}. Please add a URL generator for it."
                 end
+              rescue LoadError
+                puts "#{adapter} gem not found, trying another connector"
+              else
+                return connector
               end
 
               raise 'No database adapter found!'

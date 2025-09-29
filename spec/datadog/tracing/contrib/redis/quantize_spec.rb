@@ -34,13 +34,13 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
       context 'a string over the limit by one' do
         let(:arg) { 'B' * 101 }
 
-        it { is_expected.to eq("#{'B' * 47}...") }
+        it { is_expected.to eq("#{"B" * 47}...") }
       end
 
       context 'a string over the limit by a lot' do
         let(:arg) { 'C' * 1000 }
 
-        it { is_expected.to eq("#{'C' * 47}...") }
+        it { is_expected.to eq("#{"C" * 47}...") }
       end
 
       context 'an object that can\'t be converted to a string' do

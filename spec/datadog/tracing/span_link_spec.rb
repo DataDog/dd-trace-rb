@@ -39,7 +39,7 @@ RSpec.describe Datadog::Tracing::SpanLink do
 
     context 'given' do
       context ':attributes' do
-        let(:attributes) { { tag: 'value' } }
+        let(:attributes) { {tag: 'value'} }
         it { is_expected.to have_attributes(attributes: attributes) }
       end
 
@@ -111,11 +111,11 @@ RSpec.describe Datadog::Tracing::SpanLink do
     end
 
     context 'when attributes is set' do
-      let(:attributes) { { 'link.name' => :test_link, 'link.id' => 1, 'nested' => [true, [2, 3], 'val'] } }
+      let(:attributes) { {'link.name' => :test_link, 'link.id' => 1, 'nested' => [true, [2, 3], 'val']} }
       it {
         is_expected.to include(
-          attributes: { 'link.name' => 'test_link', 'link.id' => '1', 'nested.0' => 'true',
-                        'nested.1.0' => '2', 'nested.1.1' => '3', 'nested.2' => 'val', }
+          attributes: {'link.name' => 'test_link', 'link.id' => '1', 'nested.0' => 'true',
+                       'nested.1.0' => '2', 'nested.1.1' => '3', 'nested.2' => 'val',}
         )
       }
     end

@@ -8,7 +8,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
   let(:logger) { Logger.new($stderr) }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
-  let(:options) { { statsd: statsd } }
+  let(:options) { {statsd: statsd} }
 
   subject(:metrics) { described_class.new(telemetry: telemetry, logger: logger, **options) }
   after { metrics.close }
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
       context 'when a statsd instance is provided' do
         let(:statsd) { instance_double(Datadog::Statsd) }
-        let(:options) { { statsd: statsd } }
+        let(:options) { {statsd: statsd} }
 
         it 'uses the provided instance' do
           expect(metrics.statsd).to be statsd
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
       end
 
       context 'when a statsd instance is provided' do
-        let(:options) { { statsd: statsd } }
+        let(:options) { {statsd: statsd} }
 
         before do
           described_class.const_get('IGNORED_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests)
@@ -280,7 +280,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
     let(:options) do
       # This test is run with both ~> 4.0 and latest dogstatsd-ruby.
       if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new('5.3.0')
-        { single_thread: true }
+        {single_thread: true}
       else
         {}
       end
@@ -315,14 +315,14 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
     context 'given options including' do
       context ':statsd' do
-        let(:configure_options) { { statsd: custom_statsd } }
+        let(:configure_options) { {statsd: custom_statsd} }
         let(:custom_statsd) { instance_double(Datadog::Statsd) }
 
         it { expect { configure }.to change { metrics.statsd }.from(statsd).to(custom_statsd) }
       end
 
       context ':enabled' do
-        let(:configure_options) { { enabled: enabled } }
+        let(:configure_options) { {enabled: enabled} }
 
         context 'as true' do
           let(:enabled) { true }
@@ -428,7 +428,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         end
 
         context 'that contain :tags' do
-          let(:stat_options) { { tags: tags } }
+          let(:stat_options) { {tags: tags} }
           let(:tags) { %w[foo bar] }
 
           it { expect(statsd).to have_received_count_metric(stat, kind_of(Numeric), stat_options) }
@@ -506,7 +506,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         end
 
         context 'that contain :tags' do
-          let(:stat_options) { { tags: tags } }
+          let(:stat_options) { {tags: tags} }
           let(:tags) { %w[foo bar] }
 
           it { expect(statsd).to have_received_distribution_metric(stat, kind_of(Numeric), stat_options) }
@@ -584,7 +584,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         end
 
         context 'that contain :tags' do
-          let(:stat_options) { { tags: tags } }
+          let(:stat_options) { {tags: tags} }
           let(:tags) { %w[foo bar] }
 
           it { expect(statsd).to have_received_gauge_metric(stat, kind_of(Numeric), stat_options) }
@@ -661,14 +661,14 @@ RSpec.describe Datadog::Core::Metrics::Client do
         end
 
         context 'that contain :by' do
-          let(:stat_options) { { by: count } }
+          let(:stat_options) { {by: count} }
           let(:count) { 1 }
 
           it { expect(statsd).to have_received_increment_metric(stat, stat_options) }
         end
 
         context 'that contain :tags' do
-          let(:stat_options) { { tags: tags } }
+          let(:stat_options) { {tags: tags} }
           let(:tags) { %w[foo bar] }
 
           it { expect(statsd).to have_received_increment_metric(stat, stat_options) }
@@ -743,7 +743,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         end
 
         context 'that contain :tags' do
-          let(:stat_options) { { tags: tags } }
+          let(:stat_options) { {tags: tags} }
           let(:tags) { %w[foo bar] }
 
           it { expect(statsd).to have_received_time_metric(stat, stat_options) }
@@ -781,9 +781,9 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
       let(:dist_name) { 'my-dist' }
       let(:dist_value) { 1 }
-      let(:dist_options) { { dist: true } }
+      let(:dist_options) { {dist: true} }
       let(:inc_name) { 'my-incr' }
-      let(:inc_options) { { incr: true } }
+      let(:inc_options) { {incr: true} }
 
       before do
         allow(metrics).to receive(:distribution)
