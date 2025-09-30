@@ -187,7 +187,7 @@ module Datadog
         rescue => exc
           evaluation_errors << "#{exc.class}: #{exc}"
           '[evaluation error]'
-        end.join('')
+        end.join
         [message, evaluation_errors]
       end
 
