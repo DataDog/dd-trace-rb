@@ -251,7 +251,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         context 'with YJIT enabled and RubyVM::YJIT.stats_enabled? true' do
           before do
             skip('Test only runs on Ruby >= 3.3') if RUBY_VERSION < '3.3.'
-            # TODO: Remove this once Ruby 3.5 is released
+            # TODO: Ruby 3.5 - Remove after investigation.
             skip('ratio_in_yjit metric not available in Ruby 3.5 preview') if RUBY_VERSION.start_with?('3.5')
             unless Datadog::Core::Environment::YJIT.available? && ::RubyVM::YJIT.stats_enabled?
               skip('Test only runs with YJIT enabled and RubyVM::YJIT.stats_enabled? true')
