@@ -3,6 +3,7 @@
 require 'excon'
 
 require_relative '../../event'
+require_relative '../../trace_keeper'
 require_relative '../../security_event'
 
 module Datadog
@@ -23,6 +24,7 @@ module Datadog
 
             if result.match?
               AppSec::Event.tag(context, result)
+              TraceKeeper.keep!(context.trace) if result.keep?
 
               context.events.push(
                 AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
@@ -38,4 +40,3 @@ module Datadog
     end
   end
 end
-# rubocop:enable Naming/FileName

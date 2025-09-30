@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../event'
+require_relative '../../../trace_keeper'
 require_relative '../../../security_event'
 require_relative '../../../instrumentation/gateway'
 
@@ -38,6 +39,8 @@ module Datadog
 
                   if result.match?
                     AppSec::Event.tag(context, result)
+                    TraceKeeper.keep!(context.trace) if result.keep?
+
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
@@ -57,6 +60,7 @@ module Datadog
 
                   if result.match?
                     AppSec::Event.tag(context, result)
+                    TraceKeeper.keep!(context.trace) if result.keep?
 
                     context.events.push(
                       AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
@@ -84,6 +88,8 @@ module Datadog
                     )
 
                     AppSec::Event.tag(context, result)
+                    TraceKeeper.keep!(context.trace) if result.keep?
+
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
