@@ -89,10 +89,9 @@ RSpec.describe Datadog::DI::Probe do
           type_name: "foo", method_name: "bar", file: "baz", line_no: 4)
       end
 
-      it "raises ArgumentError" do
-        expect do
-          probe
-        end.to raise_error(ArgumentError, /both line number and method name/)
+      it "creates a line probe" do
+        expect(probe.line?).to be true
+        expect(probe.method?).to be false
       end
     end
   end
