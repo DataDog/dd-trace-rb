@@ -21,6 +21,7 @@ module Datadog
         # Patcher for AppSec on Rails
         module Patcher
           GUARD_ACTION_CONTROLLER_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
+          GUARD_ROUTES_REPORTING_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
           BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
           AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
 
@@ -130,15 +131,23 @@ module Datadog
               GUARD_ACTION_CONTROLLER_ONCE_PER_APP[self].run do
                 ::ActionController::Base.prepend(Patches::RenderToBodyPatch)
               end
+
+              Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(::Rails.application.routes.routes)
             end
           end
 
           def subscribe_to_routes_loaded
+            ::ActiveSupport.on_load(:after_routes_loaded) do |app|
+              Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(app.routes.routes)
+            end
+          end
+
+          def report_routes_via_telemetry(routes)
             return unless Datadog.configuration.appsec.api_security.endpoint_collection.enabled
 
-            ::ActiveSupport.on_load(:after_routes_loaded) do |app|
+            GUARD_ROUTES_REPORTING_ONCE_PER_APP[self].run do
               AppSec.telemetry.app_endpoints_loaded(
-                APISecurity::EndpointCollection::RailsRoutesSerializer.new(app.routes.routes).to_enum
+                APISecurity::EndpointCollection::RailsRoutesSerializer.new(::Rails.application.routes.routes).to_enum
               )
             end
           end
