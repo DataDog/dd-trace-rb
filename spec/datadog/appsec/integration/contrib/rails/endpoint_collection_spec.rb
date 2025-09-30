@@ -30,15 +30,18 @@ RSpec.describe 'Rails Endpoint Collection' do
       end
     end
 
-    stub_const('RailsTest::Application', app)
+    stub_const('RailsTest::EndpointCollectionApplication', app)
 
     Datadog.configure do |c|
       c.tracing.enabled = true
       c.appsec.enabled = true
+      c.appsec.api_security.endpoint_collection.enabled = true
       c.appsec.instrument :rails
 
       c.remote.enabled = false
     end
+
+    allow(Datadog::AppSec.telemetry).to receive(:app_endpoints_loaded)
 
     app.initialize!
 
@@ -74,14 +77,13 @@ RSpec.describe 'Rails Endpoint Collection' do
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_dirs, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
-    Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, nil)
 
     Rails.app_class = nil
     Rails.cache = nil
   end
 
   it 'reports routes via telemetry' do
-    expect(Datadog::AppSec.telemetry).to receive(:app_endpoints_loaded).with(array_including([
+    expect(Datadog::AppSec.telemetry).to have_received(:app_endpoints_loaded).with(array_including([
       {
         type: 'REST',
         resource_name: 'GET /products',
@@ -132,7 +134,5 @@ RSpec.describe 'Rails Endpoint Collection' do
         path: '/search'
       }
     ]))
-
-    ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
   end
 end
