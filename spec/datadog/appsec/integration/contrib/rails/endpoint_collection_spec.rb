@@ -2,9 +2,10 @@
 
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/spec_helper'
-require 'rack/test'
 
+require 'rack/test'
 require 'action_controller/railtie'
+
 require 'datadog/tracing'
 require 'datadog/appsec'
 
@@ -30,7 +31,7 @@ RSpec.describe 'Rails Endpoint Collection' do
       end
     end
 
-    stub_const('RailsTest::EndpointCollectionApplication', app)
+    stub_const('RailsTest::Application', app)
 
     Datadog.configure do |c|
       c.tracing.enabled = true
@@ -42,8 +43,6 @@ RSpec.describe 'Rails Endpoint Collection' do
     end
 
     allow(Datadog::AppSec.telemetry).to receive(:app_endpoints_loaded)
-
-    app.initialize!
 
     app.routes.draw do
       resources :products
@@ -65,24 +64,11 @@ RSpec.describe 'Rails Endpoint Collection' do
 
     Datadog::AppSec::RateLimiter.reset!
     Datadog::AppSec::APISecurity::Sampler.reset!
-
-    ActiveSupport::Dependencies.clear if Rails.application
-    ActiveSupport::Dependencies.autoload_paths = []
-    ActiveSupport::Dependencies.autoload_once_paths = []
-    ActiveSupport::Dependencies._eager_load_paths = Set.new
-    ActiveSupport::Dependencies._autoloaded_tracked_classes = Set.new
-
-    Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
-    Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)
-    Rails::Railtie::Configuration.class_variable_set(:@@watchable_dirs, nil)
-    Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
-    Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
-
-    Rails.app_class = nil
-    Rails.cache = nil
   end
 
   it 'reports routes via telemetry' do
+    ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
+
     expect(Datadog::AppSec.telemetry).to have_received(:app_endpoints_loaded).with(array_including([
       {
         type: 'REST',
