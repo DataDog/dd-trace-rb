@@ -158,7 +158,8 @@ module Datadog
             end
           end
 
-          serialized = {type: class_name(cls)}
+          # steep assuming invalid types
+          serialized = {}.update(type: class_name(cls))
           case value
           when NilClass
             serialized.update(isNull: true)
