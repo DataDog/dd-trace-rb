@@ -55,7 +55,7 @@ RSpec.describe 'Rails Endpoint Collection' do
 
       root to: 'home#show'
 
-      get '/job-queue', to: 'job_queue#index', constraints: { subdomain: 'tech-stuff' }
+      get '/job-queue', to: 'job_queue#index', constraints: {subdomain: 'tech-stuff'}
 
       namespace :admin do
         get '/stats', to: 'statistics#index'
