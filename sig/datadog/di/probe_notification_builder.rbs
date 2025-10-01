@@ -24,7 +24,7 @@ module Datadog
 
       def format_caller_locations: (Array[untyped] callers) -> Array[Hash[Symbol,untyped]]
 
-      def evaluate_template: (untyped template, EL::Context context) -> String
+      def evaluate_template: (untyped template, EL::Context context) -> [String, Array[String]]
 
       def timestamp_now: () -> Integer
 

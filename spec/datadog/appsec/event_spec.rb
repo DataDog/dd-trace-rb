@@ -86,11 +86,6 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      it 'marks the trace to be kept and sets the sampling priority to ASM' do
-        expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-        expect(trace.sampling_decision_maker).to eq(Datadog::Tracing::Sampling::Ext::Decision::ASM)
-      end
-
       it 'does not set AppSec information on non-top-level spans' do
         other_spans = trace.spans.reject { |span| span == top_level_span }
 
@@ -205,41 +200,82 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      let(:waf_result) do
-        Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [1],
-          actions: {},
-          attributes: {},
-          keep: false,
-          timeout: false,
-          duration_ns: 0,
-          duration_ext_ns: 0,
-          input_truncated: false
-        )
-      end
+      context 'when there are only traces to keep' do
+        let(:waf_result) do
+          Datadog::AppSec::SecurityEngine::Result::Match.new(
+            events: [1],
+            actions: {},
+            attributes: {},
+            keep: true,
+            timeout: false,
+            duration_ns: 0,
+            duration_ext_ns: 0,
+            input_truncated: false
+          )
+        end
 
-      let(:traces) do
-        Array.new(100) do
-          trace_op = Datadog::Tracing::TraceOperation.new
-          trace_op.measure('request') do |span|
-            context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
-            context.events.push(
-              Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
-            )
+        let(:traces) do
+          Array.new(100) do
+            trace_op = Datadog::Tracing::TraceOperation.new
+            trace_op.measure('request') do |span|
+              context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
+              context.events.push(
+                Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+              )
 
-            described_class.record(context, request: rack_request, response: rack_response)
+              described_class.record(context, request: rack_request, response: rack_response)
+            end
+            trace_op.flush!
           end
-          trace_op.flush!
+        end
+
+        it 'performs exactly 50 recordings' do
+          expect(traces.count).to eq(100)
+
+          manually_sampled_traces = traces.select do |trace|
+            trace.sampling_priority == Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          end
+          expect(manually_sampled_traces.count).to eq(50)
         end
       end
 
-      it 'performs exactly 50 recordings' do
-        expect(traces.count).to eq(100)
-
-        sampled_traces = traces.select do |trace|
-          trace.sampling_priority == Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+      context 'when there are only traces with no keep' do
+        let(:waf_result) do
+          Datadog::AppSec::SecurityEngine::Result::Match.new(
+            events: [1],
+            actions: {},
+            attributes: {},
+            keep: false,
+            timeout: false,
+            duration_ns: 0,
+            duration_ext_ns: 0,
+            input_truncated: false
+          )
         end
-        expect(sampled_traces.count).to eq(50)
+
+        let(:traces) do
+          Array.new(100) do
+            trace_op = Datadog::Tracing::TraceOperation.new
+            trace_op.measure('request') do |span|
+              context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
+              context.events.push(
+                Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
+              )
+
+              described_class.record(context, request: rack_request, response: rack_response)
+            end
+            trace_op.flush!
+          end
+        end
+
+        it 'performs exactly 50 recordings' do
+          expect(traces.count).to eq(100)
+
+          manually_sampled_traces = traces.select do |trace|
+            trace.sampling_priority == Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          end
+          expect(manually_sampled_traces.count).to eq(0)
+        end
       end
     end
 
@@ -408,7 +444,7 @@ RSpec.describe Datadog::AppSec::Event do
   end
 
   # NOTE: Next adjustments here require a refactor of the written tests.
-  describe '.tag_and_keep!' do
+  describe '.tag' do
     let(:with_trace) { true }
     let(:with_span) { true }
 
@@ -443,15 +479,13 @@ RSpec.describe Datadog::AppSec::Event do
       # prevent rate limiter to bias tests
       Datadog::AppSec::RateLimiter.reset!
 
-      described_class.tag_and_keep!(context, waf_result)
+      described_class.tag(context, waf_result)
     end
 
     context 'with no actions' do
       it 'does not add appsec.blocked tag to span' do
         expect(context.span.send(:meta)).to_not include('appsec.blocked')
         expect(context.span.send(:meta)['appsec.event']).to eq('true')
-        expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
-        expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
       end
     end
 
@@ -463,8 +497,6 @@ RSpec.describe Datadog::AppSec::Event do
       it 'adds appsec.blocked tag to span' do
         expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
         expect(context.span.send(:meta)['appsec.event']).to eq('true')
-        expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
-        expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
       end
     end
 
@@ -476,16 +508,6 @@ RSpec.describe Datadog::AppSec::Event do
       it 'adds appsec.blocked tag to span' do
         expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
         expect(context.span.send(:meta)['appsec.event']).to eq('true')
-      end
-    end
-
-    context 'without span' do
-      let(:with_span) { false }
-
-      it 'does not add appsec span tags but still add distributed tags' do
-        expect(context.span).to be nil
-        expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
-        expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
       end
     end
 
