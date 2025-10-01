@@ -5,6 +5,8 @@ module Datadog
         def initialize: (?::Integer seed) ?{ () -> untyped } -> untyped
 
         def next: () -> untyped
+
+        def reset!: () -> void
       end
     end
   end

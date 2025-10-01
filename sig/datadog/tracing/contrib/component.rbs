@@ -2,7 +2,13 @@ module Datadog
   module Tracing
     module Contrib
       module Component
-        @registry: Hash[String, Proc]
+        self.@registry: Hash[String, Proc]
+
+        def self.register: (String name) { (Datadog::Core::Configuration::Settings) -> void } -> void
+
+        def self.configure: (Datadog::Core::Configuration::Settings) -> void
+
+        def self.unregister: (String name) -> void
       end
     end
   end

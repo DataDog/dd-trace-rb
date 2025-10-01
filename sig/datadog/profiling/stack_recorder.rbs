@@ -24,6 +24,17 @@ module Datadog
         heap_clean_after_gc_enabled: bool,
       ) -> true
 
+      def self.for_testing: (
+        ?cpu_time_enabled: bool,
+        ?alloc_samples_enabled: bool,
+        ?heap_samples_enabled: bool,
+        ?heap_size_enabled: bool,
+        ?heap_sample_every: Integer,
+        ?timeline_enabled: bool,
+        ?heap_clean_after_gc_enabled: bool,
+        **untyped
+      ) -> Datadog::Profiling::StackRecorder
+
       type serialized_profile_data = [
         ::Time, # Start
         ::Time, # Finish
