@@ -355,4 +355,4 @@ RSpec.describe 'Presto::Client instrumentation' do
   end
 end
 
-  # rubocop:enable Style/GlobalVars
+# rubocop:enable Style/GlobalVars
