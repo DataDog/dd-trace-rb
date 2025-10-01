@@ -1,13 +1,15 @@
+# rubocop:disable all
+
 class InstrumentationIntegrationTestClass
-  def initialize
-    @ivar = 51
-  end
+  # padding
 
   def method_with_no_locals
     42 # line 7
   end
 
-  # padding
+  def initialize
+    @ivar = 51
+  end
 
   def test_method
     a = 21
