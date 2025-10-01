@@ -526,7 +526,8 @@ RSpec.describe 'Instrumentation integration' do
               value = Float($1)
               # Actual execution time will change but it should be under
               # a second and it should be positive.
-              expect(value).to be_within(0.001, 0.9)
+              expect(value).to be > 0
+              expect(value).to be < 1
             end
             expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
             component.probe_notifier_worker.flush
