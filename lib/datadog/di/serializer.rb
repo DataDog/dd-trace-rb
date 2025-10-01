@@ -302,7 +302,7 @@ module Datadog
 
           max = max_capture_collection_size_for_message
           if value.length > max
-            value_ = value[0...max - 1]
+            value_ = value[0...max - 1] || []
             value_ << '...'
             value_ << value[-1]
             value = value_
@@ -317,7 +317,7 @@ module Datadog
           keys = value.keys
           truncated = false
           if value.length > max
-            keys_ = keys[0...max - 1]
+            keys_ = keys[0...max - 1] || []
             keys_ << keys[-1]
             keys = keys_
             truncated = true
@@ -337,7 +337,7 @@ module Datadog
           truncated = false
           max = max_capture_attribute_count_for_message
           if vars.length > max
-            vars_ = vars[0...max - 1]
+            vars_ = vars[0...max - 1] || []
             vars_ << vars[-1]
             truncated = true
             vars = vars_
