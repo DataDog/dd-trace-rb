@@ -1,6 +1,9 @@
 module Datadog
   module DI
     class ProbeNotificationBuilder
+      NANOSECONDS: Integer
+      MILLISECONDS: Integer
+      
       @serializer: Serializer
 
       def initialize: (untyped settings, Serializer serializer) -> void
