@@ -26,11 +26,15 @@ module Datadog
 
         def disable!: () -> void
 
+        def start: (?bool initial_event_is_change) -> void
+
+        def shutdown!: () -> void
+
+        def flush: () -> void
+
         def client_configuration_change!: (Array[[String, Numeric | bool | String]] changes) -> void
 
         def emit_closing!: () -> void
-
-        def stop!: () -> void
 
         def integrations_change!: () -> void
 
