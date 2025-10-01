@@ -10,7 +10,7 @@ module Datadog
   module LibdatadogExtconfHelpers
     # Used to make sure the correct gem version gets loaded, as extconf.rb does not get run with "bundle exec" and thus
     # may see multiple libdatadog versions. See https://github.com/DataDog/dd-trace-rb/pull/2531 for the horror story.
-    LIBDATADOG_VERSION = '~> 18.1.0.1.0'
+    LIBDATADOG_VERSION = '~> 19.1.0.1.0'
 
     # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
     # libdatadog are moved after the extension gets compiled.
@@ -106,7 +106,7 @@ module Datadog
 
     # mkmf sets $PKGCONFIG after the `pkg_config` gets used in extconf.rb. When `pkg_config` is unsuccessful, we use
     # this helper to decide if we can show more specific error message vs a generic "something went wrong".
-    def self.pkg_config_missing?(command: $PKGCONFIG) # standard:disable Style/GlobalVars
+    def self.pkg_config_missing?(command: $PKGCONFIG)
       pkg_config_available = command && xsystem("#{command} --version")
 
       pkg_config_available != true
