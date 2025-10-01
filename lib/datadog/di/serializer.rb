@@ -302,7 +302,7 @@ module Datadog
 
           max = max_capture_collection_size_for_message
           if value.length > max
-            _value = value[0...max-1]
+            _value = value[0...max - 1]
             _value << '...'
             _value << value[-1]
             value = _value
@@ -317,7 +317,7 @@ module Datadog
           keys = value.keys
           truncated = false
           if value.length > max
-            _keys = keys[0...max-1]
+            _keys = keys[0...max - 1]
             _keys << keys[-1]
             keys = _keys
             truncated = true
@@ -326,10 +326,10 @@ module Datadog
             "#{serialize_value_for_message(key, depth - 1)} => #{serialize_value_for_message(value[key], depth - 1)}"
           end
           if truncated
-            serialized[serialized.length] = serialized[serialized.length-1]
-            serialized[serialized.length-2] = '...'
+            serialized[serialized.length] = serialized[serialized.length - 1]
+            serialized[serialized.length - 2] = '...'
           end
-          "{#{serialized.join(', ')}}"
+          "{#{serialized.join(", ")}}"
         else
           return '...' if depth <= 0
 
@@ -337,7 +337,7 @@ module Datadog
           truncated = false
           max = max_capture_attribute_count_for_message
           if vars.length > max
-            _vars = vars[0...max-1]
+            _vars = vars[0...max - 1]
             _vars << vars[-1]
             truncated = true
             vars = _vars
@@ -345,7 +345,7 @@ module Datadog
           serialized = vars.map do |var|
             # +var+ here is always the instance variable name which is a
             # symbol, we do not need to run it through our serializer.
-            "#{var}=#{serialize_value_for_message(value.send(:instance_variable_get, var), depth-1)}"
+            "#{var}=#{serialize_value_for_message(value.send(:instance_variable_get, var), depth - 1)}"
           end
           if truncated
             serialized << serialized.last
@@ -405,11 +405,11 @@ module Datadog
           if max < 5
             value[0...max]
           else
-            upper = length-max/2+1
+            upper = length - max / 2 + 1
             if max % 2 == 0
               upper += 1
             end
-            value[0...max/2-1] + '...' + value[upper...length]
+            value[0...max / 2 - 1] + '...' + value[upper...length]
           end
         else
           value
