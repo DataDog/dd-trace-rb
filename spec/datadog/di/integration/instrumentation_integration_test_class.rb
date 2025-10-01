@@ -11,10 +11,12 @@ class InstrumentationIntegrationTestClass
 
   def test_method
     a = 21
+    password = 'password'
+    redacted = {b: 33, session: 'blah'}
     # The following condition causes instrumentation trace point callback
     # to be invoked multiple times in CircleCI on Ruby 3.0-3.2 and 3.4
     #if true || password || redacted
-    if true # standard:disable Lint/LiteralAsCondition
+    if true
       a * 2 # line 20
     end
   end # line 22
@@ -27,6 +29,7 @@ class InstrumentationIntegrationTestClass
   def test_method_with_block
     array = [1]
     array.each do |value|
+      value
     end # line 33
   end
 
@@ -36,12 +39,14 @@ class InstrumentationIntegrationTestClass
   # padding
 
   def test_method_with_conditional
-    if false # standard:disable Lint/LiteralAsCondition
-      1
+    if false
+      a = 1
     else # line 44
-      2
+      a = 2
     end # line 46
+    a
   end
+
 end # line 50
 
 # padding
