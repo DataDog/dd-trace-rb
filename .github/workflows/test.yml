@@ -96,6 +96,14 @@ jobs:
       version: "2.5"
       alias: ruby-25
 
+  jruby-100:
+    name: "JRuby 10.0"
+    uses: ./.github/workflows/_unit_test.yml
+    with:
+      engine: jruby
+      version: "10.0"
+      alias: jruby-100
+
   jruby-94:
     name: "JRuby 9.4"
     uses: ./.github/workflows/_unit_test.yml
@@ -146,6 +154,7 @@ jobs:
       - ruby-27
       - ruby-26
       - ruby-25
+      - jruby-100
       - jruby-94
       - jruby-93
       - jruby-92
@@ -192,6 +201,7 @@ jobs:
       - ruby-27
       - ruby-26
       - ruby-25
+      - jruby-100
       - jruby-94
       - jruby-93
       - jruby-92
@@ -231,6 +241,7 @@ jobs:
       - ruby-27
       - ruby-26
       - ruby-25
+      - jruby-100
       - jruby-94
       - jruby-93
       - jruby-92
