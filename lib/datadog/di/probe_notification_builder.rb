@@ -106,6 +106,7 @@ module Datadog
         if segments = probe.template_segments
           message, evaluation_errors = evaluate_template(segments, context)
         end
+        duration = context.duration
         {
           service: settings.service,
           "debugger.snapshot": {
@@ -124,7 +125,7 @@ module Datadog
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
-          duration: (duration = context.duration) ? (duration * 10**9).to_i : 0,
+          duration: duration ? (duration * 10**9).to_i : 0,
           host: nil,
           logger: {
             name: probe.file,
@@ -142,7 +143,6 @@ module Datadog
           "dd.span_id": active_span&.id&.to_s,
           ddsource: 'dd_debugger',
           message: message,
-          #duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
         }
       end
