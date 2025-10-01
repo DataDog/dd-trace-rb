@@ -1,6 +1,9 @@
 module Datadog
   module DI
     class Serializer
+      MAX_MESSAGE_COLLECTION_SIZE: Integer
+      MAX_MESSAGE_ATTRIBUTE_COUNT: Integer
+      
       @settings: untyped
 
       @redactor: untyped
