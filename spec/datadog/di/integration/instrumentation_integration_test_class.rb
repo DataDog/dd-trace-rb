@@ -7,9 +7,7 @@ class InstrumentationIntegrationTestClass
     42 # line 7
   end
 
-  def initialize
-    @ivar = 51
-  end
+  # padding
 
   def test_method
     a = 21
@@ -23,10 +21,10 @@ class InstrumentationIntegrationTestClass
     end
   end # line 22
 
-  # padding
-  # padding
-  # padding
-  # padding
+  # Constructor is here to keep existing line number references intact
+  def initialize
+    @ivar = 51
+  end
 
   def test_method_with_block
     array = [1]
