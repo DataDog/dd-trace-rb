@@ -79,9 +79,7 @@ jobs:
             There are **${stats.ignored_files.size}** ignored files in the Steepfile out of ${stats.total_files_size}.
             **${typedFilesPercentage}%** of the codebase is type checked.
             <details><summary>Ignored files</summary>
-              <ul>
-                ${stats.ignored_files.paths.map((path) => `<li>${path}</li>`).join('\n')}
-              </ul>
+              <pre><code>${stats.ignored_files.paths.map((path) => `${path}`).join('\n')}</code></pre>
             </details>
 
             *__Note__: Ignored files are excluded from the next sections.*
@@ -89,37 +87,27 @@ jobs:
             ### \`steep:ignore\` comments
             There are **${stats.steep_ignore_comments.length}** \`steep:ignore\` comments in the codebase.
             <details><summary><code>steep:ignore</code> comments</summary>
-              <ul>
-                ${stats.steep_ignore_comments.map((comment) => `<li>${comment.path}:${comment.line}</li>`).join('\n')}
-              </ul>
+              <pre><code>${stats.steep_ignore_comments.map((comment) => `${comment.path}:${comment.line}`).join('\n')}</code></pre>
             </details>
 
             ### Untyped methods
             There are **${stats.untyped_methods.length}** untyped and **${stats.partially_typed_methods.length}** partially typed methods out of ${totalMethods}.
             **${typedMethodsPercentage}%** of the methods are typed.
             <details><summary>Untyped methods</summary>
-              <ul>
-                ${stats.untyped_methods.map((method) => `<li>${method.path}:${method.line}<ul><li><code>${method.line_content}</code></li></ul></li>`).join('\n')}
-              </ul>
+              <pre><code>${stats.untyped_methods.map((method) => `${method.path}:${method.line}\n└── ${method.line_content}`).join('\n')}</code></pre>
             </details>
             <details><summary>Partially typed methods</summary>
-              <ul>
-                ${stats.partially_typed_methods.map((method) => `<li>${method.path}:${method.line}<ul><li><code>${method.line_content}</code></li></ul></li>`).join('\n')}
-              </ul>
+              <pre><code>${stats.partially_typed_methods.map((method) => `${method.path}:${method.line}\n└── ${method.line_content}`).join('\n')}</code></pre>
             </details>
 
             ### Untyped attributes, constants, globals, instance variables
             There are **${stats.untyped_others.length}** untyped and **${stats.partially_typed_others.length}** partially typed attributes, constants, globals, instance variables out of **${totalOthers}**.
             **${typedOthersPercentage}%** of them are typed.
             <details><summary>Untyped attributes, constants, globals, instance variables</summary>
-              <ul>
-                ${stats.untyped_others.map((other) => `<li>${other.path}:${other.line}<ul><li><code>${other.line_content}</code></li></ul></li>`).join('\n')}
-              </ul>
+              <pre><code>${stats.untyped_others.map((other) => `${other.path}:${other.line}\n└── ${other.line_content}`).join('\n')}</code></pre>
             </details>
             <details><summary>Partially typed attributes, constants, globals, instance variables</summary>
-              <ul>
-                ${stats.partially_typed_others.map((other) => `<li>${other.path}:${other.line}<ul><li><code>${other.line_content}</code></li></ul></li>`).join('\n')}
-              </ul>
+              <pre><code>${stats.partially_typed_others.map((other) => `${other.path}:${other.line}\n└── ${other.line_content}`).join('\n')}</code></pre>
             </details>
             `
 
