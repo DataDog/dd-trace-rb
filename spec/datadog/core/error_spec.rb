@@ -132,7 +132,7 @@ RSpec.describe Datadog::Core::Error do
 
           it 'reports errors only once', if: RUBY_VERSION < '2.6' ||
             PlatformHelpers.truffleruby? || PlatformHelpers.jruby? &&
-            Gem::Version.new(RUBY_ENGINE_VERSION) >= '9.3.7.0' do # rubocop:disable Layout/LineLength
+              Gem::Version.new(RUBY_ENGINE_VERSION) >= '9.3.7.0' do # rubocop:disable Layout/LineLength
             expect(error.type).to eq('RuntimeError')
             expect(error.message).to eq('first error')
 
@@ -143,7 +143,7 @@ RSpec.describe Datadog::Core::Error do
           end
 
           it 'reports errors only once', if: RUBY_VERSION >= '2.6.0' &&
-          PlatformHelpers.mri? do
+            PlatformHelpers.mri? do
             expect(error.type).to eq('ArgumentError')
             expect(error.message).to eq('circular causes')
 
@@ -155,8 +155,8 @@ RSpec.describe Datadog::Core::Error do
           end
 
           it 'reports errors only once', if: RUBY_VERSION >= '2.6.0' &&
-          PlatformHelpers.jruby? &&
-          Gem::Version.new(RUBY_ENGINE_VERSION) < '9.3.7.0' do # rubocop:disable Layout/LineLength
+            PlatformHelpers.jruby? &&
+            Gem::Version.new(RUBY_ENGINE_VERSION) < '9.3.7.0' do # rubocop:disable Layout/LineLength
             expect(error.type).to eq('RuntimeError')
             expect(error.message).to eq('circular causes')
 
