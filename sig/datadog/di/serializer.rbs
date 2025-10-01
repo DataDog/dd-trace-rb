@@ -27,7 +27,12 @@ module Datadog
         (serializer: Serializer, value: untyped, name: Symbol, depth: Integer, ?attribute_count: Integer?) -> untyped } -> void
 
       private
-      def class_name: (untyped cls) -> untyped
+      def max_capture_collection_size_for_message: () -> Integer
+
+      def max_capture_attribute_count_for_message: () -> Integer
+      def class_name: (untyped cls) -> String
+
+      def serialize_string_or_symbol_for_message: (untyped value) -> untyped
     end
   end
 end
