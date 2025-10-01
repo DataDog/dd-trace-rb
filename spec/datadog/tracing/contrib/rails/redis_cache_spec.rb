@@ -68,7 +68,7 @@ MESSAGE
 
   let(:cache) { Rails.cache }
 
-  after { cache && cache.clear }
+  after { cache&.clear }
 
   shared_examples 'reader method' do |method|
     subject(:read) { cache.public_send(method, key) }
@@ -116,7 +116,7 @@ MESSAGE
     end
 
     it do
-      expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
+      expect(read_multi).to eq(multi_keys.zip([51, 52, 53]).to_h)
       cache, *redises = spans
       expect(redises).to have(fetch ? 2 : 1).items # Fetch will have an extra MSET redis span
       redis = (Rails::VERSION::MAJOR < 5) ? redises.first : redises.last

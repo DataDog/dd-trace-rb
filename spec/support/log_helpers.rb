@@ -94,11 +94,11 @@ module LogHelpers
     end
 
     def failure_message
-      "expected Datadog.logger.warn output #{description_of @actual} to #{description}".dup
+      +"expected Datadog.logger.warn output #{description_of @actual} to #{description}"
     end
 
     def failure_message_when_negated
-      "expected Datadog.logger.warn output #{description_of @actual} not to #{description}".dup
+      +"expected Datadog.logger.warn output #{description_of @actual} not to #{description}"
     end
 
     diffable

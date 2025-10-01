@@ -176,7 +176,7 @@ RSpec.shared_context 'benchmark' do
       report.pretty_print
 
       per_gem_report = lambda do |results|
-        Hash[results.map { |x| [x[:data], x[:count]] }.sort_by(&:first)]
+        results.map { |x| [x[:data], x[:count]] }.sort_by(&:first).to_h
       end
 
       result = {
@@ -273,7 +273,7 @@ RSpec.shared_context 'minimal agent' do
       # to read the response in time.
       # We instead delay closing the connection until the next
       # connection request comes in.
-      previous_conn.close if previous_conn
+      previous_conn&.close
       previous_conn = conn
     end
   end

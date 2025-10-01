@@ -105,7 +105,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           tracer.trace('wait_inserts', resource: 'inventory') do |wait_span|
             wait_span.set_tag('worker.count', workers.length)
-            workers && workers.each(&:join)
+            workers&.each(&:join)
           end
 
           tracer.trace('update_log', resource: 'inventory') do
