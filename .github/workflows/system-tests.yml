@@ -84,7 +84,7 @@ jobs:
           - weblogs: rack,rails70
             scenarios: |
               APPSEC_API_SECURITY,
-              APPSEC_API_SECURITY_RC
+              APPSEC_API_SECURITY_RC,
               APPSEC_AUTO_EVENTS_EXTENDED,
               APPSEC_CORRUPTED_RULES,
               APPSEC_CUSTOM_OBFUSCATION,
