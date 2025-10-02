@@ -60,7 +60,7 @@ RSpec.describe 'ClientTracerTest' do
   end
 
   context 'with delayed extensions',
-    skip: Sidekiq::VERSION >= '7' ? 'Delayed extensions were disabled in Sidekiq 5 and removed in Sidekiq 7.' : nil do
+    skip: (Sidekiq::VERSION >= '7') ? 'Delayed extensions were disabled in Sidekiq 5 and removed in Sidekiq 7.' : nil do
       subject(:do_work) { DelayableClass.delay.do_work }
 
       before do
@@ -73,7 +73,8 @@ RSpec.describe 'ClientTracerTest' do
         stub_const(
           'DelayableClass',
           Class.new do
-            def self.do_work; end
+            def self.do_work
+            end
           end
         )
       end

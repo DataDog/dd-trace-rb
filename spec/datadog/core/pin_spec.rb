@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Pin do
 
   describe '.set_on' do
     subject(:set_on) { described_class.set_on(target, **options) }
-    let(:options) { { a_setting: :a_value } }
+    let(:options) { {a_setting: :a_value} }
 
     context 'given an object without a Pin' do
       it { is_expected.to be_a_kind_of(described_class) }
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Core::Pin do
 
     context 'given an object with a Pin' do
       context 'and a setting that does not conflict' do
-        let(:original_options) { { original_setting: :original_value } }
+        let(:original_options) { {original_setting: :original_value} }
 
         before { described_class.set_on(target, **original_options) }
 
@@ -74,7 +74,7 @@ RSpec.describe Datadog::Core::Pin do
       end
 
       context 'and a setting that conflicts' do
-        let(:original_options) { { a_setting: :original_value } }
+        let(:original_options) { {a_setting: :original_value} }
 
         before { described_class.set_on(target, **original_options) }
 
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Core::Pin do
             end
 
             def datadog_pin=(_pin)
-              @custom_attribute = { custom_pin: true }
+              @custom_attribute = {custom_pin: true}
             end
           end
         end
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Core::Pin do
         before { pin.onto(target) }
 
         it 'returns the custom pin' do
-          is_expected.to eq({ custom_pin: true }.merge(options))
+          is_expected.to eq({custom_pin: true}.merge(options))
         end
       end
     end
@@ -194,7 +194,7 @@ RSpec.describe Datadog::Core::Pin do
   describe '#to_s' do
     subject(:string) { pin.to_s }
 
-    let(:options) { { app: 'anapp', app_type: 'db' } }
+    let(:options) { {app: 'anapp', app_type: 'db'} }
 
     it { is_expected.to eq('Pin(app:anapp, app_type:db)') }
   end

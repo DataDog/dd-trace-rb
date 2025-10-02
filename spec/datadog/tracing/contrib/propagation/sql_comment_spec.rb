@@ -96,7 +96,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             Datadog::Tracing::SpanOperation.new(
               'sample_span',
               service: 'db_service',
-              tags: { 'peer.service' => 'db_peer_service' }
+              tags: {'peer.service' => 'db_peer_service'}
             )
           end
 
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               Datadog::Tracing::SpanOperation.new(
                 'sample_span',
                 service: 'db_service',
-                tags: { 'peer.service' => 'api' }
+                tags: {'peer.service' => 'api'}
               )
             end
 
@@ -128,7 +128,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             Datadog::Tracing::SpanOperation.new(
               'sample_span',
               service: 'db_service',
-              tags: { 'db.instance' => 'db_name' }
+              tags: {'db.instance' => 'db_name'}
             )
           end
 
@@ -144,7 +144,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             Datadog::Tracing::SpanOperation.new(
               'sample_span',
               service: 'db_service',
-              tags: { 'peer.hostname' => 'db_host' }
+              tags: {'peer.hostname' => 'db_host'}
             )
           end
 
@@ -170,12 +170,12 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
         it {
           is_expected.to eq(
-            '/*'\
-            "dde='dev',"\
-            "ddps='api',"\
-            "ddpv='1.2',"\
-            "dddbs='db_service',"\
-            "traceparent='#{traceparent}'*/ "\
+            '/*' \
+            "dde='dev'," \
+            "ddps='api'," \
+            "ddpv='1.2'," \
+            "dddbs='db_service'," \
+            "traceparent='#{traceparent}'*/ " \
             "#{sql_statement}"
           )
         }
@@ -185,19 +185,19 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             Datadog::Tracing::SpanOperation.new(
               'sample_span',
               service: 'db_service',
-              tags: { 'peer.service' => 'db_peer_service' }
+              tags: {'peer.service' => 'db_peer_service'}
             )
           end
 
           it {
             is_expected.to eq(
-              '/*'\
-              "dde='dev',"\
-              "ddps='api',"\
-              "ddpv='1.2',"\
-              "ddprs='db_peer_service',"\
-              "dddbs='db_peer_service',"\
-              "traceparent='#{traceparent}'*/ "\
+              '/*' \
+              "dde='dev'," \
+              "ddps='api'," \
+              "ddpv='1.2'," \
+              "ddprs='db_peer_service'," \
+              "dddbs='db_peer_service'," \
+              "traceparent='#{traceparent}'*/ " \
               "#{sql_statement}"
             )
           }

@@ -23,9 +23,9 @@ RSpec.shared_context 'Rails 7 test application' do
       super(*args)
       redis_cache =
         if Gem.loaded_specs['redis-activesupport']
-          [:redis_store, { url: ENV['REDIS_URL'] }]
+          [:redis_store, {url: ENV['REDIS_URL']}]
         else
-          [:redis_cache_store, { url: ENV['REDIS_URL'] }]
+          [:redis_cache_store, {url: ENV['REDIS_URL']}]
         end
       file_cache = [:file_store, '/tmp/datadog-rb/cache/']
 
@@ -91,7 +91,7 @@ RSpec.shared_context 'Rails 7 test application' do
         def initialize(files, dirs = {}, &block)
           dirs = dirs.delete('') if dirs.include?('')
 
-          super(files, dirs, &block)
+          super
         end
       end
 

@@ -35,7 +35,7 @@ RSpec.describe 'AWS instrumentation' do
 
     describe '#get_access_key_info' do
       subject!(:get_access_key_info) { client.get_access_key_info(access_key_id: 'dummy') }
-      let(:responses) { { get_access_key_info: { account: 'test account' } } }
+      let(:responses) { {get_access_key_info: {account: 'test account'}} }
 
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Aws::Ext::ENV_ANALYTICS_ENABLED }
@@ -88,7 +88,7 @@ RSpec.describe 'AWS instrumentation' do
       subject!(:list_buckets) { client.list_buckets }
 
       let(:responses) do
-        { list_buckets: { buckets: [{ name: 'bucket1' }] } }
+        {list_buckets: {buckets: [{name: 'bucket1'}]}}
       end
 
       it_behaves_like 'analytics for integration' do
@@ -163,7 +163,7 @@ RSpec.describe 'AWS instrumentation' do
       subject!(:list_objects) { client.list_objects(bucket: 'bucketname', max_keys: 2) }
 
       let(:responses) do
-        { list_objects: {} }
+        {list_objects: {}}
       end
 
       it_behaves_like 'schema version span'
@@ -208,7 +208,7 @@ RSpec.describe 'AWS instrumentation' do
         # presigned_url returns a string instead of a Seahorse object, so it does not accept
         # object stubbing like other S3 methods. We simply tell it to enable stubbing and it
         # will return a stubbed URL without hitting the remote.
-        let(:responses) { { presigned_url: true } }
+        let(:responses) { {presigned_url: true} }
 
         it 'does not instrument presign as an HTTP request' do
           presign
@@ -237,13 +237,13 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { send_message: {
+        {send_message: {
           md5_of_message_body: 'msg body',
           md5_of_message_attributes: 'msg attributes',
           md5_of_message_system_attributes: 'message system attributes',
           message_id: '123',
           sequence_number: '456'
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -317,10 +317,10 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { send_message_batch: {
+        {send_message_batch: {
           successful: [],
           failed: []
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -368,9 +368,9 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { get_queue_url: {
+        {get_queue_url: {
           queue_url: 'myQueueURL'
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -421,10 +421,10 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { publish: {
+        {publish: {
           message_id: '1234',
           sequence_number: '5678'
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -480,7 +480,7 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { create_topic: {} }
+        {create_topic: {}}
       end
 
       it_behaves_like 'schema version span'
@@ -521,16 +521,16 @@ RSpec.describe 'AWS instrumentation' do
     let(:client) { ::Aws::DynamoDB::Client.new(stub_responses: responses) }
 
     describe '#get_item' do
-      subject!(:get_item) { client.get_item(table_name: 'my-table-name', key: { id: '1234' }) }
+      subject!(:get_item) { client.get_item(table_name: 'my-table-name', key: {id: '1234'}) }
 
       let(:responses) do
-        { get_item: {
+        {get_item: {
           item: {
             'AlbumTitle' => 'Songs About Life',
             'Artist' => 'Acme Band',
             'SongTitle' => 'Happy Day',
           }
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -580,11 +580,11 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { put_record: {
+        {put_record: {
           shard_id: '1234',
           sequence_number: '5678',
           encryption_type: 'NONE'
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -630,7 +630,7 @@ RSpec.describe 'AWS instrumentation' do
         )
       end
       let(:responses) do
-        { describe_stream_consumer: {
+        {describe_stream_consumer: {
           consumer_description: {
             consumer_name: 'John Doe',
             consumer_arn: 'consumerArn',
@@ -638,7 +638,7 @@ RSpec.describe 'AWS instrumentation' do
             consumer_creation_timestamp: Time.new(2023, 3, 31, 12, 30, 0, '-04:00'),
             stream_arn: 'streamArn'
           }
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -682,7 +682,7 @@ RSpec.describe 'AWS instrumentation' do
         )
       end
       let(:responses) do
-        { describe_stream_consumer: {
+        {describe_stream_consumer: {
           consumer_description: {
             consumer_name: 'John Doe',
             consumer_arn: 'consumerArn',
@@ -690,7 +690,7 @@ RSpec.describe 'AWS instrumentation' do
             consumer_creation_timestamp: Time.new(2023, 3, 31, 12, 30, 0, '-04:00'),
             stream_arn: 'streamArn'
           }
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -744,9 +744,9 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { put_rule: {
+        {put_rule: {
           rule_arn: 'my-rule-arn'
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -792,9 +792,9 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { list_targets_by_rule: {
+        {list_targets_by_rule: {
           targets: []
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -844,10 +844,10 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { start_execution: {
+        {start_execution: {
           execution_arn: 'execution-arn',
           start_date: Time.new(2023, 3, 31, 12, 30, 0, '-04:00')
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -896,10 +896,10 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { create_state_machine: {
+        {create_state_machine: {
           state_machine_arn: 'arn',
           creation_date: Time.new(2023, 3, 31, 12, 30, 0, '-04:00')
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -945,7 +945,7 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { describe_state_machine: {
+        {describe_state_machine: {
           state_machine_arn: 'arn:aws:states:us-east-1:123456789012:stateMachine:example-state-machine',
           name: 'example-state-machine',
           status: 'ACTIVE',
@@ -957,7 +957,7 @@ RSpec.describe 'AWS instrumentation' do
           role_arn: 'arn:aws:iam::123456789012:role/StateExecutionRole',
           type: 'STANDARD',
           creation_date: Time.now
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -1003,9 +1003,9 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { update_state_machine: {
+        {update_state_machine: {
           update_date: Time.new(2023, 3, 31, 12, 30, 0, '-04:00')
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -1051,7 +1051,7 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { delete_state_machine: {} }
+        {delete_state_machine: {}}
       end
 
       it_behaves_like 'schema version span'
@@ -1097,7 +1097,7 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { describe_execution: {
+        {describe_execution: {
           execution_arn: 'string',
           state_machine_arn: 'string',
           name: 'string',
@@ -1113,7 +1113,7 @@ RSpec.describe 'AWS instrumentation' do
             included: true | false,
           },
           trace_header: 'string'
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'
@@ -1159,9 +1159,9 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { stop_execution: {
+        {stop_execution: {
           stop_date: Time.new(2023, 3, 31, 12, 30, 0, '-04:00'),
-        } }
+        }}
       end
 
       it_behaves_like 'schema version span'

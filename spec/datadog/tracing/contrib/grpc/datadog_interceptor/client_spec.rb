@@ -13,7 +13,7 @@ require 'datadog'
 RSpec.describe 'tracing on the client connection' do
   subject(:client) { Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new }
 
-  let(:configuration_options) { { service_name: 'rspec' } }
+  let(:configuration_options) { {service_name: 'rspec'} }
   let(:peer) { "#{host}:#{port}" }
   let(:host) { 'host.name' }
   let(:port) { 0 }
@@ -34,10 +34,10 @@ RSpec.describe 'tracing on the client connection' do
   context 'using client-specific configurations' do
     let(:deadline) { Time.utc(2022, 1, 2, 3, 4, 5, 678901) }
     let(:keywords) do
-      { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall', peer: peer, deadline: deadline),
-        method: '/ruby.test.Testing/Basic',
-        metadata: { some: 'datum' } }
+      {request: instance_double(Object),
+       call: instance_double('GRPC::ActiveCall', peer: peer, deadline: deadline),
+       method: '/ruby.test.Testing/Basic',
+       metadata: {some: 'datum'}}
     end
 
     let(:default_client_interceptor) do
@@ -104,7 +104,7 @@ RSpec.describe 'tracing on the client connection' do
 
   shared_examples 'inject distributed tracing metadata' do
     context 'when distributed tracing is disabled' do
-      let(:configuration_options) { { service_name: 'rspec', distributed_tracing: false } }
+      let(:configuration_options) { {service_name: 'rspec', distributed_tracing: false} }
 
       it 'doesn\'t inject the trace headers in gRPC metadata' do
         expect(keywords[:metadata]).to eq(original_metadata)
@@ -112,7 +112,7 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     context 'when distributed tracing is enabled' do
-      let(:configuration_options) { { service_name: 'rspec', distributed_tracing: true } }
+      let(:configuration_options) { {service_name: 'rspec', distributed_tracing: true} }
 
       it 'injects distribution data in gRPC metadata' do
         expect(keywords[:metadata].keys).to include('x-datadog-trace-id', 'x-datadog-parent-id', 'x-datadog-tags')
@@ -122,13 +122,13 @@ RSpec.describe 'tracing on the client connection' do
 
   describe '#request_response' do
     let(:keywords) do
-      { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall', peer: peer),
-        method: '/ruby.test.Testing/Basic',
-        metadata: original_metadata.clone }
+      {request: instance_double(Object),
+       call: instance_double('GRPC::ActiveCall', peer: peer),
+       method: '/ruby.test.Testing/Basic',
+       metadata: original_metadata.clone}
     end
 
-    let(:original_metadata) { { some: 'datum' } }
+    let(:original_metadata) { {some: 'datum'} }
 
     context 'without an error' do
       let(:request_response) do
@@ -180,7 +180,7 @@ RSpec.describe 'tracing on the client connection' do
       end
 
       context 'with an error handler defined in the configuration options' do
-        let(:configuration_options) { { on_error: on_error } }
+        let(:configuration_options) { {on_error: on_error} }
 
         let(:on_error) do
           ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from configuration") }
@@ -193,11 +193,11 @@ RSpec.describe 'tracing on the client connection' do
 
   describe '#client_streamer' do
     let(:keywords) do
-      { call: instance_double('GRPC::ActiveCall', peer: peer),
-        method: '/ruby.test.Testing/Basic',
-        metadata: original_metadata.clone }
+      {call: instance_double('GRPC::ActiveCall', peer: peer),
+       method: '/ruby.test.Testing/Basic',
+       metadata: original_metadata.clone}
     end
-    let(:original_metadata) { { some: 'datum' } }
+    let(:original_metadata) { {some: 'datum'} }
 
     before do
       subject.client_streamer(**keywords) {}
@@ -210,13 +210,13 @@ RSpec.describe 'tracing on the client connection' do
 
   describe '#server_streamer' do
     let(:keywords) do
-      { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall', peer: peer),
-        method: '/ruby.test.Testing/Basic',
-        metadata: original_metadata.clone }
+      {request: instance_double(Object),
+       call: instance_double('GRPC::ActiveCall', peer: peer),
+       method: '/ruby.test.Testing/Basic',
+       metadata: original_metadata.clone}
     end
 
-    let(:original_metadata) { { some: 'datum' } }
+    let(:original_metadata) { {some: 'datum'} }
 
     before do
       subject.server_streamer(**keywords) {}
@@ -229,13 +229,13 @@ RSpec.describe 'tracing on the client connection' do
 
   describe '#bidi_streamer' do
     let(:keywords) do
-      { requests: instance_double(Array),
-        call: instance_double('GRPC::ActiveCall', peer: peer),
-        method: '/ruby.test.Testing/Basic',
-        metadata: original_metadata.clone }
+      {requests: instance_double(Array),
+       call: instance_double('GRPC::ActiveCall', peer: peer),
+       method: '/ruby.test.Testing/Basic',
+       metadata: original_metadata.clone}
     end
 
-    let(:original_metadata) { { some: 'datum' } }
+    let(:original_metadata) { {some: 'datum'} }
 
     before do
       subject.bidi_streamer(**keywords) {}

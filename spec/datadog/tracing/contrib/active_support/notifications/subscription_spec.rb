@@ -11,7 +11,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
     end
 
     let(:span_name) { double('span_name') }
-    let(:options) { { resource: 'dummy_resource' } }
+    let(:options) { {resource: 'dummy_resource'} }
     let(:on_start) { proc { |span_op, name, id, payload| on_start_spy.call(span_op, name, id, payload) } }
     let(:on_finish) { proc { |span_op, name, id, payload| on_finish_spy.call(span_op, name, id, payload) } }
     let(:trace) { proc { |_name, _payload| true } }
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
         let(:id) { double('id') }
 
         let(:span_op) { instance_double(Datadog::Tracing::SpanOperation) }
-        let(:payload) { { datadog_span: span_op } }
+        let(:payload) { {datadog_span: span_op} }
 
         it do
           expect(on_finish_spy).to receive(:call).with(span_op, name, id, payload).ordered
@@ -143,7 +143,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
           shared_examples_for 'an after_trace callback' do
             context 'on #finish' do
               let(:span_op) { instance_double(Datadog::Tracing::SpanOperation) }
-              let(:payload) { { datadog_span: span_op } }
+              let(:payload) { {datadog_span: span_op} }
 
               it do
                 allow(on_finish_spy).to receive(:call)

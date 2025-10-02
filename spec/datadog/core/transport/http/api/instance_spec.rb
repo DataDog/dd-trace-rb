@@ -20,8 +20,8 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Instance do
     end
 
     context 'given headers' do
-      let(:options) { { headers: headers } }
-      let(:headers) { { 'X-Test-Header' => 'true' } }
+      let(:options) { {headers: headers} }
+      let(:headers) { {'X-Test-Header' => 'true'} }
 
       it { expect(instance.headers).to eq(headers) }
     end
@@ -35,10 +35,10 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Instance do
 
     context 'when headers are' do
       context 'set' do
-        let(:options) { { headers: { 'X-Test-Header' => 'true' } } }
+        let(:options) { {headers: {'X-Test-Header' => 'true'}} }
 
         context 'and there are conflicting headers on the request env' do
-          let(:env_headers) { { 'X-Test-Header' => 'false' } }
+          let(:env_headers) { {'X-Test-Header' => 'false'} }
 
           it do
             expect(adapter).to have_received(:call) do |env|
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Instance do
         end
 
         context 'and there are no conflicting headers set on the request env' do
-          let(:env_headers) { { 'X-Other-Test-Header' => 'false' } }
+          let(:env_headers) { {'X-Other-Test-Header' => 'false'} }
 
           it do
             expect(adapter).to have_received(:call) do |env|

@@ -11,14 +11,14 @@ require 'datadog'
 require 'datadog/tracing/contrib/excon/middleware'
 
 RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
-  let(:connection_options) { { mock: true } }
+  let(:connection_options) { {mock: true} }
   let(:connection) do
     Excon.new('http://example.com', connection_options).tap do
-      Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200, headers: response_headers)
-      Excon.stub({ method: :post, path: '/failure' }, body: 'Boom!', status: 500)
-      Excon.stub({ method: :get, path: '/not_found' }, body: 'Not Found.', status: 404)
+      Excon.stub({method: :get, path: '/success'}, body: 'OK', status: 200, headers: response_headers)
+      Excon.stub({method: :post, path: '/failure'}, body: 'Boom!', status: 500)
+      Excon.stub({method: :get, path: '/not_found'}, body: 'Not Found.', status: 404)
       Excon.stub(
-        { method: :get, path: '/timeout' },
+        {method: :get, path: '/timeout'},
         lambda do |_request_params|
           raise Excon::Errors::Timeout, 'READ TIMEOUT'
         end
@@ -124,8 +124,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
 
     context 'when configured with global tag headers' do
       let(:header_span) { request_span }
-      let(:request_headers) { { 'Request-Id' => 'test-request' } }
-      let(:response_headers) { { 'Response-Id' => 'test-response' } }
+      let(:request_headers) { {'Request-Id' => 'test-request'} }
+      let(:response_headers) { {'Response-Id' => 'test-response'} }
 
       include_examples 'with request tracer header tags' do
         let(:request_header_tag) { 'request-id' }
@@ -179,7 +179,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     context 'when given `error_status_codes`' do
-      let(:configuration_options) { { error_status_codes: 500...600 } }
+      let(:configuration_options) { {error_status_codes: 500...600} }
 
       it do
         connection.get(path: '/not_found')
@@ -217,7 +217,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     context 'when given `on_error`' do
-      let(:configuration_options) { { on_error: proc { @error_handler_called = true } } }
+      let(:configuration_options) { {on_error: proc { @error_handler_called = true }} }
 
       it do
         expect { subject }.to raise_error(Excon::Error::Timeout)
@@ -389,11 +389,11 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
 
   context 'service name per request' do
     subject!(:response) do
-      Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200)
+      Excon.stub({method: :get, path: '/success'}, body: 'OK', status: 200)
       connection.get(path: '/success')
     end
 
-    let(:middleware_options) { { service_name: service_name } }
+    let(:middleware_options) { {service_name: service_name} }
 
     context 'with default middleware' do
       include_context 'connection with default middleware'

@@ -42,7 +42,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
       end
 
       context 'with attributes with non-string keys' do
-        let(:attributes) { { 1 => 'val1', sym: 'val2' } }
+        let(:attributes) { {1 => 'val1', :sym => 'val2'} }
 
         it 'converts keys to strings' do
           expect(span_event.attributes).to eq('1' => 'val1', 'sym' => 'val2')
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
 
     context 'given' do
       context ':attributes' do
-        let(:attributes) { { 'tag' => 'value' } }
+        let(:attributes) { {'tag' => 'value'} }
         it { is_expected.to have_attributes(attributes: attributes) }
       end
 
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
     let(:name) { 'Another Event!' }
 
     context 'with required fields' do
-      it { is_expected.to eq({ 'name' => name, 'time_unix_nano' => span_event.time_unix_nano }) }
+      it { is_expected.to eq({'name' => name, 'time_unix_nano' => span_event.time_unix_nano}) }
     end
 
     context 'with timestamp' do
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
     end
 
     context 'when attributes is set' do
-      let(:attributes) { { 'event.name' => 'test_event', 'event.id' => 1, 'nested' => [2, 3] } }
+      let(:attributes) { {'event.name' => 'test_event', 'event.id' => 1, 'nested' => [2, 3]} }
       it { is_expected.to include('attributes' => attributes) }
     end
   end
@@ -87,7 +87,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
     let(:name) { 'Another Event!' }
 
     context 'with required fields' do
-      it { is_expected.to eq({ 'name' => name, 'time_unix_nano' => span_event.time_unix_nano }) }
+      it { is_expected.to eq({'name' => name, 'time_unix_nano' => span_event.time_unix_nano}) }
     end
 
     context 'with timestamp' do
@@ -111,18 +111,18 @@ RSpec.describe Datadog::Tracing::SpanEvent do
 
       it do
         expect(to_native_format['attributes']).to eq(
-          'string' => { type: 0, string_value: 'value' },
-          'bool' => { type: 1, bool_value: true },
-          'int' => { type: 2, int_value: 1 },
-          'float' => { type: 3, double_value: 1.0 },
-          'string_arr' => { type: 4,
-                            array_value: { :values => [{ type: 0, string_value: 'ab' },
-                                                       { type: 0, string_value: 'cd' }] } },
-          'bool_arr' => { type: 4,
-                          array_value: { :values => [{ type: 1, bool_value: true }, { type: 1, bool_value: false }] } },
-          'int_arr' => { type: 4, array_value: { :values => [{ type: 2, int_value: 1 }, { type: 2, int_value: 2 }] } },
-          'float_arr' => { type: 4,
-                           array_value: { :values => [{ type: 3, double_value: 1.0 }, { type: 3, double_value: 2.0 }] } }
+          'string' => {type: 0, string_value: 'value'},
+          'bool' => {type: 1, bool_value: true},
+          'int' => {type: 2, int_value: 1},
+          'float' => {type: 3, double_value: 1.0},
+          'string_arr' => {type: 4,
+                           array_value: {values: [{type: 0, string_value: 'ab'},
+                             {type: 0, string_value: 'cd'}]}},
+          'bool_arr' => {type: 4,
+                         array_value: {values: [{type: 1, bool_value: true}, {type: 1, bool_value: false}]}},
+          'int_arr' => {type: 4, array_value: {values: [{type: 2, int_value: 1}, {type: 2, int_value: 2}]}},
+          'float_arr' => {type: 4,
+                          array_value: {values: [{type: 3, double_value: 1.0}, {type: 3, double_value: 2.0}]}}
         )
       end
     end

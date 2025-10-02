@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
 
   shared_context 'with a custom service name' do
     context 'with a custom service name' do
-      let(:configuration_options) { { service_name: 'runner-name' } }
+      let(:configuration_options) { {service_name: 'runner-name'} }
 
       it 'sets the span service name' do
         expect { run }.to output('OK').to_stdout
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
 
   shared_context 'with source code too long' do
     context 'with source code too long' do
-      let(:source) { '123.to_i;' * 512  } # 4096-long string: 8 characters * 512
+      let(:source) { '123.to_i;' * 512 } # 4096-long string: 8 characters * 512
 
       it 'truncates source tag to 4096 characters, with "..." at the end' do
         run
@@ -145,13 +145,11 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
     end
 
     around do |example|
-      begin
-        stdin = $stdin
-        $stdin = StringIO.new(source)
-        example.run
-      ensure
-        $stdin = stdin
-      end
+      stdin = $stdin
+      $stdin = StringIO.new(source)
+      example.run
+    ensure
+      $stdin = stdin
     end
 
     let(:input) { '-' }

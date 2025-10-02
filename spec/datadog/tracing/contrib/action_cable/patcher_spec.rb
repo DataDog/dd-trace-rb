@@ -46,7 +46,7 @@ RSpec.describe 'ActionCable patcher', execute_in_fork: ::ActionCable.version.seg
 
     let(:server) do
       ActionCable::Server::Base.new.tap do |s|
-        s.config.cable = { adapter: 'inline' }.with_indifferent_access
+        s.config.cable = {adapter: 'inline'}.with_indifferent_access
         s.config.logger = Logger.new($stdout)
       end
     end
@@ -95,11 +95,14 @@ RSpec.describe 'ActionCable patcher', execute_in_fork: ::ActionCable.version.seg
       stub_const(
         'ChatChannel',
         Class.new(ActionCable::Channel::Base) do
-          def subscribed; end
+          def subscribed
+          end
 
-          def unsubscribed; end
+          def unsubscribed
+          end
 
-          def foo(_data); end
+          def foo(_data)
+          end
         end
       )
     end
@@ -160,7 +163,7 @@ RSpec.describe 'ActionCable patcher', execute_in_fork: ::ActionCable.version.seg
     context 'on perform action' do
       subject(:perform) { channel_instance.perform_action(data) }
 
-      let(:data) { { 'action' => 'foo', 'extra' => 'data' } }
+      let(:data) { {'action' => 'foo', 'extra' => 'data'} }
 
       it 'traces perform action event' do
         perform
@@ -209,13 +212,13 @@ RSpec.describe 'ActionCable patcher', execute_in_fork: ::ActionCable.version.seg
     context 'on transmit' do
       subject(:perform) { channel_instance.perform_action(data) }
 
-      let(:data) { { 'action' => 'foo', 'extra' => 'data' } }
+      let(:data) { {'action' => 'foo', 'extra' => 'data'} }
       let(:channel_class) do
         stub_const(
           'ChatChannel',
           Class.new(ActionCable::Channel::Base) do
             def foo(_data)
-              transmit({ mock: 'data' }, via: 'streamed from chat_channel')
+              transmit({mock: 'data'}, via: 'streamed from chat_channel')
             end
           end
         )

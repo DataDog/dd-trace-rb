@@ -40,7 +40,7 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
@@ -66,7 +66,7 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
@@ -89,7 +89,7 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
@@ -153,7 +153,7 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
@@ -194,7 +194,7 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
@@ -239,7 +239,7 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
@@ -257,17 +257,17 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
         expect(span.service).to eq(options[:service_name] || 'redis')
 
         if options[:command_args]
-          expect(span.resource).to eq("SET K #{'x' * 47}...")
+          expect(span.resource).to eq("SET K #{"x" * 47}...")
         else
           expect(span.resource).to eq('SET')
         end
-        expect(span.get_tag('redis.raw_command')).to eq("SET K #{'x' * 47}...")
+        expect(span.get_tag('redis.raw_command')).to eq("SET K #{"x" * 47}...")
       end
 
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
@@ -298,7 +298,7 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
@@ -352,7 +352,7 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
     end
@@ -377,7 +377,7 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
     end
@@ -403,7 +403,7 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  host }
+        let(:peer_service_val) { host }
         let(:peer_service_source) { 'peer.hostname' }
       end
     end

@@ -19,7 +19,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
   describe '.build' do
     subject(:build) { described_class.build(settings, agent_settings, logger: logger, telemetry: telemetry) }
 
-    after { build.shutdown! if build }
+    after { build&.shutdown! }
 
     context 'remote disabled' do
       let(:remote) do

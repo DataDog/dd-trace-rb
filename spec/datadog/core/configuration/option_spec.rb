@@ -509,7 +509,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context 'Nil values' do
           let(:type) { :string }
-          let(:type_options) { { nilable: true } }
+          let(:type_options) { {nilable: true} }
           let(:value) { nil }
 
           it 'does not raise exception' do
@@ -698,14 +698,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
             let(:env_value) { 'key1:value1,key2:value2' }
 
             it 'coerce value' do
-              expect(option.get).to eq({ 'key1' => 'value1', 'key2' => 'value2' })
+              expect(option.get).to eq({'key1' => 'value1', 'key2' => 'value2'})
             end
 
             context 'remove empty values' do
               let(:env_value) { 'key1:value1,key2:value2,,,key3:value3,' }
 
               it 'coerce value' do
-                expect(option.get).to eq({ 'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3' })
+                expect(option.get).to eq({'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3'})
               end
             end
           end
@@ -925,7 +925,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       let(:setter) { proc { |value| value } }
       before do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
-          { local: { id: '12345', config: { 'TEST' => 'test' } } }
+          {local: {id: '12345', config: {'TEST' => 'test'}}}
         )
       end
 
@@ -939,7 +939,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       let(:setter) { proc { |value| value } }
       before do
         allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
-          { fleet: { id: '56789', config: { 'TEST' => 'test' } } }
+          {fleet: {id: '56789', config: {'TEST' => 'test'}}}
         )
       end
 

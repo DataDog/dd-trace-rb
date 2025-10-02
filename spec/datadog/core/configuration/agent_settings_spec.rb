@@ -1,7 +1,6 @@
 require 'datadog/core/configuration/agent_settings'
 
 RSpec.describe Datadog::Core::Configuration::AgentSettings do
-
   describe '#url' do
     context 'when using an unknown adapter' do
       it 'raises an exception' do
@@ -12,4 +11,3 @@ RSpec.describe Datadog::Core::Configuration::AgentSettings do
     end
   end
 end
-

@@ -12,11 +12,11 @@ RSpec.describe 'Redis mini app test' do
     Datadog.configure { |c| c.tracing.instrument :redis }
   end
 
-  let(:redis_options) { { host: host, port: port } }
+  let(:redis_options) { {host: host, port: port} }
   let(:redis) do
     # Redis instance with custom options
     if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0')
-      custom_options = { custom: { datadog: { service_name: 'test-service' } } }
+      custom_options = {custom: {datadog: {service_name: 'test-service'}}}
       Redis.new(redis_options.merge(custom_options).freeze)
     else
       Redis.new(redis_options.freeze).tap do |redis|
@@ -98,13 +98,13 @@ RSpec.describe 'Redis mini app test' do
 
       it_behaves_like 'a peer service span' do
         let(:span) { redis_cmd1_span }
-        let(:peer_service_val) {  ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
+        let(:peer_service_val) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
         let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'a peer service span' do
         let(:span) { redis_cmd2_span }
-        let(:peer_service_val) {  ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
+        let(:peer_service_val) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
         let(:peer_service_source) { 'peer.hostname' }
       end
     end

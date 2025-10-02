@@ -5,7 +5,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
   include_context 'Rails test application'
 
   let(:routes) do
-    { '/logging' => 'logging_test#index' }
+    {'/logging' => 'logging_test#index'}
   end
   # defined in rails support apps
   let(:logs) { log_output.string }
@@ -146,7 +146,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
         require 'lograge'
 
         let(:lograge_options) do
-          { enabled?: true }
+          {enabled?: true}
         end
 
         context 'with lograge enabled' do
@@ -260,7 +260,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
         end
 
         let(:lograge_options) do
-          { enabled?: true }
+          {enabled?: true}
         end
 
         context 'with lograge and tagged logging enabled' do
@@ -498,7 +498,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
         require 'lograge'
 
         let(:lograge_options) do
-          { enabled?: true }
+          {enabled?: true}
         end
 
         context 'with lograge enabled' do

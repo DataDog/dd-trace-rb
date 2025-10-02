@@ -12,7 +12,7 @@ require 'mysql2'
 
 RSpec.describe 'Mysql2::Client patcher' do
   let(:service_name) { 'my-sql' }
-  let(:configuration_options) { { service_name: service_name } }
+  let(:configuration_options) { {service_name: service_name} }
 
   let(:client) do
     Mysql2::Client.new(
@@ -176,7 +176,7 @@ RSpec.describe 'Mysql2::Client patcher' do
         end
 
         context 'when configured with `on_error`' do
-          let(:configuration_options) { { on_error: ->(_span, _error) { false } } }
+          let(:configuration_options) { {on_error: ->(_span, _error) { false }} }
 
           it 'does not mark span with error' do
             expect { query }.to raise_error(Mysql2::Error)

@@ -6,7 +6,7 @@ require 'spec/support/thread_helpers'
 # E.g. it performs a `require 'test_service_pb'`, expecting `gen` to be in the root path.
 gen_dir = File.expand_path('gen', __dir__)
 $LOAD_PATH.unshift(gen_dir)
-require_relative './gen/test_service_services_pb'
+require_relative 'gen/test_service_services_pb'
 
 module GRPCHelper
   def run_request_reply(address = available_endpoint, client = nil)
@@ -48,7 +48,7 @@ module GRPCHelper
     client ||= TestService.rpc_stub_class.new(address, :this_channel_is_insecure)
 
     yield client
-  rescue StandardError => e
+  rescue => e
     Datadog.logger.debug("GRPC call failed: #{e}")
 
     raise

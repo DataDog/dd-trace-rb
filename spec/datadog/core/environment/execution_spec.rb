@@ -31,13 +31,11 @@ RSpec.describe Datadog::Core::Environment::Execution do
       # `Datadog::Core::Environment::Execution.rspec?` because
       # otherwise we'll have no real test for non-RSpec cases.
       around do |example|
-        begin
-          original = $PROGRAM_NAME
-          $PROGRAM_NAME = 'not-rspec'
-          example.run
-        ensure
-          $PROGRAM_NAME = original
-        end
+        original = $PROGRAM_NAME
+        $PROGRAM_NAME = 'not-rspec'
+        example.run
+      ensure
+        $PROGRAM_NAME = original
       end
 
       let!(:repl_script) do
@@ -169,7 +167,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
 
         let(:script) do
-          <<-'RUBY'
+          <<-RUBY
             require 'bundler/inline'
 
             gemfile(true) do

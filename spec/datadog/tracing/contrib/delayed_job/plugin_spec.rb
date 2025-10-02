@@ -13,7 +13,8 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
     stub_const(
       'SampleJob',
       Class.new do
-        def perform; end
+        def perform
+        end
       end
     )
   end
@@ -21,7 +22,8 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
     stub_const(
       'ActiveJobSampleJob',
       Class.new do
-        def perform; end
+        def perform
+        end
 
         def job_data
           {
@@ -93,7 +95,7 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
     end
 
     context 'when job fails' do
-      let(:configuration_options) { { on_error: on_error } }
+      let(:configuration_options) { {on_error: on_error} }
       let(:on_error) { proc { @error_handler_called = true } }
 
       let(:sample_job_object) do
@@ -136,7 +138,7 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
 
       context 'when queue name is set' do
         let(:queue_name) { 'queue_name' }
-        let(:job_params) { { queue: queue_name } }
+        let(:job_params) { {queue: queue_name} }
 
         it 'span tags include queue name' do
           expect(span.get_tag('delayed_job.queue')).to eq(queue_name)
@@ -149,7 +151,7 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
 
       context 'when priority is set' do
         let(:priority) { 12345 }
-        let(:job_params) { { priority: priority } }
+        let(:job_params) { {priority: priority} }
 
         it 'span tags include priority' do
           expect(span.get_tag('delayed_job.priority')).to eq(priority)

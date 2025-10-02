@@ -45,7 +45,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon do
     let(:url_1) { "http://#{host}:#{http_server_port}#{path}?status=200&simulate_timeout=true" }
     let(:url_2) { "http://#{host}:#{http_server_port}#{path}" }
     let(:request_1) { Typhoeus::Request.new(url_1, timeout: 0.001) }
-    let(:request_2) { Typhoeus::Request.new(url_2, method: :post, timeout: timeout, body: { status: 404 }) }
+    let(:request_2) { Typhoeus::Request.new(url_2, method: :post, timeout: timeout, body: {status: 404}) }
 
     subject(:request) do
       hydra = Typhoeus::Hydra.new

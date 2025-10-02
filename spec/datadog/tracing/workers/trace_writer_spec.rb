@@ -12,7 +12,7 @@ require 'datadog/core/transport/http/response'
 require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Tracing::Workers::TraceWriter do
-  subject(:writer) { described_class.new({ agent_settings: test_agent_settings }.update(options)) }
+  subject(:writer) { described_class.new({agent_settings: test_agent_settings}.update(options)) }
 
   let(:options) { {} }
 
@@ -20,15 +20,15 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     let(:transport) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
 
     context 'given :transport' do
-      let(:options) { { transport: transport } }
+      let(:options) { {transport: transport} }
 
       it { expect(writer.transport).to be transport }
     end
 
     context 'given :transport_options' do
-      let(:options) { { transport_options: transport_options } }
+      let(:options) { {transport_options: transport_options} }
 
-      let(:transport_options) { { api_version: 42 } }
+      let(:transport_options) { {api_version: 42} }
 
       before do
         expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
@@ -40,7 +40,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     end
 
     context 'given :agent_settings' do
-      let(:options) { { agent_settings: agent_settings } }
+      let(:options) { {agent_settings: agent_settings} }
       let(:agent_settings) { double('AgentSettings') }
 
       it 'configures a transport with the agent_settings' do
@@ -52,9 +52,9 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
       end
 
       context 'and also :transport_options' do
-        let(:options) { { **super(), transport_options: transport_options } }
+        let(:options) { {**super(), transport_options: transport_options} }
 
-        let(:transport_options) { { api_version: 42 } }
+        let(:transport_options) { {api_version: 42} }
 
         before do
           expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 end
 
 RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
-  subject(:writer) { described_class.new({ agent_settings: test_agent_settings }.update(options)) }
+  subject(:writer) { described_class.new({agent_settings: test_agent_settings}.update(options)) }
 
   let(:options) { {} }
 
@@ -189,7 +189,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
     end
 
     context 'given :enabled' do
-      let(:options) { { enabled: enabled } }
+      let(:options) { {enabled: enabled} }
 
       context 'as false' do
         let(:enabled) { false }
@@ -211,7 +211,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
     end
 
     context 'given :fork_policy' do
-      let(:options) { { fork_policy: fork_policy } }
+      let(:options) { {fork_policy: fork_policy} }
 
       context "as #{Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP}" do
         let(:fork_policy) { Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP }
@@ -233,28 +233,28 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
     end
 
     context 'given :interval' do
-      let(:options) { { interval: interval } }
+      let(:options) { {interval: interval} }
       let(:interval) { double('interval') }
 
       it { expect(writer.loop_base_interval).to be interval }
     end
 
     context 'given :back_off_ratio' do
-      let(:options) { { back_off_ratio: back_off_ratio } }
+      let(:options) { {back_off_ratio: back_off_ratio} }
       let(:back_off_ratio) { double('back_off_ratio') }
 
       it { expect(writer.loop_back_off_ratio).to be back_off_ratio }
     end
 
     context 'given :back_off_max' do
-      let(:options) { { back_off_max: back_off_max } }
+      let(:options) { {back_off_max: back_off_max} }
       let(:back_off_max) { double('back_off_max') }
 
       it { expect(writer.loop_back_off_max).to be back_off_max }
     end
 
     context 'given :buffer_size' do
-      let(:options) { { buffer_size: buffer_size } }
+      let(:options) { {buffer_size: buffer_size} }
       let(:buffer_size) { double('buffer_size') }
       let(:buffer) { instance_double(Datadog::Tracing::TraceBuffer) }
 
@@ -399,7 +399,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
     end
 
     context 'given shutdown_timeout' do
-      let(:options) { { shutdown_timeout: 1000 } }
+      let(:options) { {shutdown_timeout: 1000} }
       include_context 'shuts down the worker'
 
       context 'and the worker has been started' do
@@ -558,7 +558,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
   end
 
   describe 'integration tests' do
-    let(:options) { { transport: transport, fork_policy: fork_policy } }
+    let(:options) { {transport: transport, fork_policy: fork_policy} }
     let(:transport) do
       Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: Datadog.logger) do |t|
         t.adapter :test, output
