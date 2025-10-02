@@ -256,7 +256,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
 
       context ':trace_block' do
-        subject(:options) { { trace_block: trace_block } }
+        subject(:options) { {trace_block: trace_block} }
 
         context 'when true' do
           let(:trace_block) { true }
@@ -811,9 +811,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     it 'does not publish trace_finished when trace is finished' do
-      trace_op.measure('test') {}
+      span.finish
 
-        expect(trace_op.finished?).to be(true)
+      expect(trace_op.finished?).to be(true)
 
       published_traces = []
       trace_op.send(:events).trace_finished.subscribe { |trace| published_traces << trace }
@@ -824,7 +824,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     context 'with unfinished spans' do
-      it 'loses unfinished spans only' do
+      it 'loses only unfinished spans' do
         trace_op.build_span('finished').start.finish
         trace_op.build_span('unfinished').start
 
