@@ -6,6 +6,7 @@ require 'rack/test'
 
 require 'datadog/tracing'
 require 'datadog/appsec'
+require 'datadog/kit/appsec/events'
 
 RSpec.describe 'Rack-request headers collection for identity.set_user' do
   include Rack::Test::Methods
