@@ -7,8 +7,6 @@ module Datadog
 
       @span: Tracing::SpanOperation?
 
-      @is_attack: bool
-
       @has_schema: bool
 
       @has_fingerprint: bool
@@ -25,7 +23,7 @@ module Datadog
 
       def initialize: (SecurityEngine::result waf_result, trace: Tracing::TraceOperation?, span: Tracing::SpanOperation?) -> void
 
-      def attack?: () -> bool
+      def keep?: () -> bool
 
       def schema?: () -> bool
 

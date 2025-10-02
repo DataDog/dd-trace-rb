@@ -1,4 +1,7 @@
 class HookTestClass
+  class TestException < StandardError
+  end
+
   def hook_test_method
     42
   end
@@ -49,6 +52,10 @@ class HookTestClass
 
   def positional_and_squashed(arg, options)
     [arg, options]
+  end
+
+  def exception_method
+    raise TestException, 'Test exception'
   end
 end
 

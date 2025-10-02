@@ -80,10 +80,11 @@ jobs:
       matrix:
         include:
           - weblogs: ""  # All of them
-            scenarios: DEFAULT,EVERYTHING_DISABLED,APPSEC_BLOCKING_FULL_DENYLIST,APPSEC_REQUEST_BLOCKING,APPSEC_BLOCKING,GRAPHQL_APPSEC,PARAMETRIC
+            scenarios: DEFAULT,EVERYTHING_DISABLED,APPSEC_BLOCKING_FULL_DENYLIST,APPSEC_BLOCKING,GRAPHQL_APPSEC,PARAMETRIC
           - weblogs: rack,rails70
             scenarios: |
               APPSEC_API_SECURITY,
+              APPSEC_API_SECURITY_RC,
               APPSEC_AUTO_EVENTS_EXTENDED,
               APPSEC_CORRUPTED_RULES,
               APPSEC_CUSTOM_OBFUSCATION,
@@ -100,7 +101,6 @@ jobs:
               INTEGRATIONS,
               PROFILING,
               REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD,
-              REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE,
               REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES,
               REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE,
               SAMPLING,
@@ -111,7 +111,7 @@ jobs:
               TELEMETRY_METRIC_GENERATION_DISABLED
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@35cec2e0f264b8fde65092f494241ff105f7b3e8  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@7b5c4ac4223c7ee525b163e92cbd1e2ccbf630f4  # Automated: This reference is automatically updated.
     secrets: inherit  # zizmor: ignore[secrets-inherit]
     permissions:
       contents: read
@@ -124,7 +124,7 @@ jobs:
       scenarios: ${{ matrix.scenarios }}
       weblogs: ${{ matrix.weblogs }}
       skip_empty_scenarios: true
-      ref: 35cec2e0f264b8fde65092f494241ff105f7b3e8  # Automated: This reference is automatically updated.
+      ref: 7b5c4ac4223c7ee525b163e92cbd1e2ccbf630f4  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
 

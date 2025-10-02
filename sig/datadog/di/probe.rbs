@@ -2,7 +2,7 @@ module Datadog
   module DI
     class Probe
       KNOWN_TYPES: Array[Symbol]
-      
+
       @id: String
 
       @type: Symbol
@@ -16,14 +16,15 @@ module Datadog
       @method_name: String?
 
       @template: String
+      @template_segments: Array[untyped]
 
       @capture_snapshot: bool
 
       @rate_limiter: Datadog::Core::RateLimiter
-      
+
       @executed_on_line: bool?
 
-      def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?capture_snapshot: bool,
+      def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?template_segments: Array[untyped]?, ?capture_snapshot: bool,
 	?max_capture_depth: Integer, ?max_capture_attribute_count: Integer?, ?rate_limit: Integer) -> void
 
       attr_reader condition: DI::EL::Expression?
@@ -39,12 +40,13 @@ module Datadog
       attr_reader type_name: String?
 
       attr_reader method_name: String?
-      
+
       attr_reader max_capture_depth: Integer?
-      
+
       attr_reader max_capture_attribute_count: Integer?
 
       attr_reader template: String
+      attr_reader template_segments: Array[untyped]
       attr_reader rate_limiter: Datadog::Core::RateLimiter
 
       def capture_snapshot?: () -> bool
@@ -53,10 +55,11 @@ module Datadog
       def line_no!: () -> Integer
       def location: () -> ::String
       def file_matches?: (String path) -> bool
-      
+      def emitting_notified?: () -> bool
+
       def executed_on_line!: -> void
       def executed_on_line?: -> bool
-      
+
       attr_accessor instrumentation_module: Module?
       attr_accessor instrumentation_trace_point: TracePoint?
       attr_accessor instrumented_path: String?

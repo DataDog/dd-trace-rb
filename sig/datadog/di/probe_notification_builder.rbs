@@ -1,6 +1,9 @@
 module Datadog
   module DI
     class ProbeNotificationBuilder
+      NANOSECONDS: Integer
+      MILLISECONDS: Integer
+      
       @serializer: Serializer
 
       def initialize: (untyped settings, Serializer serializer) -> void
@@ -16,15 +19,15 @@ module Datadog
 
       def build_errored: (Probe probe, Exception exception) -> Hash[Symbol,untyped]
 
-      def build_executed: (Probe probe, ?serialized_locals: untyped?, ?rv: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?, ?target_self: untyped?) -> Hash[Symbol,untyped]
+      def build_executed: (EL::Context context) -> Hash[Symbol,untyped]
 
-      def build_snapshot: (Probe probe, ?rv: untyped?, ?path: String?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_locals: untyped?, ?serialized_entry_args: untyped?, ?target_self: untyped?) -> Hash[Symbol,untyped]
+      def build_snapshot: (EL::Context context) -> Hash[Symbol,untyped]
 
       def build_status: (Probe probe, message: untyped, status: untyped) -> Hash[Symbol,untyped]
 
       def format_caller_locations: (Array[untyped] callers) -> Array[Hash[Symbol,untyped]]
 
-      def evaluate_template: (untyped template, **untyped vars) -> String
+      def evaluate_template: (untyped template, EL::Context context) -> [String, Array[String]]
 
       def timestamp_now: () -> Integer
 

@@ -65,7 +65,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
         end
       end
 
-      context "when #{decrement_gem_version('2.2.6')}" do
+      context "when #{decrement_gem_version("2.2.6")}" do
         include_context 'loaded gems', graphql: decrement_gem_version('2.2.6')
         it { is_expected.to be false }
       end

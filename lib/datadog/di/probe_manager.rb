@@ -229,7 +229,8 @@ module Datadog
       # This method is responsible for queueing probe status to be sent to the
       # backend (once per the probe's lifetime) and a snapshot corresponding
       # to the current invocation.
-      def probe_executed_callback(probe:, **opts)
+      def probe_executed_callback(context)
+        probe = context.probe
         logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
         unless probe.emitting_notified?
           payload = probe_notification_builder.build_emitting(probe)
@@ -237,7 +238,7 @@ module Datadog
           probe.emitting_notified = true
         end
 
-        payload = probe_notification_builder.build_executed(probe, **opts)
+        payload = probe_notification_builder.build_executed(context)
         probe_notifier_worker.add_snapshot(payload)
       end
 

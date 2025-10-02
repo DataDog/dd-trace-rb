@@ -6,8 +6,8 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
   describe '#[]' do
     subject do
       described_class.new(
-        source_env: { 'DD_SUPPORTED_ENV_VAR' => 'true' },
-        supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } }
+        source_env: {'DD_SUPPORTED_ENV_VAR' => 'true'},
+        supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}}
       )
     end
 
@@ -18,11 +18,11 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
   describe '#fetch' do
     subject do
-      described_class.new(source_env: source_env, supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } })
+      described_class.new(source_env: source_env, supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}})
     end
 
     context 'with env var set' do
-      let(:source_env) { { 'DD_SUPPORTED_ENV_VAR' => 'true' } }
+      let(:source_env) { {'DD_SUPPORTED_ENV_VAR' => 'true'} }
 
       it 'returns the environment variable value' do
         expect(subject.fetch('DD_SUPPORTED_ENV_VAR')).to eq('true')
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
   describe '#key?' do
     subject do
-      described_class.new(source_env: source_env, supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } })
+      described_class.new(source_env: source_env, supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}})
     end
 
     context 'with env var not set' do
@@ -60,7 +60,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     end
 
     context 'with env var set' do
-      let(:source_env) { { 'DD_SUPPORTED_ENV_VAR' => 'anything' } }
+      let(:source_env) { {'DD_SUPPORTED_ENV_VAR' => 'anything'} }
 
       it 'returns true if the env var is set' do
         expect(subject.key?('DD_SUPPORTED_ENV_VAR')).to be(true)
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when using default source_env' do
       subject do
         described_class.new(
-          supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } }
+          supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}}
         )
       end
 
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
           Datadog::Core::Configuration::ALIAS_TO_CANONICAL.each do |alias_name, canonical_name|
             # cannot set `subject` inside `it` block
             helper = described_class.new(
-              source_env: { alias_name => 'true' }
+              source_env: {alias_name => 'true'}
             )
             expect(helper.get_environment_variable(canonical_name)).to eq('true')
           end
@@ -117,8 +117,8 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when the environment variable is supported' do
       subject do
         described_class.new(
-          source_env: { 'DD_SUPPORTED_ENV_VAR' => 'true' },
-          supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } }
+          source_env: {'DD_SUPPORTED_ENV_VAR' => 'true'},
+          supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}}
         )
       end
 
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {},
-          supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } }
+          supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}}
         )
       end
 
@@ -149,9 +149,9 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when the environment variable has an alias' do
       subject do
         described_class.new(
-          source_env: { 'OTEL_SUPPORTED_ENV_VAR' => 'my-service' },
-          supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
-          aliases: { 'DD_SUPPORTED_ENV_VAR' => ['OTEL_SUPPORTED_ENV_VAR'] }
+          source_env: {'OTEL_SUPPORTED_ENV_VAR' => 'my-service'},
+          supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}},
+          aliases: {'DD_SUPPORTED_ENV_VAR' => ['OTEL_SUPPORTED_ENV_VAR']}
         )
       end
 
@@ -162,9 +162,9 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       context 'when both main and alias are set' do
         subject do
           described_class.new(
-            source_env: { 'DD_SUPPORTED_ENV_VAR' => 'main-service', 'OTEL_SUPPORTED_ENV_VAR' => 'alias-service' },
-            supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
-            aliases: { 'DD_SUPPORTED_ENV_VAR' => ['OTEL_SUPPORTED_ENV_VAR'] }
+            source_env: {'DD_SUPPORTED_ENV_VAR' => 'main-service', 'OTEL_SUPPORTED_ENV_VAR' => 'alias-service'},
+            supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}},
+            aliases: {'DD_SUPPORTED_ENV_VAR' => ['OTEL_SUPPORTED_ENV_VAR']}
           )
         end
 
@@ -181,7 +181,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
       subject do
         described_class.new(
-          source_env: { 'DD_UNSUPPORTED_VAR' => 'value' },
+          source_env: {'DD_UNSUPPORTED_VAR' => 'value'},
           supported_configurations: {}
         )
       end
@@ -196,7 +196,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       context 'when not in test environment (default)' do
         subject do
           described_class.new(
-            source_env: { 'DD_UNSUPPORTED_VAR' => 'value' },
+            source_env: {'DD_UNSUPPORTED_VAR' => 'value'},
             supported_configurations: {}
           )
         end
@@ -209,7 +209,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       context 'when in test environment' do
         subject do
           described_class.new(
-            source_env: { 'DD_UNSUPPORTED_VAR' => 'value' },
+            source_env: {'DD_UNSUPPORTED_VAR' => 'value'},
             supported_configurations: {},
             raise_on_unknown_env_var: true
           )
@@ -225,10 +225,10 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       context 'when not in test environment (default)' do
         subject do
           described_class.new(
-            source_env: { 'SUPPORTED_ENV_VAR' => 'true' },
-            supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
-            aliases: { 'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR'] },
-            alias_to_canonical: { 'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR' },
+            source_env: {'SUPPORTED_ENV_VAR' => 'true'},
+            supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}},
+            aliases: {'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR']},
+            alias_to_canonical: {'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR'},
           )
         end
 
@@ -240,10 +240,10 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       context 'when in test environment' do
         subject do
           described_class.new(
-            source_env: { 'SUPPORTED_ENV_VAR' => 'true' },
-            supported_configurations: { 'DD_SUPPORTED_ENV_VAR' => { version: ['A'] } },
-            aliases: { 'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR'] },
-            alias_to_canonical: { 'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR' },
+            source_env: {'SUPPORTED_ENV_VAR' => 'true'},
+            supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}},
+            aliases: {'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR']},
+            alias_to_canonical: {'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR'},
             raise_on_unknown_env_var: true
           )
         end
@@ -257,7 +257,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when environment variable does not start with DD_ or OTEL_' do
       subject do
         described_class.new(
-          source_env: { 'SOME_OTHER_VAR' => 'value' },
+          source_env: {'SOME_OTHER_VAR' => 'value'},
           supported_configurations: {},
         )
       end

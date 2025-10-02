@@ -57,8 +57,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
     let(:path) { '/sample/path' }
     let(:port) { http_server_port }
     let(:url) { "http://#{host}:#{http_server_port}#{path}" }
-    let(:body) { { 'message' => message, 'code' => code } }
-    let(:headers) { { accept: 'application/json' } }
+    let(:body) { {'message' => message, 'code' => code} }
+    let(:headers) { {accept: 'application/json'} }
     let(:client) { HTTPClient.new }
     let(:response) { client.request(:post, url, body: body.to_json, header: headers) }
 
@@ -133,7 +133,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           end
 
           context 'when configured with global tag headers' do
-            let(:headers) { { 'Request-Id' => 'test-request', 'Response-Id' => 'test-response' } }
+            let(:headers) { {'Request-Id' => 'test-request', 'Response-Id' => 'test-response'} }
 
             include_examples 'with request tracer header tags' do
               let(:request_header_tag) { 'request-id' }

@@ -5,7 +5,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
   include_context 'Rails test application'
 
   let(:routes) do
-    { '/logging' => 'logging_test#index' }
+    {'/logging' => 'logging_test#index'}
   end
 
   let(:controllers) do
@@ -126,7 +126,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
         end
 
         context 'with semantic logger setup and existing log_tags' do
-          let(:log_tags) { { some_tag: 'some_value' } }
+          let(:log_tags) { {some_tag: 'some_value'} }
 
           it 'injects trace correlation context into logs and preserve existing log tags' do
             is_expected.to be_ok
@@ -220,7 +220,7 @@ RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >
         end
 
         context 'with semantic logger setup and existing log_tags' do
-          let(:log_tags) { { some_tag: 'some_value' } }
+          let(:log_tags) { {some_tag: 'some_value'} }
 
           it 'does not inject trace correlation context and preserve existing log tags' do
             is_expected.to be_ok

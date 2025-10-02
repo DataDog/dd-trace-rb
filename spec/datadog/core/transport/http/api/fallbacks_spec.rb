@@ -17,7 +17,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Fallbacks do
     describe '#with_fallbacks' do
       subject(:with_fallbacks) { test_object.with_fallbacks(fallbacks) }
 
-      let(:existing_fallbacks) { { V2: :V1 } }
+      let(:existing_fallbacks) { {V2: :V1} }
 
       before do
         allow(test_object).to receive(:fallbacks).and_return(existing_fallbacks)
@@ -25,7 +25,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Fallbacks do
 
       context 'when the fallbacks' do
         context 'overlap with existing fallbacks' do
-          let(:fallbacks) { { V2: :V0 } }
+          let(:fallbacks) { {V2: :V0} }
 
           it do
             is_expected.to be test_object
@@ -34,7 +34,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Fallbacks do
         end
 
         context 'do not intersect with existing fallbacks' do
-          let(:fallbacks) { { V3: :V2 } }
+          let(:fallbacks) { {V3: :V2} }
 
           it do
             is_expected.to be test_object
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Fallbacks do
     describe '#add_fallbacks!' do
       subject(:add_fallbacks!) { test_object.add_fallbacks!(fallbacks) }
 
-      let(:existing_fallbacks) { { V2: :V1 } }
+      let(:existing_fallbacks) { {V2: :V1} }
 
       before do
         allow(test_object).to receive(:fallbacks).and_return(existing_fallbacks)
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Fallbacks do
 
       context 'when the fallbacks' do
         context 'overlap with existing fallbacks' do
-          let(:fallbacks) { { V2: :V0 } }
+          let(:fallbacks) { {V2: :V0} }
 
           it do
             is_expected.to be test_object.fallbacks
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Fallbacks do
         end
 
         context 'do not intersect with existing fallbacks' do
-          let(:fallbacks) { { V3: :V2 } }
+          let(:fallbacks) { {V3: :V2} }
 
           it do
             is_expected.to be test_object.fallbacks

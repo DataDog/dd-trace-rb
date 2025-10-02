@@ -7,7 +7,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket do
 
   let(:uds_path) { double('uds_path') }
   let(:timeout) { double('timeout') }
-  let(:options) { { timeout: timeout } }
+  let(:options) { {timeout: timeout} }
 
   shared_context 'HTTP connection stub' do
     let(:http_connection) { instance_double(described_class::HTTP) }
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket do
     end
 
     context 'given a timeout option' do
-      let(:options) { { timeout: timeout } }
+      let(:options) { {timeout: timeout} }
       let(:timeout) { double('timeout') }
 
       it { is_expected.to have_attributes(timeout: timeout) }
@@ -83,14 +83,14 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket::HTTP do
     end
 
     context 'given a read timeout option' do
-      let(:options) { { read_timeout: read_timeout } }
+      let(:options) { {read_timeout: read_timeout} }
       let(:read_timeout) { double('read_timeout') }
 
       it { is_expected.to have_attributes(read_timeout: read_timeout) }
     end
 
     context 'given a continue timeout option' do
-      let(:options) { { continue_timeout: continue_timeout } }
+      let(:options) { {continue_timeout: continue_timeout} }
       let(:continue_timeout) { double('continue_timeout') }
 
       it { is_expected.to have_attributes(continue_timeout: continue_timeout) }

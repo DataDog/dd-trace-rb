@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Contrib::Registerable do
 
         context 'when a registry' do
           context 'is provided' do
-            let(:options) { { registry: registry } }
+            let(:options) { {registry: registry} }
             let(:registry) { instance_double(Datadog::Tracing::Contrib::Registry) }
 
             it do
@@ -40,7 +40,7 @@ RSpec.describe Datadog::Tracing::Contrib::Registerable do
 
         context 'when auto_patch' do
           context 'is provided' do
-            let(:options) { { auto_patch: true } }
+            let(:options) { {auto_patch: true} }
 
             it do
               expect(Datadog.registry).to receive(:add)

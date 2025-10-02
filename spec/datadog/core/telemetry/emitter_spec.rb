@@ -37,7 +37,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
     subject(:request) { emitter.request(event) }
     let(:event) { double('event', type: request_type, payload: payload) }
     let(:request_type) { double('request_type') }
-    let(:payload) { { foo: 'bar' } }
+    let(:payload) { {foo: 'bar'} }
 
     context 'when event' do
       context 'is invalid' do
@@ -102,14 +102,14 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
       let(:event) { double('event', type: request_type) }
       let(:request_type) { double('request_type') }
 
-      let(:payload) { { foo: 'bar' } }
+      let(:payload) { {foo: 'bar'} }
 
       it 'creates a telemetry event with data' do
         allow(Datadog::Core::Telemetry::Request).to receive(:build_payload).with(event, 1, debug: false).and_return(payload)
 
         request
 
-        expect(transport).to have_received(:send_telemetry).with(request_type: request_type, payload: { foo: 'bar' })
+        expect(transport).to have_received(:send_telemetry).with(request_type: request_type, payload: {foo: 'bar'})
       end
     end
   end

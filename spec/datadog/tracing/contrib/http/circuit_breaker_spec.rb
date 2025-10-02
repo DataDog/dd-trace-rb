@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
       context "when the #{Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION} header" do
         context 'is present' do
           let(:request) { ::Net::HTTP::Post.new('/some/path', headers) }
-          let(:headers) { { Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::VERSION::STRING } }
+          let(:headers) { {Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::VERSION::STRING} }
 
           it { is_expected.to be true }
         end
@@ -78,7 +78,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
       context 'with the DD-Internal-Untraced-Request header' do
         context 'is present' do
           let(:request) { ::Net::HTTP::Post.new('/some/path', headers) }
-          let(:headers) { { 'DD-Internal-Untraced-Request' => 'anything' } }
+          let(:headers) { {'DD-Internal-Untraced-Request' => 'anything'} }
 
           it { is_expected.to be true }
         end

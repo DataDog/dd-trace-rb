@@ -26,7 +26,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
 
   let(:metric_name) { 'metric_name' }
   let(:value) { 5 }
-  let(:tags) { { tag1: 'val1', tag2: 'val2' } }
+  let(:tags) { {tag1: 'val1', tag2: 'val2'} }
   let(:common) { true }
 
   describe '#inc' do
@@ -54,7 +54,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
         inc
 
         expect do
-          collection.inc(metric_name, value, tags: { tag1: 'val1', tag2: 'val3' }, common: common)
+          collection.inc(metric_name, value, tags: {tag1: 'val1', tag2: 'val3'}, common: common)
         end.to change { metrics.size }.by(1)
       end
     end
@@ -99,7 +99,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
         dec
 
         expect do
-          collection.dec(metric_name, value, tags: { tag1: 'val1', tag2: 'val3' }, common: common)
+          collection.dec(metric_name, value, tags: {tag1: 'val1', tag2: 'val3'}, common: common)
         end.to change { metrics.size }.by(1)
       end
     end
@@ -144,7 +144,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
         gauge
 
         expect do
-          collection.gauge(metric_name, value, tags: { tag1: 'val1', tag2: 'val3' }, common: common)
+          collection.gauge(metric_name, value, tags: {tag1: 'val1', tag2: 'val3'}, common: common)
         end.to change { metrics.size }.by(1)
       end
     end
@@ -175,7 +175,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
         rate
 
         expect do
-          collection.rate(metric_name, value, tags: { tag1: 'val1', tag2: 'val3' }, common: common)
+          collection.rate(metric_name, value, tags: {tag1: 'val1', tag2: 'val3'}, common: common)
         end.to change { metrics.size }.by(1)
       end
     end
@@ -220,7 +220,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
         distribution
 
         expect do
-          collection.distribution(metric_name, value, tags: { tag1: 'val1', tag2: 'val3' }, common: common)
+          collection.distribution(metric_name, value, tags: {tag1: 'val1', tag2: 'val3'}, common: common)
         end.to change { distributions.size }.by(1)
       end
     end
@@ -242,8 +242,8 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
 
   describe '#flush!' do
     it 'flushes metrics' do
-      collection.inc('metric_name', 5, tags: { tag1: 'val1', tag2: 'val2' }, common: true)
-      collection.inc('metric_name', 5, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
+      collection.inc('metric_name', 5, tags: {tag1: 'val1', tag2: 'val2'}, common: true)
+      collection.inc('metric_name', 5, tags: {tag1: 'val1', tag2: 'val3'}, common: true)
 
       events = collection.flush!
       expect(events).to have(1).item
@@ -262,10 +262,10 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
     end
 
     it 'flushes distributions' do
-      collection.distribution('metric_name', 5, tags: { tag1: 'val1', tag2: 'val2' }, common: true)
-      collection.distribution('metric_name', 6, tags: { tag1: 'val1', tag2: 'val2' }, common: true)
-      collection.distribution('metric_name', 5, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
-      collection.distribution('metric_name', 7, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
+      collection.distribution('metric_name', 5, tags: {tag1: 'val1', tag2: 'val2'}, common: true)
+      collection.distribution('metric_name', 6, tags: {tag1: 'val1', tag2: 'val2'}, common: true)
+      collection.distribution('metric_name', 5, tags: {tag1: 'val1', tag2: 'val3'}, common: true)
+      collection.distribution('metric_name', 7, tags: {tag1: 'val1', tag2: 'val3'}, common: true)
 
       events = collection.flush!
       expect(events).to have(1).item
@@ -293,13 +293,13 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
 
       threads = Array.new(threads_count) do |i|
         Thread.new do
-          collection.inc("metric_name_#{i}", 5, tags: { tag1: 'val1', tag2: 'val2' }, common: true)
+          collection.inc("metric_name_#{i}", 5, tags: {tag1: 'val1', tag2: 'val2'}, common: true)
 
           events = collection.flush!
 
-          collection.inc("metric_name_#{i}", 5, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
-          collection.distribution("metric_name_#{i}", 5, tags: { tag1: 'val1', tag2: 'val2' }, common: true)
-          collection.distribution("metric_name_#{i}", 5, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
+          collection.inc("metric_name_#{i}", 5, tags: {tag1: 'val1', tag2: 'val3'}, common: true)
+          collection.distribution("metric_name_#{i}", 5, tags: {tag1: 'val1', tag2: 'val2'}, common: true)
+          collection.distribution("metric_name_#{i}", 5, tags: {tag1: 'val1', tag2: 'val3'}, common: true)
 
           events += collection.flush!
 

@@ -13,6 +13,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   di_test
 
   let(:observed_calls) { [] }
+  let(:propagate_all_exceptions) { true }
 
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
@@ -22,7 +23,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
     allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
+    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(propagate_all_exceptions)
   end
 
   let(:redactor) do
@@ -58,10 +59,6 @@ RSpec.describe Datadog::DI::Instrumenter do
     Datadog::DI::Probe.new(**base_probe_args.merge(probe_args))
   end
 
-  let(:call_keys) do
-    %i[caller_locations duration probe rv serialized_entry_args target_self]
-  end
-
   shared_context 'with code tracking' do
     let!(:code_tracker) do
       Datadog::DI::CodeTracker.new.tap do |tracker|
@@ -92,9 +89,9 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(HookTestClass.new.hook_test_method).to eq 42
 
         expect(observed_calls.length).to eq 1
-        expect(observed_calls.first.keys.sort).to eq call_keys
-        expect(observed_calls.first[:rv]).to eq 42
-        expect(observed_calls.first[:duration]).to be_a(Float)
+        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first.return_value).to eq 42
+        expect(observed_calls.first.duration).to be_a(Float)
       end
     end
 
@@ -118,9 +115,9 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(yielded_value).to eq([['hello'], {}])
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first.keys.sort).to eq call_keys
-            expect(observed_calls.first[:rv]).to eq [['hello'], {}]
-            expect(observed_calls.first[:duration]).to be_a(Float)
+            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first.return_value).to eq [['hello'], {}]
+            expect(observed_calls.first.duration).to be_a(Float)
           end
 
           context 'when rate limited' do
@@ -165,9 +162,9 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(yielded_value).to eq(expected_rv)
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first.keys.sort).to eq call_keys
-            expect(observed_calls.first[:rv]).to eq expected_rv
-            expect(observed_calls.first[:duration]).to be_a(Float)
+            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first.return_value).to eq expected_rv
+            expect(observed_calls.first.duration).to be_a(Float)
           end
 
           context 'when rate limited' do
@@ -208,9 +205,9 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(yielded_value).to eq([['hello'], {kw: 'world'}])
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first.keys.sort).to eq call_keys
-            expect(observed_calls.first[:rv]).to eq [['hello'], {kw: 'world'}]
-            expect(observed_calls.first[:duration]).to be_a(Float)
+            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first.return_value).to eq [['hello'], {kw: 'world'}]
+            expect(observed_calls.first.duration).to be_a(Float)
           end
 
           context 'when rate limited' do
@@ -251,9 +248,9 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(yielded_value).to eq([['hello'], {kw: 'world'}])
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first.keys.sort).to eq call_keys
-            expect(observed_calls.first[:rv]).to eq [['hello'], {kw: 'world'}]
-            expect(observed_calls.first[:duration]).to be_a(Float)
+            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first.return_value).to eq [['hello'], {kw: 'world'}]
+            expect(observed_calls.first.duration).to be_a(Float)
           end
 
           context 'when rate limited' do
@@ -320,11 +317,11 @@ RSpec.describe Datadog::DI::Instrumenter do
         target_call
 
         expect(observed_calls.length).to eq 1
-        expect(observed_calls.first.keys.sort).to eq call_keys
-        expect(observed_calls.first[:rv]).to eq 42
-        expect(observed_calls.first[:duration]).to be_a(Float)
+        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first.return_value).to eq 42
+        expect(observed_calls.first.duration).to be_a(Float)
 
-        expect(observed_calls.first[:serialized_entry_args]).to eq(
+        expect(observed_calls.first.serialized_entry_args).to eq(
           self: {
             type: 'HookIvarTestClass',
             fields: {
@@ -349,10 +346,10 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
 
           expect(observed_calls.length).to eq 1
-          expect(observed_calls.first.keys.sort).to eq call_keys
-          expect(observed_calls.first[:rv]).to eq 2
-          expect(observed_calls.first[:duration]).to be_a(Float)
-          # expect(observed_calls.first[:serialized_entry_args]).to eq(arg1: 2)
+          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls.first.return_value).to eq 2
+          expect(observed_calls.first.duration).to be_a(Float)
+          # expect(observed_calls.first.serialized_entry_args).to eq(arg1: 2)
         end
       end
 
@@ -375,11 +372,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first.keys.sort).to eq call_keys
-            expect(observed_calls.first[:rv]).to eq 2
-            expect(observed_calls.first[:duration]).to be_a(Float)
+            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first.return_value).to eq 2
+            expect(observed_calls.first.duration).to be_a(Float)
 
-            expect(observed_calls.first[:serialized_entry_args]).to eq(
+            expect(observed_calls.first.serialized_entry_args).to eq(
               arg1: {type: 'Integer', value: '2'},
               self: {type: 'HookTestClass', fields: {}},
             )
@@ -403,11 +400,11 @@ RSpec.describe Datadog::DI::Instrumenter do
               target_call
 
               expect(observed_calls.length).to eq 1
-              expect(observed_calls.first.keys.sort).to eq call_keys
-              expect(observed_calls.first[:rv]).to eq 2
-              expect(observed_calls.first[:duration]).to be_a(Float)
+              expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+              expect(observed_calls.first.return_value).to eq 2
+              expect(observed_calls.first.duration).to be_a(Float)
 
-              expect(observed_calls.first[:serialized_entry_args]).to eq(
+              expect(observed_calls.first.serialized_entry_args).to eq(
                 arg1: {type: 'Integer', value: '2'},
                 self: {
                   type: 'HookIvarTestClass',
@@ -465,11 +462,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first.keys.sort).to eq call_keys
-            expect(observed_calls.first[:rv]).to eq 42
-            expect(observed_calls.first[:duration]).to be_a(Float)
+            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first.return_value).to eq 42
+            expect(observed_calls.first.duration).to be_a(Float)
 
-            expect(observed_calls.first[:serialized_entry_args]).to eq(
+            expect(observed_calls.first.serialized_entry_args).to eq(
               kwarg: {type: 'Integer', value: '42'},
               self: {type: 'HookTestClass', fields: {}},
             )
@@ -517,11 +514,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first.keys.sort).to eq call_keys
-            expect(observed_calls.first[:rv]).to eq 42
-            expect(observed_calls.first[:duration]).to be_a(Float)
+            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first.return_value).to eq 42
+            expect(observed_calls.first.duration).to be_a(Float)
 
-            expect(observed_calls.first[:serialized_entry_args]).to eq(
+            expect(observed_calls.first.serialized_entry_args).to eq(
               kwarg: {type: 'Integer', value: '42'},
               self: {
                 type: 'HookIvarTestClass',
@@ -555,11 +552,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first.keys.sort).to eq call_keys
-            expect(observed_calls.first[:rv]).to eq [41, 42]
-            expect(observed_calls.first[:duration]).to be_a(Float)
+            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first.return_value).to eq [41, 42]
+            expect(observed_calls.first.duration).to be_a(Float)
 
-            expect(observed_calls.first[:serialized_entry_args]).to eq(
+            expect(observed_calls.first.serialized_entry_args).to eq(
               # TODO actual argument name not captured yet,
               # requires method call trace point.
               arg1: {type: 'Integer', value: '41'},
@@ -607,11 +604,11 @@ RSpec.describe Datadog::DI::Instrumenter do
           target_call
 
           expect(observed_calls.length).to eq 1
-          expect(observed_calls.first.keys.sort).to eq call_keys
-          expect(observed_calls.first[:rv]).to eq(kwarg: 42)
-          expect(observed_calls.first[:duration]).to be_a(Float)
+          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls.first.return_value).to eq(kwarg: 42)
+          expect(observed_calls.first.duration).to be_a(Float)
 
-          expect(observed_calls.first[:serialized_entry_args]).to eq(
+          expect(observed_calls.first.serialized_entry_args).to eq(
             kwarg: {type: 'Integer', value: '42'},
             self: {type: 'HookTestClass', fields: {}},
           )
@@ -662,11 +659,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first.keys.sort).to eq call_keys
-            expect(observed_calls.first[:rv]).to eq(['hello', {kwarg: 42}])
-            expect(observed_calls.first[:duration]).to be_a(Float)
+            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first.return_value).to eq(['hello', {kwarg: 42}])
+            expect(observed_calls.first.duration).to be_a(Float)
 
-            expect(observed_calls.first[:serialized_entry_args]).to eq(
+            expect(observed_calls.first.serialized_entry_args).to eq(
               arg1: {type: 'String', value: 'hello'},
               kwarg: {type: 'Integer', value: '42'},
               self: {type: 'HookTestClass', fields: {}},
@@ -710,6 +707,28 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'when target method raises an exception' do
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'exception_method'}
+      end
+
+      it 'invokes callback' do
+        instrumenter.hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        expect do
+          HookTestClass.new.exception_method
+        end.to raise_error(HookTestClass::TestException)
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first.return_value).to be nil
+        expect(observed_calls.first.exception).to be_a(HookTestClass::TestException)
+        expect(observed_calls.first.duration).to be_a(Float)
+      end
+    end
+
     context 'when hooking two identical but different probes' do
       include_context 'with code tracking'
 
@@ -746,12 +765,12 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(HookTestClass.new.hook_test_method).to eq 42
 
         expect(observed_calls.length).to eq 2
-        expect(observed_calls.first.keys.sort).to eq call_keys
-        expect(observed_calls.first[:rv]).to eq 42
-        expect(observed_calls.first[:duration]).to be_a(Float)
+        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first.return_value).to eq 42
+        expect(observed_calls.first.duration).to be_a(Float)
 
-        expect(observed_calls[1][:rv]).to eq 42
-        expect(observed_calls[1][:duration]).to be_a(Float)
+        expect(observed_calls[1].return_value).to eq 42
+        expect(observed_calls[1].duration).to be_a(Float)
       end
     end
 
@@ -798,7 +817,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:stack) do
-        payload.fetch(:caller_locations)
+        payload.caller_locations
       end
 
       it 'contains at least 10 frames' do
@@ -834,21 +853,21 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           # TODO add assertions for parameters and locals
 
-          expect(observed_calls[0].keys.sort).to eq call_keys
-          expect(observed_calls[0][:rv]).to eq '+'
-          expect(observed_calls[0][:duration]).to be_a(Float)
+          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[0].return_value).to eq '+'
+          expect(observed_calls[0].duration).to be_a(Float)
 
-          expect(observed_calls[1].keys.sort).to eq call_keys
-          expect(observed_calls[1][:rv]).to eq '+-'
-          expect(observed_calls[1][:duration]).to be_a(Float)
+          expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[1].return_value).to eq '+-'
+          expect(observed_calls[1].duration).to be_a(Float)
 
-          expect(observed_calls[2].keys.sort).to eq call_keys
-          expect(observed_calls[2][:rv]).to eq '+--'
-          expect(observed_calls[2][:duration]).to be_a(Float)
+          expect(observed_calls[2]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[2].return_value).to eq '+--'
+          expect(observed_calls[2].duration).to be_a(Float)
 
-          expect(observed_calls[3].keys.sort).to eq call_keys
-          expect(observed_calls[3][:rv]).to eq '+---'
-          expect(observed_calls[3][:duration]).to be_a(Float)
+          expect(observed_calls[3]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[3].return_value).to eq '+---'
+          expect(observed_calls[3].duration).to be_a(Float)
         end
       end
     end
@@ -875,15 +894,104 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
     end
+
+    context 'when there is a condition' do
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'hook_test_method_with_pos_and_kwarg',
+         condition: condition}
+      end
+
+      let(:target_call) do
+        expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(41, kwarg: 42)).to eq [41, 42]
+      end
+
+      shared_examples 'reports the call' do
+        it 'reports the call' do
+          instrumenter.hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          target_call
+
+          expect(observed_calls.length).to eq 1
+        end
+      end
+
+      shared_examples 'does not report the call' do
+        it 'does not report the call' do
+          instrumenter.hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          target_call
+
+          expect(observed_calls.length).to eq 0
+        end
+      end
+
+      context 'when condition is on positional argument' do
+        context 'when condition is met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              # We use "arg1" here, actual variable name is not currently available
+              "ref('arg1') == 41"
+            )
+          end
+
+          include_examples 'reports the call'
+        end
+
+        context 'when condition is not met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              # We use "arg1" here, actual variable name is not currently available
+              "ref('arg1') == 42"
+            )
+          end
+
+          include_examples 'does not report the call'
+        end
+      end
+
+      context 'when condition is on keyword argument' do
+        context 'when condition is met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              "ref('kwarg') == 42"
+            )
+          end
+
+          include_examples 'reports the call'
+        end
+
+        context 'when condition is not met' do
+          let(:condition) do
+            Datadog::DI::EL::Expression.new(
+              "ref('kwarg') == 41"
+            )
+          end
+
+          include_examples 'does not report the call'
+        end
+      end
+
+      context 'when expression evaluation fails' do
+        let(:propagate_all_exceptions) { false }
+
+        let(:condition) do
+          Datadog::DI::EL::Expression.new(
+            "unknown_function('kwarg') == 42"
+          )
+        end
+
+        include_examples 'does not report the call'
+      end
+    end
   end
 
   describe '.hook_line' do
     after do
       instrumenter.unhook(probe)
-    end
-
-    let(:call_keys) do
-      %i[caller_locations path probe serialized_locals target_self]
     end
 
     shared_examples 'multiple invocations' do
@@ -911,8 +1019,8 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls.length).to eq 2
 
-          expect(observed_calls[0].keys.sort).to eq(call_keys)
-          expect(observed_calls[1].keys.sort).to eq(call_keys)
+          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
         end
       end
     end
@@ -1056,13 +1164,12 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it 'invokes callback with expected keys' do
-        expect(payload).to be_a(Hash)
-        expect(payload.keys.sort).to eq(call_keys)
+        expect(payload).to be_a(Datadog::DI::EL::Context)
       end
 
       describe 'stack trace' do
         it 'contains instrumented method as top frame' do
-          frame = payload.fetch(:caller_locations).first
+          frame = payload.caller_locations.first
           expect(File.basename(frame.path)).to eq 'hook_line.rb'
         end
       end
@@ -1109,12 +1216,12 @@ RSpec.describe Datadog::DI::Instrumenter do
         HookLineBasicTestClass.new.test_method
 
         expect(observed_calls.length).to eq 2
-        expect(observed_calls.first).to be_a(Hash)
+        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
         # We do not have locals here because we are not capturing,
         # but we do have path which came from the trace point object.
-        expect(observed_calls.first[:path]).to be_a(String)
-        expect(observed_calls[1]).to be_a(Hash)
-        expect(observed_calls[1][:path]).to be_a(String)
+        expect(observed_calls.first.path).to be_a(String)
+        expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls[1].path).to be_a(String)
       end
     end
 
@@ -1146,7 +1253,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         HookLineTargetedTestClass.new.test_method
 
         expect(observed_calls.length).to eq 1
-        expect(observed_calls.first).to be_a(Hash)
+        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
       end
 
       context 'end line of a method' do
@@ -1170,7 +1277,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls.length).to eq 1
 
-          expect(observed_calls[0].keys.sort).to eq(call_keys)
+          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
         end
 
         # Since the instrumentation mutates the state of the probe,
@@ -1188,8 +1295,8 @@ RSpec.describe Datadog::DI::Instrumenter do
 
             expect(observed_calls.length).to eq 2
 
-            expect(observed_calls[0].keys.sort).to eq(call_keys)
-            expect(observed_calls[1].keys.sort).to eq(call_keys)
+            expect(observed_calls[0]).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
           end
         end
       end
@@ -1234,17 +1341,17 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           # TODO add assertions for locals
 
-          expect(observed_calls[0].keys.sort).to eq call_keys
-          expect(observed_calls[0][:caller_locations]).to be_a(Array)
+          expect(observed_calls[0]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[0].caller_locations).to be_a(Array)
 
-          expect(observed_calls[1].keys.sort).to eq call_keys
-          expect(observed_calls[1][:caller_locations]).to be_a(Array)
+          expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[1].caller_locations).to be_a(Array)
 
-          expect(observed_calls[2].keys.sort).to eq call_keys
-          expect(observed_calls[2][:caller_locations]).to be_a(Array)
+          expect(observed_calls[2]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[2].caller_locations).to be_a(Array)
 
-          expect(observed_calls[3].keys.sort).to eq call_keys
-          expect(observed_calls[3][:caller_locations]).to be_a(Array)
+          expect(observed_calls[3]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[3].caller_locations).to be_a(Array)
         end
       end
     end
@@ -1269,7 +1376,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
-        it 'does not invoke callback' do
+        it 'invokes the callback only once' do
           instrumenter.hook_line(probe) do |payload|
             observed_calls << payload
           end
@@ -1282,8 +1389,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           # generating one snapshot.
           expect(observed_calls.length).to eq 1
 
-          expect(observed_calls[0].keys.sort).to eq call_keys
-          expect(observed_calls[0][:caller_locations]).to be_a(Array)
+          expect(observed_calls[0]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[0].caller_locations).to be_a(Array)
         end
       end
     end
@@ -1316,8 +1423,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it 'invokes callback with expected keys' do
-        expect(payload).to be_a(Hash)
-        expect(payload.keys.sort).to eq(call_keys)
+        expect(payload).to be_a(Datadog::DI::EL::Context)
       end
     end
 

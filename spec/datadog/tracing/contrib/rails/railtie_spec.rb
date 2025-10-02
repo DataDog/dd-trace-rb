@@ -8,7 +8,7 @@ RSpec.describe 'Rails Railtie', execute_in_fork: true do
 
   include_context 'Rails test application'
 
-  let(:routes) { { '/' => 'test#index' } }
+  let(:routes) { {'/' => 'test#index'} }
   let(:rails_options) { {} }
   let(:controllers) { [controller] }
 
