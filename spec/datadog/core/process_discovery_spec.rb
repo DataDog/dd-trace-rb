@@ -49,7 +49,6 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
 
           expect(content).to eq(
             {
-              'schema_version' => 1,
               'runtime_id' => Datadog::Core::Environment::Identity.id,
               'tracer_language' => Datadog::Core::Environment::Identity.lang,
               'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
@@ -79,7 +78,6 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
           # Thus not appearing in the content.
           expect(content).to eq(
             {
-              'schema_version' => 1,
               'runtime_id' => Datadog::Core::Environment::Identity.id,
               'tracer_language' => Datadog::Core::Environment::Identity.lang,
               'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
@@ -107,7 +105,6 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         expect(described_class).to have_received(:publish)
         expect(content).to eq(
           {
-            'schema_version' => 1,
             'runtime_id' => Datadog::Core::Environment::Identity.id,
             'tracer_language' => Datadog::Core::Environment::Identity.lang,
             'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
