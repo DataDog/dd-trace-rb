@@ -44,6 +44,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       $presto_is_online = true
     end
   end
+  # rubocop:enable Style/GlobalVars
 
   def presto_online?
     client.run('SELECT 1')
@@ -354,5 +355,3 @@ RSpec.describe 'Presto::Client instrumentation' do
     end
   end
 end
-
-# rubocop:enable Style/GlobalVars
