@@ -89,7 +89,6 @@ RSpec.describe 'Rails Endpoint Collection' do
       .instance_variable_set(:@ran_once, false)
   end
 
-
   it 'rescues exceptions' do
     allow(Datadog::AppSec.telemetry).to receive(:app_endpoints_loaded).and_raise(StandardError)
 
