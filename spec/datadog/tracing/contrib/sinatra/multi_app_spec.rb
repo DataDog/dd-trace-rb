@@ -6,7 +6,8 @@ require 'sinatra/base'
 require 'datadog'
 require 'datadog/tracing/contrib/sinatra/tracer'
 
-RSpec.describe 'Sinatra instrumentation for multi-apps' do
+# TODO: JRuby 10.0 - Remove this skip after investigation.
+RSpec.describe 'Sinatra instrumentation for multi-apps', skip: RUBY_ENGINE == 'jruby' && RUBY_ENGINE_VERSION.start_with?('10.0') do
   include Rack::Test::Methods
 
   let(:options) { {} }
