@@ -83,6 +83,19 @@ RSpec.describe 'Rails Endpoint Collection' do
     Datadog::AppSec::APISecurity::Sampler.reset!
   end
 
+  before(:each) do
+    # reset guard that only allows routes to be reported once
+    Datadog::AppSec::Contrib::Rails::Patcher::GUARD_ROUTES_REPORTING_ONCE_PER_APP[Rails.application]
+      .instance_variable_set(:@ran_once, false)
+  end
+
+
+  it 'rescues exceptions' do
+    allow(Datadog::AppSec.telemetry).to receive(:app_endpoints_loaded).and_raise(StandardError)
+
+    ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
+  end
+
   it 'reports routes via telemetry' do
     ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
 
