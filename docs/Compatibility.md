@@ -23,7 +23,8 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 |       |                            | 2.1       | [EOL](#support-eol)       | < 2.0.0             |
 |       |                            | 2.0       | [EOL](#support-eol)       | < 0.50.0            |
 |       |                            | 1.9       | [EOL](#support-eol)       | < 0.27.0            |
-| JRuby | https://www.jruby.org      | 9.4       | [latest](#support-latest) | Latest              |
+| JRuby | https://www.jruby.org      | 10.0      | [latest](#support-latest) | Latest              |
+|       |                            | 9.4       | [latest](#support-latest) | Latest              |
 |       |                            | 9.3       | [latest](#support-latest) | Latest              |
 |       |                            | 9.2.21.0+ | [latest](#support-latest) | Latest              |
 
@@ -93,7 +94,7 @@ For a list of available integrations, and their configuration options, refer to 
 | Kafka                      | `ruby-kafka`               | `>= 0.7.10`                                 | `>= 0.7.10`                                 | [Link][25]       | [Link](https://github.com/zendesk/ruby-kafka)                                |
 | Karafka                    | `karafka`                  | `>= 2.3.0`                                  | `>= 2.3.0`                                  | [Link][55]       | [Link](https://karafka.io/) |
 | Makara (via Active Record) | `makara`                   | `>= 0.3.5`                                  | `>= 0.3.5`                                  | [Link][8]        | [Link](https://github.com/instacart/makara)                                  |
-| MongoDB                    | `mongo`                    | `>= 2.1`                                    | `>= 2.1`                                    | [Link][26]       | [Link](https://github.com/mongodb/mongo-ruby-driver)                         |
+| MongoDB                    | `mongo`                    | `>= 2.1`, `< 3.4`                           | `>= 2.1`, `< 3.4`                           | [Link][26]       | [Link](https://github.com/mongodb/mongo-ruby-driver)                         |
 | MySQL2                     | `mysql2`                   | `>= 0.3.21`                                 | *gem not available*                         | [Link][27]       | [Link](https://github.com/brianmario/mysql2)                                 |
 | Net/HTTP                   | `http`                     | *(Any supported Ruby)*                      | *(Any supported Ruby)*                      | [Link][28]       | [Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html) |
 | OpenSearch                 | `opensearch-ruby`          | `>= 1.0.0`                                  | `>= 1.0.0`                                  | [Link][29]       | [Link](https://github.com/opensearch-project/opensearch-ruby)                |
@@ -107,7 +108,7 @@ For a list of available integrations, and their configuration options, refer to 
 | Redis                      | `redis`                    | `>= 3.2`                                    | `>= 3.2`                                    | [Link][38]       | [Link](https://github.com/redis/redis-rb)                                    |
 | Resque                     | `resque`                   | `>= 1.0`                                    | `>= 1.0`                                    | [Link][39]       | [Link](https://github.com/resque/resque)                                     |
 | Rest Client                | `rest-client`              | `>= 1.8`                                    | `>= 1.8`                                    | [Link][40]       | [Link](https://github.com/rest-client/rest-client)                           |
-| Roda                       | `roda`                     | `>= 2.1, <4`                                | `>= 2.1, <4`                                | [Link][41]       | [Link](https://github.com/jeremyevans/roda)                                  |
+| Roda                       | `roda`                     | `>= 2.1, < 4`                               | `>= 2.1, < 4`                               | [Link][41]       | [Link](https://github.com/jeremyevans/roda)                                  |
 | Sequel                     | `sequel`                   | `>= 3.41`                                   | `>= 3.41`                                   | [Link][42]       | [Link](https://github.com/jeremyevans/sequel)                                |
 | Shoryuken                  | `shoryuken`                | `>= 3.2`                                    | `>= 3.2`                                    | [Link][43]       | [Link](https://github.com/phstc/shoryuken)                                   |
 | Sidekiq                    | `sidekiq`                  | `>= 3.5.4`                                  | `>= 3.5.4`                                  | [Link][44]       | [Link](https://github.com/mperham/sidekiq)                                   |
