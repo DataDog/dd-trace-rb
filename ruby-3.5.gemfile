@@ -33,9 +33,6 @@ gem 'ostruct'
 # debug permits evaluating more expressions than byebug, however
 # debug does not show context on stack navigation.
 gem 'byebug'
-# debug gem temporarily disabled for Ruby 3.5.0-preview1 due to stringio native extension compilation issues
-# TODO: Ruby 3.5 - Uncomment after investigation.
-# gem 'debug'
 gem 'pry'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
