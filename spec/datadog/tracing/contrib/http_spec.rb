@@ -11,7 +11,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP do
       let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
       let(:span_id) { Datadog::Tracing::Utils.next_id }
       let(:digest) do
-        Datadog::Tracing::TraceDigest.new(trace_id: trace_id, span_id: span_id, baggage: { 'key' => 'value' })
+        Datadog::Tracing::TraceDigest.new(trace_id: trace_id, span_id: span_id, baggage: {'key' => 'value'})
       end
       let(:data) { {} }
 
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP do
     describe '#extract' do
       subject(:extract) { described_class.extract(data) }
 
-      let(:data) { { 'x-datadog-trace-id' => '1', 'x-datadog-parent-id' => '2', 'baggage' => 'key=value' } }
+      let(:data) { {'x-datadog-trace-id' => '1', 'x-datadog-parent-id' => '2', 'baggage' => 'key=value'} }
 
       it 'extracts distributed headers' do
         is_expected.to be_a_kind_of(Datadog::Tracing::TraceDigest)

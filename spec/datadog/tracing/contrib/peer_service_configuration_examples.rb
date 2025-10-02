@@ -29,7 +29,7 @@ RSpec.shared_examples_for 'configured peer service span' do |env_service_name_ke
       end
 
       context 'when peer_service option is configured' do
-        let(:configuration_options) { { peer_service: 'configured_peer_service' } }
+        let(:configuration_options) { {peer_service: 'configured_peer_service'} }
 
         it 'expects peer.service to equal configured value and source to be peer.service' do
           expect(span.get_tag('peer.service')).to eq(configuration_options[:peer_service])
@@ -49,7 +49,7 @@ RSpec.shared_examples_for 'configured peer service span' do |env_service_name_ke
       end
 
       context 'when peer_service option is configured' do
-        let(:configuration_options) { { peer_service: 'configured_peer_service' } }
+        let(:configuration_options) { {peer_service: 'configured_peer_service'} }
 
         it 'expects peer.service to equal configured value and source to be peer.service' do
           expect(span.get_tag('peer.service')).to eq(configuration_options[:peer_service])

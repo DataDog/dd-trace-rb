@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'datadog/core/encoding'
 
 RSpec.describe Datadog::Core::Encoding do
-  let(:obj) { [{ 'foo' => 'bar' }] }
+  let(:obj) { [{'foo' => 'bar'}] }
 
   context 'Msgpack encoding' do
     let(:encoder) { Datadog::Core::Encoding::MsgpackEncoder }

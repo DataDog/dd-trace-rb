@@ -121,8 +121,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
           context 'when configured with global tag headers' do
             subject(:request) { RestClient.get(url, request_headers) }
 
-            let(:request_headers) { { 'Request-Id' => 'test-request' } }
-            let(:response_headers) { { 'Response-Id' => 'test-response' } }
+            let(:request_headers) { {'Request-Id' => 'test-request'} }
+            let(:response_headers) { {'Response-Id' => 'test-response'} }
 
             include_examples 'with request tracer header tags' do
               let(:request_header_tag) { 'request-id' }
@@ -299,8 +299,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         it 'propagates the headers' do
           request
 
-          distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.id.to_s,
-                                          'X-Datadog-Trace-Id' => low_order_trace_id(span.trace_id).to_s }
+          distributed_tracing_headers = {'X-Datadog-Parent-Id' => span.id.to_s,
+                                         'X-Datadog-Trace-Id' => low_order_trace_id(span.trace_id).to_s}
 
           expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to have_been_made
         end
@@ -324,7 +324,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         it 'propagates sampling priority' do
           RestClient.get(url)
 
-          expect(a_request(:get, url).with(headers: { 'X-Datadog-Sampling-Priority' => sampling_priority.to_s }))
+          expect(a_request(:get, url).with(headers: {'X-Datadog-Sampling-Priority' => sampling_priority.to_s}))
             .to have_been_made
         end
       end
@@ -339,8 +339,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         it 'does not propagate the headers' do
           request
 
-          distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.id.to_s,
-                                          'X-Datadog-Trace-Id' => span.trace_id.to_s }
+          distributed_tracing_headers = {'X-Datadog-Parent-Id' => span.id.to_s,
+                                         'X-Datadog-Trace-Id' => span.trace_id.to_s}
 
           expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to_not have_been_made
         end
@@ -364,7 +364,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         it 'does not propagate sampling priority headers' do
           RestClient.get(url)
 
-          expect(a_request(:get, url).with(headers: { 'X-Datadog-Sampling-Priority' => sampling_priority.to_s }))
+          expect(a_request(:get, url).with(headers: {'X-Datadog-Sampling-Priority' => sampling_priority.to_s}))
             .to_not have_been_made
         end
       end

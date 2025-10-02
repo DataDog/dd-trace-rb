@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SQS do
 
   context 'when queue_url is present' do
     let(:queue_url) { 'https://sqs.us-east-1.amazonaws.com/123456789012/MyQueueName' }
-    let(:params) { { queue_url: queue_url } }
+    let(:params) { {queue_url: queue_url} }
 
     it 'sets AWS account and queue name tags' do
       sqs.add_tags(span, params)
@@ -24,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SQS do
 
   context 'when queue_name is present' do
     let(:queue_name) { 'AnotherQueueName' }
-    let(:params) { { queue_name: queue_name } }
+    let(:params) { {queue_name: queue_name} }
 
     it 'sets queue name tag' do
       sqs.add_tags(span, params)

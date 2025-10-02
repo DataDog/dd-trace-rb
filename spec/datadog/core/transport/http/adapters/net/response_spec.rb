@@ -154,7 +154,6 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net::Response do
   end
 
   describe '#inspect' do
-
     let(:http_response) { instance_double(::Net::HTTPResponse, code: 202, body: 'body') }
 
     it 'includes the code' do

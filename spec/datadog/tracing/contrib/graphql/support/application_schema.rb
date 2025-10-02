@@ -103,7 +103,7 @@ module TestGraphQL
           Users.users ||= {}
           item = OpenStruct.new(id: Users.users.size + 1, name: name)
           Users.users[name] = Users.users.size + 1
-          { user: item, errors: [] }
+          {user: item, errors: []}
         else
           ::GraphQL::ExecutionError.new('User already exists')
         end

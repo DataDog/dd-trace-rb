@@ -29,7 +29,7 @@ module SynchronizationHelpers
       stderr = File.read(fork_stderr.path)
 
       # Capture forked execution information
-      result = { status: status, stdout: stdout, stderr: stderr }
+      result = {status: status, stdout: stdout, stderr: stderr}
 
       # Expect fork and assertions to have completed successfully.
       fork_expectations.call(**result)
@@ -41,7 +41,11 @@ module SynchronizationHelpers
 
       raise "Failure or timeout in `expect_in_fork`, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", cause: e
     ensure
-      Process.kill('KILL', pid) rescue nil # Prevent zombie processes on failure
+      begin
+        Process.kill('KILL', pid)
+      rescue
+        nil
+      end # Prevent zombie processes on failure
 
       fork_stdout.unlink
       fork_stderr.unlink
@@ -64,12 +68,12 @@ module SynchronizationHelpers
     raise 'Provider either `seconds` or `attempts` & `backoff`, not both' if seconds && (attempts || backoff)
 
     spec = if seconds
-             "#{seconds} seconds"
-           elsif attempts || backoff
-             "#{attempts} attempts with backoff: #{backoff}"
-           else
-             'none'
-           end
+      "#{seconds} seconds"
+    elsif attempts || backoff
+      "#{attempts} attempts with backoff: #{backoff}"
+    else
+      'none'
+    end
 
     if seconds
       attempts = seconds * 10
@@ -102,7 +106,7 @@ module SynchronizationHelpers
     end
 
     elapsed = Datadog::Core::Utils::Time.get_time - start_time
-    actual = "#{'%.2f' % elapsed} seconds, #{attempts} attempts with backoff #{backoff}" # rubocop:disable Style/FormatString
+    actual = "#{"%.2f" % elapsed} seconds, #{attempts} attempts with backoff #{backoff}" # rubocop:disable Style/FormatString
 
     raise("Wait time exhausted! Requested: #{spec}, waited: #{actual}")
   end

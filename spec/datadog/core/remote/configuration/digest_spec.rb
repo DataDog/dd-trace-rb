@@ -9,8 +9,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::Digest do
   let(:content) do
     Datadog::Core::Remote::Configuration::Content.parse(
       {
-        :path => 'datadog/603646/ASM/exclusion_filters/config',
-        :content => data
+        path: 'datadog/603646/ASM/exclusion_filters/config',
+        content: data
       }
     )
   end
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Digest do
   end
 
   describe Datadog::Core::Remote::Configuration::DigestList do
-    let(:digests) { { sha256: Digest::SHA256.hexdigest(value) } }
+    let(:digests) { {sha256: Digest::SHA256.hexdigest(value)} }
     subject(:digest_list) { described_class.parse(digests) }
 
     describe '#check' do

@@ -12,7 +12,7 @@ require 'trilogy'
 
 RSpec.describe 'Trlogy::Client patcher' do
   let(:service_name) { 'trilogy' }
-  let(:configuration_options) { { service_name: service_name } }
+  let(:configuration_options) { {service_name: service_name} }
 
   let(:client) do
     Trilogy.new(

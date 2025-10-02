@@ -3,7 +3,7 @@ RSpec.shared_examples 'with error status code configuration' do |env:|
 
   context 'with a custom range' do
     context 'with an Range object' do
-      let(:configuration_options) { { error_status_codes: 500..502 } }
+      let(:configuration_options) { {error_status_codes: 500..502} }
 
       context 'with a status code within the range' do
         let(:status_code) { 501 }
@@ -50,7 +50,7 @@ RSpec.shared_examples 'with error status code configuration' do |env:|
       let(:status_code) { 500 }
 
       context 'with an empty array' do
-        let(:configuration_options) { { error_status_codes: [] } }
+        let(:configuration_options) { {error_status_codes: []} }
 
         it 'does not mark the span as an error' do
           expect(span).to_not have_error
@@ -58,7 +58,7 @@ RSpec.shared_examples 'with error status code configuration' do |env:|
       end
 
       context 'with a status code in the array' do
-        let(:configuration_options) { { error_status_codes: [400, 500] } }
+        let(:configuration_options) { {error_status_codes: [400, 500]} }
         let(:status_code) { 400 }
 
         it 'marks the span as an error' do
@@ -67,7 +67,7 @@ RSpec.shared_examples 'with error status code configuration' do |env:|
       end
 
       context 'with a status code not in the array' do
-        let(:configuration_options) { { error_status_codes: [400, 500] } }
+        let(:configuration_options) { {error_status_codes: [400, 500]} }
         let(:status_code) { 401 }
 
         it 'does not mark the span as an error' do

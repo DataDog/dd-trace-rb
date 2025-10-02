@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
   let(:namespace) { 'general' }
   let(:metric_name) { 'request_count' }
   let(:metric) do
-    Datadog::Core::Telemetry::Metric::Count.new(metric_name, tags: { status: '200' })
+    Datadog::Core::Telemetry::Metric::Count.new(metric_name, tags: {status: '200'})
   end
   let(:metrics) { [metric] }
 
@@ -32,19 +32,19 @@ RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
   end
 
   it 'all events to be the same' do
-    events =     [
-      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
-      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
+    events = [
+      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: {val: '1'})]),
+      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: {val: '1'})]),
     ]
 
     expect(events.uniq).to have(1).item
   end
 
   it 'all events to be different' do
-    events =     [
-      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
-      described_class.new('nospace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
-      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '2' })]),
+    events = [
+      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: {val: '1'})]),
+      described_class.new('nospace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: {val: '1'})]),
+      described_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: {val: '2'})]),
       described_class.new('namespace', []),
 
     ]

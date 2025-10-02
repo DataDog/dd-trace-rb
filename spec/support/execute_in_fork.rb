@@ -13,7 +13,7 @@ module ForkableExample
   def finish(reporter)
     if @metadata[:execute_in_fork] && Process.ppid != 1 # In a forked process
       # In the forked process, we signal our success/failure by the status code
-      super ? exit(0) : exit(1)
+      (super) ? exit(0) : exit(1)
     else
       super
     end
@@ -83,13 +83,13 @@ module ForkableExample
 
       # The receiver is a parent process object, let's find the right one
       receiver = case call[:receiver]
-                 when :reporter
-                   reporter
-                 when :execution_result
-                   execution_result
-                 else
-                   raise "Unknown receiver: #{call[:receiver]}"
-                 end
+      when :reporter
+        reporter
+      when :execution_result
+        execution_result
+      else
+        raise "Unknown receiver: #{call[:receiver]}"
+      end
 
       receiver.send(call[:method], *args)
     end
@@ -124,7 +124,7 @@ module ForkableExample
             end
           end
 
-          dump = Marshal.dump({ receiver: receiver, method: method, args: args })
+          dump = Marshal.dump({receiver: receiver, method: method, args: args})
           # Write a header hex int with the size of the next object dump
           @fork_writer_pipe.write(format("0x%x\n", dump.bytesize))
           @fork_writer_pipe.write(dump)

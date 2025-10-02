@@ -9,7 +9,7 @@ module HttpHelpers
       begin
         res = Net::HTTP.get_response(uri)
         return true if res.code == '200'
-      rescue StandardError => e
+      rescue => e
         Datadog.logger.error("Failed waiting for http server #{e.message}") if attempts_left < 5
       end
     end

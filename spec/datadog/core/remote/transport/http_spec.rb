@@ -12,10 +12,10 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   shared_context 'HTTP connection stub' do
     before do
       request_class = case request_verb
-                      when :get then ::Net::HTTP::Get
-                      when :post then ::Net::HTTP::Post
-                      else raise "bad verb: #{request_verb.inspect}"
-                      end
+      when :get then ::Net::HTTP::Get
+      when :post then ::Net::HTTP::Post
+      else raise "bad verb: #{request_verb.inspect}"
+      end
       http_request = instance_double(request_class)
       allow(http_request).to receive(:body=)
       allow(request_class).to receive(:new).and_return(http_request)
@@ -69,9 +69,9 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response) }
 
       it { is_expected.to be_ok }
-      it { is_expected.to have_attributes(:version => '42') }
-      it { is_expected.to have_attributes(:endpoints => ['/info', '/v0/path']) }
-      it { is_expected.to have_attributes(:config => { max_request_bytes: '1234' }) }
+      it { is_expected.to have_attributes(version: '42') }
+      it { is_expected.to have_attributes(endpoints: ['/info', '/v0/path']) }
+      it { is_expected.to have_attributes(config: {max_request_bytes: '1234'}) }
 
       it { expect(transport.client.api.headers).to_not include('Datadog-Client-Computed-Stats') }
 
@@ -174,11 +174,11 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
                   expires: '2022-09-22T09:01:04Z',
                   targets: {
                     'datadog/42/PRODUCT/foo/config' => {
-                      hashes: { sha256: 'd0b425e00e15a0d36b9b361f02bab63563aed6cb4665083905386c55d5b679fa' },
+                      hashes: {sha256: 'd0b425e00e15a0d36b9b361f02bab63563aed6cb4665083905386c55d5b679fa'},
                       length: 8,
                     },
                     'employee/PRODUCT/bar/config' => {
-                      hashes: { sha256: 'dab741b6289e7dccc1ed42330cae1accc2b755ce8079c2cd5d4b5366c9f769a6' },
+                      hashes: {sha256: 'dab741b6289e7dccc1ed42330cae1accc2b755ce8079c2cd5d4b5366c9f769a6'},
                       length: 8,
                     },
                   }
@@ -208,9 +208,9 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Config::Response) }
 
       it { is_expected.to be_ok }
-      it { is_expected.to have_attributes(:roots => be_a(Array)) }
-      it { is_expected.to have_attributes(:targets => be_a(Hash)) }
-      it { is_expected.to have_attributes(:target_files => be_a(Array)) }
+      it { is_expected.to have_attributes(roots: be_a(Array)) }
+      it { is_expected.to have_attributes(targets: be_a(Hash)) }
+      it { is_expected.to have_attributes(target_files: be_a(Array)) }
 
       it { expect(transport.client.api.headers).to_not include('Datadog-Client-Computed-Stats') }
 

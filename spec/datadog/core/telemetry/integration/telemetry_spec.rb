@@ -69,15 +69,15 @@ RSpec.describe 'Telemetry integration tests' do
         'hostname' => String,
         'kernel_name' => String,
         'kernel_release' => String,
-        'kernel_version' => (RUBY_ENGINE == 'jruby' ? nil : String),
+        'kernel_version' => ((RUBY_ENGINE == 'jruby') ? nil : String),
       }
     end
 
     let(:expected_products_hash) do
       {
-        'appsec' => { 'enabled' => false },
-        'dynamic_instrumentation' => { 'enabled' => false },
-        'profiler' => { 'enabled' => false },
+        'appsec' => {'enabled' => false},
+        'dynamic_instrumentation' => {'enabled' => false},
+        'profiler' => {'enabled' => false},
       }
     end
 

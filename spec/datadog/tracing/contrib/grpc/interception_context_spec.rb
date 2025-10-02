@@ -11,7 +11,7 @@ require 'datadog'
 RSpec.describe GRPC::InterceptionContext do
   subject(:interception_context) { described_class.new }
 
-  let(:configuration_options) { { service_name: 'rspec' } }
+  let(:configuration_options) { {service_name: 'rspec'} }
 
   describe '#intercept!' do
     before do
@@ -57,10 +57,10 @@ RSpec.describe GRPC::InterceptionContext do
       context 'request response call type' do
         let(:type) { :request_response }
         let(:keywords) do
-          { request: instance_double(Object),
-            call: instance_double('GRPC::ActiveCall'),
-            method: '/ruby.test.Testing/Basic',
-            metadata: { some: 'datum' } }
+          {request: instance_double(Object),
+           call: instance_double('GRPC::ActiveCall'),
+           method: '/ruby.test.Testing/Basic',
+           metadata: {some: 'datum'}}
         end
 
         it_behaves_like 'span data contents'
@@ -69,9 +69,9 @@ RSpec.describe GRPC::InterceptionContext do
       context 'client streaming call type' do
         let(:type) { :client_streamer }
         let(:keywords) do
-          { call: instance_double('GRPC::ActiveCall'),
-            method: '/ruby.test.Testing/Basic',
-            metadata: { some: 'datum' } }
+          {call: instance_double('GRPC::ActiveCall'),
+           method: '/ruby.test.Testing/Basic',
+           metadata: {some: 'datum'}}
         end
 
         it_behaves_like 'span data contents'
@@ -80,10 +80,10 @@ RSpec.describe GRPC::InterceptionContext do
       context 'server streaming call type' do
         let(:type) { :server_streamer }
         let(:keywords) do
-          { request: instance_double(Object),
-            call: instance_double('GRPC::ActiveCall'),
-            method: '/ruby.test.Testing/Basic',
-            metadata: { some: 'datum' } }
+          {request: instance_double(Object),
+           call: instance_double('GRPC::ActiveCall'),
+           method: '/ruby.test.Testing/Basic',
+           metadata: {some: 'datum'}}
         end
 
         specify do
@@ -104,10 +104,10 @@ RSpec.describe GRPC::InterceptionContext do
       context 'bidirectional streaming call type' do
         let(:type) { :bidi_streamer }
         let(:keywords) do
-          { requests: instance_double(Array),
-            call: instance_double('GRPC::ActiveCall'),
-            method: '/ruby.test.Testing/Basic',
-            metadata: { some: 'datum' } }
+          {requests: instance_double(Array),
+           call: instance_double('GRPC::ActiveCall'),
+           method: '/ruby.test.Testing/Basic',
+           metadata: {some: 'datum'}}
         end
 
         it_behaves_like 'span data contents'
@@ -138,9 +138,9 @@ RSpec.describe GRPC::InterceptionContext do
       context 'request response call type' do
         let(:type) { :request_response }
         let(:keywords) do
-          { request: instance_double(Object),
-            call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-            method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
+          {request: instance_double(Object),
+           call: instance_double('GRPC::ActiveCall', metadata: {some: 'datum'}),
+           method: instance_double(Method, owner: 'My::Server', name: 'endpoint')}
         end
 
         it_behaves_like 'span data contents'
@@ -149,8 +149,8 @@ RSpec.describe GRPC::InterceptionContext do
       context 'client streaming call type' do
         let(:type) { :client_streamer }
         let(:keywords) do
-          { call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-            method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
+          {call: instance_double('GRPC::ActiveCall', metadata: {some: 'datum'}),
+           method: instance_double(Method, owner: 'My::Server', name: 'endpoint')}
         end
 
         it_behaves_like 'span data contents'
@@ -159,9 +159,9 @@ RSpec.describe GRPC::InterceptionContext do
       context 'server streaming call type' do
         let(:type) { :server_streamer }
         let(:keywords) do
-          { request: instance_double(Object),
-            call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-            method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
+          {request: instance_double(Object),
+           call: instance_double('GRPC::ActiveCall', metadata: {some: 'datum'}),
+           method: instance_double(Method, owner: 'My::Server', name: 'endpoint')}
         end
 
         it_behaves_like 'span data contents'
@@ -170,9 +170,9 @@ RSpec.describe GRPC::InterceptionContext do
       context 'bidirectional streaming call type do' do
         let(:type) { :bidi_streamer }
         let(:keywords) do
-          { requests: instance_double(Array),
-            call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-            method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
+          {requests: instance_double(Array),
+           call: instance_double('GRPC::ActiveCall', metadata: {some: 'datum'}),
+           method: instance_double(Method, owner: 'My::Server', name: 'endpoint')}
         end
 
         it_behaves_like 'span data contents'
