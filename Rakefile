@@ -331,10 +331,12 @@ namespace :spec do
     end
 
     # Datadog AppSec integration specs (syntetic rails application)
+    # Every file runs in a separate process to avoid leakage of Rails state.
     desc '' # "Explicitly hiding from `rake -T`"
-    RSpec::Core::RakeTask.new(:integration) do |t, args|
-      t.pattern = 'spec/datadog/appsec/integration/**/*_spec.rb'
-      t.rspec_opts = args.to_a.join(' ')
+    task :integration do
+      Dir['spec/datadog/appsec/integration/**/*_spec.rb'].shuffle.each do |file|
+        sh "bundle exec rspec #{file}"
+      end
     end
 
     # Datadog AppSec integrations
