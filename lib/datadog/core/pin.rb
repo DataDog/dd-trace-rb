@@ -40,6 +40,10 @@ module Datadog
         @options.key?(name)
       end
 
+      def to_hash
+        @options.dup
+      end
+
       # rubocop:disable Style/TrivialAccessors
       def onto(obj)
         unless obj.respond_to? :datadog_pin=
