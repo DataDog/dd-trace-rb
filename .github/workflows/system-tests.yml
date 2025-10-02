@@ -84,6 +84,7 @@ jobs:
           - weblogs: rack,rails70
             scenarios: |
               APPSEC_API_SECURITY,
+              APPSEC_API_SECURITY_RC
               APPSEC_AUTO_EVENTS_EXTENDED,
               APPSEC_CORRUPTED_RULES,
               APPSEC_CUSTOM_OBFUSCATION,
@@ -100,7 +101,6 @@ jobs:
               INTEGRATIONS,
               PROFILING,
               REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD,
-              REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE,
               REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES,
               REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE,
               SAMPLING,
