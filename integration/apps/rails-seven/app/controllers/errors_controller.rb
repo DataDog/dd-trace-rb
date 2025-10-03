@@ -1,4 +1,3 @@
-
 class ErrorsController < ApplicationController
   def server_error
     # Make the span visible from graph

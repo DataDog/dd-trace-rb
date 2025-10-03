@@ -4,7 +4,6 @@ require 'hanami/model'
 require_relative '../apps/acme/application'
 
 Hanami.configure do
-
   mount Acme::Application, at: '/'
 
   model do
@@ -24,7 +23,7 @@ Hanami.configure do
     # Migrations
     #
     migrations 'db/migrations'
-    schema     'db/schema.sql'
+    schema 'db/schema.sql'
   end
 
   mailer do

@@ -1,7 +1,7 @@
 require 'hanami/helpers'
 require 'hanami/assets'
 require 'datadog'
-require_relative './controllers/fibonacci'
+require_relative 'controllers/fibonacci'
 
 module Acme
   class Application < Hanami::Application
@@ -222,7 +222,7 @@ module Acme
       #
       #  * https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives
       #
-      security.content_security_policy %{
+      security.content_security_policy %(
         form-action 'self';
         frame-ancestors 'self';
         base-uri 'self';
@@ -237,7 +237,7 @@ module Acme
         child-src 'self';
         frame-src 'self';
         media-src 'self'
-      }
+      )
 
       ##
       # FRAMEWORKS

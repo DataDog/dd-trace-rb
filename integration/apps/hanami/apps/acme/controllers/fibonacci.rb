@@ -15,7 +15,7 @@ module Acme
       end
 
       def fib(n)
-        n <= 1 ? n : fib(n-1) + fib(n-2)
+        (n <= 1) ? n : fib(n - 1) + fib(n - 2)
       end
     end
   end

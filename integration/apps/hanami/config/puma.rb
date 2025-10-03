@@ -1,4 +1,4 @@
-require_relative './environment'
+require_relative 'environment'
 require 'datadog/demo_env'
 
 Datadog::DemoEnv.print_env('Puma master environment')
