@@ -27,6 +27,9 @@ AllCops:
     - "*.gemspec"
     - benchmarks/**/*
     - lib-injection/**/*
+    - ext/**/*
+    - yard/**/*
+    - Gemfile
   NewCops: disable # Don't allow new cops to be enabled implicitly.
   SuggestExtensions: false # Stop pushing suggestions constantly.
 
