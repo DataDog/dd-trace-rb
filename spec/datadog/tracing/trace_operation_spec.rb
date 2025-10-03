@@ -255,30 +255,30 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it { expect(trace_op.send(:metrics)).to eq({'baz' => 42.0}) }
       end
 
-      context ':trace_block' do
-        subject(:options) { {trace_block: trace_block} }
+      context ':auto_finish' do
+        subject(:options) { {auto_finish: auto_finish} }
 
         context 'when true' do
-          let(:trace_block) { true }
+          let(:auto_finish) { true }
 
-          it 'sets trace_block to true' do
-            expect(trace_op.instance_variable_get(:@trace_block)).to be true
+          it 'sets auto_finish to true' do
+            expect(trace_op.instance_variable_get(:@auto_finish)).to be true
           end
         end
 
         context 'when false' do
-          let(:trace_block) { false }
+          let(:auto_finish) { false }
 
-          it 'sets trace_block to false' do
-            expect(trace_op.instance_variable_get(:@trace_block)).to be false
+          it 'sets auto_finish to false' do
+            expect(trace_op.instance_variable_get(:@auto_finish)).to be false
           end
         end
 
         context 'when not provided' do
-          let(:options) { {} }
+          subject(:options) { {} }
 
-          it 'defaults to false' do
-            expect(trace_op.instance_variable_get(:@trace_block)).to be false
+          it 'defaults to true' do
+            expect(trace_op.instance_variable_get(:@auto_finish)).to be true
           end
         end
       end

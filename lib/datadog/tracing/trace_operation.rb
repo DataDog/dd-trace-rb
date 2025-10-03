@@ -55,6 +55,12 @@ module Datadog
         :sampled,
         :service
 
+      # Creates a new TraceOperation.
+      #
+      # @param auto_finish [Boolean] when true, automatically finishes the trace when the local root span finishes.
+      #   When false, the trace remains unfinished until {#finish!} is called.
+      #   This is useful when this {TraceOperation} represents the continuation of a remote {TraceDigest},
+      #   in which case local root spans in this {TraceOperation} are children of the {TraceDigest}'s last active span.
       def initialize(
         logger: Datadog.logger,
         agent_sample_rate: nil,
@@ -81,7 +87,7 @@ module Datadog
         remote_parent: false,
         tracer: nil, # DEV-3.0: deprecated, remove in 3.0
         baggage: nil,
-        trace_block: false
+        auto_finish: true
       )
         @logger = logger
 
@@ -120,7 +126,7 @@ module Datadog
         @events = events || Events.new
         @finished = false
         @spans = []
-        @trace_block = trace_block
+        @auto_finish = auto_finish
       end
 
       def full?
@@ -147,7 +153,7 @@ module Datadog
         @sampled == true || priority_sampled?
       end
 
-      # Has the priority sampling chosen to keeÏp this span?
+      # Has the priority sampling chosen to keep this span?
       # @return [Boolean]
       def priority_sampled?
         !@sampling_priority.nil? && @sampling_priority > 0
@@ -486,7 +492,7 @@ module Datadog
 
         @active_span = span_op
 
-        set_root_span!(span_op) if !root_span && !@trace_block
+        set_local_root_span!(span_op)
       end
 
       def deactivate_span!(span_op)
@@ -509,6 +515,9 @@ module Datadog
         logger.debug { "Error starting span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
 
+      # When the root span is finished, this trace is considered complete
+      # and will not accept new spans. Another {TraceOperaton} is needed
+      # for creating new spans.
       def finish_span(span, span_op, parent)
         # Save finished span & root span
         @spans << span unless span.nil?
@@ -516,8 +525,12 @@ module Datadog
         # Deactivate the span, re-activate parent.
         deactivate_span!(span_op)
 
-        # Set finished, to signal root span has completed.
-        @finished = true if span_op == root_span
+        # If the local root span just finished,
+        # this trace is now complete.
+        # If the last trace is not a local root span
+        # the trace can stay unfinished, receiving
+        # new spans.
+        @finished = true if span_op == root_span && @auto_finish
 
         # Update active span count
         @active_span_count -= 1
@@ -531,8 +544,8 @@ module Datadog
         logger.debug { "Error finishing span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
 
-      # Track the root span
-      def set_root_span!(span)
+      # Track the root {SpanOperation} object from the current execution context.
+      def set_local_root_span!(span)
         return if span.nil? || root_span
 
         @root_span = span
