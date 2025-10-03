@@ -3,11 +3,13 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'base64'
+gem 'benchmark' # Required for Ruby 3.5+ where benchmark is no longer a default gem
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 gem 'bigdecimal'
 gem 'climate_control', '~> 1.2.0'
 gem 'concurrent-ruby'
+gem 'fiddle' # Required for Ruby 3.5+ where fiddle is no longer a default gem
 
 # Optional extensions
 # TODO: Move this to Appraisals?
@@ -30,15 +32,14 @@ gem 'os', '~> 1.1'
 gem 'ostruct'
 # debug permits evaluating more expressions than byebug, however
 # debug does not show context on stack navigation.
-gem 'debug'
 gem 'byebug'
 gem 'pry'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'rspec', '~> 3.13'
 gem 'rspec-collection_matchers', '~> 1.1'
-gem 'rspec-wait', '~> 0'
 gem 'rspec_junit_formatter', '>= 0.5.1'
+gem 'rspec-wait', '~> 0'
 
 gem 'simplecov', '~> 0.22.0'
 
@@ -63,7 +64,7 @@ group :check do
 end
 
 group :dev do
-  gem 'ruby-lsp', require: false
   gem 'appraisal', '~> 2.4.0', require: false
   gem 'pimpmychangelog', '~> 0.1.3', require: false
+  gem 'ruby-lsp', require: false
 end

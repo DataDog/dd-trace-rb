@@ -61,7 +61,7 @@ $ bundle exec rake test:main
 
 You can also run only a subset of the core library tests.
 
-For example, for the test files [utils_spec.rb](https://github.com/DataDog/dd-trace-rb/blob/d66a6688f6cddab6a8c3cb1d6e0a6bfe86928e44/spec/datadog/core/utils_spec.rb) and 
+For example, for the test files [utils_spec.rb](https://github.com/DataDog/dd-trace-rb/blob/d66a6688f6cddab6a8c3cb1d6e0a6bfe86928e44/spec/datadog/core/utils_spec.rb) and
 [error_spec.rb](https://github.com/DataDog/dd-trace-rb/blob/d66a6688f6cddab6a8c3cb1d6e0a6bfe86928e44/spec/datadog/core/error_spec.rb), you can run:
 
 ```bash
@@ -98,9 +98,9 @@ Take `bundle exec rake test:redis` as example, multiple versions of `redis` from
 ```ruby
 {
   'redis' => {
-    'redis-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
-    'redis-4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
-    'redis-5' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby'
+    'redis-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ✅ jruby',
+    'redis-4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ✅ jruby',
+    'redis-5' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ✅ jruby'
   }
 }
 ```
@@ -162,11 +162,11 @@ For example, if you want tests to run only on Ruby 3.3 for tracing, you can defi
 {
   'tracing:ruby_on_rails' => {
     # With default dependencies for each Ruby runtime
-    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ 3.5 / ❌ jruby'
     # or with dependency group definition `ruby-on-rails`, that includes additional gems or specific versions
-    'rails-1' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    'rails-1' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ 3.5 / ❌ jruby'
     # ...
-    'rails-edge' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    'rails-edge' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ 3.5 / ❌ jruby'
   }
 }
 ```
