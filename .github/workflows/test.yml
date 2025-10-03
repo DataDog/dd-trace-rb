@@ -23,6 +23,15 @@ concurrency:
   cancel-in-progress: "${{ github.ref != 'refs/heads/master' }}"
 
 jobs:
+  # ADD NEW RUBIES HERE
+  ruby-35:
+    name: "Ruby 3.5"
+    uses: ./.github/workflows/_unit_test.yml
+    with:
+      engine: ruby
+      version: "3.5"
+      alias: ruby-35
+
   ruby-34:
     name: "Ruby 3.4"
     uses: ./.github/workflows/_unit_test.yml
@@ -127,6 +136,8 @@ jobs:
         DD_SERVICE: dd-trace-rb
         DD_GIT_REPOSITORY_URL: "${{ github.repositoryUrl }}"
     needs:
+      # ADD NEW RUBIES HERE
+      - ruby-35
       - ruby-34
       - ruby-33
       - ruby-32
@@ -171,6 +182,8 @@ jobs:
     name: dd/coverage
     runs-on: ubuntu-24.04
     needs:
+      # ADD NEW RUBIES HERE
+      - ruby-35
       - ruby-34
       - ruby-33
       - ruby-32
@@ -208,6 +221,8 @@ jobs:
     name: Unit Tests (complete)
     runs-on: ubuntu-24.04
     needs:
+      # ADD NEW RUBIES HERE
+      - ruby-35
       - ruby-34
       - ruby-33
       - ruby-32
