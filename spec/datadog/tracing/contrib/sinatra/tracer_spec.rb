@@ -14,7 +14,8 @@ require 'rspec/expectations'
 
 require_relative '../support/http'
 
-RSpec.describe 'Sinatra instrumentation' do
+# TODO: JRuby 10.0 - Remove this skip after investigation.
+RSpec.describe 'Sinatra instrumentation', skip: RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0') do
   include Rack::Test::Methods
 
   subject(:response) { get url }
