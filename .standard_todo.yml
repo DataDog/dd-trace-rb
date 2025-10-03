@@ -20,5 +20,7 @@ ignore:
   # This disables standardrb for third-party and generated code.
   - appraisal/**/**
   - gemfiles/**/**
-  - integration/**/**
+  - "integration/apps/*/bin/*"
+  - "integration/apps/*/Gemfile"
+  - "integration/apps/*/Rakefile"
   - lib/datadog/**/vendor/**/*
