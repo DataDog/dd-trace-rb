@@ -43,7 +43,7 @@ GEM
     google-protobuf (3.25.6)
     hashdiff (1.1.2)
     http-accept (1.7.0)
-    http-cookie (1.0.8)
+    http-cookie (1.1.0)
       domain_name (~> 0.5)
     io-console (0.8.0)
     irb (1.15.1)
@@ -67,7 +67,7 @@ GEM
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
-    mime-types-data (3.2025.0729)
+    mime-types-data (3.2025.0924)
     msgpack (1.8.0)
     mutex_m (0.3.0)
     netrc (0.11.0)

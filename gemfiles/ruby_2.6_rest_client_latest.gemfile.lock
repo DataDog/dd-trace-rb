@@ -37,7 +37,7 @@ GEM
     google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.1.2)
     http-accept (1.7.0)
-    http-cookie (1.0.8)
+    http-cookie (1.1.0)
       domain_name (~> 0.5)
     json-schema (2.8.1)
       addressable (>= 2.4)
@@ -53,7 +53,7 @@ GEM
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
-    mime-types-data (3.2025.0729)
+    mime-types-data (3.2025.0924)
     msgpack (1.8.0)
     netrc (0.11.0)
     os (1.1.4)
