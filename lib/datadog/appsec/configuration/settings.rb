@@ -357,7 +357,7 @@ module Datadog
                   option :enabled do |o|
                     o.type :bool, nilable: true
                     o.env 'DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED'
-                    o.default false
+                    o.default true
                   end
                 end
 

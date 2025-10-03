@@ -1023,7 +1023,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
               ClimateControl.modify('DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => nil) { example.run }
             end
 
-            it { expect(settings.appsec.api_security.endpoint_collection.enabled).to eq(false) }
+            it { expect(settings.appsec.api_security.endpoint_collection.enabled).to eq(true) }
           end
 
           context 'when DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED is set to true' do
