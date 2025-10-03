@@ -104,7 +104,7 @@ static VALUE _native_configurator_get(VALUE self) {
   // So we cannot reference it with &config_logged_result
   // We are doing this in case one of the ruby API raises an exception before the end of this function,
   // so the allocated memory will still be freed
-  ddog_LibraryConfigLoggedResult *configurator_logged_result = (ddog_LibraryConfigLoggedResult *)ruby_xmalloc(sizeof(ddog_LibraryConfigLoggedResult));
+  ddog_LibraryConfigLoggedResult *configurator_logged_result = ruby_xcalloc(1, sizeof(ddog_LibraryConfigLoggedResult));
   *configurator_logged_result = ddog_library_configurator_get(configurator);
   VALUE config_logged_result_rb = TypedData_Wrap_Struct(config_logged_result_class, &config_logged_result_typed_data, configurator_logged_result);
 

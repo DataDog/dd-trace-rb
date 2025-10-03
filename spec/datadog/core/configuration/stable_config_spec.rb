@@ -72,10 +72,10 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           expect(described_class.configuration).to include(
             {
               local: {id: "12345", config: {"DD_LOGS_INJECTION" => "false"}},
-              fleet: {id: "56789", config: {"DD_APPSEC_ENABLED" => "true"}}
+              fleet: {id: "56789", config: {"DD_APPSEC_ENABLED" => "true"}},
+              logs: be_a(String)
             }
           )
-          expect(described_class.configuration[:logs]).to be_a(String)
         end
       end
 
@@ -98,23 +98,23 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           expect(described_class.configuration).to include(
             {
               local: {config: {"DD_LOGS_INJECTION" => "false"}},
-              fleet: {config: {"DD_APPSEC_ENABLED" => "true"}}
+              fleet: {config: {"DD_APPSEC_ENABLED" => "true"}},
+              logs: be_a(String)
             }
           )
-          expect(described_class.configuration[:logs]).to be_a(String)
         end
       end
 
       context 'with DD_TRACE_DEBUG set during configuration initialization' do
-        # Global configuration has already been set up before the test, so we need to simulate that it was not set up
-        # Same for temporary logger
         before do
-          allow(Datadog).to receive(:configuration?).and_return(false)
-          Datadog.instance_variable_set(:@temp_config_logger, nil)
+          described_class.const_get(:LOG_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
         end
 
-        after do
-          Datadog.instance_variable_set(:@temp_config_logger, nil)
+        # Reset DD_TRACE_DEBUG to nil as its precedence is higher than local config file
+        around do |example|
+          ClimateControl.modify('DD_TRACE_DEBUG' => nil) do
+            example.run
+          end
         end
 
         context 'to true in fleet config' do
@@ -126,19 +126,8 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           end
 
           it 'prints debug logs' do
-            expect { described_class.configuration }.to output(/Reading stable configuration from files/).to_stdout
-          end
-        end
-
-        context 'to true in env' do
-          around do |example|
-            ClimateControl.modify(Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => 'true') do
-              example.run
-            end
-          end
-
-          it 'prints debug logs' do
-            expect { described_class.configuration }.to output(/Reading stable configuration from files/).to_stdout
+            # Datadog.logger is not reset between tests, so we need to build a new logger
+            expect { described_class.log_result(Datadog::Core::Configuration::Components.build_logger(Datadog.configuration)) }.to output(/Reading stable configuration from files/).to_stdout
           end
         end
 
@@ -151,7 +140,8 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
           end
 
           it 'prints debug logs' do
-            expect { described_class.configuration }.to output(/Reading stable configuration from files/).to_stdout
+            # Datadog.logger is not reset between tests, so we need to build a new logger
+            expect { described_class.log_result(Datadog::Core::Configuration::Components.build_logger(Datadog.configuration)) }.to output(/Reading stable configuration from files/).to_stdout
           end
         end
 
@@ -169,10 +159,11 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
               DD_TRACE_DEBUG: false
             YAML
           end
-        end
 
-        it 'respects priority and does not print debug logs' do
-          expect { described_class.configuration }.not_to output(/Reading stable configuration from files/).to_stdout
+          it 'respects priority and does not print debug logs' do
+            # Datadog.logger is not reset between tests, so we need to build a new logger
+            expect { described_class.log_result(Datadog::Core::Configuration::Components.build_logger(Datadog.configuration)) }.not_to output(/Reading stable configuration from files/).to_stdout
+          end
         end
       end
     end

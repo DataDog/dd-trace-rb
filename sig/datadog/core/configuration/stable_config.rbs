@@ -18,6 +18,7 @@ module Datadog
 
         def self.extract_configuration: -> stable_config
         def self.configuration: -> stable_config
+        def self.log_result: (Datadog::Core::Logger logger) -> void
       end
     end
   end
