@@ -68,6 +68,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .with(settings)
         .and_return(logger)
 
+      expect(Datadog::Core::Configuration::StableConfig).to receive(:log_result)
+        .with(logger)
+
       expect(Datadog::Tracing::Component).to receive(:build_tracer)
         .with(settings, agent_settings, logger: logger)
         .and_return(tracer)
