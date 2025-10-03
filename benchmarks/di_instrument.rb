@@ -70,7 +70,7 @@ class DIInstrumentBenchmark
   attr_reader :instrumenter
 
   def logger
-    @logger ||= Logger.new(STDERR)
+    @logger ||= Logger.new($stderr)
   end
 
   def configure
