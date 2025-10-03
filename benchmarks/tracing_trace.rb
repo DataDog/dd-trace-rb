@@ -34,7 +34,7 @@ class TracingTraceBenchmark
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
-      def trace(x, depth)
+      def trace(x, depth) # standard:disable Lint/NestedMethodDefinition
         x.report(
           "#{depth} span trace - no writer",
           (depth.times.map { "Datadog::Tracing.trace('op.name') {" } + depth.times.map { "}" }).join
@@ -62,7 +62,7 @@ class TracingTraceBenchmark
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
-      def trace(x, depth)
+      def trace(x, depth) # standard:disable Lint/NestedMethodDefinition
         x.report(
           "#{depth} span trace - no network",
           (depth.times.map { "Datadog::Tracing.trace('op.name') {" } + depth.times.map { "}" }).join
