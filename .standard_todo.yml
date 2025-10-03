@@ -20,10 +20,7 @@ ignore:
   # This disables standardrb for the rest of dd-trace-rb
   # except those products: profiling, appsec.
   - datadog.gemspec
-  - Rakefile
   - appraisal/**/**
-  - benchmarks/**/**
   - gemfiles/**/**
   - integration/**/**
-  - lib-injection/**/**
   - lib/datadog/**/vendor/**/*
