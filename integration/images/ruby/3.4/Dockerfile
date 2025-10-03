@@ -1,4 +1,4 @@
-FROM ruby:3.4
+FROM ghcr.io/datadog/images-rb/engines/ruby:3.4-centos-gcc
 
 ENV DEBIAN_FRONTEND=noninteractive
 
