@@ -11,7 +11,7 @@ class ExportToFile
   PPROF_PREFIX = ENV.fetch('DD_PROFILING_PPROF_PREFIX', 'profiler-allocation')
 
   def export(flush)
-    File.write("#{PPROF_PREFIX}#{flush.start.strftime('%Y%m%dT%H%M%SZ')}.pprof", flush.encoded_profile._native_bytes)
+    File.write("#{PPROF_PREFIX}#{flush.start.strftime("%Y%m%dT%H%M%SZ")}.pprof", flush.encoded_profile._native_bytes)
     true
   end
 end
@@ -19,7 +19,7 @@ end
 class ProfilerAllocationBenchmark
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -41,12 +41,12 @@ class ProfilerAllocationBenchmark
     3.times { GC.start }
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
 
-      x.report("Allocations (#{ENV['CONFIG']})", 'BasicObject.new')
+      x.report("Allocations (#{ENV["CONFIG"]})", 'BasicObject.new')
 
       x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
