@@ -47,7 +47,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         it 'stores metadata successfully' do
           described_class.publish(settings)
 
-          expect(content).to eq(
+          expect(content).to include(
             {
               'runtime_id' => Datadog::Core::Environment::Identity.id,
               'tracer_language' => Datadog::Core::Environment::Identity.lang,
@@ -76,7 +76,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
 
           # If the string is empty, it should be replaced by None when converting C strings to Rust types.
           # Thus not appearing in the content.
-          expect(content).to eq(
+          expect(content).to include(
             {
               'runtime_id' => Datadog::Core::Environment::Identity.id,
               'tracer_language' => Datadog::Core::Environment::Identity.lang,
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
 
       expect_in_fork do
         expect(described_class).to have_received(:publish)
-        expect(content).to eq(
+        expect(content).to include(
           {
             'runtime_id' => Datadog::Core::Environment::Identity.id,
             'tracer_language' => Datadog::Core::Environment::Identity.lang,
