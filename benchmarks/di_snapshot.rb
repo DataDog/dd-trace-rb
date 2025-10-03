@@ -150,7 +150,7 @@ class DISnapshotBenchmark
 
     probe = Datadog::DI::Probe.new(
       id: 1, type: :log,
-      file: 'di_snapshot_target.rb', line_no: 20,
+      file: 'di_snapshot_target.rb', line_no: 30,
       capture_snapshot: false,
       rate_limit: BASIC_RATE_LIMIT,
     )
@@ -185,7 +185,7 @@ class DISnapshotBenchmark
 
     probe = Datadog::DI::Probe.new(
       id: 1, type: :log,
-      file: 'di_snapshot_target.rb', line_no: 20,
+      file: 'di_snapshot_target.rb', line_no: 30,
       capture_snapshot: true,
       rate_limit: ENRICHED_RATE_LIMIT,
     )
