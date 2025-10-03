@@ -20,24 +20,32 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
     before do
       Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
 
-      File.write(
-        File.join(tmpdir, 'local_config.yaml'),
-        local_config_content
-      ) if defined?(local_config_content)
-      File.write(
-        File.join(tmpdir, 'fleet_config.yaml'),
-        fleet_config_content
-      ) if defined?(fleet_config_content)
+      if defined?(local_config_content)
+        File.write(
+          File.join(tmpdir, 'local_config.yaml'),
+          local_config_content
+        )
+      end
+      if defined?(fleet_config_content)
+        File.write(
+          File.join(tmpdir, 'fleet_config.yaml'),
+          fleet_config_content
+        )
+      end
 
       test_configurator = Datadog::Core::Configuration::StableConfig::Configurator.new
-      Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
-        test_configurator,
-        File.join(tmpdir, 'local_config.yaml')
-      ) if defined?(local_config_content)
-      Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
-        test_configurator,
-        File.join(tmpdir, 'fleet_config.yaml')
-      ) if defined?(fleet_config_content)
+      if defined?(local_config_content)
+        Datadog::Core::Configuration::StableConfig::Testing.with_local_path(
+          test_configurator,
+          File.join(tmpdir, 'local_config.yaml')
+        )
+      end
+      if defined?(fleet_config_content)
+        Datadog::Core::Configuration::StableConfig::Testing.with_fleet_path(
+          test_configurator,
+          File.join(tmpdir, 'fleet_config.yaml')
+        )
+      end
 
       allow_any_instance_of(Datadog::Core::Configuration::StableConfig::Configurator).to receive(:get).and_return(
         test_configurator.get
@@ -120,8 +128,8 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
         context 'to true in fleet config' do
           let(:fleet_config_content) do
             <<~YAML
-            apm_configuration_default:
-              DD_TRACE_DEBUG: true
+              apm_configuration_default:
+                DD_TRACE_DEBUG: true
             YAML
           end
 
@@ -134,8 +142,8 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
         context 'to true in local config' do
           let(:local_config_content) do
             <<~YAML
-            apm_configuration_default:
-              DD_TRACE_DEBUG: true
+              apm_configuration_default:
+                DD_TRACE_DEBUG: true
             YAML
           end
 
@@ -148,15 +156,15 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
         context 'to true in local config and false in fleet config' do
           let(:local_config_content) do
             <<~YAML
-            apm_configuration_default:
-              DD_TRACE_DEBUG: true
+              apm_configuration_default:
+                DD_TRACE_DEBUG: true
             YAML
           end
 
           let(:fleet_config_content) do
             <<~YAML
-            apm_configuration_default:
-              DD_TRACE_DEBUG: false
+              apm_configuration_default:
+                DD_TRACE_DEBUG: false
             YAML
           end
 
