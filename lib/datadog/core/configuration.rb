@@ -174,8 +174,8 @@ module Datadog
 
       # During stable config initialization, we also have to check for DD_TRACE_DEBUG in local and fleet config.
       # We pass the debug source value
-      def config_init_logger(debug_source_value = DATADOG_ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED])
-        configuration? ? logger : logger_without_configuration(debug_source_value)
+      def config_init_logger
+        configuration? ? logger : logger_without_configuration
       end
 
       # Gracefully shuts down all components.
@@ -292,17 +292,17 @@ module Datadog
         end
       end
 
-      def logger_without_configuration(debug_source_value)
+      def logger_without_configuration
         # There's rare cases where we need to use logger during configuration initialization,
         # such as reading stable config. In this case we cannot access configuration.
 
         @temp_config_logger ||= begin
-          debug_value = debug_source_value&.strip&.downcase
-          debug = debug_value == 'true' || debug_value == '1'
+          debug_env_value = DATADOG_ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
+          debug_value = debug_env_value == 'true' || debug_env_value == '1'
 
           logger = Core::Logger.new($stdout)
           # We cannot access config and the default level is INFO, so we need to set the level manually
-          logger.level = debug ? ::Logger::DEBUG : ::Logger::INFO
+          logger.level = debug_value ? ::Logger::DEBUG : ::Logger::INFO
           logger
         end
       end
