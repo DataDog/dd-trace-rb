@@ -448,24 +448,19 @@ RSpec.describe Datadog::Core::Configuration do
     end
 
     describe '#logger_without_configuration' do
-      subject(:logger_without_configuration) { test_class.send(:logger_without_configuration, debug_source_value) }
-
-      context 'when configuration is not initialized and debug_source_value is not set' do
-        let(:debug_source_value) { nil }
-
+      subject(:logger_without_configuration) { test_class.send(:logger_without_configuration) }
+      context 'when configuration is not initialized and DD_TRACE_DEBUG is not set' do
         it { expect(logger_without_configuration.level).to be ::Logger::INFO }
       end
 
-      context 'when configuration is not initialized and debug_source_value is set to true' do
-        let(:debug_source_value) { 'true' }
+      context 'when configuration is not initialized and DD_TRACE_DEBUG is set' do
+        around do |example|
+          ClimateControl.modify('DD_TRACE_DEBUG' => 'true') do
+            example.run
+          end
+        end
 
         it { expect(logger_without_configuration.level).to be ::Logger::DEBUG }
-      end
-
-      context 'when configuration is not initialized and debug_source_value is set to false' do
-        let(:debug_source_value) { 'false' }
-
-        it { expect(logger_without_configuration.level).to be ::Logger::INFO }
       end
     end
 
