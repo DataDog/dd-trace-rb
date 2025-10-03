@@ -36,7 +36,7 @@ class ShortCircuitMiddleware
   end
 
   def call(env)
-    return [200, {}, []]
+    [200, {}, []]
   end
 end
 
@@ -63,7 +63,7 @@ class CacheMiddleware
   end
 
   def call(env)
-    request_id = env['action_dispatch.request_id']
+    env['action_dispatch.request_id']
 
     # NOTE: Disabled for now, suspected to cause memory growth.
     # Fetch from cache
@@ -92,9 +92,9 @@ module Acme
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-    config.cache_store = :redis_cache_store, { url: ENV['REDIS_URL'] }
+    config.cache_store = :redis_cache_store, {url: ENV['REDIS_URL']}
     config.action_controller.perform_caching = true
 
-    config.exceptions_app = self.routes
+    config.exceptions_app = routes
   end
 end

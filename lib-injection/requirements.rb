@@ -46,7 +46,7 @@ def requirements
     'cmds' => [
       '**/ruby'
     ],
-    'args' => [{ 'args' => ['*/gem'], 'position' => 1 }],
+    'args' => [{'args' => ['*/gem'], 'position' => 1}],
     'envars' => nil,
   }
 
@@ -57,7 +57,7 @@ def requirements
     'cmds' => [
       '**/ruby'
     ],
-    'args' => [{ 'args' => ['--disable-gems'], 'position' => nil }],
+    'args' => [{'args' => ['--disable-gems'], 'position' => nil}],
     'envars' => nil,
   }
 
@@ -71,7 +71,7 @@ def requirements
     'cmds' => [
       '**/ruby'
     ],
-    'args' => [{ 'args' => ['setup.rb'], 'position' => nil }],
+    'args' => [{'args' => ['setup.rb'], 'position' => nil}],
     'envars' => nil,
   }
 
@@ -111,7 +111,7 @@ def requirements
           'cmds' => [
             '**/ruby'
           ],
-          'args' => [{ 'args' => ["*/#{exe}", *varargs, command], 'position' => 1 }],
+          'args' => [{'args' => ["*/#{exe}", *varargs, command], 'position' => 1}],
           'envars' => nil,
         }
       end
@@ -135,7 +135,7 @@ def requirements
       'cmds' => [
         '**/ruby'
       ],
-      'args' => [{ 'args' => ["**/#{exe}"], 'position' => 1 }],
+      'args' => [{'args' => ["**/#{exe}"], 'position' => 1}],
       'envars' => nil,
     }
   end
@@ -153,13 +153,13 @@ def requirements
     knife
   ].each do |exe|
     reqs['deny'] << {
-      'id' => "chef_#{exe.tr('-', '_')}",
+      'id' => "chef_#{exe.tr("-", "_")}",
       'description' => "Ignore chef's #{exe}",
       'os' => nil,
       'cmds' => [
         '**/ruby'
       ],
-      'args' => [{ 'args' => ["*/#{exe}"], 'position' => 1 }],
+      'args' => [{'args' => ["*/#{exe}"], 'position' => 1}],
       'envars' => nil,
     }
   end
@@ -176,7 +176,7 @@ def requirements
       'cmds' => [
         '**/ruby'
       ],
-      'args' => [{ 'args' => ["*/#{exe}"], 'position' => 1 }],
+      'args' => [{'args' => ["*/#{exe}"], 'position' => 1}],
       'envars' => nil,
     }
   end
@@ -198,7 +198,7 @@ def requirements
       'cmds' => [
         '**/ruby'
       ],
-      'args' => [{ 'args' => ['*/appraisal', command], 'position' => 1 }],
+      'args' => [{'args' => ['*/appraisal', command], 'position' => 1}],
       'envars' => nil,
     }
   end
@@ -213,7 +213,7 @@ def requirements
       'cmds' => [
         '**/ruby'
       ],
-      'args' => [{ 'args' => ["*/#{exe}"], 'position' => 1 }],
+      'args' => [{'args' => ["*/#{exe}"], 'position' => 1}],
       'envars' => nil,
     }
   end
@@ -228,7 +228,7 @@ def requirements
       'cmds' => [
         '**/ruby'
       ],
-      'args' => [{ 'args' => ["*/#{exe}"], 'position' => 1 }],
+      'args' => [{'args' => ["*/#{exe}"], 'position' => 1}],
       'envars' => nil,
     }
   end
@@ -244,7 +244,7 @@ def requirements
       'cmds' => [
         '**/ruby'
       ],
-      'args' => [{ 'args' => ["*/#{exe}"], 'position' => 1 }],
+      'args' => [{'args' => ["*/#{exe}"], 'position' => 1}],
       'envars' => nil,
     }
   end

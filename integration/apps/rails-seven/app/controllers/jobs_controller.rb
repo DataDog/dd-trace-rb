@@ -7,6 +7,6 @@ class JobsController < ApplicationController
     Resque.enqueue(TestJob, job_id: job_id)
 
     # Return response
-    render json: { job_id: job_id }
+    render json: {job_id: job_id}
   end
 end
