@@ -17,8 +17,7 @@ ignore:
       # character. To avoid being too directive, I would let comments go loose.
       - Layout/LeadingCommentSpace
 
-  # This disables standardrb for the rest of dd-trace-rb
-  # except those products: profiling, appsec.
+  # This disables standardrb for third-party and generated code.
   - appraisal/**/**
   - gemfiles/**/**
   - integration/**/**
