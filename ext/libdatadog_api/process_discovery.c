@@ -60,13 +60,13 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
 
   void* builder = ddog_tracer_metadata_new();
 
-  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_RUNTIME_ID, char_slice_from_ruby_string(runtime_id));
-  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_TRACER_LANGUAGE, char_slice_from_ruby_string(tracer_language));
-  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_TRACER_VERSION, char_slice_from_ruby_string(tracer_version));
-  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_HOSTNAME, char_slice_from_ruby_string(hostname));
-  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_NAME, char_slice_from_ruby_string(service_name));
-  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_ENVIRONMENT, char_slice_from_ruby_string(service_env));
-  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_VERSION, char_slice_from_ruby_string(service_version));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_RUNTIME_ID, StringValueCStr(runtime_id));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_TRACER_LANGUAGE, StringValueCStr(tracer_language));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_TRACER_VERSION, StringValueCStr(tracer_version));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_HOSTNAME, StringValueCStr(hostname));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_NAME, StringValueCStr(service_name));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_ENV, StringValueCStr(service_env));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_VERSION, StringValueCStr(service_version));
 
   ddog_Result_TracerMemfdHandle result = ddog_tracer_metadata_store(builder);
   ddog_tracer_metadata_free(builder);
