@@ -21,7 +21,7 @@ class ErrorTrackingSimpleBenchmark
   # (give or take a small margin of error).
   # @param [Integer] warmup in seconds. The default is 2 seconds.
   def benchmark_time(time: 12, warmup: 2)
-    VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: time, warmup: warmup }
+    VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0} : {time: time, warmup: warmup}
   end
 
   def initialize
@@ -34,11 +34,9 @@ class ErrorTrackingSimpleBenchmark
 
       x.report("without error tracking, with_error=#{with_error}") do
         Datadog::Tracing.trace('test.operation') do
-          begin
-            raise 'Test error' if with_error
-          rescue
-            # do nothing
-          end
+          raise 'Test error' if with_error
+        rescue
+          # do nothing
         end
       end
 
@@ -57,11 +55,9 @@ class ErrorTrackingSimpleBenchmark
 
       x.report("error tracking, with_error=#{with_error} - all") do
         Datadog::Tracing.trace('test.operation') do
-          begin
-            raise 'Test error' if with_error
-          rescue
-            # do nothing
-          end
+          raise 'Test error' if with_error
+        rescue
+          # do nothing
         end
       end
 
@@ -80,11 +76,9 @@ class ErrorTrackingSimpleBenchmark
 
       x.report("error tracking, with_error=#{with_error} - user code only") do
         Datadog::Tracing.trace('test.operation') do
-          begin
-            raise 'Test error' if with_error
-          rescue
-            # do nothing
-          end
+          raise 'Test error' if with_error
+        rescue
+          # do nothing
         end
       end
 
@@ -103,11 +97,9 @@ class ErrorTrackingSimpleBenchmark
 
       x.report("error tracking, with_error=#{with_error} - third_party only") do
         Datadog::Tracing.trace('test.operation') do
-          begin
-            raise 'Test error' if with_error
-          rescue
-            # do nothing
-          end
+          raise 'Test error' if with_error
+        rescue
+          # do nothing
         end
       end
 

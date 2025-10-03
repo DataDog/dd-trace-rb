@@ -1,39 +1,37 @@
-=begin
-
-"Instrumentation" part of Dynamic Instrumentation benchmarks.
-
-Typical result:
-
-Comparison:
-  no instrumentation:   589490.0 i/s
-method instrumentation - cleared:   545807.2 i/s - 1.08x  slower
-line instrumentation - cleared:   539686.5 i/s - 1.09x  slower
-no instrumentation - again:   535761.0 i/s - 1.10x  slower
-method instrumentation:   129159.5 i/s - 4.56x  slower
-line instrumentation - targeted:   128848.6 i/s - 4.58x  slower
-line instrumentation:    10771.7 i/s - 54.73x  slower
-
-Targeted line and method instrumentations have similar performance at
-about 25% of baseline. Note that the instrumented method is fairly
-small and probably runs very quickly by itself, so while this is not the
-worst possible case for instrumentation (that would be an empty method),
-likely the vast majority of real world uses of DI would have way expensive
-target code and the relative overhead of instrumentation will be significantly
-lower than it is in this benchmark.
-
-Untargeted line instrumentation is extremely slow, too slow to be usable.
-
-In theory, after instrumentation is removed, performance should return to
-the baseline. We are currently observing about a 6-10% performance loss.
-Two theories for why this is so:
-1. Some overhead remains in the code - to be investigated.
-2. The benchmarks were run on a laptop, and during the benchmarking
-process the CPU is heating up and it can't turbo to the same speeds at
-the end of the run as it can at the beginning. Meaning the observed 6-10%
-slowdown at the end is an environmental issue and not an implementation
-problem.
-
-=end
+#
+# "Instrumentation" part of Dynamic Instrumentation benchmarks.
+#
+# Typical result:
+#
+# Comparison:
+#   no instrumentation:   589490.0 i/s
+# method instrumentation - cleared:   545807.2 i/s - 1.08x  slower
+# line instrumentation - cleared:   539686.5 i/s - 1.09x  slower
+# no instrumentation - again:   535761.0 i/s - 1.10x  slower
+# method instrumentation:   129159.5 i/s - 4.56x  slower
+# line instrumentation - targeted:   128848.6 i/s - 4.58x  slower
+# line instrumentation:    10771.7 i/s - 54.73x  slower
+#
+# Targeted line and method instrumentations have similar performance at
+# about 25% of baseline. Note that the instrumented method is fairly
+# small and probably runs very quickly by itself, so while this is not the
+# worst possible case for instrumentation (that would be an empty method),
+# likely the vast majority of real world uses of DI would have way expensive
+# target code and the relative overhead of instrumentation will be significantly
+# lower than it is in this benchmark.
+#
+# Untargeted line instrumentation is extremely slow, too slow to be usable.
+#
+# In theory, after instrumentation is removed, performance should return to
+# the baseline. We are currently observing about a 6-10% performance loss.
+# Two theories for why this is so:
+# 1. Some overhead remains in the code - to be investigated.
+# 2. The benchmarks were run on a laptop, and during the benchmarking
+# process the CPU is heating up and it can't turbo to the same speeds at
+# the end of the run as it can at the beginning. Meaning the observed 6-10%
+# slowdown at the end is an environmental issue and not an implementation
+# problem.
+#
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
@@ -92,7 +90,7 @@ class DIInstrumentBenchmark
     file, line = m.source_location
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -116,7 +114,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -159,7 +157,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -208,7 +206,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -237,7 +235,7 @@ class DIInstrumentBenchmark
     calls = 0
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -257,7 +255,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -277,7 +275,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -289,9 +287,7 @@ class DIInstrumentBenchmark
       x.save! 'di-instrument-results.json' unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
-
   end
-
 end
 
 puts "Current pid is #{Process.pid}"
