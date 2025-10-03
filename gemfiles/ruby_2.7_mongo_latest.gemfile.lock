@@ -3,7 +3,7 @@ PATH
   specs:
     datadog (2.22.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 18.1.0.1.0)
+      libdatadog (~> 22.0.0.1.0)
       libddwaf (~> 1.25.1.1.0)
       logger
       msgpack
@@ -38,8 +38,8 @@ GEM
     hashdiff (1.1.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (18.1.0.1.0-aarch64-linux)
-    libdatadog (18.1.0.1.0-x86_64-linux)
+    libdatadog (22.0.0.1.0-aarch64-linux)
+    libdatadog (22.0.0.1.0-x86_64-linux)
     libddwaf (1.25.1.1.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.25.1.1.0-x86_64-linux)
@@ -47,7 +47,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    mongo (2.21.2)
+    mongo (2.21.3)
       base64
       bson (>= 4.14.1, < 6.0.0)
     msgpack (1.8.0)
