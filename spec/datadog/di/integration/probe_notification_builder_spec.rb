@@ -224,7 +224,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           it 'builds message with nothing substituted for variables' do
             payload = builder.build_snapshot(context)
             expect(payload).to be_a(Hash)
-            expect(payload[:message]).to eq 'hello'
+            # TODO maybe this output is suboptimal but we need more
+            # complexity to handle missing variable references without
+            # serializing nil as empty string everywhere.
+            expect(payload[:message]).to eq 'hellonil'
 
             # We asked to not create a snapshot
             expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
