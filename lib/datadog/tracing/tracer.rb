@@ -149,10 +149,10 @@ module Datadog
           context = call_context
           active_trace = context.active_trace
           trace = if continue_from || active_trace.nil?
-            start_trace(continue_from: continue_from)
-          else
-            active_trace
-          end
+                    start_trace(continue_from: continue_from)
+                  else
+                    active_trace
+                  end
         rescue => e
           logger.debug { "Failed to trace: #{e}" }
 
@@ -241,10 +241,21 @@ module Datadog
         trace.to_correlation
       end
 
-      # Setup a new trace to continue from where another
+      # Setup a new trace execution context to continue from where another
       # trace left off.
+      # This is useful to continue distributed or async traces.
       #
-      # Used to continue distributed or async traces.
+      # The first span created in the restored context is a direct child of the
+      # active span from when the {Datadog::Tracing::TraceDigest} was created.
+      #
+      # When no block is given, the trace context is restored in the current thread.
+      # It remains active until the first span created in this restored context is finished.
+      # After that, if a new span is created, it start a new, unrelated trace.
+      #
+      # When a block is given, the trace context is restored inside the block execution.
+      # It remains active until the block ends, even when the first span created inside
+      # the block finishes. This means that multiple spans can be direct children of the
+      # active span from when the {Datadog::Tracing::TraceDigest} was created.
       #
       # @param [Datadog::Tracing::TraceDigest] digest continue from the {Datadog::Tracing::TraceDigest}.
       # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
@@ -260,13 +271,32 @@ module Datadog
         # Start a new trace from the digest
         context = call_context(key)
         original_trace = active_trace(key)
-        trace = start_trace(continue_from: digest)
+        # When we want the trace to be bound to a block, we cannot let
+        # it auto finish when the local root span finishes. This would
+        # create mutiple traces inside the block. Instead, we'll
+        # expliclity finish the trace after the block finishes.
+        auto_finish = !block
+
+        trace = start_trace(continue_from: digest, auto_finish: auto_finish)
 
         # If block hasn't been given; we need to manually deactivate
         # this trace. Subscribe to the trace finished event to do this.
         subscribe_trace_deactivation!(context, trace, original_trace) unless block
 
-        context.activate!(trace, &block)
+        if block
+          # When a block is given, the trace will be active until the block finishes.
+          context.activate!(trace) do
+            yield
+          ensure # We have to flush even when an error occurs
+            # On block completion, force the trace to finish and flush its finished spans.
+            # Unfinished spans are lost as the {TraceOperation} has ended.
+            trace.finish!
+            flush_trace(trace)
+          end
+        else
+          # Otherwise, the trace will be bound to the current thread after this point
+          context.activate!(trace)
+        end
       end
 
       # Sample a span, tagging the trace as appropriate.
@@ -329,15 +359,15 @@ module Datadog
         @provider.context(key)
       end
 
-      def build_trace(digest = nil)
+      def build_trace(digest, auto_finish)
         # Resolve hostname if configured
         hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
-        hostname = (hostname && !hostname.empty?) ? hostname : nil
+        hostname = hostname && !hostname.empty? ? hostname : nil
 
         if digest
           sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
-            digest.trace_sampling_priority
-          end
+                                digest.trace_sampling_priority
+                              end
           TraceOperation.new(
             logger: logger,
             hostname: hostname,
@@ -353,7 +383,8 @@ module Datadog
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
             remote_parent: digest.span_remote,
             tracer: self,
-            baggage: digest.baggage
+            baggage: digest.baggage,
+            auto_finish: auto_finish
           )
         else
           TraceOperation.new(
@@ -362,13 +393,13 @@ module Datadog
             profiling_enabled: profiling_enabled,
             apm_tracing_enabled: apm_tracing_enabled,
             remote_parent: false,
-            tracer: self
+            tracer: self,
+            auto_finish: auto_finish
           )
         end
       end
       # rubocop:enable Metrics/MethodLength
 
-      # rubocop:disable Metrics/MethodLength
       def bind_trace_events!(trace_op)
         events = trace_op.send(:events)
 
@@ -387,13 +418,12 @@ module Datadog
           flush_trace(event_trace_op)
         end
       end
-      # rubocop:enable Metrics/MethodLength
 
       # Creates a new TraceOperation, with events bounds to this Tracer instance.
       # @return [TraceOperation]
-      def start_trace(continue_from: nil)
+      def start_trace(continue_from: nil, auto_finish: true)
         # Build a new trace using digest if provided.
-        trace = build_trace(continue_from)
+        trace = build_trace(continue_from, auto_finish)
 
         # Bind trace events: sample trace, set default service, flush spans.
         bind_trace_events!(trace)
@@ -402,7 +432,6 @@ module Datadog
       end
 
       # rubocop:disable Lint/UnderscorePrefixedVariableName
-      # rubocop:disable Metrics/MethodLength
       def start_span(
         name,
         continue_from: nil,
@@ -454,18 +483,17 @@ module Datadog
           span
         end
       end
-      # rubocop:enable Lint/UnderscorePrefixedVariableName
-      # rubocop:enable Metrics/MethodLength
 
+      # rubocop:enable Lint/UnderscorePrefixedVariableName
       def resolve_tags(tags, service)
         merged_tags = if @tags.any? && tags
-          # Combine default tags with provided tags,
-          # preferring provided tags.
-          @tags.merge(tags)
-        else
-          # Use provided tags or default tags if none.
-          tags || @tags.dup
-        end
+                        # Combine default tags with provided tags,
+                        # preferring provided tags.
+                        @tags.merge(tags)
+                      else
+                        # Use provided tags or default tags if none.
+                        tags || @tags.dup
+                      end
         # Remove version tag if service is not the default service
         if merged_tags.key?(Core::Environment::Ext::TAG_VERSION) && service && service != @default_service
           merged_tags.delete(Core::Environment::Ext::TAG_VERSION)
