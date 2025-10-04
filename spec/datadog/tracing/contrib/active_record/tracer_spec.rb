@@ -14,12 +14,15 @@ RSpec.describe 'ActiveRecord instrumentation' do
   before do
     # Prevent extra spans during tests
     Article.count
+    clear_traces!
 
     # Reset options (that might linger from other tests)
     Datadog.configuration.tracing[:active_record].reset!
 
     Datadog.configure do |c|
       c.tracing.instrument :active_record, configuration_options
+      c.tracing.instrument :concurrent_ruby
+      c.tracing.instrument :mysql2
     end
 
     raise_on_rails_deprecation!
@@ -33,7 +36,9 @@ RSpec.describe 'ActiveRecord instrumentation' do
   end
 
   context 'when query is made' do
-    before { Article.count }
+    subject!(:count) { Article.count }
+
+    let(:span) { spans.find { |s| s.get_tag('component') == 'active_record' } }
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }
@@ -137,15 +142,14 @@ RSpec.describe 'ActiveRecord instrumentation' do
             YAML
           end
 
+          let(:makara_span) { spans.find { |s| s.name == 'mysql2_makara.query' } }
+
           context 'and a master write operation' do
             it 'matches replica configuration' do
               # SHOW queries are executed on master
               ActiveRecord::Base.connection.execute('SHOW TABLES')
 
-              expect(spans).to have_at_least(1).item
-              spans.each do |span|
-                expect(span.service).to eq(primary_service_name)
-              end
+              expect(makara_span.service).to eq(primary_service_name)
             end
           end
 
@@ -154,10 +158,41 @@ RSpec.describe 'ActiveRecord instrumentation' do
               # SELECT queries are executed on replicas
               Article.count
 
-              expect(span.service).to eq(secondary_service_name)
+              expect(makara_span.service).to eq(secondary_service_name)
             end
           end
         end
+      end
+    end
+
+    context 'with adapter supporting background execution' do
+      before { skip('Rails < 7 does not support async queries') if ActiveRecord::VERSION::MAJOR < 7 }
+
+      subject { nil } # Delay query to inside the trace block
+
+      it 'parents the database span to the calling context' do
+        root_span = Datadog::Tracing.trace('root-span') do |span|
+          relation = Article.limit(1).load_async # load_async was the only async method in Rails 7.0
+
+          # Confirm async execution (there's no public API to confirm it).
+          expect(relation.instance_variable_get(:@future_result)).to_not be_nil
+
+          # Ensure we didn't break the query
+          expect(relation.to_a).to be_a(Array)
+
+          span
+        end
+
+        # Remove boilerplate DB spans, like `SET` statements.
+        select = spans.select { |s| s.resource =~ /select.*articles/i }
+
+        # Ensure all DB spans are either children of the root span or nested spans.
+        expect(select).to all(not_be(be_root_span))
+
+        ar_spans = select.select { |s| s.get_tag('component') == 'active_record' }
+
+        expect(ar_spans).to have(1).item
+        expect(ar_spans[0].parent_id).to eq(root_span.id)
       end
     end
   end
