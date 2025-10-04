@@ -7,7 +7,8 @@ gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 gem 'bigdecimal'
 gem 'climate_control', '~> 1.2.0'
-gem 'concurrent-ruby'
+# Pin concurrent-ruby to avoid Rails 7 boot issues (see rails-seven Gemfile comment)
+gem 'concurrent-ruby', '1.3.4'
 
 # Optional extensions
 # TODO: Move this to Appraisals?
@@ -30,20 +31,26 @@ gem 'os', '~> 1.1'
 
 # debug permits evaluating more expressions than byebug, however
 # debug does not show context on stack navigation.
-gem 'debug'
 gem 'byebug'
+gem 'debug'
 gem 'pry'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'rspec', '~> 3.13'
 gem 'rspec-collection_matchers', '~> 1.1'
-gem 'rspec-wait', '~> 0'
 gem 'rspec_junit_formatter', '>= 0.5.1'
+gem 'rspec-wait', '~> 0'
 
 gem 'simplecov', '~> 0.22.0'
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.8.2'
+
+# ActiveRecord 7 async query support for local specs
+# gem 'activerecord', '~> 7.0'
+# gem 'pg', '>= 1.4', '< 2.0'
+# gem 'sqlite3', '>= 1.5', '< 2.0'
+# gem 'mysql2', '>= 0.5.4', '< 0.6.0'
 
 group :check do
   gem 'rbs', '~> 3.7', require: false
@@ -62,9 +69,9 @@ group :check do
 end
 
 group :dev do
-  gem 'ruby-lsp', require: false
   gem 'appraisal', '~> 2.4.0', require: false
   gem 'pimpmychangelog', '~> 0.1.3', require: false
+  gem 'ruby-lsp', require: false
 end
 
 group :test do
