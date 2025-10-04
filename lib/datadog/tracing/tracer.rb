@@ -245,15 +245,17 @@ module Datadog
       # trace left off.
       # This is useful to continue distributed or async traces.
       #
-      # The first span created in the restored context is a direct child of the span
-      # from which the {Datadog::Tracing::TraceDigest} was created.
+      # The first span created in the restored context is a direct child of the
+      # active span from when the {Datadog::Tracing::TraceDigest} was created.
       #
       # When no block is given, the trace context is restored in the current thread.
-      # It remains active until the first span created in the restored context is finished.
-      # After that, if a new span is created, it start a new trace.
+      # It remains active until the first span created in this restored context is finished.
+      # After that, if a new span is created, it start a new, unrelated trace.
       #
       # When a block is given, the trace context is restored inside the block execution.
-      # It remains active until the block ends, even when the first span created finishes.
+      # It remains active until the block ends, even when the first span created inside
+      # the block finishes. This means that multiple spans can be direct children of the
+      # active span from when the {Datadog::Tracing::TraceDigest} was created.
       #
       # @param [Datadog::Tracing::TraceDigest] digest continue from the {Datadog::Tracing::TraceDigest}.
       # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
@@ -269,23 +271,30 @@ module Datadog
         # Start a new trace from the digest
         context = call_context(key)
         original_trace = active_trace(key)
-        trace = start_trace(continue_from: digest, auto_finish: !block)
+        # When we want the trace to be bound to a block, we cannot let
+        # it auto finish when the local root span finishes. This would
+        # create mutiple traces inside the block. Instead, we'll
+        # expliclity finish the trace after the block finishes.
+        auto_finish = !block
+
+        trace = start_trace(continue_from: digest, auto_finish: auto_finish)
 
         # If block hasn't been given; we need to manually deactivate
         # this trace. Subscribe to the trace finished event to do this.
         subscribe_trace_deactivation!(context, trace, original_trace) unless block
 
-        # When a block is given, the trace will be active until the block finishes.
         if block
+          # When a block is given, the trace will be active until the block finishes.
           context.activate!(trace) do
             yield
-          ensure
-            # On block completion, force trace to finish and flush its finished spans.
-            # Unfinished spans are lost as the trace context has ended.
+          ensure # We have to flush even when an error occurs
+            # On block completion, force the trace to finish and flush its finished spans.
+            # Unfinished spans are lost as the {TraceOperation} has ended.
             trace.finish!
             flush_trace(trace)
           end
         else
+          # Otherwise, the trace will be bound to the current thread after this point
           context.activate!(trace)
         end
       end

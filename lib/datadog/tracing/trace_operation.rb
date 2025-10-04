@@ -326,22 +326,21 @@ module Datadog
         build_trace(spans, !finished)
       end
 
-      # Manually finish the trace, marking it as completed.
+      # When automatic context management is disabled (@auto_finish is false),
+      # this method finishes the trace, marking it as completed.
       #
-      # This is in contrast the usual trace finishing flow,
-      # which happens when the first span in this trace finishes.
-      #
-      # This is useful when the active trace context is forced to finish.
-      # For example, when the trace context is bound to Ruby block and
-      # that block finishes.
+      # The trace will **not** automatically finish when its local root span
+      # when @auto_finish is false, thus calling this method is mandatory
+      # in such scenario.
       #
       # Unfinished spans are discarded.
       #
       # This method is idempotent and safe to call after the trace is finished.
+      # It is also a no-op when @auto_finish is true, to prevent misuse.
       #
       # @!visibility private
       def finish!
-        return if finished?
+        return if @auto_finish || finished?
 
         @finished = true
         @active_span = nil
@@ -515,9 +514,12 @@ module Datadog
         logger.debug { "Error starting span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
 
-      # When the root span is finished, this trace is considered complete
-      # and will not accept new spans. Another {TraceOperaton} is needed
-      # for creating new spans.
+      # For traces with automatic context management (auto_finish),
+      # when the local root span finishes, the trace also finishes.
+      # The trace cannot receive new spans after finished.
+      #
+      # Without auto_finish, the trace can still receive spans
+      # until explicitly finished.
       def finish_span(span, span_op, parent)
         # Save finished span & root span
         @spans << span unless span.nil?
@@ -525,11 +527,8 @@ module Datadog
         # Deactivate the span, re-activate parent.
         deactivate_span!(span_op)
 
-        # If the local root span just finished,
-        # this trace is now complete.
-        # If the last trace is not a local root span
-        # the trace can stay unfinished, receiving
-        # new spans.
+        # Finish if the local root span is finished and automatic
+        # context management is enabled.
         @finished = true if span_op == root_span && @auto_finish
 
         # Update active span count

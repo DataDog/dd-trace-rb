@@ -783,6 +783,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
   describe '#finish!' do
     subject(:finish!) { trace_op.finish! }
+    let(:options) { {auto_finish: false} }
 
     let!(:span) do
       trace_op.build_span('test').start
@@ -810,19 +811,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       expect(published_traces).to contain_exactly(trace_op)
     end
 
-    it 'does not publish trace_finished when trace is finished' do
-      span.finish
-
-      expect(trace_op.finished?).to be(true)
-
-      published_traces = []
-      trace_op.send(:events).trace_finished.subscribe { |trace| published_traces << trace }
-
-      finish!
-
-      expect(published_traces).to be_empty
-    end
-
     context 'with unfinished spans' do
       it 'loses only unfinished spans' do
         trace_op.build_span('finished').start.finish
@@ -833,6 +821,31 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         flushed_trace = trace_op.flush!
         expect(flushed_trace.spans).to have(1).item
         expect(flushed_trace.spans[0].name).to eq('finished')
+      end
+    end
+
+    context 'when auto_finish is true (#finish! is a no-op)' do
+      let(:options) { {auto_finish: true} }
+
+      it 'does not mark the trace as finished' do
+        expect { finish! }.not_to change { trace_op.finished? }.from(false)
+      end
+
+      it 'does not change active_span' do
+        expect { finish! }.not_to change { trace_op.active_span }.from(span)
+      end
+
+      it 'does not change active_span_count' do
+        expect { finish! }.not_to change { trace_op.active_span_count }.from(1)
+      end
+
+      it 'does not publish trace_finished event' do
+        published_traces = []
+        trace_op.send(:events).trace_finished.subscribe { |trace| published_traces << trace }
+
+        finish!
+
+        expect(published_traces).to be_empty
       end
     end
   end

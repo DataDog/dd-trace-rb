@@ -833,7 +833,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(span).to be_root_span
         end
 
-        it 'create two root spans inside the block' do
+        it 'create multiple root spans inside the block' do
           tracer.continue_trace!(digest) do
             tracer.trace('span-1') {}
             tracer.trace('span-2') {}
@@ -990,7 +990,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(span.parent_id).to eq(digest.span_id)
         end
 
-        it 'create two child spans inside the block' do
+        it 'create multiple child spans inside the block' do
           tracer.continue_trace!(digest) do
             tracer.trace('span-1') {}
             tracer.trace('span-2') {}
@@ -998,6 +998,29 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(spans).to have(2).items
           expect(spans.map(&:parent_id)).to all(eq(digest.span_id))
+        end
+
+        it 'flushes finished spans and loses unfinished spans' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('finished-span') {}
+            tracer.trace('unfinished-span')
+          end
+
+          expect(spans).to have(1).item
+          expect(span.name).to eq('finished-span')
+        end
+
+        it 'flushes finished span when an error occurs in the block' do
+          expect do
+            tracer.continue_trace!(digest) do
+              tracer.trace('finished-span') {}
+              raise 'test error'
+            end
+          end.to raise_error('test error')
+
+          expect(spans).to have(1).item
+          expect(span.name).to eq('finished-span')
+          expect(span.parent_id).to eq(digest.span_id)
         end
       end
     end
@@ -1008,19 +1031,6 @@ RSpec.describe Datadog::Tracing::Tracer do
       before { continue_trace! }
 
       context 'starts a new trace' do
-        # tracer.trace('operation') do |span, trace|
-        #   expect(trace).to have_attributes(
-        #     origin: nil,
-        #     sampling_priority: nil
-        #   )
-
-        #   expect(span).to have_attributes(
-        #     parent_id: 0,
-        #     id: a_kind_of(Integer),
-        #     trace_id: a_kind_of(Integer)
-        #   )
-        # end
-
         context 'and a block raising an error handling' do
           it 'flushes trace and restore context' do
             original_trace = tracer.active_trace
