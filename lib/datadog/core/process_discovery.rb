@@ -37,7 +37,6 @@ module Datadog
         # In the C method exposed by ddcommon, memfd_create replaces empty strings by None for these fields.
         def get_metadata(settings)
           {
-            schema_version: 1,
             runtime_id: Core::Environment::Identity.id,
             tracer_language: Core::Environment::Identity.lang,
             tracer_version: Core::Environment::Identity.gem_datadog_version_semver2,
