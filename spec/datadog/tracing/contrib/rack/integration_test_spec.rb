@@ -238,9 +238,9 @@ RSpec.describe 'Rack integration tests' do
               expect(span).to have_tag('_dd.rc.boot.time')
               expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
               # TODO: JRuby 10.0 - Remove this skip after investigation.
-              expect(span).to have_tag('_dd.rc.boot.timeout') unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
-              expect(span.get_tag('_dd.rc.boot.timeout')).to eq 'true' unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
-              expect(span).to_not have_tag('_dd.rc.boot.ready') unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
+              expect(span).to have_tag('_dd.rc.boot.timeout') unless PlatformHelpers.jruby_100?
+              expect(span.get_tag('_dd.rc.boot.timeout')).to eq 'true' unless PlatformHelpers.jruby_100?
+              expect(span).to_not have_tag('_dd.rc.boot.ready') unless PlatformHelpers.jruby_100?
               expect(span).to be_root_span
             end
 
@@ -266,8 +266,8 @@ RSpec.describe 'Rack integration tests' do
                   expect(response).to be_ok
                   expect(spans).to have(2).items
                   # TODO: JRuby 10.0 - Remove this skip after investigation.
-                  expect(last_span).to_not have_tag('_dd.rc.boot.time') unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
-                  expect(last_span).to_not have_tag('_dd.rc.boot.ready') unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
+                  expect(last_span).to_not have_tag('_dd.rc.boot.time') unless PlatformHelpers.jruby_100?
+                  expect(last_span).to_not have_tag('_dd.rc.boot.ready') unless PlatformHelpers.jruby_100?
                   expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
                   expect(last_span).to be_root_span
                 end
@@ -279,7 +279,7 @@ RSpec.describe 'Rack integration tests' do
                   expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
                   expect(last_span).to have_tag('_dd.rc.status')
                   # TODO: JRuby 10.0 - Remove this skip after investigation.
-                  expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected' unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
+                  expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected' unless PlatformHelpers.jruby_100?
                 end
               end
 

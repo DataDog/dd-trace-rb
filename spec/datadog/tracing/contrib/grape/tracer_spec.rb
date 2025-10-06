@@ -312,7 +312,7 @@ RSpec.describe 'Grape instrumentation' do
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
             # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
+            unless PlatformHelpers.jruby_100?
               expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
                 .to eq('/base/hard_failure')
             end
@@ -445,7 +445,7 @@ RSpec.describe 'Grape instrumentation' do
             .to eq('endpoint_run')
           expect(span.get_tag('http.status_code')).to eq('405')
           # TODO: JRuby 10.0 - Remove this skip after investigation.
-          unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
+          unless PlatformHelpers.jruby_100?
             expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
               .to eq('/base/soft_failure')
           end
@@ -466,7 +466,7 @@ RSpec.describe 'Grape instrumentation' do
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
             # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
+            unless PlatformHelpers.jruby_100?
               expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
                 .to eq('/base/soft_failure')
             end
@@ -488,7 +488,7 @@ RSpec.describe 'Grape instrumentation' do
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
             # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
+            unless PlatformHelpers.jruby_100?
               expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
                 .to eq('/base/soft_failure')
             end
@@ -510,7 +510,7 @@ RSpec.describe 'Grape instrumentation' do
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
             # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
+            unless PlatformHelpers.jruby_100?
               expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
                 .to eq('/base/soft_failure')
             end
@@ -532,7 +532,7 @@ RSpec.describe 'Grape instrumentation' do
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
             # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0')
+            unless PlatformHelpers.jruby_100?
               expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
                 .to eq('/base/soft_failure')
             end

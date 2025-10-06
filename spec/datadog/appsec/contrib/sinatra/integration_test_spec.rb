@@ -16,7 +16,7 @@ require 'datadog/tracing'
 require 'datadog/appsec'
 
 # TODO: JRuby 10.0 - Remove this skip after investigation.
-RSpec.describe 'Sinatra integration tests', skip: RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('10.0') do
+RSpec.describe 'Sinatra integration tests', skip: PlatformHelpers.jruby_100? do
   include Rack::Test::Methods
 
   let(:sorted_spans) do
