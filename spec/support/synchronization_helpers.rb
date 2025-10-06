@@ -13,13 +13,12 @@ module SynchronizationHelpers
       pid = fork do
         # Capture forked output
         $stdout.reopen(fork_stdout)
+        $stdout.sync = true
         $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
+        $stderr.sync = true
 
         yield
       end
-
-      fork_stderr.close
-      fork_stdout.close
 
       # Wait for fork to finish, retrieve its status.
       # Enforce timeout to ensure test fork doesn't hang the test suite.
@@ -36,8 +35,8 @@ module SynchronizationHelpers
 
       result
     rescue => e
-      stdout ||= File.read(fork_stdout.path)
-      stderr ||= File.read(fork_stderr.path)
+      stdout = File.read(fork_stdout.path)
+      stderr = File.read(fork_stderr.path)
 
       raise "Failure or timeout in `expect_in_fork`, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", cause: e
     ensure
@@ -47,6 +46,8 @@ module SynchronizationHelpers
         nil
       end # Prevent zombie processes on failure
 
+      fork_stderr.close
+      fork_stdout.close
       fork_stdout.unlink
       fork_stderr.unlink
     end
