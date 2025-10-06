@@ -43,7 +43,10 @@ module Datadog
             hostname: Core::Environment::Socket.hostname,
             service_name: settings.service || '',
             service_env: settings.env || '',
-            service_version: settings.version || ''
+            service_version: settings.version || '',
+            # TODO: Implement process tags and container id
+            process_tags: '',
+            container_id: ''
           }
         end
 

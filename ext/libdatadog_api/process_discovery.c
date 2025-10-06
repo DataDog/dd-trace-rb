@@ -49,6 +49,8 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   VALUE service_name = rb_hash_fetch(options, ID2SYM(rb_intern("service_name")));
   VALUE service_env = rb_hash_fetch(options, ID2SYM(rb_intern("service_env")));
   VALUE service_version = rb_hash_fetch(options, ID2SYM(rb_intern("service_version")));
+  VALUE process_tags = rb_hash_fetch(options, ID2SYM(rb_intern("process_tags")));
+  VALUE container_id = rb_hash_fetch(options, ID2SYM(rb_intern("container_id")));
 
   ENFORCE_TYPE(runtime_id, T_STRING);
   ENFORCE_TYPE(tracer_language, T_STRING);
@@ -57,6 +59,8 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ENFORCE_TYPE(service_name, T_STRING);
   ENFORCE_TYPE(service_env, T_STRING);
   ENFORCE_TYPE(service_version, T_STRING);
+  ENFORCE_TYPE(process_tags, T_STRING);
+  ENFORCE_TYPE(container_id, T_STRING);
 
   void* builder = ddog_tracer_metadata_new();
 
@@ -67,6 +71,8 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_NAME, StringValueCStr(service_name));
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_ENV, StringValueCStr(service_env));
   ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_VERSION, StringValueCStr(service_version));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_PROCESS_TAGS, StringValueCStr(process_tags));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_CONTAINER_ID, StringValueCStr(container_id));
 
   ddog_Result_TracerMemfdHandle result = ddog_tracer_metadata_store(builder);
   ddog_tracer_metadata_free(builder);

@@ -13,7 +13,9 @@ module Datadog
         hostname: String,
         service_name: String,
         service_env: String,
-        service_version: String
+        service_version: String,
+        process_tags: String,
+        container_id: String
       ) -> TracerMemfd?
 
       def self._native_close_tracer_memfd: (TracerMemfd tracer_memfd, Datadog::Core::Logger logger) -> void
@@ -31,7 +33,9 @@ module Datadog
         hostname: String,
         service_name: String,
         service_env: String,
-        service_version: String
+        service_version: String,
+        process_tags: String,
+        container_id: String
       }
 
       def self.apply_at_fork_patch: () -> void
