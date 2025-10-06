@@ -22,6 +22,9 @@ module Datadog
       def build_executed: (Context context) -> Hash[Symbol,untyped]
 
       def build_snapshot: (Context context) -> Hash[Symbol,untyped]
+      def build_snapshot_base: (Context context, ?evaluation_errors: Array[untyped]?, ?captures: untyped?, ?message: String?) -> Hash[Symbol,untyped]
+
+      def build_condition_evaluation_failed: (Context context, untyped expr, untyped exception) -> Hash[Symbol,untyped]
 
       def build_status: (Probe probe, message: untyped, status: untyped) -> Hash[Symbol,untyped]
 
