@@ -327,7 +327,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       context('shorter than lift') do
         it 'unblocks on timeout' do
           # TODO: JRuby 10.0 - Remove this skip after investigation.
-          skip('Test failing for JRuby 10.0') if RUBY_ENGINE == 'jruby' && RUBY_ENGINE_VERSION.start_with?('10.0')
+          skip('Test failing for JRuby 10.0') if PlatformHelpers.jruby_100?
 
           record << :one
           expect(barrier.wait_once(timeout)).to eq :timeout
@@ -358,7 +358,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
         it 'prefers the local timeout' do
           # TODO: JRuby 10.0 - Remove this skip after investigation.
-          skip('Test failing for JRuby 10.0') if RUBY_ENGINE == 'jruby' && RUBY_ENGINE_VERSION.start_with?('10.0')
+          skip('Test failing for JRuby 10.0') if PlatformHelpers.jruby_100?
 
           record << :one
           expect(barrier.wait_once(timeout)).to eq :timeout
@@ -376,7 +376,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
       it "unblocks on timeout with" do
         # TODO: JRuby 10.0 - Remove this skip after investigation.
-        skip('Test failing for JRuby 10.0') if RUBY_ENGINE == 'jruby' && RUBY_ENGINE_VERSION.start_with?('10.0')
+        skip('Test failing for JRuby 10.0') if PlatformHelpers.jruby_100?
 
         record << :one
         expect(barrier.wait_once).to eq :timeout
