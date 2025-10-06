@@ -188,7 +188,10 @@ module Datadog
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
         rescue => exc
-          evaluation_errors << "#{exc.class}: #{exc}"
+          evaluation_errors << {
+            message: "#{exc.class}: #{exc}",
+            expr: segment.dsl_expr,
+          }
           '[evaluation error]'
         end.join
         [message, evaluation_errors]
