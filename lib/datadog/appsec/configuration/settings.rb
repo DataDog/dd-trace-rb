@@ -352,15 +352,6 @@ module Datadog
                   o.default true
                 end
 
-                settings :endpoint_collection do
-                  # Enables reporting of application routes at application start via telemetry
-                  option :enabled do |o|
-                    o.type :bool, nilable: true
-                    o.env 'DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED'
-                    o.default false
-                  end
-                end
-
                 # NOTE: Unfortunately, we have to go with Float due to other libs
                 #       setup, even tho we don't plan to support sub-second delays.
                 #
