@@ -159,6 +159,8 @@ module Datadog
           end
 
           serialized = {type: class_name(cls)}
+          # https://github.com/soutaro/steep/issues/1860
+          # @type var serialized: untyped
           case value
           when NilClass
             serialized.update(isNull: true)
