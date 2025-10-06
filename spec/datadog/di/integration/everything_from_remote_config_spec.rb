@@ -404,7 +404,7 @@ RSpec.describe 'DI integration from remote config' do
 
       let(:propagate_all_exceptions) { false }
 
-      it 'catches the exception' do
+      it 'catches the exception and reports probe status error' do
         expect_lazy_log(logger, :debug, /di: unhandled exception handling a probe in DI remote receiver: Datadog::DI::Error::InvalidExpression: Unknown operation: foo/)
 
         do_rc(expect_add_probe: false)
@@ -412,6 +412,22 @@ RSpec.describe 'DI integration from remote config' do
 
         payload = payloads.first
         expect(payload).to be_a(Hash)
+        expect(payload).to match(
+          ddsource: 'dd_debugger',
+          debugger: {
+            diagnostics: {
+              parentId: nil,
+              probeId: '11',
+              probeVersion: 0,
+              runtimeId: String,
+              status: 'ERROR',
+            },
+          },
+          path: '/debugger/v1/diagnostics',
+          service: 'rspec',
+          timestamp: Integer,
+          message: String,
+        )
         expect(payload[:message]).to match(
           /Instrumentation for probe .* failed: Unknown operation: foo/,
         )
