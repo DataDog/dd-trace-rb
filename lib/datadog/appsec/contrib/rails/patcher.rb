@@ -10,7 +10,6 @@ require_relative 'gateway/watcher'
 require_relative 'gateway/request'
 require_relative 'patches/render_to_body_patch'
 require_relative 'patches/process_action_patch'
-require_relative '../../api_security/endpoint_collection/rails_routes_serializer'
 
 require_relative '../../../tracing/contrib/rack/middlewares'
 
@@ -21,7 +20,6 @@ module Datadog
         # Patcher for AppSec on Rails
         module Patcher
           GUARD_ACTION_CONTROLLER_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
-          GUARD_ROUTES_REPORTING_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
           BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
           AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
 
@@ -40,7 +38,6 @@ module Datadog
             patch_before_initialize
             patch_after_initialize
             patch_action_controller
-            subscribe_to_routes_loaded
 
             Patcher.instance_variable_set(:@patched, true)
           end
@@ -131,31 +128,6 @@ module Datadog
               GUARD_ACTION_CONTROLLER_ONCE_PER_APP[self].run do
                 ::ActionController::Base.prepend(Patches::RenderToBodyPatch)
               end
-
-              # Rails 7.1 adds `after_routes_loaded` hook
-              if Datadog::AppSec::Contrib::Rails::Patcher.target_version < Gem::Version.new('7.1')
-                Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(::Rails.application.routes.routes)
-              end
-            end
-          end
-
-          def subscribe_to_routes_loaded
-            ::ActiveSupport.on_load(:after_routes_loaded) do |app|
-              Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(app.routes.routes)
-            end
-          end
-
-          def report_routes_via_telemetry(routes)
-            # We do not support Rails 4.x for Endpoint Collection,
-            # mainly because the Route#verb was a Regexp before Rails 5.0
-            return if target_version < Gem::Version.new('5.0')
-
-            return unless Datadog.configuration.appsec.api_security.endpoint_collection.enabled
-
-            GUARD_ROUTES_REPORTING_ONCE_PER_APP[self].run do
-              AppSec.telemetry.app_endpoints_loaded(
-                APISecurity::EndpointCollection::RailsRoutesSerializer.new(routes).to_enum
-              )
             end
           end
 
