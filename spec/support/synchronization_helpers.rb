@@ -1,7 +1,7 @@
 require 'English'
 
 module SynchronizationHelpers
-  def expect_in_fork(fork_expectations: nil, timeout_seconds: 10)
+  def expect_in_fork(fork_expectations: nil, timeout_seconds: 10, trigger_stacktrace_on_kill: false)
     fork_expectations ||= proc { |status:, stdout:, stderr:|
       expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
     }
@@ -35,10 +35,23 @@ module SynchronizationHelpers
 
       result
     rescue => e
+      crash_note = nil
+
+      if trigger_stacktrace_on_kill
+        crash_note = ' (Crashing Ruby to get stacktrace as requested by `trigger_stacktrace_on_kill`)'
+        begin
+          Process.kill('SEGV', pid)
+          warn "Waiting for child process to exit after SEGV signal... #{crash_note}"
+          Process.wait(pid)
+        rescue
+          nil
+        end
+      end
+
       stdout = File.read(fork_stdout.path)
       stderr = File.read(fork_stderr.path)
 
-      raise "Failure or timeout in `expect_in_fork`, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", cause: e
+      raise "Failure or timeout in `expect_in_fork`#{crash_note}, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", cause: e
     ensure
       begin
         Process.kill('KILL', pid)
