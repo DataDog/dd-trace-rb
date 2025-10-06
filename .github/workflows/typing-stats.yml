@@ -109,6 +109,8 @@ jobs:
             <details><summary>Partially typed attributes, constants, globals, instance variables</summary>
               <pre><code>${stats.partially_typed_others.map((other) => `${other.path}:${other.line}\n└── ${other.line_content}`).join('\n')}</code></pre>
             </details>
+
+            *If you believe a method or an attribute is rightfully untyped or partially typed, you can add \`# untyped:accept\` to the end of the line to remove it from the stats.*
             `
 
             const options = {

@@ -75,7 +75,7 @@ signature_paths.each do |sig_path|
   sig_file_content = sig_path.read
   # for each line in the file, check if it matches the regex
   sig_file_content.each_line.with_index(1) do |line, index|
-    next if line.strip.empty? || line.strip.start_with?("#")
+    next if line.strip.empty? || line.strip.start_with?("#") || line.strip.end_with?("# untyped:accept")
 
     case line
     # Methods
