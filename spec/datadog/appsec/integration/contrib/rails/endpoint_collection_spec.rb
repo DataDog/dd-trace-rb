@@ -90,7 +90,7 @@ RSpec.describe 'Rails Endpoint Collection' do
   end
 
   it 'rescues exceptions' do
-    allow(Datadog::AppSec.telemetry).to receive(:app_endpoints_loaded).and_raise(StandardError)
+    expect(Datadog::AppSec.telemetry).to receive(:app_endpoints_loaded).and_raise(StandardError)
 
     ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
   end
