@@ -433,6 +433,90 @@ RSpec.describe 'DI integration from remote config' do
         )
       end
     end
+
+    context 'when there is a message template' do
+      let(:probe_spec) do
+        {
+          id: '11', name: 'bar', type: 'LOG_PROBE',
+          where: {
+            typeName: 'EverythingFromRemoteConfigSpecTestClass', methodName: 'target_method',
+          },
+          segments: [
+            # String segment
+            {str: 'hello '},
+            # Expression segment - valid at runtime
+            {json: {eq: [{ref: '@ivar'}, 51]}, dsl: '(good expression)'},
+            # Another expression which fails evaluation at runtime
+            {json: {filter: [{ref: '@ivar'}, 'x']}, dsl: '(failing expression)'},
+          ],
+        }
+      end
+
+      let(:expected_snapshot_payload) do
+        {
+          path: '/debugger/v1/input',
+          # We do not have active span/trace in the test.
+          "dd.span_id": nil,
+          "dd.trace_id": nil,
+          "debugger.snapshot": {
+            captures: nil,
+            evaluationErrors: [
+              {'expr' => '(failing expression)', 'message' => 'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: NilClass'},
+            ],
+            id: LOWERCASE_UUID_REGEXP,
+            language: 'ruby',
+            probe: {
+              id: '11',
+              location: {
+                method: 'target_method',
+                type: 'EverythingFromRemoteConfigSpecTestClass',
+              },
+              version: 0,
+            },
+            stack: Array,
+            timestamp: Integer,
+          },
+          ddsource: 'dd_debugger',
+          duration: Integer,
+          host: nil,
+          logger: {
+            method: 'target_method',
+            name: nil,
+            thread_id: nil,
+            thread_name: 'Thread.main',
+            version: 2,
+          },
+          # false is the result of first expression evaluation
+          # second expression fails evaluation
+          message: 'hello false[evaluation error]',
+          service: 'rspec',
+          timestamp: Integer,
+        }
+      end
+
+      it 'evaluates expressions and reports errors' do
+        expect_lazy_log(logger, :debug, /di: received log probe/)
+
+        do_rc
+        assert_received_and_installed
+
+        # invocation
+
+        expect(EverythingFromRemoteConfigSpecTestClass.new.target_method).to eq 42
+
+        component.probe_notifier_worker.flush
+
+        # assertions
+
+        expect(payloads.length).to eq 2
+
+        emitting_payload = payloads.shift
+        expect(emitting_payload).to match(expected_emitting_payload)
+
+        snapshot_payload = payloads.shift
+        expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))
+      end
+    end
   end
 
   context 'line probe' do
