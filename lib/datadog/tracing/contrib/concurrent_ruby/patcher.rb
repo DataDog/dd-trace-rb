@@ -23,6 +23,8 @@ module Datadog
             patch_promises_future
             require_relative 'async_patch'
             async_patch
+            require_relative 'executor_service'
+            patch_thread_pool_executor
           end
 
           # Propagate tracing context in Concurrent::Async
@@ -41,6 +43,10 @@ module Datadog
           # Propagate tracing context in Concurrent::Promises::Future
           def patch_promises_future
             ::Concurrent::Promises.singleton_class.prepend(PromisesFuturePatch) if defined?(::Concurrent::Promises::Future)
+          end
+
+          def patch_thread_pool_executor
+            ::Concurrent::ThreadPoolExecutor.prepend(ExecutorService)
           end
         end
       end
