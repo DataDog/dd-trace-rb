@@ -14,6 +14,11 @@ RSpec.describe 'Rails Endpoint Collection' do
   include Warden::Test::Helpers
 
   before do
+    # TODO: Remove Devise
+    # We do not need Devise for this spec, but since Devise pollutes the global namespace,
+    # it leads to this test being flaky, since it is run in the same process as other
+    # integration tests that use Devise.
+
     # NOTE: By doing this we are emulating the initial load of the devise rails
     #       engine for every test case. It will install the required middleware.
     #       WARNING: This is a hack!
