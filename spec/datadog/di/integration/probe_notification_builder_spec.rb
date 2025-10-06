@@ -182,7 +182,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             expect(payload).to be_a(Hash)
             expect(payload[:message]).to eq "hello[evaluation error]"
             expect(payload[:"debugger.snapshot"][:evaluationErrors]).to eq [
-              {message: 'ArgumentError: bad value for range', expr: '(expression)'}]
+              {message: 'ArgumentError: bad value for range', expr: '(expression)'}
+            ]
 
             # We asked to not create a snapshot
             expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil

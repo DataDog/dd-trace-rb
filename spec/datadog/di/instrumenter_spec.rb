@@ -984,7 +984,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         let(:condition) do
           Datadog::DI::EL::Expression.new(
-              '(expression)',
+            '(expression)',
             "unknown_function('kwarg') == 42"
           )
         end
