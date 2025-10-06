@@ -512,7 +512,7 @@ RSpec.describe 'DI integration from remote config' do
         {
           id: '11', name: 'bar', type: 'LOG_PROBE',
           where: {
-            sourceFile: 'hook_line_load.rb', lines: [14],
+            sourceFile: 'hook_line_load.rb', lines: [34],
           },
           when: {json: {'contains' => [{'ref' => 'bar'}, 'baz']}},
         }

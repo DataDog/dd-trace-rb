@@ -1,8 +1,8 @@
 class InstrumentationIntegrationTestClass4
   def test_method
     a = 21
-    password = 'password'
-    redacted = {b: 33, session: 'blah'}
+    $__password = password = 'password'
+    $__redacted = redacted = {b: 33, session: 'blah'}
     # padding
     # padding
     # padding
