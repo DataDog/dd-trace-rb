@@ -64,6 +64,7 @@ end
 appraise 'aws' do
   gem 'aws-sdk'
   gem 'shoryuken'
+  gem 'ostruct'
 end
 
 appraise 'http' do
