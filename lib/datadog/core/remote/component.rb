@@ -137,11 +137,13 @@ module Datadog
           def lift
             @mutex.lock
 
-            @once ||= true
+            begin
+              @once ||= true
 
-            @condition.broadcast
-          ensure
-            @mutex.unlock
+              @condition.broadcast
+            ensure
+              @mutex.unlock
+            end
           end
         end
 
