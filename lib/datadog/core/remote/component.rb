@@ -141,7 +141,11 @@ module Datadog
 
             @condition.broadcast
           ensure
-            @mutex.unlock
+            # NOTE: The `locked?` check is not preventing a context switching, hence
+            #       it is not preventing a race condition. But in some rare cases
+            #       in RSpec of JRuby 9.4 the test case will not let locking happen.
+            #       That will cause specs to fail.
+            @mutex.unlock if @mutex.locked?
           end
         end
 
