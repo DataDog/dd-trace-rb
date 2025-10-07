@@ -19,7 +19,7 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-24.04
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc
     outputs:
       lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
       cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
@@ -35,7 +35,7 @@ jobs:
     name: rubocop/lint
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -51,7 +51,7 @@ jobs:
     name: standard/lint
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -67,7 +67,7 @@ jobs:
     name: lint/frozen_string_literal
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -83,7 +83,7 @@ jobs:
     name: steep/typecheck
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
