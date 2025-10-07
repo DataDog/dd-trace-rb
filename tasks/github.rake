@@ -47,7 +47,7 @@ namespace :github do
     end
 
     # Seed
-    rng = ENV['CI_TEST_SEED'] && ENV['CI_TEST_SEED'] != '' ? Random.new(ENV['CI_TEST_SEED'].to_i) : Random.new
+    rng = (ENV['CI_TEST_SEED'] && ENV['CI_TEST_SEED'] != '') ? Random.new(ENV['CI_TEST_SEED'].to_i) : Random.new
     matching_tasks.shuffle!(random: rng)
 
     batch_count = 7
@@ -79,7 +79,7 @@ namespace :github do
     summary = ENV['GITHUB_STEP_SUMMARY']
 
     File.open(summary, 'a') do |f|
-      f.puts "*__Seed__: #{ENV['CI_TEST_SEED']}*"
+      f.puts "*__Seed__: #{ENV["CI_TEST_SEED"]}*"
       data['include'].each do |batch|
         rows = batch['tasks'].map do |t|
           "* #{t["task"]} (#{t["group"]})"
@@ -121,7 +121,7 @@ namespace :github do
   task :run_batch_tests do
     tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
 
-    rng = ENV['CI_TEST_SEED'] && ENV['CI_TEST_SEED'] != '' ? Random.new(ENV['CI_TEST_SEED'].to_i) : Random.new
+    rng = Random.new(ENV['CI_TEST_SEED'].to_i)
 
     tasks.each do |task|
       env = {'BUNDLE_GEMFILE' => task['gemfile']}

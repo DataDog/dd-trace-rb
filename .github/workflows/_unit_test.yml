@@ -26,7 +26,6 @@ on: # yamllint disable-line rule:truthy
 
   workflow_dispatch:
     inputs:
-      # TODO: Provides concurrency control for each ruby version
       engine:
         description: "`ruby` or `jruby`"
         required: true
@@ -43,6 +42,8 @@ on: # yamllint disable-line rule:truthy
         description: "The seed to reproduce a CI run"
         required: false
         type: number
+
+permissions: {}
 
 jobs:
   batch:
@@ -78,9 +79,7 @@ jobs:
         batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
         misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
 
-        echo "seed=$seed_data" >> "$GITHUB_OUTPUT"
-        echo "batches=$batches_data" >> "$GITHUB_OUTPUT"
-        echo "misc=$misc_data" >> "$GITHUB_OUTPUT"
+        { echo "seed=$seed_data"; echo "batches=$batches_data"; echo "misc=$misc_data"; } >> "$GITHUB_OUTPUT"
     - name: Generate batch summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
