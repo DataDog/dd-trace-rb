@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 
 require 'datadog'
 require 'shoryuken'
+require 'ostruct'
 
 RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
   let(:shoryuken_tracer) { described_class.new }
@@ -183,9 +184,6 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
       # end
 
       it do
-        # Test does not work correctly on Ruby 3.5.0-preview1.
-        # TODO: Ruby 3.5 - Re-enable after investigation.
-        skip 'Skipped on Ruby 3.5.0-preview1' if RUBY_VERSION.start_with?('3.5')
         expect { perform_async }.to_not raise_error
         # TODO: These expectations do not work because Shoryuken doesn't run middleware in tests
         #       https://github.com/phstc/shoryuken/issues/541
