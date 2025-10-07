@@ -684,7 +684,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       it "records allocated objects" do
         # TODO: Ruby 3.5 - Remove this skip after investigation.
-        skip('Allocation profiling call not working correctly on Ruby 3.5.0-preview1') if RUBY_VERSION.start_with?('3.5')
+        pending('Allocation profiling call not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('preview')
 
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 
@@ -885,7 +885,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       it "records live heap objects" do
         # TODO: Ruby 3.5 - Remove this skip after investigation.
-        skip('Heap profiling not working correctly on Ruby 3.5.0-preview1') if RUBY_VERSION.start_with?('3.5')
+        skip('Heap profiling not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('preview')
 
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 

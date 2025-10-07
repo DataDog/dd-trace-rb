@@ -160,7 +160,7 @@ services:
       - bundle-3.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.5:
-    image: ghcr.io/datadog/images-rb/engines/ruby:3.5
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.5-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
