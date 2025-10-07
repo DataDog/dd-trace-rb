@@ -1,4 +1,4 @@
-name: Unit Test Template
+name: Unit Tests (Ruby version specific)
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -23,6 +23,26 @@ on: # yamllint disable-line rule:truthy
       cache-key:
         description: "The cache key for bundle"
         value: ${{ jobs.batch.outputs.cache-key }}
+
+  workflow_dispatch:
+    inputs:
+      # TODO: Provides concurrency control for each ruby version
+      engine:
+        description: "`ruby` or `jruby`"
+        required: true
+        type: string
+      version:
+        description: "The version of the engine (2.x or 3.x for Ruby, 9.x or 10.x for JRuby)"
+        required: true
+        type: string
+      alias:
+        description: "The alias of the engine (e.g. `ruby-34` for Ruby 3.4)"
+        required: true
+        type: string
+      seed:
+        description: "The seed to reproduce a CI run"
+        required: false
+        type: number
 
 jobs:
   batch:

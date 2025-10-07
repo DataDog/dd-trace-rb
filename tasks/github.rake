@@ -79,13 +79,13 @@ namespace :github do
     summary = ENV['GITHUB_STEP_SUMMARY']
 
     File.open(summary, 'a') do |f|
+      f.puts "*__Seed__: #{ENV['CI_TEST_SEED']}*"
       data['include'].each do |batch|
         rows = batch['tasks'].map do |t|
           "* #{t["task"]} (#{t["group"]})"
         end
 
         f.puts <<~SUMMARY
-          *__Seed__: #{ENV['CI_TEST_SEED']}*
           <details>
           <summary>Batch #{batch["batch"]} (#{batch["tasks"].length} tasks)</summary>
 
