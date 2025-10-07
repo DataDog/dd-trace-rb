@@ -13,6 +13,9 @@ on: # yamllint disable-line rule:truthy
       alias:
         required: true
         type: string
+      seed:
+        required: false
+        type: number
     outputs:
       lockfile:
         description: "The lockfile artifact"
@@ -26,6 +29,7 @@ jobs:
     runs-on: ubuntu-24.04
     name: batch
     outputs:
+      seed: "${{ steps.set-batches.outputs.seed }}"
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
       cache-key: "${{ steps.bundle-cache.outputs.cache-key }}"
@@ -43,20 +47,25 @@ jobs:
 
     - id: set-batches
       name: Distribute tasks into batches
+      env:
+        CI_TEST_SEED: "${{ inputs.seed || '' }}"
       run: |
         data=$(bundle exec rake github:generate_batches)
         echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
         # Extract each key and set it as a separate output
+        seed_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["seed"]')
         batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
         misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
 
+        echo "seed=$seed_data" >> "$GITHUB_OUTPUT"
         echo "batches=$batches_data" >> "$GITHUB_OUTPUT"
         echo "misc=$misc_data" >> "$GITHUB_OUTPUT"
     - name: Generate batch summary
-      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
+        CI_TEST_SEED: "${{ steps.set-batches.outputs.seed }}"
+      run: bundle exec rake github:generate_batch_summary
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #
@@ -88,6 +97,7 @@ jobs:
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+      CI_TEST_SEED: "${{ needs.batch.outputs.seed }}"
     strategy:
       fail-fast: false
       matrix:
@@ -152,6 +162,7 @@ jobs:
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+      CI_TEST_SEED: "${{ needs.batch.outputs.seed }}"
     strategy:
       fail-fast: false
       matrix:
