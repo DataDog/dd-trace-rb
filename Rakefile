@@ -40,11 +40,11 @@ namespace :test do
 
       candidates.each_key do |group|
         env = if group.empty?
-                {}
-              else
-                gemfile = AppraisalConversion.to_bundle_gemfile(group)
-                { 'BUNDLE_GEMFILE' => gemfile }
-              end
+          {}
+        else
+          gemfile = AppraisalConversion.to_bundle_gemfile(group)
+          {'BUNDLE_GEMFILE' => gemfile}
+        end
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
@@ -67,15 +67,15 @@ desc 'Run RSpec'
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   task all: [:main, :benchmark, :custom_cop,
-             :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
-             :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
-             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-             :profiling, :crashtracking, :error_tracking, :process_discovery, :stable_config]
+    :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
+    :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
+    :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
+    :profiling, :crashtracking, :error_tracking, :process_discovery, :stable_config]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking,rubocop}/**/*_spec.rb,'\
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking,rubocop}/**/*_spec.rb,' \
                         ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config}_spec.rb, spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
@@ -120,7 +120,7 @@ namespace :spec do
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*_spec.rb'
-    t.exclude_pattern = 'spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,'\
+    t.exclude_pattern = 'spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,' \
                         'semantic_logger}*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
@@ -325,7 +325,7 @@ namespace :spec do
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
       t.pattern = 'spec/datadog/appsec/**/*_spec.rb'
-      t.exclude_pattern = 'spec/datadog/appsec/**/{integration,contrib,auto_instrument}/**/*_spec.rb,'\
+      t.exclude_pattern = 'spec/datadog/appsec/**/{integration,contrib,auto_instrument}/**/*_spec.rb,' \
                           ' spec/datadog/appsec/**/{auto_instrument,autoload}_spec.rb'
       t.rspec_opts = args.to_a.join(' ')
     end
@@ -357,7 +357,7 @@ namespace :spec do
     end
   end
 
-  task appsec: [:'appsec:all']
+  task appsec: [:"appsec:all"]
 
   namespace :di do
     # Datadog DI integrations
@@ -424,7 +424,7 @@ namespace :spec do
     Rake::Task[:all].prerequisite_tasks.each { |t| t.enhance([:compile_native_extensions]) }
   end
 
-  task profiling: [:'profiling:all']
+  task profiling: [:"profiling:all"]
 end
 
 if defined?(RuboCop::RakeTask)
@@ -441,11 +441,11 @@ namespace :coverage do
   task :report do
     require 'simplecov'
 
-    resultset_files = Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/.resultset.json"] +
-      Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/**/.resultset.json"]
+    resultset_files = Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/.resultset.json"] +
+      Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/**/.resultset.json"]
 
     SimpleCov.collate resultset_files do
-      coverage_dir "#{ENV.fetch('COVERAGE_DIR', 'coverage')}/report"
+      coverage_dir "#{ENV.fetch("COVERAGE_DIR", "coverage")}/report"
       formatter SimpleCov::Formatter::HTMLFormatter
     end
   end
@@ -455,11 +455,11 @@ namespace :coverage do
     require 'simplecov'
     require_relative 'spec/support/simplecov_fix'
 
-    versions = Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/*"].map { |f| File.basename(f) }
+    versions = Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/*"].map { |f| File.basename(f) }
     versions.map do |version|
       puts "Generating report for: #{version}"
-      SimpleCov.collate Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/#{version}/**/.resultset.json"] do
-        coverage_dir "#{ENV.fetch('COVERAGE_DIR', 'coverage')}/report/versions/#{version}"
+      SimpleCov.collate Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/#{version}/**/.resultset.json"] do
+        coverage_dir "#{ENV.fetch("COVERAGE_DIR", "coverage")}/report/versions/#{version}"
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
