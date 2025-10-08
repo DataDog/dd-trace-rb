@@ -54,7 +54,8 @@ module Datadog
 
         # Ratio of YJIT-executed instructions
         def ratio_in_yjit
-          ::RubyVM::YJIT.runtime_stats[:ratio_in_yjit]
+          stats = ::RubyVM::YJIT.runtime_stats
+          stats[:ratio_in_yjit] if stats.key?(:ratio_in_yjit)
         end
 
         def available?
