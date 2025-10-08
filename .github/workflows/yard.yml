@@ -26,7 +26,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.2-gnu-gcc
       env:
         BUNDLE_GEMFILE: tools/yard.gemfile
     steps:

@@ -59,7 +59,7 @@ jobs:
           - name: jruby
             version: '9.2'
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}
+      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc
       env:
         BUNDLE_WITHOUT: check
     steps:
