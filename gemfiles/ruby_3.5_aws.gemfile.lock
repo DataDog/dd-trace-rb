@@ -1700,9 +1700,12 @@ GEM
       addressable (>= 2.4)
     libdatadog (18.1.0.1.0)
     libdatadog (18.1.0.1.0-aarch64-linux)
+    libdatadog (18.1.0.1.0-x86_64-linux)
     libddwaf (1.25.1.1.0)
       ffi (~> 1.0)
     libddwaf (1.25.1.1.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.25.1.1.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
@@ -1759,6 +1762,7 @@ GEM
 PLATFORMS
   aarch64-linux
   ruby
+  x86_64-linux
 
 DEPENDENCIES
   aws-sdk
