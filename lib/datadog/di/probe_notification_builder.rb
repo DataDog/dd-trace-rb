@@ -183,7 +183,7 @@ module Datadog
           when String
             segment
           when EL::Expression
-            segment.evaluate(context).to_s
+            serializer.serialize_value_for_message(segment.evaluate(context))
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
