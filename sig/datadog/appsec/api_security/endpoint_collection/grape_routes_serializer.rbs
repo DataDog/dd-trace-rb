@@ -1,0 +1,28 @@
+module Datadog
+  module AppSec
+    module APISecurity
+      module EndpointCollection
+        interface _GrapeRoute
+          def request_method: () -> String
+          def pattern: () -> _GrapeRoutePattern
+        end
+
+        interface _GrapeRoutePattern
+          def origin: () -> String
+        end
+
+        class GrapeRoutesSerializer
+          @routes: Array[_GrapeRoute]
+
+          @path_prefix: String
+
+          def initialize: (Array[_GrapeRoute] routes, ?path_prefix: String) -> void
+
+          def to_enum: () -> Enumerator[Core::Telemetry::Event::AppEndpointsLoaded::endpoint]
+
+          def serialize_route: (_GrapeRoute route) -> Core::Telemetry::Event::AppEndpointsLoaded::endpoint
+        end
+      end
+    end
+  end
+end

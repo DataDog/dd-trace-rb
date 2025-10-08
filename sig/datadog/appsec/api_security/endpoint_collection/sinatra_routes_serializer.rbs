@@ -1,0 +1,23 @@
+module Datadog
+  module AppSec
+    module APISecurity
+      module EndpointCollection
+        interface _SinatraRoute
+          def safe_string: () -> String
+        end
+
+        class SinatraRoutesSerializer
+          @routes: Hash[String, Array[_SinatraRoute]]
+
+          @path_prefix: String
+
+          def initialize: (Hash[String, Array[_SinatraRoute]] routes, ?path_prefix: String) -> void
+
+          def to_enum: () -> Enumerator[Core::Telemetry::Event::AppEndpointsLoaded::endpoint]
+
+          def serialize_route: (_SinatraRoute route, String method) -> Core::Telemetry::Event::AppEndpointsLoaded::endpoint
+        end
+      end
+    end
+  end
+end
