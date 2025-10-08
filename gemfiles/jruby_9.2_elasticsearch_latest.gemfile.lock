@@ -3,7 +3,7 @@ PATH
   specs:
     datadog (2.22.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 18.1.0.1.0)
+      libdatadog (~> 22.0.0.1.0)
       libddwaf (~> 1.25.1.1.0)
       logger
       msgpack
@@ -30,10 +30,10 @@ GEM
     elastic-transport (8.4.0)
       faraday (< 3)
       multi_json
-    elasticsearch (8.19.0)
+    elasticsearch (8.19.1)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 8.19.0)
-    elasticsearch-api (8.19.0)
+      elasticsearch-api (= 8.19.1)
+    elasticsearch-api (8.19.1)
       multi_json
     faraday (1.10.4)
       faraday-em_http (~> 1.0)
@@ -62,7 +62,7 @@ GEM
     hashdiff (1.1.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (18.1.0.1.0)
+    libdatadog (22.0.0.1.0)
     libddwaf (1.25.1.1.0)
       ffi (~> 1.0)
     logger (1.7.0)

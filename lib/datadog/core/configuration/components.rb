@@ -96,6 +96,7 @@ module Datadog
           @settings = settings
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
+          StableConfig.log_result(@logger)
           Deprecations.log_deprecations_from_all_sources(@logger)
 
           # This agent_settings is intended for use within Core. If you require
