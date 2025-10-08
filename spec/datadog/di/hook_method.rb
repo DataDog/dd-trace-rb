@@ -1,3 +1,19 @@
+# This file is loaded repeatedly in the test suite due to the way DI performs
+# code tracking. Remove the constants if they have already been defined
+# to avoid Ruby warnings.
+begin
+  Object.send(:remove_const, :HookTestClass)
+rescue NameError
+end
+begin
+  Object.send(:remove_const, :YieldingMethodMissingHookTestClass)
+rescue NameError
+end
+begin
+  Object.send(:remove_const, :HookIvarTestClass)
+rescue NameError
+end
+
 class HookTestClass
   class TestException < StandardError
   end

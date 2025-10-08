@@ -135,13 +135,11 @@ module Datadog
 
           # Release all current waiters
           def lift
-            @mutex.lock
+            @mutex.synchronize do
+              @once ||= true
 
-            @once ||= true
-
-            @condition.broadcast
-          ensure
-            @mutex.unlock
+              @condition.broadcast
+            end
           end
         end
 
