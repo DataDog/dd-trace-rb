@@ -14,6 +14,8 @@ module Datadog
           def to_enum
             Enumerator.new do |yielder|
               @routes.each do |method, routes|
+                next if method == 'HEAD'
+
                 routes.each do |route, _, _|
                   yielder.yield serialize_route(route, method)
                 end
