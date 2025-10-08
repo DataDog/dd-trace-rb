@@ -509,7 +509,7 @@ RSpec.describe 'Instrumentation integration' do
           let(:segments) do
             [
               {str: 'hello '},
-              {json: {ref: '@duration'}},
+              {json: {ref: '@duration'}, dsl: '@duration'},
               {str: ' ms'},
             ]
           end
@@ -538,7 +538,7 @@ RSpec.describe 'Instrumentation integration' do
           let(:segments) do
             [
               {str: 'hello '},
-              {json: {ref: '@return'}},
+              {json: {ref: '@return'}, dsl: '@return'},
             ]
           end
 
@@ -560,7 +560,7 @@ RSpec.describe 'Instrumentation integration' do
           let(:segments) do
             [
               {str: 'hello '},
-              {json: {ref: '@exception'}},
+              {json: {ref: '@exception'}, dsl: '@exception'},
             ]
           end
 

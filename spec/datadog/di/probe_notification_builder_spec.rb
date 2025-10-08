@@ -346,9 +346,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       let(:template_segments) do
         [
-          compiler.compile('ref' => 'hello'),
+          Datadog::DI::EL::Expression.new('(expression)', compiler.compile('ref' => 'hello')),
           ' ',
-          compiler.compile('ref' => 'world'),
+          Datadog::DI::EL::Expression.new('(expression)', compiler.compile('ref' => 'world')),
         ]
       end
 
