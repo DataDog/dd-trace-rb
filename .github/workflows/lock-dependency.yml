@@ -99,6 +99,8 @@ jobs:
           path: gemfiles
           pattern: lock-dependency-${{ github.run_id }}-*
           merge-multiple: true
+      - name: Stage changes # Since ghcommit-action does not pick up unstaged files
+        run: git add gemfiles
       - run: git diff --color=always
       - name: Commit changes
         uses: planetscale/ghcommit-action@f24050e41f8694750427d111b52f4ef9ca81a32d # v0.2.18
