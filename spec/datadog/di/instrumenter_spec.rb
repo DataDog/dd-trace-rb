@@ -1008,7 +1008,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 5,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 25,
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
@@ -1060,7 +1060,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         let(:code_tracker) { nil }
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 1,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 21,
             id: 1, type: :log)
         end
 
@@ -1096,7 +1096,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 1,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 21,
             id: 1, type: :log)
         end
 
@@ -1240,7 +1240,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line_targeted.rb', line_no: 3,
+        Datadog::DI::Probe.new(file: 'hook_line_targeted.rb', line_no: 13,
           id: 1, type: :log)
       end
 
@@ -1249,7 +1249,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         target = code_tracker.send(:registry)[path]
         expect(target).to be_a(RubyVM::InstructionSequence)
 
-        expect_any_instance_of(TracePoint).to receive(:enable).with(target: target, target_line: 3).and_call_original
+        expect_any_instance_of(TracePoint).to receive(:enable).with(target: target, target_line: 13).and_call_original
 
         instrumenter.hook_line(probe) do |payload|
           observed_calls << payload
@@ -1267,7 +1267,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 6,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 26,
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
@@ -1332,7 +1332,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context 'non-enriched probe' do
         let(:probe_args) do
-          {file: 'hook_line_recursive.rb', line_no: 3}
+          {file: 'hook_line_recursive.rb', line_no: 13}
         end
 
         it 'invokes callback for every method invocation' do
@@ -1365,7 +1365,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       include_context 'with code tracking'
 
       before do
-        require_relative 'hook_line_recursive'
+        load File.join(File.dirname(__FILE__), 'hook_line_recursive.rb')
       end
 
       # We need to use a rate limiter, otherwise the stack is exhausted
@@ -1377,7 +1377,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context 'non-enriched probe' do
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_recursive.rb', line_no: 11,
+          Datadog::DI::Probe.new(file: 'hook_line_recursive.rb', line_no: 21,
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
@@ -1408,7 +1408,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 32,
+        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 52,
           id: 1, type: :log, rate_limit: rate_limit)
       end
 
@@ -1436,7 +1436,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       include_context 'with code tracking'
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 10,
+        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 30,
           id: 1, type: :log, rate_limit: rate_limit, condition: condition)
       end
 
@@ -1489,7 +1489,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context 'when condition is on instance variable' do
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 24,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 47,
             id: 1, type: :log, rate_limit: rate_limit, condition: condition)
         end
 
