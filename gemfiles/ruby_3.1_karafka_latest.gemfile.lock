@@ -3,7 +3,7 @@ PATH
   specs:
     datadog (2.22.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 18.1.0.1.0)
+      libdatadog (~> 22.0.1.1.0)
       libddwaf (~> 1.25.1.1.0)
       logger
       msgpack
@@ -57,6 +57,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
+    json (2.15.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
     karafka (2.5.0)
@@ -88,9 +89,15 @@ GEM
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    libdatadog (18.1.0.1.0)
-    libdatadog (18.1.0.1.0-aarch64-linux)
-    libdatadog (18.1.0.1.0-x86_64-linux)
+    karafka-rdkafka (0.21.0-x86_64-linux-musl)
+      ffi (~> 1.15)
+      json (> 2.0)
+      logger
+      mini_portile2 (~> 2.6)
+      rake (> 12)
+    libdatadog (22.0.1.1.0)
+    libdatadog (22.0.1.1.0-aarch64-linux)
+    libdatadog (22.0.1.1.0-x86_64-linux)
     libddwaf (1.25.1.1.0)
       ffi (~> 1.0)
     libddwaf (1.25.1.1.0-aarch64-linux)
