@@ -123,7 +123,7 @@ module Datadog
             if condition = probe.condition
               begin
                 # This context will be recreated later, unlike for line probes.
-                context = EL::Context.new(
+                context = Context.new(
                   locals: serializer.combine_args(args, kwargs, self),
                   target_self: self,
                   probe: probe, settings: settings, serializer: serializer,
@@ -189,7 +189,7 @@ module Datadog
               caller_locs = method_frame + caller_locations # steep:ignore
               # TODO capture arguments at exit
 
-              context = EL::Context.new(locals: nil, target_self: self,
+              context = Context.new(locals: nil, target_self: self,
                 probe: probe, settings: settings, serializer: serializer,
                 serialized_entry_args: serialized_entry_args,
                 caller_locations: caller_locs,
@@ -367,7 +367,7 @@ module Datadog
 
             if continue
               if condition = probe.condition
-                context = EL::Context.new(
+                context = Context.new(
                   locals: Instrumenter.get_local_variables(tp),
                   target_self: tp.self,
                   probe: probe, settings: settings, serializer: serializer,
@@ -385,7 +385,7 @@ module Datadog
               # want to run it if the callback won't be executed due to the
               # rate limit.
               # Thus the copy-paste of the creation call here.
-              context ||= EL::Context.new(
+              context ||= Context.new(
                 locals: Instrumenter.get_local_variables(tp),
                 target_self: tp.self,
                 probe: probe, settings: settings, serializer: serializer,
