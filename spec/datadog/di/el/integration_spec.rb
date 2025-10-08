@@ -46,7 +46,7 @@ RSpec.describe Datadog::DI::EL do
           end
 
           let(:context) do
-            Datadog::DI::EL::Context.new(locals: locals, target_self: target,
+            Datadog::DI::Context.new(locals: locals, target_self: target,
               probe: nil, settings: nil, serializer: nil)
           end
 

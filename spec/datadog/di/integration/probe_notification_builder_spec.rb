@@ -63,7 +63,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:context) do
-          Datadog::DI::EL::Context.new(
+          Datadog::DI::Context.new(
             settings: settings, serializer: serializer,
             probe: probe, locals: locals, target_self: Object.new
           )
@@ -115,7 +115,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:context) do
-          Datadog::DI::EL::Context.new(
+          Datadog::DI::Context.new(
             settings: settings, serializer: serializer,
             probe: probe, serialized_entry_args: serialized_entry_args,
             target_self: Object.new
@@ -150,7 +150,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:context) do
-          Datadog::DI::EL::Context.new(
+          Datadog::DI::Context.new(
             settings: settings, serializer: serializer,
             probe: probe,
             target_self: Object.new,
@@ -214,7 +214,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
         context 'when variables are referenced but none are passed in' do
           let(:context) do
-            Datadog::DI::EL::Context.new(
+            Datadog::DI::Context.new(
               settings: settings, serializer: serializer,
               probe: probe,
               target_self: Object.new,
