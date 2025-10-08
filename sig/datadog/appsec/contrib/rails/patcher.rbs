@@ -27,10 +27,6 @@ module Datadog
 
           def self?.after_initialize: (untyped app) -> untyped
 
-          def self.subscribe_to_routes_loaded: () -> void
-
-          def self.report_routes_via_telemetry: () -> void
-
           def self?.setup_security: () -> untyped
         end
       end
