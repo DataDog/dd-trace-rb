@@ -64,6 +64,12 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsRoutesSeri
       path: instance_double(
         'ActionDispatch::Journey::Path::Pattern',
         spec: path
+      ),
+      app: instance_double(
+        'ActionDispatch::Routing::RouteSet::Dispatcher',
+        rack_app: instance_double(
+          'ActionDispatch::Routing::RouteSet::Dispatcher'
+        )
       )
     )
   end
