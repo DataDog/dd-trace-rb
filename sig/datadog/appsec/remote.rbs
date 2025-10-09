@@ -33,6 +33,8 @@ module Datadog
 
       CAP_ASM_RASP_SQLI: Integer
 
+      CAP_ASM_TRACE_TAGGING_RULES: Integer
+
       ASM_CAPABILITIES: Array[Integer]
 
       ASM_PRODUCTS: ::Array[String]
