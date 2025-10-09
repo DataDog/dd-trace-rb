@@ -81,7 +81,7 @@ jobs:
         include:
           - weblogs: ""  # All of them
             scenarios: DEFAULT,EVERYTHING_DISABLED,APPSEC_BLOCKING_FULL_DENYLIST,APPSEC_BLOCKING,GRAPHQL_APPSEC,PARAMETRIC
-          - weblogs: rack,rails70
+          - weblogs: rack,rails72
             scenarios: |
               APPSEC_API_SECURITY,
               APPSEC_API_SECURITY_RC,
