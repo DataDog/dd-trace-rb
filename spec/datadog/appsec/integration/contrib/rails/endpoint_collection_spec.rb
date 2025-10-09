@@ -157,6 +157,14 @@ RSpec.describe 'Rails Endpoint Collection' do
     ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
   end
 
+  it 'does not raise an error when AppSec.telemetry is nil' do
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(nil)
+
+    expect do
+      ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
+    end.not_to raise_error
+  end
+
   it 'reports routes via telemetry' do
     ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
 

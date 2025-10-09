@@ -152,13 +152,15 @@ module Datadog
 
             return unless Datadog.configuration.appsec.api_security.endpoint_collection.enabled
 
+            return unless AppSec.telemetry
+
             GUARD_ROUTES_REPORTING_ONCE_PER_APP[::Rails.application].run do
               AppSec.telemetry.app_endpoints_loaded(
                 APISecurity::EndpointCollection::RailsRoutesSerializer.new(routes).to_enum
               )
             end
           rescue => e
-            AppSec.telemetry.report(e, description: 'failed to report application endpoints')
+            AppSec.telemetry&.report(e, description: 'failed to report application endpoints')
           end
 
           def setup_security
