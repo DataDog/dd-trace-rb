@@ -8,7 +8,7 @@ require_relative 'benchmarks_helper'
 if RUBY_VERSION < '3.2'
   if VALIDATE_BENCHMARK_MODE
     # To simplify things, we allow this benchmark to be run in VALIDATE_BENCHMARK_MODE even though it's a no-op
-    $stderr.puts "Skipping benchmark because it requires Ruby 3.2 or newer"
+    warn "Skipping benchmark because it requires Ruby 3.2 or newer"
     return
   else
     raise 'This benchmark requires Ruby 3.2 or newer'
@@ -53,7 +53,7 @@ class ProfilerSampleGvlBenchmark
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 20, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 20, warmup: 2}
       x.config(
         **benchmark_time,
       )
