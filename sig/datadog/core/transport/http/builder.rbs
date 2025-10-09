@@ -14,12 +14,12 @@ module Datadog
           attr_reader default_api: untyped
 
           attr_reader default_headers: untyped
-	  
+
 	  attr_reader logger: Core::Logger
-	  
+
 	  attr_reader api_instance_class: untyped
 
-          def initialize: (api_instance_class: untyped, logger: Core::Logger) ?{ (untyped) -> untyped } -> void
+          def initialize: (api_instance_class: untyped, ?logger: Core::Logger) ?{ (untyped) -> untyped } -> void
 
           def adapter: (untyped config, *untyped args, **untyped kwargs) -> untyped
 

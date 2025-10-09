@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Telemetry
       module Request
-        def self.build_payload: (Event::Base event, int seq_id, ?debug: bool) -> ::Hash[Symbol, untyped]
+        def self.build_payload: (Event::Base event, int seq_id, ?api_version: String, ?debug: bool) -> ::Hash[Symbol, untyped]
 
         private
 
