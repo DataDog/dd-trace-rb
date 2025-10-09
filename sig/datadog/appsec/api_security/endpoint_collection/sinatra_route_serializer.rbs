@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module APISecurity
+      module EndpointCollection
+        module SinatraRouteSerializer
+          def self?.serialize: (_SinatraRoute route, method: ::String, ?path_prefix: ::String) -> Core::Telemetry::Event::AppEndpointsLoaded::endpoint
+        end
+      end
+    end
+  end
+end

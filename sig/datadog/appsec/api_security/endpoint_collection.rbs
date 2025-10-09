@@ -4,7 +4,7 @@ module Datadog
       module EndpointCollection
         interface _RailsRoute
           def dispatcher?: () -> bool
-          def verb: () -> String
+          def verb: () -> ::String
           def path: () -> _RailsRoutePath
           def app: () -> _RailsRouteApp
         end
@@ -14,7 +14,7 @@ module Datadog
         end
 
         interface _RailsRouteSpec
-          def to_s: () -> String
+          def to_s: () -> ::String
         end
 
         interface _RailsRouteApp
@@ -27,22 +27,17 @@ module Datadog
           def routes: () -> untyped
         end
 
-        class RailsRoutesSerializer
-          FORMAT_SUFFIX: String
+        interface _GrapeRoute
+          def request_method: () -> String
+          def pattern: () -> _GrapeRoutePattern
+        end
 
-          @routes: Array[_RailsRoute]
+        interface _GrapeRoutePattern
+          def origin: () -> String
+        end
 
-          def initialize: (Array[_RailsRoute] routes) -> void
-
-          def to_enum: () -> Enumerator[Core::Telemetry::Event::AppEndpointsLoaded::endpoint]
-
-          def serialize_route: (_RailsRoute route) -> Core::Telemetry::Event::AppEndpointsLoaded::endpoint
-
-          private
-
-          def grape_app?: (_RackApp rack_app) -> bool
-
-          def sinatra_app?: (_RackApp rack_app) -> bool
+        interface _SinatraRoute
+          def safe_string: () -> String
         end
       end
     end
