@@ -1,6 +1,6 @@
 services:
   tracer-2.5:
-    image: ghcr.io/datadog/images-rb/engines/ruby:2.5
+    image: ghcr.io/datadog/images-rb/engines/ruby:2.5-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: &common-depends-on
@@ -41,7 +41,7 @@ services:
       - bundle-2.5:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.6:
-    image: ghcr.io/datadog/images-rb/engines/ruby:2.6
+    image: ghcr.io/datadog/images-rb/engines/ruby:2.6-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -58,7 +58,7 @@ services:
       - bundle-2.6:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.7:
-    image: ghcr.io/datadog/images-rb/engines/ruby:2.7
+    image: ghcr.io/datadog/images-rb/engines/ruby:2.7-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -75,7 +75,7 @@ services:
       - bundle-2.7:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.0:
-    image: ghcr.io/datadog/images-rb/engines/ruby:3.0
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.0-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -92,7 +92,7 @@ services:
       - bundle-3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.1:
-    image: ghcr.io/datadog/images-rb/engines/ruby:3.1
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.1-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -109,7 +109,7 @@ services:
       - bundle-3.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.2:
-    image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.2-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -126,7 +126,7 @@ services:
       - bundle-3.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.3:
-    image: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.3-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -143,7 +143,7 @@ services:
       - bundle-3.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.4:
-    image: ghcr.io/datadog/images-rb/engines/ruby:3.4
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.4-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -159,9 +159,26 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-3.5:
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.5-gnu-gcc
+    working_dir: /app
+    command: /bin/bash
+    depends_on: *common-depends-on
+    links: *common-links
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/ruby-3.5.gemfile
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-3.5:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
   tracer-jruby-9.2:
-    image: ghcr.io/datadog/images-rb/engines/jruby:9.2
+    image: ghcr.io/datadog/images-rb/engines/jruby:9.2-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -177,7 +194,7 @@ services:
       - bundle-jruby-9.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.3:
-    image: ghcr.io/datadog/images-rb/engines/jruby:9.3
+    image: ghcr.io/datadog/images-rb/engines/jruby:9.3-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -193,7 +210,7 @@ services:
       - bundle-jruby-9.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.4:
-    image: ghcr.io/datadog/images-rb/engines/jruby:9.4
+    image: ghcr.io/datadog/images-rb/engines/jruby:9.4-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -327,6 +344,7 @@ volumes:
   bundle-3.2:
   bundle-3.3:
   bundle-3.4:
+  bundle-3.5:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2:
   bundle-jruby-9.3:
