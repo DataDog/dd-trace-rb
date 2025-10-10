@@ -25,6 +25,11 @@ module Datadog
         CAP_ASM_TRUSTED_IPS = 1 << 10
         CAP_ASM_RASP_SSRF = 1 << 23
         CAP_ASM_RASP_SQLI = 1 << 21
+        CAP_ASM_AUTO_USER_INSTRUM_MODE = 1 << 31
+        CAP_ASM_ENDPOINT_FINGERPRINT = 1 << 32
+        CAP_ASM_SESSION_FINGERPRINT = 1 << 33
+        CAP_ASM_NETWORK_FINGERPRINT = 1 << 34
+        CAP_ASM_HEADER_FINGERPRINT = 1 << 35
         CAP_ASM_TRACE_TAGGING_RULES = 1 << 43
 
         # TODO: we need to dynamically add CAP_ASM_ACTIVATION once we support it
@@ -40,6 +45,11 @@ module Datadog
           CAP_ASM_TRUSTED_IPS,
           CAP_ASM_RASP_SSRF,
           CAP_ASM_RASP_SQLI,
+          CAP_ASM_AUTO_USER_INSTRUM_MODE,
+          CAP_ASM_ENDPOINT_FINGERPRINT,
+          CAP_ASM_SESSION_FINGERPRINT,
+          CAP_ASM_NETWORK_FINGERPRINT,
+          CAP_ASM_HEADER_FINGERPRINT,
           CAP_ASM_TRACE_TAGGING_RULES,
         ].freeze
 
