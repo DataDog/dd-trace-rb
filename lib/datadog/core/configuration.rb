@@ -172,8 +172,6 @@ module Datadog
         end
       end
 
-      # During stable config initialization, we also have to check for DD_TRACE_DEBUG in local and fleet config.
-      # We pass the debug source value
       def config_init_logger
         configuration? ? logger : logger_without_configuration
       end

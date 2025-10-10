@@ -85,6 +85,13 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
             }
           )
         end
+
+        it 'sets Datadog.configuration accordingly' do
+          expect(Datadog.configuration.tracing.log_injection).to be false
+          expect(Datadog.configuration.tracing.send(:resolve_option, :log_injection).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::LOCAL_STABLE)
+          expect(Datadog.configuration.appsec.enabled).to be true
+          expect(Datadog.configuration.appsec.send(:resolve_option, :enabled).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::FLEET_STABLE)
+        end
       end
 
       context 'without config_id' do
@@ -111,69 +118,53 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
             }
           )
         end
-      end
 
-      context 'with DD_TRACE_DEBUG set during configuration initialization' do
-        before do
-          described_class.const_get(:LOG_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
-        end
-
-        # Reset DD_TRACE_DEBUG to nil as its precedence is higher than local config file
-        around do |example|
-          ClimateControl.modify('DD_TRACE_DEBUG' => nil) do
-            example.run
-          end
-        end
-
-        context 'to true in fleet config' do
-          let(:fleet_config_content) do
-            <<~YAML
-              apm_configuration_default:
-                DD_TRACE_DEBUG: true
-            YAML
-          end
-
-          it 'prints debug logs' do
-            # Datadog.logger is not reset between tests, so we need to build a new logger
-            expect { described_class.log_result(Datadog::Core::Configuration::Components.build_logger(Datadog.configuration)) }.to output(/Reading stable configuration from files/).to_stdout
-          end
-        end
-
-        context 'to true in local config' do
-          let(:local_config_content) do
-            <<~YAML
-              apm_configuration_default:
-                DD_TRACE_DEBUG: true
-            YAML
-          end
-
-          it 'prints debug logs' do
-            # Datadog.logger is not reset between tests, so we need to build a new logger
-            expect { described_class.log_result(Datadog::Core::Configuration::Components.build_logger(Datadog.configuration)) }.to output(/Reading stable configuration from files/).to_stdout
-          end
-        end
-
-        context 'to true in local config and false in fleet config' do
-          let(:local_config_content) do
-            <<~YAML
-              apm_configuration_default:
-                DD_TRACE_DEBUG: true
-            YAML
-          end
-
-          let(:fleet_config_content) do
-            <<~YAML
-              apm_configuration_default:
-                DD_TRACE_DEBUG: false
-            YAML
-          end
-
-          it 'respects priority and does not print debug logs' do
-            # Datadog.logger is not reset between tests, so we need to build a new logger
-            expect { described_class.log_result(Datadog::Core::Configuration::Components.build_logger(Datadog.configuration)) }.not_to output(/Reading stable configuration from files/).to_stdout
-          end
+        it 'sets Datadog.configuration accordingly' do
+          expect(Datadog.configuration.tracing.log_injection).to be false
+          expect(Datadog.configuration.tracing.send(:resolve_option, :log_injection).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::LOCAL_STABLE)
+          expect(Datadog.configuration.appsec.enabled).to be true
+          expect(Datadog.configuration.appsec.send(:resolve_option, :enabled).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::FLEET_STABLE)
         end
       end
+
+      context 'with local and fleet config setting the same option' do
+        let(:local_config_content) do
+          <<~YAML
+            apm_configuration_default:
+              DD_TRACE_RATE_LIMIT: 10
+          YAML
+        end
+
+        let(:fleet_config_content) do
+          <<~YAML
+            apm_configuration_default:
+              DD_TRACE_RATE_LIMIT: 20
+          YAML
+        end
+
+        it 'sets Datadog.configuration accordingly' do
+          expect(Datadog.configuration.tracing.sampling.rate_limit).to eq(20)
+          expect(Datadog.configuration.tracing.sampling.send(:resolve_option, :rate_limit).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::FLEET_STABLE)
+          # Currently, libdatadog only returns the fleet config value if both are set. This will change in the future, and it will returns both values.
+          # Datadog.configuration.tracing.sampling.unset_option(:rate_limit, precedence: Datadog::Core::Configuration::Option::Precedence::FLEET_STABLE)
+          # # Should fallback to local config
+          # expect(Datadog.configuration.tracing.sampling.rate_limit).to eq(10)
+          # expect(Datadog.configuration.tracing.sampling.send(:resolve_option, :rate_limit).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::LOCAL_STABLE)
+        end
+      end
+    end
+  end
+
+  describe '#log_result' do
+    before do
+      described_class.const_get(:LOG_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+    end
+
+    it 'calls logger.debug' do
+      logger = double('test logger')
+      expect(logger).to receive(:debug).with(/Reading stable configuration from files/)
+
+      described_class.log_result(logger)
     end
   end
 end
