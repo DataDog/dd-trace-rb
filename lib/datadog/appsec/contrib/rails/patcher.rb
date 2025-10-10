@@ -149,8 +149,8 @@ module Datadog
             # We do not support Rails 4.x for Endpoint Collection,
             # mainly because the Route#verb was a Regexp before Rails 5.0
             return if target_version < Gem::Version.new('5.0')
-
             return unless Datadog.configuration.appsec.api_security.endpoint_collection.enabled
+            return unless AppSec.telemetry
 
             GUARD_ROUTES_REPORTING_ONCE_PER_APP[::Rails.application].run do
               AppSec.telemetry.app_endpoints_loaded(
@@ -158,7 +158,7 @@ module Datadog
               )
             end
           rescue => e
-            AppSec.telemetry.report(e, description: 'failed to report application endpoints')
+            AppSec.telemetry&.report(e, description: 'failed to report application endpoints')
           end
 
           def setup_security
