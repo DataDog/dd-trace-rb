@@ -14,6 +14,7 @@ module Datadog
           x-client-ip
           x-forwarded
           forwarded-for
+          forwarded
           x-cluster-client-ip
           fastly-client-ip
           cf-connecting-ip
