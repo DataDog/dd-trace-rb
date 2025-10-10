@@ -225,6 +225,22 @@ services:
       - .:/app
       - bundle-jruby-9.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-jruby-10.0:
+    image: ghcr.io/datadog/images-rb/engines/jruby:10.0-gnu-gcc
+    working_dir: /app
+    command: /bin/bash
+    depends_on: *common-depends-on
+    links: *common-links
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/jruby-10.0.gemfile
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-jruby-10.0:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   ddagent:
     image: datadog/agent
     environment:
@@ -349,6 +365,7 @@ volumes:
   bundle-jruby-9.2:
   bundle-jruby-9.3:
   bundle-jruby-9.4:
+  bundle-jruby-10.0:
   ddagent_var_run:
   # Temporary folder used while compiling the profiling native extension. We place this in a volume to avoid the
   # massive performance hit (seconds to minutes) that we get when the tmp folder is shared with the host on macOS.

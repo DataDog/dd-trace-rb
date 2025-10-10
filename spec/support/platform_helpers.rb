@@ -18,6 +18,11 @@ module PlatformHelpers
     RUBY_ENGINE == 'jruby'
   end
 
+  # After we resolve all "# TODO: JRuby 10.0 - " comments, remove this method and update docs/Compatibility.md
+  def jruby_100?
+    RUBY_ENGINE == 'jruby' && RUBY_ENGINE_VERSION.start_with?('10.0')
+  end
+
   def truffleruby?
     RUBY_ENGINE == 'truffleruby'
   end
