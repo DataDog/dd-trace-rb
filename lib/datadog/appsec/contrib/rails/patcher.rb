@@ -10,7 +10,7 @@ require_relative 'gateway/watcher'
 require_relative 'gateway/request'
 require_relative 'patches/render_to_body_patch'
 require_relative 'patches/process_action_patch'
-require_relative '../../api_security/endpoint_collection/rails_routes_serializer'
+require_relative '../../api_security/endpoint_collection/rails_collector'
 
 require_relative '../../../tracing/contrib/rack/middlewares'
 
@@ -154,7 +154,7 @@ module Datadog
 
             GUARD_ROUTES_REPORTING_ONCE_PER_APP[::Rails.application].run do
               AppSec.telemetry.app_endpoints_loaded(
-                APISecurity::EndpointCollection::RailsRoutesSerializer.new(routes).to_enum
+                APISecurity::EndpointCollection::RailsCollector.new(routes).to_enum
               )
             end
           rescue => e

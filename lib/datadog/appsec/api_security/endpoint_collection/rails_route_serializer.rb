@@ -5,26 +5,12 @@ module Datadog
     module APISecurity
       module EndpointCollection
         # This module serializes Rails Journey Router routes.
-        class RailsRoutesSerializer
+        module RailsRouteSerializer
           FORMAT_SUFFIX = "(.:format)"
 
-          def initialize(routes)
-            @routes = routes
-          end
+          module_function
 
-          def to_enum
-            Enumerator.new do |yielder|
-              @routes.each do |route|
-                next unless route.dispatcher?
-
-                yielder.yield serialize_route(route)
-              end
-            end
-          end
-
-          private
-
-          def serialize_route(route)
+          def serialize(route)
             method = route.verb.empty? ? "*" : route.verb
             path = route.path.spec.to_s.delete_suffix(FORMAT_SUFFIX)
 
