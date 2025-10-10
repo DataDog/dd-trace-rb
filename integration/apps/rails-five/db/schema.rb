@@ -11,7 +11,6 @@
 # It's strongly recommended that you check this file into your version control system.
 
 ActiveRecord::Schema.define(version: 2019_09_27_215052) do
-
   create_table "tests", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.integer "version"
     t.string "data"
@@ -19,5 +18,4 @@ ActiveRecord::Schema.define(version: 2019_09_27_215052) do
     t.datetime "updated_at", null: false
     t.index ["version"], name: "index_tests_on_version"
   end
-
 end
