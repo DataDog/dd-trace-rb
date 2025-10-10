@@ -154,7 +154,7 @@ module Datadog
 
             GUARD_ROUTES_REPORTING_ONCE_PER_APP[::Rails.application].run do
               AppSec.telemetry.app_endpoints_loaded(
-                APISecurity::EndpointCollection::RailsCollector.new(routes).build_enum
+                APISecurity::EndpointCollection::RailsCollector.new(routes).to_enum
               )
             end
           rescue => e

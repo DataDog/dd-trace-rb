@@ -15,7 +15,7 @@ module Datadog
             @routes = routes
           end
 
-          def build_enum
+          def to_enum
             Enumerator.new do |yielder|
               @routes.each do |route|
                 if route.dispatcher?

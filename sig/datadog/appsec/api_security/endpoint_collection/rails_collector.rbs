@@ -7,7 +7,7 @@ module Datadog
 
           def initialize: (Array[_RailsRoute] routes) -> void
 
-          def build_enum: () -> Enumerator[Core::Telemetry::Event::AppEndpointsLoaded::endpoint]
+          def to_enum: () -> Enumerator[Core::Telemetry::Event::AppEndpointsLoaded::endpoint]
 
           private
 
