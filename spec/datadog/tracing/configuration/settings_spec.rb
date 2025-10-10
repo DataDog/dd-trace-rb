@@ -191,10 +191,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
           it 'sets propagation_style_extract' do
             expect { propagation_style }.to change { propagation_style_extract }.to(%w[b3multi b3])
+            expect(settings.tracing.send(:resolve_option, :propagation_style_extract).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
           end
 
           it 'sets propagation_style_inject' do
             expect { propagation_style }.to change { propagation_style_inject }.to(%w[b3multi b3])
+            expect(settings.tracing.send(:resolve_option, :propagation_style_inject).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
           end
 
           context 'with a mixed case value' do
