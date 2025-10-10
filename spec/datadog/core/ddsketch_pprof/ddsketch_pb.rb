@@ -4,7 +4,7 @@
 require 'google/protobuf'
 
 Google::Protobuf::DescriptorPool.generated_pool.build do
-  add_file("spec/datadog/core/ddsketch_pprof/ddsketch.proto", :syntax => :proto3) do
+  add_file("spec/datadog/core/ddsketch_pprof/ddsketch.proto", syntax: :proto3) do
     add_message "test.DDSketch" do
       optional :mapping, :message, 1, "test.IndexMapping"
       optional :positiveValues, :message, 2, "test.Store"
