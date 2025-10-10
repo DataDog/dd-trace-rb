@@ -239,11 +239,13 @@ end
 appraise 'rails-app' do
   gem 'devise', '~> 4.9'
   gem 'faraday', '~> 2.0'
+  gem 'grape' # for endpoint collection tests
   gem 'excon', '~> 1.2'
   gem 'rest-client'
   gem 'rack', '~> 2'
   gem 'rack-contrib', '~> 2'
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rails', '~> 7.0'
+  gem 'sinatra' # for endpoint collection tests
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
 end
