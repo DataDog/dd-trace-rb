@@ -112,6 +112,7 @@ GEM
     erb (5.0.2)
     erubi (1.13.1)
     extlz4 (0.3.5)
+    ffi (1.17.2)
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-aarch64-linux-musl)
     ffi (1.17.2-arm-linux-gnu)
