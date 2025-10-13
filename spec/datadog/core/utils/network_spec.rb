@@ -27,6 +27,29 @@ RSpec.describe Datadog::Core::Utils::Network do
         end
       end
 
+      context 'with Forwaded header' do
+        it 'correctly parses a single for IP' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for=43.43.43.43;proto=http;by=203.0.113.43'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('43.43.43.43')
+        end
+
+        it 'correctly parses multiple for IPs' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for=10.42.42.42;for=43.43.43.43'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('43.43.43.43')
+        end
+
+        it 'returns nil for invalid values' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'foobar'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to be_nil
+        end
+      end
+
       context 'with custom header value' do
         it 'returns the IP value if valid public address' do
           headers = Datadog::Core::HeaderCollection.from_hash(

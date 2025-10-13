@@ -13,8 +13,8 @@ module Datadog
           true-client-ip
           x-client-ip
           x-forwarded
-          forwarded-for
           forwarded
+          forwarded-for
           x-cluster-client-ip
           fastly-client-ip
           cf-connecting-ip
@@ -73,7 +73,16 @@ module Datadog
 
               next unless value
 
-              ips = value.split(',')
+              ips = if name == 'forwarded'
+                value.split(';').each_with_object([]) do |tuple_str, acc|
+                  next unless tuple_str.start_with?('for=')
+
+                  acc << tuple_str.delete_prefix('for=').strip
+                end
+              else
+                value.split(',')
+              end
+
               ips.each do |ip|
                 parsed_ip = ip_to_ipaddr(ip.strip)
 
