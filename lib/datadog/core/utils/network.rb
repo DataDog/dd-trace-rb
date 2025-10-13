@@ -90,10 +90,10 @@ module Datadog
           end
 
           def extract_ips_from_forwarded_header(header_value)
-            header_value.downcase.split(/;\s*/).each_with_object([]) do |tuple_str, acc|
+            header_value.downcase.split(';').each_with_object([]) do |tuple_str, acc|
+              tuple_str.strip!
               next unless tuple_str.start_with?('for=')
 
-              tuple_str.strip!
               tuple_str.delete_prefix!('for=')
 
               acc << tuple_str
