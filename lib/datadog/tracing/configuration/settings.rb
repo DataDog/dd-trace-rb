@@ -96,7 +96,7 @@ module Datadog
                 # Note: Alias (DD_TRACE_PROPAGATION_STYLE) defined in supported-configurations.json
                 o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                 o.default []
-                o.after_set do |styles|
+                o.after_set do |styles, _, precedence|
                   next if styles.empty?
 
                   # Make values case-insensitive
@@ -110,8 +110,8 @@ module Datadog
                       false
                     end
                   end
-                  set_option(:propagation_style_extract, styles)
-                  set_option(:propagation_style_inject, styles)
+                  set_option(:propagation_style_extract, styles, precedence: precedence)
+                  set_option(:propagation_style_inject, styles, precedence: precedence)
                 end
               end
 
