@@ -6,6 +6,8 @@ require 'rack/test'
 
 require 'action_controller/railtie'
 require 'active_record'
+require 'grape'
+require 'sinatra/base'
 require 'sqlite3'
 require 'devise'
 
@@ -105,6 +107,44 @@ RSpec.describe 'Rails Endpoint Collection' do
 
     allow(Datadog::AppSec.telemetry).to receive(:app_endpoints_loaded)
 
+    grape_app = Class.new(Grape::API) do
+      format :json
+
+      get '/' do
+        {message: 'Grape Home'}
+      end
+
+      get '/param/:name' do
+        route = request.env["datadog.http.route"]
+        {
+          message: 'Grape Params Endpoint (GET)',
+          route: route,
+          name: params[:name]
+        }
+      end
+
+      namespace 'namespaced' do
+        get '/param/:name' do
+          route = request.env["datadog.http.route"]
+          {
+            message: 'Grape Params Endpoint (GET)',
+            route: route,
+            name: params[:name]
+          }
+        end
+      end
+    end
+
+    sinatra_app = Class.new(Sinatra::Base) do
+      get '/' do
+        ''
+      end
+
+      get '/param/:name' do
+        ''
+      end
+    end
+
     # app.initialize!
     app.routes.draw do
       resources :products
@@ -127,6 +167,9 @@ RSpec.describe 'Rails Endpoint Collection' do
       end
 
       match '/search', to: 'search#index', via: :all
+
+      mount grape_app => '/grape'
+      mount sinatra_app => '/sinatra'
     end
 
     allow(Rails).to receive(:application).and_return(app)
@@ -155,6 +198,14 @@ RSpec.describe 'Rails Endpoint Collection' do
     expect(Datadog::AppSec.telemetry).to receive(:app_endpoints_loaded).and_raise(StandardError)
 
     ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
+  end
+
+  it 'does not raise an error when AppSec.telemetry is nil' do
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(nil)
+
+    expect do
+      ActiveSupport.run_load_hooks(:after_routes_loaded, Rails.application)
+    end.not_to raise_error
   end
 
   it 'reports routes via telemetry' do
@@ -301,6 +352,41 @@ RSpec.describe 'Rails Endpoint Collection' do
           operation_name: 'http.request',
           method: '*',
           path: '/search'
+        },
+        {
+          type: 'REST',
+          resource_name: 'GET /grape/',
+          operation_name: 'http.request',
+          method: 'GET',
+          path: '/grape/'
+        },
+        {
+          type: 'REST',
+          resource_name: 'GET /grape/param/:name',
+          operation_name: 'http.request',
+          method: 'GET',
+          path: '/grape/param/:name'
+        },
+        {
+          type: 'REST',
+          resource_name: 'GET /grape/namespaced/param/:name',
+          operation_name: 'http.request',
+          method: 'GET',
+          path: '/grape/namespaced/param/:name'
+        },
+        {
+          type: 'REST',
+          resource_name: 'GET /sinatra/',
+          operation_name: 'http.request',
+          method: 'GET',
+          path: '/sinatra/'
+        },
+        {
+          type: 'REST',
+          resource_name: 'GET /sinatra/param/{name}',
+          operation_name: 'http.request',
+          method: 'GET',
+          path: '/sinatra/param/{name}'
         }
       )
     end
