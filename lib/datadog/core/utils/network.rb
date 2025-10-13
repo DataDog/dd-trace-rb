@@ -74,11 +74,7 @@ module Datadog
               next unless value
 
               ips = if name == 'forwarded'
-                value.downcase.split(';').each_with_object([]) do |tuple_str, acc|
-                  next unless tuple_str.start_with?('for=')
-
-                  acc << tuple_str.delete_prefix('for=').strip
-                end
+                extract_ips_from_forwarded_header(value)
               else
                 value.split(',')
               end
@@ -91,6 +87,17 @@ module Datadog
             end
 
             nil
+          end
+
+          def extract_ips_from_forwarded_header(header_value)
+            header_value.downcase.split(/;\s*/).each_with_object([]) do |tuple_str, acc|
+              next unless tuple_str.start_with?('for=')
+
+              tuple_str.strip!
+              tuple_str.delete_prefix!('for=')
+
+              acc << tuple_str
+            end
           end
 
           # Returns whether the given value is more likely to be an IPv4 than an IPv6 address.

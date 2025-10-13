@@ -10,6 +10,7 @@ module Datadog
         private
 
         def self.ip_header: (Datadog::Core::HeaderCollection headers, ::Array[::String] ip_headers_to_check) -> untyped?
+        def self.extract_ips_from_forwarded_header: (::String header_value) -> ::Array[::String]
         def self.strip_zone_specifier: (::String ipv6) -> ::String
         def self.strip_ipv6_port: (::String ip) -> ::String
         def self.strip_ipv4_port: (::String ip) -> ::String
