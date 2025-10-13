@@ -22,6 +22,13 @@ Dir.glob('tasks/*.rake').each { |r| import r }
 
 TEST_METADATA = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
+CORE_WITH_LIBDATADOG_API = [
+  'spec/datadog/core/crashtracking/**/*_spec.rb',
+  'spec/datadog/core/process_discovery_spec.rb',
+  'spec/datadog/core/configuration/stable_config_spec.rb',
+  'spec/datadog/core/ddsketch_spec.rb',
+].freeze
+
 # rubocop:disable Metrics/BlockLength
 namespace :test do
   desc 'Run all tests'
@@ -70,13 +77,14 @@ namespace :spec do
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :crashtracking, :error_tracking, :process_discovery, :stable_config]
+    :profiling, :core_with_libdatadog_api, :error_tracking]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking,error_tracking,rubocop}/**/*_spec.rb,' \
-                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config}_spec.rb, spec/datadog/gem_packaging_spec.rb'
+                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch}_spec.rb,' \
+                        ' spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -202,27 +210,8 @@ namespace :spec do
   end
 
   # rubocop:disable Style/MultilineBlockChain
-  RSpec::Core::RakeTask.new(:crashtracking) do |t, args|
-    t.pattern = 'spec/datadog/core/crashtracking/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
-  end.tap do |t|
-    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
-  end
-  # rubocop:enable Style/MultilineBlockChain
-
-  # rubocop:disable Style/MultilineBlockChain
-  RSpec::Core::RakeTask.new(:process_discovery) do |t, args|
-    t.pattern = 'spec/datadog/core/process_discovery_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
-  end.tap do |t|
-    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
-  end
-  # rubocop:enable Style/MultilineBlockChain
-
-  # rubocop:disable Style/MultilineBlockChain
-  desc '' # "Explicitly hiding from `rake -T`"
-  RSpec::Core::RakeTask.new(:stable_config) do |t, args|
-    t.pattern = 'spec/datadog/core/configuration/stable_config_spec.rb'
+  RSpec::Core::RakeTask.new(:core_with_libdatadog_api) do |t, args|
+    t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end.tap do |t|
     Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
