@@ -73,11 +73,8 @@ module Datadog
 
               next unless value
 
-              ips = if name == 'forwarded'
-                extract_ips_from_forwarded_header(value)
-              else
-                value.split(',')
-              end
+              ips = value.split(',')
+              ips = process_forwarded_header_values(ips) if name == 'forwarded'
 
               ips.each do |ip|
                 parsed_ip = ip_to_ipaddr(ip.strip)
@@ -89,14 +86,19 @@ module Datadog
             nil
           end
 
-          def extract_ips_from_forwarded_header(header_value)
-            header_value.downcase.split(';').each_with_object([]) do |tuple_str, acc|
-              tuple_str.strip!
-              next unless tuple_str.start_with?('for=')
+          def process_forwarded_header_values(values)
+            values.each_with_object([]) do |value, acc|
+              value.downcase!
 
-              tuple_str.delete_prefix!('for=')
+              value.split(';').each do |tuple_str|
+                tuple_str.strip!
+                next unless tuple_str.start_with?('for=')
 
-              acc << tuple_str
+                tuple_str.delete_prefix!('for=')
+                tuple_str.delete!('"')
+
+                acc << tuple_str
+              end
             end
           end
 

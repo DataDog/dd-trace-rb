@@ -43,10 +43,12 @@ RSpec.describe Datadog::Core::Utils::Network do
         end
 
         it 'correctly parses multiple for IPs' do
-          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for=10.42.42.42; for=43.43.43.43'})
+          headers = Datadog::Core::HeaderCollection.from_hash(
+            {'Forwarded' => 'for=127.0.0.1;host="example.host";by=2.2.2.2;proto=http,for="1.1.1.1:6543"'}
+          )
 
           result = described_class.stripped_ip_from_request_headers(headers)
-          expect(result).to eq('43.43.43.43')
+          expect(result).to eq('1.1.1.1')
         end
 
         it 'correctly parses IPv6' do
