@@ -74,7 +74,7 @@ module Datadog
               next unless value
 
               ips = if name == 'forwarded'
-                value.split(';').each_with_object([]) do |tuple_str, acc|
+                value.downcase.split(';').each_with_object([]) do |tuple_str, acc|
                   next unless tuple_str.start_with?('for=')
 
                   acc << tuple_str.delete_prefix('for=').strip

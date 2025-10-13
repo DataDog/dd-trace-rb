@@ -29,17 +29,31 @@ RSpec.describe Datadog::Core::Utils::Network do
 
       context 'with Forwaded header' do
         it 'correctly parses a single for IP' do
-          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for=43.43.43.43;proto=http;by=203.0.113.43'})
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for=43.43.43.43; proto=http; by=203.0.113.43'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('43.43.43.43')
+        end
+
+        it 'is case-insencitive to keys in the header' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'For=43.43.43.43; Proto=http; By=203.0.113.43'})
 
           result = described_class.stripped_ip_from_request_headers(headers)
           expect(result).to eq('43.43.43.43')
         end
 
         it 'correctly parses multiple for IPs' do
-          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for=10.42.42.42;for=43.43.43.43'})
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for=10.42.42.42; for=43.43.43.43'})
 
           result = described_class.stripped_ip_from_request_headers(headers)
           expect(result).to eq('43.43.43.43')
+        end
+
+        it 'correctly parses IPv6' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for="[2001:db8:cafe::17]:4711"'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('2001:db8:cafe::17')
         end
 
         it 'returns nil for invalid values' do
