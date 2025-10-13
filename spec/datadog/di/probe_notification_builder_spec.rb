@@ -164,7 +164,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:payload) { builder.build_executed(context) }
 
     let(:context) do
-      Datadog::DI::EL::Context.new(
+      Datadog::DI::Context.new(
         settings: settings, serializer: serializer,
         probe: probe
       )
@@ -273,7 +273,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       let(:context) do
-        Datadog::DI::EL::Context.new(probe: probe,
+        Datadog::DI::Context.new(probe: probe,
           settings: settings, serializer: serializer,
           path: '/foo.rb',
           locals: locals, target_self: Object.new)
@@ -346,9 +346,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       let(:template_segments) do
         [
-          compiler.compile('ref' => 'hello'),
+          Datadog::DI::EL::Expression.new('(expression)', compiler.compile('ref' => 'hello')),
           ' ',
-          compiler.compile('ref' => 'world'),
+          Datadog::DI::EL::Expression.new('(expression)', compiler.compile('ref' => 'world')),
         ]
       end
 
@@ -361,7 +361,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       let(:context) do
-        Datadog::DI::EL::Context.new(
+        Datadog::DI::Context.new(
           settings: settings, serializer: serializer,
           locals: vars,
           probe: probe

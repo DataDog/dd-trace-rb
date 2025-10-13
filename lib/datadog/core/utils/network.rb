@@ -13,6 +13,7 @@ module Datadog
           true-client-ip
           x-client-ip
           x-forwarded
+          forwarded
           forwarded-for
           x-cluster-client-ip
           fastly-client-ip
@@ -73,6 +74,8 @@ module Datadog
               next unless value
 
               ips = value.split(',')
+              ips = process_forwarded_header_values(ips) if name == 'forwarded'
+
               ips.each do |ip|
                 parsed_ip = ip_to_ipaddr(ip.strip)
 
@@ -81,6 +84,22 @@ module Datadog
             end
 
             nil
+          end
+
+          def process_forwarded_header_values(values)
+            values.each_with_object([]) do |value, acc|
+              value.downcase!
+
+              value.split(';').each do |tuple_str|
+                tuple_str.strip!
+                next unless tuple_str.start_with?('for=')
+
+                tuple_str.delete_prefix!('for=')
+                tuple_str.delete!('"')
+
+                acc << tuple_str
+              end
+            end
           end
 
           # Returns whether the given value is more likely to be an IPv4 than an IPv6 address.

@@ -77,7 +77,7 @@ class ProfilerSampleLoopBenchmark
   end
 
   def run_benchmark(mode: :ruby)
-    threads = Array.new(4) { mode == :ruby ? thread_with_very_deep_stack : thread_with_very_deep_stack_and_native_frames }
+    threads = Array.new(4) { (mode == :ruby) ? thread_with_very_deep_stack : thread_with_very_deep_stack_and_native_frames }
     collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
 
     if mode == :native
@@ -90,7 +90,7 @@ class ProfilerSampleLoopBenchmark
         end
       end
 
-      collector_without_native_filenames = Datadog::Profiling::Collectors::ThreadContext.for_testing(
+      Datadog::Profiling::Collectors::ThreadContext.for_testing(
         recorder: @recorder,
         native_filenames_enabled: false
       )
@@ -98,15 +98,15 @@ class ProfilerSampleLoopBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
 
-      x.report("stack collector (#{mode} frames - native filenames enabled) #{ENV['CONFIG']}") { sample(collector) }
+      x.report("stack collector (#{mode} frames - native filenames enabled) #{ENV["CONFIG"]}") { sample(collector) }
 
       if mode == :native
-        x.report("stack collector (#{mode} frames - native filenames disabled) #{ENV['CONFIG']}") do
+        x.report("stack collector (#{mode} frames - native filenames disabled) #{ENV["CONFIG"]}") do
           sample(collector_without_native_filenames)
         end
       end
@@ -123,13 +123,13 @@ class ProfilerSampleLoopBenchmark
     collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, max_frames: 3000)
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
 
       # This benchmark checks the performance of samples when the stack keeps changing
-      x.report("stack collector (varying depth) #{ENV['CONFIG']}") do
+      x.report("stack collector (varying depth) #{ENV["CONFIG"]}") do
         sample(collector)
         add_extra_frame_and_sample(collector) # This makes the stack change
       end
