@@ -111,7 +111,7 @@ jobs:
               TELEMETRY_METRIC_GENERATION_DISABLED
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@2618589543a4c500c44f7cf95f8762ebca898f61  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@19dc14336bd769500f15241e3af6509946de2b13  # Automated: This reference is automatically updated.
     secrets: inherit  # zizmor: ignore[secrets-inherit]
     permissions:
       contents: read
