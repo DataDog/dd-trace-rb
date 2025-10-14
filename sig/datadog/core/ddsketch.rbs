@@ -1,0 +1,26 @@
+module Datadog
+  module Core
+    class DDSketch
+      def self.supported?: () -> bool
+
+      # Adds a single point to the sketch
+      # @param point [::Numeric] The value to add to the sketch
+      # @return [true] Always returns true on success, raises RuntimeError on failure
+      def add: (::Numeric point) -> true
+
+      # Adds a point with a count to the sketch
+      # @param point [::Numeric] The value to add to the sketch
+      # @param count [::Numeric] The count/weight for this point
+      # @return [true] Always returns true on success, raises RuntimeError on failure
+      def add_with_count: (::Numeric point, ::Numeric count) -> true
+
+      # Returns the total count of points in the sketch
+      # @return [::Float] The total count of points
+      def count: () -> ::Float
+
+      # Encodes the sketch to bytes and resets it for reuse
+      # @return [::String] The encoded sketch as a binary string
+      def encode: () -> ::String
+    end
+  end
+end
