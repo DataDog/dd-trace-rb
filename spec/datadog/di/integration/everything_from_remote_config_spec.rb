@@ -694,7 +694,6 @@ RSpec.describe 'DI integration from remote config' do
       end
 
       context 'when second invocation successfully evaluates condition' do
-
         let(:probe_spec) do
           {
             id: '11', name: 'bar', type: 'LOG_PROBE',
@@ -806,7 +805,6 @@ RSpec.describe 'DI integration from remote config' do
         end
 
         context 'when code is invoked several times' do
-
           let(:probe_spec) do
             {
               id: '11', name: 'bar', type: 'LOG_PROBE',
