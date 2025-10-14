@@ -79,6 +79,7 @@ build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday')
 build_coverage_matrix('excon')
+build_coverage_matrix('mongo', min: '2.20.0')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
@@ -163,4 +164,3 @@ end
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
 end
-
