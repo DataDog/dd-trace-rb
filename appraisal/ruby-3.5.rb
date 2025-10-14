@@ -94,6 +94,7 @@ build_coverage_matrix('mongo', min: '2.20.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('devise', min: '3.2.1')
+build_coverage_matrix('view_component', (3..4), min: '2.34.0')
 
 appraise 'relational_db' do
   # ActiveRecord locked because tests are failing with 7.1, which was attempted as a part of Ruby 3.4 testing in CI.

@@ -177,6 +177,7 @@ build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('devise', min: '3.2.1', meta: { min: { 'bigdecimal' => '1.4.1' } })
+build_coverage_matrix('view_component', min: '2.34.0')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.0.0'
