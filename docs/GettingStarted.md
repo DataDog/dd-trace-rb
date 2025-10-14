@@ -830,9 +830,12 @@ end
 
 # In case you want to override the global configuration for a certain client instance
 connection = Faraday.new('https://example.com') do |builder|
-  builder.use(:datadog_tracing, **options)
+  builder.use(:datadog_tracing, connection: builder, **options)
   builder.adapter Faraday.default_adapter
 end
+
+# I
+Datadog.configure_onto(connection, error_status_codes: 400..403)
 
 connection.get('/foo')
 ```

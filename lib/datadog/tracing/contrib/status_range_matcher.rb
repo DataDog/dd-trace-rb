@@ -9,6 +9,12 @@ module Datadog
           @ranges = Array(ranges)
         end
 
+        # Return the argument if it is already a StatusRangeMatcher object
+        def self.new(ranges)
+          return ranges if ranges.is_a?(StatusRangeMatcher)
+          super
+        end
+
         def include?(status)
           @ranges.any? do |e|
             case e

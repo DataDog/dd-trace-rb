@@ -68,9 +68,15 @@ module Datadog
             yield(self) if block_given?
           end
 
+          # Creates a copy of this option with values overridden by the given {Hash} or {Configuration::Settings}.
+          def merge(*overrides)
+            self.class.new(options_hash.merge(*overrides))
+          end
+
           def to_h
             options_hash
           end
+          alias to_hash to_h
 
           # Retrieves a nested option from a list of symbols
           def dig(*options)
