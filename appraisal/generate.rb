@@ -8,7 +8,7 @@
 # This implementation provides a much easier interface to customize our needs,
 # while still using the same Appraisal formatting.
 #
-# For example, it solves the incompatbility of `eval_gemfile` from `Bundler::DSL`
+# For example, it solves the incompatibility of `eval_gemfile` from `Bundler::DSL`
 #
 # Usage: `bundle exec ruby appraisal/generate.rb`
 
