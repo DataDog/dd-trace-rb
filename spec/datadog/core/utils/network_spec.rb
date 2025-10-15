@@ -25,6 +25,13 @@ RSpec.describe Datadog::Core::Utils::Network do
           result = described_class.stripped_ip_from_request_headers(headers)
           expect(result).to eq('43.43.43.43')
         end
+
+        it 'does not return IPs from carrier-grade NAT IP range' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'X-Forwarded-For' => '100.64.0.105,43.43.43.43,fe80::1'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('43.43.43.43')
+        end
       end
 
       context 'with Forwaded header' do
