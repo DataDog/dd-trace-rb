@@ -399,6 +399,8 @@ module Datadog
 
         # Record consumer offset stats for DSM reporting
         def record_consumer_stats(topic:, partition:, offset:, timestamp_sec:)
+          return nil unless @enabled
+          
           @stats_mutex.synchronize do
             @consumer_stats << {
               topic: topic,
