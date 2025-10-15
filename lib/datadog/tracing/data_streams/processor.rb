@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'datadog/core/ddsketch'
 require_relative 'pathway_context'
 require_relative 'pathway_codec'
 require_relative '../../version'
@@ -17,9 +16,16 @@ module Datadog
       class Processor < Core::Worker
         include Core::Workers::Polling
 
-        attr_accessor :enabled
+        PROPAGATION_KEY = 'dd-pathway-ctx-base64'
 
-        def initialize(ddsketch_class: Datadog::Core::DDSketch, interval: nil)
+        attr_accessor :enabled
+        attr_reader :pathway_context
+
+        def initialize(ddsketch_class: nil, interval: nil)
+          # Lazy-require DDSketch to avoid circular dependency
+          require 'datadog/core/ddsketch' unless ddsketch_class
+          ddsketch_class ||= Datadog::Core::DDSketch
+
           # DDSketch is required for DSM - disable processor if not supported
           unless ddsketch_class.supported?
             @enabled = false
@@ -134,9 +140,13 @@ module Datadog
 
           tags = ["type:#{type}", "topic:#{target}", 'direction:out']
           tags << 'manual_checkpoint:true' if manual_checkpoint
-          pathway = set_checkpoint(tags)
 
-          yield('dd-pathway-ctx-base64', pathway) if pathway && block
+          # Grab active span to link DSM pathway to APM trace
+          span = Datadog::Tracing.active_span
+
+          pathway = set_checkpoint(tags, nil, 0, span)
+
+          yield(PROPAGATION_KEY, pathway) if pathway && block
 
           pathway
         end
@@ -144,22 +154,40 @@ module Datadog
         # Set a consume checkpoint
         # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
         # @param source [String] The source (e.g., topic, exchange, stream name)
-        # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set
+        # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set (defaults to true for manual instrumentation)
         # @yield [key] Block to extract context from carrier
         # @return [String, nil] Base64 encoded pathway context or nil if disabled
-        def set_consume_checkpoint(type, source, manual_checkpoint: false, &block)
+        def set_consume_checkpoint(type, source, manual_checkpoint: true, &block)
           return nil unless @enabled
 
           # Decode pathway context from carrier if provided
           if block
-            pathway_ctx = yield('dd-pathway-ctx-base64')
-            decode_pathway_b64(pathway_ctx) if pathway_ctx
+            pathway_ctx = yield(PROPAGATION_KEY)
+            if pathway_ctx
+              decoded_ctx = decode_pathway_b64(pathway_ctx)
+              set_pathway_context(decoded_ctx)
+            end
           end
 
           tags = ["type:#{type}", "topic:#{source}", 'direction:in']
           tags << 'manual_checkpoint:true' if manual_checkpoint
 
-          set_checkpoint(tags)
+          # Grab active span to link DSM pathway to APM trace
+          span = Datadog::Tracing.active_span
+
+          set_checkpoint(tags, nil, 0, span)
+        end
+
+        # Start the periodic worker for automatic stats flushing
+        def start
+          return unless @enabled
+
+          super
+        end
+
+        # Stop the periodic worker
+        def stop(force_stop = false, timeout = 1)
+          super(force_stop, timeout)
         end
 
         private
@@ -210,6 +238,9 @@ module Datadog
 
           parent_hash = current_context.hash
           new_hash = compute_pathway_hash(parent_hash, tags)
+
+          # Tag span with pathway hash to link DSM pathway to APM trace
+          span.set_tag('pathway.hash', new_hash.to_s) if span
 
           edge_latency_sec = [now_sec - current_context.current_edge_start_sec, 0.0].max
           full_pathway_latency_sec = [now_sec - current_context.pathway_start_sec, 0.0].max
@@ -287,18 +318,6 @@ module Datadog
           get_current_context
         end
 
-        # Start the periodic worker for automatic stats flushing
-        def start
-          return unless @enabled
-
-          super
-        end
-
-        # Stop the periodic worker
-        def stop(force_stop = false, timeout = 1)
-          super(force_stop, timeout)
-        end
-
         # Get or create current context ( threading.local behavior)
         def get_current_context
           @pathway_context ||= PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
@@ -323,8 +342,6 @@ module Datadog
           pathway_ctx = decode_pathway_context(headers['dd-pathway-ctx-base64'])
           set_pathway_context(pathway_ctx) if pathway_ctx
         end
-
-        private
 
         # Compute new pathway hash using FNV-1a algorithm ( implementation)
         # Combines service, env, tags, and parent hash to create unique pathway identifier

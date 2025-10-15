@@ -8,8 +8,13 @@ module Datadog
     module DataStreams
       # Represents a pathway context for data streams monitoring
       class PathwayContext
-        attr_accessor :hash, :pathway_start_sec, :current_edge_start_sec, :parent_hash
-        attr_accessor :previous_direction, :closest_opposite_direction_hash, :closest_opposite_direction_edge_start
+        attr_accessor :hash,
+          :pathway_start_sec,
+          :current_edge_start_sec,
+          :parent_hash,
+          :previous_direction,
+          :closest_opposite_direction_hash,
+          :closest_opposite_direction_edge_start
 
         def initialize(hash_value, pathway_start_sec, current_edge_start_sec, parent_hash = nil)
           @hash = hash_value
@@ -18,7 +23,7 @@ module Datadog
           @parent_hash = parent_hash
 
           # Loop detection fields (matching Python DataStreamsCtx)
-          @previous_direction = ""
+          @previous_direction = ''
           @closest_opposite_direction_hash = 0
           @closest_opposite_direction_edge_start = current_edge_start_sec
         end
@@ -46,7 +51,7 @@ module Datadog
           begin
             binary_data = Base64.strict_decode64(encoded_ctx)
             decode(binary_data)
-          rescue => e
+          rescue
             # Invalid base64 or decode error
             nil
           end
