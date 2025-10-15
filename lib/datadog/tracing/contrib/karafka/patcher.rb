@@ -3,7 +3,6 @@
 require_relative '../patcher'
 require_relative 'ext'
 require_relative 'distributed/propagation'
-require_relative '../../data_streams/pathway_codec'
 
 module Datadog
   module Tracing

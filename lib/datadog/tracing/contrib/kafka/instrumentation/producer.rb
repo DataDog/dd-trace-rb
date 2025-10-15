@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../../../data_streams/pathway_codec'
-
 module Datadog
   module Tracing
     module Contrib
@@ -47,7 +45,9 @@ module Datadog
                   # Create checkpoint for async producer (direction:out)
                   messages.each do |message|
                     message[:headers] ||= {}
-                    processor.set_produce_checkpoint('kafka', message[:topic]) { |key, value| message[:headers][key] = value }
+                    processor.set_produce_checkpoint('kafka', message[:topic]) do |key, value|
+                      message[:headers][key] = value
+                    end
                   end
                 else
                   Datadog.logger.debug { 'Kafka producer send_messages: DSM disabled' }

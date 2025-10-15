@@ -2,7 +2,6 @@
 
 require 'json'
 require_relative 'pathway_context'
-require_relative 'pathway_codec'
 require_relative '../../version'
 require_relative '../../../datadog/core/worker'
 require_relative '../../../datadog/core/workers/polling'
@@ -260,13 +259,10 @@ module Datadog
             timestamp_sec: now_sec
           )
 
-          # Update pathway context ( lines 503-504)
+          current_context.parent_hash = current_context.hash
           current_context.hash = new_hash
           current_context.current_edge_start_sec = now_sec
 
-          # DEBUG: Log final state
-
-          # Return encoded context for propagation
           current_context.encode_b64
         end
 

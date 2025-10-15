@@ -5,7 +5,6 @@ require 'ostruct'
 
 # Mock Karafka classes for testing DSM integration without requiring the gem
 module Karafka
-  # Mock Messages collection
   module Messages
     class Messages
       def initialize(messages_array)
@@ -13,7 +12,6 @@ module Karafka
       end
 
       def each(&block)
-        # This will be patched with our DSM integration
         @messages_array.each(&block)
       end
 
@@ -25,12 +23,6 @@ module Karafka
         @messages_array.first
       end
     end
-  end
-
-  # Mock distributed tracing method
-  def self.extract(headers)
-    # Mock extraction - return nil for simplicity
-    nil
   end
 end
 
@@ -47,323 +39,201 @@ def create_mock_message(topic: 'test_topic', partition: 0, offset: 100, headers:
   )
 end
 
-# Mock Karafka job structure for Monitor testing
-def create_mock_job(topic: 'test_topic', partition: 0, messages: [])
-  OpenStruct.new(
-    messages: messages,
-    executor: OpenStruct.new(
-      topic: OpenStruct.new(
-        name: topic,
-        consumer: 'TestConsumer'
-      ),
-      partition: partition
-    )
-  )
-end
-
 require 'datadog'
 require 'datadog/tracing/contrib/karafka/integration'
-require 'datadog/tracing/contrib/karafka/monitor'
 require 'datadog/tracing/contrib/karafka/patcher'
 
-RSpec.describe 'Karafka Data Streams instrumentation' do
-  let(:configuration_options) { {} }
+RSpec.describe 'Karafka Data Streams Integration' do
+  let(:mock_ddsketch_instance) { double('DDSketchInstance', add: true, encode: 'encoded_data') }
+  let(:mock_ddsketch) { double('DDSketch', supported?: true, new: mock_ddsketch_instance) }
 
   before do
-    # Manually patch Messages class since auto_patch is false for Karafka
+    # Patch Messages class
     Karafka::Messages::Messages.prepend(Datadog::Tracing::Contrib::Karafka::MessagesPatch)
 
     Datadog.configure do |c|
-      c.tracing.instrument :karafka, configuration_options
+      c.tracing.instrument :karafka
       c.tracing.data_streams.enabled = true
     end
+
+    # Replace the processor with a real one using mock DDSketch
+    allow(Datadog.configuration.tracing.data_streams).to receive(:processor).and_return(
+      Datadog::Tracing::DataStreams::Processor.new(ddsketch_class: mock_ddsketch)
+    )
   end
 
-  describe 'MessagesPatch DSM integration' do
-    # Test the DSM functionality by directly testing the patch module
-    let(:messages_class) do
-      Class.new do
-        include Datadog::Tracing::Contrib::Karafka::MessagesPatch
+  after do
+    processor = Datadog.configuration.tracing.data_streams.processor
+    processor.stop(true, 1) if processor&.enabled
+  end
 
-        def initialize(messages_array)
-          @messages_array = messages_array
-        end
+  describe 'message consumption with pathway context extraction' do
+    it 'extracts pathway context from message headers and creates consume checkpoint' do
+      processor = Datadog.configuration.tracing.data_streams.processor
 
-        def configuration
-          @configuration ||= { distributed_tracing: false }
-        end
+      # Producer creates pathway context
+      carrier = {}
+      processor.set_produce_checkpoint('kafka', 'orders') do |key, value|
+        carrier[key] = value
       end
-    end
+      produce_hash = processor.pathway_context.hash
 
-    let(:messages) do
-      [
+      # Create Karafka message with the pathway context in headers
+      messages = Karafka::Messages::Messages.new([
         create_mock_message(
           topic: 'orders',
           partition: 0,
           offset: 100,
-          headers: { 'dd-pathway-ctx-base64' => 'test-context-123' }
-        ),
+          headers: carrier
+        )
+      ])
+
+      # Process the message - this should extract context and create consume checkpoint
+      consumer_processor = Datadog::Tracing::DataStreams::Processor.new(ddsketch_class: mock_ddsketch)
+      allow(Datadog.configuration.tracing.data_streams).to receive(:processor).and_return(consumer_processor)
+
+      messages.each { |message| message }
+
+      # Verify the consumer processor received and applied the pathway context
+      # The hash should be different from produce hash (consume checkpoint)
+      expect(consumer_processor.pathway_context.hash).not_to eq(produce_hash)
+      expect(consumer_processor.pathway_context.hash).to be > 0
+
+      consumer_processor.stop(true, 1)
+    end
+
+    it 'creates new pathway context when headers are missing' do
+      processor = Datadog.configuration.tracing.data_streams.processor
+
+      messages = Karafka::Messages::Messages.new([
         create_mock_message(
           topic: 'orders',
           partition: 0,
-          offset: 101,
+          offset: 100,
           headers: {}
         )
-      ]
+      ])
+
+      initial_hash = processor.pathway_context.hash
+      messages.each { |message| message }
+
+      # Should create a new consume checkpoint even without carrier
+      expect(processor.pathway_context.hash).not_to eq(initial_hash)
+      expect(processor.pathway_context.hash).to be > 0
     end
 
-    let(:karafka_messages) { messages_class.new(messages) }
-    let(:mock_processor) { instance_double('DataStreamsProcessor') }
+    it 'processes multiple messages in batch' do
+      processor = Datadog.configuration.tracing.data_streams.processor
 
-    before do
-      # Set up basic configuration and tracing mocks
-      allow(Datadog.configuration.tracing.data_streams).to receive(:processor)
-        .and_return(mock_processor)
+      messages = Karafka::Messages::Messages.new([
+        create_mock_message(topic: 'orders', partition: 0, offset: 100),
+        create_mock_message(topic: 'orders', partition: 0, offset: 101),
+        create_mock_message(topic: 'orders', partition: 0, offset: 102)
+      ])
 
-      # Mock tracing to avoid span creation errors
-      span_double = double('span')
-      allow(span_double).to receive(:set_tag)
-      allow(span_double).to receive(:resource=)
-      allow(Datadog::Tracing).to receive(:trace).and_yield(span_double)
-    end
+      expect { messages.each { |message| message } }.not_to raise_error
 
-    it 'creates checkpoints for each consumed message when DSM enabled' do
-      # Arrange: Set up spies
-      allow(mock_processor).to receive(:set_consume_checkpoint)
-
-      # Act: Execute the code under test
-      karafka_messages.each { |message| message }
-
-      # Assert: Verify the calls were made
-      expect(mock_processor).to have_received(:set_consume_checkpoint)
-        .with('kafka', 'orders', anything)
-        .twice
-    end
-
-    it 'extracts DSM context from message headers' do
-      # Arrange: Set up spies
-      allow(mock_processor).to receive(:set_consume_checkpoint)
-
-      # Act: Execute the code under test
-      karafka_messages.each { |message| message }
-
-      # Assert: Verify the calls were made with carrier_get function
-      expect(mock_processor).to have_received(:set_consume_checkpoint)
-        .with('kafka', 'orders', anything)
-        .twice
+      # Each message should create a checkpoint
+      expect(processor.pathway_context.hash).to be > 0
     end
 
     it 'skips DSM when disabled' do
-      # Arrange: Disable DSM and set up spy
       Datadog.configure do |c|
         c.tracing.data_streams.enabled = false
       end
-      allow(mock_processor).to receive(:set_consume_checkpoint)
 
-      # Act: Execute the code under test
-      karafka_messages.each { |message| message }
+      processor = Datadog.configuration.tracing.data_streams.processor
+      initial_hash = processor.pathway_context.hash if processor
 
-      # Assert: Verify no calls were made
-      expect(mock_processor).not_to have_received(:set_consume_checkpoint)
-    end
-  end
-
-  describe 'Monitor DSM integration' do
-    # Test the DSM functionality by directly testing the Monitor module
-    let(:monitor_class) do
-      Class.new do
-        include Datadog::Tracing::Contrib::Karafka::Monitor
-
-        TRACEABLE_EVENTS = %w[worker.processed].freeze
-
-        def instrument(event_id, payload = {}, &block)
-          return super unless TRACEABLE_EVENTS.include?(event_id)
-
-          # Simplified version of the Monitor logic for testing
-          job = payload[:job]
-          job_type = 'Consume' # Simplified for testing
-          action = 'consume'
-
-          # DSM: Track consumer offset stats for batch processing
-          if action == 'consume' && Datadog.configuration.tracing.data_streams.enabled
-            processor = Datadog.configuration.tracing.data_streams.processor
-            job.messages.each do |message|
-              processor.track_kafka_consume(
-                job.executor.topic.name,
-                job.executor.partition,
-                message.metadata.offset,
-                Time.now.to_f
-              )
-            end
-          end
-
-          yield if block
-        end
-
-        private
-
-        def fetch_job_type(job_class)
-          'Consume'
-        end
-      end
-    end
-
-    let(:mock_job) do
-      OpenStruct.new(
-        messages: [
-          create_mock_message(topic: 'orders', partition: 0, offset: 100),
-          create_mock_message(topic: 'orders', partition: 0, offset: 101)
-        ],
-        executor: OpenStruct.new(
-          topic: OpenStruct.new(
-            name: 'orders',
-            consumer: 'OrderConsumer'
-          ),
-          partition: 0
-        )
-      )
-    end
-
-    let(:monitor) { monitor_class.new }
-    let(:mock_processor) { instance_double('DataStreamsProcessor') }
-
-    before do
-      # Set up basic configuration
-      allow(Datadog.configuration.tracing.data_streams).to receive(:processor)
-        .and_return(mock_processor)
-    end
-
-    it 'tracks consumer offset stats for batch processing' do
-      # Arrange: Set up spies
-      allow(mock_processor).to receive(:track_kafka_consume)
-
-      # Act: Execute the code under test
-      monitor.instrument('worker.processed', { job: mock_job }) do
-        # Simulate message processing
-      end
-
-      # Assert: Verify the calls were made
-      expect(mock_processor).to have_received(:track_kafka_consume)
-        .with('orders', 0, 100, kind_of(Float))
-        .once
-      expect(mock_processor).to have_received(:track_kafka_consume)
-        .with('orders', 0, 101, kind_of(Float))
-        .once
-    end
-
-    it 'skips tracking when DSM disabled' do
-      # Arrange: Disable DSM and set up spy
-      Datadog.configure do |c|
-        c.tracing.data_streams.enabled = false
-      end
-      allow(mock_processor).to receive(:track_kafka_consume)
-
-      # Act: Execute the code under test
-      monitor.instrument('worker.processed', { job: mock_job }) do
-        # Simulate message processing
-      end
-
-      # Assert: Verify no calls were made
-      expect(mock_processor).not_to have_received(:track_kafka_consume)
-    end
-  end
-
-  describe 'pathway context propagation' do
-    it 'handles messages with existing pathway context' do
-      message_with_context = create_mock_message(
-        headers: { 'dd-pathway-ctx-base64' => 'encoded-context-data' }
-      )
-
-      messages = Karafka::Messages::Messages.new([message_with_context])
-      messages.extend(Datadog::Tracing::Contrib::Karafka::MessagesPatch)
-
-      mock_processor = instance_double('DataStreamsProcessor')
-      allow(Datadog.configuration.tracing.data_streams).to receive(:processor)
-        .and_return(mock_processor)
-      allow(mock_processor).to receive(:set_consume_checkpoint)
-
-      # Should create consume checkpoint with carrier_get function
-      expect(mock_processor).to receive(:set_consume_checkpoint)
-        .with('kafka', 'test_topic', anything)
+      messages = Karafka::Messages::Messages.new([
+        create_mock_message(topic: 'orders', partition: 0, offset: 100)
+      ])
 
       messages.each { |message| message }
-    end
 
-    it 'creates new pathway context when none exists' do
-      message_without_context = create_mock_message(headers: {})
-
-      messages = Karafka::Messages::Messages.new([message_without_context])
-      messages.extend(Datadog::Tracing::Contrib::Karafka::MessagesPatch)
-
-      mock_processor = instance_double('DataStreamsProcessor')
-      allow(Datadog.configuration.tracing.data_streams).to receive(:processor)
-        .and_return(mock_processor)
-      allow(mock_processor).to receive(:set_consume_checkpoint)
-
-      # Should create consume checkpoint with carrier_get function
-      expect(mock_processor).to receive(:set_consume_checkpoint)
-        .with('kafka', 'test_topic', anything)
-
-      messages.each { |message| message }
+      # Pathway context should not change when DSM is disabled
+      expect(processor&.pathway_context&.hash).to eq(initial_hash) if processor
     end
   end
 
-  describe 'comprehensive DSM disable behavior' do
-    let(:messages_class) do
-      Class.new do
-        include Datadog::Tracing::Contrib::Karafka::MessagesPatch
-
-        def initialize(messages_array)
-          @messages_array = messages_array
-        end
-
-        def configuration
-          @configuration ||= { distributed_tracing: false }
-        end
+  describe 'end-to-end pathway propagation' do
+    it 'propagates pathway context from producer to consumer through headers' do
+      # Producer side: create checkpoint and inject into headers
+      producer_processor = Datadog::Tracing::DataStreams::Processor.new(ddsketch_class: mock_ddsketch)
+      headers = {}
+      producer_processor.set_produce_checkpoint('kafka', 'orders') do |key, value|
+        headers[key] = value
       end
+      produce_hash = producer_processor.pathway_context.hash
+
+      # Verify headers contain the propagation key
+      expect(headers).to have_key(Datadog::Tracing::DataStreams::Processor::PROPAGATION_KEY)
+      expect(headers[Datadog::Tracing::DataStreams::Processor::PROPAGATION_KEY]).not_to be_empty
+
+      # Consumer side: process message with headers
+      consumer_processor = Datadog::Tracing::DataStreams::Processor.new(ddsketch_class: mock_ddsketch)
+      allow(Datadog.configuration.tracing.data_streams).to receive(:processor).and_return(consumer_processor)
+
+      messages = Karafka::Messages::Messages.new([
+        create_mock_message(topic: 'orders', partition: 0, offset: 100, headers: headers)
+      ])
+
+      messages.each { |message| message }
+
+      # Consumer should have different hash (consume checkpoint computed from produce hash)
+      consume_hash = consumer_processor.pathway_context.hash
+      expect(consume_hash).not_to eq(produce_hash)
+      expect(consume_hash).to be > 0
+
+      producer_processor.stop(true, 1)
+      consumer_processor.stop(true, 1)
     end
 
-    let(:messages) do
-      [
-        create_mock_message(topic: 'orders', partition: 0, offset: 100),
-        create_mock_message(topic: 'orders', partition: 0, offset: 101)
-      ]
-    end
-
-    let(:karafka_messages) { messages_class.new(messages) }
-    let(:mock_processor) { instance_double('DataStreamsProcessor') }
-
-    before do
-      allow(Datadog.configuration.tracing.data_streams).to receive(:processor)
-        .and_return(mock_processor)
-
-      # Mock tracing to avoid span creation errors
-      span_double = double('span')
-      allow(span_double).to receive(:set_tag)
-      allow(span_double).to receive(:resource=)
-      allow(Datadog::Tracing).to receive(:trace).and_yield(span_double)
-    end
-
-    it 'ensures no DSM processor methods are called when DSM disabled' do
-      # Arrange: Disable DSM and set up spies for ALL processor methods
-      Datadog.configure do |c|
-        c.tracing.data_streams.enabled = false
+    it 'maintains pathway continuity across multiple services' do
+      # Service A produces
+      service_a = Datadog::Tracing::DataStreams::Processor.new(ddsketch_class: mock_ddsketch)
+      headers_a = {}
+      service_a.set_produce_checkpoint('kafka', 'topic-a') do |key, value|
+        headers_a[key] = value
       end
-      allow(mock_processor).to receive(:set_checkpoint)
-      allow(mock_processor).to receive(:track_kafka_consume)
-      allow(mock_processor).to receive(:track_kafka_produce)
-      allow(mock_processor).to receive(:encode_pathway_context)
-      allow(mock_processor).to receive(:decode_and_set_pathway_context)
+      hash_a = service_a.pathway_context.hash
 
-      # Act: Execute message processing (which would normally trigger DSM)
-      karafka_messages.each { |message| message }
+      # Service B consumes and produces
+      service_b = Datadog::Tracing::DataStreams::Processor.new(ddsketch_class: mock_ddsketch)
+      allow(Datadog.configuration.tracing.data_streams).to receive(:processor).and_return(service_b)
 
-      # Assert: Verify NO DSM processor methods were called
-      expect(mock_processor).not_to have_received(:set_checkpoint)
-      expect(mock_processor).not_to have_received(:track_kafka_consume)
-      expect(mock_processor).not_to have_received(:track_kafka_produce)
-      expect(mock_processor).not_to have_received(:encode_pathway_context)
-      expect(mock_processor).not_to have_received(:decode_and_set_pathway_context)
+      messages = Karafka::Messages::Messages.new([
+        create_mock_message(topic: 'topic-a', partition: 0, offset: 100, headers: headers_a)
+      ])
+      messages.each { |message| message }
+
+      hash_b_consume = service_b.pathway_context.hash
+
+      headers_b = {}
+      service_b.set_produce_checkpoint('kafka', 'topic-b') do |key, value|
+        headers_b[key] = value
+      end
+      hash_b_produce = service_b.pathway_context.hash
+
+      # Service C consumes
+      service_c = Datadog::Tracing::DataStreams::Processor.new(ddsketch_class: mock_ddsketch)
+      allow(Datadog.configuration.tracing.data_streams).to receive(:processor).and_return(service_c)
+
+      messages_c = Karafka::Messages::Messages.new([
+        create_mock_message(topic: 'topic-b', partition: 0, offset: 200, headers: headers_b)
+      ])
+      messages_c.each { |message| message }
+
+      hash_c = service_c.pathway_context.hash
+
+      # All hashes should be different (pathway progression through services)
+      expect(hash_a).not_to eq(hash_b_consume)
+      expect(hash_b_consume).not_to eq(hash_b_produce)
+      expect(hash_b_produce).not_to eq(hash_c)
+
+      service_a.stop(true, 1)
+      service_b.stop(true, 1)
+      service_c.stop(true, 1)
     end
   end
 end
