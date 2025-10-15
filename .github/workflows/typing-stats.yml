@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Find existing comment
         id: comment
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -34,12 +34,12 @@ jobs:
             return undefined === comment ? null : comment.id
 
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
+        uses: ruby/setup-ruby@ab177d40ee5483edb974554986f56b33477e21d0 # v1.265.0
         with:
           ruby-version: "3.3"
 
@@ -55,7 +55,7 @@ jobs:
           ruby .github/scripts/typing_stats.rb >> "${{ github.workspace }}/tmp/typing-stats.json"
 
       - name: Write comment
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
