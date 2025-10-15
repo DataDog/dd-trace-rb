@@ -17,22 +17,22 @@ module Datadog
               def each_message(**kwargs, &block)
                 # Wrap the block to add DSM processing for each message
                 wrapped_block = if Datadog.configuration.tracing.data_streams.enabled
-                                  proc do |message|
-                                    # DSM: Create checkpoint for consumed message
-                                    Datadog.logger.debug { "Kafka each_message: DSM enabled for topic #{message.topic}" }
+                  proc do |message|
+                    # DSM: Create checkpoint for consumed message
+                    Datadog.logger.debug { "Kafka each_message: DSM enabled for topic #{message.topic}" }
 
-                                    processor = Datadog.configuration.tracing.data_streams.processor
+                    processor = Datadog.configuration.tracing.data_streams.processor
 
-                                    # Extract pathway context from message headers if available
-                                    headers = message.headers || {}
-                                    processor.set_consume_checkpoint('kafka', message.topic) { |key| headers[key] }
+                    # Extract pathway context from message headers if available
+                    headers = message.headers || {}
+                    processor.set_consume_checkpoint('kafka', message.topic) { |key| headers[key] }
 
-                                    # Call the original block if provided
-                                    yield(message) if block
-                                  end
-                                else
-                                  block
-                                end
+                    # Call the original block if provided
+                    yield(message) if block
+                  end
+                else
+                  block
+                end
 
                 # Call the original method with wrapped block
                 super(**kwargs, &wrapped_block)
@@ -42,22 +42,22 @@ module Datadog
               def each_batch(**kwargs, &block)
                 # Wrap the block to add DSM processing for each batch
                 wrapped_block = if Datadog.configuration.tracing.data_streams.enabled
-                                  proc do |batch|
-                                    # DSM: Create checkpoint for consumed batch
-                                    Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
+                  proc do |batch|
+                    # DSM: Create checkpoint for consumed batch
+                    Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
 
-                                    processor = Datadog.configuration.tracing.data_streams.processor
+                    processor = Datadog.configuration.tracing.data_streams.processor
 
-                                    # For batch processing, we don't have individual message headers
-                                    # so we create a consume checkpoint without pathway context
-                                    processor.set_consume_checkpoint('kafka', batch.topic)
+                    # For batch processing, we don't have individual message headers
+                    # so we create a consume checkpoint without pathway context
+                    processor.set_consume_checkpoint('kafka', batch.topic)
 
-                                    # Call the original block if provided
-                                    yield(batch) if block
-                                  end
-                                else
-                                  block
-                                end
+                    # Call the original block if provided
+                    yield(batch) if block
+                  end
+                else
+                  block
+                end
 
                 # Call the original method with wrapped block
                 super(**kwargs, &wrapped_block)

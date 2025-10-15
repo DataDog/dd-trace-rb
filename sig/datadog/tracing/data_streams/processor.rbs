@@ -2,6 +2,8 @@ module Datadog
   module Tracing
     module DataStreams
       class Processor < Core::Worker
+        PROPAGATION_KEY: ::String
+
         @enabled: untyped
 
         @pathway_context: untyped
@@ -14,15 +16,14 @@ module Datadog
 
         @stats_mutex: untyped
 
-        @ddsketch_class: untyped
-
         @agent_transport: untyped
 
         include Core::Workers::Polling
+        include Core::Workers::IntervalLoop
 
         attr_accessor enabled: untyped
 
-        def initialize: (?ddsketch_class: untyped, ?interval: untyped?) -> void
+        def initialize: (?interval: untyped?) -> void
         def track_kafka_produce: (untyped topic, untyped partition, untyped offset, untyped now_sec) -> (nil | true)
         def track_kafka_commit: (untyped group, untyped topic, untyped partition, untyped offset, untyped now_sec) -> (nil | true)
         def track_kafka_consume: (untyped topic, untyped partition, untyped offset, ?untyped? now_sec) -> (nil | true)
@@ -63,7 +64,6 @@ module Datadog
         def hostname: () -> untyped
         def create_bucket: () -> { pathway_stats: ::Hash[untyped, untyped], latest_produce_offsets: ::Hash[untyped, untyped], latest_commit_offsets: ::Hash[untyped, untyped] }
         def create_pathway_stats: () -> { edge_latency: untyped, full_pathway_latency: untyped, payload_size_sum: 0, payload_size_count: 0 }
-        def get_default_ddsketch_class: () -> untyped
         def agent_transport: () -> untyped
       end
     end

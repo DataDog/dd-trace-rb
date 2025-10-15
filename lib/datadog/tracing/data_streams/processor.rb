@@ -20,29 +20,30 @@ module Datadog
         attr_accessor :enabled
         attr_reader :pathway_context
 
-        def initialize(ddsketch_class: nil, interval: nil)
+        def initialize(interval: nil)
           # Lazy-require DDSketch to avoid circular dependency
-          require 'datadog/core/ddsketch' unless ddsketch_class
-          ddsketch_class ||= Datadog::Core::DDSketch
+          require 'datadog/core/ddsketch'
+
+          # Initialize instance variables first to avoid nil errors
+          interval_str = DATADOG_ENV.fetch('_DD_TRACE_STATS_WRITER_INTERVAL') { '10.0' }
+          interval ||= interval_str.to_s.to_f
+
+          @pathway_context = PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
+          @bucket_size_ns = (interval * 1e9).to_i
+          @buckets = {}
+          @consumer_stats = []
+          @stats_mutex = Mutex.new
 
           # DDSketch is required for DSM - disable processor if not supported
-          unless ddsketch_class.supported?
+          unless Datadog::Core::DDSketch.supported?
             @enabled = false
             return
           end
 
           # Set up periodic worker
-          interval ||= DATADOG_ENV.fetch('_DD_TRACE_STATS_WRITER_INTERVAL', '10.0').to_f
           super() # Initialize Core::Worker
           self.loop_base_interval = interval
-
           @enabled = true
-          @pathway_context = PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
-          @bucket_size_ns = (interval * 1e9).to_i # Match interval for bucket size
-          @buckets = {} # Time-based buckets for stats
-          @consumer_stats = []
-          @stats_mutex = Mutex.new
-          @ddsketch_class = ddsketch_class # Store for creating new sketches
         end
 
         # Track Kafka produce offset for lag monitoring
@@ -181,12 +182,12 @@ module Datadog
         def start
           return unless @enabled
 
-          super
+          perform
         end
 
         # Stop the periodic worker
         def stop(force_stop = false, timeout = 1)
-          super(force_stop, timeout)
+          super
         end
 
         private
@@ -239,7 +240,7 @@ module Datadog
           new_hash = compute_pathway_hash(parent_hash, tags)
 
           # Tag span with pathway hash to link DSM pathway to APM trace
-          span.set_tag('pathway.hash', new_hash.to_s) if span
+          span&.set_tag('pathway.hash', new_hash.to_s)
 
           edge_latency_sec = [now_sec - current_context.current_edge_start_sec, 0.0].max
           full_pathway_latency_sec = [now_sec - current_context.pathway_start_sec, 0.0].max
@@ -377,6 +378,8 @@ module Datadog
 
         # Record stats for this checkpoint ( implementation)
         def record_checkpoint_stats(hash:, parent_hash:, edge_latency_sec:, payload_size:, tags:, timestamp_sec:)
+          return nil unless @enabled
+
           @stats_mutex.synchronize do
             # Calculate bucket time (align to bucket boundaries )
             now_ns = (timestamp_sec * 1e9).to_i
@@ -387,7 +390,6 @@ module Datadog
 
             # Get or create stats for this pathway ( aggr_key = (",".join(edge_tags), hash_value, parent_hash))
             aggr_key = [tags.join(','), hash, parent_hash]
-
             stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
 
             # Add latencies to DDSketch ()
@@ -395,12 +397,14 @@ module Datadog
             stats[:edge_latency].add(edge_latency_sec)
             stats[:full_pathway_latency].add(full_pathway_latency_sec)
           end
+
+          true
         end
 
         # Record consumer offset stats for DSM reporting
         def record_consumer_stats(topic:, partition:, offset:, timestamp_sec:)
           return nil unless @enabled
-          
+
           @stats_mutex.synchronize do
             @consumer_stats << {
               topic: topic,
@@ -490,7 +494,8 @@ module Datadog
           agent_port = Datadog.configuration.agent.port
           uri = URI("http://#{agent_host}:#{agent_port}/v0.1/pipeline_stats")
 
-          http = Net::HTTP.new(uri.host, uri.port)
+          host = uri.host || agent_host || 'localhost'
+          http = Net::HTTP.new(host, uri.port)
           http.use_ssl = false
 
           request = Net::HTTP::Post.new(uri)
@@ -523,7 +528,7 @@ module Datadog
 
             # Serialize pathway stats for this bucket
             bucket_stats = []
-            bucket[:pathway_stats].each_with_index do |(aggr_key, stats), index|
+            bucket[:pathway_stats].each do |aggr_key, stats|
               edge_tags_str, hash_value, parent_hash = aggr_key
 
               edge_tags_array = edge_tags_str.split(',')
@@ -599,19 +604,11 @@ module Datadog
         # Create pathway stats with DDSketch instances ( PathwayStats)
         def create_pathway_stats
           {
-            edge_latency: @ddsketch_class.new,
-            full_pathway_latency: @ddsketch_class.new,
+            edge_latency: Datadog::Core::DDSketch.new,
+            full_pathway_latency: Datadog::Core::DDSketch.new,
             payload_size_sum: 0,
             payload_size_count: 0
           }
-        end
-
-        # Get default DDSketch class (real if available, fake for testing)
-        def get_default_ddsketch_class
-          require 'datadog/core/ddsketch'
-          Datadog::Core::DDSketch.supported? ? Datadog::Core::DDSketch : FakeDDSketch
-        rescue LoadError, NameError
-          FakeDDSketch
         end
 
         # Get agent transport (using proper Datadog HTTP transport)

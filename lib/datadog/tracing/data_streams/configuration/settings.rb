@@ -10,7 +10,7 @@ module Datadog
           # Custom settings for the Data Streams component
           class Settings
             def initialize
-              @processor = Processor.new
+              @processor = Datadog::Tracing::DataStreams::Processor.new
             end
 
             attr_reader :processor

@@ -1,33 +1,36 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/data_streams/processor'
+require 'datadog/core/ddsketch'
+
+# Expected deterministic hash values for specific pathways
+KAFKA_ORDERS_PRODUCE_HASH = 17981503584283442515
+KAFKA_ORDERS_CONSUME_HASH = 16303269810035670674 # with carrier from produce
+KAFKA_ORDERS_CONSUME_HASH_WITHOUT_CARRIER = 15053276968232594929 # without carrier
+KINESIS_ORDERS_PRODUCE_HASH = 14687993552271180499
+KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
 
 RSpec.describe Datadog::Tracing::DataStreams::Processor do
-  let(:mock_ddsketch_instance) { double('DDSketchInstance', add: true, encode: 'encoded_data') }
-  let(:mock_ddsketch) { double('DDSketch', supported?: true, new: mock_ddsketch_instance) }
-  let(:processor) { described_class.new(ddsketch_class: mock_ddsketch) }
+  before do
+    skip('DDSketch not available') unless Datadog::Core::DDSketch.supported?
+  end
 
-  # Expected deterministic hash values for specific pathways
-  KAFKA_ORDERS_PRODUCE_HASH = 17981503584283442515
-  KAFKA_ORDERS_CONSUME_HASH = 16303269810035670674 # with carrier from produce
-  KAFKA_ORDERS_CONSUME_HASH_WITHOUT_CARRIER = 15053276968232594929 # without carrier
-  KINESIS_ORDERS_PRODUCE_HASH = 14687993552271180499
-  KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
+  let(:processor) { described_class.new }
 
   describe '#initialize' do
     it 'sets up periodic worker with default interval' do
-      processor = described_class.new(ddsketch_class: mock_ddsketch)
+      processor = described_class.new
       expect(processor.loop_base_interval).to eq(10.0)
     end
 
     it 'sets up periodic worker with custom interval' do
-      processor = described_class.new(ddsketch_class: mock_ddsketch, interval: 5.0)
+      processor = described_class.new(interval: 5.0)
       expect(processor.loop_base_interval).to eq(5.0)
     end
 
     it 'disables processor when DDSketch is not supported' do
-      unsupported_ddsketch = double('DDSketch', supported?: false)
-      processor = described_class.new(ddsketch_class: unsupported_ddsketch)
+      stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', 'Example error loading libdatadog_api')
+      processor = described_class.new
       expect(processor.enabled).to be false
     end
 
@@ -37,7 +40,7 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
   end
 
   describe 'worker lifecycle' do
-    let(:processor) { described_class.new(ddsketch_class: mock_ddsketch, interval: 0.1) }
+    let(:processor) { described_class.new(interval: 0.1) }
 
     after { processor.stop(true, 1) if processor.enabled }
 
@@ -121,7 +124,7 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
 
       it 'can get a previous hash from the carrier' do
         # Producer creates context in carrier
-        producer = described_class.new(ddsketch_class: mock_ddsketch)
+        producer = described_class.new
         carrier = {}
         producer.set_produce_checkpoint('kafka', 'orders') do |key, value|
           carrier[key] = value
@@ -186,7 +189,7 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
         produce_hash = processor.pathway_context.hash
         produce_pathway_start = processor.pathway_context.pathway_start_sec
 
-        carrier = { Datadog::Tracing::DataStreams::Processor::PROPAGATION_KEY => produce_context }
+        carrier = {Datadog::Tracing::DataStreams::Processor::PROPAGATION_KEY => produce_context}
 
         processor.set_consume_checkpoint('kafka', 'orders') { |key| carrier[key] }
         consume_hash = processor.pathway_context.hash
