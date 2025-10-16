@@ -5,6 +5,7 @@
 #include "helpers.h"
 #include "stack_recorder.h"
 #include "libdatadog_helpers.h"
+#include "telemetry_exceptions.h"
 #include "ruby_helpers.h"
 #include "time_helpers.h"
 #include "heap_recorder.h"
@@ -349,7 +350,7 @@ static VALUE _native_new(VALUE klass) {
   ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
 
   if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
+    raise_runtime_error("Profiler initialization failed", "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
   }
 
   state->string_storage = string_storage.ok;
@@ -824,7 +825,7 @@ static locked_profile_slot sampler_lock_active_profile(stack_recorder_state *sta
   }
 
   // We already tried both multiple times, and we did not succeed. This is not expected to happen. Let's stop sampling.
-  rb_raise(rb_eRuntimeError, "Failed to grab either mutex in sampler_lock_active_profile");
+  raise_runtime_error("Profiler synchronization error", "Failed to grab either mutex in sampler_lock_active_profile");
 }
 
 static void sampler_unlock_active_profile(locked_profile_slot active_slot) {
@@ -941,7 +942,7 @@ static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_ins
 static void reset_profile_slot(profile_slot *slot, ddog_Timespec start_timestamp) {
   ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(&slot->profile);
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
+    raise_runtime_error("Profiler reset failed", "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
   }
   slot->start_timestamp = start_timestamp;
   slot->stats = (stats_slot) {};

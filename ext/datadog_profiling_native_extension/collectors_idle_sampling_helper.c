@@ -1,9 +1,10 @@
 #include <ruby.h>
 #include <ruby/thread.h>
-#include <pthread.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #include "helpers.h"
+#include "telemetry_exceptions.h"
 #include "ruby_helpers.h"
 #include "collectors_idle_sampling_helper.h"
 
@@ -153,7 +154,8 @@ static void *run_idle_sampling_loop(void *state_ptr) {
     // Process pending action
     if (next_action == ACTION_RUN) {
       if (run_action_function == NULL) {
-        grab_gvl_and_raise(rb_eRuntimeError, "Unexpected NULL run_action_function in run_idle_sampling_loop");
+        TELEMETRY_RUNTIME_ERROR("Profiler internal function error",
+          "Unexpected NULL run_action_function in run_idle_sampling_loop");
       }
 
       run_action_function();
@@ -206,7 +208,8 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
 void idle_sampling_helper_request_action(VALUE self_instance, void (*run_action_function)(void)) {
   idle_sampling_loop_state *state;
   if (!rb_typeddata_is_kind_of(self_instance, &idle_sampling_helper_typed_data)) {
-    grab_gvl_and_raise(rb_eTypeError, "Wrong argument for idle_sampling_helper_request_action");
+    raise_type_error("Profiler argument validation failed",
+      "Wrong argument for idle_sampling_helper_request_action");
   }
   // This should never fail the the above check passes
   TypedData_Get_Struct(self_instance, idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);

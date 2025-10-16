@@ -2,6 +2,7 @@
 
 #include <ruby.h>
 #include "helpers.h"
+#include "telemetry_exceptions.h"
 #include "time_helpers.h"
 #include "ruby_helpers.h"
 
@@ -51,7 +52,7 @@ void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_
 
 void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns) {
   if (target_overhead <= 0 || target_overhead > 100) {
-    rb_raise(rb_eArgError, "Target overhead must be a double between ]0,100] was %f", target_overhead);
+    TELEMETRY_ARGUMENT_ERROR("Invalid profiler configuration", "Target overhead must be a double between ]0,100] was %f", target_overhead);
   }
   sampler->target_overhead = target_overhead;
   return discrete_dynamic_sampler_reset(sampler, now_ns);
@@ -369,7 +370,7 @@ static VALUE _native_new(VALUE klass) {
 
   long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   if (now_ns == 0) {
-    rb_raise(rb_eRuntimeError, "failed to get clock time");
+    TELEMETRY_RUNTIME_ERROR("System clock access failed", "failed to get clock time");
   }
   discrete_dynamic_sampler_init(&state->sampler, "test sampler", now_ns);
 

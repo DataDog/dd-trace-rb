@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'event'
+require_relative '../telemetry_aware_error'
 
 require 'pathname'
 
@@ -45,16 +46,17 @@ module Datadog
           end
         end
 
-        def report(exception, level: :error, description: nil, pii_safe: false)
+        def report(exception, level: :error, description: nil)
           # Anonymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +"#{exception.class.name || exception.class.inspect}" # standard:disable Style/RedundantInterpolation
 
-          exception_message = pii_safe ? exception.message : nil
+          # Check if exception has a telemetry-safe message
+          telemetry_message = exception.respond_to?(:telemetry_message) ? exception.telemetry_message : nil
 
-          if description || exception_message
+          if description || telemetry_message
             message << ':'
             message << " #{description}" if description
-            message << " (#{exception.message})" if exception_message
+            message << " (#{telemetry_message})" if telemetry_message
           end
 
           event = Event::Log.new(

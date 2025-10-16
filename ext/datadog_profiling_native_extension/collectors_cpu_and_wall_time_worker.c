@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include "helpers.h"
+#include "telemetry_exceptions.h"
 #include "ruby_helpers.h"
 #include "collectors_thread_context.h"
 #include "collectors_dynamic_sampling_rate.h"
@@ -289,7 +290,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
       after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
     ) {
-      rb_raise(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
+      raise_runtime_error("Profiler job registration failed",
+        "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
   #else
     gc_finalize_deferred_workaround = objspace_ptr_for_gc_finalize_deferred_workaround();
@@ -472,10 +474,8 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   cpu_and_wall_time_worker_state *old_state = active_sampler_instance_state;
   if (old_state != NULL) {
     if (is_thread_alive(old_state->owner_thread)) {
-      rb_raise(
-        rb_eRuntimeError,
-        "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread"
-      );
+      raise_runtime_error("Profiler instance conflict",
+        "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread");
     } else {
       // The previously active thread seems to have died without cleaning up after itself.
       // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing tracepoint
@@ -821,7 +821,8 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
         NULL
       );
     #else
-      rb_raise(rb_eArgError, "GVL profiling is not supported in this Ruby version");
+      raise_argument_error("GVL profiling not supported",
+        "GVL profiling is not supported in this Ruby version");
     #endif
   }
 
@@ -1093,7 +1094,8 @@ static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state) {
 static void sleep_for(uint64_t time_ns) {
   // As a simplification, we currently only support setting .tv_nsec
   if (time_ns >= SECONDS_AS_NS(1)) {
-    grab_gvl_and_raise(rb_eArgError, "sleep_for can only sleep for less than 1 second, time_ns: %"PRIu64, time_ns);
+    raise_argument_error("Sleep duration exceeds maximum",
+      "sleep_for can only sleep for less than 1 second, time_ns: %"PRIu64, time_ns);
   }
 
   struct timespec time_to_sleep = {.tv_nsec = time_ns};
@@ -1284,7 +1286,8 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
 
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error) {
   // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
-  stop_state(state, rb_exc_new_cstr(rb_eRuntimeError, error));
+  CREATE_DELAYED_TELEMETRY_ERROR(state, "Profiler internal error", "%s", error);
+  stop_state(state, state->failure_exception);
 }
 
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg) {

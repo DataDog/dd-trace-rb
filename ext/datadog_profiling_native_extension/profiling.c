@@ -11,6 +11,7 @@
 #include "ruby_helpers.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "telemetry_exceptions.h"
 #include "unsafe_api_calls_check.h"
 
 // Each class/module here is implemented in their separate file
@@ -56,6 +57,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));
 
   ruby_helpers_init();
+  init_telemetry_exceptions();
   collectors_cpu_and_wall_time_worker_init(profiling_module);
   collectors_discrete_dynamic_sampler_init(profiling_module);
   collectors_dynamic_sampling_rate_init(profiling_module);
