@@ -5,6 +5,13 @@
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
+static VALUE _native_register_runtime_stack_callback(VALUE _self, VALUE callback_type);
+static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self);
+
+static void ruby_runtime_stack_callback(
+  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*),
+  void (*emit_stacktrace_string)(const char*)
+);
 
 static bool first_init = true;
 
@@ -17,6 +24,8 @@ void crashtracker_init(VALUE core_module) {
 
   rb_define_singleton_method(crashtracker_class, "_native_start_or_update_on_fork", _native_start_or_update_on_fork, -1);
   rb_define_singleton_method(crashtracker_class, "_native_stop", _native_stop, 0);
+  rb_define_singleton_method(crashtracker_class, "_native_register_runtime_stack_callback", _native_register_runtime_stack_callback, 1);
+  rb_define_singleton_method(crashtracker_class, "_native_is_runtime_callback_registered", _native_is_runtime_callback_registered, 0);
 }
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
@@ -122,4 +131,60 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
   }
 
   return Qtrue;
+}
+
+// Ruby runtime stack callback implementation
+// This function will be called by libdatadog during crash handling
+static void ruby_runtime_stack_callback(
+  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*),
+  void (*emit_stacktrace_string)(const char*)
+) {
+  // Only using emit_frame - ignore emit_stacktrace_string parameter
+  (void)emit_stacktrace_string;
+
+  /*
+  // Walk the Ruby call stack and emit each frame using emit_frame()
+
+  for frame in Ruby call stack
+    ddog_crasht_RuntimeStackFrame frame = {
+      .function_name = frame.function_name,
+      .file_name = frame.file_name,
+      .line_number = frame.line_number,
+      .column_number = frame.column_number
+    };
+    emit_frame(&frame);
+  end
+  */
+}
+
+static VALUE _native_register_runtime_stack_callback(VALUE _self, VALUE callback_type) {
+  ENFORCE_TYPE(callback_type, T_SYMBOL);
+
+  // Verify we're using the frame type (should always be :frame)
+  VALUE frame_symbol = ID2SYM(rb_intern("frame"));
+  if (callback_type != frame_symbol) {
+    rb_raise(rb_eArgError, "Invalid callback_type. Only :frame is supported");
+  }
+
+  enum ddog_crasht_CallbackResult result = ddog_crasht_register_runtime_stack_callback(
+    ruby_runtime_stack_callback,
+    DDOG_CRASHT_CALLBACK_TYPE_FRAME
+  );
+
+  switch (result) {
+    case DDOG_CRASHT_CALLBACK_RESULT_OK:
+      return Qtrue;
+    case DDOG_CRASHT_CALLBACK_RESULT_NULL_CALLBACK:
+      rb_raise(rb_eRuntimeError, "Failed to register runtime callback: null callback provided");
+      break;
+    case DDOG_CRASHT_CALLBACK_RESULT_UNKNOWN_ERROR:
+      rb_raise(rb_eRuntimeError, "Failed to register runtime callback: unknown error");
+      break;
+  }
+
+  return Qfalse;
+}
+
+static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self) {
+  return ddog_crasht_is_runtime_callback_registered() ? Qtrue : Qfalse;
 }
