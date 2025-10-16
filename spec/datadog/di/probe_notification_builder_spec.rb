@@ -201,7 +201,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           service: 'test service',
           timestamp: Integer,
           logger: {
-            method: 'no_method',
+            method: nil,
             name: 'X',
             thread_id: nil,
             thread_name: 'Thread.main',
@@ -249,7 +249,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           service: 'test service',
           timestamp: Integer,
           logger: {
-            method: 'no_method',
+            method: nil,
             name: 'X',
             thread_id: nil,
             thread_name: 'Thread.main',
@@ -322,7 +322,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           service: 'test service',
           timestamp: Integer,
           logger: {
-            method: 'no_method',
+            method: nil,
             name: 'X',
             thread_id: nil,
             thread_name: 'Thread.main',
