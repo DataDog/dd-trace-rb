@@ -7,6 +7,43 @@ require "json"
 head_stats = JSON.parse(File.read(ENV["CURRENT_STATS_PATH"]), symbolize_names: true)
 base_stats = JSON.parse(File.read(ENV["BASE_STATS_PATH"]), symbolize_names: true)
 
+def format_for_code_block(data)
+  data.map do |item|
+    formatted_string = +"#{item[:path]}:#{item[:line]}"
+    formatted_string << "\n└── #{item[:line_content]}" if item[:line_content]
+    formatted_string
+  end.join("\n")
+end
+
+def create_intro(
+  added:,
+  removed:,
+  data_name:,
+  added_partially: [],
+  removed_partially: [],
+  data_name_partially: nil,
+  base_percentage: nil,
+  head_percentage: nil,
+  percentage_data_name: nil
+)
+  intro = +"This PR "
+  intro << "introduces " if added.any? || added_partially.any?
+  intro << "**#{added.size}** #{data_name}" if added.any?
+  intro << " and " if added.any? && added_partially.any?
+  intro << "**#{added_partially.size}** #{data_name_partially}" if added_partially.any?
+  intro << ", and " if (added.any? || added_partially.any?) && (removed.any? || removed_partially.any?)
+  intro << "clears " if removed.any? || removed_partially.any?
+  intro << "**#{removed.size}** #{data_name}" if removed.any?
+  intro << " and " if removed.any? && removed_partially.any?
+  intro << "**#{removed_partially.size}** #{data_name_partially}" if removed_partially.any?
+  if base_percentage != head_percentage
+    intro << ". It #{(base_percentage > head_percentage) ? "decreases" : "increases"} "
+    intro << "the percentage of #{percentage_data_name} from #{base_percentage}% to #{head_percentage}% "
+    intro << "(**#{"+" if head_percentage > base_percentage}#{(head_percentage - base_percentage).round(2)}**%)"
+  end
+  intro << "."
+  intro
+end
 
 def create_summary(
   added:,
@@ -19,24 +56,19 @@ def create_summary(
   head_percentage: nil,
   percentage_data_name: nil
 )
-  return nil if added.empty? && removed.empty?
+  return nil if added.empty? && removed.empty? && added_partially.empty? && removed_partially.empty?
 
-  intro = +"This PR "
-  intro << "introduces " if added.any? || added_partially.any?
-  intro << "**#{added.size}** #{data_name} " if added.any?
-  intro << "and " if added.any? && added_partially.any?
-  intro << "**#{added_partially.size}** #{data_name_partially} " if added_partially.any?
-  intro << "and " if (added.any? || added_partially.any?) && (removed.any? || removed_partially.any?)
-  intro << "clears " if removed.any? || removed_partially.any?
-  intro << "**#{removed.size}** #{data_name} " if removed.any?
-  intro << "and " if removed.any? && removed_partially.any?
-  intro << "**#{removed_partially.size}** #{data_name_partially} " if removed_partially.any?
-  if base_percentage != head_percentage
-    intro << ". It #{(base_percentage > head_percentage) ? "decreases" : "increases"} "
-    intro << "the percentage of #{percentage_data_name} from #{base_percentage}% to #{head_percentage}% "
-    intro << "(**#{"+" if head_percentage > base_percentage}#{(head_percentage - base_percentage).round(2)}**%)"
-  end
-  intro << "."
+  intro = create_intro(
+    added: added,
+    removed: removed,
+    added_partially: added_partially,
+    removed_partially: removed_partially,
+    data_name: data_name,
+    data_name_partially: data_name_partially,
+    base_percentage: base_percentage,
+    head_percentage: head_percentage,
+    percentage_data_name: percentage_data_name
+  )
 
   summary = +"### #{data_name.capitalize}\n"
   summary << "#{intro}\n"
@@ -44,11 +76,11 @@ def create_summary(
     summary << "<details><summary>#{data_name.capitalize}</summary>\n"
     if added.any?
       summary << "  ❌ <em>Introduced:</em>\n"
-      summary << "  <pre><code>#{added.join("\n")}</code></pre>\n"
+      summary << "  <pre><code>#{format_for_code_block(added)}</code></pre>\n"
     end
     if removed.any?
       summary << "  ✅ <em>Cleared:</em>\n"
-      summary << "  <pre><code>#{removed.join("\n")}</code></pre>\n"
+      summary << "  <pre><code>#{format_for_code_block(removed)}</code></pre>\n"
     end
     summary << "</details>\n"
   end
@@ -56,11 +88,11 @@ def create_summary(
     summary << "<details><summary>#{data_name_partially.capitalize}</summary>\n"
     if added_partially.any?
       summary << "  ❌ <em>Introduced:</em>\n"
-      summary << "  <pre><code>#{added_partially.join("\n")}</code></pre>\n"
+      summary << "  <pre><code>#{format_for_code_block(added_partially)}</code></pre>\n"
     end
     if removed_partially.any?
       summary << "  ✅ <em>Cleared:</em>\n"
-      summary << "  <pre><code>#{removed_partially.join("\n")}</code></pre>\n"
+      summary << "  <pre><code>#{format_for_code_block(removed_partially)}</code></pre>\n"
     end
     summary << "</details>\n"
   end
@@ -73,10 +105,13 @@ def ignored_files_summary(head_stats, base_stats)
   # This will skip the summary if files are added/removed from contrib folders for now.
   ignored_files_added = head_stats[:ignored_files][:paths] - base_stats[:ignored_files][:paths]
   ignored_files_removed = base_stats[:ignored_files][:paths] - head_stats[:ignored_files][:paths]
+
+  return nil if ignored_files_added.empty? && ignored_files_removed.empty?
+
   typed_files_percentage_base = ((base_stats[:total_files_size] - base_stats[:ignored_files][:size]) / base_stats[:total_files_size].to_f * 100).round(2)
   typed_files_percentage_head = ((head_stats[:total_files_size] - head_stats[:ignored_files][:size]) / head_stats[:total_files_size].to_f * 100).round(2)
 
-  create_summary(
+  intro = create_intro(
     added: ignored_files_added,
     removed: ignored_files_removed,
     data_name: "ignored files",
@@ -84,6 +119,22 @@ def ignored_files_summary(head_stats, base_stats)
     head_percentage: typed_files_percentage_head,
     percentage_data_name: "typed files"
   )
+
+  summary = +"### Ignored files\n"
+  summary << "#{intro}\n"
+  summary << "<details><summary>Ignored files</summary>\n"
+  if ignored_files_added.any?
+    summary << "  ❌ <em>Introduced:</em>\n"
+    summary << "  <pre><code>#{ignored_files_added.join("\n")}</code></pre>\n"
+  end
+  if ignored_files_removed.any?
+    summary << "  ✅ <em>Cleared:</em>\n"
+    summary << "  <pre><code>#{ignored_files_removed.join("\n")}</code></pre>\n"
+  end
+  summary << "</details>\n"
+  summary << "\n"
+  total_introduced = ignored_files_added&.size || 0
+  [summary, total_introduced]
 end
 
 def steep_ignore_summary(head_stats, base_stats)
