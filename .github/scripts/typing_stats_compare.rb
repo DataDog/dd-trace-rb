@@ -7,43 +7,156 @@ require "json"
 head_stats = JSON.parse(File.read(ENV["CURRENT_STATS_PATH"]), symbolize_names: true)
 base_stats = JSON.parse(File.read(ENV["BASE_STATS_PATH"]), symbolize_names: true)
 
-# If a file is added in contrib, currently the paths will have no diff.
-ignored_files = {
-  added: head_stats[:ignored_files][:paths] - base_stats[:ignored_files][:paths],
-  removed: base_stats[:ignored_files][:paths] - head_stats[:ignored_files][:paths]
-}
+
+def create_summary(
+  added:,
+  removed:,
+  data_name:,
+  added_partially: [],
+  removed_partially: [],
+  data_name_partially: nil,
+  base_percentage: nil,
+  head_percentage: nil,
+  percentage_data_name: nil
+)
+  return nil if added.empty? && removed.empty?
+
+  intro = +"This PR "
+  intro << "introduces " if added.any? || added_partially.any?
+  intro << "**#{added.size}** #{data_name} " if added.any?
+  intro << "and " if added.any? && added_partially.any?
+  intro << "**#{added_partially.size}** #{data_name_partially} " if added_partially.any?
+  intro << "and " if (added.any? || added_partially.any?) && (removed.any? || removed_partially.any?)
+  intro << "clears " if removed.any? || removed_partially.any?
+  intro << "**#{removed.size}** #{data_name} " if removed.any?
+  intro << "and " if removed.any? && removed_partially.any?
+  intro << "**#{removed_partially.size}** #{data_name_partially} " if removed_partially.any?
+  if base_percentage != head_percentage
+    intro << ". It #{(base_percentage > head_percentage) ? "decreases" : "increases"} "
+    intro << "the percentage of #{percentage_data_name} from #{base_percentage}% to #{head_percentage}% "
+    intro << "(**#{"+" if head_percentage > base_percentage}#{(head_percentage - base_percentage).round(2)}**%)"
+  end
+  intro << "."
+
+  summary = +"### #{data_name.capitalize}\n"
+  summary << "#{intro}\n"
+  if added.any? || removed.any?
+    summary << "<details><summary>#{data_name.capitalize}</summary>\n"
+    if added.any?
+      summary << "  ❌ <em>Introduced:</em>\n"
+      summary << "  <pre><code>#{added.join("\n")}</code></pre>\n"
+    end
+    if removed.any?
+      summary << "  ✅ <em>Cleared:</em>\n"
+      summary << "  <pre><code>#{removed.join("\n")}</code></pre>\n"
+    end
+    summary << "</details>\n"
+  end
+  if added_partially.any? || removed_partially.any?
+    summary << "<details><summary>#{data_name_partially.capitalize}</summary>\n"
+    if added_partially.any?
+      summary << "  ❌ <em>Introduced:</em>\n"
+      summary << "  <pre><code>#{added_partially.join("\n")}</code></pre>\n"
+    end
+    if removed_partially.any?
+      summary << "  ✅ <em>Cleared:</em>\n"
+      summary << "  <pre><code>#{removed_partially.join("\n")}</code></pre>\n"
+    end
+    summary << "</details>\n"
+  end
+  summary << "\n"
+  total_introduced = (added&.size || 0) + (added_partially&.size || 0)
+  [summary, total_introduced]
+end
 
 def ignored_files_summary(head_stats, base_stats)
   # This will skip the summary if files are added/removed from contrib folders for now.
   ignored_files_added = head_stats[:ignored_files][:paths] - base_stats[:ignored_files][:paths]
   ignored_files_removed = base_stats[:ignored_files][:paths] - head_stats[:ignored_files][:paths]
-  return nil if ignored_files_added.empty? && ignored_files_removed.empty?
-
   typed_files_percentage_base = ((base_stats[:total_files_size] - base_stats[:ignored_files][:size]) / base_stats[:total_files_size].to_f * 100).round(2)
   typed_files_percentage_head = ((head_stats[:total_files_size] - head_stats[:ignored_files][:size]) / head_stats[:total_files_size].to_f * 100).round(2)
 
-  summary = +"This PR "
-  summary << "adds **#{ignored_files_added.size}** ignored files " if ignored_files_added.any?
-  summary << "and " if ignored_files_added.any? && ignored_files_removed.any?
-  summary << "removes **#{ignored_files_removed.size}** ignored files " if ignored_files_removed.any?
-  if typed_files_percentage_base != typed_files_percentage_head
-    summary << "which #{(typed_files_percentage_base > typed_files_percentage_head) ? "decreases" : "increases"} the percentage of typed files from #{typed_files_percentage_base}% to #{typed_files_percentage_head}% (**#{(typed_files_percentage_head - typed_files_percentage_base).round(2)}**%)"
-  end
-  summary << "."
-
-  <<~IGNORED_FILES
-    ### Ignored files
-    #{summary}
-    <details><summary>Ignored files</summary>
-      #{"<em>Added:</em>" if ignored_files_added.any?}
-      #{"<pre><code>#{ignored_files_added.join("\n")}</code></pre>" if ignored_files_added.any?}
-      #{"<em>Removed:</em>" if ignored_files_removed.any?}
-      #{"<pre><code>#{ignored_files_removed.join("\n")}</code></pre>" if ignored_files_removed.any?}
-    </details>
-
-  IGNORED_FILES
+  create_summary(
+    added: ignored_files_added,
+    removed: ignored_files_removed,
+    data_name: "ignored files",
+    base_percentage: typed_files_percentage_base,
+    head_percentage: typed_files_percentage_head,
+    percentage_data_name: "typed files"
+  )
 end
 
+def steep_ignore_summary(head_stats, base_stats)
+  steep_ignore_added = head_stats[:steep_ignore_comments] - base_stats[:steep_ignore_comments]
+  steep_ignore_removed = base_stats[:steep_ignore_comments] - head_stats[:steep_ignore_comments]
+
+  create_summary(
+    added: steep_ignore_added,
+    removed: steep_ignore_removed,
+    data_name: "`steep:ignore` comments"
+  )
+end
+
+def untyped_methods_summary(head_stats, base_stats)
+  untyped_methods_added = head_stats[:untyped_methods] - base_stats[:untyped_methods]
+  untyped_methods_removed = base_stats[:untyped_methods] - head_stats[:untyped_methods]
+  partially_typed_methods_added = head_stats[:partially_typed_methods] - base_stats[:partially_typed_methods]
+  partially_typed_methods_removed = base_stats[:partially_typed_methods] - head_stats[:partially_typed_methods]
+  total_methods_base = base_stats[:typed_methods_size] + base_stats[:untyped_methods].size + base_stats[:partially_typed_methods].size
+  total_methods_head = head_stats[:typed_methods_size] + head_stats[:untyped_methods].size + head_stats[:partially_typed_methods].size
+  typed_methods_percentage_base = (base_stats[:typed_methods_size] / total_methods_base.to_f * 100).round(2)
+  typed_methods_percentage_head = (head_stats[:typed_methods_size] / total_methods_head.to_f * 100).round(2)
+
+  create_summary(
+    added: untyped_methods_added,
+    removed: untyped_methods_removed,
+    data_name: "untyped methods",
+    added_partially: partially_typed_methods_added,
+    removed_partially: partially_typed_methods_removed,
+    data_name_partially: "partially typed methods",
+    base_percentage: typed_methods_percentage_base,
+    head_percentage: typed_methods_percentage_head,
+    percentage_data_name: "typed methods"
+  )
+end
+
+def untyped_others_summary(head_stats, base_stats)
+  untyped_others_added = head_stats[:untyped_others] - base_stats[:untyped_others]
+  untyped_others_removed = base_stats[:untyped_others] - head_stats[:untyped_others]
+  partially_typed_others_added = head_stats[:partially_typed_others] - base_stats[:partially_typed_others]
+  partially_typed_others_removed = base_stats[:partially_typed_others] - head_stats[:partially_typed_others]
+  total_others_base = base_stats[:typed_others_size] + base_stats[:untyped_others].size + base_stats[:partially_typed_others].size
+  total_others_head = head_stats[:typed_others_size] + head_stats[:untyped_others].size + head_stats[:partially_typed_others].size
+  typed_others_percentage_base = (base_stats[:typed_others_size] / total_others_base.to_f * 100).round(2)
+  typed_others_percentage_head = (head_stats[:typed_others_size] / total_others_head.to_f * 100).round(2)
+
+  create_summary(
+    added: untyped_others_added,
+    removed: untyped_others_removed,
+    data_name: "untyped other declarations",
+    added_partially: partially_typed_others_added,
+    removed_partially: partially_typed_others_removed,
+    data_name_partially: "partially typed other declarations",
+    base_percentage: typed_others_percentage_base,
+    head_percentage: typed_others_percentage_head,
+    percentage_data_name: "typed other declarations"
+  )
+end
+
+# Later we will make the CI fail if there's a regression in the typing stats
+ignored_files_summary, _ignored_files_added = ignored_files_summary(head_stats, base_stats)
+steep_ignore_summary, _steep_ignore_added = steep_ignore_summary(head_stats, base_stats)
+untyped_methods_summary, untyped_methods_added = untyped_methods_summary(head_stats, base_stats)
+untyped_others_summary, untyped_others_added = untyped_others_summary(head_stats, base_stats)
 result = +""
-result << ignored_files_summary(head_stats, base_stats)
+result << ignored_files_summary if ignored_files_summary
+if steep_ignore_summary || untyped_methods_summary || untyped_others_summary
+  result << "*__Note__: Ignored files are excluded from the next sections.*\n\n"
+end
+result << steep_ignore_summary if steep_ignore_summary
+result << untyped_methods_summary if untyped_methods_summary
+result << untyped_others_summary if untyped_others_summary
+if untyped_methods_added > 0 || untyped_others_added > 0
+  result << "*If you believe a method or an attribute is rightfully untyped or partially typed, you can add `# untyped:accept` to the end of the line to remove it from the stats.*\n"
+end
 puts result

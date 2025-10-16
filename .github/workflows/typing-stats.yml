@@ -90,17 +90,20 @@ jobs:
             const commentBody = `<!-- TYPING_STATS_HIDDEN_MARKER -->
             ## Typing analysis
             ${commentContent}
-            *__Note__: Ignored files are excluded from the next sections.*
+            `
+            const thankYouBody = `<!-- TYPING_STATS_HIDDEN_MARKER -->
+            ## Typing analysis
+            *This PR does not change typing compared to the base branch.*
             `
 
             const options = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: commentBody
+              body: commentContent !== "" ? commentBody : thankYouBody
             }
 
-            if (null === previousCommentId) {
+            if (null === previousCommentId && commentContent !== "") {
               await github.rest.issues.createComment(options)
             } else {
               await github.rest.issues.updateComment({...options, comment_id: previousCommentId})

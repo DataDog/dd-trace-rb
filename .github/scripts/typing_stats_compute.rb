@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
-require 'steep'
-require 'parser/ruby25'
-require 'json'
+require "steep"
+require "parser/ruby25"
+require "json"
 
 METHOD_AND_PARAM_NAME = /(?:\w*|`[^`]+`)/
 PARAMETER = /(?:\*{1,2})?\s*(?:\??\s*untyped\s*\??\s*|\??#{METHOD_AND_PARAM_NAME}:\s*untyped\s*\??)\s*#{METHOD_AND_PARAM_NAME}/
@@ -12,7 +12,7 @@ PROTOTYPE_METHOD = /\s*(?:public|private)?\s*def\s+(?:self\??\.)?(?:[^\s]+):\s*#
 
 # TODO: Find untyped/partially typed attributes, instance variables, class variables, constants
 
-steepfile_path = Pathname(ENV['STEEPFILE_PATH'])
+steepfile_path = Pathname(ENV["STEEPFILE_PATH"])
 project = Steep::Project.new(steepfile_path: steepfile_path).tap do |project|
   Steep::Project::DSL.parse(project, steepfile_path.read, filename: steepfile_path.to_s)
 end
@@ -25,9 +25,9 @@ ignored_paths = datadog_target&.source_pattern&.ignores
 signature_paths_with_ignored_files = loader.each_path_in_patterns(datadog_target.signature_pattern)
 signature_paths = signature_paths_with_ignored_files.reject do |sig_path|
   # replace sig/ with lib/ and .rbs with .rb
-  corresponding_lib_file = sig_path.to_s.sub(/^sig/, 'lib').sub(/\.rbs$/, '.rb')
+  corresponding_lib_file = sig_path.to_s.sub(/^sig/, "lib").sub(/\.rbs$/, ".rb")
   ignored_paths.any? do |ignored|
-    if ignored.end_with?('/')
+    if ignored.end_with?("/")
       # Directory ignore - check if signature file is inside this directory
       corresponding_lib_file.start_with?(ignored)
     else
@@ -39,8 +39,8 @@ end
 
 # Ignored files stats
 ignored_files_size = ignored_paths.inject(0) do |result, path|
-  if path.end_with?('/')
-    result + Dir.glob(path + '**/*.rb').size
+  if path.end_with?("/")
+    result + Dir.glob(path + "**/*.rb").size
   else
     result + 1
   end
