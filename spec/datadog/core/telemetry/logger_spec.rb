@@ -28,7 +28,6 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
           described_class.report(exception)
         end
       end
-
     end
 
     context 'when there is no telemetry component configured' do

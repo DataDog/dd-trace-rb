@@ -79,7 +79,6 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         end
       end
     end
-
   end
 
   describe '.error' do
