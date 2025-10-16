@@ -15,6 +15,14 @@ def format_for_code_block(data)
   end.join("\n")
 end
 
+def pluralize(word, suffix = "s")
+  "#{word}#{suffix}"
+end
+
+def concord(word, count, suffix = "s")
+  (count > 1) ? pluralize(word, suffix) : word
+end
+
 def create_intro(
   added:,
   removed:,
@@ -28,17 +36,17 @@ def create_intro(
 )
   intro = +"This PR "
   intro << "introduces " if added.any? || added_partially.any?
-  intro << "**#{added.size}** #{data_name}" if added.any?
+  intro << "**#{added.size}** #{concord(data_name, added.size)}" if added.any?
   intro << " and " if added.any? && added_partially.any?
-  intro << "**#{added_partially.size}** #{data_name_partially}" if added_partially.any?
+  intro << "**#{added_partially.size}** #{concord(data_name_partially, added_partially.size)}" if added_partially.any?
   intro << ", and " if (added.any? || added_partially.any?) && (removed.any? || removed_partially.any?)
   intro << "clears " if removed.any? || removed_partially.any?
-  intro << "**#{removed.size}** #{data_name}" if removed.any?
+  intro << "**#{removed.size}** #{concord(data_name, removed.size)}" if removed.any?
   intro << " and " if removed.any? && removed_partially.any?
-  intro << "**#{removed_partially.size}** #{data_name_partially}" if removed_partially.any?
+  intro << "**#{removed_partially.size}** #{concord(data_name_partially, removed_partially.size)}" if removed_partially.any?
   if base_percentage != head_percentage
     intro << ". It #{(base_percentage > head_percentage) ? "decreases" : "increases"} "
-    intro << "the percentage of #{percentage_data_name} from #{base_percentage}% to #{head_percentage}% "
+    intro << "the percentage of #{pluralize(percentage_data_name)} from #{base_percentage}% to #{head_percentage}% "
     intro << "(**#{"+" if head_percentage > base_percentage}#{(head_percentage - base_percentage).round(2)}**%)"
   end
   intro << "."
@@ -61,19 +69,19 @@ def create_summary(
   intro = create_intro(
     added: added,
     removed: removed,
+    data_name: data_name,
     added_partially: added_partially,
     removed_partially: removed_partially,
-    data_name: data_name,
     data_name_partially: data_name_partially,
     base_percentage: base_percentage,
     head_percentage: head_percentage,
     percentage_data_name: percentage_data_name
   )
 
-  summary = +"### #{data_name.capitalize}\n"
+  summary = +"### #{pluralize(data_name).capitalize}\n"
   summary << "#{intro}\n"
   if added.any? || removed.any?
-    summary << "<details><summary>#{data_name.capitalize}</summary>\n"
+    summary << "<details><summary>#{pluralize(data_name).capitalize}</summary>\n"
     if added.any?
       summary << "  ❌ <em>Introduced:</em>\n"
       summary << "  <pre><code>#{format_for_code_block(added)}</code></pre>\n"
@@ -85,7 +93,7 @@ def create_summary(
     summary << "</details>\n"
   end
   if added_partially.any? || removed_partially.any?
-    summary << "<details><summary>#{data_name_partially.capitalize}</summary>\n"
+    summary << "<details><summary>#{pluralize(data_name_partially).capitalize}</summary>\n"
     if added_partially.any?
       summary << "  ❌ <em>Introduced:</em>\n"
       summary << "  <pre><code>#{format_for_code_block(added_partially)}</code></pre>\n"
@@ -114,10 +122,10 @@ def ignored_files_summary(head_stats, base_stats)
   intro = create_intro(
     added: ignored_files_added,
     removed: ignored_files_removed,
-    data_name: "ignored files",
+    data_name: "ignored file",
     base_percentage: typed_files_percentage_base,
     head_percentage: typed_files_percentage_head,
-    percentage_data_name: "typed files"
+    percentage_data_name: "typed file"
   )
 
   summary = +"### Ignored files\n"
@@ -144,7 +152,7 @@ def steep_ignore_summary(head_stats, base_stats)
   create_summary(
     added: steep_ignore_added,
     removed: steep_ignore_removed,
-    data_name: "`steep:ignore` comments"
+    data_name: "<code>steep:ignore</code> comment"
   )
 end
 
@@ -161,13 +169,13 @@ def untyped_methods_summary(head_stats, base_stats)
   create_summary(
     added: untyped_methods_added,
     removed: untyped_methods_removed,
-    data_name: "untyped methods",
+    data_name: "untyped method",
     added_partially: partially_typed_methods_added,
     removed_partially: partially_typed_methods_removed,
-    data_name_partially: "partially typed methods",
+    data_name_partially: "partially typed method",
     base_percentage: typed_methods_percentage_base,
     head_percentage: typed_methods_percentage_head,
-    percentage_data_name: "typed methods"
+    percentage_data_name: "typed method"
   )
 end
 
@@ -184,13 +192,13 @@ def untyped_others_summary(head_stats, base_stats)
   create_summary(
     added: untyped_others_added,
     removed: untyped_others_removed,
-    data_name: "untyped other declarations",
+    data_name: "untyped other declaration",
     added_partially: partially_typed_others_added,
     removed_partially: partially_typed_others_removed,
-    data_name_partially: "partially typed other declarations",
+    data_name_partially: "partially typed other declaration",
     base_percentage: typed_others_percentage_base,
     head_percentage: typed_others_percentage_head,
-    percentage_data_name: "typed other declarations"
+    percentage_data_name: "typed other declaration"
   )
 end
 
