@@ -41,7 +41,7 @@ module Datadog
                 "IdleSamplingHelper thread error. " \
                 "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
               )
-              Datadog::Core::Telemetry::Logger.report(e, description: "IdleSamplingHelper thread error", pii_safe: true)
+              Datadog::Core::Telemetry::Logger.report(e, description: "IdleSamplingHelper thread error")
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
             @worker_thread.thread_variable_set(:fork_safe, true)
