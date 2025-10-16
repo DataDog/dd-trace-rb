@@ -9,11 +9,11 @@ RSpec.describe 'Patcher lifecycle - instrumenting a redis instance initialized b
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
   def redis_options(service_name = nil)
-    options = { host: host, port: port }
+    options = {host: host, port: port}
     return options if service_name.nil?
 
     options.merge(
-      custom: { datadog: { service_name: service_name } }
+      custom: {datadog: {service_name: service_name}}
     )
   end
 
@@ -30,7 +30,7 @@ RSpec.describe 'Patcher lifecycle - instrumenting a redis instance initialized b
   #  `Redis.new(..., custom: { datadog: { ... } } )`
   context(
     'when instrumenting using `configure_onto` to hold instrumentation configuration',
-    skip: Gem::Version.new(Redis::VERSION) >= Gem::Version.new('5') ? 'Not supported' : false
+    skip: (Gem::Version.new(Redis::VERSION) >= Gem::Version.new('5')) ? 'Not supported' : false
   ) do
     it do
       # This redis instance was initialized before Datadog redis instrumentation was configured.
@@ -64,7 +64,7 @@ RSpec.describe 'Patcher lifecycle - instrumenting a redis instance initialized b
 
   context(
     'when instrumenting using `custom` attribute to hold instrumentation configuration',
-    skip: Gem::Version.new(Redis::VERSION) < Gem::Version.new('5') ? 'Not supported' : false
+    skip: (Gem::Version.new(Redis::VERSION) < Gem::Version.new('5')) ? 'Not supported' : false
   ) do
     it do
       redis_1 = Redis.new(redis_options('my-custom-redis'))
@@ -90,7 +90,7 @@ RSpec.describe 'Patcher lifecycle - instrumenting a redis instance initialized b
 
   context(
     'when instrumenting using `custom` with `RedisClient`',
-    skip: Gem::Version.new(Redis::VERSION) < Gem::Version.new('5') ? 'Not supported' : false
+    skip: (Gem::Version.new(Redis::VERSION) < Gem::Version.new('5')) ? 'Not supported' : false
   ) do
     it do
       redis_1 = RedisClient.config(**redis_options('my-custom-redis')).new_client

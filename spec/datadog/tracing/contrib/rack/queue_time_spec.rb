@@ -11,19 +11,19 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::QueueTime do
     context 'given a Rack env with' do
       context 'milliseconds' do
         context described_class::REQUEST_START do
-          let(:env) { { described_class::REQUEST_START => "t=#{value}" } }
+          let(:env) { {described_class::REQUEST_START => "t=#{value}"} }
           let(:value) { 1512379167.574 }
 
           it { expect(request_start.to_f).to eq(value) }
 
           context 'but does not start with t=' do
-            let(:env) { { described_class::REQUEST_START => value } }
+            let(:env) { {described_class::REQUEST_START => value} }
 
             it { expect(request_start.to_f).to eq(value) }
           end
 
           context 'without decimal places' do
-            let(:env) { { described_class::REQUEST_START => value } }
+            let(:env) { {described_class::REQUEST_START => value} }
             let(:value) { 1512379167574 }
 
             it { expect(request_start.to_f).to eq(1512379167.574) }
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::QueueTime do
         end
 
         context described_class::QUEUE_START do
-          let(:env) { { described_class::QUEUE_START => "t=#{value}" } }
+          let(:env) { {described_class::QUEUE_START => "t=#{value}"} }
           let(:value) { 1512379167.574 }
 
           it { expect(request_start.to_f).to eq(value) }
@@ -52,19 +52,19 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::QueueTime do
 
       context 'microseconds' do
         context described_class::REQUEST_START do
-          let(:env) { { described_class::REQUEST_START => "t=#{value}" } }
+          let(:env) { {described_class::REQUEST_START => "t=#{value}"} }
           let(:value) { 1570633834.463123 }
 
           it { expect(request_start.to_f).to eq(value) }
 
           context 'but does not start with t=' do
-            let(:env) { { described_class::REQUEST_START => value } }
+            let(:env) { {described_class::REQUEST_START => value} }
 
             it { expect(request_start.to_f).to eq(value) }
           end
 
           context 'without decimal places' do
-            let(:env) { { described_class::REQUEST_START => value } }
+            let(:env) { {described_class::REQUEST_START => value} }
             let(:value) { 1570633834463123 }
 
             it { expect(request_start.to_f).to eq(1570633834.463123) }
@@ -78,7 +78,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::QueueTime do
         end
 
         context described_class::QUEUE_START do
-          let(:env) { { described_class::QUEUE_START => "t=#{value}" } }
+          let(:env) { {described_class::QUEUE_START => "t=#{value}"} }
           let(:value) { 1570633834.463123 }
 
           it { expect(request_start.to_f).to eq(value) }

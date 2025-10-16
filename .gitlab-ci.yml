@@ -35,7 +35,7 @@ default:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
+      - RUBY_VERSION: ["3.5", "3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
   script:
     - >
       docker build
@@ -71,7 +71,7 @@ promote-image:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
+      - RUBY_VERSION: ["3.5", "3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
         ARCHITECTURE: ["amd64", "arm64"]
   script:
     - docker pull $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID
@@ -109,6 +109,8 @@ install-dependencies:
   tags: ["arch:$ARCH"]
   parallel:
     matrix:
+      # ADD NEW RUBIES HERE
+      # TODO: Ruby 3.5 - Not added here yet to avoid increasing SSI OCI image size and adding premature support for 3.5.
       - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
         ARCH: ["amd64", "arm64"]
   stage: package
@@ -141,7 +143,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 35cec2e0f264b8fde65092f494241ff105f7b3e8 # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_REF: 2cbe759487228ade311550caa67a9131659a8f0b # Automated: This reference is automatically updated.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
 
 save_versions:
@@ -190,3 +192,18 @@ vaccine:
   after_script:
     # Revoke the token after usage
     - dd-octo-sts revoke -t $(cat token.txt)
+
+# Config inversion CI steps
+validate_supported_configurations_local_file:
+  rules:
+    - when: on_success
+  extends: .validate_supported_configurations_local_file
+  variables:
+    LOCAL_JSON_PATH: "supported-configurations.json"
+
+update_central_configurations_version_range:
+  extends: .update_central_configurations_version_range
+  variables:
+    LOCAL_JSON_PATH: "supported-configurations.json"
+    LANGUAGE_NAME: "ruby"
+    MULTIPLE_RELEASE_LINES: "false"

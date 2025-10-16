@@ -142,7 +142,7 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
     it_behaves_like 'an instrumented cache method'
 
     it do
-      expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
+      expect(read_multi).to eq(multi_keys.zip([51, 52, 53]).to_h)
       expect(spans).to have(1 + multi_keys.size).items
       get = spans[0]
       expect(get.name).to eq('rails.cache')
@@ -171,7 +171,7 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
       end
 
       it do
-        expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
+        expect(read_multi).to eq(multi_keys.zip([51, 52, 53]).to_h)
         expect(spans).to have(1 + multi_keys.size).items
         get = spans[0]
         expect(get.name).to eq('rails.cache')
@@ -292,7 +292,7 @@ RSpec.describe 'Rails cache', execute_in_fork: Rails.version.to_i >= 8 do
   describe '#write_multi' do
     let(:values) { multi_keys.map { |k| 50 + k[-1].to_i } }
 
-    subject(:write_multi) { cache.write_multi(Hash[multi_keys.zip(values)], opt_name: :opt_value) }
+    subject(:write_multi) { cache.write_multi(multi_keys.zip(values).to_h, opt_name: :opt_value) }
 
     context 'when the method is defined' do
       before do

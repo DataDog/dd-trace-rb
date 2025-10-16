@@ -12,7 +12,7 @@ require 'datadog'
 RSpec.describe 'tracing on the server connection' do
   subject(:server) { Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Server.new }
 
-  let(:configuration_options) { { service_name: 'rspec' } }
+  let(:configuration_options) { {service_name: 'rspec'} }
 
   before do
     Datadog.configure do |c|
@@ -60,9 +60,9 @@ RSpec.describe 'tracing on the server connection' do
 
   describe '#request_response' do
     let(:keywords) do
-      { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-        method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
+      {request: instance_double(Object),
+       call: instance_double('GRPC::ActiveCall', metadata: {some: 'datum'}),
+       method: instance_double(Method, owner: 'My::Server', name: 'endpoint')}
     end
 
     it_behaves_like 'span data contents' do
@@ -105,7 +105,7 @@ RSpec.describe 'tracing on the server connection' do
       end
 
       context 'with an error handler defined in the configuration_options' do
-        let(:configuration_options) { { on_error: on_error } }
+        let(:configuration_options) { {on_error: on_error} }
 
         let(:on_error) do
           ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from configuration") }
@@ -118,8 +118,8 @@ RSpec.describe 'tracing on the server connection' do
 
   describe '#client_streamer' do
     let(:keywords) do
-      { call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-        method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
+      {call: instance_double('GRPC::ActiveCall', metadata: {some: 'datum'}),
+       method: instance_double(Method, owner: 'My::Server', name: 'endpoint')}
     end
 
     before do
@@ -131,9 +131,9 @@ RSpec.describe 'tracing on the server connection' do
 
   describe '#server_streamer' do
     let(:keywords) do
-      { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-        method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
+      {request: instance_double(Object),
+       call: instance_double('GRPC::ActiveCall', metadata: {some: 'datum'}),
+       method: instance_double(Method, owner: 'My::Server', name: 'endpoint')}
     end
 
     before do
@@ -145,9 +145,9 @@ RSpec.describe 'tracing on the server connection' do
 
   describe '#bidi_streamer' do
     let(:keywords) do
-      { requests: instance_double(Array),
-        call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
-        method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
+      {requests: instance_double(Array),
+       call: instance_double('GRPC::ActiveCall', metadata: {some: 'datum'}),
+       method: instance_double(Method, owner: 'My::Server', name: 'endpoint')}
     end
 
     before do

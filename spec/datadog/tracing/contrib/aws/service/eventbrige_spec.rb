@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::EventBridge do
 
   context 'with rule_name provided in params[:name]' do
     let(:rule_name) { 'example-rule-name' }
-    let(:params) { { name: rule_name } }
+    let(:params) { {name: rule_name} }
 
     it 'sets the rule_name based on the params[:name]' do
       event_bridge.add_tags(span, params)
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::EventBridge do
 
   context 'with rule_name provided in params[:rule]' do
     let(:rule_name) { 'example-rule-name' }
-    let(:params) { { rule: rule_name } }
+    let(:params) { {rule: rule_name} }
 
     it 'sets the rule_name based on the params[:rule]' do
       event_bridge.add_tags(span, params)

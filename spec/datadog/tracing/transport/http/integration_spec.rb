@@ -38,7 +38,7 @@ RSpec.describe 'Datadog::Tracing::Transport::HTTP integration tests' do
   describe Datadog::Tracing::Writer do
     subject(:writer) { described_class.new(writer_options) }
 
-    let(:writer_options) { { transport: client } }
+    let(:writer_options) { {transport: client} }
     let(:client) do
       Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger, &client_options)
     end

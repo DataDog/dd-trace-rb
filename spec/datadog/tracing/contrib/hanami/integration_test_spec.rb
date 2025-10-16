@@ -1,5 +1,5 @@
-require_relative './support/hanami_helpers'
-require_relative './support/custom_matchers'
+require_relative 'support/hanami_helpers'
+require_relative 'support/custom_matchers'
 require 'rack'
 require 'rack/test'
 require 'datadog'

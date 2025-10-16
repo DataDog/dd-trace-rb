@@ -15,6 +15,7 @@ module Datadog
         def get_metric: (untyped key) -> untyped
         def set_metric: (untyped key, untyped value) -> untyped
         def clear_metric: (untyped key) -> untyped
+        def tags: () -> Hash[String, String]
         def meta: () -> untyped
         def metrics: () -> untyped
       end

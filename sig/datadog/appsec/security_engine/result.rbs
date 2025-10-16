@@ -2,87 +2,104 @@ module Datadog
   module AppSec
     module SecurityEngine
       module Result
-        type data = ::String | ::Hash[::String, data] | ::Array[data]
-        type events = ::Array[::Hash[::String, data]]
-        type action = ::Hash[::String, ::String]
-        type actions = ::Hash[::String, action]
-        type derivatives = ::Hash[::String, data]
-
         class Base
-          @events: events
+          @events: WAF::events
 
-          @actions: actions
+          @actions: WAF::actions
 
-          @derivatives: derivatives
+          @attributes: WAF::attributes
+
+          @keep: bool
 
           @timeout: bool
+
+          @input_truncated: bool
 
           @duration_ns: ::Integer
 
           @duration_ext_ns: ::Integer
 
-          attr_reader events: events
+          attr_reader events: WAF::events
 
-          attr_reader actions: actions
+          attr_reader actions: WAF::actions
 
-          attr_reader derivatives: derivatives
+          attr_reader attributes: WAF::attributes
 
           attr_reader duration_ns: ::Integer
 
           attr_reader duration_ext_ns: ::Integer
 
-          def initialize: (events: events, actions: actions, derivatives: derivatives, timeout: bool, duration_ns: ::Integer, duration_ext_ns: ::Integer) -> void
+          def initialize: (
+            events: WAF::events,
+            actions: WAF::actions,
+            attributes: WAF::attributes,
+            duration_ns: ::Integer,
+            duration_ext_ns: ::Integer,
+            timeout: bool,
+            keep: bool,
+            input_truncated: bool
+          ) -> void
+
+          def keep?: () -> bool
 
           def timeout?: () -> bool
 
           def match?: () -> bool
 
           def error?: () -> bool
+
+          def input_truncated?: () -> bool
         end
 
         # A result that indicates a security rule match
         class Match < Base
-          def match?: () -> true
+          def match?: () -> bool
 
-          def error?: () -> false
+          def error?: () -> bool
         end
 
         # A result that indicates a successful security rules check without a match
         class Ok < Base
-          def match?: () -> false
+          def match?: () -> bool
 
-          def error?: () -> false
+          def error?: () -> bool
         end
 
         # A result that indicates an internal security library error
         class Error
-          @events: events
+          @events: WAF::events
 
-          @actions: actions
+          @actions: WAF::actions
 
-          @derivatives: derivatives
+          @attributes: WAF::attributes
 
           @duration_ns: ::Integer
 
           @duration_ext_ns: ::Integer
 
-          attr_reader events: events
+          @input_truncated: bool
 
-          attr_reader actions: actions
+          attr_reader events: WAF::events
 
-          attr_reader derivatives: derivatives
+          attr_reader actions: WAF::actions
+
+          attr_reader attributes: WAF::attributes
 
           attr_reader duration_ns: ::Integer
 
           attr_reader duration_ext_ns: ::Integer
 
-          def initialize: (duration_ext_ns: ::Integer) -> void
+          def initialize: (duration_ext_ns: ::Integer, input_truncated: bool) -> void
 
-          def timeout?: () -> false
+          def keep?: () -> bool
 
-          def match?: () -> false
+          def timeout?: () -> bool
 
-          def error?: () -> true
+          def match?: () -> bool
+
+          def error?: () -> bool
+
+          def input_truncated?: () -> bool
         end
       end
     end

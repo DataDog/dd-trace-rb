@@ -1,10 +1,10 @@
+# rubocop:disable all
+
 class InstrumentationIntegrationTestClass3
   def test_method
     a = 21
-    password = 'password'
-    redacted = {b: 33, session: 'blah'}
-    # padding
-    # padding
+    $__password = password = 'password'
+    $__redacted = redacted = {b: 33, session: 'blah'}
     # padding
     # padding
     a * 2 # line 10

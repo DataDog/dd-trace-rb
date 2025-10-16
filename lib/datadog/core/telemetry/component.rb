@@ -19,6 +19,8 @@ module Datadog
       #
       # @api private
       class Component
+        ENDPOINT_COLLECTION_MESSAGE_LIMIT = 300
+
         attr_reader :enabled, :logger, :transport, :worker
 
         include Core::Utils::Forking
@@ -163,6 +165,15 @@ module Datadog
           return if !@enabled || forked?
 
           @worker.enqueue(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
+        end
+
+        # Report application endpoints
+        def app_endpoints_loaded(endpoints, page_size: ENDPOINT_COLLECTION_MESSAGE_LIMIT)
+          return if !@enabled || forked?
+
+          endpoints.each_slice(page_size).with_index do |endpoints_slice, i|
+            @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints_slice, is_first: i.zero?))
+          end
         end
 
         # Increments a count metric.

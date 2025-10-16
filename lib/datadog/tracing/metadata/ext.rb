@@ -82,6 +82,14 @@ module Datadog
           TAG_MSG = 'error.message'
           TAG_STACK = 'error.stack'
           TAG_TYPE = 'error.type'
+
+          # From https://opentelemetry.io/docs/specs/semconv/registry/attributes/exception/#exception-stacktrace
+          ATTRIBUTE_MESSAGE = 'exception.message'
+          ATTRIBUTE_STACKTRACE = 'exception.stacktrace'
+          ATTRIBUTE_TYPE = 'exception.type'
+
+          # From https://opentelemetry.io/docs/specs/semconv/exceptions/exceptions-spans/#exception-event
+          EVENT_NAME = 'exception'
         end
 
         # @public_api

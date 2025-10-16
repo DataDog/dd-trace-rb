@@ -1,0 +1,45 @@
+module Datadog
+  module DI
+    module EL
+      class Evaluator
+        @context: untyped
+
+        def initialize: (untyped context) -> void
+
+        def evaluate: (untyped compiled) -> untyped
+
+        def ref: (untyped var) -> untyped
+
+        def iref: (untyped var) -> untyped
+
+        def len: (untyped var, untyped var_name) -> untyped
+
+        def is_empty: (untyped var, untyped var_name) -> (false | untyped)
+
+        def is_undefined: (untyped var, untyped var_name) -> untyped
+
+        def contains: (untyped haystack, untyped needle) -> untyped
+
+        def matches: (untyped haystack, untyped needle) -> untyped
+
+        def getmember: (untyped object, untyped field) -> untyped
+
+        def index: (untyped array_or_hash, untyped index_or_key) -> untyped
+
+        def substring: (untyped object, untyped from, untyped to) -> untyped
+
+        def starts_with: (untyped haystack, untyped needle) -> untyped
+
+        def ends_with: (untyped haystack, untyped needle) -> untyped
+
+        def all: (untyped collection) { (?) -> untyped } -> untyped
+
+        def any: (untyped collection) { (?) -> untyped } -> untyped
+
+        def filter: (untyped collection) { (?) -> untyped } -> untyped
+
+        def instanceof: (untyped object, untyped cls_name) -> (true | false | untyped)
+      end
+    end
+  end
+end

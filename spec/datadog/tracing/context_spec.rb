@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Context do
 
     context 'given' do
       context ':trace' do
-        let(:options) { { trace: trace } }
+        let(:options) { {trace: trace} }
         let(:trace) { instance_double(Datadog::Tracing::TraceOperation, finished?: finished?) }
 
         context 'that is finished' do

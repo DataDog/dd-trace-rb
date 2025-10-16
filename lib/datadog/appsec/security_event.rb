@@ -3,7 +3,7 @@
 module Datadog
   module AppSec
     # A class that represents a security event of any kind. It could be an event
-    # representing an attack or fingerprinting results as derivatives or an API
+    # representing an attack or fingerprinting results as attributes or an API
     # security check with extracted schema.
     class SecurityEvent
       SCHEMA_KEY_PREFIX = '_dd.appsec.s.'
@@ -17,22 +17,20 @@ module Datadog
         @span = span
       end
 
-      def attack?
-        return @is_attack if defined?(@is_attack)
-
-        @is_attack = @waf_result.is_a?(SecurityEngine::Result::Match)
+      def keep?
+        @waf_result.keep?
       end
 
       def schema?
         return @has_schema if defined?(@has_schema)
 
-        @has_schema = @waf_result.derivatives.any? { |name, _| name.start_with?(SCHEMA_KEY_PREFIX) }
+        @has_schema = @waf_result.attributes.any? { |name, _| name.start_with?(SCHEMA_KEY_PREFIX) }
       end
 
       def fingerprint?
         return @has_fingerprint if defined?(@has_fingerprint)
 
-        @has_fingerprint = @waf_result.derivatives.any? { |name, _| name.start_with?(FINGERPRINT_KEY_PREFIX) }
+        @has_fingerprint = @waf_result.attributes.any? { |name, _| name.start_with?(FINGERPRINT_KEY_PREFIX) }
       end
     end
   end

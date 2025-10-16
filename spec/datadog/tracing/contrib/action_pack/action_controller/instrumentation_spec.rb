@@ -16,7 +16,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
       let(:action_dispatch_exception) { nil }
       let(:action_name) { 'index' }
       let(:controller_class) { stub_const('TestController', Class.new(ActionController::Base)) }
-      let(:env) { { 'rack.url_scheme' => 'http' } }
+      let(:env) { {'rack.url_scheme' => 'http'} }
       let(:payload) do
         {
           controller: controller_class,
@@ -48,11 +48,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
 
       context 'with a 500 Server Error response' do
         let(:error) do
-          begin
-            raise 'Test error'
-          rescue StandardError => e
-            e
-          end
+          raise 'Test error'
+        rescue => e
+          e
         end
 
         let(:payload) do

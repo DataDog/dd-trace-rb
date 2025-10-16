@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.21.0)
+    datadog (2.22.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 18.1.0.1.0)
-      libddwaf (~> 1.24.1.2.1)
+      libdatadog (~> 22.0.1.1.0)
+      libddwaf (~> 1.25.1.1.0)
       logger
       msgpack
 
@@ -31,8 +31,8 @@ GEM
     hashdiff (1.1.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (18.1.0.1.0)
-    libddwaf (1.24.1.2.1)
+    libdatadog (22.0.1.1.0)
+    libddwaf (1.25.1.1.0)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
@@ -79,7 +79,7 @@ GEM
     simplecov_json_formatter (0.1.4)
     spoon (0.0.6)
       ffi
-    stripe (15.4.0)
+    stripe (16.0.0)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)
@@ -115,4 +115,4 @@ DEPENDENCIES
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-   2.5.21
+   2.6.9

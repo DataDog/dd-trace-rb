@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
   let(:options) { {} }
 
   describe '#tracing' do
-    let(:envs) { { '_test_' => nil } }
+    let(:envs) { {'_test_' => nil} }
     around do |example|
       ClimateControl.modify(envs) do
         example.run
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       subject(:propagation_style_extract) { settings.tracing.propagation_style_extract }
 
       context 'when DD_TRACE_PROPAGATION_STYLE_EXTRACT' do
-        let(:envs) { { 'DD_TRACE_PROPAGATION_STYLE_EXTRACT' => var_value } }
+        let(:envs) { {'DD_TRACE_PROPAGATION_STYLE_EXTRACT' => var_value} }
 
         context 'is not defined' do
           let(:var_value) { nil }
@@ -114,7 +114,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       subject(:propagation_style_inject) { settings.tracing.propagation_style_inject }
 
       context 'with DD_TRACE_PROPAGATION_STYLE_INJECT' do
-        let(:envs) { { 'DD_TRACE_PROPAGATION_STYLE_INJECT' => var_value } }
+        let(:envs) { {'DD_TRACE_PROPAGATION_STYLE_INJECT' => var_value} }
 
         context 'is not defined' do
           let(:var_value) { nil }
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
 
       context 'with DD_TRACE_PROPAGATION_STYLE' do
-        let(:envs) { { 'DD_TRACE_PROPAGATION_STYLE' => var_value } }
+        let(:envs) { {'DD_TRACE_PROPAGATION_STYLE' => var_value} }
 
         context 'is not defined' do
           let(:var_value) { nil }
@@ -191,10 +191,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
           it 'sets propagation_style_extract' do
             expect { propagation_style }.to change { propagation_style_extract }.to(%w[b3multi b3])
+            expect(settings.tracing.send(:resolve_option, :propagation_style_extract).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
           end
 
           it 'sets propagation_style_inject' do
             expect { propagation_style }.to change { propagation_style_inject }.to(%w[b3multi b3])
+            expect(settings.tracing.send(:resolve_option, :propagation_style_inject).precedence_set).to eq(Datadog::Core::Configuration::Option::Precedence::ENVIRONMENT)
           end
 
           context 'with a mixed case value' do
@@ -209,7 +211,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
       context 'with OTEL_PROPAGATORS' do
         context 'and without DD_TRACE_PROPAGATION_STYLE' do
-          let(:envs) { { 'OTEL_PROPAGATORS' => 'tracecontext,jaegar,b3,b3multi' } }
+          let(:envs) { {'OTEL_PROPAGATORS' => 'tracecontext,jaegar,b3,b3multi'} }
           it 'sets propagation_style_extract' do
             expect { propagation_style }.to change { propagation_style_extract }.to(%w[tracecontext b3 b3multi])
           end
@@ -221,7 +223,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
         context 'and with DD_TRACE_PROPAGATION_STYLE' do
           let(:envs) do
-            { 'OTEL_PROPAGATORS' => 'tracecontext,jaegar,b3single', 'DD_TRACE_PROPAGATION_STYLE' => 'b3multi,b3' }
+            {'OTEL_PROPAGATORS' => 'tracecontext,jaegar,b3single', 'DD_TRACE_PROPAGATION_STYLE' => 'b3multi,b3'}
           end
 
           it 'sets propagation_style_extract' do
@@ -238,7 +240,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     describe '#propagation_extract_first' do
       subject(:propagation_extract_first) { settings.tracing.propagation_extract_first }
 
-      let(:envs) { { 'DD_TRACE_PROPAGATION_EXTRACT_FIRST' => var_value } }
+      let(:envs) { {'DD_TRACE_PROPAGATION_EXTRACT_FIRST' => var_value} }
       let(:var_value) { nil }
       it { is_expected.to be false }
 
@@ -844,7 +846,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
 
       describe '#writer_options=' do
-        let(:options) { { anything: double } }
+        let(:options) { {anything: double} }
 
         it 'updates the #writer_options setting' do
           expect { settings.tracing.test_mode.writer_options = options }
@@ -887,7 +889,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     end
 
     describe '#writer_options=' do
-      let(:options) { { anything: double } }
+      let(:options) { {anything: double} }
 
       it 'updates the #writer_options setting' do
         expect { settings.tracing.writer_options = options }

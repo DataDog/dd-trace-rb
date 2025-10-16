@@ -98,7 +98,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
   let(:service) { defined?(super) ? super() : tracer.default_service }
 
   describe 'query trace' do
-    subject(:result) { schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 }) }
+    subject(:result) { schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: {var: 1}) }
 
     matrix = [
       ['graphql.analyze', 'query Users($var: ID!){ user(id: $var) { name } }'],
@@ -124,7 +124,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
     matrix.each_with_index do |(name, resource), index|
       it "creates #{name} span with #{resource} resource" do
         expect(result.to_h['errors']).to be nil
-        expect(result.to_h['data']).to eq({ 'user' => { 'name' => 'Bits' } })
+        expect(result.to_h['data']).to eq({'user' => {'name' => 'Bits'}})
 
         expect(spans).to have(matrix.length).items
         span = spans[index]
@@ -221,13 +221,40 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
               'extensions.bool' => true,
               'extensions.str' => '1',
               'extensions.array-1-2' => '[1, "2"]',
-              'extensions.hash-a-b' => { a: 'b' }.to_s, # Hash#to_s changes per Ruby version: 3.3: '{:a=>1}', 3.4: '{a: 1}'
+              'extensions.hash-a-b' => {a: 'b'}.to_s, # Hash#to_s changes per Ruby version: 3.3: '{:a=>1}', 3.4: '{a: 1}'
               'extensions.object' => start_with('#<Object:'),
             }
           )
         )
 
         expect(graphql_execute.events[0].attributes).to_not include('extensions.extra-int')
+      end
+    end
+
+    context 'with error tracking enabled' do
+      around do |ex|
+        ClimateControl.modify(
+          'DD_TRACE_GRAPHQL_ERROR_TRACKING' => 'true',
+          'DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => 'int'
+        ) { ex.run }
+      end
+
+      it 'creates exception span events with OpenTelemetry semantics and extensions' do
+        expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
+
+        expect(graphql_execute.events[0]).to match(
+          a_span_event_with(
+            name: 'exception',
+            attributes: {
+              'exception.message' => 'GraphQL error',
+              'exception.type' => 'GraphQL::ExecutionError',
+              'exception.stacktrace' => include(__FILE__),
+              'graphql.error.path' => ['err1'],
+              'graphql.error.locations' => ['1:14'],
+              'graphql.error.extensions.int' => 1,
+            }
+          )
+        )
       end
     end
   end

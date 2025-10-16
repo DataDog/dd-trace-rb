@@ -1,0 +1,21 @@
+module Datadog
+  module DI
+    module EL
+      class Expression
+        @dsl_expr: untyped
+
+        @evaluator: untyped
+
+        def initialize: (untyped dsl_expr, untyped compiled_expr) -> void
+
+        attr_reader dsl_expr: untyped
+
+        attr_reader evaluator: untyped
+
+        def evaluate: (untyped context) -> untyped
+
+        def satisfied?: (untyped context) -> untyped
+      end
+    end
+  end
+end

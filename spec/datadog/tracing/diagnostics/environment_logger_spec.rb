@@ -276,7 +276,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
 
     describe '#sampling_rules' do
       subject(:sampling_rules_result) { described_class.sampling_rules }
-      let(:sampling_rules) { [{ service: 'my-ruby-app', sample_rate: 0.5 }] }
+      let(:sampling_rules) { [{service: 'my-ruby-app', sample_rate: 0.5}] }
 
       context 'when sampler is nil' do
         before do

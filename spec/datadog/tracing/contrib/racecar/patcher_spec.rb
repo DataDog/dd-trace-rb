@@ -30,7 +30,7 @@ RSpec.describe 'Racecar patcher' do
 
   describe 'for both single and batch message processing' do
     let(:consumer) { 'DummyConsumer' }
-    let(:payload) { { consumer_class: consumer } }
+    let(:payload) { {consumer_class: consumer} }
 
     let(:span) do
       spans.find { |s| s.name == Datadog::Tracing::Contrib::Racecar::Ext::SPAN_CONSUME }

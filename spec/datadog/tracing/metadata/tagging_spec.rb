@@ -227,7 +227,7 @@ RSpec.describe Datadog::Tracing::Metadata::Tagging do
     end
 
     context 'with multiple tags' do
-      let(:tags) { { 'user.id' => 123, 'user.domain' => 'datadog.com' } }
+      let(:tags) { {'user.id' => 123, 'user.domain' => 'datadog.com'} }
 
       it 'sets the tags from hash keys' do
         expect { set_tags }
@@ -382,13 +382,13 @@ RSpec.describe Datadog::Tracing::Metadata::Tagging do
     it 'returns a hash contains meta' do
       test_object.set_tag('foo', 'bar')
 
-      expect(test_object.tags).to eq({ 'foo' => 'bar' })
+      expect(test_object.tags).to eq({'foo' => 'bar'})
     end
 
     it 'returns a hash contains metric' do
       test_object.set_metric('count', 1.0)
 
-      expect(test_object.tags).to eq({ 'count' => 1.0 })
+      expect(test_object.tags).to eq({'count' => 1.0})
     end
   end
 end

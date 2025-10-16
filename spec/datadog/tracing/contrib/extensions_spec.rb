@@ -90,7 +90,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               context 'is defined' do
                 let(:env_var) { 'key:value' }
 
-                it { is_expected.to eq({ 'key' => 'value' }) }
+                it { is_expected.to eq({'key' => 'value'}) }
               end
             end
           end
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
 
               context 'with a matching described configuration' do
                 let(:matcher) { double('matcher') }
-                let(:instrument_options) { { describes: matcher } }
+                let(:instrument_options) { {describes: matcher} }
 
                 context 'using the same matcher' do
                   subject(:get) { settings[integration_name, matcher] }

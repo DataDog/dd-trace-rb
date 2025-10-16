@@ -62,7 +62,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateByServiceSampler do
       context 'describe a new bucket' do
         let(:new_key) { 'service:new-service,env:my-env' }
         let(:new_rate) { 0.5 }
-        let(:rate_by_service) { { new_key => new_rate } }
+        let(:rate_by_service) { {new_key => new_rate} }
 
         before { update }
 
@@ -79,10 +79,10 @@ RSpec.describe Datadog::Tracing::Sampling::RateByServiceSampler do
       context 'describe an existing bucket' do
         let(:existing_key) { 'service:existing-service,env:my-env' }
         let(:new_rate) { 0.5 }
-        let(:rate_by_service) { { existing_key => new_rate } }
+        let(:rate_by_service) { {existing_key => new_rate} }
 
         before do
-          sampler.update({ existing_key => 1.0 })
+          sampler.update({existing_key => 1.0})
           update
         end
 
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateByServiceSampler do
         let(:rate_by_service) { {} }
 
         before do
-          sampler.update({ old_key => 1.0 })
+          sampler.update({old_key => 1.0})
           update
         end
 
@@ -119,7 +119,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateByServiceSampler do
       end
 
       context 'with a default key update' do
-        let(:rate_by_service) { { default_key => 0.123 } }
+        let(:rate_by_service) { {default_key => 0.123} }
         let(:default_key) { 'service:,env:' }
 
         it 'updates the existing sampler' do

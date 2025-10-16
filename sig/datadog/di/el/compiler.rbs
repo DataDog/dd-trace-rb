@@ -1,0 +1,24 @@
+module Datadog
+  module DI
+    module EL
+      class Compiler
+        def compile: (untyped ast) -> untyped
+
+        private
+
+        OPERATORS: { "eq" => "==", "ne" => "!=", "ge" => ">=", "gt" => ">", "le" => "<=", "lt" => "<" }
+
+        SINGLE_ARG_METHODS: ::Array["len" | "isEmpty" | "isUndefined"]
+
+        TWO_ARG_METHODS: ::Array["startsWith" | "endsWith" | "contains" | "matches" | "getmember" | "index" | "instanceof"]
+
+        MULTI_ARG_METHODS: { "and" => "&&", "or" => "||" }
+
+        def compile_partial: (untyped ast) -> untyped
+        def var_name_maybe: (untyped target) -> (untyped | "(expression)")
+
+        def escape: (untyped needle) -> untyped
+      end
+    end
+  end
+end

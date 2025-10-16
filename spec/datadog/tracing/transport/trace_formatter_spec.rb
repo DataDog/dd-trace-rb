@@ -12,7 +12,7 @@ require 'datadog/tracing/transport/trace_formatter'
 
 RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
   subject(:trace_formatter) { described_class.new(trace) }
-  let(:trace_options) { { id: trace_id } }
+  let(:trace_options) { {id: trace_id} }
   let(:trace_id) { 0xa3efc9f3333333334d39dacf84ab3fe }
 
   shared_context 'trace metadata' do
@@ -188,7 +188,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'metrics' do
           it 'sets root span tags from trace tags' do
             format!
-            expect(root_span.metrics).to include({ 'baz' => 42 })
+            expect(root_span.metrics).to include({'baz' => 42})
           end
         end
 

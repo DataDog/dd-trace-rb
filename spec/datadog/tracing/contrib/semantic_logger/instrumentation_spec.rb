@@ -41,7 +41,7 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
 
     let(:event) do
       SemanticLogger::Log.new('Mamamia!', :info).tap do |e|
-        e.named_tags = { original: 'tag' }
+        e.named_tags = {original: 'tag'}
       end
     end
 

@@ -13,21 +13,12 @@ ignore:
       # additional conversion to symbol which is extra overhead:
       # https://github.com/rubocop/rubocop/issues/13955
       - Performance/StringIdentifierArgument
+      # steep has annotation syntax which requires immediate sign after the hash
+      # character. To avoid being too directive, I would let comments go loose.
+      - Layout/LeadingCommentSpace
 
-  # This disables standardrb for the rest of dd-trace-rb
-  # except those products: profiling, appsec.
-  - datadog.gemspec
-  - Rakefile
+  # This disables standardrb for third-party and generated code.
   - appraisal/**/**
-  - benchmarks/**/**
   - gemfiles/**/**
   - integration/**/**
-  - lib-injection/**/**
   - lib/datadog/**/vendor/**/*
-  - spec/*
-  - spec/datadog/*
-  - spec/datadog/core/**/**
-  - spec/datadog/di/integration/*_test_class*.rb
-  - spec/datadog/opentelemetry/**/**
-  - spec/datadog/tracing/**/**
-  - spec/support/**/**

@@ -81,10 +81,10 @@ RSpec.describe 'ActiveRecord instrumentation' do
             end
 
             @original_config = if defined?(::ActiveRecord::Base.connection_db_config)
-                                 ::ActiveRecord::Base.connection_db_config
-                               else
-                                 ::ActiveRecord::Base.connection_config
-                               end
+              ::ActiveRecord::Base.connection_db_config
+            else
+              ::ActiveRecord::Base.connection_config
+            end
 
             # Set up makara
             require 'makara'
@@ -101,10 +101,10 @@ RSpec.describe 'ActiveRecord instrumentation' do
             Datadog.configure do |c|
               c.tracing.instrument :active_record, service_name: 'bad-no-match'
               c.tracing.instrument :active_record,
-                describes: { makara_role: primary_role },
+                describes: {makara_role: primary_role},
                 service_name: primary_service_name
               c.tracing.instrument :active_record,
-                describes: { makara_role: secondary_role },
+                describes: {makara_role: secondary_role},
                 service_name: secondary_service_name
             end
           end
@@ -123,11 +123,11 @@ RSpec.describe 'ActiveRecord instrumentation' do
             YAML.safe_load(<<-YAML)['test']
           test:
             adapter: 'mysql2_makara'
-            database: '#{ENV.fetch('TEST_MYSQL_DB', 'mysql')}'
+            database: '#{ENV.fetch("TEST_MYSQL_DB", "mysql")}'
             username: 'root'
-            host: '#{ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')}'
-            password: '#{ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')}'
-            port: '#{ENV.fetch('TEST_MYSQL_PORT', '3306')}'
+            host: '#{ENV.fetch("TEST_MYSQL_HOST", "127.0.0.1")}'
+            password: '#{ENV.fetch("TEST_MYSQL_ROOT_PASSWORD", "root")}'
+            port: '#{ENV.fetch("TEST_MYSQL_PORT", "3306")}'
 
             makara:
               connections:

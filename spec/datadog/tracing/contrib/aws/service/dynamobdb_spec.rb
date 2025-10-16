@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
 
   context 'with table_name provided' do
     let(:table_name) { 'example-table' }
-    let(:params) { { table_name: table_name } }
+    let(:params) { {table_name: table_name} }
 
     it 'sets the table_name tag' do
       dynamodb.add_tags(span, params)

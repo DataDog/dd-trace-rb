@@ -42,7 +42,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     ].freeze
   end
   let(:expected_install_signature) do
-    { install_id: 'id', install_time: 'time', install_type: 'type' }
+    {install_id: 'id', install_time: 'time', install_type: 'type'}
   end
   let(:expected_products) do
     {
@@ -107,7 +107,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
             seq_id: id,
             value: 'https://github.com/datadog/hello'
           },
-          { name: 'DD_GIT_COMMIT_SHA', origin: 'env_var', seq_id: id, value: '1234hash' },
+          {name: 'DD_GIT_COMMIT_SHA', origin: 'env_var', seq_id: id, value: '1234hash'},
         )
       end
     end
@@ -120,8 +120,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it 'reports values set by the customer application' do
         expect(event.payload[:configuration]).to include(
-          { name: 'tracing.auto_instrument.enabled', origin: 'code', seq_id: id, value: true },
-          { name: 'tracing.opentelemetry.enabled', origin: 'code', seq_id: id, value: true },
+          {name: 'tracing.auto_instrument.enabled', origin: 'code', seq_id: id, value: true},
+          {name: 'tracing.opentelemetry.enabled', origin: 'code', seq_id: id, value: true},
         )
       end
     end
@@ -129,14 +129,14 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     context 'with DD_AGENT_TRANSPORT complex origin' do
       it 'reports unknown origin' do
         expect(event.payload[:configuration]).to include(
-          { name: 'DD_AGENT_TRANSPORT', origin: 'unknown', seq_id: id, value: 'TCP' },
+          {name: 'DD_AGENT_TRANSPORT', origin: 'unknown', seq_id: id, value: 'TCP'},
         )
       end
     end
 
     context 'with default configuration' do
       it 'reports default configuration' do
-        expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| { name: name, origin: 'default', seq_id: id, value: value } })
+        expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| {name: name, origin: 'default', seq_id: id, value: value} })
         expect(event.payload[:configuration]).to_not include(
           hash_including(name: 'DD_AGENT_HOST'),
           hash_including(name: 'DD_TRACE_SAMPLE_RATE'),
@@ -155,8 +155,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           c.agent.host = '1.2.3.4'
           c.tracing.sampling.default_rate = 0.5
           c.tracing.contrib.global_default_service_name.enabled = true
-          c.tracing.contrib.peer_service_mapping = { foo: 'bar' }
-          c.tracing.writer_options = { buffer_size: 123, flush_interval: 456 }
+          c.tracing.contrib.peer_service_mapping = {foo: 'bar'}
+          c.tracing.writer_options = {buffer_size: 123, flush_interval: 456}
           c.logger.instance = logger
           c.tracing.analytics.enabled = true
           c.appsec.sca_enabled = false
@@ -169,19 +169,19 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it 'reports set configuration' do
         expect(event.payload[:configuration]).to include(
-          { name: 'DD_AGENT_HOST', origin: 'code', seq_id: id, value: '1.2.3.4' },
-          { name: 'DD_TRACE_SAMPLE_RATE', origin: 'code', seq_id: id, value: '0.5' },
-          { name: 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED', origin: 'code', seq_id: id, value: true },
-          { name: 'DD_TRACE_PEER_SERVICE_MAPPING', origin: 'code', seq_id: id, value: 'foo:bar' },
-          { name: 'tracing.analytics.enabled', origin: 'code', seq_id: id, value: true },
-          { name: 'tracing.writer_options.buffer_size', origin: 'code', seq_id: id, value: 123 },
-          { name: 'tracing.writer_options.flush_interval', origin: 'code', seq_id: id, value: 456 },
-          { name: 'logger.instance', origin: 'code', seq_id: id, value: 'MyLogger' },
-          { name: 'logger.level', origin: 'code', seq_id: id, value: 0 },
-          { name: 'appsec.sca_enabled', origin: 'code', seq_id: id, value: false },
-          { name: 'instrumentation_source', origin: 'code', seq_id: id, value: 'manual' },
-          { name: 'DD_INJECT_FORCE', origin: 'env_var', seq_id: id, value: false },
-          { name: 'DD_INJECTION_ENABLED', origin: 'env_var', seq_id: id, value: '' },
+          {name: 'DD_AGENT_HOST', origin: 'code', seq_id: id, value: '1.2.3.4'},
+          {name: 'DD_TRACE_SAMPLE_RATE', origin: 'code', seq_id: id, value: '0.5'},
+          {name: 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED', origin: 'code', seq_id: id, value: true},
+          {name: 'DD_TRACE_PEER_SERVICE_MAPPING', origin: 'code', seq_id: id, value: 'foo:bar'},
+          {name: 'tracing.analytics.enabled', origin: 'code', seq_id: id, value: true},
+          {name: 'tracing.writer_options.buffer_size', origin: 'code', seq_id: id, value: 123},
+          {name: 'tracing.writer_options.flush_interval', origin: 'code', seq_id: id, value: 456},
+          {name: 'logger.instance', origin: 'code', seq_id: id, value: 'MyLogger'},
+          {name: 'logger.level', origin: 'code', seq_id: id, value: 0},
+          {name: 'appsec.sca_enabled', origin: 'code', seq_id: id, value: false},
+          {name: 'instrumentation_source', origin: 'code', seq_id: id, value: 'manual'},
+          {name: 'DD_INJECT_FORCE', origin: 'env_var', seq_id: id, value: false},
+          {name: 'DD_INJECTION_ENABLED', origin: 'env_var', seq_id: id, value: ''},
         )
       end
     end
@@ -191,16 +191,16 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         before do
           allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
             {
-              fleet: { id: '12345', config: { 'DD_APPSEC_ENABLED' => 'true' } },
-              local: { id: '56789', config: { 'DD_LOGS_INJECTION' => 'false' } },
+              fleet: {id: '12345', config: {'DD_APPSEC_ENABLED' => 'true'}},
+              local: {id: '56789', config: {'DD_LOGS_INJECTION' => 'false'}},
             }
           )
         end
 
         it 'reports config id' do
           expect(event.payload[:configuration]).to include(
-            { name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true, config_id: '12345' },
-            { name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false, config_id: '56789' },
+            {name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true, config_id: '12345'},
+            {name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false, config_id: '56789'},
           )
         end
 
@@ -208,16 +208,16 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           before do
             allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
               {
-                fleet: { config: { 'DD_APPSEC_ENABLED' => 'true' } },
-                local: { config: { 'DD_LOGS_INJECTION' => 'false' } }
+                fleet: {config: {'DD_APPSEC_ENABLED' => 'true'}},
+                local: {config: {'DD_LOGS_INJECTION' => 'false'}}
               }
             )
           end
 
           it 'does not report config id' do
             expect(event.payload[:configuration]).to include(
-              { name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true },
-              { name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false },
+              {name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true},
+              {name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false},
             )
           end
         end
@@ -234,7 +234,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       it 'removes empty configurations from payload' do
         is_expected.to_not match(
           configuration: include(
-            { name: 'logger.instance', origin: anything, seq_id: anything, value: anything }
+            {name: 'logger.instance', origin: anything, seq_id: anything, value: anything}
           )
         )
       end

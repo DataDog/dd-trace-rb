@@ -890,12 +890,12 @@ To activate your integration, use the `Datadog.configure` method:
 # Inside Rails initializer or equivalent
 # For graphql >= v2.2
 Datadog.configure do |c|
-  c.tracing.instrument :graphql, with_unified_tracer: true, **options
+  c.tracing.instrument :graphql, error_tracking: true, with_unified_tracer: true, **options
 end
 
 # For graphql < v2.2
 Datadog.configure do |c|
-   c.tracing.instrument :graphql, **options
+   c.tracing.instrument :graphql, error_tracking: true, **options
 end
 
 # Then run a GraphQL query
@@ -912,6 +912,7 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | `with_deprecated_tracer` |                            | `Bool`   | (Not recommended) Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
 | `service_name`           |                            | `String` | Service name used for graphql instrumentation                                                                                                                                                                   | `'ruby-graphql'` |
 | `error_extensions` | `DD_TRACE_GRAPHQL_ERROR_EXTENSIONS` | `Array` | List of extension keys to include in the span event reported for GraphQL queries with errors. | `[]` |
+| `error_tracking` | `DD_TRACE_GRAPHQL_ERROR_TRACKING` | `Bool` | (Recommended) Surface GraphQL errors in Error Tracking. | `false` |
 
 
 Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy in the same Ruby process.
