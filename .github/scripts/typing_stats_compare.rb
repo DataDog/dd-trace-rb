@@ -64,7 +64,7 @@ def create_summary(
   head_percentage: nil,
   percentage_data_name: nil
 )
-  return nil if added.empty? && removed.empty? && added_partially.empty? && removed_partially.empty?
+  return [nil, 0] if added.empty? && removed.empty? && added_partially.empty? && removed_partially.empty?
 
   intro = create_intro(
     added: added,
@@ -111,13 +111,13 @@ end
 
 def ignored_files_summary(head_stats, base_stats)
   # This will skip the summary if files are added/removed from contrib folders for now.
-  ignored_files_added = head_stats[:ignored_files][:paths] - base_stats[:ignored_files][:paths]
-  ignored_files_removed = base_stats[:ignored_files][:paths] - head_stats[:ignored_files][:paths]
+  ignored_files_added = head_stats[:ignored_files] - base_stats[:ignored_files]
+  ignored_files_removed = base_stats[:ignored_files] - head_stats[:ignored_files]
 
-  return nil if ignored_files_added.empty? && ignored_files_removed.empty?
+  return [nil, 0] if ignored_files_added.empty? && ignored_files_removed.empty?
 
-  typed_files_percentage_base = ((base_stats[:total_files_size] - base_stats[:ignored_files][:size]) / base_stats[:total_files_size].to_f * 100).round(2)
-  typed_files_percentage_head = ((head_stats[:total_files_size] - head_stats[:ignored_files][:size]) / head_stats[:total_files_size].to_f * 100).round(2)
+  typed_files_percentage_base = ((base_stats[:total_files_size] - base_stats[:ignored_files].size) / base_stats[:total_files_size].to_f * 100).round(2)
+  typed_files_percentage_head = ((head_stats[:total_files_size] - head_stats[:ignored_files].size) / head_stats[:total_files_size].to_f * 100).round(2)
 
   intro = create_intro(
     added: ignored_files_added,
@@ -218,4 +218,4 @@ result << untyped_others_summary if untyped_others_summary
 if untyped_methods_added > 0 || untyped_others_added > 0
   result << "*If you believe a method or an attribute is rightfully untyped or partially typed, you can add `# untyped:accept` to the end of the line to remove it from the stats.*\n"
 end
-puts result
+print result
