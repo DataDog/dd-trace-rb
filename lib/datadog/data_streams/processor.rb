@@ -51,7 +51,9 @@ module Datadog
 
         # Auto-start the processor by calling perform once
         # This kicks off the async polling loop via Workers::Async::Thread
+        Datadog.logger.debug("[DSM Processor] Initialization complete, interval=#{interval}s, starting async worker...")
         perform
+        Datadog.logger.debug("[DSM Processor] perform called, started=#{started? rescue 'N/A'}, running=#{running? rescue 'N/A'}")
       end
 
       # Track Kafka produce offset for lag monitoring
@@ -201,9 +203,12 @@ module Datadog
 
       # Called periodically by the worker to flush stats to the agent
       def perform
+        Datadog.logger.debug("[DSM Processor] perform called, enabled=#{@enabled}")
         return unless @enabled
 
+        Datadog.logger.debug("[DSM Processor] flushing stats")
         flush_stats
+        Datadog.logger.debug("[DSM Processor] flush complete")
         true
       end
 
