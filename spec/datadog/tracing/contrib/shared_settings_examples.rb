@@ -18,60 +18,65 @@ RSpec.shared_examples_for 'with on_error setting' do
   end
 end
 
-RSpec.shared_examples_for 'with error_status_codes setting' do |env:, default:|
-  context 'default without settings' do
-    subject { described_class.new }
+RSpec.shared_examples_for 'with error_status_codes setting' do |env:, default:, settings_class:, option:|
+  let(:result) { subject.send(option) }
 
-    it { expect(subject.error_status_codes).not_to include(default.min - 1) }
-    it { expect(subject.error_status_codes).to include(default.min) }
-    it { expect(subject.error_status_codes).to include(default.max) }
-    it { expect(subject.error_status_codes).not_to include(default.max + 1) }
+  context 'default without settings' do
+    subject { settings_class.new }
+
+    it { expect(result).not_to include(default.min - 1) }
+    it { expect(result).to include(default.min) }
+    it { expect(result).to include(default.max) }
+    it { expect(result).not_to include(default.max + 1) }
   end
 
   context 'when given error_status_codes' do
-    context 'when given a single value' do
-      subject { described_class.new(error_status_codes: 500) }
+    subject { settings_class.new(option_hash) }
+    let(:option_hash) { { option => option_value } }
 
-      it { expect(subject.error_status_codes).not_to include 400 }
-      it { expect(subject.error_status_codes).not_to include 499 }
-      it { expect(subject.error_status_codes).to include 500 }
-      it { expect(subject.error_status_codes).not_to include 599 }
-      it { expect(subject.error_status_codes).not_to include 600 }
+    context 'when given a single value' do
+      let(:option_value) { 500 }
+
+      it { expect(result).not_to include 400 }
+      it { expect(result).not_to include 499 }
+      it { expect(result).to include 500 }
+      it { expect(result).not_to include 599 }
+      it { expect(result).not_to include 600 }
     end
 
     context 'when given an array of integers' do
-      subject { described_class.new(error_status_codes: [400, 500]) }
+      let(:option_value) { [400, 500] }
 
-      it { expect(subject.error_status_codes).to include 400 }
-      it { expect(subject.error_status_codes).not_to include 499 }
-      it { expect(subject.error_status_codes).to include 500 }
-      it { expect(subject.error_status_codes).not_to include 599 }
-      it { expect(subject.error_status_codes).not_to include 600 }
+      it { expect(result).to include 400 }
+      it { expect(result).not_to include 499 }
+      it { expect(result).to include 500 }
+      it { expect(result).not_to include 599 }
+      it { expect(result).not_to include 600 }
     end
 
     context 'when given a range' do
-      subject { described_class.new(error_status_codes: 500..600) }
+      let(:option_value) { 500..600 }
 
-      it { expect(subject.error_status_codes).not_to include 400 }
-      it { expect(subject.error_status_codes).not_to include 499 }
-      it { expect(subject.error_status_codes).to include 500 }
-      it { expect(subject.error_status_codes).to include 599 }
-      it { expect(subject.error_status_codes).to include 600 }
+      it { expect(result).not_to include 400 }
+      it { expect(result).not_to include 499 }
+      it { expect(result).to include 500 }
+      it { expect(result).to include 599 }
+      it { expect(result).to include 600 }
     end
 
     context 'when given an array of integer and range' do
-      subject { described_class.new(error_status_codes: [400, 500..600]) }
+      let(:option_value) { [400, 500..600] }
 
-      it { expect(subject.error_status_codes).to include 400 }
-      it { expect(subject.error_status_codes).not_to include 499 }
-      it { expect(subject.error_status_codes).to include 500 }
-      it { expect(subject.error_status_codes).to include 599 }
-      it { expect(subject.error_status_codes).to include 600 }
+      it { expect(result).to include 400 }
+      it { expect(result).not_to include 499 }
+      it { expect(result).to include 500 }
+      it { expect(result).to include 599 }
+      it { expect(result).to include 600 }
     end
   end
 
   context 'when configured with environment variable' do
-    subject { described_class.new }
+    subject { settings_class.new }
 
     context 'when given a single value' do
       around do |example|
@@ -80,11 +85,11 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:, default:|
         end
       end
 
-      it { expect(subject.error_status_codes).not_to include 400 }
-      it { expect(subject.error_status_codes).not_to include 499 }
-      it { expect(subject.error_status_codes).to include 500 }
-      it { expect(subject.error_status_codes).not_to include 599 }
-      it { expect(subject.error_status_codes).not_to include 600 }
+      it { expect(result).not_to include 400 }
+      it { expect(result).not_to include 499 }
+      it { expect(result).to include 500 }
+      it { expect(result).not_to include 599 }
+      it { expect(result).not_to include 600 }
     end
 
     context 'when given a comma separated list' do
@@ -94,11 +99,11 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:, default:|
         end
       end
 
-      it { expect(subject.error_status_codes).to include 400 }
-      it { expect(subject.error_status_codes).not_to include 499 }
-      it { expect(subject.error_status_codes).to include 500 }
-      it { expect(subject.error_status_codes).not_to include 599 }
-      it { expect(subject.error_status_codes).not_to include 600 }
+      it { expect(result).to include 400 }
+      it { expect(result).not_to include 499 }
+      it { expect(result).to include 500 }
+      it { expect(result).not_to include 599 }
+      it { expect(result).not_to include 600 }
     end
 
     context 'when given a comma separated list with space' do
@@ -108,11 +113,11 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:, default:|
         end
       end
 
-      it { expect(subject.error_status_codes).to include 400 }
-      it { expect(subject.error_status_codes).not_to include 499 }
-      it { expect(subject.error_status_codes).to include 500 }
-      it { expect(subject.error_status_codes).not_to include 599 }
-      it { expect(subject.error_status_codes).not_to include 600 }
+      it { expect(result).to include 400 }
+      it { expect(result).not_to include 499 }
+      it { expect(result).to include 500 }
+      it { expect(result).not_to include 599 }
+      it { expect(result).not_to include 600 }
     end
 
     context 'when given a comma separated list with range' do
@@ -122,11 +127,11 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:, default:|
         end
       end
 
-      it { expect(subject.error_status_codes).to include 400 }
-      it { expect(subject.error_status_codes).not_to include 499 }
-      it { expect(subject.error_status_codes).to include 500 }
-      it { expect(subject.error_status_codes).to include 599 }
-      it { expect(subject.error_status_codes).to include 600 }
+      it { expect(result).to include 400 }
+      it { expect(result).not_to include 499 }
+      it { expect(result).to include 500 }
+      it { expect(result).to include 599 }
+      it { expect(result).to include 600 }
     end
   end
 end
