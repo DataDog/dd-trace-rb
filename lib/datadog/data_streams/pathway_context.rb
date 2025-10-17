@@ -63,7 +63,7 @@ module Datadog
         hash_bytes = reader.read(8)
         return nil unless hash_bytes
 
-        hash_value = hash_bytes.unpack1('Q')
+        hash_value = hash_bytes.unpack1('Q') # : Integer
 
         # Extract pathway start time (VarInt milliseconds)
         pathway_start_ms = decode_varint(reader)
