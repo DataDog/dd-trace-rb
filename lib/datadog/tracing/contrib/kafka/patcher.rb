@@ -29,12 +29,12 @@ module Datadog
 
           def patch_producer
             require_relative 'instrumentation/producer'
-            ::Kafka::Producer.include(Instrumentation::Producer)
+            ::Kafka::Producer.prepend(Instrumentation::Producer)
           end
 
           def patch_consumer
             require_relative 'instrumentation/consumer'
-            ::Kafka::Consumer.include(Instrumentation::Consumer)
+            ::Kafka::Consumer.prepend(Instrumentation::Consumer)
           end
         end
       end
