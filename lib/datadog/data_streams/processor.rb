@@ -51,9 +51,7 @@ module Datadog
 
         # Auto-start the processor by calling perform once
         # This kicks off the async polling loop via Workers::Async::Thread
-        Datadog.logger.debug("[DSM Processor] Initialization complete, interval=#{interval}s, starting async worker...")
         perform
-        Datadog.logger.debug("[DSM Processor] perform called, started=#{started? rescue 'N/A'}, running=#{running? rescue 'N/A'}")
       end
 
       # Track Kafka produce offset for lag monitoring
@@ -152,7 +150,6 @@ module Datadog
       # @yield [key, value] Block to inject context into carrier
       # @return [String, nil] Base64 encoded pathway context or nil if disabled
       def set_produce_checkpoint(type:, destination:, manual_checkpoint: true, tags: [], &block)
-        Datadog.logger.debug("[DSM Processor] set_produce_checkpoint called: type=#{type}, destination=#{destination}, enabled=#{@enabled}")
         return nil unless @enabled
 
         checkpoint_tags = ["type:#{type}", "topic:#{destination}", 'direction:out']
@@ -161,7 +158,6 @@ module Datadog
 
         span = Datadog::Tracing.active_span
         pathway = set_checkpoint(checkpoint_tags, nil, 0, span)
-        Datadog.logger.debug("[DSM Processor] set_produce_checkpoint created pathway: #{pathway ? 'yes' : 'no'}")
 
         yield(PROPAGATION_KEY, pathway) if pathway && block
 
@@ -205,12 +201,9 @@ module Datadog
 
       # Called periodically by the worker to flush stats to the agent
       def perform
-        Datadog.logger.debug("[DSM Processor] perform called, enabled=#{@enabled}")
         return unless @enabled
 
-        Datadog.logger.debug("[DSM Processor] flushing stats")
         flush_stats
-        Datadog.logger.debug("[DSM Processor] flush complete")
         true
       end
 
@@ -306,12 +299,7 @@ module Datadog
       def flush_stats
         @stats_mutex.synchronize do
           # Check if we have data to send
-          if @buckets.empty? && @consumer_stats.empty?
-            Datadog.logger.debug("[DSM Processor] flush_stats: no data to send")
-            return
-          end
-
-          Datadog.logger.debug("[DSM Processor] flush_stats: sending data (#{@buckets.size} buckets, #{@consumer_stats.size} consumer stats)")
+          return if @buckets.empty? && @consumer_stats.empty?
 
           # Build payload in agent format
           stats_buckets = serialize_buckets
@@ -525,14 +513,12 @@ module Datadog
         # Create HTTP request to DSM endpoint
         agent_host = Datadog.configuration.agent.host || 'localhost'
         agent_port = Datadog.configuration.agent.port || 8126
-        Datadog.logger.debug("[DSM Processor] Sending to agent: host=#{agent_host}, port=#{agent_port}")
-        
-        uri = URI("http://#{agent_host}:#{agent_port}/v0.1/pipeline_stats")
+        path = '/v0.1/pipeline_stats'
 
-        http = Net::HTTP.new(uri.host, uri.port)
+        http = Net::HTTP.new(agent_host, agent_port)
         http.use_ssl = false
 
-        request = Net::HTTP::Post.new(uri)
+        request = Net::HTTP::Post.new(path)
         headers.each { |k, v| request[k] = v }
 
         # Set binary data with proper encoding
