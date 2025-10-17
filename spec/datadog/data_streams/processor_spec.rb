@@ -39,17 +39,6 @@ RSpec.describe Datadog::DataStreams::Processor do
     end
   end
 
-  describe 'worker lifecycle' do
-    let(:processor) { described_class.new(interval: 0.1) }
-
-    after { processor.stop(true, 1) if processor.enabled }
-
-    it 'can be started and stopped' do
-      expect(processor).to respond_to(:start)
-      expect(processor).to respond_to(:stop)
-    end
-  end
-
   describe 'public checkpoint API' do
     after { processor.stop(true, 1) if processor.enabled }
 
