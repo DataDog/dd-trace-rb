@@ -191,6 +191,12 @@ module Datadog
         end
       end
 
+      # Access the Data Streams Monitoring processor
+      # @return [Datadog::DataStreams::Processor, nil] The processor instance, or nil if not enabled
+      def data_streams
+        components.data_streams_processor
+      end
+
       protected
 
       def components(allow_initialization: true)

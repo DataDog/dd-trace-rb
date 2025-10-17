@@ -67,7 +67,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
   before do
     Datadog.configure do |c|
       c.tracing.instrument :kafka, configuration_options
-      c.tracing.data_streams.enabled = true
+      c.data_streams.enabled = true
     end
   end
 
@@ -105,22 +105,6 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     let(:producer) { test_producer_class.new }
     let(:message) { OpenStruct.new(topic: 'test_topic', value: 'test_value', headers: {}) }
 
-    it 'injects pathway context into message headers' do
-      mock_processor = instance_double('DataStreamsProcessor')
-      expect(Datadog.configuration.tracing.data_streams).to receive(:processor).and_return(mock_processor)
-      expect(mock_processor).to receive(:set_produce_checkpoint).with('kafka', 'test_topic') do |type, topic, &block|
-        block.call('dd-pathway-ctx-base64', 'test-pathway-context')
-        'test-pathway-context'
-      end
-
-      producer.pending_message_queue << message
-      producer.deliver_messages
-
-      # Initial test just verifies basic structure until we implement context
-      expect(message.headers).to include('dd-pathway-ctx-base64')
-      expect(message.headers['dd-pathway-ctx-base64']).to eq('test-pathway-context')
-    end
-
     it 'automatically injects pathway context when producing messages' do
       # Test that the instrumentation automatically injects DSM headers
       producer.pending_message_queue << message
@@ -132,8 +116,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
       expect(encoded_ctx).not_to be_empty
 
       # Decode and verify it's a valid pathway context
-      decoded_ctx = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(encoded_ctx)
-      expect(decoded_ctx).to be_a(Datadog::Tracing::DataStreams::PathwayContext)
+      decoded_ctx = Datadog::DataStreams::PathwayContext.decode_b64(encoded_ctx)
+      expect(decoded_ctx).to be_a(Datadog::DataStreams::PathwayContext)
       expect(decoded_ctx.hash).to be > 0 # Should have a deterministic hash
       expect(decoded_ctx.pathway_start_sec).to be > 0 # Should have a start timestamp
       expect(decoded_ctx.current_edge_start_sec).to be > 0 # Should have an edge start timestamp
@@ -180,7 +164,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     it 'automatically processes pathway context when consuming messages' do
       # Simulate a complete produce → consume flow to test auto-instrumentation
-      processor = Datadog.configuration.tracing.data_streams.processor
+      processor = Datadog.data_streams
 
       # Step 1: Produce a message (instrumentation automatically adds pathway context)
       producer_message = OpenStruct.new(topic: 'test_topic', value: 'test', headers: {})
@@ -190,7 +174,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
       # Capture the producer pathway context
       producer_ctx_b64 = producer_message.headers['dd-pathway-ctx-base64']
-      producer_ctx = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(producer_ctx_b64)
+      producer_ctx = Datadog::DataStreams::PathwayContext.decode_b64(producer_ctx_b64)
 
       # Step 2: Consume the message (instrumentation automatically processes pathway context)
       consumer_message = OpenStruct.new(
@@ -216,7 +200,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
         # Verify the processor has updated its context after processing this message
         current_ctx = processor.instance_variable_get(:@pathway_context)
-        expect(current_ctx).to be_a(Datadog::Tracing::DataStreams::PathwayContext)
+        expect(current_ctx).to be_a(Datadog::DataStreams::PathwayContext)
         expect(current_ctx.hash).to be > 0
         expect(current_ctx.hash).not_to eq(producer_ctx.hash) # Consumer hash should differ (direction:in vs direction:out)
         expect(current_ctx.pathway_start_sec).to eq(producer_ctx.pathway_start_sec) # Should preserve pathway start time
@@ -228,12 +212,12 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     before do
       Datadog.configure do |c|
         c.tracing.instrument :kafka
-        c.tracing.data_streams.enabled = false
+        c.data_streams.enabled = false
       end
     end
 
     after do
-      processor = Datadog.configuration.tracing.data_streams.processor
+      processor = Datadog.data_streams
       processor&.stop(true, 1)
     end
 

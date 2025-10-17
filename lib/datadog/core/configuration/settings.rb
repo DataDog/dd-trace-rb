@@ -12,6 +12,7 @@ require_relative '../remote/ext'
 require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
+require_relative '../../data_streams/configuration/settings'
 
 module Datadog
   module Core
@@ -1030,6 +1031,7 @@ module Datadog
         # TODO: Tracing should manage its own settings.
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings
+        extend Datadog::DataStreams::Configuration::Settings
       end
       # standard:enable Metrics/BlockLength
     end

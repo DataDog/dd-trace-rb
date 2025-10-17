@@ -5,7 +5,6 @@ require_relative '../../core/environment/variable_helpers'
 require_relative '../contrib/status_range_matcher'
 require_relative '../contrib/status_range_env_parser'
 require_relative 'http'
-require_relative '../data_streams/processor'
 
 module Datadog
   module Tracing
@@ -509,30 +508,6 @@ module Datadog
                 option :header_name do |o|
                   o.type :string, nilable: true
                   o.env Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME
-                end
-              end
-
-              # Data Streams Monitoring configuration
-              # @public_api
-              settings :data_streams do
-                # Whether Data Streams Monitoring is enabled. When enabled, the tracer will
-                # collect and report data lineage information for messaging systems.
-                #
-                # @default `DD_DATA_STREAMS_ENABLED` environment variable, otherwise `false`.
-                # @return [Boolean]
-                option :enabled do |o|
-                  o.type :bool
-                  o.env Tracing::Configuration::Ext::DataStreams::ENV_ENABLED
-                  o.default false
-                end
-
-                # The Data Streams processor instance
-                # @return [Datadog::Tracing::DataStreams::Processor]
-                option :processor do |o|
-                  o.default { Datadog::Tracing::DataStreams::Processor.new }
-                  o.after_set do |processor|
-                    processor.enabled = enabled
-                  end
                 end
               end
 

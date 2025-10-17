@@ -64,12 +64,12 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
     Datadog.configure do |c|
       c.tracing.instrument :karafka
-      c.tracing.data_streams.enabled = true
+      c.data_streams.enabled = true
     end
   end
 
   after do
-    processor = Datadog.configuration.tracing.data_streams.processor
+    processor = Datadog.data_streams
     processor.stop(true, 1) if processor&.enabled
   end
 
@@ -79,11 +79,11 @@ RSpec.describe 'Karafka Data Streams Integration' do
     end
 
     it 'automatically extracts and processes pathway context when consuming messages' do
-      processor = Datadog.configuration.tracing.data_streams.processor
+      processor = Datadog.data_streams
 
       # Producer creates pathway context (simulating message from another service)
       producer_ctx_b64 = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
-      producer_ctx = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(producer_ctx_b64)
+      producer_ctx = Datadog::DataStreams::PathwayContext.decode_b64(producer_ctx_b64)
 
       # Create Karafka message with the pathway context in headers
       messages = build_karafka_messages([
@@ -100,14 +100,14 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
         # Verify auto-instrumentation has processed it
         current_ctx = processor.instance_variable_get(:@pathway_context)
-        expect(current_ctx).to be_a(Datadog::Tracing::DataStreams::PathwayContext)
+        expect(current_ctx).to be_a(Datadog::DataStreams::PathwayContext)
         expect(current_ctx.hash).not_to eq(producer_ctx.hash) # Consume checkpoint has different hash
         expect(current_ctx.pathway_start_sec).to eq(producer_ctx.pathway_start_sec) # But same pathway
       end
     end
 
     it 'creates new pathway context when headers are missing' do
-      processor = Datadog.configuration.tracing.data_streams.processor
+      processor = Datadog.data_streams
 
       messages = build_karafka_messages([
         {topic: 'orders', partition: 0, offset: 100, headers: {}}
@@ -117,12 +117,12 @@ RSpec.describe 'Karafka Data Streams Integration' do
       messages.each { |_message| }
 
       new_ctx = processor.instance_variable_get(:@pathway_context)
-      expect(new_ctx).to be_a(Datadog::Tracing::DataStreams::PathwayContext)
+      expect(new_ctx).to be_a(Datadog::DataStreams::PathwayContext)
       expect(new_ctx.hash).to be > 0
     end
 
     it 'processes multiple messages in a batch' do
-      processor = Datadog.configuration.tracing.data_streams.processor
+      processor = Datadog.data_streams
 
       messages = build_karafka_messages([
         {topic: 'orders', partition: 0, offset: 100},
@@ -149,11 +149,11 @@ RSpec.describe 'Karafka Data Streams Integration' do
     end
 
     it 'maintains pathway continuity through produce → consume → produce chain' do
-      processor = Datadog.configuration.tracing.data_streams.processor
+      processor = Datadog.data_streams
 
       # Service A: Producer creates initial pathway
       ctx_a_b64 = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders-topic')
-      ctx_a = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(ctx_a_b64)
+      ctx_a = Datadog::DataStreams::PathwayContext.decode_b64(ctx_a_b64)
 
       # Service B: Consumes from Service A (auto-instrumentation processes it)
       messages_from_a = build_karafka_messages([
@@ -168,7 +168,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
       # Service B: Produces to next topic
       ctx_b_produce_b64 = processor.set_produce_checkpoint(type: 'kafka', destination: 'processed-orders')
-      ctx_b_produce = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(ctx_b_produce_b64)
+      ctx_b_produce = Datadog::DataStreams::PathwayContext.decode_b64(ctx_b_produce_b64)
 
       # Verify it's still the same pathway
       expect(ctx_b_produce.pathway_start_sec).to eq(ctx_a.pathway_start_sec)
@@ -181,7 +181,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
       messages_from_b.each { |_msg| } # Auto-instrumentation runs here
 
       ctx_c = processor.instance_variable_get(:@pathway_context)
-      expect(ctx_c).to be_a(Datadog::Tracing::DataStreams::PathwayContext)
+      expect(ctx_c).to be_a(Datadog::DataStreams::PathwayContext)
       expect(ctx_c.hash).to be > 0
       expect(ctx_c.pathway_start_sec).to eq(ctx_a.pathway_start_sec) # Still same original pathway
 
@@ -192,11 +192,17 @@ RSpec.describe 'Karafka Data Streams Integration' do
   end
 
   describe 'when DSM is disabled' do
+    before do
+      require 'karafka' unless defined?(::Karafka)
+    rescue LoadError
+      skip 'Karafka gem not available'
+    end
+
     it 'skips DSM processing' do
       # Configure DSM as disabled from the start
       Datadog.configure do |c|
         c.tracing.instrument :karafka
-        c.tracing.data_streams.enabled = false
+        c.data_streams.enabled = false
       end
 
       messages = build_karafka_messages([

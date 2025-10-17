@@ -1,6 +1,5 @@
 module Datadog
-  module Tracing
-    module DataStreams
+  module DataStreams
       class Processor < Core::Worker
         PROPAGATION_KEY: ::String
 
@@ -39,10 +38,9 @@ module Datadog
         def decode_pathway_context: (::String encoded_ctx) -> PathwayContext?
 
         def decode_pathway_b64: (::String encoded_ctx) -> PathwayContext?
-        def perform: () -> void
+        def perform: () -> (bool | nil)
 
-        def get_current_pathway: () -> ::String?
-        def start: () -> void
+        def get_current_pathway: () -> PathwayContext?
         def stop: (?bool force_stop, ?::Integer timeout) -> void
         def get_current_context: () -> PathwayContext
 
@@ -68,4 +66,3 @@ module Datadog
       end
     end
   end
-end

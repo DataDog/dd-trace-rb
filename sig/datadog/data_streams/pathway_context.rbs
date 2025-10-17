@@ -1,6 +1,5 @@
 module Datadog
-  module Tracing
-    module DataStreams
+  module DataStreams
       class PathwayContext
         @hash: ::Integer
 
@@ -44,4 +43,3 @@ module Datadog
       end
     end
   end
-end

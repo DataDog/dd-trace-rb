@@ -13,14 +13,17 @@ module Datadog
 
             module InstanceMethods
               def deliver_messages(**kwargs)
-                if Datadog.configuration.tracing.data_streams.enabled
-                  processor = Datadog.configuration.tracing.data_streams.processor
+                if Datadog.configuration.data_streams.enabled
                   pending_messages = instance_variable_get(:@pending_message_queue)
 
                   if pending_messages && !pending_messages.empty?
                     pending_messages.each do |message|
                       message.headers ||= {}
-                      processor.set_produce_checkpoint(type: 'kafka', destination: message.topic) do |key, value|
+                      Datadog.data_streams.set_produce_checkpoint(
+                        type: 'kafka',
+                        destination: message.topic,
+                        manual_checkpoint: false
+                      ) do |key, value|
                         message.headers[key] = value
                       end
                     end
@@ -31,12 +34,14 @@ module Datadog
               end
 
               def send_messages(messages, **kwargs)
-                if Datadog.configuration.tracing.data_streams.enabled
-                  processor = Datadog.configuration.tracing.data_streams.processor
-
+                if Datadog.configuration.data_streams.enabled
                   messages.each do |message|
                     message[:headers] ||= {}
-                    processor.set_produce_checkpoint(type: 'kafka', destination: message[:topic]) do |key, value|
+                    Datadog.data_streams.set_produce_checkpoint(
+                      type: 'kafka',
+                      destination: message[:topic],
+                      manual_checkpoint: false
+                    ) do |key, value|
                       message[:headers][key] = value
                     end
                   end
