@@ -28,7 +28,12 @@ module Datadog
           interval_str = DATADOG_ENV.fetch('_DD_TRACE_STATS_WRITER_INTERVAL') { '10.0' }
           interval ||= interval_str.to_s.to_f
 
-          @pathway_context = PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
+          now = Time.now.to_f
+          @pathway_context = PathwayContext.new(
+            hash_value: 0,
+            pathway_start_sec: now,
+            current_edge_start_sec: now
+          )
           @bucket_size_ns = (interval * 1e9).to_i
           @buckets = {}
           @consumer_stats = []
@@ -317,7 +322,14 @@ module Datadog
 
         # Get or create current context ( threading.local behavior)
         def get_current_context
-          @pathway_context ||= PathwayContext.new(0, Time.now.to_f, Time.now.to_f)
+          @pathway_context ||= begin
+            now = Time.now.to_f
+            PathwayContext.new(
+              hash_value: 0,
+              pathway_start_sec: now,
+              current_edge_start_sec: now
+            )
+          end
         end
 
         def set_pathway_context(ctx)
