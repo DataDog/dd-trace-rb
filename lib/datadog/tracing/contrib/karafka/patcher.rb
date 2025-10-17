@@ -35,7 +35,6 @@ module Datadog
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
               end
 
-              # DSM: Create checkpoint for each consumed message
               if Datadog.configuration.tracing.data_streams.enabled
                 headers = if message.metadata.respond_to?(:raw_headers)
                   message.metadata.raw_headers
@@ -44,9 +43,7 @@ module Datadog
                 end
 
                 processor = Datadog.configuration.tracing.data_streams.processor
-
-                # Use new API method for consume checkpoint
-                processor.set_consume_checkpoint('kafka', message.topic) { |key| headers[key] }
+                processor.set_consume_checkpoint(type: 'kafka', source: message.topic) { |key| headers[key] }
               end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|

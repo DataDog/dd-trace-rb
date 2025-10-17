@@ -82,7 +82,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
       processor = Datadog.configuration.tracing.data_streams.processor
 
       # Producer creates pathway context (simulating message from another service)
-      producer_ctx_b64 = processor.set_produce_checkpoint('kafka', 'orders')
+      producer_ctx_b64 = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
       producer_ctx = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(producer_ctx_b64)
 
       # Create Karafka message with the pathway context in headers
@@ -152,7 +152,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
       processor = Datadog.configuration.tracing.data_streams.processor
 
       # Service A: Producer creates initial pathway
-      ctx_a_b64 = processor.set_produce_checkpoint('kafka', 'orders-topic')
+      ctx_a_b64 = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders-topic')
       ctx_a = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(ctx_a_b64)
 
       # Service B: Consumes from Service A (auto-instrumentation processes it)
@@ -167,7 +167,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
       expect(ctx_b_consume.pathway_start_sec).to eq(ctx_a.pathway_start_sec) # Same pathway
 
       # Service B: Produces to next topic
-      ctx_b_produce_b64 = processor.set_produce_checkpoint('kafka', 'processed-orders')
+      ctx_b_produce_b64 = processor.set_produce_checkpoint(type: 'kafka', destination: 'processed-orders')
       ctx_b_produce = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(ctx_b_produce_b64)
 
       # Verify it's still the same pathway

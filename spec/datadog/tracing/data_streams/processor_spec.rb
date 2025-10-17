@@ -55,19 +55,19 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
 
     describe '#set_produce_checkpoint' do
       it 'returns a hash' do
-        result = processor.set_produce_checkpoint('kafka', 'orders')
+        result = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
 
       it 'computes deterministic hash' do
-        processor.set_produce_checkpoint('kafka', 'orders')
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
         expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_PRODUCE_HASH)
       end
 
       it 'adds the hash to the carrier' do
         carrier = {}
-        returned_value = processor.set_produce_checkpoint('kafka', 'orders') do |key, value|
+        returned_value = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders') do |key, value|
           carrier[key] = value
         end
 
@@ -83,27 +83,27 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
         allow(Datadog::Tracing).to receive(:active_span).and_return(span)
         expect(span).to receive(:set_tag).with('pathway.hash', KAFKA_ORDERS_PRODUCE_HASH.to_s)
 
-        processor.set_produce_checkpoint('kafka', 'orders')
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
       end
 
       it 'returns nil when processor is disabled' do
         processor.enabled = false
-        expect(processor.set_produce_checkpoint('kafka', 'orders')).to be_nil
+        expect(processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')).to be_nil
       end
 
       it 'advances the pathway context with new hash' do
         initial_hash = processor.pathway_context.hash
 
-        processor.set_produce_checkpoint('kafka', 'orders')
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
 
         expect(processor.pathway_context.hash).not_to eq(initial_hash)
       end
 
       it 'restarts pathway on consecutive same-direction checkpoints (loop detection)' do
-        processor.set_produce_checkpoint('kafka', 'step1')
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'step1')
         first_pathway_start = processor.pathway_context.pathway_start_sec
 
-        processor.set_produce_checkpoint('kafka', 'step2')
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'step2')
 
         expect(processor.pathway_context.pathway_start_sec).not_to eq(first_pathway_start)
         expect(processor.pathway_context.pathway_start_sec).to be >= first_pathway_start
@@ -112,13 +112,13 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
 
     describe '#set_consume_checkpoint' do
       it 'returns a hash' do
-        result = processor.set_consume_checkpoint('kafka', 'orders')
+        result = processor.set_consume_checkpoint(type: 'kafka', source: 'orders')
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
 
       it 'computes deterministic hash' do
-        processor.set_consume_checkpoint('kafka', 'orders')
+        processor.set_consume_checkpoint(type: 'kafka', source: 'orders')
         expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_CONSUME_HASH_WITHOUT_CARRIER)
       end
 
@@ -126,13 +126,13 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
         # Producer creates context in carrier
         producer = described_class.new
         carrier = {}
-        producer.set_produce_checkpoint('kafka', 'orders') do |key, value|
+        producer.set_produce_checkpoint(type: 'kafka', destination: 'orders') do |key, value|
           carrier[key] = value
         end
         produce_hash = producer.pathway_context.hash
 
         # Consumer reads from carrier
-        processor.set_consume_checkpoint('kafka', 'orders') do |key|
+        processor.set_consume_checkpoint(type: 'kafka', source: 'orders') do |key|
           carrier[key]
         end
 
@@ -148,50 +148,50 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
         allow(Datadog::Tracing).to receive(:active_span).and_return(span)
         expect(span).to receive(:set_tag).with('pathway.hash', KAFKA_ORDERS_CONSUME_HASH_WITHOUT_CARRIER.to_s)
 
-        processor.set_consume_checkpoint('kafka', 'orders')
+        processor.set_consume_checkpoint(type: 'kafka', source: 'orders')
       end
 
       it 'returns nil when processor is disabled' do
         processor.enabled = false
-        expect(processor.set_consume_checkpoint('kafka', 'orders')).to be_nil
+        expect(processor.set_consume_checkpoint(type: 'kafka', source: 'orders')).to be_nil
       end
 
       it 'handles missing pathway context in carrier gracefully' do
         carrier = {}
 
         expect do
-          processor.set_consume_checkpoint('kafka', 'orders') { |key| carrier[key] }
+          processor.set_consume_checkpoint(type: 'kafka', source: 'orders') { |key| carrier[key] }
         end.not_to raise_error
       end
     end
 
     describe 'pathway context tracking' do
       it 'computes different hashes for different edge types' do
-        processor.set_produce_checkpoint('kafka', 'orders')
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
         expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_PRODUCE_HASH)
 
-        processor.set_produce_checkpoint('kinesis', 'orders')
+        processor.set_produce_checkpoint(type: 'kinesis', destination: 'orders')
         expect(processor.pathway_context.hash).to eq(KINESIS_ORDERS_PRODUCE_HASH)
       end
 
       it 'computes different hashes for different topics' do
-        processor.set_produce_checkpoint('kafka', 'orders')
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
         expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_PRODUCE_HASH)
 
-        processor.set_produce_checkpoint('kafka', 'payments')
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'payments')
         expect(processor.pathway_context.hash).to eq(KAFKA_PAYMENTS_PRODUCE_HASH)
       end
     end
 
     describe 'produce-consume pathway flow' do
       it 'maintains pathway continuity through produce and consume' do
-        produce_context = processor.set_produce_checkpoint('kafka', 'orders')
+        produce_context = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
         produce_hash = processor.pathway_context.hash
         produce_pathway_start = processor.pathway_context.pathway_start_sec
 
         carrier = {Datadog::Tracing::DataStreams::Processor::PROPAGATION_KEY => produce_context}
 
-        processor.set_consume_checkpoint('kafka', 'orders') { |key| carrier[key] }
+        processor.set_consume_checkpoint(type: 'kafka', source: 'orders') { |key| carrier[key] }
         consume_hash = processor.pathway_context.hash
 
         expect(consume_hash).not_to eq(produce_hash)

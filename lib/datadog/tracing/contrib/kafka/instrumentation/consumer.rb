@@ -21,7 +21,7 @@ module Datadog
 
                   processor = Datadog.configuration.tracing.data_streams.processor
                   headers = message.headers || {}
-                  processor.set_consume_checkpoint('kafka', message.topic) { |key| headers[key] }
+                  processor.set_consume_checkpoint(type: 'kafka', source: message.topic) { |key| headers[key] }
 
                   yield(message) if block
                 end
@@ -36,7 +36,7 @@ module Datadog
                   Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
 
                   processor = Datadog.configuration.tracing.data_streams.processor
-                  processor.set_consume_checkpoint('kafka', batch.topic)
+                  processor.set_consume_checkpoint(type: 'kafka', source: batch.topic)
 
                   yield(batch) if block
                 end

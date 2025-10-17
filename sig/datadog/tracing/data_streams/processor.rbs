@@ -27,8 +27,8 @@ module Datadog
         def track_kafka_produce: (untyped topic, untyped partition, untyped offset, untyped now_sec) -> (nil | true)
         def track_kafka_commit: (untyped group, untyped topic, untyped partition, untyped offset, untyped now_sec) -> (nil | true)
         def track_kafka_consume: (untyped topic, untyped partition, untyped offset, ?untyped? now_sec) -> (nil | true)
-        def set_produce_checkpoint: (untyped type, untyped target, ?manual_checkpoint: bool) ?{ (untyped, untyped) -> untyped } -> (nil | untyped)
-        def set_consume_checkpoint: (untyped type, untyped source, ?manual_checkpoint: bool) ?{ (untyped) -> untyped } -> (nil | untyped)
+        def set_produce_checkpoint: (type: untyped, destination: untyped, ?manual_checkpoint: bool, ?tags: ::Array[untyped]) ?{ (untyped, untyped) -> untyped } -> (nil | untyped)
+        def set_consume_checkpoint: (type: untyped, source: untyped, ?manual_checkpoint: bool, ?tags: ::Array[untyped]) ?{ (untyped) -> untyped } -> (nil | untyped)
 
         private
 

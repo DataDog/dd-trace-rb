@@ -20,7 +20,7 @@ module Datadog
                   if pending_messages && !pending_messages.empty?
                     pending_messages.each do |message|
                       message.headers ||= {}
-                      processor.set_produce_checkpoint('kafka', message.topic) do |key, value|
+                      processor.set_produce_checkpoint(type: 'kafka', destination: message.topic) do |key, value|
                         message.headers[key] = value
                       end
                     end
@@ -36,7 +36,7 @@ module Datadog
 
                   messages.each do |message|
                     message[:headers] ||= {}
-                    processor.set_produce_checkpoint('kafka', message[:topic]) do |key, value|
+                    processor.set_produce_checkpoint(type: 'kafka', destination: message[:topic]) do |key, value|
                       message[:headers][key] = value
                     end
                   end

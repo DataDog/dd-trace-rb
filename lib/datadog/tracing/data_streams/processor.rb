@@ -136,20 +136,25 @@ module Datadog
         end
 
         # Set a produce checkpoint
+        #
+        # Note: For manual instrumentation, use {Datadog::Tracing::DataStreams.checkpoint_produce} instead.
+        # This method is primarily for internal use by auto-instrumentation.
+        #
         # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
-        # @param target [String] The destination (e.g., topic, exchange, stream name)
+        # @param destination [String] The destination (e.g., topic, exchange, stream name)
+        # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set
+        # @param tags [Array<String>] Additional tags to include
         # @yield [key, value] Block to inject context into carrier
         # @return [String, nil] Base64 encoded pathway context or nil if disabled
-        def set_produce_checkpoint(type, target, manual_checkpoint: false, &block)
+        def set_produce_checkpoint(type:, destination:, manual_checkpoint: false, tags: [], &block)
           return nil unless @enabled
 
-          tags = ["type:#{type}", "topic:#{target}", 'direction:out']
-          tags << 'manual_checkpoint:true' if manual_checkpoint
+          checkpoint_tags = ["type:#{type}", "topic:#{destination}", 'direction:out']
+          checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
+          checkpoint_tags.concat(tags) unless tags.empty?
 
-          # Grab active span to link DSM pathway to APM trace
           span = Datadog::Tracing.active_span
-
-          pathway = set_checkpoint(tags, nil, 0, span)
+          pathway = set_checkpoint(checkpoint_tags, nil, 0, span)
 
           yield(PROPAGATION_KEY, pathway) if pathway && block
 
@@ -157,15 +162,19 @@ module Datadog
         end
 
         # Set a consume checkpoint
+        #
+        # Note: For manual instrumentation, use {Datadog::Tracing::DataStreams.checkpoint_consume} instead.
+        # This method is primarily for internal use by auto-instrumentation.
+        #
         # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
         # @param source [String] The source (e.g., topic, exchange, stream name)
-        # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set (defaults to true for manual instrumentation)
+        # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set
+        # @param tags [Array<String>] Additional tags to include
         # @yield [key] Block to extract context from carrier
         # @return [String, nil] Base64 encoded pathway context or nil if disabled
-        def set_consume_checkpoint(type, source, manual_checkpoint: true, &block)
+        def set_consume_checkpoint(type:, source:, manual_checkpoint: false, tags: [], &block)
           return nil unless @enabled
 
-          # Decode pathway context from carrier if provided
           if block
             pathway_ctx = yield(PROPAGATION_KEY)
             if pathway_ctx
@@ -174,13 +183,12 @@ module Datadog
             end
           end
 
-          tags = ["type:#{type}", "topic:#{source}", 'direction:in']
-          tags << 'manual_checkpoint:true' if manual_checkpoint
+          checkpoint_tags = ["type:#{type}", "topic:#{source}", 'direction:in']
+          checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
+          checkpoint_tags.concat(tags) unless tags.empty?
 
-          # Grab active span to link DSM pathway to APM trace
           span = Datadog::Tracing.active_span
-
-          set_checkpoint(tags, nil, 0, span)
+          set_checkpoint(checkpoint_tags, nil, 0, span)
         end
 
         # Start the periodic worker for automatic stats flushing
