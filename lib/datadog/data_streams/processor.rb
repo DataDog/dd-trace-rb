@@ -523,12 +523,13 @@ module Datadog
         require 'uri'
 
         # Create HTTP request to DSM endpoint
-        agent_host = Datadog.configuration.agent.host
-        agent_port = Datadog.configuration.agent.port
+        agent_host = Datadog.configuration.agent.host || 'localhost'
+        agent_port = Datadog.configuration.agent.port || 8126
+        Datadog.logger.debug("[DSM Processor] Sending to agent: host=#{agent_host}, port=#{agent_port}")
+        
         uri = URI("http://#{agent_host}:#{agent_port}/v0.1/pipeline_stats")
 
-        host = uri.host || agent_host || 'localhost'
-        http = Net::HTTP.new(host, uri.port)
+        http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = false
 
         request = Net::HTTP::Post.new(uri)
