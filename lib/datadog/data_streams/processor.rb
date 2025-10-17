@@ -152,6 +152,7 @@ module Datadog
       # @yield [key, value] Block to inject context into carrier
       # @return [String, nil] Base64 encoded pathway context or nil if disabled
       def set_produce_checkpoint(type:, destination:, manual_checkpoint: true, tags: [], &block)
+        Datadog.logger.debug("[DSM Processor] set_produce_checkpoint called: type=#{type}, destination=#{destination}, enabled=#{@enabled}")
         return nil unless @enabled
 
         checkpoint_tags = ["type:#{type}", "topic:#{destination}", 'direction:out']
@@ -160,6 +161,7 @@ module Datadog
 
         span = Datadog::Tracing.active_span
         pathway = set_checkpoint(checkpoint_tags, nil, 0, span)
+        Datadog.logger.debug("[DSM Processor] set_produce_checkpoint created pathway: #{pathway ? 'yes' : 'no'}")
 
         yield(PROPAGATION_KEY, pathway) if pathway && block
 
@@ -304,7 +306,12 @@ module Datadog
       def flush_stats
         @stats_mutex.synchronize do
           # Check if we have data to send
-          return if @buckets.empty? && @consumer_stats.empty?
+          if @buckets.empty? && @consumer_stats.empty?
+            Datadog.logger.debug("[DSM Processor] flush_stats: no data to send")
+            return
+          end
+
+          Datadog.logger.debug("[DSM Processor] flush_stats: sending data (#{@buckets.size} buckets, #{@consumer_stats.size} consumer stats)")
 
           # Build payload in agent format
           stats_buckets = serialize_buckets
