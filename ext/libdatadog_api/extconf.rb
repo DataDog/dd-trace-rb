@@ -1,6 +1,5 @@
 # rubocop:disable Style/StderrPuts
 # rubocop:disable Style/GlobalVars
-# Force rebuild for CI (DSM changes)
 
 require 'rubygems'
 require_relative '../libdatadog_extconf_helpers'

@@ -8,17 +8,11 @@ module Datadog
     # APIs in this class are implemented as native code.
     class DDSketch
       def self.supported?
-        return false unless Datadog::Core::LIBDATADOG_API_FAILURE.nil?
-
-        # Test that DDSketch actually works by trying to instantiate it
-        new
-        true
-      rescue ArgumentError
-        false
+        Datadog::Core::LIBDATADOG_API_FAILURE.nil?
       end
 
       def initialize
-        unless Datadog::Core::LIBDATADOG_API_FAILURE.nil?
+        unless self.class.supported?
           raise(ArgumentError, "DDSketch is not supported: #{Datadog::Core::LIBDATADOG_API_FAILURE}")
         end
       end
