@@ -105,6 +105,6 @@ jobs:
 
             if (null === previousCommentId && commentContent !== "") {
               await github.rest.issues.createComment(options)
-            } else {
+            } else if (previousCommentId) {
               await github.rest.issues.updateComment({...options, comment_id: previousCommentId})
             }
