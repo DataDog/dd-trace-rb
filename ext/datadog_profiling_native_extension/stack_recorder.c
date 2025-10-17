@@ -231,7 +231,8 @@ typedef struct {
 
   // Set by callee
   profile_slot *slot;
-  ddog_prof_Profile_SerializeResult result;
+  ddog_prof_EncodedProfile encoded_profile;
+  ddog_prof_Status serialize_status;
   long heap_profile_build_time_ns;
   long serialize_no_gvl_time_ns;
   // ddog_prof_MaybeError advance_gen_result;
@@ -576,18 +577,16 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   state->stats_lifetime.serialization_time_ns_min = long_min_of(state->stats_lifetime.serialization_time_ns_min, args.serialize_no_gvl_time_ns);
   state->stats_lifetime.serialization_time_ns_total += args.serialize_no_gvl_time_ns;
 
-  ddog_prof_Profile_SerializeResult serialized_profile = args.result;
-
-  if (serialized_profile.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
+  if (is_ddog_error(args.serialize_status)) {
     state->stats_lifetime.serialization_failures++;
-    return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&serialized_profile.err));
+    return rb_ary_new_from_args(2, error_symbol, get_status_details_and_drop(&args.serialize_status));
   }
 
   // Note: If we got here, the profile serialized correctly.
   // Once we wrap this into a Ruby object, our `EncodedProfile` class will automatically manage memory for it and we
   // can raise exceptions without worrying about leaking the profile.
   state->stats_lifetime.serialization_successes++;
-  VALUE encoded_profile = from_ddog_prof_EncodedProfile(serialized_profile.ok);
+  VALUE encoded_profile = from_ddog_prof_EncodedProfile(args.encoded_profile);
 
   // ddog_prof_MaybeError result = args.advance_gen_result;
   // if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
@@ -791,7 +790,11 @@ static void *call_serialize_without_gvl(void *call_args) {
   args->heap_profile_build_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns;
 
   // Note: The profile gets reset by the serialize call
-  args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->slot->start_timestamp, &args->finish_timestamp);
+
+  // FIXME TODO: Do we need to reset something??? Not sure the previous comment is still true
+
+  args->serialize_status = ddog_prof_ProfileAdapter_build_compressed(&args->encoded_profile, FIXME, &args->slot->start_timestamp, &args->finish_timestamp);
+
   // args->advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(args->state->string_storage);
   args->serialize_ran = true;
   args->serialize_no_gvl_time_ns = long_max_of(0, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns);
