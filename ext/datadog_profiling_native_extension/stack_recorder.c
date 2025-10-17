@@ -139,7 +139,7 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 // ```
 // compiling ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c
 // ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c:23:1: error: initializer element is not constant
-// static const ddog_prof_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE};
+// static const fixme_ddog_prof_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE};
 // ^
 // ```
 #define VALUE_STRING(string) {.ptr = "" string, .len = sizeof(string) - 1}
@@ -161,7 +161,7 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 #define TIMELINE_VALUE          {.type_ = VALUE_STRING("timeline"),          .unit = VALUE_STRING("nanoseconds")}
 #define TIMELINE_VALUE_ID 7
 
-static const ddog_prof_ValueType all_value_types[] =
+static const fixme_ddog_prof_ValueType all_value_types[] =
   {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, ALLOC_SAMPLES_UNSCALED_VALUE, HEAP_SAMPLES_VALUE, HEAP_SIZE_VALUE, TIMELINE_VALUE};
 
 // This array MUST be kept in sync with all_value_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
@@ -170,7 +170,7 @@ static const ddog_prof_ValueType all_value_types[] =
 static const uint8_t all_value_types_positions[] =
   {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, ALLOC_SAMPLES_UNSCALED_VALUE_ID, HEAP_SAMPLES_VALUE_ID, HEAP_SIZE_VALUE_ID, TIMELINE_VALUE_ID};
 
-#define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
+#define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(fixme_ddog_prof_ValueType))
 
 // Struct for storing stats related to a profile in a particular slot.
 // These stats will share the same lifetime as the data in that profile slot.
@@ -242,7 +242,7 @@ typedef struct {
 
 static VALUE _native_new(VALUE klass);
 static void initialize_slot_concurrency_control(stack_recorder_state *state);
-static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types);
+static void initialize_profiles(stack_recorder_state *state, fixme_ddog_prof_Slice_ValueType sample_types);
 static void stack_recorder_typed_data_free(void *data);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
@@ -332,7 +332,7 @@ static VALUE _native_new(VALUE klass) {
 
   state->heap_clean_after_gc_enabled = false;
 
-  ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
+  fixme_ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
 
   initialize_slot_concurrency_control(state);
   for (uint8_t i = 0; i < ALL_VALUE_TYPES_COUNT; i++) { state->position_for[i] = all_value_types_positions[i]; }
@@ -376,7 +376,7 @@ static void initialize_slot_concurrency_control(stack_recorder_state *state) {
   state->active_slot = 1;
 }
 
-static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types) {
+static void initialize_profiles(stack_recorder_state *state, fixme_ddog_prof_Slice_ValueType sample_types) {
   ddog_Timespec start_timestamp = system_epoch_now_timespec();
 
   ddog_prof_Profile_NewResult slot_one_profile_result =
@@ -403,10 +403,10 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
   pthread_mutex_destroy(&state->mutex_slot_one);
-  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
+  fixme_ddog_prof_Profile_drop(&state->profile_slot_one.profile);
 
   pthread_mutex_destroy(&state->mutex_slot_two);
-  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
+  fixme_ddog_prof_Profile_drop(&state->profile_slot_two.profile);
 
   heap_recorder_free(state->heap_recorder);
 
@@ -459,30 +459,30 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 
   state->enabled_values_count = requested_values_count;
 
-  ddog_prof_ValueType enabled_value_types[ALL_VALUE_TYPES_COUNT];
+  fixme_ddog_prof_ValueType enabled_value_types[ALL_VALUE_TYPES_COUNT];
   uint8_t next_enabled_pos = 0;
   uint8_t next_disabled_pos = requested_values_count;
 
   // CPU_SAMPLES_VALUE is always enabled
-  enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) CPU_SAMPLES_VALUE;
+  enabled_value_types[next_enabled_pos] = (fixme_ddog_prof_ValueType) CPU_SAMPLES_VALUE;
   state->position_for[CPU_SAMPLES_VALUE_ID] = next_enabled_pos++;
 
   // WALL_TIME_VALUE is always enabled
-  enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) WALL_TIME_VALUE;
+  enabled_value_types[next_enabled_pos] = (fixme_ddog_prof_ValueType) WALL_TIME_VALUE;
   state->position_for[WALL_TIME_VALUE_ID] = next_enabled_pos++;
 
   if (cpu_time_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) CPU_TIME_VALUE;
+    enabled_value_types[next_enabled_pos] = (fixme_ddog_prof_ValueType) CPU_TIME_VALUE;
     state->position_for[CPU_TIME_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[CPU_TIME_VALUE_ID] = next_disabled_pos++;
   }
 
   if (alloc_samples_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) ALLOC_SAMPLES_VALUE;
+    enabled_value_types[next_enabled_pos] = (fixme_ddog_prof_ValueType) ALLOC_SAMPLES_VALUE;
     state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_enabled_pos++;
 
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) ALLOC_SAMPLES_UNSCALED_VALUE;
+    enabled_value_types[next_enabled_pos] = (fixme_ddog_prof_ValueType) ALLOC_SAMPLES_UNSCALED_VALUE;
     state->position_for[ALLOC_SAMPLES_UNSCALED_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_disabled_pos++;
@@ -490,14 +490,14 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   }
 
   if (heap_samples_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SAMPLES_VALUE;
+    enabled_value_types[next_enabled_pos] = (fixme_ddog_prof_ValueType) HEAP_SAMPLES_VALUE;
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_disabled_pos++;
   }
 
   if (heap_size_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SIZE_VALUE;
+    enabled_value_types[next_enabled_pos] = (fixme_ddog_prof_ValueType) HEAP_SIZE_VALUE;
     state->position_for[HEAP_SIZE_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[HEAP_SIZE_VALUE_ID] = next_disabled_pos++;
@@ -512,16 +512,16 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   }
 
   if (timeline_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) TIMELINE_VALUE;
+    enabled_value_types[next_enabled_pos] = (fixme_ddog_prof_ValueType) TIMELINE_VALUE;
     state->position_for[TIMELINE_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[TIMELINE_VALUE_ID] = next_disabled_pos++;
   }
 
-  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
-  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
+  fixme_ddog_prof_Profile_drop(&state->profile_slot_one.profile);
+  fixme_ddog_prof_Profile_drop(&state->profile_slot_two.profile);
 
-  ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
+  fixme_ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
   initialize_profiles(state, sample_types);
 
   return Qtrue;
@@ -1059,7 +1059,7 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
     rb_raise(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
   }
 
-  ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
+  fixme_ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
   ddog_prof_Profile_NewResult profile = ddog_prof_Profile_with_string_storage(sample_types, NULL, string_storage.ok);
 
   if (profile.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
@@ -1138,7 +1138,7 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
 
   VALUE encoded_pprof_2 = from_ddog_prof_EncodedProfile(serialize_result.ok);
 
-  ddog_prof_Profile_drop(&profile.ok);
+  fixme_ddog_prof_Profile_drop(&profile.ok);
   ddog_prof_ManagedStringStorage_drop(string_storage.ok);
 
   return rb_ary_new_from_args(2, encoded_pprof_1, encoded_pprof_2);

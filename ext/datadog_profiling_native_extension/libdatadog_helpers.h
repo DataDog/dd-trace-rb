@@ -3,6 +3,9 @@
 #include <datadog/profiling.h>
 #include "ruby_helpers.h"
 
+typedef struct ddog_prof_Profile {
+  struct ddog_prof_Profile *inner;
+} ddog_prof_Profile;
 typedef struct ddog_prof_ManagedStringId {
   uint32_t value;
 } ddog_prof_ManagedStringId;
@@ -186,6 +189,144 @@ typedef struct ddog_prof_ManagedStringStorageInternResult {
   };
 } ddog_prof_ManagedStringStorageInternResult;
 
+typedef struct fixme_ddog_prof_ValueType {
+  ddog_CharSlice type_;
+  ddog_CharSlice unit;
+} fixme_ddog_prof_ValueType;
+
+typedef enum ddog_prof_ManagedStringStorageNewResult_Tag {
+  DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_OK,
+  DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR,
+} ddog_prof_ManagedStringStorageNewResult_Tag;
+
+typedef struct ddog_prof_ManagedStringStorageNewResult {
+  ddog_prof_ManagedStringStorageNewResult_Tag tag;
+  union {
+    struct {
+      struct ddog_prof_ManagedStringStorage ok;
+    };
+    struct {
+      struct ddog_Error err;
+    };
+  };
+} ddog_prof_ManagedStringStorageNewResult;
+
+typedef enum ddog_prof_Profile_SerializeResult_Tag {
+  DDOG_PROF_PROFILE_SERIALIZE_RESULT_OK,
+  DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR,
+} ddog_prof_Profile_SerializeResult_Tag;
+
+typedef struct ddog_prof_Profile_SerializeResult {
+  ddog_prof_Profile_SerializeResult_Tag tag;
+  union {
+    struct {
+      struct ddog_prof_EncodedProfile ok;
+    };
+    struct {
+      struct ddog_Error err;
+    };
+  };
+} ddog_prof_Profile_SerializeResult;
+
+typedef struct fixme_ddog_prof_Slice_ValueType {
+  /**
+   * Should be non-null and suitably aligned for the underlying type. It is
+   * allowed but not recommended for the pointer to be null when the len is
+   * zero.
+   */
+  const struct fixme_ddog_prof_ValueType *ptr;
+  /**
+   * The number of elements (not bytes) that `.ptr` points to. Must be less
+   * than or equal to [isize::MAX].
+   */
+  uintptr_t len;
+} fixme_ddog_prof_Slice_ValueType;
+
+typedef enum ddog_prof_Profile_NewResult_Tag {
+  DDOG_PROF_PROFILE_NEW_RESULT_OK,
+  DDOG_PROF_PROFILE_NEW_RESULT_ERR,
+} ddog_prof_Profile_NewResult_Tag;
+
+typedef struct ddog_prof_Profile_NewResult {
+  ddog_prof_Profile_NewResult_Tag tag;
+  union {
+    struct {
+      struct ddog_prof_Profile ok;
+    };
+    struct {
+      struct ddog_Error err;
+    };
+  };
+} ddog_prof_Profile_NewResult;
+
+typedef enum ddog_prof_Profile_Result_Tag {
+  DDOG_PROF_PROFILE_RESULT_OK,
+  DDOG_PROF_PROFILE_RESULT_ERR,
+} ddog_prof_Profile_Result_Tag;
+
+typedef struct ddog_prof_Profile_Result {
+  ddog_prof_Profile_Result_Tag tag;
+  union {
+    struct {
+      /**
+       * Do not use the value of Ok. This value only exists to overcome
+       * Rust -> C code generation.
+       */
+      bool ok;
+    };
+    struct {
+      struct ddog_Error err;
+    };
+  };
+} ddog_prof_Profile_Result;
+
+void fixme_ddog_prof_Profile_drop(struct ddog_prof_Profile *profile);
+
+DDOG_CHECK_RETURN
+struct ddog_prof_ManagedStringStorageNewResult ddog_prof_ManagedStringStorage_new(void);
+
+/**
+ * TODO: @ivoanjo Should this take a `*mut ManagedStringStorage` like Profile APIs do?
+ */
+ void ddog_prof_ManagedStringStorage_drop(struct ddog_prof_ManagedStringStorage storage);
+
+ typedef struct ddog_prof_Period {
+  struct fixme_ddog_prof_ValueType type_;
+  int64_t value;
+} ddog_prof_Period;
+
+ /**
+ * Same as `ddog_profile_new` but also configures a `string_storage` for the profile.
+ * TODO: @ivoanjo Should this take a `*mut ManagedStringStorage` like Profile APIs do?
+ */
+DDOG_CHECK_RETURN
+struct ddog_prof_Profile_NewResult ddog_prof_Profile_with_string_storage(
+  struct fixme_ddog_prof_Slice_ValueType sample_types,
+                                                                         const struct ddog_prof_Period *period,
+                                                                         struct ddog_prof_ManagedStringStorage string_storage
+);
+
+typedef struct ddog_prof_Sample {
+  /**
+   * The leaf is at locations[0].
+   */
+  struct ddog_prof_Slice_Location locations;
+  /**
+   * The type and unit of each value is defined by the corresponding
+   * entry in Profile.sample_type. All samples must have the same
+   * number of values, the same as the length of Profile.sample_type.
+   * When aggregating multiple samples into a single sample, the
+   * result has a list of values that is the element-wise sum of the
+   * lists of the originals.
+   */
+  struct ddog_Slice_I64 values;
+  /**
+   * label includes additional context for this sample. It can include
+   * things like a thread id, allocation size, etc
+   */
+  struct ddog_prof_Slice_Label labels;
+} ddog_prof_Sample;
+
 static inline VALUE ruby_string_from_vec_u8(ddog_Vec_U8 string) {
   return rb_str_new((char *) string.ptr, string.len);
 }
@@ -203,9 +344,9 @@ ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type);
 
 ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_storage, ddog_CharSlice string);
 
-void intern_all_or_raise(
+NORETURN(void intern_all_or_raise(
   ddog_prof_ManagedStringStorage string_storage,
   ddog_prof_Slice_CharSlice strings,
   ddog_prof_ManagedStringId *output_ids,
   uintptr_t output_ids_size
-);
+));
