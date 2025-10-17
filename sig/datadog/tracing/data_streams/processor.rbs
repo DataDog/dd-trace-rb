@@ -4,64 +4,64 @@ module Datadog
       class Processor < Core::Worker
         PROPAGATION_KEY: ::String
 
-        @enabled: untyped
+        @enabled: bool
 
-        @pathway_context: untyped
+        @pathway_context: PathwayContext
 
-        @bucket_size_ns: untyped
+        @bucket_size_ns: ::Integer
 
-        @buckets: untyped
+        @buckets: ::Hash[::Integer, untyped]
 
-        @consumer_stats: untyped
+        @consumer_stats: ::Array[untyped]
 
-        @stats_mutex: untyped
+        @stats_mutex: ::Thread::Mutex
 
         @agent_transport: untyped
 
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
 
-        attr_accessor enabled: untyped
+        attr_accessor enabled: bool
 
-        def initialize: (?interval: untyped?) -> void
-        def track_kafka_produce: (untyped topic, untyped partition, untyped offset, untyped now_sec) -> (nil | true)
-        def track_kafka_commit: (untyped group, untyped topic, untyped partition, untyped offset, untyped now_sec) -> (nil | true)
-        def track_kafka_consume: (untyped topic, untyped partition, untyped offset, ?untyped? now_sec) -> (nil | true)
-        def set_produce_checkpoint: (type: untyped, destination: untyped, ?manual_checkpoint: bool, ?tags: ::Array[untyped]) ?{ (untyped, untyped) -> untyped } -> (nil | untyped)
-        def set_consume_checkpoint: (type: untyped, source: untyped, ?manual_checkpoint: bool, ?tags: ::Array[untyped]) ?{ (untyped) -> untyped } -> (nil | untyped)
+        def initialize: (?interval: ::Float?) -> void
+        def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Float now_sec) -> (nil | true)
+        def track_kafka_commit: (::String group, ::String topic, ::Integer partition, ::Integer offset, ::Float now_sec) -> (nil | true)
+        def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ?::Float? now_sec) -> (nil | true)
+        def set_produce_checkpoint: (type: ::String, destination: ::String, ?manual_checkpoint: bool, ?tags: ::Array[::String]) ?{ (::String, ::String) -> void } -> ::String?
+        def set_consume_checkpoint: (type: ::String, source: ::String, ?manual_checkpoint: bool, ?tags: ::Array[::String]) ?{ (::String) -> ::String? } -> ::String?
 
         private
 
-        def encode_pathway_context: () -> (nil | untyped)
+        def encode_pathway_context: () -> ::String?
 
-        def set_checkpoint: (untyped tags, ?untyped? now_sec, ?::Integer payload_size, ?untyped? span) -> (nil | untyped)
+        def set_checkpoint: (::Array[::String] tags, ?::Float? now_sec, ?::Integer payload_size, ?untyped span) -> ::String?
 
-        def decode_pathway_context: (untyped encoded_ctx) -> (nil | untyped)
+        def decode_pathway_context: (::String encoded_ctx) -> PathwayContext?
 
-        def decode_pathway_b64: (untyped encoded_ctx) -> (nil | untyped)
-        def perform: () -> untyped
+        def decode_pathway_b64: (::String encoded_ctx) -> PathwayContext?
+        def perform: () -> void
 
-        def get_current_pathway: () -> (nil | untyped)
-        def start: () -> (nil | untyped)
-        def stop: (?bool force_stop, ?::Integer timeout) -> untyped
-        def get_current_context: () -> untyped
+        def get_current_pathway: () -> ::String?
+        def start: () -> void
+        def stop: (?bool force_stop, ?::Integer timeout) -> void
+        def get_current_context: () -> PathwayContext
 
-        def set_pathway_context: (untyped ctx) -> (nil | untyped)
+        def set_pathway_context: (PathwayContext? ctx) -> void
 
-        def decode_and_set_pathway_context: (untyped headers) -> (nil | untyped)
-        def compute_pathway_hash: (untyped current_hash, untyped tags) -> untyped
-        def fnv1_64: (untyped data) -> untyped
-        def record_checkpoint_stats: (hash: untyped, parent_hash: untyped, edge_latency_sec: untyped, payload_size: untyped, tags: untyped, timestamp_sec: untyped) -> untyped
-        def record_consumer_stats: (topic: untyped, partition: untyped, offset: untyped, timestamp_sec: untyped) -> untyped
-        def aggregate_consumer_stats_by_partition: (untyped topic, untyped partition, untyped offset, untyped timestamp_sec) -> untyped
-        def aggregate_stats_by_time_buckets: () -> untyped
-        def send_stats_to_agent: (untyped payload) -> untyped
-        def send_dsm_payload: (untyped data, untyped headers) -> untyped
-        def compress_payload?: (untyped payload) -> untyped
-        def gzip_compress: (untyped data) -> untyped
-        def serialize_buckets: () -> untyped
-        def serialize_consumer_backlogs: () -> untyped
-        def hostname: () -> untyped
+        def decode_and_set_pathway_context: (::Hash[::String, ::String] headers) -> void
+        def compute_pathway_hash: (::Integer current_hash, ::Array[::String] tags) -> ::Integer
+        def fnv1_64: (::String data) -> ::Integer
+        def record_checkpoint_stats: (hash: ::Integer, parent_hash: ::Integer, edge_latency_sec: ::Float, payload_size: ::Integer, tags: ::Array[::String], timestamp_sec: ::Float) -> void
+        def record_consumer_stats: (topic: ::String, partition: ::Integer, offset: ::Integer, timestamp_sec: ::Float) -> void
+        def aggregate_consumer_stats_by_partition: (::String topic, ::Integer partition, ::Integer offset, ::Float timestamp_sec) -> void
+        def aggregate_stats_by_time_buckets: () -> void
+        def send_stats_to_agent: (::Hash[untyped, untyped] payload) -> void
+        def send_dsm_payload: (::String data, ::Hash[::String, ::String] headers) -> untyped
+        def compress_payload?: (::String payload) -> bool
+        def gzip_compress: (::String data) -> ::String
+        def serialize_buckets: () -> ::Array[::Hash[untyped, untyped]]
+        def serialize_consumer_backlogs: () -> ::Array[::Hash[untyped, untyped]]
+        def hostname: () -> ::String
         def create_bucket: () -> { pathway_stats: ::Hash[untyped, untyped], latest_produce_offsets: ::Hash[untyped, untyped], latest_commit_offsets: ::Hash[untyped, untyped] }
         def create_pathway_stats: () -> { edge_latency: untyped, full_pathway_latency: untyped, payload_size_sum: 0, payload_size_count: 0 }
         def agent_transport: () -> untyped
