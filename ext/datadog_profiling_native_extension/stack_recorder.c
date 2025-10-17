@@ -180,7 +180,7 @@ typedef struct {
 } stats_slot;
 
 typedef struct {
-  ddog_prof_Profile profile;
+  ddog_prof_ProfileHandle profile;
   stats_slot stats;
   ddog_Timespec start_timestamp;
 } profile_slot;
@@ -379,34 +379,34 @@ static void initialize_slot_concurrency_control(stack_recorder_state *state) {
 static void initialize_profiles(stack_recorder_state *state, fixme_ddog_prof_Slice_ValueType sample_types) {
   ddog_Timespec start_timestamp = system_epoch_now_timespec();
 
-  ddog_prof_Profile_NewResult slot_one_profile_result =
-    fixme_ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */);
+  ddog_prof_ProfileHandle slot_one_profile_handle;
+  ddog_prof_Status slot_one_profile_status = ddog_prof_Profile_new(&slot_one_profile_handle);
 
-  if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
+  if (is_ddog_error(slot_one_profile_status)) {
+    rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_status_details_and_drop(&slot_one_profile_status));
   }
 
-  state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok, .start_timestamp = start_timestamp };
+  state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_handle, .start_timestamp = start_timestamp };
 
-  ddog_prof_Profile_NewResult slot_two_profile_result =
-    fixme_ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */);
+  ddog_prof_ProfileHandle slot_two_profile_handle;
+  ddog_prof_Status slot_two_profile_status = ddog_prof_Profile_new(&slot_two_profile_handle);
 
-  if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
+  if (is_ddog_error(slot_two_profile_status)) {
     // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
-    rb_raise(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
+    rb_raise(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_status_details_and_drop(&slot_two_profile_status));
   }
 
-  state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_result.ok, .start_timestamp = start_timestamp };
+  state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_handle, .start_timestamp = start_timestamp };
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
   pthread_mutex_destroy(&state->mutex_slot_one);
-  fixme_ddog_prof_Profile_drop(&state->profile_slot_one.profile);
+  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
 
   pthread_mutex_destroy(&state->mutex_slot_two);
-  fixme_ddog_prof_Profile_drop(&state->profile_slot_two.profile);
+  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
 
   heap_recorder_free(state->heap_recorder);
 
@@ -518,8 +518,8 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
     state->position_for[TIMELINE_VALUE_ID] = next_disabled_pos++;
   }
 
-  fixme_ddog_prof_Profile_drop(&state->profile_slot_one.profile);
-  fixme_ddog_prof_Profile_drop(&state->profile_slot_two.profile);
+  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
+  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
 
   fixme_ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
   initialize_profiles(state, sample_types);
@@ -1140,7 +1140,7 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
 
   VALUE encoded_pprof_2 = from_ddog_prof_EncodedProfile(serialize_result.ok);
 
-  fixme_ddog_prof_Profile_drop(&profile.ok);
+  ddog_prof_Profile_drop(&profile.ok);
   ddog_prof_ManagedStringStorage_drop(string_storage.ok);
 
   return rb_ary_new_from_args(2, encoded_pprof_1, encoded_pprof_2);

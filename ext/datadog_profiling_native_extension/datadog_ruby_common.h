@@ -61,3 +61,9 @@ static inline VALUE get_error_details_and_drop(ddog_Error *error) {
   ddog_Error_drop(error);
   return result;
 }
+
+static inline VALUE get_status_details_and_drop(ddog_prof_Status *status) {
+  VALUE result = rb_str_new_cstr(status->err);
+  ddog_prof_Status_drop(status);
+  return result;
+}

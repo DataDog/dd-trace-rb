@@ -280,8 +280,6 @@ typedef struct ddog_prof_Profile_Result {
   };
 } ddog_prof_Profile_Result;
 
-void fixme_ddog_prof_Profile_drop(struct ddog_prof_Profile *profile);
-
 /**
  * TODO: @ivoanjo Should this take a `*mut ManagedStringStorage` like Profile APIs do?
  */
@@ -432,3 +430,5 @@ NORETURN(void intern_all_or_raise(
   ddog_prof_ManagedStringId *output_ids,
   uintptr_t output_ids_size
 ));
+
+inline bool is_ddog_error(ddog_prof_Status status) { return status.flags != 0; }
