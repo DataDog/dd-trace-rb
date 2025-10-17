@@ -16,13 +16,12 @@ module Datadog
           :closest_opposite_direction_hash,
           :closest_opposite_direction_edge_start
 
-        def initialize(hash_value, pathway_start_sec, current_edge_start_sec, parent_hash = nil)
+        def initialize(hash_value:, pathway_start_sec:, current_edge_start_sec:)
           @hash = hash_value
           @pathway_start_sec = pathway_start_sec
           @current_edge_start_sec = current_edge_start_sec
-          @parent_hash = parent_hash
+          @parent_hash = nil
 
-          # Loop detection fields (matching Python DataStreamsCtx)
           @previous_direction = ''
           @closest_opposite_direction_hash = 0
           @closest_opposite_direction_edge_start = current_edge_start_sec
@@ -33,11 +32,9 @@ module Datadog
           # - 8 bytes: hash value (little-endian)
           # - VarInt: pathway start time (milliseconds)
           # - VarInt: current edge start time (milliseconds)
-          [
-            [@hash].pack('Q'),
-            encode_var_int_64((@pathway_start_sec * 1000).to_i),
+          [@hash].pack('Q') <<
+            encode_var_int_64((@pathway_start_sec * 1000).to_i) <<
             encode_var_int_64((@current_edge_start_sec * 1000).to_i)
-          ].join
         end
 
         def encode_b64
@@ -81,7 +78,11 @@ module Datadog
           pathway_start_sec = pathway_start_ms / 1000.0
           current_edge_start_sec = current_edge_start_ms / 1000.0
 
-          new(hash_value, pathway_start_sec, current_edge_start_sec)
+          new(
+            hash_value: hash_value,
+            pathway_start_sec: pathway_start_sec,
+            current_edge_start_sec: current_edge_start_sec
+          )
         rescue EOFError
           # Not enough data in binary stream
           nil
