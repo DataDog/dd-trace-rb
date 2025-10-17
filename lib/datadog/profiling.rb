@@ -7,6 +7,12 @@ require_relative 'core/utils/only_once'
 module Datadog
   # Datadog Continuous Profiler implementation: https://docs.datadoghq.com/profiler/
   module Profiling
+    # Custom exception class for profiler errors.
+    # This exception class is used by the profiler's C code to signal errors.
+    # Telemetry will only include exception messages for instances of this class,
+    # ensuring that only known-safe messages (created by Datadog code) are reported.
+    class ProfilingError < StandardError; end
+
     def self.supported?
       unsupported_reason.nil?
     end

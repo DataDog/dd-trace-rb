@@ -60,6 +60,16 @@ module Datadog
           log!(event)
         end
 
+        private
+
+        def safe_exception_message(exception)
+          # Only include exception messages from ProfilingError, as those are guaranteed to be created by us
+          # with constant, PII-safe messages
+          if defined?(Datadog::Profiling::ProfilingError) && exception.is_a?(Datadog::Profiling::ProfilingError)
+            exception.message
+          end
+        end
+
         def error(description)
           event = Event::Log.new(message: description, level: :error)
 
