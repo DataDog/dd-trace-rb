@@ -81,7 +81,7 @@ def create_summary(
   summary = +"### #{pluralize(data_name).capitalize}\n"
   summary << "#{intro}\n"
   if added.any? || removed.any?
-    summary << "<details><summary>#{pluralize(data_name).capitalize}</summary>\n"
+    summary << "<details><summary>#{pluralize(data_name).capitalize} (<strong>+#{added&.size || 0}-#{removed.size || 0}</strong>)</summary>\n"
     if added.any?
       summary << "  ❌ <em>Introduced:</em>\n"
       summary << "  <pre><code>#{format_for_code_block(added)}</code></pre>\n"
@@ -93,7 +93,7 @@ def create_summary(
     summary << "</details>\n"
   end
   if added_partially.any? || removed_partially.any?
-    summary << "<details><summary>#{pluralize(data_name_partially).capitalize}</summary>\n"
+    summary << "<details><summary>#{pluralize(data_name_partially).capitalize} (<strong>+#{added_partially.size || 0}-#{removed_partially.size || 0}</strong>)</summary>\n"
     if added_partially.any?
       summary << "  ❌ <em>Introduced:</em>\n"
       summary << "  <pre><code>#{format_for_code_block(added_partially)}</code></pre>\n"
@@ -130,7 +130,7 @@ def ignored_files_summary(head_stats, base_stats)
 
   summary = +"### Ignored files\n"
   summary << "#{intro}\n"
-  summary << "<details><summary>Ignored files</summary>\n"
+  summary << "<details><summary>Ignored files (<strong>+#{ignored_files_added&.size || 0}-#{ignored_files_removed&.size || 0}</strong>)</summary>\n"
   if ignored_files_added.any?
     summary << "  ❌ <em>Introduced:</em>\n"
     summary << "  <pre><code>#{ignored_files_added.join("\n")}</code></pre>\n"
