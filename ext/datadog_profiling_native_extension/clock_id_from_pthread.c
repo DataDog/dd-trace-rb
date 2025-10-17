@@ -18,7 +18,7 @@ void self_test_clock_id(void) {
   rb_nativethread_id_t expected_pthread_id = pthread_self();
   rb_nativethread_id_t actual_pthread_id = pthread_id_for(rb_thread_current());
 
-  if (expected_pthread_id != actual_pthread_id) rb_raise(rb_eRuntimeError, "pthread_id_for() self-test failed");
+  if (expected_pthread_id != actual_pthread_id) rb_raise(datadog_profiling_error_class, "pthread_id_for() self-test failed");
 }
 
 // Safety: This function is assumed never to raise exceptions by callers

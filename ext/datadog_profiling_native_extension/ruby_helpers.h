@@ -3,6 +3,10 @@
 #include <stdbool.h>
 #include "datadog_ruby_common.h"
 
+// Global reference to Datadog::Profiling::ProfilingError exception class
+// This is initialized in profiling.c during extension initialization
+extern VALUE datadog_profiling_error_class;
+
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
 // usage of ruby helpers.
 void ruby_helpers_init(void);

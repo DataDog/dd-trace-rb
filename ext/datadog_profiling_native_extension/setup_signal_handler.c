@@ -72,7 +72,7 @@ static void install_sigprof_signal_handler_internal(
     }
 
     rb_raise(
-      rb_eRuntimeError,
+      datadog_profiling_error_class,
       "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler",
       handler_pretty_name
     );
