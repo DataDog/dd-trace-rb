@@ -26,6 +26,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
             logs: [{message: 'RuntimeError', level: 'ERROR', count: 1,
                     stack_trace: a_string_including("\n/spec/")}]
           )
+          expect(event.payload[:logs].map { |log| log[:message] }).not_to include('p@ssw0rd')
         end
 
         begin
@@ -46,6 +47,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
               logs: [{message: 'RuntimeError: Must not contain PII', level: 'ERROR', count: 1,
                       stack_trace: a_string_including("\n/spec/")}]
             )
+            expect(event.payload[:logs].map { |log| log[:message] }).not_to include('p@ssw0rd')
           end
 
           begin
@@ -68,6 +70,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
             logs: [{message: /#<Class:/, level: 'ERROR', count: 1,
                     stack_trace: a_string_including("\n/spec/")}]
           )
+          expect(event.payload[:logs].map { |log| log[:message] }).not_to include('p@ssw0rd')
         end
 
         customer_exception = Class.new(StandardError)
