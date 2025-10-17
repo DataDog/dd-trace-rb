@@ -180,7 +180,7 @@ typedef struct {
 } stats_slot;
 
 typedef struct {
-  ddog_prof_ProfileHandle profile;
+  ddog_prof_ProfileAdapter profile;
   stats_slot stats;
   ddog_Timespec start_timestamp;
 } profile_slot;
@@ -195,6 +195,9 @@ typedef struct {
   profile_slot profile_slot_one;
   pthread_mutex_t mutex_slot_two;
   profile_slot profile_slot_two;
+
+  ddog_prof_ProfilesDictionaryHandle dictionary;
+  ddog_prof_ScratchPadHandle scratchpad;
 
   // ddog_prof_ManagedStringStorage string_storage;
   ddog_prof_ManagedStringId label_key_allocation_class;
@@ -272,6 +275,15 @@ static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self,
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
 static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self);
+
+ddog_prof_StringId insert_into_profiles_dictionary(stack_recorder_state *state, ddog_CharSlice byte_slice) {
+  ddog_prof_StringId id;
+  ddog_prof_Status status = ddog_prof_ProfilesDictionary_insert_str(&id, state->dictionary, byte_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
+  if (is_ddog_error(status)) {
+    rb_raise(rb_eRuntimeError, "Failed to run ddog_prof_ProfilesDictionary_insert_str: %"PRIsVALUE, get_status_details_and_drop(&status));
+  };
+  return id;
+}
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -357,6 +369,18 @@ static VALUE _native_new(VALUE klass) {
   // state->label_key_allocation_class = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("allocation class"));
   // state->label_key_gc_gen_age = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("gc gen age"));
 
+  ddog_prof_ProfilesDictionaryHandle dictionary;
+  ddog_prof_Status dictionary_status = ddog_prof_ProfilesDictionary_new(&dictionary);
+  if (is_ddog_error(dictionary_status)) {
+    rb_raise(rb_eRuntimeError, "Failed to initialize profiles dictionary: %"PRIsVALUE, get_status_details_and_drop(&dictionary_status));
+  }
+
+  ddog_prof_ScratchPadHandle scratchpad;
+  ddog_prof_Status scratchpad_status = ddog_prof_ScratchPad_new(&scratchpad);
+  if (is_ddog_error(scratchpad_status)) {
+    rb_raise(rb_eRuntimeError, "Failed to initialize scratch pad: %"PRIsVALUE, get_status_details_and_drop(&scratchpad_status));
+  }
+
   initialize_profiles(state, sample_types);
 
   // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
@@ -380,8 +404,19 @@ static void initialize_slot_concurrency_control(stack_recorder_state *state) {
 static void initialize_profiles(stack_recorder_state *state, fixme_ddog_prof_Slice_ValueType sample_types) {
   ddog_Timespec start_timestamp = system_epoch_now_timespec();
 
-  ddog_prof_ProfileHandle slot_one_profile_handle;
-  ddog_prof_Status slot_one_profile_status = ddog_prof_Profile_new(&slot_one_profile_handle);
+  ddog_prof_ValueType converted_types[sample_types.len];
+  int64_t groupings[sample_types.len];
+
+  for (int i = 0; i < sample_types.len; i++) {
+    converted_types[i] = (ddog_prof_ValueType) {
+      .type_id = insert_into_profiles_dictionary(state, sample_types.ptr[i].type_),
+      .unit_id = insert_into_profiles_dictionary(state, sample_types.ptr[i].unit),
+    };
+    groupings[i] = i;
+  }
+
+  ddog_prof_ProfileAdapter slot_one_profile_handle;
+  ddog_prof_Status slot_one_profile_status = ddog_prof_ProfileAdapter_new(&slot_one_profile_handle, state->dictionary, state->scratchpad, (ddog_prof_Slice_ValueType) { .ptr = converted_types, .len = sample_types.len }, (ddog_Slice_I64) { .ptr = groupings, .len = sample_types.len });
 
   if (is_ddog_error(slot_one_profile_status)) {
     rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_status_details_and_drop(&slot_one_profile_status));
@@ -389,8 +424,8 @@ static void initialize_profiles(stack_recorder_state *state, fixme_ddog_prof_Sli
 
   state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_handle, .start_timestamp = start_timestamp };
 
-  ddog_prof_ProfileHandle slot_two_profile_handle;
-  ddog_prof_Status slot_two_profile_status = ddog_prof_Profile_new(&slot_two_profile_handle);
+  ddog_prof_ProfileAdapter slot_two_profile_handle;
+  ddog_prof_Status slot_two_profile_status = ddog_prof_ProfileAdapter_new(&slot_two_profile_handle, state->dictionary, state->scratchpad, (ddog_prof_Slice_ValueType) { .ptr = converted_types, .len = sample_types.len }, (ddog_Slice_I64) { .ptr = groupings, .len = sample_types.len });
 
   if (is_ddog_error(slot_two_profile_status)) {
     // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
@@ -404,10 +439,10 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
   pthread_mutex_destroy(&state->mutex_slot_one);
-  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
+  ddog_prof_ProfileAdapter_drop(&state->profile_slot_one.profile);
 
   pthread_mutex_destroy(&state->mutex_slot_two);
-  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
+  ddog_prof_ProfileAdapter_drop(&state->profile_slot_two.profile);
 
   heap_recorder_free(state->heap_recorder);
 
@@ -519,8 +554,8 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
     state->position_for[TIMELINE_VALUE_ID] = next_disabled_pos++;
   }
 
-  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
-  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
+  ddog_prof_ProfileAdapter_drop(&state->profile_slot_one.profile);
+  ddog_prof_ProfileAdapter_drop(&state->profile_slot_two.profile);
 
   fixme_ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
   initialize_profiles(state, sample_types);
@@ -793,7 +828,17 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   // FIXME TODO: Do we need to reset something??? Not sure the previous comment is still true
 
-  args->serialize_status = ddog_prof_ProfileAdapter_build_compressed(&args->encoded_profile, FIXME, &args->slot->start_timestamp, &args->finish_timestamp);
+  args->serialize_status = ddog_prof_ProfileAdapter_build_compressed(
+    &args->encoded_profile,
+    &args->slot->profile,
+    &args->slot->start_timestamp,
+    &args->finish_timestamp
+  );
+
+  if (!is_ddog_error(args->serialize_status)) {
+    ddog_prof_ProfileAdapter_drop(&args->slot->profile);
+    args->serialize_status = ddog_prof_ProfileAdapter_new(&args->slot->profile);
+  }
 
   // args->advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(args->state->string_storage);
   args->serialize_ran = true;
@@ -1143,7 +1188,7 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
 
   VALUE encoded_pprof_2 = from_ddog_prof_EncodedProfile(serialize_result.ok);
 
-  ddog_prof_Profile_drop(&profile.ok);
+  ddog_prof_ProfileAdapter_drop(&profile.ok);
   ddog_prof_ManagedStringStorage_drop(string_storage.ok);
 
   return rb_ary_new_from_args(2, encoded_pprof_1, encoded_pprof_2);
