@@ -1,14 +1,20 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/data_streams/pathway_context'
+require 'datadog/data_streams/pathway_context'
 
-RSpec.describe Datadog::Tracing::DataStreams::PathwayContext do
+RSpec.describe Datadog::DataStreams::PathwayContext do
   describe 'encode/decode round-trip' do
     let(:hash_value) { 12345678901234567890 }
     let(:pathway_start_sec) { 1609459200.123 } # 2021-01-01 00:00:00.123
     let(:current_edge_start_sec) { 1609459260.456 } # 2021-01-01 00:01:00.456
 
-    let(:context) { described_class.new(hash_value, pathway_start_sec, current_edge_start_sec) }
+    let(:context) do
+      described_class.new(
+        hash_value: hash_value,
+        pathway_start_sec: pathway_start_sec,
+        current_edge_start_sec: current_edge_start_sec
+      )
+    end
 
     it 'successfully encodes and decodes pathway context' do
       # Arrange & Act: Encode to base64
@@ -26,7 +32,7 @@ RSpec.describe Datadog::Tracing::DataStreams::PathwayContext do
 
     it 'handles edge cases in encoding/decoding' do
       # Test with zero values
-      zero_context = described_class.new(0, 0.0, 0.0)
+      zero_context = described_class.new(hash_value: 0, pathway_start_sec: 0.0, current_edge_start_sec: 0.0)
       encoded = zero_context.encode_b64
       decoded = described_class.decode_b64(encoded)
 
@@ -41,7 +47,11 @@ RSpec.describe Datadog::Tracing::DataStreams::PathwayContext do
       large_hash = 18446744073709551615 # Max uint64
       large_time = Time.now.to_f + 1000000 # Far future
 
-      large_context = described_class.new(large_hash, large_time, large_time + 100)
+      large_context = described_class.new(
+        hash_value: large_hash,
+        pathway_start_sec: large_time,
+        current_edge_start_sec: large_time + 100
+      )
       encoded = large_context.encode_b64
       decoded = described_class.decode_b64(encoded)
 
@@ -82,7 +92,7 @@ RSpec.describe Datadog::Tracing::DataStreams::PathwayContext do
 
       test_values.each do |value|
         # Create context with test value as timestamp
-        context = described_class.new(12345, value / 1000.0, value / 1000.0)
+        context = described_class.new(hash_value: 12345, pathway_start_sec: value / 1000.0, current_edge_start_sec: value / 1000.0)
 
         encoded = context.encode_b64
         decoded = described_class.decode_b64(encoded)
