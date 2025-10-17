@@ -104,6 +104,12 @@ module Datadog
           ENV_ENABLED = 'DD_TRACE_CLIENT_IP_ENABLED'
           ENV_HEADER_NAME = 'DD_TRACE_CLIENT_IP_HEADER'
         end
+
+        # @public_api
+        module HTTPErrorStatuses
+          ENV_SERVER_ERROR_STATUSES = 'DD_TRACE_HTTP_SERVER_ERROR_STATUSES'
+          ENV_CLIENT_ERROR_STATUSES = 'DD_TRACE_HTTP_CLIENT_ERROR_STATUSES'
+        end
       end
     end
   end

@@ -63,6 +63,10 @@ module Datadog
 
           ENV_HEADER_NAME: "DD_TRACE_CLIENT_IP_HEADER"
         end
+
+        module HTTPErrorStatuses
+          ENV_SERVER_ERROR_STATUSES: "DD_TRACE_HTTP_SERVER_ERROR_STATUSES"
+        end
       end
     end
   end

@@ -8,6 +8,7 @@ require 'datadog/tracing/flush'
 require 'datadog/tracing/sampling/priority_sampler'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
+require 'datadog/tracing/contrib/shared_settings_examples'
 require_relative '../../core/configuration/settings_shared_examples'
 
 RSpec.describe Datadog::Tracing::Configuration::Settings do
@@ -1041,6 +1042,24 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             expect(settings.tracing.client_ip.enabled).to eq(value)
           end
         end
+      end
+    end
+
+    describe '#http_error_statuses' do
+      describe '#server' do
+        it_behaves_like 'with error_status_codes setting',
+          env: 'DD_TRACE_HTTP_SERVER_ERROR_STATUSES',
+          default: 500..599,
+          settings_class: Datadog::Core::Configuration::Settings.new.tracing.http_error_statuses.class,
+          option: :server
+      end
+
+      describe '#client' do
+        it_behaves_like 'with error_status_codes setting',
+          env: 'DD_TRACE_HTTP_CLIENT_ERROR_STATUSES',
+          default: 400..499,
+          settings_class: Datadog::Core::Configuration::Settings.new.tracing.http_error_statuses.class,
+          option: :client
       end
     end
   end
