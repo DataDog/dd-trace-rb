@@ -25,7 +25,7 @@ class TracingTraceBenchmark
   #   per 100ms, this means we'll have around 120 samples (give or take a small margin of error).
   # @param [Integer] warmup in seconds. The default is 2 seconds.
   def benchmark_time(time: 12, warmup: 2)
-    VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: time, warmup: warmup }
+    VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0} : {time: time, warmup: warmup}
   end
 
   def benchmark_no_writer
@@ -34,7 +34,7 @@ class TracingTraceBenchmark
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
-      def trace(x, depth)
+      def trace(x, depth) # standard:disable Lint/NestedMethodDefinition
         x.report(
           "#{depth} span trace - no writer",
           (depth.times.map { "Datadog::Tracing.trace('op.name') {" } + depth.times.map { "}" }).join
@@ -62,7 +62,7 @@ class TracingTraceBenchmark
     Benchmark.ips do |x|
       x.config(**benchmark_time)
 
-      def trace(x, depth)
+      def trace(x, depth) # standard:disable Lint/NestedMethodDefinition
         x.report(
           "#{depth} span trace - no network",
           (depth.times.map { "Datadog::Tracing.trace('op.name') {" } + depth.times.map { "}" }).join

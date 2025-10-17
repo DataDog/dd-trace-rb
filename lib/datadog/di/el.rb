@@ -2,5 +2,4 @@
 
 require_relative 'el/expression'
 require_relative 'el/compiler'
-require_relative 'el/context'
 require_relative 'el/evaluator'

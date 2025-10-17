@@ -18,7 +18,7 @@ RSpec.describe Datadog::Tracing::Distributed::Fetcher do
     end
 
     context 'with a value associated' do
-      let(:data) { { key => 'value' } }
+      let(:data) { {key => 'value'} }
       it { is_expected.to eq('value') }
     end
   end

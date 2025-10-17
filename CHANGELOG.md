@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## [2.22.0] - 2025-10-15
+
+### Added
+
+* Tracing: Add GraphQL error tracking with OpenTelemetry semantics ([#4864][])
+* AppSec: API Security: Add endpoint collection for Rails ([#4919][])
+* AppSec: Updated WAF rules to add support for JWT analysis ([#4907][])
+* AppSec: Enable Remote Configuration capabilities for fingerprinting, trace tagging and user auto-instrumentation ([#4965][])
+* Dynamic Instrumentation: Support `[@duration][]`, `[@return][]` and `[@exception][]` in message templates ([#4914][])
+* Dynamic Instrumentation: Report evaluation errors to the UI ([#4913][])
+* Dynamic Instrumentation: Support conditions for method probes ([#4909][])
+* Dynamic Instrumentation: Capture exceptions raised by instrumented methods in method probes ([#4906][])
+* Dynamic Instrumentation: Add support for probe conditions for line probes ([#4861][])
+
+### Changed
+
+* Core: Upgrade `libdatadog` dependency to 22.0.1 ([#4902][])
+* Tracing: Add `Forwarded` header to the list of headers used for remote IP detection. ([#4969][])
+* AppSec: Update `libbddwaf` to version 1.25.1.0.1 ([#4894][])
+* AppSec: WAF rules can control whether traces are kept or sampled ([#4918][])
+* Dynamic Instrumentation: Evaluate message templates when logging instrumented code ([#4908][])
+
+### Fixed
+
+* Core: Improve locking code for remote configuration worker ([#4957][])
+* Dynamic Instrumentation: Emit a single log event for line probes on exception-raising lines ([#4900][])
+
 ## [2.21.0] - 2025-09-17
 
 ### Added
@@ -3333,7 +3360,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.21.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.22.0...master
+[2.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.21.0...v2.22.0
 [2.21.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.20.0...v2.21.0
 [2.20.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.19.0...v2.20.0
 [2.19.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.18.0...v2.19.0
@@ -4929,12 +4957,28 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4838]: https://github.com/DataDog/dd-trace-rb/issues/4838
 [#4848]: https://github.com/DataDog/dd-trace-rb/issues/4848
 [#4851]: https://github.com/DataDog/dd-trace-rb/issues/4851
+[#4861]: https://github.com/DataDog/dd-trace-rb/issues/4861
 [#4862]: https://github.com/DataDog/dd-trace-rb/issues/4862
 [#4863]: https://github.com/DataDog/dd-trace-rb/issues/4863
+[#4864]: https://github.com/DataDog/dd-trace-rb/issues/4864
 [#4877]: https://github.com/DataDog/dd-trace-rb/issues/4877
 [#4884]: https://github.com/DataDog/dd-trace-rb/issues/4884
 [#4887]: https://github.com/DataDog/dd-trace-rb/issues/4887
 [#4893]: https://github.com/DataDog/dd-trace-rb/issues/4893
+[#4894]: https://github.com/DataDog/dd-trace-rb/issues/4894
+[#4900]: https://github.com/DataDog/dd-trace-rb/issues/4900
+[#4902]: https://github.com/DataDog/dd-trace-rb/issues/4902
+[#4906]: https://github.com/DataDog/dd-trace-rb/issues/4906
+[#4907]: https://github.com/DataDog/dd-trace-rb/issues/4907
+[#4908]: https://github.com/DataDog/dd-trace-rb/issues/4908
+[#4909]: https://github.com/DataDog/dd-trace-rb/issues/4909
+[#4913]: https://github.com/DataDog/dd-trace-rb/issues/4913
+[#4914]: https://github.com/DataDog/dd-trace-rb/issues/4914
+[#4918]: https://github.com/DataDog/dd-trace-rb/issues/4918
+[#4919]: https://github.com/DataDog/dd-trace-rb/issues/4919
+[#4957]: https://github.com/DataDog/dd-trace-rb/issues/4957
+[#4965]: https://github.com/DataDog/dd-trace-rb/issues/4965
+[#4969]: https://github.com/DataDog/dd-trace-rb/issues/4969
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -4993,6 +5037,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@dorner]: https://github.com/dorner
 [@drcapulet]: https://github.com/drcapulet
 [@dudo]: https://github.com/dudo
+[@duration]: https://github.com/duration
 [@e1senh0rn]: https://github.com/e1senh0rn
 [@ecdemis123]: https://github.com/ecdemis123
 [@elliterate]: https://github.com/elliterate
@@ -5001,6 +5046,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@erict-square]: https://github.com/erict-square
 [@errriclee]: https://github.com/errriclee
 [@evan-waters]: https://github.com/evan-waters
+[@exception]: https://github.com/exception
 [@fledman]: https://github.com/fledman
 [@frsantos]: https://github.com/frsantos
 [@fteem]: https://github.com/fteem
@@ -5058,6 +5104,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@rahul342]: https://github.com/rahul342
 [@randy-girard]: https://github.com/randy-girard
 [@renchap]: https://github.com/renchap
+[@return]: https://github.com/return
 [@ricbartm]: https://github.com/ricbartm
 [@roccoblues]: https://github.com/roccoblues
 [@rqz13]: https://github.com/rqz13

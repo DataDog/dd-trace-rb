@@ -18,7 +18,7 @@ RSpec.describe 'Server internal tracer', skip: ENV['BATCHED_TASKS'] do
     # We change the constant here to ensure test runs as fast possible.
     # Timeouts lower then 0.0011 get rounded down to zero.
     require 'sidekiq/fetch' # Require late, as this is not available if `compatible_with_server_internal_tracing?` is false
-    stub_const('Sidekiq::BasicFetch::TIMEOUT', { timeout: 0.0011 })
+    stub_const('Sidekiq::BasicFetch::TIMEOUT', {timeout: 0.0011})
   end
 
   it 'traces the looping job fetching' do

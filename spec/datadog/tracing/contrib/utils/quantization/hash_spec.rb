@@ -8,38 +8,38 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::Hash do
     let(:options) { {} }
 
     context 'given a Hash' do
-      let(:hash) { { one: 'foo', two: 'bar', three: 'baz' } }
+      let(:hash) { {one: 'foo', two: 'bar', three: 'baz'} }
 
       context 'default behavior' do
         it { is_expected.to eq(one: '?', two: '?', three: '?') }
       end
 
       context 'with show: value' do
-        let(:options) { { show: [:two] } }
+        let(:options) { {show: [:two]} }
 
         it { is_expected.to eq(one: '?', two: 'bar', three: '?') }
       end
 
       context 'with show: :all' do
-        let(:options) { { show: :all } }
+        let(:options) { {show: :all} }
 
         it { is_expected.to eq(hash) }
       end
 
       context 'with exclude: value' do
-        let(:options) { { exclude: [:three] } }
+        let(:options) { {exclude: [:three]} }
 
         it { is_expected.to eq(one: '?', two: '?') }
       end
 
       context 'with exclude: value with indifferent key matching' do
-        let(:options) { { exclude: ['three'] } }
+        let(:options) { {exclude: ['three']} }
 
         it { is_expected.to eq(one: '?', two: '?') }
       end
 
       context 'with exclude: :all' do
-        let(:options) { { exclude: :all } }
+        let(:options) { {exclude: :all} }
 
         it { is_expected.to eq({}) }
       end
@@ -53,25 +53,25 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::Hash do
       end
 
       context 'with show: value' do
-        let(:options) { { show: [:two] } }
+        let(:options) { {show: [:two]} }
 
         it { is_expected.to eq(['?']) }
       end
 
       context 'with show: :all' do
-        let(:options) { { show: :all } }
+        let(:options) { {show: :all} }
 
         it { is_expected.to eq(hash) }
       end
 
       context 'with exclude: value' do
-        let(:options) { { exclude: [:three] } }
+        let(:options) { {exclude: [:three]} }
 
         it { is_expected.to eq(['?']) }
       end
 
       context 'with exclude: :all' do
-        let(:options) { { exclude: :all } }
+        let(:options) { {exclude: :all} }
 
         it { is_expected.to eq(['?']) }
       end
@@ -84,9 +84,9 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::Hash do
     end
 
     context 'given a Array with nested hashes' do
-      let(:hash) { [{ foo: { bar: 1 } }, { foo: { bar: 2 } }] }
+      let(:hash) { [{foo: {bar: 1}}, {foo: {bar: 2}}] }
 
-      it { is_expected.to eq([{ foo: { bar: '?' } }, '?']) }
+      it { is_expected.to eq([{foo: {bar: '?'}}, '?']) }
     end
   end
 end

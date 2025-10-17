@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       subject(:default) { described_class.default(agent_settings: default_agent_settings, logger: logger, **options) }
 
       context 'that specify an API version' do
-        let(:options) { { api_version: api_version } }
+        let(:options) { {api_version: api_version} }
 
         context 'that is defined' do
           let(:api_version) { Datadog::Tracing::Transport::HTTP::API::V4 }
@@ -108,8 +108,8 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       end
 
       context 'that specify headers' do
-        let(:options) { { headers: headers } }
-        let(:headers) { { 'Test-Header' => 'foo' } }
+        let(:options) { {headers: headers} }
+        let(:headers) { {'Test-Header' => 'foo'} }
 
         it do
           default.apis.each_value do |api|

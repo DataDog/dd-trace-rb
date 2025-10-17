@@ -34,7 +34,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
   describe '#headers=' do
     it 'preserves HTTP headers on easy instance' do
-      easy.headers = { key: 'value' }
+      easy.headers = {key: 'value'}
       expect(easy.instance_eval { @datadog_original_headers }).to eq(key: 'value')
     end
   end
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
     before do
       expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
-      allow(easy).to receive(:mirror).and_return(double('Fake mirror', options: { response_code: 200 }))
+      allow(easy).to receive(:mirror).and_return(double('Fake mirror', options: {response_code: 200}))
       easy.datadog_before_request
     end
 
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
     context 'when response is successful' do
       before do
-        expect(easy).to receive(:mirror).and_return(double('Fake mirror', options: { response_code: 200 }))
+        expect(easy).to receive(:mirror).and_return(double('Fake mirror', options: {response_code: 200}))
       end
 
       it_behaves_like 'span' do
@@ -154,7 +154,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
     context 'when response is 500' do
       before do
-        expect(easy).to receive(:mirror).and_return(double('Fake mirror', options: { response_code: 500 }))
+        expect(easy).to receive(:mirror).and_return(double('Fake mirror', options: {response_code: 500}))
         subject
       end
 
@@ -169,7 +169,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
     context 'response has not found status' do
       before do
-        expect(easy).to receive(:mirror).and_return(double('Fake mirror', options: { response_code: 404 }))
+        expect(easy).to receive(:mirror).and_return(double('Fake mirror', options: {response_code: 404}))
         subject
       end
 
@@ -185,7 +185,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
     context 'request timed out' do
       before do
         expect(easy).to receive(:mirror).and_return(
-          double('Fake mirror', options: { response_code: 0, return_code: :operation_timedout })
+          double('Fake mirror', options: {response_code: 0, return_code: :operation_timedout})
         )
         subject
       end
@@ -205,7 +205,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
     context 'with headers set up' do
       before do
-        easy.headers = { key: 'value' }
+        easy.headers = {key: 'value'}
       end
 
       it 'cleans up @datadog_original_headers variable' do

@@ -1,6 +1,6 @@
 # typed: false
 
-require_relative './shared_examples'
+require_relative 'shared_examples'
 require 'roda'
 require 'datadog'
 require 'datadog/tracing/contrib/roda/instrumentation'
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Tracing::Contrib::Roda::Instrumentation do
     end
 
     describe 'When using automatic instrumentation' do
-      let(:env) { { REQUEST_METHOD: 'GET' } }
+      let(:env) { {REQUEST_METHOD: 'GET'} }
       context 'configuring roda' do
         context 'with default settings' do
           it 'enables the tracer' do
@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::Contrib::Roda::Instrumentation do
 
           context 'with a custom service name' do
             let(:custom_service_name) { 'custom_service_name' }
-            let(:configuration_options) { { service_name: custom_service_name } }
+            let(:configuration_options) { {service_name: custom_service_name} }
 
             it 'sets a custom service name' do
               expect(Datadog.configuration.service).to eq('rspec')

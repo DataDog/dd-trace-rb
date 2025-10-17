@@ -56,7 +56,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
       let(:matcher) { :test }
 
       context 'with a valid ActiveRecord database' do
-        let(:configuration) { { 'test' => db_config } }
+        let(:configuration) { {'test' => db_config} }
 
         let(:db_config) do
           {
@@ -150,9 +150,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
         is_expected.to be(matcher)
 
         unless matcher == match_all
-          expect(resolver.resolve({ host: Object.new }))
+          expect(resolver.resolve({host: Object.new}))
             .to be_nil,
-              "Expected pattern to match only the input, but it's matching everything. "\
+              "Expected pattern to match only the input, but it's matching everything. " \
                                       'Unless you explicitly wanted to match all patterns, this is unlikely to be desired.'
         end
       end

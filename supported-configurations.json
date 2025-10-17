@@ -10,6 +10,9 @@
     "DD_API_SECURITY_ENABLED": {
       "version": ["A"]
     },
+    "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED": {
+      "version": ["A"]
+    },
     "DD_API_SECURITY_REQUEST_SAMPLE_RATE": {
       "version": ["A"]
     },

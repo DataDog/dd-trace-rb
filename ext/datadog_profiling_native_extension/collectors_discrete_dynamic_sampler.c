@@ -365,7 +365,7 @@ static const rb_data_type_t sampler_typed_data = {
 };
 
 static VALUE _native_new(VALUE klass) {
-  sampler_state *state = ruby_xcalloc(sizeof(sampler_state), 1);
+  sampler_state *state = ruby_xcalloc(1, sizeof(sampler_state));
 
   long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   if (now_ns == 0) {

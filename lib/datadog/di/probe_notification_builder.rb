@@ -46,6 +46,9 @@ module Datadog
         build_snapshot(context)
       end
 
+      NANOSECONDS = 10**9
+      MILLISECONDS = 1000
+
       def build_snapshot(context)
         probe = context.probe
 
@@ -101,12 +104,18 @@ module Datadog
         end
 
         timestamp = timestamp_now
+        message = nil
+        evaluation_errors = []
+        if segments = probe.template_segments
+          message, evaluation_errors = evaluate_template(segments, context)
+        end
+        duration = context.duration
         {
           service: settings.service,
           "debugger.snapshot": {
             id: SecureRandom.uuid,
             timestamp: timestamp,
-            evaluationErrors: [],
+            evaluationErrors: evaluation_errors,
             probe: {
               id: probe.id,
               version: 0,
@@ -119,7 +128,7 @@ module Datadog
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
-          duration: (duration = context.duration) ? (duration * 10**9).to_i : 0,
+          duration: duration ? (duration * NANOSECONDS).to_i : 0,
           host: nil,
           logger: {
             name: probe.file,
@@ -136,11 +145,7 @@ module Datadog
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
           ddsource: 'dd_debugger',
-          message: probe.template_segments && evaluate_template(
-            probe.template_segments,
-            context
-          ),
-          #duration: duration ? duration * 1000 : 0),
+          message: message,
           timestamp: timestamp,
         }
       end
@@ -172,20 +177,28 @@ module Datadog
       end
 
       def evaluate_template(template_segments, context)
-        template_segments.map do |segment|
+        evaluation_errors = []
+        message = template_segments.map do |segment|
           case segment
           when String
             segment
           when EL::Expression
-            segment.evaluate(context).to_s
+            serializer.serialize_value_for_message(segment.evaluate(context))
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
-        end.join('')
+        rescue => exc
+          evaluation_errors << {
+            message: "#{exc.class}: #{exc}",
+            expr: segment.dsl_expr,
+          }
+          '[evaluation error]'
+        end.join
+        [message, evaluation_errors]
       end
 
       def timestamp_now
-        (Core::Utils::Time.now.to_f * 1000).to_i
+        (Core::Utils::Time.now.to_f * MILLISECONDS).to_i
       end
 
       def active_trace

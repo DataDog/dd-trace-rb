@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Env do
     end
 
     context 'given options' do
-      let(:options) { { foo: :foo } }
+      let(:options) { {foo: :foo} }
 
       it { expect(env[:foo]).to eq(:foo) }
     end

@@ -44,6 +44,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       $presto_is_online = true
     end
   end
+  # rubocop:enable Style/GlobalVars
 
   def presto_online?
     client.run('SELECT 1')
@@ -116,7 +117,7 @@ RSpec.describe 'Presto::Client instrumentation' do
 
         context 'with a different service name' do
           let(:service) { 'presto-primary' }
-          let(:configuration_options) { { service_name: service } }
+          let(:configuration_options) { {service_name: service} }
 
           it_behaves_like 'a Presto trace'
         end
@@ -244,7 +245,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       it_behaves_like 'a synchronous query trace'
       it_behaves_like 'a sampled trace'
 
-      it 'has a query resource'  do
+      it 'has a query resource' do
         expect(span.resource).to eq('SELECT 1')
       end
 
@@ -265,7 +266,7 @@ RSpec.describe 'Presto::Client instrumentation' do
         it_behaves_like 'a Presto trace'
         it_behaves_like 'a configurable Presto trace'
 
-        it 'has a query resource'  do
+        it 'has a query resource' do
           expect(span.resource).to eq('SELECT banana')
         end
 

@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module APISecurity
+      module EndpointCollection
+        module RailsRouteSerializer
+          FORMAT_SUFFIX: ::String
+
+          def self?.serialize: (_RailsRoute route) -> Core::Telemetry::Event::AppEndpointsLoaded::endpoint
+        end
+      end
+    end
+  end
+end

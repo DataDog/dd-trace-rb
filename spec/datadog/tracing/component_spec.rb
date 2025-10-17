@@ -152,7 +152,7 @@ RSpec.describe Datadog::Tracing::Component do
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { enabled: enabled } }
+          let(:options) { {enabled: enabled} }
           it_behaves_like 'event publishing writer and priority sampler'
         end
       end
@@ -167,7 +167,7 @@ RSpec.describe Datadog::Tracing::Component do
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { tags: { 'env' => env } } }
+          let(:options) { {tags: {'env' => env}} }
           it_behaves_like 'event publishing writer and priority sampler'
         end
       end
@@ -182,7 +182,7 @@ RSpec.describe Datadog::Tracing::Component do
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { trace_flush: be_a(Datadog::Tracing::Flush::Partial) } }
+          let(:options) { {trace_flush: be_a(Datadog::Tracing::Flush::Partial)} }
           it_behaves_like 'event publishing writer and priority sampler'
         end
 
@@ -197,8 +197,8 @@ RSpec.describe Datadog::Tracing::Component do
 
           it_behaves_like 'new tracer' do
             let(:options) do
-              { trace_flush: be_a(Datadog::Tracing::Flush::Partial) &
-                have_attributes(min_spans_for_partial: min_spans_threshold) }
+              {trace_flush: be_a(Datadog::Tracing::Flush::Partial) &
+                have_attributes(min_spans_for_partial: min_spans_threshold)}
             end
 
             it_behaves_like 'event publishing writer and priority sampler'
@@ -216,7 +216,7 @@ RSpec.describe Datadog::Tracing::Component do
         let(:sampler) { double('sampler') }
 
         it_behaves_like 'new tracer' do
-          let(:options) { { sampler: sampler } }
+          let(:options) { {sampler: sampler} }
           it_behaves_like 'event publishing writer and priority sampler'
         end
       end
@@ -266,7 +266,7 @@ RSpec.describe Datadog::Tracing::Component do
           let(:rules) { nil }
 
           it_behaves_like 'new tracer' do
-            let(:options) { { span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(rules: []) } }
+            let(:options) { {span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(rules: [])} }
           end
         end
       end
@@ -281,7 +281,7 @@ RSpec.describe Datadog::Tracing::Component do
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { default_service: service } }
+          let(:options) { {default_service: service} }
           it_behaves_like 'event publishing writer and priority sampler'
         end
       end
@@ -301,7 +301,7 @@ RSpec.describe Datadog::Tracing::Component do
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { tags: tags } }
+          let(:options) { {tags: tags} }
           it_behaves_like 'event publishing writer and priority sampler'
         end
 
@@ -315,7 +315,7 @@ RSpec.describe Datadog::Tracing::Component do
           end
 
           it_behaves_like 'new tracer' do
-            let(:options) { { tags: tags.merge('env' => env) } }
+            let(:options) { {tags: tags.merge('env' => env)} }
             it_behaves_like 'event publishing writer and priority sampler'
           end
         end
@@ -330,7 +330,7 @@ RSpec.describe Datadog::Tracing::Component do
           end
 
           it_behaves_like 'new tracer' do
-            let(:options) { { tags: tags.merge('version' => version) } }
+            let(:options) { {tags: tags.merge('version' => version)} }
             it_behaves_like 'event publishing writer and priority sampler'
           end
         end
@@ -358,8 +358,8 @@ RSpec.describe Datadog::Tracing::Component do
             context 'and :async' do
               context 'is set' do
                 let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
-                let(:writer_options) { { transport_options: :bar } }
-                let(:writer_options_test_mode) { { transport_options: :baz } }
+                let(:writer_options) { {transport_options: :bar} }
+                let(:writer_options_test_mode) { {transport_options: :baz} }
 
                 before do
                   allow(settings.tracing.test_mode)
@@ -439,7 +439,7 @@ RSpec.describe Datadog::Tracing::Component do
                   end
 
                   context 'are set' do
-                    let(:writer_options) { { transport_options: :bar } }
+                    let(:writer_options) { {transport_options: :bar} }
 
                     it_behaves_like 'new tracer' do
                       let(:options) do
@@ -469,7 +469,7 @@ RSpec.describe Datadog::Tracing::Component do
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { tags: { 'version' => version } } }
+          let(:options) { {tags: {'version' => version}} }
         end
       end
 
@@ -485,12 +485,12 @@ RSpec.describe Datadog::Tracing::Component do
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { writer: writer } }
+          let(:options) { {writer: writer} }
         end
 
         context 'that publishes events' do
           it_behaves_like 'new tracer' do
-            let(:options) { { writer: writer } }
+            let(:options) { {writer: writer} }
             let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
             after { writer.stop }
 
@@ -500,7 +500,7 @@ RSpec.describe Datadog::Tracing::Component do
       end
 
       context 'with :writer_options' do
-        let(:writer_options) { { custom_option: :custom_value } }
+        let(:writer_options) { {custom_option: :custom_value} }
 
         it_behaves_like 'new tracer' do
           before do
@@ -521,7 +521,7 @@ RSpec.describe Datadog::Tracing::Component do
 
           it_behaves_like 'new tracer' do
             # Ignores the writer options in favor of the writer
-            let(:options) { { writer: writer } }
+            let(:options) { {writer: writer} }
           end
         end
       end

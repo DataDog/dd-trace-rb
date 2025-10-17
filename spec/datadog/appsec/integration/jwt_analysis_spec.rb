@@ -57,7 +57,7 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
           'transformers' => [],
           'output' => {
             'event' => false,
-            'keep' => false,
+            'keep' => true,
             'attributes' => {'_dd.appsec.api.jwt.no_expiry' => {'value' => 1}}
           }
         }
@@ -156,6 +156,9 @@ RSpec.describe 'Blocking with deny and pass list configuration' do
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
       .and_return(true)
+
+    allow(Datadog::AppSec::APISecurity).to receive(:sample_trace?).and_return(true)
+    allow(Datadog::AppSec::APISecurity).to receive(:sample?).and_return(true)
   end
 
   after do

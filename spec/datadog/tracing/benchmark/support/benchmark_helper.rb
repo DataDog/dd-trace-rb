@@ -51,10 +51,10 @@ RSpec.shared_context 'benchmark' do
   # Theses results can be historically tracked (e.g. plotting) if needed.
   def write_result(result, subtype = nil)
     file_name = if subtype
-                  "#{@type}-#{subtype}"
-                else
-                  @type
-                end
+      "#{@type}-#{subtype}"
+    else
+      @type
+    end
 
     warn(@test, file_name, result)
 
@@ -91,7 +91,7 @@ RSpec.shared_context 'benchmark' do
     end
 
     result = report.entries.each_with_object({}) do |entry, hash|
-      hash[entry.label] = { ips: entry.stats.central_tendency, error: entry.stats.error_percentage / 100 }
+      hash[entry.label] = {ips: entry.stats.central_tendency, error: entry.stats.error_percentage / 100}
     end.to_h
 
     write_result(result)
@@ -115,7 +115,7 @@ RSpec.shared_context 'benchmark' do
 
     result = report.entries.map do |entry|
       row = entry.measurement.map do |metric|
-        { type: metric.type, allocated: metric.allocated, retained: metric.retained }
+        {type: metric.type, allocated: metric.allocated, retained: metric.retained}
       end
 
       [entry.label, row]
@@ -145,7 +145,7 @@ RSpec.shared_context 'benchmark' do
 
     puts io.string
 
-    result = { count: data.size, time: data.sum { |d| d[:GC_TIME] } }
+    result = {count: data.size, time: data.sum { |d| d[:GC_TIME] }}
     write_result(result)
   end
 
@@ -176,7 +176,7 @@ RSpec.shared_context 'benchmark' do
       report.pretty_print
 
       per_gem_report = lambda do |results|
-        Hash[results.map { |x| [x[:data], x[:count]] }.sort_by(&:first)]
+        results.map { |x| [x[:data], x[:count]] }.sort_by(&:first).to_h
       end
 
       result = {
@@ -273,7 +273,7 @@ RSpec.shared_context 'minimal agent' do
       # to read the response in time.
       # We instead delay closing the connection until the next
       # connection request comes in.
-      previous_conn.close if previous_conn
+      previous_conn&.close
       previous_conn = conn
     end
   end
@@ -282,15 +282,19 @@ RSpec.shared_context 'minimal agent' do
     # Initializes server in a fork, to allow for true concurrency.
     # In JRuby, threads are not supported, but true thread concurrency is.
     @agent_runner = if Process.respond_to?(:fork)
-                      fork { server_runner }
-                    else
-                      Thread.new { server_runner }
-                    end
+      fork { server_runner }
+    else
+      Thread.new { server_runner }
+    end
   end
 
   after do
     if Process.respond_to?(:fork)
-      Process.kill('TERM', @agent_runner) rescue nil
+      begin
+        Process.kill('TERM', @agent_runner)
+      rescue
+        nil
+      end
       try_wait_until { Process.wait(@agent_runner, Process::WNOHANG) }
     else
       @agent_runner.kill

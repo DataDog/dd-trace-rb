@@ -64,6 +64,9 @@ module Datadog
       # a common base class but are all of different classes) or for Mongoid
       # models (that do not have a common base class at all but include a
       # standard Mongoid module).
+      #
+      # Important: these serializers are NOT used in log messages.
+      # They are only used for variables that are captured in the snapshots.
       @@flat_registry = []
       def self.register(condition: nil, &block)
         @@flat_registry << {condition: condition, proc: block}
@@ -156,6 +159,8 @@ module Datadog
           end
 
           serialized = {type: class_name(cls)}
+          # https://github.com/soutaro/steep/issues/1860
+          # @type var serialized: untyped
           case value
           when NilClass
             serialized.update(isNull: true)
@@ -267,7 +272,119 @@ module Datadog
         end
       end
 
+      # This method is used for serializing arbitrary values into log messages.
+      # Because the output is meant to be human-readable, we cannot use
+      # the "normal" serialization format which is meant to be machine-readable.
+      # Serialize objects with depth of 1 and include the class name.
+      #
+      # Note that this method does not (currently) utilize the custom
+      # serializers that the "normal" serialization logic uses.
+      #
+      # This serializer differs from the RFC in two ways:
+      # 1. We omit the middle of long strings rather than the end,
+      #    and also the inner entries in arrays/hashes/objects.
+      # 2. We use Ruby-ish syntax for hashes and objects.
+      #
+      # We also use the Ruby-like syntax for symbols, which don't exist
+      # in other languages.
+      def serialize_value_for_message(value, depth = 1)
+        # This method is more verbose than "normal" Ruby code to avoid
+        # array allocations.
+        case value
+        when NilClass
+          'nil'
+        when Integer, Float, TrueClass, FalseClass, Time, Date
+          value.to_s
+        when String
+          serialize_string_or_symbol_for_message(value)
+        when Symbol
+          ':' + serialize_string_or_symbol_for_message(value)
+        when Array
+          return '...' if depth <= 0
+
+          max = max_capture_collection_size_for_message
+          if value.length > max
+            value_ = value[0...max - 1] || []
+            value_ << '...'
+            value_ << value[-1]
+            value = value_
+          end
+          '[' + value.map do |item|
+            serialize_value_for_message(item, depth - 1)
+          end.join(', ') + ']'
+        when Hash
+          return '...' if depth <= 0
+
+          max = max_capture_collection_size_for_message
+          keys = value.keys
+          truncated = false
+          if value.length > max
+            keys_ = keys[0...max - 1] || []
+            keys_ << keys[-1]
+            keys = keys_
+            truncated = true
+          end
+          serialized = keys.map do |key|
+            "#{serialize_value_for_message(key, depth - 1)} => #{serialize_value_for_message(value[key], depth - 1)}"
+          end
+          if truncated
+            serialized[serialized.length] = serialized[serialized.length - 1]
+            serialized[serialized.length - 2] = '...'
+          end
+          "{#{serialized.join(", ")}}"
+        else
+          return '...' if depth <= 0
+
+          vars = value.instance_variables
+          truncated = false
+          max = max_capture_attribute_count_for_message
+          if vars.length > max
+            vars_ = vars[0...max - 1] || []
+            vars_ << vars[-1]
+            truncated = true
+            vars = vars_
+          end
+          serialized = vars.map do |var|
+            # +var+ here is always the instance variable name which is a
+            # symbol, we do not need to run it through our serializer.
+            "#{var}=#{serialize_value_for_message(value.send(:instance_variable_get, var), depth - 1)}"
+          end
+          if truncated
+            serialized << serialized.last
+            serialized[-2] = '...'
+          end
+          serialized = if serialized.any?
+            ' ' + serialized.join(' ')
+          end
+          "#<#{class_name(value.class)}#{serialized}>"
+        end
+      rescue => exc
+        telemetry&.report(exc, description: "Error serializing for message")
+        # TODO class_name(foo) can also fail, which we don't handle here.
+        # Telemetry reporting could potentially also fail?
+        "#<#{class_name(value.class)}: serialization error>"
+      end
+
       private
+
+      MAX_MESSAGE_COLLECTION_SIZE = 3
+      MAX_MESSAGE_ATTRIBUTE_COUNT = 5
+
+      def max_capture_collection_size_for_message
+        max = settings.dynamic_instrumentation.max_capture_collection_size
+        if max > MAX_MESSAGE_COLLECTION_SIZE
+          max = MAX_MESSAGE_COLLECTION_SIZE
+        end
+        max
+      end
+
+      def max_capture_attribute_count_for_message
+        max = settings.dynamic_instrumentation.max_capture_attribute_count
+        if max > MAX_MESSAGE_ATTRIBUTE_COUNT
+          max = MAX_MESSAGE_ATTRIBUTE_COUNT
+        end
+        max
+      end
 
       # Returns the name for the specified class object.
       #
@@ -278,6 +395,27 @@ module Datadog
         # the class, but it is likely that user code can override #to_s
         # and we don't want to invoke user code.
         cls.name || "[Unnamed class]"
+      end
+
+      def serialize_string_or_symbol_for_message(value)
+        max = settings.dynamic_instrumentation.max_capture_string_length
+        if max > 100
+          max = 100
+        end
+        value = value.to_s
+        if (length = value.length) > max
+          if max < 5
+            value[0...max]
+          else
+            upper = length - max / 2 + 1
+            if max % 2 == 0
+              upper += 1
+            end
+            value[0...max / 2 - 1] + '...' + value[upper...length]
+          end
+        else
+          value
+        end
       end
     end
   end

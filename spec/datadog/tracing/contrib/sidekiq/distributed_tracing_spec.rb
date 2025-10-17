@@ -30,7 +30,8 @@ RSpec.describe 'Sidekiq distributed tracing' do
       'EmptyWorker',
       Class.new do
         include Sidekiq::Worker
-        def perform; end
+        def perform
+        end
       end
     )
   end

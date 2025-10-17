@@ -20,8 +20,8 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceMiddleware do
   describe '#call' do
     subject(:middleware_call) { middleware.call(env) }
 
-    let(:env) { { 'rack.url_scheme' => 'http' } } # Scheme necessary for Rack 1.4.7
-    let(:response) { [200, { 'Content-Type' => 'text/plain' }, ['OK']] }
+    let(:env) { {'rack.url_scheme' => 'http'} } # Scheme necessary for Rack 1.4.7
+    let(:response) { [200, {'Content-Type' => 'text/plain'}, ['OK']] }
 
     before do
       allow(app).to receive(:call)
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceMiddleware do
   # As an alternative, we test the parsing method directly.
   describe '#parse_url' do
     subject(:parse_url) { middleware.send(:parse_url, env, original_env) }
-    let(:env) { { 'REQUEST_URI' => uri, 'HTTP_HOST' => 'localhost:443', 'rack.url_scheme' => 'https' } }
+    let(:env) { {'REQUEST_URI' => uri, 'HTTP_HOST' => 'localhost:443', 'rack.url_scheme' => 'https'} }
     let(:original_env) { {} }
 
     context 'with Unicode characters' do

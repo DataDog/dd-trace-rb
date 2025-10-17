@@ -18,7 +18,7 @@ MESSAGE
   include_context 'Rails test application'
 
   shared_examples 'rails patching disabled' do
-    let(:routes) { { '/' => 'test#index' } }
+    let(:routes) { {'/' => 'test#index'} }
 
     let(:controllers) { [controller] }
 

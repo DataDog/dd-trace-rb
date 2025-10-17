@@ -1015,6 +1015,44 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           end
         end
       end
+
+      describe 'endpoint_collection' do
+        describe '#enabled' do
+          context 'when DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED is undefined' do
+            around do |example|
+              ClimateControl.modify('DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => nil) { example.run }
+            end
+
+            it { expect(settings.appsec.api_security.endpoint_collection.enabled).to eq(true) }
+          end
+
+          context 'when DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED is set to true' do
+            around do |example|
+              ClimateControl.modify('DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => 'true') { example.run }
+            end
+
+            it { expect(settings.appsec.api_security.endpoint_collection.enabled).to eq(true) }
+          end
+
+          context 'when DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED is set to false' do
+            around do |example|
+              ClimateControl.modify('DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => 'false') { example.run }
+            end
+
+            it { expect(settings.appsec.api_security.endpoint_collection.enabled).to eq(false) }
+          end
+        end
+
+        describe '#enabled=' do
+          [true, false].each do |value|
+            context "when given #{value}" do
+              before { settings.appsec.api_security.endpoint_collection.enabled = value }
+
+              it { expect(settings.appsec.api_security.endpoint_collection.enabled).to eq(value) }
+            end
+          end
+        end
+      end
     end
 
     describe 'sca' do

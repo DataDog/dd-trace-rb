@@ -53,11 +53,11 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingHeaderTags do
     config_key: :header_tags,
     value: RSpec::Matchers::BuiltIn::Match.new(->(header_tags) { header_tags.to_s == 'my-header:my-tag' }) do
       let(:old_value) { ->(header_tags) { header_tags.to_s == '' } }
-      let(:new_value) { [{ 'header' => 'my-header', 'tag_name' => 'my-tag' }] }
+      let(:new_value) { [{'header' => 'my-header', 'tag_name' => 'my-tag'}] }
     end
 
   context 'with multiple values in tracing_header_tags' do
-    let(:new_value) { [{ 'header' => 'h1', 'tag_name' => 't1' }, { 'header' => 'h2', 'tag_name' => '' }] }
+    let(:new_value) { [{'header' => 'h1', 'tag_name' => 't1'}, {'header' => 'h2', 'tag_name' => ''}] }
 
     it 'process the value list' do
       expect(configuration_object).to receive(:set_option).with(:header_tags, ['h1:t1', 'h2:'], any_args)
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
     config_key: :rules,
     value: RSpec::Matchers::BuiltIn::Match.new(->(rules) { rules == '[{"sample_rate":1}]' }),
     config_object: Datadog.configuration.tracing.sampling do
-      let(:new_value) { [{ sample_rate: 1 }] }
+      let(:new_value) { [{sample_rate: 1}] }
     end
 
   context 'with tags' do
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
         end
       ),
       config_object: Datadog.configuration.tracing.sampling do
-        let(:new_value) { [{ sample_rate: 1, tags: [{ key: 'k', value_glob: 'v' }] }] }
+        let(:new_value) { [{sample_rate: 1, tags: [{key: 'k', value_glob: 'v'}]}] }
       end
   end
 

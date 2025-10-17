@@ -80,7 +80,7 @@ RSpec.describe 'Dalli instrumentation' do
     end
 
     context 'with command tag captured enabled' do
-      let(:configuration_options) { { command_enabled: true } }
+      let(:configuration_options) { {command_enabled: true} }
       it { expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0') }
     end
 
@@ -92,7 +92,7 @@ RSpec.describe 'Dalli instrumentation' do
 
   describe 'when multiplexed configuration is provided' do
     let(:service_name) { 'multiplex-service' }
-    let(:configuration_options) { { describes: "#{test_host}:#{test_port}", service_name: service_name } }
+    let(:configuration_options) { {describes: "#{test_host}:#{test_port}", service_name: service_name} }
 
     context 'and #set is called' do
       before do

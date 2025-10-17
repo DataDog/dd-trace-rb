@@ -286,12 +286,12 @@ RSpec.describe Datadog::Core::Configuration::Options do
             end
 
             context 'and a default value is configured' do
-              let(:meta) { { default: 'anything' } }
+              let(:meta) { {default: 'anything'} }
 
               it { is_expected.to be(true) }
 
               context 'and an environment variable is configured' do
-                let(:meta) { { default: 'anything', env: 'TEST_ENV_VAR' } }
+                let(:meta) { {default: 'anything', env: 'TEST_ENV_VAR'} }
 
                 context 'and an environmet variable is set' do
                   around do |example|
@@ -308,7 +308,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
             end
 
             context 'an environment variable is configured' do
-              let(:meta) { { env: 'TEST_ENV_VAR' } }
+              let(:meta) { {env: 'TEST_ENV_VAR'} }
 
               context 'and an environmet variable is set' do
                 around do |example|

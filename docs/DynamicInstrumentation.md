@@ -38,3 +38,17 @@ performance reasons.
 possible to guarantee that it will not invoke application code
 (since all operations in Ruby can be redefined at runtime, even for example
 addition of numbers).
+
+## Application Data Sent to Datadog
+
+Dynamic instrumentation sends some of the application data to Datadog.
+The following data is generally sent:
+
+- Class names of objects.
+- Serialized object values, subject to redaction. There are built-in
+redaction rules based on identifier names that are always active.
+Additionally, it is possible to provide a list of class names whose
+object values should always be redacted, and a list of additional
+identifiers to be redacted.
+- Exception class names and messages.
+- Exception stack traces.

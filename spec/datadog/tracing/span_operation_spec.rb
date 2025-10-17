@@ -104,7 +104,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
     context 'given an option' do
       shared_examples 'a string property' do |nillable: true|
-        let(:options) { { property => value } }
+        let(:options) { {property => value} }
 
         context 'set to a String' do
           let(:value) { 'test string' }
@@ -147,7 +147,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       context ':on_error' do
-        let(:options) { { on_error: on_error } }
+        let(:options) { {on_error: on_error} }
 
         let(:block) { proc { raise error } }
         let(:error) { error_class.new('error message') }
@@ -215,7 +215,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       describe ':parent_id' do
-        let(:options) { { parent_id: parent_id } }
+        let(:options) { {parent_id: parent_id} }
 
         context 'that is nil' do
           let(:parent_id) { nil }
@@ -229,7 +229,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       describe ':id' do
-        let(:options) { { id: id } }
+        let(:options) { {id: id} }
 
         context 'that is nil' do
           let(:id) { nil }
@@ -255,13 +255,13 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       describe ':links' do
-        let(:options) { { links: span_links } }
+        let(:options) { {links: span_links} }
 
         context 'that is an Array' do
           let(:span_links) do
             [Datadog::Tracing::SpanLink.new(
               Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
-              attributes: { "link.name": 'moon' }
+              attributes: {"link.name": 'moon'}
             )]
           end
           it { is_expected.to have_attributes(links: span_links) }
@@ -274,7 +274,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       describe ':start_time' do
-        let(:options) { { start_time: start_time } }
+        let(:options) { {start_time: start_time} }
         let(:start_time) { instance_double(Time) }
 
         context 'that is nil' do
@@ -289,7 +289,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       describe ':tags' do
-        let(:options) { { tags: tags } }
+        let(:options) { {tags: tags} }
 
         context 'that is nil' do
           let(:tags) { nil }
@@ -298,7 +298,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
 
         context 'that is a Hash' do
-          let(:tags) { { 'custom_tag' => 'custom_value' } }
+          let(:tags) { {'custom_tag' => 'custom_value'} }
 
           it_behaves_like 'a root span operation'
           it { expect(span_op.get_tag('custom_tag')).to eq(tags['custom_tag']) }
@@ -306,7 +306,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       describe ':trace_id' do
-        let(:options) { { trace_id: trace_id } }
+        let(:options) { {trace_id: trace_id} }
 
         context 'that is nil' do
           let(:trace_id) { nil }
@@ -980,11 +980,9 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
     context 'given an error' do
       let(:error) do
-        begin
-          raise message
-        rescue => e
-          e
-        end
+        raise message
+      rescue => e
+        e
       end
 
       let(:message) { 'Test error!' }
@@ -1031,8 +1029,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     it 'provides custom attributes' do
       span_op.record_exception(
         error,
-        attributes: { 'custom_attr1' => 'value',
-                      custom_attr2: 'value' }
+        attributes: {'custom_attr1' => 'value',
+                     :custom_attr2 => 'value'}
       )
 
       expect(span_op.span_events.last).to have_attributes(
@@ -1055,7 +1053,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         error,
         attributes: {
           'custom_attr' => 'value',
-          'custom_attr2' => { foo: 'bar' },
+          'custom_attr2' => {foo: 'bar'},
           'custom_attr3' => [[1]],
           'custom_attr4' => [1, 'foo'],
           'custom_attr5' => 2 << 65,

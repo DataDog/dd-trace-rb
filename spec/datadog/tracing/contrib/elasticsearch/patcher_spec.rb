@@ -136,7 +136,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       end
 
       context 'when configured_with `on_error`' do
-        let(:configuration_options) { { on_error: ->(_span, _error) { false } } }
+        let(:configuration_options) { {on_error: ->(_span, _error) { false }} }
 
         it 'does not mark span with error' do
           expect { request }.to raise_error(exception_class)
@@ -155,8 +155,8 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
         },
         nested_array: %w[a b],
         nested_object_array: [
-          { a: 'a' },
-          { b: 'b' }
+          {a: 'a'},
+          {b: 'b'}
         ]
       }
     end

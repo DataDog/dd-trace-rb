@@ -49,10 +49,10 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
       # https://github.com/grpc/grpc-go/blob/master/Documentation/grpc-metadata.md
       context 'given populated data in array format' do
         let(:data) do
-          { 'x-datadog-trace-id' => %w[12345 67890],
-            'x-datadog-parent-id' => %w[98765 43210],
-            'x-datadog-sampling-priority' => ['0'],
-            'x-datadog-origin' => ['synthetics'] }
+          {'x-datadog-trace-id' => %w[12345 67890],
+           'x-datadog-parent-id' => %w[98765 43210],
+           'x-datadog-sampling-priority' => ['0'],
+           'x-datadog-origin' => ['synthetics']}
         end
 
         it 'returns a populated TraceDigest with the first data array values' do

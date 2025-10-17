@@ -36,7 +36,11 @@ RSpec.describe Datadog::Core::Utils::OnlyOnce do
       end
 
       it 'does not run again' do
-        only_once.run { raise 'boom' } rescue nil
+        begin
+          only_once.run { raise 'boom' }
+        rescue
+          nil
+        end
 
         expect { |block| only_once.run(&block) }.to_not yield_control
       end

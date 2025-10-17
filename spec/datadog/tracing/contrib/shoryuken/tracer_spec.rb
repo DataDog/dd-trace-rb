@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 
 require 'datadog'
 require 'shoryuken'
+require 'ostruct'
 
 RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
   let(:shoryuken_tracer) { described_class.new }
@@ -31,7 +32,8 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
         Class.new do
           include Shoryuken::Worker
           shoryuken_options queue: qn
-          def perform(sqs_msg, body); end
+          def perform(sqs_msg, body)
+          end
         end
       )
     end
@@ -84,7 +86,7 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
     context 'with a body' do
       context 'that is a Hash' do
         context 'that contains \'job_class\'' do
-          let(:body) { { 'job_class' => job_class } }
+          let(:body) { {'job_class' => job_class} }
           let(:job_class) { 'MyJob' }
 
           it { expect(span.resource).to eq(job_class) }
@@ -103,7 +105,7 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
     end
 
     context 'when tag_body is true' do
-      let(:configuration_options) { { tag_body: true } }
+      let(:configuration_options) { {tag_body: true} }
 
       it 'includes the body in the span' do
         expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to eq(body)
@@ -111,7 +113,7 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
     end
 
     context 'when tag_body is false' do
-      let(:configuration_options) { { tag_body: false } }
+      let(:configuration_options) { {tag_body: false} }
 
       it 'does not include the message body in the span' do
         expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to be_nil
@@ -152,7 +154,7 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
     end
 
     context 'given an error handler' do
-      let(:configuration_options) { { on_error: proc { @error_handler_called = true } } }
+      let(:configuration_options) { {on_error: proc { @error_handler_called = true }} }
       it do
         expect { raise_exception }.to raise_error 'Bala Boom!'
         expect(span).not_to have_error

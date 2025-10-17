@@ -8,7 +8,8 @@ RSpec.describe 'Microbenchmark' do
   describe 'baseline' do
     include_examples 'benchmark'
 
-    def subject(_); end
+    def subject(_)
+    end
   end
 
   describe Datadog::Tracing::Tracer do
@@ -37,7 +38,7 @@ RSpec.describe 'Microbenchmark' do
       let(:writer) { described_class.new(transport: FauxTransport.new, buffer_size: buffer_size, flush_interval: 1e9) }
       let(:span1) { get_test_traces(1).flatten }
       let(:span100) { get_test_traces(100).flatten }
-      let(:span) { { 1 => span1, 100 => span100 } }
+      let(:span) { {1 => span1, 100 => span100} }
 
       before do
         writer.start

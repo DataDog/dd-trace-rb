@@ -101,7 +101,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
     end
 
     context 'with trace_id and span_id' do
-      let(:data) { { prepare_key[b3_single_header] => 'abcdef-fedcba' } }
+      let(:data) { {prepare_key[b3_single_header] => 'abcdef-fedcba'} }
 
       it { expect(digest.trace_id).to eq(0xabcdef) }
       it { expect(digest.span_id).to eq(0xfedcba) }
@@ -110,7 +110,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
       it { expect(digest.span_remote).to be true }
 
       context 'with sampling priority' do
-        let(:data) { { prepare_key[b3_single_header] => 'abcdef-fedcba-1' } }
+        let(:data) { {prepare_key[b3_single_header] => 'abcdef-fedcba-1'} }
 
         it { expect(digest.trace_id).to eq(0xabcdef) }
         it { expect(digest.span_id).to eq(0xfedcba) }
@@ -139,7 +139,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
           '-1',
         ].each do |invalid_trace_id|
           context "when given trace id: #{invalid_trace_id}" do
-            let(:data) { { prepare_key[b3_single_header] => "#{invalid_trace_id}-fedcba" } }
+            let(:data) { {prepare_key[b3_single_header] => "#{invalid_trace_id}-fedcba"} }
 
             it { is_expected.to be nil }
           end
@@ -153,7 +153,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
           '0',
         ].each do |invalid_span_id|
           context "when given span id: #{invalid_span_id}" do
-            let(:data) { { prepare_key[b3_single_header] => "abcdef-#{invalid_span_id}" } }
+            let(:data) { {prepare_key[b3_single_header] => "abcdef-#{invalid_span_id}"} }
 
             it { is_expected.to be nil }
           end
@@ -162,13 +162,13 @@ RSpec.shared_examples 'B3 Single distributed format' do
     end
 
     context 'with trace_id' do
-      let(:data) { { prepare_key[b3_single_header] => 'abcdef' } }
+      let(:data) { {prepare_key[b3_single_header] => 'abcdef'} }
 
       it { is_expected.to be nil }
 
       context 'with 128 bits trace id and 64 bits span id' do
         let(:data) do
-          { prepare_key[b3_single_header] => 'aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb' }
+          {prepare_key[b3_single_header] => 'aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb'}
         end
 
         it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }

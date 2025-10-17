@@ -88,7 +88,7 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
         let(:rule) { described_class.new(tags: tags) }
 
         context 'when span tags are present' do
-          let(:trace_tags) { { 'tag1' => 'value1', 'tag2' => 'value2' } }
+          let(:trace_tags) { {'tag1' => 'value1', 'tag2' => 'value2'} }
 
           context 'with a string' do
             context 'matching' do
@@ -98,7 +98,7 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
             end
 
             context 'not matching' do
-              let(:tags) { { 'tag1' => 'value1', 'tag2' => 'not_value' } }
+              let(:tags) { {'tag1' => 'value1', 'tag2' => 'not_value'} }
 
               it { is_expected.to eq(false) }
             end
@@ -107,30 +107,30 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
 
         context 'when span metrics are present' do
           # Metrics are stored as tags, but have numeric values
-          let(:trace_tags) { { 'metric1' => 1.0, 'metric2' => 2 } }
+          let(:trace_tags) { {'metric1' => 1.0, 'metric2' => 2} }
 
           context 'with a glob' do
             context 'matching' do
-              let(:tags) { { 'metric1' => '1', 'metric2' => '*' } }
+              let(:tags) { {'metric1' => '1', 'metric2' => '*'} }
 
               it { is_expected.to eq(true) }
             end
 
             context 'not matching' do
-              let(:tags) { { 'metric1' => '1', 'metric2' => '3' } }
+              let(:tags) { {'metric1' => '1', 'metric2' => '3'} }
 
               it { is_expected.to eq(false) }
 
               context 'with a float that has a non-zero decimal' do
-                let(:tags) { { 'metric1' => '2*' } }
-                let(:trace_tags) { { 'metric1' => 20.1 } }
+                let(:tags) { {'metric1' => '2*'} }
+                let(:trace_tags) { {'metric1' => 20.1} }
 
                 it { is_expected.to eq(false) }
               end
 
               context 'with a float that has a zero decimal' do
-                let(:tags) { { 'metric1' => '2*' } }
-                let(:trace_tags) { { 'metric1' => 20.0 } }
+                let(:tags) { {'metric1' => '2*'} }
+                let(:trace_tags) { {'metric1' => 20.0} }
 
                 it { is_expected.to eq(true) }
               end
@@ -139,13 +139,13 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
 
           context 'with a string' do
             context 'matching' do
-              let(:tags) { { 'metric1' => '1', 'metric2' => '2' } }
+              let(:tags) { {'metric1' => '1', 'metric2' => '2'} }
 
               it { is_expected.to eq(true) }
             end
 
             context 'not matching' do
-              let(:tags) { { 'metric1' => '1', 'metric2' => 'not_value' } }
+              let(:tags) { {'metric1' => '1', 'metric2' => 'not_value'} }
 
               it { is_expected.to eq(false) }
             end
@@ -153,7 +153,7 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
         end
 
         context 'when span tags are not present' do
-          let(:tags) { { 'tag1' => 'value1', 'tag2' => 'value2' } }
+          let(:tags) { {'tag1' => 'value1', 'tag2' => 'value2'} }
 
           it { is_expected.to eq(false) }
         end

@@ -97,7 +97,7 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleRule do
       let(:name) { 'name' }
       let(:service) { 'service' }
       let(:resource) { 'resource' }
-      let(:tags) { { 'tag key' => 'tag value' } }
+      let(:tags) { {'tag key' => 'tag value'} }
       let(:sample_rate) { 0.123 }
 
       it 'initializes with the correct values' do

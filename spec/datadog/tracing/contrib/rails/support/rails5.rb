@@ -23,9 +23,9 @@ RSpec.shared_context 'Rails 5 test application' do
       super(*args)
       redis_cache =
         if Gem.loaded_specs['redis-activesupport']
-          [:redis_store, { url: ENV['REDIS_URL'] }]
+          [:redis_store, {url: ENV['REDIS_URL']}]
         else
-          [:redis_cache_store, { url: ENV['REDIS_URL'] }]
+          [:redis_cache_store, {url: ENV['REDIS_URL']}]
         end
       file_cache = [:file_store, '/tmp/datadog-rb/cache/']
 
@@ -68,10 +68,10 @@ RSpec.shared_context 'Rails 5 test application' do
 
       if Rails.application.config.respond_to?(:active_job)
         Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
-                                                              :sidekiq
-                                                            else
-                                                              :inline
-                                                            end
+          :sidekiq
+        else
+          :inline
+        end
       end
 
       before_test_init.call

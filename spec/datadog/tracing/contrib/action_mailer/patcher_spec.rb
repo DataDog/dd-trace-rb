@@ -92,7 +92,7 @@ RSpec.describe 'ActionMailer patcher' do
     end
 
     context 'with email_data enabled' do
-      let(:configuration_options) { { email_data: true } }
+      let(:configuration_options) { {email_data: true} }
 
       it 'is expected to add additional email date to deliver span' do
         expect(deliver_span).to_not be nil

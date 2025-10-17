@@ -20,7 +20,7 @@ RSpec.describe 'Redis configuration resolver' do
     end
 
     context 'when unix socket provided' do
-      let(:matcher) { { url: 'unix://path/to/file' } }
+      let(:matcher) { {url: 'unix://path/to/file'} }
 
       it { expect(parsed_key).to eq(url: 'unix://path/to/file') }
     end
@@ -40,7 +40,7 @@ RSpec.describe 'Redis configuration resolver' do
       end
 
       context 'as a hash' do
-        let(:matcher) { { url: 'redis://127.0.0.1:6379/0' } }
+        let(:matcher) { {url: 'redis://127.0.0.1:6379/0'} }
 
         it do
           expect(parsed_key).to eq(
@@ -120,7 +120,7 @@ RSpec.describe 'Redis configuration resolver' do
       before { resolver.add(matcher, config) }
 
       context 'when unix socket provided' do
-        let(:matcher) { { url: 'unix://path/to/file' } }
+        let(:matcher) { {url: 'unix://path/to/file'} }
 
         it_behaves_like 'a resolver with a matching pattern'
       end
@@ -133,7 +133,7 @@ RSpec.describe 'Redis configuration resolver' do
         end
 
         context 'as a hash' do
-          let(:matcher) { { url: 'redis://127.0.0.1:6379/0' } }
+          let(:matcher) { {url: 'redis://127.0.0.1:6379/0'} }
 
           it_behaves_like 'a resolver with a matching pattern'
         end

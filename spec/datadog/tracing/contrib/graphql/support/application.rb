@@ -49,7 +49,7 @@ RSpec.shared_context 'with GraphQL multiplex' do
   let(:second_query) { ::GraphQL::Query.new(schema, 'query test{ user(id: 10) { name } }') }
   let(:third_query) { ::GraphQL::Query.new(schema, 'query { userByName(name: "Caniche") { id } }') }
   let(:queries) { [first_query, second_query, third_query] }
-  let(:context) { { :dataloader => GraphQL::Dataloader.new(nonblocking: nil) } }
+  let(:context) { {dataloader: GraphQL::Dataloader.new(nonblocking: nil)} }
   let(:multiplex) do
     ::GraphQL::Execution::Multiplex.new(schema: schema, queries: queries, context: context, max_complexity: nil)
   end
@@ -86,23 +86,23 @@ RSpec.shared_context 'GraphQL test application' do
 
         def execute
           result = if params[:_json]
-                     queries = params[:_json].map do |param|
-                       {
-                         query: param[:query],
-                         operation_name: param[:operationName],
-                         variables: prepare_variables(param[:variables]),
-                         context: {}
-                       }
-                     end
-                     TestGraphQL::Schema.multiplex(queries)
-                   else
-                     TestGraphQL::Schema.execute(
-                       query: params[:query],
-                       operation_name: params[:operationName],
-                       variables: prepare_variables(params[:variables]),
-                       context: {}
-                     )
-                   end
+            queries = params[:_json].map do |param|
+              {
+                query: param[:query],
+                operation_name: param[:operationName],
+                variables: prepare_variables(param[:variables]),
+                context: {}
+              }
+            end
+            TestGraphQL::Schema.multiplex(queries)
+          else
+            TestGraphQL::Schema.execute(
+              query: params[:query],
+              operation_name: params[:operationName],
+              variables: prepare_variables(params[:variables]),
+              context: {}
+            )
+          end
           render json: result
         end
 

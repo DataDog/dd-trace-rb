@@ -127,7 +127,7 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         context "{ key: 'value' }" do
-          let(:tags) { { key: 'value' } }
+          let(:tags) { {key: 'value'} }
           it do
             inject!
             expect(data['x-datadog-tags']).to include('key=value')
@@ -135,7 +135,7 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         context '{ _dd.p.dm: "-1" }' do
-          let(:tags) { { '_dd.p.dm' => '-1' } }
+          let(:tags) { {'_dd.p.dm' => '-1'} }
           it do
             inject!
             expect(data['x-datadog-tags']).to include('_dd.p.dm=-1')
@@ -151,7 +151,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           let(:active_trace) { double(Datadog::Tracing::TraceOperation) }
 
           context 'with tags too large' do
-            let(:tags) { { key: 'very large value' * 32 } }
+            let(:tags) { {key: 'very large value' * 32} }
 
             it do
               inject!
@@ -170,7 +170,7 @@ RSpec.shared_examples 'Datadog distributed format' do
               Datadog.configure { |c| c.tracing.x_datadog_tags_max_length = 0 }
             end
 
-            let(:tags) { { key: 'value' } }
+            let(:tags) { {key: 'value'} }
 
             it do
               inject!
@@ -195,7 +195,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           end
 
           context 'with invalid tags' do
-            let(:tags) { { 'key with=spaces' => 'value' } }
+            let(:tags) { {'key with=spaces' => 'value'} }
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'encoding_error')
@@ -270,8 +270,8 @@ RSpec.shared_examples 'Datadog distributed format' do
 
     context 'with trace_id and span_id' do
       let(:data) do
-        { prepare_key['x-datadog-trace-id'] => '10000',
-          prepare_key['x-datadog-parent-id'] => '20000' }
+        {prepare_key['x-datadog-trace-id'] => '10000',
+         prepare_key['x-datadog-parent-id'] => '20000'}
       end
 
       it { expect(digest.span_id).to eq(20000) }
@@ -282,9 +282,9 @@ RSpec.shared_examples 'Datadog distributed format' do
 
       context 'with sampling priority' do
         let(:data) do
-          { prepare_key['x-datadog-trace-id'] => '10000',
-            prepare_key['x-datadog-parent-id'] => '20000',
-            prepare_key['x-datadog-sampling-priority'] => '1' }
+          {prepare_key['x-datadog-trace-id'] => '10000',
+           prepare_key['x-datadog-parent-id'] => '20000',
+           prepare_key['x-datadog-sampling-priority'] => '1'}
         end
 
         it { expect(digest.span_id).to eq(20000) }
@@ -294,10 +294,10 @@ RSpec.shared_examples 'Datadog distributed format' do
 
         context 'with origin' do
           let(:data) do
-            { prepare_key['x-datadog-trace-id'] => '10000',
-              prepare_key['x-datadog-parent-id'] => '20000',
-              prepare_key['x-datadog-sampling-priority'] => '1',
-              prepare_key['x-datadog-origin'] => 'synthetics' }
+            {prepare_key['x-datadog-trace-id'] => '10000',
+             prepare_key['x-datadog-parent-id'] => '20000',
+             prepare_key['x-datadog-sampling-priority'] => '1',
+             prepare_key['x-datadog-origin'] => 'synthetics'}
           end
 
           it { expect(digest.span_id).to eq(20000) }
@@ -309,9 +309,9 @@ RSpec.shared_examples 'Datadog distributed format' do
 
       context 'with origin' do
         let(:data) do
-          { prepare_key['x-datadog-trace-id'] => '10000',
-            prepare_key['x-datadog-parent-id'] => '20000',
-            prepare_key['x-datadog-origin'] => 'synthetics' }
+          {prepare_key['x-datadog-trace-id'] => '10000',
+           prepare_key['x-datadog-parent-id'] => '20000',
+           prepare_key['x-datadog-origin'] => 'synthetics'}
         end
 
         it { expect(digest.span_id).to eq(20000) }
@@ -415,8 +415,8 @@ RSpec.shared_examples 'Datadog distributed format' do
         ].each do |invalid_trace_id|
           context "when given invalid trace_id: #{invalid_trace_id}" do
             let(:data) do
-              { prepare_key['x-datadog-trace-id'] => invalid_trace_id,
-                prepare_key['x-datadog-parent-id'] => '20000' }
+              {prepare_key['x-datadog-trace-id'] => invalid_trace_id,
+               prepare_key['x-datadog-parent-id'] => '20000'}
             end
 
             it { is_expected.to be nil }
@@ -432,8 +432,8 @@ RSpec.shared_examples 'Datadog distributed format' do
         ].each do |invalid_span_id|
           context "when given invalid span_id: #{invalid_span_id}" do
             let(:data) do
-              { prepare_key['x-datadog-trace-id'] => '10000',
-                prepare_key['x-datadog-parent-id'] => invalid_span_id }
+              {prepare_key['x-datadog-trace-id'] => '10000',
+               prepare_key['x-datadog-parent-id'] => invalid_span_id}
             end
 
             it { is_expected.to be nil }
@@ -443,32 +443,32 @@ RSpec.shared_examples 'Datadog distributed format' do
     end
 
     context 'with span_id' do
-      let(:data) { { prepare_key['x-datadog-parent-id'] => '10000' } }
+      let(:data) { {prepare_key['x-datadog-parent-id'] => '10000'} }
 
       it { is_expected.to be nil }
     end
 
     context 'with origin' do
-      let(:data) { { prepare_key['x-datadog-origin'] => 'synthetics' } }
+      let(:data) { {prepare_key['x-datadog-origin'] => 'synthetics'} }
 
       it { is_expected.to be nil }
     end
 
     context 'with sampling priority' do
-      let(:data) { { prepare_key['x-datadog-sampling-priority'] => '1' } }
+      let(:data) { {prepare_key['x-datadog-sampling-priority'] => '1'} }
 
       it { is_expected.to be nil }
     end
 
     context 'with trace_id' do
-      let(:data) { { prepare_key['x-datadog-trace-id'] => '10000' } }
+      let(:data) { {prepare_key['x-datadog-trace-id'] => '10000'} }
 
       it { is_expected.to be nil }
 
       context 'with synthetics origin' do
         let(:data) do
-          { prepare_key['x-datadog-trace-id'] => '10000',
-            prepare_key['x-datadog-origin'] => 'synthetics' }
+          {prepare_key['x-datadog-trace-id'] => '10000',
+           prepare_key['x-datadog-origin'] => 'synthetics'}
         end
 
         it { expect(digest.span_id).to be nil }
@@ -479,8 +479,8 @@ RSpec.shared_examples 'Datadog distributed format' do
 
       context 'with non-synthetics origin' do
         let(:data) do
-          { prepare_key['x-datadog-trace-id'] => '10000',
-            prepare_key['x-datadog-origin'] => 'custom-origin' }
+          {prepare_key['x-datadog-trace-id'] => '10000',
+           prepare_key['x-datadog-origin'] => 'custom-origin'}
         end
 
         it { expect(digest.span_id).to be nil }

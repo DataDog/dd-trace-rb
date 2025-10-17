@@ -10,46 +10,46 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
 
     {
       'plain string pattern' => [
-        { pattern: 'web', input: 'web', expected: true },
-        { pattern: 'web one', input: 'web one', expected: true },
-        { pattern: 'web', input: 'my-web', expected: false },
+        {pattern: 'web', input: 'web', expected: true},
+        {pattern: 'web one', input: 'web one', expected: true},
+        {pattern: 'web', input: 'my-web', expected: false},
       ],
       '* pattern' => [
-        { pattern: 'web*', input: 'web', expected: true },
-        { pattern: 'web*', input: 'web-one', expected: true },
-        { pattern: 'web*', input: 'pre-web', expected: false },
-        { pattern: '*web', input: 'pre-web', expected: true },
-        { pattern: '*web', input: 'web-post', expected: false },
-        { pattern: 'web*one', input: 'web-site-one', expected: true },
-        { pattern: 'web*one', input: 'webone', expected: true },
-        { pattern: 'web*site*one', input: 'web--site  one', expected: true },
-        { pattern: 'web*site*one', input: 'web-nice-one', expected: false },
+        {pattern: 'web*', input: 'web', expected: true},
+        {pattern: 'web*', input: 'web-one', expected: true},
+        {pattern: 'web*', input: 'pre-web', expected: false},
+        {pattern: '*web', input: 'pre-web', expected: true},
+        {pattern: '*web', input: 'web-post', expected: false},
+        {pattern: 'web*one', input: 'web-site-one', expected: true},
+        {pattern: 'web*one', input: 'webone', expected: true},
+        {pattern: 'web*site*one', input: 'web--site  one', expected: true},
+        {pattern: 'web*site*one', input: 'web-nice-one', expected: false},
       ],
       '? pattern' => [
-        { pattern: 'web?', input: 'web', expected: false },
-        { pattern: 'web?', input: 'web1', expected: true },
-        { pattern: 'web?', input: '1web', expected: false },
-        { pattern: '?web', input: '1web', expected: true },
-        { pattern: '?web', input: 'web1', expected: false },
-        { pattern: 'web?one', input: 'web-one', expected: true },
-        { pattern: 'web?one', input: 'webone', expected: false },
-        { pattern: 'web?one', input: 'web-site-one', expected: false },
-        { pattern: 'web?site?one', input: 'web-site-one', expected: true },
-        { pattern: 'web?site?one', input: 'web-nice-one', expected: false },
+        {pattern: 'web?', input: 'web', expected: false},
+        {pattern: 'web?', input: 'web1', expected: true},
+        {pattern: 'web?', input: '1web', expected: false},
+        {pattern: '?web', input: '1web', expected: true},
+        {pattern: '?web', input: 'web1', expected: false},
+        {pattern: 'web?one', input: 'web-one', expected: true},
+        {pattern: 'web?one', input: 'webone', expected: false},
+        {pattern: 'web?one', input: 'web-site-one', expected: false},
+        {pattern: 'web?site?one', input: 'web-site-one', expected: true},
+        {pattern: 'web?site?one', input: 'web-nice-one', expected: false},
       ],
       'mixed * and ? pattern' => [
-        { pattern: '*web?', input: 'pre-web1', expected: true },
-        { pattern: '*web?', input: 'web', expected: false },
-        { pattern: '?web*', input: '1web-post', expected: true },
-        { pattern: '?web*', input: 'web', expected: false },
-        { pattern: 'web?one*', input: 'web-one-post', expected: true },
-        { pattern: 'web?one*', input: 'webone', expected: false },
-        { pattern: 'web*one?', input: 'web-one1', expected: true },
-        { pattern: 'web*one?', input: 'webne1', expected: false },
-        { pattern: 'web*site?one', input: 'web--site one', expected: true },
-        { pattern: 'web*site?one', input: 'web--siteone', expected: false },
-        { pattern: 'web?site*one', input: 'web-site  one', expected: true },
-        { pattern: 'web?site*one', input: 'web-sitene', expected: false },
+        {pattern: '*web?', input: 'pre-web1', expected: true},
+        {pattern: '*web?', input: 'web', expected: false},
+        {pattern: '?web*', input: '1web-post', expected: true},
+        {pattern: '?web*', input: 'web', expected: false},
+        {pattern: 'web?one*', input: 'web-one-post', expected: true},
+        {pattern: 'web?one*', input: 'webone', expected: false},
+        {pattern: 'web*one?', input: 'web-one1', expected: true},
+        {pattern: 'web*one?', input: 'webne1', expected: false},
+        {pattern: 'web*site?one', input: 'web--site one', expected: true},
+        {pattern: 'web*site?one', input: 'web--siteone', expected: false},
+        {pattern: 'web?site*one', input: 'web-site  one', expected: true},
+        {pattern: 'web?site*one', input: 'web-sitene', expected: false},
       ]
     }.each do |scenario, fixtures|
       context "for '#{scenario}'" do
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
               let(:matcher) { described_class.new(name_pattern: pattern) }
               let(:span_name) { input }
 
-              it "does #{'not ' unless expected}match" do
+              it "does #{"not " unless expected}match" do
                 is_expected.to eq(expected)
               end
             end
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
               let(:matcher) { described_class.new(service_pattern: pattern) }
               let(:span_service) { input }
 
-              it "does #{'not ' unless expected}match" do
+              it "does #{"not " unless expected}match" do
                 is_expected.to eq(expected)
               end
             end
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
                 let(:span_name) { input }
                 let(:span_service) { input }
 
-                it "does #{'not ' unless expected}match" do
+                it "does #{"not " unless expected}match" do
                   is_expected.to eq(expected)
                 end
               end

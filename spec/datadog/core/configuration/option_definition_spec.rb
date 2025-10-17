@@ -17,7 +17,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
 
     context 'when initialized with a value' do
-      let(:meta) { { default: default_value } }
+      let(:meta) { {default: default_value} }
       let(:default_value) { double('default') }
 
       it { is_expected.to be default_value }
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     subject(:after_set) { definition.after_set }
 
     context 'when given a value' do
-      let(:meta) { { after_set: after_set_value } }
+      let(:meta) { {after_set: after_set_value} }
       let(:after_set_value) { double('after_set') }
 
       it { is_expected.to be after_set_value }
@@ -59,7 +59,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     subject(:setter) { definition.setter }
 
     context 'when given a value' do
-      let(:meta) { { setter: setter_value } }
+      let(:meta) { {setter: setter_value} }
       let(:setter_value) { double('setter') }
 
       it { is_expected.to be setter_value }
@@ -80,7 +80,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     subject(:resetter) { definition.resetter }
 
     context 'when given a value' do
-      let(:meta) { { resetter: resetter_value } }
+      let(:meta) { {resetter: resetter_value} }
       let(:resetter_value) { double('resetter') }
 
       it { is_expected.to be resetter_value }
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     subject(:type) { definition.type }
 
     context 'when given a value' do
-      let(:meta) { { type: type_value } }
+      let(:meta) { {type: type_value} }
       let(:type_value) { double('type') }
 
       it { is_expected.to be type_value }
@@ -169,7 +169,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     context 'given options and a block' do
       context 'that override one another' do
-        let(:initialize_options) { { default: true } }
+        let(:initialize_options) { {default: true} }
         let(:initialize_block) { proc { |o| o.default false } }
 
         describe '#to_definition' do
@@ -300,7 +300,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     context 'given options' do
       let(:value) { :string }
-      let(:opts) { { nilable: true } }
+      let(:opts) { {nilable: true} }
 
       it { is_expected.to be value }
       it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
@@ -334,7 +334,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     let(:options) { {} }
 
     context 'given :default' do
-      let(:options) { { default: value } }
+      let(:options) { {default: value} }
       let(:value) { double('value') }
 
       it do
@@ -344,7 +344,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
 
     context 'given :after_set' do
-      let(:options) { { after_set: value } }
+      let(:options) { {after_set: value} }
       let(:value) { proc {} }
 
       it do
@@ -357,7 +357,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
 
     context 'given :resetter' do
-      let(:options) { { resetter: value } }
+      let(:options) { {resetter: value} }
       let(:value) { proc {} }
 
       it do
@@ -370,7 +370,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
 
     context 'given :setter' do
-      let(:options) { { setter: value } }
+      let(:options) { {setter: value} }
       let(:value) { proc {} }
 
       it do

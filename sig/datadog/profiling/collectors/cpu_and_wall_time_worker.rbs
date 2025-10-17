@@ -45,6 +45,7 @@ module Datadog
         def self._native_reset_after_fork: (CpuAndWallTimeWorker self_instance) -> true
 
         def stats: () -> ::Hash[::Symbol, untyped]
+        def stats_and_reset_not_thread_safe: () -> ::Hash[::Symbol, untyped]
         def self._native_stats: (CpuAndWallTimeWorker self_instance) -> ::Hash[::Symbol, untyped]
         def self._native_stats_reset_not_thread_safe: (CpuAndWallTimeWorker self_instance) -> void
         def self._native_is_running?: (CpuAndWallTimeWorker self_instance) -> bool
@@ -54,6 +55,10 @@ module Datadog
         def self._native_resume_signals: () -> void
 
         def wait_until_running: (timeout_seconds: ::Integer?) -> true
+
+        private
+
+        def signal_running: () -> true
       end
     end
   end

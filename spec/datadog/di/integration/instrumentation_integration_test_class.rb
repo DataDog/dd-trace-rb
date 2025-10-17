@@ -1,7 +1,7 @@
+# rubocop:disable all
+
 class InstrumentationIntegrationTestClass
-  def initialize
-    @ivar = 51
-  end
+  # padding
 
   def method_with_no_locals
     42 # line 7
@@ -11,8 +11,8 @@ class InstrumentationIntegrationTestClass
 
   def test_method
     a = 21
-    password = 'password'
-    redacted = {b: 33, session: 'blah'}
+    $__password = password = 'password'
+    $__redacted = redacted = {b: 33, session: 'blah'}
     # The following condition causes instrumentation trace point callback
     # to be invoked multiple times in CircleCI on Ruby 3.0-3.2 and 3.4
     #if true || password || redacted
@@ -21,10 +21,10 @@ class InstrumentationIntegrationTestClass
     end
   end # line 22
 
-  # padding
-  # padding
-  # padding
-  # padding
+  # Constructor is here to keep existing line number references intact
+  def initialize
+    @ivar = 51
+  end
 
   def test_method_with_block
     array = [1]

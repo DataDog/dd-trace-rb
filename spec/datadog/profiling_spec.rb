@@ -159,11 +159,9 @@ RSpec.describe Datadog::Profiling do
 
       context 'when the profiling native library fails to be loaded with a exception' do
         let(:loaderror) do
-          begin
-            raise LoadError, 'Simulated require failure'
-          rescue LoadError => e
-            e
-          end
+          raise LoadError, 'Simulated require failure'
+        rescue LoadError => e
+          e
         end
 
         before do

@@ -8,7 +8,7 @@ require 'datadog'
 RSpec.describe 'Karafka monitor' do
   before do
     Datadog.configure do |c|
-      c.tracing.instrument :karafka, { distributed_tracing: true }
+      c.tracing.instrument :karafka, {distributed_tracing: true}
     end
   end
 
@@ -40,7 +40,7 @@ RSpec.describe 'Karafka monitor' do
       let(:metadata) { instance_double(Karafka::Messages::Metadata, offset: 42) }
 
       it 'traces a consumer job' do
-        Karafka.monitor.instrument('worker.processed', { job: job })
+        Karafka.monitor.instrument('worker.processed', {job: job})
 
         expect(traces).to have(1).item
         expect(spans).to have(1).item

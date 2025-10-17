@@ -41,7 +41,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     stub_request(:get, %r{#{Regexp.quote(server)}//?})
       .to_return(
         status: 200,
-        headers: { 'x-elastic-product' => 'Elasticsearch', 'content-type' => 'application/yaml' },
+        headers: {'x-elastic-product' => 'Elasticsearch', 'content-type' => 'application/yaml'},
         body: "version:\n  number: 8.0.0"
       )
 
@@ -74,10 +74,10 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     describe 'the handlers' do
       subject(:handlers) do
         connections = if client.transport.respond_to? :connections
-                        client.transport.connections
-                      else
-                        client.transport.transport.connections
-                      end
+          client.transport.connections
+        else
+          client.transport.transport.connections
+        end
 
         connections.first.connection.builder.handlers
       end
@@ -128,7 +128,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
         let(:method) { 'PUT' }
         let(:path) { 'my/thing/1' }
-        let(:params) { { refresh: true } }
+        let(:params) { {refresh: true} }
 
         before do
           stub_request(:put, "#{server}/#{path}?refresh=true").with(body: body).to_return(status: 201)
@@ -167,7 +167,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
         end
 
         context 'with encoded body' do
-          let(:body) { { data1: 'D1', data2: 'D2' } }
+          let(:body) { {data1: 'D1', data2: 'D2'} }
 
           it_behaves_like 'a PUT request trace'
         end

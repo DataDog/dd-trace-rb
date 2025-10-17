@@ -32,11 +32,11 @@ RSpec.describe 'Rack testing for http.route' do
   let(:rack_app) do
     Rack::Builder.new do
       map '/hello/world' do
-        run ->(_env) { [200, { 'content-type' => 'text/plain' }, 'hello world'] }
+        run ->(_env) { [200, {'content-type' => 'text/plain'}, 'hello world'] }
       end
 
       map '/hello/:id' do
-        run ->(_env) { [200, { 'content-type' => 'text/plain' }, "hello #{params[:id]}"] }
+        run ->(_env) { [200, {'content-type' => 'text/plain'}, "hello #{params[:id]}"] }
       end
     end
   end

@@ -5,7 +5,7 @@ require 'karafka'
 require 'datadog'
 
 RSpec.describe 'Karafka patcher' do
-  let(:configuration_options) { { distributed_tracing: true } }
+  let(:configuration_options) { {distributed_tracing: true} }
   let(:client_id) { SecureRandom.uuid }
   let(:span) do
     spans.find { |s| s.name == span_name }
@@ -63,7 +63,7 @@ RSpec.describe 'Karafka patcher' do
       message = ::Karafka::Messages::Message.new(raw_payload, metadata)
       job = double(executor: double(topic: double(name: 'topic_a', consumer: 'ABC'), partition: 0), messages: [message])
 
-      Karafka.monitor.instrument('worker.processed', { job: job }) do
+      Karafka.monitor.instrument('worker.processed', {job: job}) do
         # Noop
       end
 

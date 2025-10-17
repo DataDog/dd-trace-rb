@@ -1,0 +1,52 @@
+module Datadog
+  module DI
+    class Context
+      @probe: untyped
+
+      @settings: untyped
+
+      @serializer: untyped
+
+      @locals: untyped
+
+      @target_self: untyped
+
+      @path: untyped
+
+      @caller_locations: untyped
+
+      @serialized_entry_args: untyped
+
+      @return_value: untyped
+
+      @duration: untyped
+
+      @exception: untyped
+
+      def initialize: (probe: untyped, settings: untyped, serializer: untyped, ?locals: untyped?, ?target_self: untyped?, ?path: untyped?, ?caller_locations: untyped?, ?serialized_entry_args: untyped?, ?return_value: untyped?, ?duration: untyped?, ?exception: untyped?) -> void
+
+      attr_reader probe: untyped
+
+      attr_reader settings: untyped
+
+      attr_reader serializer: untyped
+
+      attr_reader locals: untyped
+
+      attr_reader target_self: untyped
+      attr_reader path: untyped
+      attr_reader caller_locations: untyped
+
+      attr_reader serialized_entry_args: untyped
+      attr_reader return_value: untyped
+      attr_reader duration: untyped
+      attr_reader exception: untyped
+
+      def serialized_locals: () -> untyped
+
+      def fetch: (untyped var_name) -> (nil | untyped)
+
+      def fetch_ivar: (untyped var_name) -> untyped
+    end
+  end
+end

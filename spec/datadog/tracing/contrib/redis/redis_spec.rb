@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'redis'
 require 'datadog'
 
-require_relative './shared_examples'
+require_relative 'shared_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
@@ -12,7 +12,7 @@ RSpec.describe 'Redis test' do
   let(:configuration_options) { {} }
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
-  let(:default_redis_options) { { host: host, port: port, driver: driver } }
+  let(:default_redis_options) { {host: host, port: port, driver: driver} }
 
   before do
     Datadog.configure do |c|
@@ -54,14 +54,14 @@ RSpec.describe 'Redis test' do
       end
 
       context 'with service_name as `standard`' do
-        let(:configuration_options) { { service_name: 'standard' } }
+        let(:configuration_options) { {service_name: 'standard'} }
 
         it_behaves_like 'redis instrumentation', service_name: 'standard'
         it_behaves_like 'an authenticated redis instrumentation', service_name: 'standard'
       end
 
       context 'with command_args as `true`' do
-        let(:configuration_options) { { command_args: true } }
+        let(:configuration_options) { {command_args: true} }
 
         it_behaves_like 'redis instrumentation', command_args: true
         it_behaves_like 'an authenticated redis instrumentation', command_args: true
@@ -81,14 +81,14 @@ RSpec.describe 'Redis test' do
           let(:redis_options) { default_redis_options }
 
           context 'with service_name as `custom`' do
-            let(:tracing_options) { { service_name: 'custom' } }
+            let(:tracing_options) { {service_name: 'custom'} }
 
             it_behaves_like 'redis instrumentation', service_name: 'custom'
             it_behaves_like 'an authenticated redis instrumentation', service_name: 'custom'
           end
 
           context 'with command_args as `true`' do
-            let(:tracing_options) { { command_args: true } }
+            let(:tracing_options) { {command_args: true} }
 
             it_behaves_like 'redis instrumentation', command_args: true
             it_behaves_like 'an authenticated redis instrumentation', command_args: true
@@ -113,18 +113,18 @@ RSpec.describe 'Redis test' do
 
         context 'when supplying custom configuration via Redis 5 custom API' do
           let(:redis_options) do
-            default_redis_options.merge(custom: { datadog: tracing_options })
+            default_redis_options.merge(custom: {datadog: tracing_options})
           end
 
           context 'with service_name as `custom`' do
-            let(:tracing_options) { { service_name: 'custom' } }
+            let(:tracing_options) { {service_name: 'custom'} }
 
             it_behaves_like 'redis instrumentation', service_name: 'custom'
             it_behaves_like 'an authenticated redis instrumentation', service_name: 'custom'
           end
 
           context 'with command_args as `true`' do
-            let(:tracing_options) { { command_args: true } }
+            let(:tracing_options) { {command_args: true} }
 
             it_behaves_like 'redis instrumentation', command_args: true
             it_behaves_like 'an authenticated redis instrumentation', command_args: true

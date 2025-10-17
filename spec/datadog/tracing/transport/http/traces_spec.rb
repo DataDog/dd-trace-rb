@@ -15,7 +15,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::Response do
     it { is_expected.to have_attributes(service_rates: nil) }
 
     context 'given a \'service_rates\' option' do
-      let(:options) { { service_rates: service_rates } }
+      let(:options) { {service_rates: service_rates} }
       let(:service_rates) { instance_double(Hash) }
 
       it { is_expected.to have_attributes(service_rates: service_rates) }
@@ -156,7 +156,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
     it { is_expected.to be false }
 
     context 'when initialized with a \'service_rates\' option' do
-      let(:options) { { service_rates: true } }
+      let(:options) { {service_rates: true} }
 
       it { is_expected.to be true }
     end
@@ -206,18 +206,18 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
     end
 
     context 'when service_rates? is false' do
-      let(:options) { { service_rates: false } }
+      let(:options) { {service_rates: false} }
 
       it_behaves_like 'traces request'
     end
 
     context 'when service_rates? is true' do
-      let(:options) { { service_rates: true } }
+      let(:options) { {service_rates: true} }
 
       # Build and return a JSON payload
       let(:json_payload) { sampling_response.to_json }
-      let(:sampling_response) { { described_class::SERVICE_RATE_KEY => service_rates } }
-      let(:service_rates) { { 'service:a,env:test' => 0.1, 'service:b,env:test' => 0.5 } }
+      let(:sampling_response) { {described_class::SERVICE_RATE_KEY => service_rates} }
+      let(:service_rates) { {'service:a,env:test' => 0.1, 'service:b,env:test' => 0.5} }
 
       before { allow(http_response).to receive(:payload).and_return(json_payload) }
 

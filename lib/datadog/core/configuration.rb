@@ -238,7 +238,7 @@ module Datadog
           yield write_components
         rescue ThreadError => e
           logger_without_components.error(
-            'Detected deadlock during datadog initialization. ' \
+            "Detected deadlock during datadog initialization: #{e.class}: #{e}. " \
             'Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
             "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
           )

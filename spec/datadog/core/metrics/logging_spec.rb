@@ -48,7 +48,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
 
     let(:stat) { :my_stat }
     let(:value) { 100 }
-    let(:options) { { tags: ['foo:bar'] } }
+    let(:options) { {tags: ['foo:bar']} }
 
     before { allow(logger).to receive(:info) }
 
@@ -58,7 +58,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
         stat: stat.to_s,
         type: 'count',
         value: value,
-        options: { 'tags' => array_including(options[:tags]) }
+        options: {'tags' => array_including(options[:tags])}
       )
     end
   end
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
 
     let(:stat) { :my_stat }
     let(:value) { 100 }
-    let(:options) { { tags: ['foo:bar'] } }
+    let(:options) { {tags: ['foo:bar']} }
 
     before { allow(logger).to receive(:info) }
 
@@ -78,7 +78,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
         stat: stat.to_s,
         type: 'distribution',
         value: value,
-        options: { 'tags' => array_including(options[:tags]) }
+        options: {'tags' => array_including(options[:tags])}
       )
     end
   end
@@ -87,7 +87,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
     subject(:increment) { adapter.increment(stat, options) }
 
     let(:stat) { :my_stat }
-    let(:options) { { tags: ['foo:bar'] } }
+    let(:options) { {tags: ['foo:bar']} }
 
     before { allow(logger).to receive(:info) }
 
@@ -96,7 +96,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
       expect(logger).to have_received_json_metric(
         stat: stat.to_s,
         type: 'increment',
-        options: { 'tags' => array_including(options[:tags]) }
+        options: {'tags' => array_including(options[:tags])}
       )
     end
   end
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
 
     let(:stat) { :my_stat }
     let(:value) { 100 }
-    let(:options) { { tags: ['foo:bar'] } }
+    let(:options) { {tags: ['foo:bar']} }
 
     before { allow(logger).to receive(:info) }
 
@@ -116,7 +116,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
         stat: stat.to_s,
         type: 'gauge',
         value: value,
-        options: { 'tags' => array_including(options[:tags]) }
+        options: {'tags' => array_including(options[:tags])}
       )
     end
   end
@@ -129,7 +129,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
 
       let(:stat) { :my_stat }
       let(:value) { 100 }
-      let(:options) { { tags: ['foo:bar'] } }
+      let(:options) { {tags: ['foo:bar']} }
 
       before do
         allow(adapter).to receive(:count)

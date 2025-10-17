@@ -63,7 +63,9 @@ The configuration inversion system works as follows:
 
 To add support for a new environment variable:
 
-### Step 1: Add to supported-configurations.json
+### Step 1: Add to supported-configurations.json & central registry
+
+If the configuration key has never been registered by any tracer it needs to be added to the [Configuration Registry](https://feature-parity.us1.prod.dog/#/configurations?viewType=configurations) (available only for internal contributors) with proper documentation. In the case of an already existing key the behavior needs to be verified in order to know if a new version of the same key needs to be created on the registry.
 
 Edit the `supported-configurations.json` file and add your variable (Please keep any new keys in the file sorted!):
 
@@ -80,11 +82,12 @@ Edit the `supported-configurations.json` file and add your variable (Please keep
 #### Configuration Structure
 
 - **supportedConfigurations**: Maps variable names to configuration metadata
-  - `version`: (Currently always set to `["A"]`) Array indicating which implementations the tracer supports. Implementations are defined in the Feature Parity Dashboard and multiple implementations could be set for a single environment variable (e.g. the base one `A`, and an extra one `B` that adds new possible values). Versions are non-numeric to avoid confusion with library versions.
+  - `version`: (Defaults to `["A"]`) Array indicating which implementations the tracer supports. Implementations are defined in the Configuration Registry and multiple implementations could be set for a single environment variable (e.g. the base one `A`, and an extra one `B` that adds new possible values). Versions are non-numeric to avoid confusion with library versions.
 
   In the future, the structure will also contain more information such as the type, the default value...
 
 - **aliases**: Maps canonical variable names to arrays of alias names
+
   ```json
   "aliases": {
     "DD_SERVICE": ["OTEL_SERVICE_NAME"]
@@ -92,6 +95,7 @@ Edit the `supported-configurations.json` file and add your variable (Please keep
   ```
 
 - **deprecations**: Adds a log message to deprecated environment variables.
+
   ```json
   "deprecations": {
     "DD_OLD_VARIABLE": "Please use DD_NEW_VARIABLE",
@@ -151,6 +155,28 @@ rescue RuntimeError => e
 end
 ```
 
+### CI jobs
+
+#### Local file validation
+
+The `validate_supported_configurations_local_file` CI job in charge of validating the content of the `supported-configurations.json` file against the central Configuration Registry runs on GitLab in the `shared-pipeline` stage. This job verifies that all configuration keys present in the local file are correctly registered on the central registry. When a new key is introduced it has to be registered in order to pass this job.
+
+Example of a failed run output:
+
+```json
+Missing properties:
+{
+  "DD_TRACE_GRAPHQL_ERROR_TRACKING": [
+    "A"
+  ]
+}
+The above configuration was found locally but missing from the configuration registry.
+```
+
+#### Updating supported versions
+
+The `update_central_configurations_version_range` CI job runs upon tagging a new release. This job updates the central registry with the new version released indicating newly supported or dropped configuration keys.
+
 ## Validation
 
 To ensure your configuration changes are valid:
@@ -159,6 +185,7 @@ To ensure your configuration changes are valid:
 # Validate that generated assets match the JSON file
 bundle exec rspec spec/datadog/core/configuration/supported_configurations_spec.rb
 ```
+
 This will also be run by the main RSpec rake task.
 
 This task will exit with an error if there's a mismatch between `supported-configurations.json` and the generated assets. It is run by the CI, thus a mismatch will make the CI fail.

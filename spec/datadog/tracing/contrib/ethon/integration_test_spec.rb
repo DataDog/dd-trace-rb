@@ -76,7 +76,7 @@ RSpec.describe 'Ethon integration tests' do
       Typhoeus::Response.new(easy.mirror.options)
     end
 
-    let(:request_headers) { { key: 'value' } }
+    let(:request_headers) { {key: 'value'} }
 
     it_behaves_like 'instrumented request' do
       let(:method) { 'N/A' }
@@ -87,7 +87,7 @@ RSpec.describe 'Ethon integration tests' do
 
       before { request }
 
-      let(:request_headers) { { 'Request-Id' => 'test-request' } }
+      let(:request_headers) { {'Request-Id' => 'test-request'} }
 
       include_examples 'with request tracer header tags' do
         let(:request_header_tag) { 'request-id' }

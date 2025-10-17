@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/rack/trace_proxy_middleware'
 RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
   describe '#call' do
     let(:service) { 'nginx' }
-    let(:env) { { 'HTTP_X_REQUEST_START' => timestamp.to_i * 1000 } }
+    let(:env) { {'HTTP_X_REQUEST_START' => timestamp.to_i * 1000} }
 
     context 'when given timestamp' do
       let(:timestamp) { Time.at(1757000000) }

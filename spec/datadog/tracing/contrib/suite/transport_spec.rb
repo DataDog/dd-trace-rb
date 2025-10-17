@@ -8,11 +8,9 @@ require 'datadog/tracing/contrib/support/spec_helper'
   grpc
   rest_client
 ].each do |integration|
-  begin
-    require integration
-  rescue LoadError
-    # If library isn't available, it can't be instrumented.
-  end
+  require integration
+rescue LoadError
+  # If library isn't available, it can't be instrumented.
 end
 
 require 'datadog/tracing'

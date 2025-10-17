@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::S3 do
   end
 
   context 'with bucket name provided' do
-    let(:params) { { bucket: 'my-bucket-name' } }
+    let(:params) { {bucket: 'my-bucket-name'} }
 
     it 'sets the bucket_name based on the provided bucket name' do
       s3.add_tags(span, params)

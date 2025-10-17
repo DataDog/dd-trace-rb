@@ -84,8 +84,8 @@ RSpec.describe 'Faraday middleware' do
     context 'when configured with global tag headers' do
       before { response }
 
-      let(:request_headers) { { 'Request-Id' => 'test-request' } }
-      let(:response_headers) { { 'Response-Id' => 'test-response' } }
+      let(:request_headers) { {'Request-Id' => 'test-request'} }
+      let(:response_headers) { {'Response-Id' => 'test-response'} }
 
       include_examples 'with request tracer header tags' do
         let(:request_header_tag) { 'request-id' }
@@ -280,7 +280,7 @@ RSpec.describe 'Faraday middleware' do
     end
 
     context 'when given `on_error`' do
-      let(:configuration_options) { { on_error: proc { @error_handler_called = true } } }
+      let(:configuration_options) { {on_error: proc { @error_handler_called = true }} }
 
       it do
         expect { response }.to raise_error(Faraday::ConnectionFailed)
@@ -295,11 +295,9 @@ RSpec.describe 'Faraday middleware' do
       let(:peer_service_source) { 'peer.hostname' }
 
       subject do
-        begin
-          client.get('/error')
-        rescue Faraday::ConnectionFailed
-          nil
-        end
+        client.get('/error')
+      rescue Faraday::ConnectionFailed
+        nil
       end
     end
   end
@@ -312,7 +310,7 @@ RSpec.describe 'Faraday middleware' do
     end
 
     context 'when given from configuration options' do
-      let(:configuration_options) { { error_status_codes: 500...600 } }
+      let(:configuration_options) { {error_status_codes: 500...600} }
 
       it do
         client.get('not_found')
@@ -401,7 +399,7 @@ RSpec.describe 'Faraday middleware' do
   context 'when distributed tracing is disabled' do
     subject(:response) { client.get('/success') }
 
-    let(:middleware_options) { { distributed_tracing: false } }
+    let(:middleware_options) { {distributed_tracing: false} }
     let(:headers) { response.env.request_headers }
 
     it do
@@ -436,7 +434,7 @@ RSpec.describe 'Faraday middleware' do
   context 'service name per request' do
     subject!(:response) { client.get('/success') }
 
-    let(:middleware_options) { { service_name: service_name } }
+    let(:middleware_options) { {service_name: service_name} }
     let(:service_name) { 'adhoc-request' }
 
     it do

@@ -92,7 +92,11 @@ RSpec.describe Datadog::Core::Utils::OnlyOnceSuccessful do
       end
 
       it 'runs again' do
-        only_once_successful.run { raise 'boom' } rescue nil
+        begin
+          only_once_successful.run { raise 'boom' }
+        rescue
+          nil
+        end
 
         expect { |block| only_once_successful.run(&block) }.to yield_control
       end

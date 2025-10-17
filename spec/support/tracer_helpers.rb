@@ -23,7 +23,7 @@ module TracerHelpers
       end
     )
 
-    options = { writer: writer }.merge(options)
+    options = {writer: writer}.merge(options)
     Datadog::Tracing::Tracer.new(**options)
   end
 
@@ -57,8 +57,8 @@ module TracerHelpers
 
   # Return some test services
   def get_test_services
-    { 'rest-api' => { 'app' => 'rails', 'app_type' => 'web' },
-      'master' => { 'app' => 'postgres', 'app_type' => 'db' } }
+    {'rest-api' => {'app' => 'rails', 'app_type' => 'web'},
+     'master' => {'app' => 'postgres', 'app_type' => 'db'}}
   end
 
   def writer

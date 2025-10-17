@@ -27,7 +27,7 @@ RSpec.describe Datadog::Tracing::Remote do
   describe '#process_config' do
     subject(:process_config) { remote.process_config(config, content) }
     let(:config) { nil }
-    let(:content) { Datadog::Core::Remote::Configuration::Content.parse({ path: path, content: nil }) }
+    let(:content) { Datadog::Core::Remote::Configuration::Content.parse({path: path, content: nil}) }
 
     context 'with an empty content' do
       let(:config) { {} }
@@ -41,7 +41,7 @@ RSpec.describe Datadog::Tracing::Remote do
 
     context 'with a valid content' do
       context 'and nothing configured' do
-        let(:config) { { 'lib_config' => {} } }
+        let(:config) { {'lib_config' => {}} }
 
         it 'sets ok applied state and sends telemetry with empty values' do
           expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)
@@ -60,7 +60,7 @@ RSpec.describe Datadog::Tracing::Remote do
       end
 
       context 'and one option configured' do
-        let(:config) { { 'lib_config' => { 'log_injection_enabled' => false } } }
+        let(:config) { {'lib_config' => {'log_injection_enabled' => false}} }
 
         it 'sets ok applied state and sends telemetry with configuration value' do
           expect(Datadog.send(:components).telemetry).to receive(:client_configuration_change!)

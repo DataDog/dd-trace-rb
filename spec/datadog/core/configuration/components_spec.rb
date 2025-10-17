@@ -39,7 +39,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
-  let(:environment_logger_extra) { { hello: 123, world: '456' } }
+  let(:environment_logger_extra) { {hello: 123, world: '456'} }
 
   include_context 'non-development execution environment'
 
@@ -67,6 +67,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(described_class).to receive(:build_logger)
         .with(settings)
         .and_return(logger)
+
+      expect(Datadog::Core::Configuration::StableConfig).to receive(:log_result)
+        .with(logger)
 
       expect(Datadog::Tracing::Component).to receive(:build_tracer)
         .with(settings, agent_settings, logger: logger)
@@ -166,7 +169,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       shared_examples_for 'new health metrics' do
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
-        let(:default_options) { { enabled: settings.health_metrics.enabled } }
+        let(:default_options) { {enabled: settings.health_metrics.enabled} }
         let(:options) { {} }
 
         before do
@@ -192,7 +195,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         it_behaves_like 'new health metrics' do
-          let(:options) { { enabled: enabled } }
+          let(:options) { {enabled: enabled} }
         end
       end
 
@@ -206,7 +209,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         it_behaves_like 'new health metrics' do
-          let(:options) { { statsd: statsd } }
+          let(:options) { {statsd: statsd} }
         end
       end
     end
@@ -303,9 +306,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
       shared_examples_for 'new runtime metrics' do
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics) }
         let(:default_options) do
-          { enabled: settings.runtime_metrics.enabled,
-            services: [settings.service],
-            experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled, }
+          {enabled: settings.runtime_metrics.enabled,
+           services: [settings.service],
+           experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled,}
         end
         let(:options) { {} }
 
@@ -332,7 +335,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         it_behaves_like 'new runtime metrics' do
-          let(:options) { { enabled: enabled } }
+          let(:options) { {enabled: enabled} }
         end
       end
 
@@ -346,7 +349,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         it_behaves_like 'new runtime metrics' do
-          let(:options) { { services: [service] } }
+          let(:options) { {services: [service]} }
         end
       end
 
@@ -360,7 +363,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         it_behaves_like 'new runtime metrics' do
-          let(:options) { { statsd: statsd } }
+          let(:options) { {statsd: statsd} }
         end
       end
 
@@ -374,7 +377,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         it_behaves_like 'new runtime metrics' do
-          let(:options) { { experimental_runtime_id_enabled: experimental_runtime_id_enabled } }
+          let(:options) { {experimental_runtime_id_enabled: experimental_runtime_id_enabled} }
         end
       end
     end
@@ -422,12 +425,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         it_behaves_like 'new runtime metrics worker' do
-          let(:options) { { enabled: enabled } }
+          let(:options) { {enabled: enabled} }
         end
       end
 
       context 'with :opts' do
-        let(:opts) { { custom_option: :custom_value } }
+        let(:opts) { {custom_option: :custom_value} }
 
         before do
           allow(settings.runtime_metrics)
@@ -548,7 +551,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         after { WebMock.disable! }
 
-        let(:info_response) { { endpoints: ['/v0.7/config'] }.to_json }
+        let(:info_response) { {endpoints: ['/v0.7/config']}.to_json }
       end
 
       context 'disabled' do

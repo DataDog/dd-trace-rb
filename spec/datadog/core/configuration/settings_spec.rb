@@ -999,7 +999,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#opts=' do
-      let(:opts) { { a: :b } }
+      let(:opts) { {a: :b} }
 
       it 'changes the #opts setting' do
         expect { settings.runtime_metrics.opts = opts }
@@ -1207,7 +1207,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           ['key', 'key:', 'key: '].each do |tag|
             context "when tag is #{tag.inspect}" do
               let(:env_tags) { tag }
-              it { is_expected.to eq({ 'key' => '' }) }
+              it { is_expected.to eq({'key' => ''}) }
             end
           end
         end
@@ -1221,7 +1221,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
 
         context 'and when #env' do
-          let(:options) { { **super(), env: env } }
+          let(:options) { {**super(), env: env} }
 
           context 'is set' do
             let(:env) { 'env-value' }
@@ -1237,7 +1237,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
 
         context 'and when #version' do
-          let(:options) { { **super(), version: version } }
+          let(:options) { {**super(), version: version} }
 
           context 'is set' do
             let(:version) { 'version-value' }
@@ -1254,7 +1254,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       context 'conflicts with #env' do
-        let(:options) { { **super(), env: env_value } }
+        let(:options) { {**super(), env: env_value} }
 
         let(:env_tags) { "env:#{tag_env_value}" }
         let(:tag_env_value) { 'tag-env-value' }
@@ -1264,7 +1264,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       context 'conflicts with #version' do
-        let(:options) { { **super(), version: version_value } }
+        let(:options) { {**super(), version: version_value} }
 
         let(:env_tags) { "env:#{tag_version_value}" }
         let(:tag_version_value) { 'tag-version-value' }
@@ -1309,7 +1309,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     context 'when given a Hash' do
       context 'with Symbol keys' do
-        let(:tags) { { :'custom-tag' => 'custom-value' } }
+        let(:tags) { {"custom-tag": 'custom-value'} }
 
         before { set_tags }
 
@@ -1317,7 +1317,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       context 'with String keys' do
-        let(:tags) { { 'custom-tag' => 'custom-value' } }
+        let(:tags) { {'custom-tag' => 'custom-value'} }
 
         before { set_tags }
 
@@ -1327,8 +1327,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     context 'called consecutively' do
       subject(:set_tags) do
-        settings.tags = { foo: 'foo', bar: 'bar' }
-        settings.tags = { 'foo' => 'oof', 'baz' => 'baz' }
+        settings.tags = {foo: 'foo', bar: 'bar'}
+        settings.tags = {'foo' => 'oof', 'baz' => 'baz'}
       end
 
       before { set_tags }
@@ -1401,7 +1401,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       new_milliseconds = get_time_new_milliseconds # Capture for closure
       new_seconds = get_time_new_seconds # Capture for closure
 
-      ->(unit) { unit == :float_millisecond ? new_milliseconds : new_seconds }
+      ->(unit) { (unit == :float_millisecond) ? new_milliseconds : new_seconds }
     end
 
     context 'when default' do
