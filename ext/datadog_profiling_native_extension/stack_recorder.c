@@ -234,7 +234,7 @@ typedef struct {
   ddog_prof_Profile_SerializeResult result;
   long heap_profile_build_time_ns;
   long serialize_no_gvl_time_ns;
-  ddog_prof_MaybeError advance_gen_result;
+  // ddog_prof_MaybeError advance_gen_result;
 
   // Set by both
   bool serialize_ran;
@@ -589,10 +589,10 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   state->stats_lifetime.serialization_successes++;
   VALUE encoded_profile = from_ddog_prof_EncodedProfile(serialized_profile.ok);
 
-  ddog_prof_MaybeError result = args.advance_gen_result;
-  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
-  }
+  // ddog_prof_MaybeError result = args.advance_gen_result;
+  // if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+  //   rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+  // }
 
   VALUE start = ruby_time_from(args.slot->start_timestamp);
   VALUE finish = ruby_time_from(finish_timestamp);
@@ -792,7 +792,7 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->slot->start_timestamp, &args->finish_timestamp);
-  args->advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(args->state->string_storage);
+  // args->advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(args->state->string_storage);
   args->serialize_ran = true;
   args->serialize_no_gvl_time_ns = long_max_of(0, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns);
 
@@ -1108,11 +1108,11 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
     rb_raise(rb_eRuntimeError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
   }
 
-  ddog_prof_MaybeError advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(string_storage.ok);
+  // ddog_prof_MaybeError advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(string_storage.ok);
 
-  if (advance_gen_result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&advance_gen_result.some));
-  }
+  // if (advance_gen_result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+  //   rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&advance_gen_result.some));
+  // }
 
   VALUE encoded_pprof_1 = from_ddog_prof_EncodedProfile(serialize_result.ok);
 
