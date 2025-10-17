@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/data_streams/processor'
+require 'datadog/data_streams/processor'
 require 'datadog/core/ddsketch'
 
 # Expected deterministic hash values for specific pathways
@@ -10,7 +10,7 @@ KAFKA_ORDERS_CONSUME_HASH_WITHOUT_CARRIER = 15053276968232594929 # without carri
 KINESIS_ORDERS_PRODUCE_HASH = 14687993552271180499
 KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
 
-RSpec.describe Datadog::Tracing::DataStreams::Processor do
+RSpec.describe Datadog::DataStreams::Processor do
   before do
     skip('DDSketch not available') unless Datadog::Core::DDSketch.supported?
   end
@@ -71,10 +71,10 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
           carrier[key] = value
         end
 
-        expect(carrier[Datadog::Tracing::DataStreams::Processor::PROPAGATION_KEY]).to eq(returned_value)
+        expect(carrier[Datadog::DataStreams::Processor::PROPAGATION_KEY]).to eq(returned_value)
 
         # Decode and verify the pathway context contains the expected hash
-        decoded = Datadog::Tracing::DataStreams::PathwayContext.decode_b64(returned_value)
+        decoded = Datadog::DataStreams::PathwayContext.decode_b64(returned_value)
         expect(decoded).to have_attributes(hash: KAFKA_ORDERS_PRODUCE_HASH)
       end
 
@@ -189,7 +189,7 @@ RSpec.describe Datadog::Tracing::DataStreams::Processor do
         produce_hash = processor.pathway_context.hash
         produce_pathway_start = processor.pathway_context.pathway_start_sec
 
-        carrier = {Datadog::Tracing::DataStreams::Processor::PROPAGATION_KEY => produce_context}
+        carrier = {Datadog::DataStreams::Processor::PROPAGATION_KEY => produce_context}
 
         processor.set_consume_checkpoint(type: 'kafka', source: 'orders') { |key| carrier[key] }
         consume_hash = processor.pathway_context.hash

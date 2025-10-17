@@ -35,15 +35,18 @@ module Datadog
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
               end
 
-              if Datadog.configuration.tracing.data_streams.enabled
+              if Datadog.configuration.data_streams.enabled
                 headers = if message.metadata.respond_to?(:raw_headers)
                   message.metadata.raw_headers
                 else
                   message.metadata.headers
                 end
 
-                processor = Datadog.configuration.tracing.data_streams.processor
-                processor.set_consume_checkpoint(type: 'kafka', source: message.topic) { |key| headers[key] }
+                Datadog.data_streams.set_consume_checkpoint(
+                  type: 'kafka',
+                  source: message.topic,
+                  manual_checkpoint: false
+                ) { |key| headers[key] }
               end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|

@@ -1,6 +1,5 @@
 module Datadog
-  module Tracing
-    module DataStreams
+  module DataStreams
       class Processor < Core::Worker
         PROPAGATION_KEY: ::String
 
@@ -68,4 +67,3 @@ module Datadog
       end
     end
   end
-end
