@@ -282,9 +282,6 @@ typedef struct ddog_prof_Profile_Result {
 
 void fixme_ddog_prof_Profile_drop(struct ddog_prof_Profile *profile);
 
-DDOG_CHECK_RETURN
-struct ddog_prof_ManagedStringStorageNewResult ddog_prof_ManagedStringStorage_new(void);
-
 /**
  * TODO: @ivoanjo Should this take a `*mut ManagedStringStorage` like Profile APIs do?
  */
@@ -300,10 +297,9 @@ struct ddog_prof_ManagedStringStorageNewResult ddog_prof_ManagedStringStorage_ne
  * TODO: @ivoanjo Should this take a `*mut ManagedStringStorage` like Profile APIs do?
  */
 DDOG_CHECK_RETURN
-struct ddog_prof_Profile_NewResult ddog_prof_Profile_with_string_storage(
+struct ddog_prof_Profile_NewResult fixme_ddog_prof_Profile_with_string_storage(
   struct fixme_ddog_prof_Slice_ValueType sample_types,
-                                                                         const struct ddog_prof_Period *period,
-                                                                         struct ddog_prof_ManagedStringStorage string_storage
+  const struct ddog_prof_Period *period
 );
 
 typedef struct ddog_prof_Sample {

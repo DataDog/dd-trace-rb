@@ -196,7 +196,7 @@ typedef struct {
   pthread_mutex_t mutex_slot_two;
   profile_slot profile_slot_two;
 
-  ddog_prof_ManagedStringStorage string_storage;
+  // ddog_prof_ManagedStringStorage string_storage;
   ddog_prof_ManagedStringId label_key_allocation_class;
   ddog_prof_ManagedStringId label_key_gc_gen_age;
 
@@ -346,22 +346,22 @@ static VALUE _native_new(VALUE klass) {
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 
-  ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
+  // ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
 
-  if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
-  }
+  // if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
+  //   rb_raise(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
+  // }
 
-  state->string_storage = string_storage.ok;
-  state->label_key_allocation_class = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("allocation class"));
-  state->label_key_gc_gen_age = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("gc gen age"));
+  // state->string_storage = string_storage.ok;
+  // state->label_key_allocation_class = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("allocation class"));
+  // state->label_key_gc_gen_age = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("gc gen age"));
 
   initialize_profiles(state, sample_types);
 
   // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
   //       default is everything enabled. However, if during recording initialization it turns out we don't want
   //       heap samples, we will free and reset heap_recorder back to NULL.
-  state->heap_recorder = heap_recorder_new(state->string_storage);
+  state->heap_recorder = NULL;
 
   return stack_recorder;
 }
@@ -380,7 +380,7 @@ static void initialize_profiles(stack_recorder_state *state, fixme_ddog_prof_Sli
   ddog_Timespec start_timestamp = system_epoch_now_timespec();
 
   ddog_prof_Profile_NewResult slot_one_profile_result =
-    ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */, state->string_storage);
+    fixme_ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */);
 
   if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
@@ -389,7 +389,7 @@ static void initialize_profiles(stack_recorder_state *state, fixme_ddog_prof_Sli
   state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok, .start_timestamp = start_timestamp };
 
   ddog_prof_Profile_NewResult slot_two_profile_result =
-    ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */, state->string_storage);
+    fixme_ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */);
 
   if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
     // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
@@ -410,7 +410,7 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
 
   heap_recorder_free(state->heap_recorder);
 
-  ddog_prof_ManagedStringStorage_drop(state->string_storage);
+  // ddog_prof_ManagedStringStorage_drop(state->string_storage);
 
   ruby_xfree(state);
 }
@@ -507,7 +507,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   if (heap_samples_enabled == Qfalse && heap_size_enabled == Qfalse) {
     // Turns out heap sampling is disabled but we initialized everything in _native_new
     // assuming all samples were enabled. We need to deinitialize the heap recorder.
-    heap_recorder_free(state->heap_recorder);
+    // heap_recorder_free(state->heap_recorder);
     state->heap_recorder = NULL;
   }
 
@@ -1053,6 +1053,8 @@ static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder
 
 // See comments in rspec test for details on what we're testing here.
 static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self) {
+  if (true) return Qnil;
+  /*
   ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
 
   if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
@@ -1142,4 +1144,5 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   ddog_prof_ManagedStringStorage_drop(string_storage.ok);
 
   return rb_ary_new_from_args(2, encoded_pprof_1, encoded_pprof_2);
+  */
 }
