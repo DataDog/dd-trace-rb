@@ -3,6 +3,8 @@
 #include <datadog/profiling.h>
 #include <ruby.h>
 
+#include "libdatadog_helpers.h"
+
 // A heap recorder keeps track of a collection of live heap objects.
 //
 // All allocations observed by this recorder for which a corresponding free was

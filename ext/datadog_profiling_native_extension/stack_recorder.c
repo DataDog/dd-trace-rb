@@ -1073,8 +1073,8 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   int64_t metric_values[] = {1, 2, 3, 4, 5, 6, 7, 8};
   ddog_prof_Label labels[] = {{.key_id = key, .str_id = key}};
 
-  ddog_prof_Location locations[] = {
-    (ddog_prof_Location) {
+  fixme_ddog_prof_Location locations[] = {
+    (fixme_ddog_prof_Location) {
       .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
       .function = {
         .name = DDOG_CHARSLICE_C(""),

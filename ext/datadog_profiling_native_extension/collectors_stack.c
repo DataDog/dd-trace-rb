@@ -97,7 +97,7 @@ typedef struct {
   sample_values values;
   sample_labels labels;
   VALUE thread;
-  ddog_prof_Location *locations;
+  fixme_ddog_prof_Location *locations;
   sampling_buffer *buffer;
   bool native_filenames_enabled;
   st_table *native_filenames_cache;
@@ -172,7 +172,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
 
   int max_frames_requested = sampling_buffer_check_max_frames(NUM2INT(max_frames));
 
-  ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
+  fixme_ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(fixme_ddog_prof_Location));
   sampling_buffer buffer;
   sampling_buffer_initialize(&buffer, max_frames_requested, locations);
 
@@ -372,9 +372,9 @@ void sample_thread(
 
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
-    buffer->locations[libdatadog_stores_stacks_flipped_from_rb_profile_frames_index] = (ddog_prof_Location) {
+    buffer->locations[libdatadog_stores_stacks_flipped_from_rb_profile_frames_index] = (fixme_ddog_prof_Location) {
       .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
-      .function = (ddog_prof_Function) {.name = name_slice, .filename = filename_slice},
+      .function = (fixme_ddog_prof_Function) {.name = name_slice, .filename = filename_slice},
       .line = line,
     };
   }
@@ -524,7 +524,7 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
 static void add_truncated_frames_placeholder(sampling_buffer* buffer) {
   // Important note: The strings below are static so we don't need to worry about their lifetime. If we ever want to change
   // this to non-static strings, don't forget to check that lifetimes are properly respected.
-  buffer->locations[0] = (ddog_prof_Location) {
+  buffer->locations[0] = (fixme_ddog_prof_Location) {
     .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
     .function = {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C(""), .filename_id = {}},
     .line = 0,
@@ -571,7 +571,7 @@ void record_placeholder_stack(
   sample_labels labels,
   ddog_CharSlice placeholder_stack
 ) {
-  ddog_prof_Location placeholder_location = {
+  fixme_ddog_prof_Location placeholder_location = {
     .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
     .function = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack},
     .line = 0,
@@ -601,7 +601,7 @@ uint16_t sampling_buffer_check_max_frames(int max_frames) {
   return max_frames;
 }
 
-void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, ddog_prof_Location *locations) {
+void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, fixme_ddog_prof_Location *locations) {
   sampling_buffer_check_max_frames(max_frames);
 
   buffer->max_frames = max_frames;

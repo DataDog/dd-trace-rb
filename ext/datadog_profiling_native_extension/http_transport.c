@@ -126,7 +126,7 @@ static VALUE handle_exporter_failure(ddog_prof_ProfileExporter_Result exporter_r
 static VALUE perform_export(
   ddog_prof_ProfileExporter *exporter,
   ddog_prof_EncodedProfile *profile,
-  ddog_prof_Exporter_Slice_File files_to_compress_and_export,
+  ddog_prof_Slice_Exporter_File files_to_compress_and_export,
   ddog_CharSlice internal_metadata,
   ddog_CharSlice info
 ) {
@@ -227,7 +227,7 @@ static VALUE _native_do_export(
 
   int to_compress_length = have_code_provenance ? 1 : 0;
   ddog_prof_Exporter_File to_compress[to_compress_length];
-  ddog_prof_Exporter_Slice_File files_to_compress_and_export = {.ptr = to_compress, .len = to_compress_length};
+  ddog_prof_Slice_Exporter_File files_to_compress_and_export = {.ptr = to_compress, .len = to_compress_length};
 
   if (have_code_provenance) {
     to_compress[0] = (ddog_prof_Exporter_File) {

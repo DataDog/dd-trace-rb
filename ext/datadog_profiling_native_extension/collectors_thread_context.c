@@ -122,7 +122,7 @@ typedef struct {
   // "Update this when modifying state struct"
 
   // Required by Datadog::Profiling::Collectors::Stack as a scratch buffer during sampling
-  ddog_prof_Location *locations;
+  fixme_ddog_prof_Location *locations;
   uint16_t max_frames;
   // Hashmap <Thread Object, per_thread_context>
   // Note: Be very careful when mutating this map, as it gets read e.g. in the middle of GC and signal handlers.
@@ -505,7 +505,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 
   // Update this when modifying state struct
   state->max_frames = sampling_buffer_check_max_frames(NUM2INT(max_frames));
-  state->locations = ruby_xcalloc(state->max_frames, sizeof(ddog_prof_Location));
+  state->locations = ruby_xcalloc(state->max_frames, sizeof(fixme_ddog_prof_Location));
   // hash_map_per_thread_context is already initialized, nothing to do here
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
