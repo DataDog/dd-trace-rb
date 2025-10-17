@@ -327,7 +327,93 @@ typedef struct ddog_prof_Sample {
   struct ddog_prof_Slice_Label labels;
 } ddog_prof_Sample;
 
-static inline VALUE ruby_string_from_vec_u8(ddog_Vec_U8 string) {
+/**
+ * # Safety
+ * The `profile` ptr must point to a valid Profile object created by this
+ * module. All pointers inside the `sample` need to be valid for the duration
+ * of this call.
+ *
+ * If successful, it returns the Ok variant.
+ * On error, it holds an error message in the error variant.
+ *
+ * # Safety
+ * The `profile` ptr must point to a valid Profile object created by this
+ * module.
+ * This call is _NOT_ thread-safe.
+ */
+ DDOG_CHECK_RETURN
+ struct ddog_prof_Profile_Result ddog_prof_Profile_add(struct ddog_prof_Profile *profile,
+                                                       struct ddog_prof_Sample sample,
+                                                       int64_t timestamp);
+
+/**
+ * Associate an endpoint to a given local root span id.
+ * During the serialization of the profile, an endpoint label will be added
+ * to all samples that contain a matching local root span id label.
+ *
+ * Note: calling this API causes the "trace endpoint" and "local root span id" strings
+ * to be interned, even if no matching sample is found.
+ *
+ * # Arguments
+ * * `profile` - a reference to the profile that will contain the samples.
+ * * `local_root_span_id`
+ * * `endpoint` - the value of the endpoint label to add for matching samples.
+ *
+ * # Safety
+ * The `profile` ptr must point to a valid Profile object created by this
+ * module.
+ * This call is _NOT_ thread-safe.
+ */
+ DDOG_CHECK_RETURN
+ struct ddog_prof_Profile_Result ddog_prof_Profile_set_endpoint(struct ddog_prof_Profile *profile,
+                                                                uint64_t local_root_span_id,
+                                                                ddog_CharSlice endpoint);
+
+
+/**
+ * Resets all data in `profile` except the sample types and period. Returns
+ * true if it successfully reset the profile and false otherwise. The profile
+ * remains valid if false is returned.
+ *
+ * # Arguments
+ * * `profile` - A mutable reference to the profile to be reset.
+ * * `start_time` - The time of the profile (after reset). Pass None/null to use the current time.
+ *
+ * # Safety
+ * The `profile` must meet all the requirements of a mutable reference to the profile. Given this
+ * can be called across an FFI boundary, the compiler cannot enforce this.
+ * If `time` is not null, it must point to a valid Timespec object.
+ */
+ DDOG_CHECK_RETURN
+ struct ddog_prof_Profile_Result ddog_prof_Profile_reset(struct ddog_prof_Profile *profile);
+
+
+/**
+ * Serialize the aggregated profile.
+ * Drains the data, and then resets the profile for future use.
+ *
+ * Don't forget to clean up the ok with `ddog_prof_EncodedProfile_drop` or
+ * the error variant with `ddog_Error_drop` when you are done with them.
+ *
+ * # Arguments
+ * * `profile` - a reference to the profile being serialized.
+ * * `start_time` - optional start time for the serialized profile. If None/null is passed, the
+ *   time of profile creation will be used.
+ * * `end_time` - optional end time of the profile. If None/null is passed, the current time will
+ *   be used.
+ *
+ * # Safety
+ * The `profile` must point to a valid profile object.
+ * The `start_time` and `end_time` must be null or otherwise point to a valid TimeSpec object.
+ */
+ DDOG_CHECK_RETURN
+ struct ddog_prof_Profile_SerializeResult ddog_prof_Profile_serialize(struct ddog_prof_Profile *profile,
+                                                                      const struct ddog_Timespec *start_time,
+                                                                      const struct ddog_Timespec *end_time);
+
+
+
+ static inline VALUE ruby_string_from_vec_u8(ddog_Vec_U8 string) {
   return rb_str_new((char *) string.ptr, string.len);
 }
 
