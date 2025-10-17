@@ -1,9 +1,9 @@
 module Datadog
   module Tracing
     module DataStreams
-      def self.set_produce_checkpoint: (untyped type, untyped target, ?manual_checkpoint: bool) { (?) -> untyped } -> untyped
+      def self.checkpoint_produce: (type: untyped, destination: untyped, ?tags: ::Array[untyped]) ?{ (untyped, untyped) -> untyped } -> untyped
 
-      def self.set_consume_checkpoint: (untyped type, untyped source, ?manual_checkpoint: bool) { (?) -> untyped } -> untyped
+      def self.checkpoint_consume: (type: untyped, source: untyped, ?tags: ::Array[untyped]) ?{ (untyped) -> untyped } -> untyped
     end
   end
 end
