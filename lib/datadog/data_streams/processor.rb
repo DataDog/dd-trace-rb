@@ -49,8 +49,9 @@ module Datadog
         self.loop_base_interval = interval
         @enabled = true
 
-        # Auto-start the processor
-        start
+        # Auto-start the processor by calling perform once
+        # This kicks off the async polling loop via Workers::Async::Thread
+        perform
       end
 
       # Track Kafka produce offset for lag monitoring
@@ -193,16 +194,17 @@ module Datadog
         set_checkpoint(checkpoint_tags, nil, 0, span)
       end
 
-      # Start the periodic worker for automatic stats flushing
-      def start
-        return unless @enabled
-
-        perform
-      end
-
       # Stop the periodic worker
       def stop(force_stop = false, timeout = 1)
         super
+      end
+
+      # Called periodically by the worker to flush stats to the agent
+      def perform
+        return unless @enabled
+
+        flush_stats
+        true
       end
 
       private
@@ -294,10 +296,7 @@ module Datadog
         PathwayContext.decode_b64(encoded_ctx)
       end
 
-      # Called periodically by the worker to flush stats to the agent
-      def perform
-        return unless @enabled
-
+      def flush_stats
         @stats_mutex.synchronize do
           # Check if we have data to send
           return if @buckets.empty? && @consumer_stats.empty?
