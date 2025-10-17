@@ -39,6 +39,7 @@ module Datadog
 
         def decode_pathway_b64: (::String encoded_ctx) -> PathwayContext?
         def perform: () -> (bool | nil)
+        def flush_stats: () -> void
 
         def get_current_pathway: () -> PathwayContext?
         def stop: (?bool force_stop, ?::Integer timeout) -> void

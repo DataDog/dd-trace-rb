@@ -513,12 +513,12 @@ module Datadog
         # Create HTTP request to DSM endpoint
         agent_host = Datadog.configuration.agent.host || 'localhost'
         agent_port = Datadog.configuration.agent.port || 8126
-        uri = URI("http://#{agent_host}:#{agent_port}/v0.1/pipeline_stats")
+        path = '/v0.1/pipeline_stats'
 
-        http = Net::HTTP.new(uri.host, uri.port)
+        http = Net::HTTP.new(agent_host, agent_port)
         http.use_ssl = false
 
-        request = Net::HTTP::Post.new(uri)
+        request = Net::HTTP::Post.new(path)
         headers.each { |k, v| request[k] = v }
 
         # Set binary data with proper encoding
