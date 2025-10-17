@@ -49,9 +49,13 @@ module Datadog
           # Anonymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +"#{exception.class.name || exception.class.inspect}" # standard:disable Style/RedundantInterpolation
 
-          if description
+          # Only include exception message if it's a ProfilingError (which we know contains safe messages)
+          exception_message = safe_exception_message(exception)
+
+          if description || exception_message
             message << ':'
-            message << " #{description}"
+            message << " #{description}" if description
+            message << " (#{exception_message})" if exception_message
           end
 
           event = Event::Log.new(
@@ -61,6 +65,16 @@ module Datadog
           )
 
           log!(event)
+        end
+
+        private
+
+        def safe_exception_message(exception)
+          # Only include exception messages from ProfilingError, as those are guaranteed to be created by us
+          # with constant, PII-safe messages
+          if defined?(Datadog::Profiling::ProfilingError) && exception.is_a?(Datadog::Profiling::ProfilingError)
+            exception.message
+          end
         end
 
         def error(description)

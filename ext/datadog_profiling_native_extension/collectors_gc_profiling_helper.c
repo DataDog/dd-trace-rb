@@ -119,7 +119,7 @@ uint8_t gc_profiling_set_metadata(ddog_prof_Label *labels, int labels_length) {
   };
 
   if (label_pos > max_label_count) {
-    rb_raise(rb_eRuntimeError, "BUG: gc_profiling_set_metadata unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
+    rb_raise(datadog_profiling_error_class, "BUG: gc_profiling_set_metadata unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
 
   return label_pos;

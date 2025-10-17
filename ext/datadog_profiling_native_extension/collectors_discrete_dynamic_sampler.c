@@ -369,7 +369,7 @@ static VALUE _native_new(VALUE klass) {
 
   long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   if (now_ns == 0) {
-    rb_raise(rb_eRuntimeError, "failed to get clock time");
+    rb_raise(datadog_profiling_error_class, "failed to get clock time");
   }
   discrete_dynamic_sampler_init(&state->sampler, "test sampler", now_ns);
 
