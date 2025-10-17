@@ -104,6 +104,11 @@ module Datadog
           ENV_ENABLED = 'DD_TRACE_CLIENT_IP_ENABLED'
           ENV_HEADER_NAME = 'DD_TRACE_CLIENT_IP_HEADER'
         end
+
+        # @public_api
+        module DataStreams
+          ENV_ENABLED = 'DD_DATA_STREAMS_ENABLED'
+        end
       end
     end
   end
