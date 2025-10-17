@@ -14,8 +14,8 @@ module Datadog
       #   read: lib/datadog/core/telemetry/logging.rb
       module Logger
         class << self
-          def report(exception, level: :error, description: nil, pii_safe: false)
-            instance&.report(exception, level: level, description: description, pii_safe: pii_safe)
+          def report(exception, level: :error, description: nil)
+            instance&.report(exception, level: level, description: description)
           end
 
           def error(description)
