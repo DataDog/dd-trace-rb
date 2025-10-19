@@ -35,7 +35,7 @@ GEM
       net-http (>= 0.5.0)
     ffi (1.17.2-java)
     hashdiff (1.1.1)
-    json (2.15.0-java)
+    json (2.15.1-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (22.0.1.1.0)
@@ -92,7 +92,7 @@ GEM
     simplecov_json_formatter (0.1.4)
     spoon (0.0.6)
       ffi
-    uri (1.0.3)
+    uri (1.0.4)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)
