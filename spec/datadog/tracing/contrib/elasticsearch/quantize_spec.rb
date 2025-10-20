@@ -55,7 +55,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Quantize do
     context 'when given the option' do
       describe ':show with' do
         context 'an Array of attributes' do
-          let(:options) { { show: [:title] } }
+          let(:options) { {show: [:title]} }
 
           it_behaves_like 'a quantized body',
             '{"query":{"match":{"title":"test","subtitle":"test"}}}',
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Quantize do
         end
 
         context ':all' do
-          let(:options) { { show: :all } }
+          let(:options) { {show: :all} }
 
           it_behaves_like 'a quantized body',
             '{"query":{"match":{"title":"test","subtitle":"test"}}}',
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Quantize do
 
       describe ':exclude with' do
         context 'an Array of attributes' do
-          let(:options) { { exclude: [:title] } }
+          let(:options) { {exclude: [:title]} }
 
           it_behaves_like 'a quantized body',
             '{"query":{"match":{"title":"test","subtitle":"test"}}}',

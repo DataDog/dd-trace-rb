@@ -68,7 +68,7 @@ RSpec.configure do |config|
   config.include LogHelpers
   config.include NetworkHelpers
   config.include LoadedGem
-  config.extend  LoadedGem::Helpers
+  config.extend LoadedGem::Helpers
   config.include LoadedGem::Helpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
@@ -76,7 +76,7 @@ RSpec.configure do |config|
   config.include TracerHelpers
   config.include TestHelpers::RSpec::Integration, :integration
   config.include HttpServerHelpers
-  config.extend  PlatformHelpers::ClassMethods
+  config.extend PlatformHelpers::ClassMethods
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
@@ -195,7 +195,7 @@ RSpec.configure do |config|
           # Rails connection reaper in newer Rails are native (no backtrace), but have a consistent call site
           caller.find { |b| b =~ %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb} } ||
           # Ruby JetBrains debugger
-          (t.class.name && t.class.name.include?('DebugThread')) ||
+          t.class.name&.include?('DebugThread') ||
           # Categorized as a known leaky thread
           !group_name.nil? ||
           # Internal TruffleRuby thread, defined in
@@ -315,11 +315,15 @@ if ENV.key?('CI')
         backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
 
         msg = "#{idx}: #{t} (#{t.class.name})",
-              'Thread Backtrace:',
-              backtrace.map { |l| "\t#{l}" }.join("\n"),
-              "\n"
+          'Thread Backtrace:',
+          backtrace.map { |l| "\t#{l}" }.join("\n"),
+          "\n"
 
-        warn(msg) rescue puts(msg)
+        begin
+          warn(msg)
+        rescue
+          puts(msg)
+        end
       end
 
       Kernel.exit(1)
@@ -343,3 +347,9 @@ Timeout.ensure_timeout_thread_created if Timeout.respond_to?(:ensure_timeout_thr
 # mock objects in the test suite. Disable it and tests that need code tracking
 # will enable it back for themselves.
 Datadog::DI.deactivate_tracking! if defined?(Datadog::DI) && Datadog::DI.respond_to?(:deactivate_tracking!)
+
+# Enable raising errors when accessing unknown datadog/otel environment variables
+# (Default is to return `nil`). See docs/AccessEnvironmentVariables.md for details.
+#
+# (Note that the `config_helper_spec.rb` checks this is enabled as well!)
+Datadog::DATADOG_ENV.instance_variable_set(:@raise_on_unknown_env_var, true)

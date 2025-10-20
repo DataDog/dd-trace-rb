@@ -20,7 +20,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     allow(rate_limiter).to receive(:allow?).and_return(allow?)
   end
 
-  shared_examples 'a simple rule that matches all span operations' do |options = { sample_rate: 1.0 }|
+  shared_examples 'a simple rule that matches all span operations' do |options = {sample_rate: 1.0}|
     it do
       expect(rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
       expect(rule.matcher.service).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     end
   end
 
-  shared_examples 'a token bucket rate limiter' do |options = { rate: 100, max_tokens: nil }|
+  shared_examples 'a token bucket rate limiter' do |options = {rate: 100, max_tokens: nil}|
     it do
       expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::TokenBucket)
       expect(rule_sampler.rate_limiter.rate).to eq(options[:rate])
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     end
 
     context 'with sample_rate' do
-      let(:rule) { { sample_rate: 0.1 } }
+      let(:rule) { {sample_rate: 0.1} }
 
       it 'parses as a match any' do
         expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       end
 
       context 'and name' do
-        let(:rule) { { sample_rate: 0.1, name: 'test_name' } }
+        let(:rule) { {sample_rate: 0.1, name: 'test_name'} }
 
         it 'parses matching any service' do
           expect(actual_rule.matcher.name).to eq(/\Atest_name\z/i)
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       end
 
       context 'and service' do
-        let(:rule) { { sample_rate: 0.1, service: 'test_service' } }
+        let(:rule) { {sample_rate: 0.1, service: 'test_service'} }
 
         it 'parses matching any name' do
           expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
@@ -133,7 +133,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       end
 
       context 'and resource' do
-        let(:rule) { { sample_rate: 0.1, resource: 'test_resource' } }
+        let(:rule) { {sample_rate: 0.1, resource: 'test_resource'} }
 
         it 'parses resource matcher' do
           expect(actual_rule.matcher.resource).to eq(/\Atest_resource\z/i)
@@ -141,7 +141,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       end
 
       context 'and tags' do
-        let(:rule) { { sample_rate: 0.1, tags: { tag: 'test_tag' } } }
+        let(:rule) { {sample_rate: 0.1, tags: {tag: 'test_tag'}} }
 
         it 'parses matching tag' do
           expect(actual_rule.matcher.tags).to eq('tag' => /\Atest_tag\z/i)
@@ -150,7 +150,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       end
 
       context 'with multiple rules' do
-        let(:rules) { [{ sample_rate: 0.1 }, { sample_rate: 0.2 }] }
+        let(:rules) { [{sample_rate: 0.1}, {sample_rate: 0.2}] }
 
         it 'parses all rules in order' do
           expect(actual_rules).to have(2).item
@@ -161,14 +161,14 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
 
       context 'with provenance' do
         context 'from customer' do
-          let(:rule) { { sample_rate: 1, provenance: 'customer' } }
+          let(:rule) { {sample_rate: 1, provenance: 'customer'} }
           it 'parses the provenance' do
             expect(actual_rule.provenance).to eq(Datadog::Tracing::Sampling::Rule::PROVENANCE_REMOTE_USER)
           end
         end
 
         context 'from dynamic configuration' do
-          let(:rule) { { sample_rate: 1, provenance: 'dynamic' } }
+          let(:rule) { {sample_rate: 1, provenance: 'dynamic'} }
 
           it 'parses the provenance' do
             expect(actual_rule.provenance).to eq(Datadog::Tracing::Sampling::Rule::PROVENANCE_REMOTE_DYNAMIC)
@@ -178,7 +178,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     end
 
     context 'with a non-float sample_rate' do
-      let(:rule) { { sample_rate: 'oops' } }
+      let(:rule) { {sample_rate: 'oops'} }
 
       it 'does not accept rule with a non-float sample_rate' do
         expect(Datadog.logger).to receive(:warn)
@@ -187,7 +187,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     end
 
     context 'without a sample_rate' do
-      let(:rule) { { name: 'test' } }
+      let(:rule) { {name: 'test'} }
 
       it 'does not accept rule missing the mandatory sample_rate' do
         expect(Datadog.logger).to receive(:warn)
@@ -195,7 +195,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       end
 
       context 'with multiple rules' do
-        let(:rules) { [{ sample_rate: 0.1 }, { name: 'test' }] }
+        let(:rules) { [{sample_rate: 0.1}, {name: 'test'}] }
 
         it 'rejects all rules if one is missing the mandatory sample_rate' do
           expect(Datadog.logger).to receive(:warn)
@@ -355,7 +355,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
   describe '#update' do
     subject(:update) { rule_sampler.update(rates, decision: decision) }
 
-    let(:rates) { { 'service:my-service,env:test' => rand } }
+    let(:rates) { {'service:my-service,env:test' => rand} }
     let(:decision) { 'test decision' }
 
     context 'when configured with a default sampler' do

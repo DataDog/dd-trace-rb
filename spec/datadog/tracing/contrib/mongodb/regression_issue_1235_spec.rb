@@ -1,11 +1,13 @@
 require 'datadog'
-require 'mongo'
+require 'mongo' unless PlatformHelpers.jruby_100?
 
-RSpec.describe 'Mongo crash regression #1235' do
+# TODO: JRuby 10.0 - Remove this skip after MongoDB adds support for JRuby 10.0: https://github.com/mongodb/mongo-ruby-driver#mongodb-ruby-driver
+# The tests fail on an error related to the bson_ruby gem's NativeService.
+RSpec.describe 'Mongo crash regression #1235', skip: PlatformHelpers.jruby_100? do
   before { skip unless PlatformHelpers.mri? }
 
   let(:client) { Mongo::Client.new(["#{host}:#{port}"], client_options) }
-  let(:client_options) { { database: database } }
+  let(:client_options) { {database: database} }
   let(:host) { ENV.fetch('TEST_MONGODB_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017).to_i }
   let(:database) { 'test' }

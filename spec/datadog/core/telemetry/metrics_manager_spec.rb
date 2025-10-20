@@ -18,7 +18,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
   let(:namespace) { 'namespace' }
   let(:metric_name) { 'metric_name' }
   let(:value) { 5 }
-  let(:tags) { { tag1: 'val1', tag2: 'val2' } }
+  let(:tags) { {tag1: 'val1', tag2: 'val2'} }
   let(:common) { true }
 
   describe '#inc' do

@@ -25,6 +25,18 @@ module Datadog
           native_filenames_enabled: bool,
         ) -> void
 
+        def self.for_testing: (
+          recorder: Datadog::Profiling::StackRecorder,
+          ?max_frames: ::Integer,
+          ?tracer: Datadog::Tracing::Tracer?,
+          ?endpoint_collection_enabled: bool,
+          ?timeline_enabled: bool,
+          ?waiting_for_gvl_threshold_ns: ::Integer,
+          ?otel_context_enabled: (::Symbol? | bool),
+          ?native_filenames_enabled: bool,
+          **untyped
+        ) -> Datadog::Profiling::Collectors::ThreadContext
+
         def inspect: () -> ::String
 
         def self._native_inspect: (Datadog::Profiling::Collectors::ThreadContext collector_instance) -> ::String

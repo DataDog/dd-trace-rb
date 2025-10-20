@@ -5,6 +5,7 @@ require_relative 'base'
 require_relative 'error'
 require_relative 'code_tracker'
 require_relative 'component'
+require_relative 'context'
 require_relative 'instrumenter'
 require_relative 'probe'
 require_relative 'probe_builder'
@@ -16,7 +17,8 @@ require_relative 'serializer'
 require_relative 'transport/http'
 require_relative 'utils'
 
-if %w[1 true yes].include?(ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
+if %w[1 true yes].include?(Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
+
   # For initial release of Dynamic Instrumentation, activate code tracking
   # only if DI is explicitly requested in the environment.
   # Code tracking is required for line probes to work; see the comments
@@ -33,8 +35,8 @@ require_relative 'contrib'
 
 Datadog::DI::Contrib.load_now_or_later
 
-if %w[1 true yes].include?(ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
-  if ENV['DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE']
+if %w[1 true yes].include?(Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
+  if Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE']
     require_relative 'probe_file_loader'
     Datadog::DI::ProbeFileLoader.load_now_or_later
   end

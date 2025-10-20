@@ -39,7 +39,7 @@ RSpec.describe 'Datadog integration' do
         post_shutdown_new_threads = Thread.list - original_threads
 
         expect(post_shutdown_new_threads).to be_empty,
-          "Expected #{original_threads.size} threads but got #{threads.size} threads. "\
+          "Expected #{original_threads.size} threads but got #{threads.size} threads. " \
             "extra_threads: (#{inspect_threads(post_shutdown_new_threads)})"
       end
     end

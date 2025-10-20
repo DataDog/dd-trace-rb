@@ -58,11 +58,11 @@ RSpec.describe Datadog::OpenTelemetry do
         end
 
         context 'with attributes' do
-          let(:span_options) { { attributes: attributes } }
+          let(:span_options) { {attributes: attributes} }
 
           before do
             Datadog.configure do |c|
-              c.tags = { 'global' => 'global_tag' }
+              c.tags = {'global' => 'global_tag'}
             end
 
             in_span
@@ -75,7 +75,7 @@ RSpec.describe Datadog::OpenTelemetry do
             ['str', 'str'],
           ].each do |input, expected|
             context "with attribute value #{input}" do
-              let(:attributes) { { 'tag' => input } }
+              let(:attributes) { {'tag' => input} }
 
               it "sets tag #{expected}" do
                 expect(span.get_tag('tag')).to eq(expected)
@@ -88,11 +88,11 @@ RSpec.describe Datadog::OpenTelemetry do
           end
 
           [
-            [[1], { 'key.0' => 1 }],
-            [[true, false], { 'key.0' => 'true', 'key.1' => 'false' }],
+            [[1], {'key.0' => 1}],
+            [[true, false], {'key.0' => 'true', 'key.1' => 'false'}],
           ].each do |input, expected|
             context "with an array attribute value #{input}" do
-              let(:attributes) { { 'key' => input } }
+              let(:attributes) { {'key' => input} }
 
               it "sets tags #{expected}" do
                 expect(span.tags).to include(expected)
@@ -101,7 +101,7 @@ RSpec.describe Datadog::OpenTelemetry do
           end
 
           context 'with a numeric attribute' do
-            let(:attributes) { { 'tag' => 1 } }
+            let(:attributes) { {'tag' => 1} }
 
             it 'sets it as a metric' do
               expect(span.get_metric('tag')).to eq(1)
@@ -109,7 +109,7 @@ RSpec.describe Datadog::OpenTelemetry do
           end
 
           context 'with reserved attributes' do
-            let(:attributes) { { attribute_name => attribute_value } }
+            let(:attributes) { {attribute_name => attribute_value} }
 
             context 'for operation.name' do
               let(:attribute_name) { 'operation.name' }
@@ -182,45 +182,45 @@ RSpec.describe Datadog::OpenTelemetry do
               [:internal, {}, 'internal'],
               [
                 :producer,
-                { 'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive' },
+                {'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive'},
                 'kafka.receive'
               ],
               [:producer, {}, 'producer'],
               [
                 :consumer,
-                { 'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive' },
+                {'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive'},
                 'kafka.receive'
               ],
               [:consumer, {}, 'consumer'],
-              [:client, { 'http.request.method' => 'GET' }, 'http.client.request'],
-              [:client, { 'db.system' => 'Redis' }, 'redis.query'],
-              [:client, { 'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive' }, 'kafka.receive'],
-              [:client, { 'rpc.system' => 'aws-api', 'rpc.service' => 'S3' }, 'aws.s3.request'],
-              [:client, { 'rpc.system' => 'aws-api' }, 'aws.client.request'],
-              [:client, { 'rpc.system' => 'GRPC' }, 'grpc.client.request'],
+              [:client, {'http.request.method' => 'GET'}, 'http.client.request'],
+              [:client, {'db.system' => 'Redis'}, 'redis.query'],
+              [:client, {'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive'}, 'kafka.receive'],
+              [:client, {'rpc.system' => 'aws-api', 'rpc.service' => 'S3'}, 'aws.s3.request'],
+              [:client, {'rpc.system' => 'aws-api'}, 'aws.client.request'],
+              [:client, {'rpc.system' => 'GRPC'}, 'grpc.client.request'],
               [
                 :client,
-                { 'faas.invoked_provider' => 'aws', 'faas.invoked_name' => 'My-Function' },
+                {'faas.invoked_provider' => 'aws', 'faas.invoked_name' => 'My-Function'},
                 'aws.my-function.invoke'
               ],
-              [:client, { 'network.protocol.name' => 'Amqp' }, 'amqp.client.request'],
+              [:client, {'network.protocol.name' => 'Amqp'}, 'amqp.client.request'],
               [:client, {}, 'client.request'],
-              [:server, { 'http.request.method' => 'GET' }, 'http.server.request'],
-              [:server, { 'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive' }, 'kafka.receive'],
-              [:server, { 'rpc.system' => 'GRPC' }, 'grpc.server.request'],
-              [:server, { 'faas.trigger' => 'Datasource' }, 'datasource.invoke'],
-              [:server, { 'graphql.operation.type' => 'query' }, 'graphql.server.request'],
-              [:server, { 'network.protocol.name' => 'Amqp' }, 'amqp.server.request'],
+              [:server, {'http.request.method' => 'GET'}, 'http.server.request'],
+              [:server, {'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive'}, 'kafka.receive'],
+              [:server, {'rpc.system' => 'GRPC'}, 'grpc.server.request'],
+              [:server, {'faas.trigger' => 'Datasource'}, 'datasource.invoke'],
+              [:server, {'graphql.operation.type' => 'query'}, 'graphql.server.request'],
+              [:server, {'network.protocol.name' => 'Amqp'}, 'amqp.server.request'],
               [:server, {}, 'server.request'],
             ].each do |kind, attributes, expected_operation_name|
               context "for kind #{kind} and attributes #{attributes}" do
-                let(:span_options) { { kind: kind, attributes: attributes } }
+                let(:span_options) { {kind: kind, attributes: attributes} }
                 it { expect(span.name).to eq(expected_operation_name) }
               end
             end
 
             context 'with operation name override' do
-              let(:span_options) { { kind: :client, attributes: { 'operation.name' => 'override' } } }
+              let(:span_options) { {kind: :client, attributes: {'operation.name' => 'override'}} }
               it 'takes precedence over semantic convention' do
                 expect(span.name).to eq('override')
               end
@@ -229,7 +229,7 @@ RSpec.describe Datadog::OpenTelemetry do
         end
 
         context 'with start_timestamp' do
-          let(:span_options) { { start_timestamp: start_timestamp } }
+          let(:span_options) { {start_timestamp: start_timestamp} }
           let(:start_timestamp) { Time.utc(2023) }
           it do
             in_span
@@ -319,7 +319,7 @@ RSpec.describe Datadog::OpenTelemetry do
         end
 
         context 'that has already finished' do
-          let(:options) { { with_parent: ::OpenTelemetry::Trace.context_with_span(existing_span) } }
+          let(:options) { {with_parent: ::OpenTelemetry::Trace.context_with_span(existing_span)} }
           let(:parent) { spans.find { |s| s.parent_id == 0 } }
           let(:child) { spans.find { |s| s != parent } }
 
@@ -371,11 +371,11 @@ RSpec.describe Datadog::OpenTelemetry do
         end
         let(:links) do
           [
-            OpenTelemetry::Trace::Link.new(sc1, { 'key' => 'val', '1' => true }),
-            OpenTelemetry::Trace::Link.new(sc2, { 'key2' => true, 'list' => [1, 2] }),
+            OpenTelemetry::Trace::Link.new(sc1, {'key' => 'val', '1' => true}),
+            OpenTelemetry::Trace::Link.new(sc2, {'key2' => true, 'list' => [1, 2]}),
           ]
         end
-        let(:options) { { links: links } }
+        let(:options) { {links: links} }
 
         it 'sets span links' do
           start_span.finish
@@ -385,13 +385,13 @@ RSpec.describe Datadog::OpenTelemetry do
           expect(span.links[0].span_id).to eq(67893423423)
           expect(span.links[0].trace_flags).to eq(0)
           expect(span.links[0].trace_state).to eq('')
-          expect(span.links[0].attributes).to eq({ 'key' => 'val', '1' => true })
+          expect(span.links[0].attributes).to eq({'key' => 'val', '1' => true})
 
           expect(span.links[1].trace_id).to eq(1234534)
           expect(span.links[1].span_id).to eq(10)
           expect(span.links[1].trace_flags).to eq(1)
           expect(span.links[1].trace_state).to eq('otel=blahxd')
-          expect(span.links[1].attributes).to eq({ 'key2' => true, 'list' => [1, 2] })
+          expect(span.links[1].attributes).to eq({'key2' => true, 'list' => [1, 2]})
         end
       end
     end
@@ -451,8 +451,8 @@ RSpec.describe Datadog::OpenTelemetry do
       end
 
       [
-        [[1], { 'key.0' => 1 }],
-        [[true, false], { 'key.0' => 'true', 'key.1' => 'false' }],
+        [[1], {'key.0' => 1}],
+        [[true, false], {'key.0' => 'true', 'key.1' => 'false'}],
       ].each do |input, expected|
         context "with an array attribute value #{input}" do
           let(:attribute_name) { 'key' }
@@ -543,35 +543,35 @@ RSpec.describe Datadog::OpenTelemetry do
             [:internal, {}, 'internal'],
             [
               :producer,
-              { 'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive' },
+              {'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive'},
               'kafka.receive'
             ],
             [:producer, {}, 'producer'],
             [
               :consumer,
-              { 'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive' },
+              {'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive'},
               'kafka.receive'
             ],
             [:consumer, {}, 'consumer'],
-            [:client, { 'http.request.method' => 'GET' }, 'http.client.request'],
-            [:client, { 'db.system' => 'Redis' }, 'redis.query'],
-            [:client, { 'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive' }, 'kafka.receive'],
-            [:client, { 'rpc.system' => 'aws-api', 'rpc.service' => 'S3' }, 'aws.s3.request'],
-            [:client, { 'rpc.system' => 'aws-api' }, 'aws.client.request'],
-            [:client, { 'rpc.system' => 'GRPC' }, 'grpc.client.request'],
+            [:client, {'http.request.method' => 'GET'}, 'http.client.request'],
+            [:client, {'db.system' => 'Redis'}, 'redis.query'],
+            [:client, {'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive'}, 'kafka.receive'],
+            [:client, {'rpc.system' => 'aws-api', 'rpc.service' => 'S3'}, 'aws.s3.request'],
+            [:client, {'rpc.system' => 'aws-api'}, 'aws.client.request'],
+            [:client, {'rpc.system' => 'GRPC'}, 'grpc.client.request'],
             [
               :client,
-              { 'faas.invoked_provider' => 'aws', 'faas.invoked_name' => 'My-Function' },
+              {'faas.invoked_provider' => 'aws', 'faas.invoked_name' => 'My-Function'},
               'aws.my-function.invoke'
             ],
-            [:client, { 'network.protocol.name' => 'Amqp' }, 'amqp.client.request'],
+            [:client, {'network.protocol.name' => 'Amqp'}, 'amqp.client.request'],
             [:client, {}, 'client.request'],
-            [:server, { 'http.request.method' => 'GET' }, 'http.server.request'],
-            [:server, { 'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive' }, 'kafka.receive'],
-            [:server, { 'rpc.system' => 'GRPC' }, 'grpc.server.request'],
-            [:server, { 'faas.trigger' => 'Datasource' }, 'datasource.invoke'],
-            [:server, { 'graphql.operation.type' => 'query' }, 'graphql.server.request'],
-            [:server, { 'network.protocol.name' => 'Amqp' }, 'amqp.server.request'],
+            [:server, {'http.request.method' => 'GET'}, 'http.server.request'],
+            [:server, {'messaging.system' => 'Kafka', 'messaging.operation' => 'Receive'}, 'kafka.receive'],
+            [:server, {'rpc.system' => 'GRPC'}, 'grpc.server.request'],
+            [:server, {'faas.trigger' => 'Datasource'}, 'datasource.invoke'],
+            [:server, {'graphql.operation.type' => 'query'}, 'graphql.server.request'],
+            [:server, {'network.protocol.name' => 'Amqp'}, 'amqp.server.request'],
             [:server, {}, 'server.request'],
           ].each do |kind, attributes, expected_operation_name|
             context "for kind #{kind} and attributes #{attributes}" do
@@ -581,14 +581,14 @@ RSpec.describe Datadog::OpenTelemetry do
                 end
               end
 
-              let(:span_options) { { kind: kind } }
+              let(:span_options) { {kind: kind} }
 
               it { expect(span.name).to eq(expected_operation_name) }
             end
           end
 
           context 'with operation name override' do
-            let(:span_options) { { kind: :client } }
+            let(:span_options) { {kind: :client} }
             let(:attribute_name) { 'operation.name' }
             let(:attribute_value) { 'override' }
 
@@ -615,7 +615,7 @@ RSpec.describe Datadog::OpenTelemetry do
       let(:start_span) { otel_tracer.start_span('start-span', **span_options) }
       let(:active_span) { Datadog::Tracing.active_span }
 
-      Array([nil, {}]).each do |attrs|
+      [nil, {}].each do |attrs|
         context "attributes is #{attrs.inspect}" do
           let(:attributes) { attrs }
 
@@ -626,7 +626,7 @@ RSpec.describe Datadog::OpenTelemetry do
 
             expect(span.events[0].attributes.keys).to match_array(
               ['exception.message', 'exception.type',
-               'exception.stacktrace']
+                'exception.stacktrace']
             )
             expect(span.events[0].attributes['exception.message']).to eq('Error')
             expect(span.events[0].attributes['exception.type']).to eq('StandardError')
@@ -642,7 +642,7 @@ RSpec.describe Datadog::OpenTelemetry do
       end
 
       context 'with attributes containing nil values' do
-        let(:attributes) { { 'exception.stacktrace' => nil, 'exception.type' => nil, 'exception.message' => nil } }
+        let(:attributes) { {'exception.stacktrace' => nil, 'exception.type' => nil, 'exception.message' => nil} }
 
         it 'sets records an exception event and sets span error tags using the Exception object' do
           expect(span.events.count).to eq(1)
@@ -656,7 +656,7 @@ RSpec.describe Datadog::OpenTelemetry do
       end
 
       context 'with attributes containing empty values' do
-        let(:attributes) { { 'exception.stacktrace' => '', 'exception.type' => '', 'exception.message' => '' } }
+        let(:attributes) { {'exception.stacktrace' => '', 'exception.type' => '', 'exception.message' => ''} }
 
         it 'sets records an exception event and does NOT set span error tags' do
           expect(span.events.count).to eq(1)
@@ -671,8 +671,8 @@ RSpec.describe Datadog::OpenTelemetry do
 
       context 'with attributes containing exception stacktrace, type and message' do
         let(:attributes) do
-          { 'exception.stacktrace' => 'funny_stack', 'exception.type' => 'CustomError', 'exception.message' => 'NewError',
-            'candy' => true }
+          {'exception.stacktrace' => 'funny_stack', 'exception.type' => 'CustomError', 'exception.message' => 'NewError',
+           'candy' => true}
         end
 
         it 'sets records an exception event and sets span error tags using the attributes hash' do
@@ -694,7 +694,7 @@ RSpec.describe Datadog::OpenTelemetry do
     end
 
     describe '#add_attributes' do
-      subject(:add_attributes) { start_span.add_attributes({ 'k1' => 'v1', 'k2' => 'v2' }) }
+      subject(:add_attributes) { start_span.add_attributes({'k1' => 'v1', 'k2' => 'v2'}) }
       let(:start_span) { otel_tracer.start_span('start-span', **span_options) }
       let(:active_span) { Datadog::Tracing.active_span }
 
@@ -721,7 +721,7 @@ RSpec.describe Datadog::OpenTelemetry do
       let(:active_span) { Datadog::Tracing.active_span }
 
       context 'with name, attributes and timestamp' do
-        let(:attributes) { { 'raised' => false, 'handler' => 'default', 'count' => 1 } }
+        let(:attributes) { {'raised' => false, 'handler' => 'default', 'count' => 1} }
         let(:timestamp) { 17206369349 }
 
         it 'adds one event to the span' do
@@ -834,7 +834,7 @@ RSpec.describe Datadog::OpenTelemetry do
             'x-datadog-parent-id' => Datadog::Tracing.active_span.id.to_s,
             'x-datadog-sampling-priority' => '1',
             'x-datadog-tags' => '_dd.p.dm=-0' + (
-              trace_id < 2**64 ? '' : ",_dd.p.tid=#{high_order_hex_trace_id(Datadog::Tracing.active_trace.id)}"
+              (trace_id < 2**64) ? '' : ",_dd.p.tid=#{high_order_hex_trace_id(Datadog::Tracing.active_trace.id)}"
             ),
             'x-datadog-trace-id' => low_order_trace_id(Datadog::Tracing.active_trace.id).to_s,
           }

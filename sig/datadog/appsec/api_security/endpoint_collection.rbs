@@ -1,0 +1,45 @@
+module Datadog
+  module AppSec
+    module APISecurity
+      module EndpointCollection
+        interface _RailsRoute
+          def dispatcher?: () -> bool
+          def verb: () -> ::String
+          def path: () -> _RailsRoutePath
+          def app: () -> _RailsRouteApp
+        end
+
+        interface _RailsRoutePath
+          def spec: () -> _RailsRouteSpec
+        end
+
+        interface _RailsRouteSpec
+          def to_s: () -> ::String
+        end
+
+        interface _RailsRouteApp
+          def rack_app: () -> _RackApp
+        end
+
+        interface _RackApp
+          def is_a?: (Class) -> bool
+
+          def routes: () -> untyped
+        end
+
+        interface _GrapeRoute
+          def request_method: () -> String
+          def pattern: () -> _GrapeRoutePattern
+        end
+
+        interface _GrapeRoutePattern
+          def origin: () -> String
+        end
+
+        interface _SinatraRoute
+          def safe_string: () -> String
+        end
+      end
+    end
+  end
+end

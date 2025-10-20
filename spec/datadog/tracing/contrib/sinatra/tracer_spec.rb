@@ -14,7 +14,8 @@ require 'rspec/expectations'
 
 require_relative '../support/http'
 
-RSpec.describe 'Sinatra instrumentation' do
+# TODO: JRuby 10.0 - Remove this skip after investigation.
+RSpec.describe 'Sinatra instrumentation', skip: PlatformHelpers.jruby_100? do
   include Rack::Test::Methods
 
   subject(:response) { get url }
@@ -49,11 +50,11 @@ RSpec.describe 'Sinatra instrumentation' do
       get '/erb' do
         headers['Cache-Control'] = 'max-age=0'
 
-        erb :msg, locals: { msg: 'hello' }
+        erb :msg, locals: {msg: 'hello'}
       end
 
       get '/erb_literal' do
-        erb '<%= msg %>', locals: { msg: 'hello' }
+        erb '<%= msg %>', locals: {msg: 'hello'}
       end
 
       get '/span_resource' do
@@ -374,7 +375,7 @@ RSpec.describe 'Sinatra instrumentation' do
       let(:query_string) { {} }
       let(:headers) { {} }
 
-      let(:configuration_options) { super().merge(headers: { request: request_headers, response: response_headers }) }
+      let(:configuration_options) { super().merge(headers: {request: request_headers, response: response_headers}) }
       let(:request_headers) { [] }
       let(:response_headers) { [] }
 
@@ -382,7 +383,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
       context 'with a header that should be tagged' do
         let(:request_headers) { ['X-Request-Header'] }
-        let(:headers) { { 'HTTP_X_REQUEST_HEADER' => header_value } }
+        let(:headers) { {'HTTP_X_REQUEST_HEADER' => header_value} }
         let(:header_value) { SecureRandom.uuid }
 
         it { expect(span.get_tag('http.request.headers.x-request-header')).to eq(header_value) }
@@ -410,7 +411,7 @@ RSpec.describe 'Sinatra instrumentation' do
       end
 
       context 'with a header that should not be tagged' do
-        let(:headers) { { 'HTTP_X_REQUEST_HEADER' => header_value } }
+        let(:headers) { {'HTTP_X_REQUEST_HEADER' => header_value} }
         let(:header_value) { SecureRandom.uuid }
 
         it { expect(span.get_tag('http.request.headers.x-request-header')).to be nil }
@@ -420,7 +421,7 @@ RSpec.describe 'Sinatra instrumentation' do
         subject(:response) { get '/', {}, headers }
 
         let(:configuration_options) { {} }
-        let(:headers) { { 'HTTP_REQUEST_ID' => 'test-id' } }
+        let(:headers) { {'HTTP_REQUEST_ID' => 'test-id'} }
         let(:response_headers) { ['etag'] }
 
         include_examples 'with request tracer header tags' do

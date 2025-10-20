@@ -64,7 +64,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
 
       let(:type) { :foo }
       let(:args) { [double('arg1'), double('arg2')] }
-      let(:kwargs) { { kwarg: double('kwval') } }
+      let(:kwargs) { {kwarg: double('kwval')} }
 
       context 'that matches an adapter in the registry' do
         let(:adapter_class) { double('adapter class') }
@@ -104,8 +104,8 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
   end
 
   describe '#headers' do
-    let(:first_headers) { { 'X-Test-One' => 'foo', 'X-Test-Two' => 'bar' } }
-    let(:second_headers) { { 'X-Test-Two' => 'blah', 'X-Test-Three' => 'baz' } }
+    let(:first_headers) { {'X-Test-One' => 'foo', 'X-Test-Two' => 'bar'} }
+    let(:second_headers) { {'X-Test-Two' => 'blah', 'X-Test-Three' => 'baz'} }
 
     let(:expected_headers) do
       {
@@ -145,7 +145,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
       end
 
       context 'and is given \'default: true\'' do
-        let(:options) { { default: true } }
+        let(:options) { {default: true} }
 
         it 'adds the API and sets it as the default' do
           expect { api }.to change { builder.default_api }.from(:v1).to(key)
@@ -155,7 +155,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
     end
 
     context 'when configured with additional options' do
-      let(:options) { { foo: :foo } }
+      let(:options) { {foo: :foo} }
 
       it do
         api
@@ -164,10 +164,10 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
       end
 
       context 'multiple times' do
-        let(:first_options) { { foo: :foo, bar: :bar } }
-        let(:second_options) { { bar: :blah, baz: :baz } }
+        let(:first_options) { {foo: :foo, bar: :bar} }
+        let(:second_options) { {bar: :blah, baz: :baz} }
 
-        let(:expected_options) { { foo: :foo, bar: :blah, baz: :baz } }
+        let(:expected_options) { {foo: :foo, bar: :blah, baz: :baz} }
 
         it 'merges options' do
           builder.api(key, spec, first_options)
@@ -234,7 +234,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
       end
 
       context 'which specifies its own adapter' do
-        let(:options) { { adapter: adapter } }
+        let(:options) { {adapter: adapter} }
         let(:adapter) { double('adapter') }
 
         it 'configures the API instance with the given adapter' do
@@ -247,11 +247,11 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
         # Assume an adapter is available.
         include_context 'default adapter'
 
-        let(:options) { { foo: :bar } }
+        let(:options) { {foo: :bar} }
 
         before do
           expect(builder.api_instance_class).to receive(:new)
-            .with(spec, adapter, { foo: :bar, headers: {} })
+            .with(spec, adapter, {foo: :bar, headers: {}})
             .and_call_original
         end
 
@@ -264,7 +264,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
         # Assume an adapter is available.
         include_context 'default adapter'
 
-        let(:options) { { fallback: fallback_key } }
+        let(:options) { {fallback: fallback_key} }
         let(:fallback_key) { :v1 }
         let(:fallback_spec) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::API::Spec) }
 
@@ -283,8 +283,8 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
         # Assume an adapter is available.
         include_context 'default adapter'
 
-        let(:options) { { headers: api_headers } }
-        let(:api_headers) { { 'X-Test-One' => 'foo' } }
+        let(:options) { {headers: api_headers} }
+        let(:api_headers) { {'X-Test-One' => 'foo'} }
 
         context 'and there are no default headers defined' do
           it 'configures the API instance with the given adapter' do
@@ -294,7 +294,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
         end
 
         context 'which conflict with default headers' do
-          let(:api_headers) { { 'X-Test-Two' => 'blah', 'X-Test-Three' => 'baz' } }
+          let(:api_headers) { {'X-Test-Two' => 'blah', 'X-Test-Three' => 'baz'} }
 
           before { builder.headers('X-Test-One' => 'foo', 'X-Test-Two' => 'bar') }
 

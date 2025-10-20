@@ -12,7 +12,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
   subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 
   let(:uds_path) { '/tmp/datadog_unix_test.sock' }
-  let(:options) { { uds_path: uds_path, timeout: timeout } }
+  let(:options) { {uds_path: uds_path, timeout: timeout} }
   let(:timeout) { 2 }
 
   shared_context 'Unix socket server' do
@@ -40,13 +40,11 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
       server
 
       @unix_server_thread = Thread.start do
-        begin
-          sock = server.accept
-          # TODO: webrick supports UDS listener to replace this manual code
-          http_server.run(sock)
-        rescue => e
-          puts "UNIX server error!: #{e}"
-        end
+        sock = server.accept
+        # TODO: webrick supports UDS listener to replace this manual code
+        http_server.run(sock)
+      rescue => e
+        puts "UNIX server error!: #{e}"
       end
     end
 

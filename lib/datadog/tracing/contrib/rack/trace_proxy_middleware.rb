@@ -43,7 +43,13 @@ module Datadog
             # excluding the time spent processing the request itself
             queue_span.finish
 
-            yield.tap { request_span.finish }
+            yield
+          ensure
+            # Ensure that the spans are finished even if an exception is raised.
+            # **This is very important** to prevent the trace from leaking between requests,
+            # especially because `queue_span` is normally a root span.
+            queue_span&.finish
+            request_span&.finish
           end
         end
       end

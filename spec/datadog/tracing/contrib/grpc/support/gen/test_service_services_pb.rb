@@ -7,7 +7,6 @@ require 'test_service_pb'
 module GRPCHelper
   module Testing
     class Service
-
       include ::GRPC::GenericService
 
       self.marshal_class_method = :encode

@@ -1,3 +1,7 @@
+# Dynamic instrumentation target files must not be modified by
+# formatting tools.
+# standard:disable all
+
 # This class must live in a separate file so that it can be loaded
 # after code tracking for dynamic instrumentation is enabled.
 class DITarget

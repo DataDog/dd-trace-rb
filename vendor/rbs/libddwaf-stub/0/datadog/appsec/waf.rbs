@@ -4,6 +4,45 @@ module Datadog
     module WAF
       type known_addresses = ::Array[::String]
       type diagnostics = ::Hash[::String, untyped]
+      type input = nil | bool | ::String | ::Symbol | ::Integer | ::Float | ::Array[input] | ::Hash[input, input]
+      type result = {
+        "keep" => bool,
+        "events" => events,
+        "actions" => actions,
+        "attributes" => attributes,
+        "timeout" => bool,
+        # NOTE: Schema defines it as a `number`, but we alway get it as `Integer`
+        #       That will be fixed in the libddwaf specs
+        "duration" => ::Integer
+      }
+      type events = ::Array[event]
+      type event = {"rule" => rule, "rule_matches" => ::Array[rule_match]}
+      type rule = {
+        "id" => ::String,
+        "name" => ::String,
+        "tags" => {
+          "type" => ::String,
+          # optional key
+          "category" => ::String?
+        },
+        # optional key
+        "on_match" => ::Array[::String]?
+      }
+      type rule_match = {
+        "operator" => ::String,
+        "operator_value" => ::String,
+        "parameters" => ::Array[rule_match_parameter]
+      }
+      type rule_match_parameter = {
+        "address" => ::String,
+        "key_path" => ::Array[::String | ::Integer],
+        "value" => ::String,
+        "highlight" => ::Array[::String]
+      }
+      type actions = ::Hash[::String, action]
+      type action = ::Hash[::String, ::String]
+      type attributes = ::Hash[::String, opaque]
+      type opaque = nil | bool | ::String | ::Integer | ::Float | ::Array[opaque] | ::Hash[::String, opaque]
 
       # retain logging proc if set properly
       self.@log_callback: untyped
@@ -74,7 +113,7 @@ module Datadog
 
         def build_context: () -> Context
 
-        def known_addresses: () -> ::Array[::String]
+        def known_addresses: () -> WAF::known_addresses
 
         private
 
@@ -82,31 +121,51 @@ module Datadog
       end
 
       class Result
-        @status: untyped
+        @status: ::Symbol
 
-        @events: untyped
+        @events: WAF::events
 
-        @total_runtime: untyped
+        @actions: WAF::actions
 
-        @timeout: untyped
+        @attributes: WAF::attributes
 
-        @actions: untyped
+        @duration: ::Integer
 
-        @derivatives: untyped
+        @timeout: bool
 
-        attr_reader status: untyped
+        @keep: bool
 
-        attr_reader events: untyped
+        @input_truncated: bool
 
-        attr_reader total_runtime: untyped
+        attr_reader status: ::Symbol
 
-        attr_reader timeout: untyped
+        attr_reader events: WAF::events
 
-        attr_reader actions: untyped
+        attr_reader actions: WAF::actions
 
-        attr_reader derivatives: untyped
+        attr_reader attributes: WAF::attributes
 
-        def initialize: (untyped status, untyped events, untyped total_runtime, untyped timeout, untyped actions, untyped derivatives) -> void
+        attr_reader duration: ::Integer
+
+        def initialize: (
+          status: ::Symbol,
+          events: WAF::events,
+          actions: WAF::actions,
+          attributes: WAF::attributes,
+          duration: ::Integer,
+          timeout: bool,
+          keep: bool
+        ) -> void
+
+        def mark_input_truncated!: () -> bool
+
+        def timeout?: () -> bool
+
+        def keep?: () -> bool
+
+        def input_truncated?: () -> bool
+
+        def to_h: () -> ::Hash[::Symbol, (::Symbol | WAF::opaque)]
       end
 
       class Context
@@ -120,7 +179,7 @@ module Datadog
 
         def finalize!: () -> void
 
-        def run: (WAF::data persistent_data, WAF::data ephemeral_data, ?::Integer timeout) -> Result
+        def run: (WAF::input persistent_data, WAF::input ephemeral_data, ?::Integer timeout) -> Result
 
         private
 

@@ -14,7 +14,7 @@ else
 end
 
 RSpec.describe 'ActiveRecord multi-database implementation' do
-  let(:configuration_options) { { service_name: default_db_service_name } }
+  let(:configuration_options) { {service_name: default_db_service_name} }
   let(:application_record) do
     stub_const(
       'ApplicationRecord',
@@ -33,7 +33,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
       rescue ActiveRecord::StatementInvalid
         ActiveRecord::Schema.define(version: 20180101000000) do
           create_table 'gadgets', force: :cascade do |t|
-            t.string   'title'
+            t.string 'title'
             t.datetime 'created_at', null: false
             t.datetime 'updated_at', null: false
           end
@@ -53,7 +53,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
         klass.count
       rescue ActiveRecord::StatementInvalid
         klass.connection.create_table 'widgets', force: :cascade do |t|
-          t.string   'title'
+          t.string 'title'
           t.datetime 'created_at', null: false
           t.datetime 'updated_at', null: false
         end
@@ -235,7 +235,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
 
     context 'a Hash that describes a connection' do
       before do
-        widget_db_connection_hash = { adapter: 'sqlite3', database: ':memory:' }
+        widget_db_connection_hash = {adapter: 'sqlite3', database: ':memory:'}
 
         Datadog.configure do |c|
           c.tracing.instrument :active_record, describes: widget_db_connection_hash do |widget_db|

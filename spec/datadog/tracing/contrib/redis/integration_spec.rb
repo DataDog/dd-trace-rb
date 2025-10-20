@@ -10,7 +10,7 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Integration do
 
     context 'when `redis` gem and `redis-client` are loaded' do
       include_context 'loaded gems',
-        redis: described_class::MINIMUM_VERSION,
+        :redis => described_class::MINIMUM_VERSION,
         'redis-client' => described_class::REDISCLIENT_MINIMUM_VERSION
 
       it { is_expected.to be_a_kind_of(Gem::Version) }
@@ -18,7 +18,7 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Integration do
 
     context 'when `redis` gem is loaded' do
       include_context 'loaded gems',
-        redis: described_class::MINIMUM_VERSION,
+        :redis => described_class::MINIMUM_VERSION,
         'redis-client' => nil
 
       it { is_expected.to be_a_kind_of(Gem::Version) }
@@ -26,14 +26,14 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Integration do
 
     context 'when `redis-client` gem is loaded' do
       include_context 'loaded gems',
-        redis: nil,
+        :redis => nil,
         'redis-client' => described_class::REDISCLIENT_MINIMUM_VERSION
 
       it { is_expected.to be_a_kind_of(Gem::Version) }
     end
 
     context 'when `redis` gem and `redis-client` are not loaded' do
-      include_context 'loaded gems', redis: nil, 'redis-client' => nil
+      include_context 'loaded gems', :redis => nil, 'redis-client' => nil
 
       it { is_expected.to be nil }
     end

@@ -71,7 +71,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
   describe 'http adapter hostname' do
     context 'when a custom hostname is specified via the DD_AGENT_HOST environment variable' do
-      let(:environment) { { 'DD_AGENT_HOST' => 'custom-hostname' } }
+      let(:environment) { {'DD_AGENT_HOST' => 'custom-hostname'} }
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
         expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when a custom hostname is specified via the DD_TRACE_AGENT_URL environment variable' do
-      let(:environment) { { 'DD_TRACE_AGENT_URL' => "http://custom-hostname:#{port}" } }
+      let(:environment) { {'DD_TRACE_AGENT_URL' => "http://custom-hostname:#{port}"} }
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
         expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
@@ -312,14 +312,14 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when a custom port is specified via the DD_TRACE_AGENT_PORT environment variable' do
-      let(:environment) { { 'DD_TRACE_AGENT_PORT' => '1234' } }
+      let(:environment) { {'DD_TRACE_AGENT_PORT' => '1234'} }
 
       it 'contacts the agent using the http adapter, using the custom port' do
         expect(resolver).to have_attributes(**settings, port: 1234)
       end
 
       context 'when the custom port is invalid' do
-        let(:environment) { { 'DD_TRACE_AGENT_PORT' => 'this-is-an-invalid-port' } }
+        let(:environment) { {'DD_TRACE_AGENT_PORT' => 'this-is-an-invalid-port'} }
 
         before do
           allow(logger).to receive(:warn)
@@ -354,7 +354,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when a custom port is specified via the DD_TRACE_AGENT_URL environment variable' do
-      let(:environment) { { 'DD_TRACE_AGENT_URL' => "http://#{hostname}:1234" } }
+      let(:environment) { {'DD_TRACE_AGENT_URL' => "http://#{hostname}:1234"} }
 
       it 'contacts the agent using the http adapter, using the custom port' do
         expect(resolver).to have_attributes(**settings, port: 1234)
@@ -476,14 +476,14 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when a custom timeout is specified via the DD_TRACE_AGENT_TIMEOUT_SECONDS environment variable' do
-      let(:environment) { { 'DD_TRACE_AGENT_TIMEOUT_SECONDS' => '798' } }
+      let(:environment) { {'DD_TRACE_AGENT_TIMEOUT_SECONDS' => '798'} }
 
       it 'contacts the agent using the http adapter, using the custom timeout' do
         expect(resolver).to have_attributes(**settings, timeout_seconds: 798)
       end
 
       context 'when the custom timeout is invalid' do
-        let(:environment) { { 'DD_TRACE_AGENT_TIMEOUT_SECONDS' => 'this-is-an-invalid-timeout' } }
+        let(:environment) { {'DD_TRACE_AGENT_TIMEOUT_SECONDS' => 'this-is-an-invalid-timeout'} }
 
         before do
           allow(logger).to receive(:warn)
@@ -588,7 +588,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when DD_TRACE_AGENT_URL is set' do
-      let(:environment) { { 'DD_TRACE_AGENT_URL' => "#{trace_agent_url_protocol}://custom-hostname:1234" } }
+      let(:environment) { {'DD_TRACE_AGENT_URL' => "#{trace_agent_url_protocol}://custom-hostname:1234"} }
 
       context 'when set to https' do
         let(:trace_agent_url_protocol) { 'https' }
@@ -656,7 +656,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   end
 
   context 'when a custom url is specified via environment variable' do
-    let(:environment) { { 'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234' } }
+    let(:environment) { {'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234'} }
 
     it 'contacts the agent using the http adapter, using the custom hostname and port' do
       expect(resolver).to have_attributes(
@@ -668,7 +668,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when the uri scheme is https' do
-      let(:environment) { { 'DD_TRACE_AGENT_URL' => 'https://custom-hostname:1234' } }
+      let(:environment) { {'DD_TRACE_AGENT_URL' => 'https://custom-hostname:1234'} }
 
       it 'contacts the agent using the http adapter, using ssl: true' do
         expect(resolver).to have_attributes(ssl: true)
@@ -676,7 +676,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when the uri scheme is unix' do
-      let(:environment) { { 'DD_TRACE_AGENT_URL' => 'unix:///path/to/apm.socket' } }
+      let(:environment) { {'DD_TRACE_AGENT_URL' => 'unix:///path/to/apm.socket'} }
       let(:timeout_seconds) { 30 }
 
       it 'contacts the agent via a unix domain socket' do
@@ -691,7 +691,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when the uri scheme is not http OR https' do
-      let(:environment) { { 'DD_TRACE_AGENT_URL' => 'steam://custom-hostname:1234' } }
+      let(:environment) { {'DD_TRACE_AGENT_URL' => 'steam://custom-hostname:1234'} }
 
       before do
         allow(logger).to receive(:warn)
@@ -726,7 +726,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when a custom path is specified via the DD_TRACE_AGENT_URL environment variable' do
-      let(:environment) { { 'DD_TRACE_AGENT_URL' => 'unix:///var/uri.socket' } }
+      let(:environment) { {'DD_TRACE_AGENT_URL' => 'unix:///var/uri.socket'} }
 
       it 'contacts the agent using the unix adapter, using the custom path' do
         expect(resolver).to have_attributes(**settings, uds_path: '/var/uri.socket')

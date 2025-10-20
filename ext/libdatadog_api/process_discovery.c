@@ -27,13 +27,13 @@ static const rb_data_type_t tracer_memfd_type = {
 };
 
 void process_discovery_init(VALUE core_module) {
-  VALUE process_discovery_class = rb_define_class_under(core_module, "ProcessDiscovery", rb_cObject);
-  VALUE tracer_memfd_class = rb_define_class_under(process_discovery_class, "TracerMemfd", rb_cObject);
+  VALUE process_discovery_module = rb_define_module_under(core_module, "ProcessDiscovery");
+  VALUE tracer_memfd_class = rb_define_class_under(process_discovery_module, "TracerMemfd", rb_cObject);
   rb_undef_alloc_func(tracer_memfd_class); // Class cannot be instantiated from Ruby
 
-  rb_define_singleton_method(process_discovery_class, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
-  rb_define_singleton_method(process_discovery_class, "_native_to_rb_int", _native_to_rb_int, 1);
-  rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 2);
+  rb_define_module_function(process_discovery_module, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
+  rb_define_module_function(process_discovery_module, "_native_to_rb_int", _native_to_rb_int, 1);
+  rb_define_module_function(process_discovery_module, "_native_close_tracer_memfd", _native_close_tracer_memfd, 2);
 }
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
@@ -42,7 +42,6 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   rb_scan_args(argc, argv, "1:", &logger, &options);
   if (options == Qnil) options = rb_hash_new();
 
-  VALUE schema_version = rb_hash_fetch(options, ID2SYM(rb_intern("schema_version")));
   VALUE runtime_id = rb_hash_fetch(options, ID2SYM(rb_intern("runtime_id")));
   VALUE tracer_language = rb_hash_fetch(options, ID2SYM(rb_intern("tracer_language")));
   VALUE tracer_version = rb_hash_fetch(options, ID2SYM(rb_intern("tracer_version")));
@@ -50,8 +49,9 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   VALUE service_name = rb_hash_fetch(options, ID2SYM(rb_intern("service_name")));
   VALUE service_env = rb_hash_fetch(options, ID2SYM(rb_intern("service_env")));
   VALUE service_version = rb_hash_fetch(options, ID2SYM(rb_intern("service_version")));
+  VALUE process_tags = rb_hash_fetch(options, ID2SYM(rb_intern("process_tags")));
+  VALUE container_id = rb_hash_fetch(options, ID2SYM(rb_intern("container_id")));
 
-  ENFORCE_TYPE(schema_version, T_FIXNUM);
   ENFORCE_TYPE(runtime_id, T_STRING);
   ENFORCE_TYPE(tracer_language, T_STRING);
   ENFORCE_TYPE(tracer_version, T_STRING);
@@ -59,17 +59,23 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   ENFORCE_TYPE(service_name, T_STRING);
   ENFORCE_TYPE(service_env, T_STRING);
   ENFORCE_TYPE(service_version, T_STRING);
+  ENFORCE_TYPE(process_tags, T_STRING);
+  ENFORCE_TYPE(container_id, T_STRING);
 
-  ddog_Result_TracerMemfdHandle result = ddog_store_tracer_metadata(
-    (uint8_t) NUM2UINT(schema_version),
-    char_slice_from_ruby_string(runtime_id),
-    char_slice_from_ruby_string(tracer_language),
-    char_slice_from_ruby_string(tracer_version),
-    char_slice_from_ruby_string(hostname),
-    char_slice_from_ruby_string(service_name),
-    char_slice_from_ruby_string(service_env),
-    char_slice_from_ruby_string(service_version)
-  );
+  void* builder = ddog_tracer_metadata_new();
+
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_RUNTIME_ID, StringValueCStr(runtime_id));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_TRACER_LANGUAGE, StringValueCStr(tracer_language));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_TRACER_VERSION, StringValueCStr(tracer_version));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_HOSTNAME, StringValueCStr(hostname));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_NAME, StringValueCStr(service_name));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_ENV, StringValueCStr(service_env));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_SERVICE_VERSION, StringValueCStr(service_version));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_PROCESS_TAGS, StringValueCStr(process_tags));
+  ddog_tracer_metadata_set(builder, DDOG_METADATA_KIND_CONTAINER_ID, StringValueCStr(container_id));
+
+  ddog_Result_TracerMemfdHandle result = ddog_tracer_metadata_store(builder);
+  ddog_tracer_metadata_free(builder);
 
   if (result.tag == DDOG_RESULT_TRACER_MEMFD_HANDLE_ERR_TRACER_MEMFD_HANDLE) {
     rb_funcall(logger, rb_intern("debug"), 1, rb_sprintf("Failed to store the tracer configuration in a memory file descriptor: %"PRIsVALUE, get_error_details_and_drop(&result.err)));

@@ -8,8 +8,8 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
 
   describe '#custom_options' do
     subject(:custom_options) { instrumented.custom_options(event) }
-    let(:event) { double(payload: { custom_payload: original_options }) }
-    let(:original_options) { { original: 'option' } }
+    let(:event) { double(payload: {custom_payload: original_options}) }
+    let(:original_options) { {original: 'option'} }
 
     let(:correlation) do
       Datadog::Tracing::Correlation::Identifier.new(
@@ -45,15 +45,15 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
 
       it 'merges correlation data with original options' do
         is_expected.to eq(
-          { original: 'option',
-            dd: {
-              env: 'env',
-              service: 'service',
-              span_id: span_id.to_s,
-              trace_id: format_for_correlation(trace_id),
-              version: 'version'
-            },
-            ddsource: 'ruby' }
+          {original: 'option',
+           dd: {
+             env: 'env',
+             service: 'service',
+             span_id: span_id.to_s,
+             trace_id: format_for_correlation(trace_id),
+             version: 'version'
+           },
+           ddsource: 'ruby'}
         )
       end
     end
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
       end
 
       it 'returns the original options' do
-        is_expected.to eq({ original: 'option' })
+        is_expected.to eq({original: 'option'})
       end
     end
 
@@ -80,7 +80,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
       end
 
       it 'returns the original options' do
-        is_expected.to eq({ original: 'option' })
+        is_expected.to eq({original: 'option'})
       end
     end
   end

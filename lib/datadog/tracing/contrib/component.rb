@@ -9,13 +9,13 @@ module Datadog
           # Register a callback to be invoked when components are reconfigured.
           # @param name [String] the name of the integration
           # @param callback [Proc] the callback to invoke
-          # @yieldparam config [Datadog::Configuration] the configuration to pass to callbacks
+          # @yieldparam config [Datadog::Core::Configuration::Settings] the configuration to pass to callbacks
           def register(name, &callback)
             @registry[name] = callback
           end
 
           # Invoke all registered callbacks with the given configuration.
-          # @param config [Datadog::Configuration] the configuration to pass to callbacks
+          # @param config [Datadog::Core::Configuration::Settings] the configuration to pass to callbacks
           def configure(config)
             @registry.each do |name, callback|
               callback.call(config)

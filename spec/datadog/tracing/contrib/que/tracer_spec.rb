@@ -8,15 +8,16 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
     {
       queue: 'low',
       priority: 10,
-      tags: { a: 1, b: 2 }
+      tags: {a: 1, b: 2}
     }
   end
-  let(:job_args) { { field_one: 1 } }
+  let(:job_args) { {field_one: 1} }
   let(:job_class) do
     stub_const(
       'TestJobClass',
       Class.new(::Que::Job) do
-        def run(*args); end
+        def run(*args)
+        end
       end
     )
   end
@@ -90,7 +91,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
     end
 
     context 'with error handler' do
-      let(:configuration_options) { { on_error: proc { @error_handler = true } } }
+      let(:configuration_options) { {on_error: proc { @error_handler = true }} }
 
       it 'continues to capture spans gracefully under unexpected conditions' do
         expect { error_job_class.enqueue(**job_args) }.to raise_error(StandardError)
@@ -103,26 +104,26 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
     end
 
     context 'with tag_args enabled' do
-      let(:configuration_options) { { tag_args: true } }
+      let(:configuration_options) { {tag_args: true} }
 
       it 'captures span info for args tag' do
         enqueue
 
-        actual_span_value   = span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_ARGS)
-        expected_span_value = [{ field_one: 1 }].to_s
+        actual_span_value = span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_ARGS)
+        expected_span_value = [{field_one: 1}].to_s
 
         expect(actual_span_value).to eq(expected_span_value)
       end
     end
 
     context 'with tag_data enabled' do
-      let(:configuration_options) { { tag_data: true } }
+      let(:configuration_options) { {tag_data: true} }
 
       it 'captures spans info for data tag' do
         enqueue
 
-        actual_span_value   = span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_DATA)
-        expected_span_value = { tags: job_options[:tags] }.to_s
+        actual_span_value = span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_DATA)
+        expected_span_value = {tags: job_options[:tags]}.to_s
 
         expect(actual_span_value).to eq(expected_span_value)
       end

@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::Resolvers::PatternResol
 
       context 'then given a value that isn\'t a String but is case equal' do
         let(:value) { URI('http://localhost') }
-        let(:matcher) { /#{Regexp.escape('http://localhost')}/ }
+        let(:matcher) { /#{Regexp.escape("http://localhost")}/ }
 
         it 'coerces the value to a String' do
           is_expected.to eq(config)

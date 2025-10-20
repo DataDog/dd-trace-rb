@@ -24,7 +24,7 @@ RSpec.describe 'Rack integration tests' do
       Rack::Builder.new do
         use Datadog::Tracing::Contrib::Rack::TraceMiddleware
         map '/success/' do
-          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+          run(proc { |_env| [200, {'Content-Type' => 'text/html'}, ['OK']] })
         end
       end.to_app
     end

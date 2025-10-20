@@ -7,7 +7,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
   let(:event) { described_class.new }
 
   describe '.payload' do
-
     it do
       event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :error)
       expect(event.type).to eq('logs')
@@ -44,7 +43,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
   end
 
   it 'all events to be the same' do
-    events =     [
+    events = [
       described_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
       described_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
     ]
@@ -53,7 +52,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
   end
 
   it 'all events to be different' do
-    events =     [
+    events = [
       described_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
       described_class.new(message: 'Yo', level: :warn, stack_trace: 'stack trace', count: 1),
       described_class.new(message: 'Hi', level: :error, stack_trace: 'stack trace', count: 1),

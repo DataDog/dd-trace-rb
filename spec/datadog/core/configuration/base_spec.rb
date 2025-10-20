@@ -54,7 +54,7 @@ RSpec.describe Datadog::Core::Configuration::Base do
       describe '#initialize' do
         subject(:base_object) { base_class.new(options) }
 
-        let(:options) { { foo: :bar } }
+        let(:options) { {foo: :bar} }
 
         before { allow_any_instance_of(base_class).to receive(:configure) }
 
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Core::Configuration::Base do
         subject(:configure) { base_object.configure(options) }
 
         context 'when given an option' do
-          let(:options) { { foo: :bar } }
+          let(:options) { {foo: :bar} }
 
           context 'that is not defined' do
             it { expect { configure }.to_not raise_error }

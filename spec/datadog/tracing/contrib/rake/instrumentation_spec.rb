@@ -8,7 +8,7 @@ require 'datadog'
 require 'datadog/tracing/contrib/rake/patcher'
 
 RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
-  let(:configuration_options) { { enabled: true, tasks: instrumented_task_names } }
+  let(:configuration_options) { {enabled: true, tasks: instrumented_task_names} }
   let(:task_name) { :test_rake_instrumentation }
   let(:instrumented_task_names) { [task_name] }
   let(:task_body) { proc { |task, args| spy.call(task, args) } }
@@ -228,7 +228,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
       end
 
       context 'with args' do
-        let(:args_hash) { { one: 1, two: 2, three: 3 } }
+        let(:args_hash) { {one: 1, two: 2, three: 3} }
 
         it_behaves_like 'a successful single task execution' do
           describe '\'rake.invoke\' span tags' do
@@ -245,7 +245,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to be nil
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_EXECUTE_ARGS))
-                .to eq({ one: '?', two: '?', three: '?' }.to_s)
+                .to eq({one: '?', two: '?', three: '?'}.to_s)
             end
           end
         end
@@ -264,7 +264,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES))
                 .to be nil
               expect(execute_span.get_tag(Datadog::Tracing::Contrib::Rake::Ext::TAG_EXECUTE_ARGS))
-                .to eq({ one: '?', two: '?', three: '?' }.to_s)
+                .to eq({one: '?', two: '?', three: '?'}.to_s)
             end
           end
         end

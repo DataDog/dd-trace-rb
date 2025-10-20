@@ -8,7 +8,10 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
   subject(:emitter) { described_class.new(transport, logger: logger) }
   let(:logger) { logger_allowing_debug }
   let(:transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
-  let(:response) { double(Datadog::Core::Transport::HTTP::Adapters::Net::Response) }
+  let(:response) do
+    double(Datadog::Core::Transport::HTTP::Adapters::Net::Response,
+      ok?: response_ok)
+  end
   let(:response_ok) { true }
 
   before do
@@ -34,7 +37,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
     subject(:request) { emitter.request(event) }
     let(:event) { double('event', type: request_type, payload: payload) }
     let(:request_type) { double('request_type') }
-    let(:payload) { { foo: 'bar' } }
+    let(:payload) { {foo: 'bar'} }
 
     context 'when event' do
       context 'is invalid' do
@@ -59,16 +62,36 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
             request
             expect(emitter.class.sequence.instance_variable_get(:@current)).to be(original_seq_id + 1)
           end
+
+          it 'logs the request correctly' do
+            expect_lazy_log(logger, :debug, 'Telemetry sent for event `app-started`')
+            request
+          end
         end
 
-        context 'when call is not successful and debug logging is enabled' do
+        context 'when call is not successful due to a server error and debug logging is enabled' do
+          let(:response) do
+            Datadog::Core::Transport::HTTP::Adapters::Net::Response.new(http_response)
+          end
+
+          let(:http_response) { instance_double(::Net::HTTPResponse, code: 404, body: 'body') }
+
+          it 'logs the request correctly' do
+            allow(logger).to receive(:debug)
+            request
+            expect(logger).to have_lazy_debug_logged(/Failed to send telemetry for event `app-started`:.*Datadog::Core::Transport::HTTP::Adapters::Net::Response.*ok\?:false, code:404,/)
+          end
+        end
+
+        context 'when call is not successful due to an unhandled exception in transport layer and debug logging is enabled' do
           let(:response) do
             Datadog::Core::Transport::InternalErrorResponse.new(StandardError.new('Failed call'))
           end
 
           it 'logs the request correctly' do
-            expect_lazy_log(logger, :debug, 'Telemetry sent for event')
+            allow(logger).to receive(:debug)
             request
+            expect(logger).to have_lazy_debug_logged(/Failed to send telemetry for event `app-started`:.*InternalErrorResponse.*error_type:StandardError error:Failed call/)
           end
         end
       end
@@ -79,14 +102,14 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
       let(:event) { double('event', type: request_type) }
       let(:request_type) { double('request_type') }
 
-      let(:payload) { { foo: 'bar' } }
+      let(:payload) { {foo: 'bar'} }
 
       it 'creates a telemetry event with data' do
         allow(Datadog::Core::Telemetry::Request).to receive(:build_payload).with(event, 1, debug: false).and_return(payload)
 
         request
 
-        expect(transport).to have_received(:send_telemetry).with(request_type: request_type, payload: { foo: 'bar' })
+        expect(transport).to have_received(:send_telemetry).with(request_type: request_type, payload: {foo: 'bar'})
       end
     end
   end

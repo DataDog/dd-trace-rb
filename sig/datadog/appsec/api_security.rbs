@@ -6,6 +6,7 @@ module Datadog
         def script_name: () -> String?
         def request_method: () -> String
         def path: () -> String
+        def head?: () -> bool
       end
 
       interface _Response

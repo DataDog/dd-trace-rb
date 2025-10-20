@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SNS do
 
   context 'with topic_arn provided' do
     let(:topic_arn) { 'arn:aws:sns:us-west-2:123456789012:my-topic-name' }
-    let(:params) { { topic_arn: topic_arn } }
+    let(:params) { {topic_arn: topic_arn} }
 
     it 'sets the topic_name and aws_account based on the topic_arn' do
       sns.add_tags(span, params)
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SNS do
   end
 
   context 'with name provided' do
-    let(:params) { { name: 'my-topic-name' } }
+    let(:params) { {name: 'my-topic-name'} }
 
     it 'sets the topic_name based on the provided name' do
       sns.add_tags(span, params)

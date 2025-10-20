@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::Transport::IO do
     context 'given overrides' do
       subject(:default) { described_class.default(options) }
 
-      let(:options) { { out: out, encoder: encoder } }
+      let(:options) { {out: out, encoder: encoder} }
       let(:out) { instance_double(IO) }
       let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
 

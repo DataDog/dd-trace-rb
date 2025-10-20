@@ -106,7 +106,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
                   ]
                 }, 'v' => 21
               },
-              'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
+              'hashes' => {'sha256' => Digest::SHA256.hexdigest(raw.to_json)},
               'length' => 645
             },
           },
@@ -173,7 +173,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         'custom' => {
           'v' => 1,
         },
-        'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
+        'hashes' => {'sha256' => Digest::SHA256.hexdigest(raw.to_json)},
         'length' => 645
       }
     end
@@ -194,8 +194,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
           string_io_content = StringIO.new(raw.to_json)
 
           content_hash = {
-            :path => 'datadog/603646/ASM/exclusion_filters/config',
-            :content => string_io_content
+            path: 'datadog/603646/ASM/exclusion_filters/config',
+            content: string_io_content
           }
           content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
 
@@ -206,8 +206,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       context 'invalid content' do
         it 'returns false' do
           content_hash = {
-            :path => 'datadog/603646/ASM/exclusion_filters/config',
-            :content => StringIO.new('Hello World')
+            path: 'datadog/603646/ASM/exclusion_filters/config',
+            content: StringIO.new('Hello World')
           }
           content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
 

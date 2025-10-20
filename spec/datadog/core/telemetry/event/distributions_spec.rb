@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::Distributions do
   let(:namespace) { 'general' }
   let(:metric_name) { 'request_duration' }
   let(:metric) do
-    Datadog::Core::Telemetry::Metric::Distribution.new(metric_name, tags: { status: '200' })
+    Datadog::Core::Telemetry::Metric::Distribution.new(metric_name, tags: {status: '200'})
   end
   let(:metrics) { [metric] }
 

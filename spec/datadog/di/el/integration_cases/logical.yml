@@ -1,0 +1,59 @@
+- name: not boolean
+  ast:
+    not:
+      ref: var
+
+  compiled: "!(ref('var'))"
+
+  eval:
+    - locals:
+        var: true
+      result: false
+
+- name: and - one argument
+  ast:
+    and:
+      - ref: var
+
+  compiled: "((ref('var')))"
+
+  eval:
+    - locals:
+        var: 42
+      result: 42
+
+- name: and - two arguments
+  ast:
+    and:
+      - ref: var
+      - ref: var2
+
+  compiled: "((ref('var')) && (ref('var2')))"
+
+  eval:
+    - locals:
+        var: 42
+        var2: 43
+      result: 43
+
+    - locals:
+        var: 42
+      result:
+
+- name: or - two arguments
+  ast:
+    or:
+      - ref: var
+      - ref: var2
+
+  compiled: "((ref('var')) || (ref('var2')))"
+
+  eval:
+    - locals:
+        var: 42
+        var2: 43
+      result: 42
+
+    - locals:
+        var: 42
+      result: 42

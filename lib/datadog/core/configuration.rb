@@ -238,7 +238,7 @@ module Datadog
           yield write_components
         rescue ThreadError => e
           logger_without_components.error(
-            'Detected deadlock during datadog initialization. ' \
+            "Detected deadlock during datadog initialization: #{e.class}: #{e}. " \
             'Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
             "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
           )
@@ -295,7 +295,7 @@ module Datadog
         # such as reading stable config. In this case we cannot access configuration.
 
         @temp_config_logger ||= begin
-          debug_env_value = ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
+          debug_env_value = DATADOG_ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
           debug_value = debug_env_value == 'true' || debug_env_value == '1'
 
           logger = Core::Logger.new($stdout)

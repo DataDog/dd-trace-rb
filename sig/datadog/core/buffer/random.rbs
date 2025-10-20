@@ -18,6 +18,8 @@ module Datadog
 
         def concat: (Array[Object]) -> void
 
+        def unshift: (*Object) -> void
+
         def drain!: -> Array[Object]
 
         def empty?: -> bool

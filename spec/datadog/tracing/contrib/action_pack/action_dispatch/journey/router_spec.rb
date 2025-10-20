@@ -31,7 +31,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
         rack_status_app = rack_app.new
 
         rails_test_application.instance.routes.append do
-          namespace :api, defaults: { format: :json } do
+          namespace :api, defaults: {format: :json} do
             resources :users, only: %i[show]
 
             mount auth_engine => '/auth'
@@ -52,7 +52,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
           'RackStatusApp',
           Class.new do
             def call(_env)
-              [200, { 'Content-Type' => 'text/plain' }, ['OK']]
+              [200, {'Content-Type' => 'text/plain'}, ['OK']]
             end
           end
         )

@@ -17,7 +17,7 @@ runs:
       shell: bash
       run: |
         engine=$(ruby -e "puts RUBY_ENGINE")
-        alias=$(ruby -e "puts RUBY_ENGINE_VERSION.split('.').take(2).join")
+        alias=$(ruby -e "puts RUBY_ENGINE_VERSION")
 
         echo "ruby-alias=$engine-$alias" >> "$GITHUB_OUTPUT"
     - name: Generate lockfile

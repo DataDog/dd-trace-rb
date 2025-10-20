@@ -39,9 +39,9 @@ module Datadog
         # WARNING: This method works only *after* the request has been routed.
         #
         # WARNING: In Rails > 7.1 when a route was not found,
-        #          action_dispatch.route_uri_pattern will not be set.
+        #          `action_dispatch.route_uri_pattern` will not be set.
         #          In Rails < 7.1 it also will not be set even if a route was found,
-        #          but in this case  action_dispatch.request.path_parameters won't be empty.
+        #          but in this case `action_dispatch.request.path_parameters` won't be empty.
         def self.route_pattern(request)
           if request.env.key?(GRAPE_ROUTE_KEY)
             pattern = request.env[GRAPE_ROUTE_KEY][:route_info]&.pattern&.origin
@@ -52,6 +52,10 @@ module Datadog
           elsif request.env.key?(RAILS_ROUTE_KEY)
             request.env[RAILS_ROUTE_KEY].delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTES_KEY) && !request.env.fetch(RAILS_PATH_PARAMS_KEY, {}).empty?
+            # NOTE: Rails mutate HEAD request in order to understand that route is supported.
+            #       It will assing GET request method and run the route recognition.
+            request = request.env[RAILS_ROUTES_KEY].request_class.new(request.env) if request.head?
+
             pattern = request.env[RAILS_ROUTES_KEY].router
               .recognize(request) { |route, _| break route.path.spec.to_s }
 

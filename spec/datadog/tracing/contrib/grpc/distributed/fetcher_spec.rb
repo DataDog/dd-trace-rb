@@ -17,12 +17,12 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher do
     end
 
     context 'with a string value associated' do
-      let(:metadata) { { key => 'value' } }
+      let(:metadata) { {key => 'value'} }
       it { is_expected.to eq('value') }
     end
 
     context 'with an array value associated' do
-      let(:metadata) { { key => %w[first last] } }
+      let(:metadata) { {key => %w[first last]} }
       it 'returns the first value' do
         is_expected.to eq('first')
       end

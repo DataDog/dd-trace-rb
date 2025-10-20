@@ -34,7 +34,7 @@ RSpec.describe Datadog::Tracing::Span do
       end
 
       context 'with nil' do
-        let(:span_options) { { resource: nil } }
+        let(:span_options) { {resource: nil} }
 
         it 'respects the explicitly provided nil' do
           expect(span.resource).to be_nil
@@ -42,7 +42,7 @@ RSpec.describe Datadog::Tracing::Span do
       end
 
       context 'with a value' do
-        let(:span_options) { { resource: 'my resource' } }
+        let(:span_options) { {resource: 'my resource'} }
 
         it 'honors provided value' do
           expect(span.resource).to eq('my resource')
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Tracing::Span do
 
     context 'service_entry' do
       context 'with nil' do
-        let(:span_options) { { service_entry: nil } }
+        let(:span_options) { {service_entry: nil} }
 
         it 'does not tag as top-level' do
           expect(span).to_not have_metadata('_dd.top_level')
@@ -60,7 +60,7 @@ RSpec.describe Datadog::Tracing::Span do
       end
 
       context 'with false' do
-        let(:span_options) { { service_entry: false } }
+        let(:span_options) { {service_entry: false} }
 
         it 'does not tag as top-level' do
           expect(span).to_not have_metadata('_dd.top_level')
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Tracing::Span do
       end
 
       context 'with true' do
-        let(:span_options) { { service_entry: true } }
+        let(:span_options) { {service_entry: true} }
 
         it 'tags as top-level' do
           expect(span).to have_metadata('_dd.top_level' => 1.0)
@@ -87,13 +87,13 @@ RSpec.describe Datadog::Tracing::Span do
     end
 
     context 'with parent id' do
-      let(:span_options) { { parent_id: 2 } }
+      let(:span_options) { {parent_id: 2} }
 
       it { expect(span.parent_id).to eq(2) }
     end
 
     context 'with trace id' do
-      let(:span_options) { { trace_id: 3 } }
+      let(:span_options) { {trace_id: 3} }
 
       it { expect(span.trace_id).to eq(3) }
     end
@@ -175,11 +175,9 @@ RSpec.describe Datadog::Tracing::Span do
 
     context 'given an error' do
       let(:error) do
-        begin
-          raise message
-        rescue => e
-          e
-        end
+        raise message
+      rescue => e
+        e
       end
 
       let(:message) { 'Test error!' }
@@ -229,7 +227,7 @@ RSpec.describe Datadog::Tracing::Span do
   describe '#to_hash' do
     subject(:to_hash) { span.to_hash }
 
-    let(:span_options) { { trace_id: 12 } }
+    let(:span_options) { {trace_id: 12} }
 
     before { span.id = 34 }
 

@@ -6,15 +6,17 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'datadog'
-require 'mongo'
+require 'mongo' unless PlatformHelpers.jruby_100?
 
-RSpec.describe 'Mongo::Client instrumentation' do
+# TODO: JRuby 10.0 - Remove this skip after MongoDB adds support for JRuby 10.0: https://github.com/mongodb/mongo-ruby-driver#mongodb-ruby-driver
+# The tests fail on an error related to the bson_ruby gem's NativeService.
+RSpec.describe 'Mongo::Client instrumentation', skip: PlatformHelpers.jruby_100? do
   let(:configuration_options) { {} }
   # Clear data between tests
   let(:drop_database?) { true }
 
   let(:client) { Mongo::Client.new(["#{host}:#{port}"], client_options) }
-  let(:client_options) { { database: database } }
+  let(:client_options) { {database: database} }
   let(:host) { ENV.fetch('TEST_MONGODB_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017).to_i }
   let(:database) { 'test' }
@@ -79,7 +81,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) {  database }
+        let(:peer_service_val) { database }
         let(:peer_service_source) { 'mongodb.db' }
       end
     end
@@ -112,7 +114,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
 
         it_behaves_like 'a peer service span' do
-          let(:peer_service_val) {  database }
+          let(:peer_service_val) { database }
           let(:peer_service_source) { 'mongodb.db' }
         end
       end
@@ -138,7 +140,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
 
         it_behaves_like 'a peer service span' do
-          let(:peer_service_val) {  database }
+          let(:peer_service_val) { database }
           let(:peer_service_source) { 'mongodb.db' }
         end
       end
@@ -179,7 +181,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_service_val) {  database }
+      let(:peer_service_val) { database }
       let(:peer_service_source) { 'mongodb.db' }
     end
 
@@ -190,7 +192,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
   end
 
   shared_context 'with json_command configured to' do |json_command|
-    let(:configuration_options) { { json_command: json_command } }
+    let(:configuration_options) { {json_command: json_command} }
 
     # Expects every value (except for keys) to be quantized.
     # - with: Defines expected placeholder value.
@@ -203,7 +205,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         unless json_cmd
           # Convert Ruby Hash#to_s to a JSON string
           # DEV-3.0: Remove conversion when the json_command option is removed, since only JSON should be supported.
-          actual = actual.gsub(/:(\w+)/, '"\1"').gsub(/(\w+):/, '"\1":').gsub(/=>/, ':')
+          actual = actual.gsub(/:(\w+)/, '"\1"').gsub(/(\w+):/, '"\1":').gsub("=>", ':')
         end
 
         actual_obj = actual.is_a?(String) ? JSON.parse(actual) : actual
@@ -242,7 +244,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before { client[collection].insert_one(params) }
 
       context 'for a basic document' do
-        let(:params) { { name: 'FKA Twigs' } }
+        let(:params) { {name: 'FKA Twigs'} }
 
         it_behaves_like 'a MongoDB trace'
 
@@ -265,7 +267,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
 
       context 'for a document with an array' do
-        let(:params) { { name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing'] } }
+        let(:params) { {name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing']} }
         let(:collection) { :people }
 
         it_behaves_like 'a MongoDB trace'
@@ -283,8 +285,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       context 'for documents with arrays' do
         let(:params) do
           [
-            { name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing'] },
-            { name: 'Sally', hobbies: ['skiing', 'stamp collecting'] }
+            {name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing']},
+            {name: 'Sally', hobbies: ['skiing', 'stamp collecting']}
           ]
         end
 
@@ -351,7 +353,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         clear_traces!
 
         # Do #update_one operation
-        client[collection].update_one({ name: 'Sally' }, '$set' => { 'phone_number' => '555-555-5555' })
+        client[collection].update_one({name: 'Sally'}, '$set' => {'phone_number' => '555-555-5555'})
       end
 
       after do
@@ -371,8 +373,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       let(:collection) { :people }
       let(:documents) do
         [
-          { name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing'] },
-          { name: 'Sally', hobbies: ['skiing', 'stamp collecting'] }
+          {name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing']},
+          {name: 'Sally', hobbies: ['skiing', 'stamp collecting']}
         ]
       end
 
@@ -382,7 +384,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         clear_traces!
 
         # Do #update_many operation
-        client[collection].update_many({}, '$set' => { 'phone_number' => '555-555-5555' })
+        client[collection].update_many({}, '$set' => {'phone_number' => '555-555-5555'})
       end
 
       after do
@@ -429,8 +431,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       let(:collection) { :people }
       let(:documents) do
         [
-          { name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing'] },
-          { name: 'Sally', hobbies: ['skiing', 'stamp collecting'] }
+          {name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing']},
+          {name: 'Sally', hobbies: ['skiing', 'stamp collecting']}
         ]
       end
 
@@ -509,13 +511,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
         let(:drop_database?) { false }
 
         before do
-          begin
-            # Insert a document
-            client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
-          rescue Mongo::Auth::Unauthorized
-            # Expect this to create an unauthorized error
-            nil
-          end
+          # Insert a document
+          client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
+        rescue Mongo::Auth::Unauthorized
+          # Expect this to create an unauthorized error
+          nil
         end
 
         it 'produces spans for command and authentication' do

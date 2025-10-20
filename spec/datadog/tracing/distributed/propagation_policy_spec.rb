@@ -41,7 +41,7 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
             allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
           end
 
-          let(:trace) { Datadog::Tracing::TraceOperation.new(tags: { '_dd.p.ts' => '01' }) }
+          let(:trace) { Datadog::Tracing::TraceOperation.new(tags: {'_dd.p.ts' => '01'}) }
           let(:result) { described_class.enabled?(trace: trace) }
 
           it { expect(result).to be false }
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
               allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
             end
 
-            let(:trace) { Datadog::Tracing::TraceOperation.new(tags: { '_dd.p.ts' => '02' }) }
+            let(:trace) { Datadog::Tracing::TraceOperation.new(tags: {'_dd.p.ts' => '02'}) }
             let(:result) { described_class.enabled?(trace: trace) }
 
             it { expect(result).to be false }
@@ -66,7 +66,7 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
               allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
             end
 
-            let(:trace) { Datadog::Tracing::TraceOperation.new(tags: { '_dd.p.ts' => '02' }) }
+            let(:trace) { Datadog::Tracing::TraceOperation.new(tags: {'_dd.p.ts' => '02'}) }
             let(:result) { described_class.enabled?(trace: trace) }
             let(:security_engine) { instance_double(Datadog::AppSec::SecurityEngine) }
 
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
     context 'when distributed tracing in global config is enabled' do
       let(:result) do
         described_class.enabled?(
-          global_config: { distributed_tracing: true }
+          global_config: {distributed_tracing: true}
         )
       end
 
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
     context 'when distributed tracing in global config is disabled' do
       let(:result) do
         described_class.enabled?(
-          global_config: { distributed_tracing: false }
+          global_config: {distributed_tracing: false}
         )
       end
 

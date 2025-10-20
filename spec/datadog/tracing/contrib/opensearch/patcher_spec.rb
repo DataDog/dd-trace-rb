@@ -11,7 +11,7 @@ require 'opensearch'
 require 'datadog/tracing/contrib/opensearch/integration'
 
 RSpec.describe 'OpenSearch instrumentation' do
-  let(:configuration_options) { { resource_pattern: 'absolute' } }
+  let(:configuration_options) { {resource_pattern: 'absolute'} }
   let(:base_url) { "http://#{host}:#{port}" }
   let(:host) { ENV.fetch('TEST_OPENSEARCH_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_OPENSEARCH_PORT', '9200').to_i }
@@ -20,7 +20,7 @@ RSpec.describe 'OpenSearch instrumentation' do
       host: base_url,
       user: 'admin',
       password: 'admin',
-      transport_options: { ssl: { verify: false } } # For testing only. Use certificate for validation.
+      transport_options: {ssl: {verify: false}} # For testing only. Use certificate for validation.
     )
   end
   let(:index_name) { 'ruby-test-index' }

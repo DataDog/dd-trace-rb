@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module APISecurity
+      module EndpointCollection
+        module GrapeRouteSerializer
+          def self?.serialize: (_GrapeRoute route, ?path_prefix: ::String) -> Core::Telemetry::Event::AppEndpointsLoaded::endpoint
+        end
+      end
+    end
+  end
+end

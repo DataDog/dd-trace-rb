@@ -63,7 +63,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
       end
 
       context 'when logging for :no_config_endpoint is suppressed' do
-        let(:suppress_logging) { { no_config_endpoint: true } }
+        let(:suppress_logging) { {no_config_endpoint: true} }
 
         it 'does not log an error' do
           expect(logger).to_not receive(:warn)

@@ -44,7 +44,7 @@ RSpec.describe 'Roda instrumentation' do
               'UPDATE'
             end
             r.get do
-              "Hello, world #{r.params['world']}"
+              "Hello, world #{r.params["world"]}"
             end
           end
         end
@@ -59,7 +59,7 @@ RSpec.describe 'Roda instrumentation' do
         route do |r|
           r.root do
             r.get do
-              r.halt([500, { 'content-type' => 'text/html' }, ['test']])
+              r.halt([500, {'content-type' => 'text/html'}, ['test']])
             end
           end
 
@@ -141,16 +141,14 @@ RSpec.describe 'Roda instrumentation' do
           include_context 'Roda app with errors'
           subject(:response) { get '/accident' }
           it do
-            begin
-              expect(response.status).to eq(500)
-            rescue => e
-              expect(e.class.to_s).to eq('NameError')
-              expect(spans).to have(2).items
-              expect(spans[1].name).to eq('roda.request')
-              expect(spans[1].status).to eq(1)
-              expect(spans[1].service).to eq('rspec')
-              expect(spans[1].get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
-            end
+            expect(response.status).to eq(500)
+          rescue => e
+            expect(e.class.to_s).to eq('NameError')
+            expect(spans).to have(2).items
+            expect(spans[1].name).to eq('roda.request')
+            expect(spans[1].status).to eq(1)
+            expect(spans[1].service).to eq('rspec')
+            expect(spans[1].get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
           end
         end
       end
@@ -159,7 +157,7 @@ RSpec.describe 'Roda instrumentation' do
         include_context 'basic roda app'
         subject(:response) { get '/' }
 
-        let(:tracer) { { enabled: false } }
+        let(:tracer) { {enabled: false} }
 
         it do
           is_expected.to be_ok

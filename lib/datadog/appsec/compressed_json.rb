@@ -8,7 +8,7 @@ require_relative '../core/utils/base64'
 
 module Datadog
   module AppSec
-    # Converts derivative schema payloads into JSON and compresses them into a
+    # Converts complex schema payloads into JSON and compresses them into a
     # base64 encoded string if the payload is worth compressing.
     #
     # See: https://github.com/DataDog/dd-trace-rb/pull/3177#issuecomment-1747221082

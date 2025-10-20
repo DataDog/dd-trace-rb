@@ -24,6 +24,7 @@ module Datadog
             # nginx header is seconds in the format "t=1512379167.574"
             # apache header is microseconds in the format "t=1570633834463123"
             # heroku header is milliseconds in the format "1570634024294"
+            # @see https://github.com/heroku/vegur/blob/65d168f757e0ddb448f41cfb9e4b0281c747378d/README.md?plain=1#L383-L384
             time_string = header.to_s.delete('^0-9')
             return if time_string.nil?
 

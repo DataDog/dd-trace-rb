@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
       let(:env_value) { 'value' }
 
       context 'and deprecation_warning option is true' do
-        let(:options) { { deprecation_warning: true } }
+        let(:options) { {deprecation_warning: true} }
 
         it 'records to deprecation log' do
           expect { subject }.to log_deprecation(include('key-deprecated'))
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
       end
 
       context 'and deprecation_warning option is false' do
-        let(:options) { { deprecation_warning: false } }
+        let(:options) { {deprecation_warning: false} }
 
         it 'does not record to deprecation log' do
           expect { subject }.to_not log_deprecation

@@ -64,12 +64,12 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       context 'AWS Span' do
         let(:precursors) do
           ['statemachinename',
-           'rulename',
-           'bucketname',
-           'tablename',
-           'streamname',
-           'topicname',
-           'queuename']
+            'rulename',
+            'bucketname',
+            'tablename',
+            'streamname',
+            'topicname',
+            'queuename']
         end
         it 'returns {AWS_PRECURSOR} as peer.service and source' do
           span.set_tag('aws_service', 'test-service')

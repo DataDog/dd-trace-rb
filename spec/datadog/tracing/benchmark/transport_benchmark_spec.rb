@@ -9,7 +9,7 @@ RSpec.describe 'Microbenchmark Transport' do
     describe 'send_traces' do
       # Remove objects created during specs from memory results
       let(:ignore_files) { %r{(/spec/)} }
-      let(:span) { { 1 => span1, 10 => span10, 100 => span100, 1000 => span1000 } }
+      let(:span) { {1 => span1, 10 => span10, 100 => span100, 1000 => span1000} }
       let(:span1000) { get_test_traces(1000) }
       let(:span100) { get_test_traces(100) }
       let(:span10) { get_test_traces(10) }

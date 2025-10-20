@@ -9,6 +9,9 @@ require 'datadog/di'
 # rubocop:disable Style/RescueModifier
 
 class InstrumentationSpecTestClass
+  class TestException < StandardError
+  end
+
   def initialize
     @ivar = 'start value'
   end
@@ -23,6 +26,10 @@ class InstrumentationSpecTestClass
 
   def ivar_mutating_method
     @ivar.sub!('start value', 'altered value')
+  end
+
+  def exception_method
+    raise TestException, 'Test exception'
   end
 end
 
@@ -480,6 +487,124 @@ RSpec.describe 'Instrumentation integration' do
             expect(component.probe_notifier_worker).to receive(:add_snapshot)
             expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
             component.probe_notifier_worker.flush
+          end
+        end
+      end
+
+      context 'when message template references special variables' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+            segments: segments,
+          }
+        end
+
+        context '@duration' do
+          let(:segments) do
+            [
+              {str: 'hello '},
+              {json: {ref: '@duration'}, dsl: '@duration'},
+              {str: ' ms'},
+            ]
+          end
+
+          it 'substitutes the expected value' do
+            probe_manager.add_probe(probe)
+
+            expect(component.probe_notifier_worker).to receive(:add_status) do |status|
+              expect(status).to match(expected_emitting_payload)
+            end
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+              expect(snapshot.fetch(:message)).to match(/\Ahello (\d+\.\d+) ms\z/)
+              snapshot.fetch(:message) =~ /\Ahello (\d+\.\d+) ms\z/
+              value = Float($1)
+              # Actual execution time will change but it should be under
+              # a second and it should be positive.
+              expect(value).to be > 0
+              expect(value).to be < 1
+            end
+            expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+            component.probe_notifier_worker.flush
+          end
+        end
+
+        context '@return' do
+          let(:segments) do
+            [
+              {str: 'hello '},
+              {json: {ref: '@return'}, dsl: '@return'},
+            ]
+          end
+
+          it 'substitutes the expected value' do
+            probe_manager.add_probe(probe)
+
+            expect(component.probe_notifier_worker).to receive(:add_status) do |status|
+              expect(status).to match(expected_emitting_payload)
+            end
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+              expect(snapshot.fetch(:message)).to eq 'hello 42'
+            end
+            expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+            component.probe_notifier_worker.flush
+          end
+        end
+
+        context '@exception' do
+          let(:segments) do
+            [
+              {str: 'hello '},
+              {json: {ref: '@exception'}, dsl: '@exception'},
+            ]
+          end
+
+          context 'when method does not raise an exception' do
+            it 'substitutes nil' do
+              probe_manager.add_probe(probe)
+
+              expect(component.probe_notifier_worker).to receive(:add_status) do |status|
+                expect(status).to match(expected_emitting_payload)
+              end
+              expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+                # TODO should we serialize nil as empty string?
+                expect(snapshot.fetch(:message)).to eq 'hello nil'
+              end
+              expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+              component.probe_notifier_worker.flush
+            end
+          end
+
+          context 'when method does raises an exception' do
+            let(:probe_spec) do
+              {
+                id: '1234',
+                type: 'LOG_PROBE',
+                where: {typeName: 'InstrumentationSpecTestClass', methodName: 'exception_method'},
+                segments: segments,
+              }
+            end
+
+            it 'substitutes the expected value' do
+              probe_manager.add_probe(probe)
+
+              expect(component.probe_notifier_worker).to receive(:add_status) do |status|
+                expect(status).to match(expected_emitting_payload)
+              end
+              expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+                expect(snapshot.fetch(:message)).to eq 'hello #<InstrumentationSpecTestClass::TestException>'
+              end
+              expect do
+                InstrumentationSpecTestClass.new.exception_method
+                # TODO the exception class name should be in the assertion.
+              end.to raise_error(InstrumentationSpecTestClass::TestException, /Test exception/)
+              component.probe_notifier_worker.flush
+            end
           end
         end
       end

@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Kinesis do
 
   context 'with stream_arn provided' do
     let(:stream_arn) { 'arn:aws:kinesis:us-east-1:123456789012:stream/my-stream' }
-    let(:params) { { stream_arn: stream_arn } }
+    let(:params) { {stream_arn: stream_arn} }
 
     it 'sets the stream_name and aws_account based on the stream_arn' do
       kinesis.add_tags(span, params)
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::Kinesis do
   end
 
   context 'with stream_name provided' do
-    let(:params) { { stream_name: 'my-stream' } }
+    let(:params) { {stream_name: 'my-stream'} }
 
     it 'sets the stream_name based on the provided stream_name' do
       kinesis.add_tags(span, params)

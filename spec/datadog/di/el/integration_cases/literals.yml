@@ -1,0 +1,55 @@
+- name: literal integer
+  ast: 5
+  compiled: '5'
+
+  eval:
+    - result: 5
+
+- name: literal floating-point number
+  ast: 5.0
+  compiled: '5.0'
+
+  eval:
+    - result: 5.0
+
+- name: literal true
+  ast: true
+  compiled: 'true'
+
+  eval:
+    - result: true
+
+- name: literal false
+  ast: false
+  compiled: 'false'
+
+  eval:
+    - result: false
+
+- name: string literal
+  ast: hello
+  compiled: "\"hello\""
+
+  eval:
+    - result: hello
+
+- name: string literal with special characters
+  ast: "hello! \"world\"' oy"
+  compiled: "\"hello! \\\"world\\\"' oy\""
+
+  eval:
+    - result: "hello! \"world\"' oy"
+
+- name: string literal with interpolation attempt
+  ast: 'hello #{world}'
+  compiled: "\"hello \\#{world}\""
+
+  eval:
+    - result: 'hello #{world}'
+
+- name: string literal with backslash
+  ast: 'hello \n1'
+  compiled: "\"hello \\\\n1\""
+
+  eval:
+    - result: 'hello \n1'

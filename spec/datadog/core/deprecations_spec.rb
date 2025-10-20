@@ -31,7 +31,7 @@ RSpec.describe Datadog::Core::Deprecations do
       end
 
       context 'with disallowed_next_major:' do
-        let(:options) { { disallowed_next_major: disallowed_next_major } }
+        let(:options) { {disallowed_next_major: disallowed_next_major} }
 
         context 'true' do
           let(:disallowed_next_major) { true }
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Core::Deprecations do
       end
 
       context 'with key:' do
-        let(:options) { { key: key } }
+        let(:options) { {key: key} }
 
         context 'nil' do
           let(:key) { nil }

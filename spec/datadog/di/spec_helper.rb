@@ -71,6 +71,13 @@ module DIHelpers
         end
       end
     end
+
+    def load_yaml_file(path, **opts)
+      if RUBY_VERSION < '3.1'
+        opts.delete(:permitted_classes)
+      end
+      YAML.load_file(path, **opts)
+    end
   end
 
   module InstanceMethods

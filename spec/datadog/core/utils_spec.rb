@@ -81,7 +81,7 @@ RSpec.describe Datadog::Core::Utils do
       end
 
       context 'with a placeholder' do
-        let(:options) { { placeholder: '_?_' } }
+        let(:options) { {placeholder: '_?_'} }
 
         it 'returns the placeholder' do
           is_expected.to eq('_?_')
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Core::Utils do
       end
 
       context 'in binary mode' do
-        let(:options) { { binary: true } }
+        let(:options) { {binary: true} }
 
         it 'keeps the valid part' do
           is_expected.to eq('valid part')

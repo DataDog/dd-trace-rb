@@ -48,6 +48,31 @@ module Datadog
       # and the user will need to make their suffix more precise.
       class MultiplePathsMatch < Error
       end
+
+      # Base class for exceptions arising during expression language AST
+      # compilation into Ruby code.
+      #
+      # Expression language does not specify behavior in all cases,
+      # leaving some choices to the language implementation in the tracers.
+      # It is therefore possible that some technically valid expressions are
+      # prohibited by our implementation.
+      #
+      # It is also possible that the sanitizers/validators prohibit some
+      # esoteric constructs that are technically valid in Ruby,
+      # for example if instance variable name rules are relaxed to allow
+      # arbitrary characters in them as permitted in method names.
+      class InvalidExpression < Error
+      end
+
+      # Variable name with invalid characters in an expression language
+      # expression.
+      class BadVariableName < InvalidExpression
+      end
+
+      # Base class for exceptions arising when evaluating expression language
+      # expressions.
+      class ExpressionEvaluationError < Error
+      end
     end
   end
 end

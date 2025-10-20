@@ -165,7 +165,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       it_behaves_like 'priority sampling without scaling'
 
       context 'with agent rates' do
-        before { post_sampler.update({ 'service:,env:test-env' => 0.5 }, decision: decision) }
+        before { post_sampler.update({'service:,env:test-env' => 0.5}, decision: decision) }
         let(:decision) { 'test decision' }
 
         it_behaves_like 'priority sampling without scaling'
@@ -173,8 +173,8 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
     end
 
     context 'when configured with a priority-sampler RuleSampler' do
-      let(:keep_priority) {  Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
-      let(:drop_priority) {  Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
+      let(:keep_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
+      let(:drop_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
       let(:decision) { '-3' }
 
       context 'that keeps the trace' do

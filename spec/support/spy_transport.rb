@@ -5,7 +5,7 @@ shared_context 'Datadog::Tracing::Transport::HTTP::Client spy' do
   let(:transport) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
 
   let(:spy_encoder) { Datadog::Core::Encoding::JSONEncoder }
-  let(:spy_sent) { { 200 => {}, 500 => {} } }
+  let(:spy_sent) { {200 => {}, 500 => {}} }
   let(:spy_error_mode) { false }
   let(:spy_dump) { Marshal.load(Marshal.dump(spy_sent)) }
 
@@ -36,7 +36,7 @@ class SpyTransport < Datadog::Tracing::Transport::HTTP::Client
 
   def initialize(logger:)
     @logger = logger
-    @helper_sent = { 200 => {}, 500 => {} }
+    @helper_sent = {200 => {}, 500 => {}}
     @helper_mutex = Mutex.new
     @helper_error_mode = false
     @helper_encoder = Datadog::Core::Encoding::JSONEncoder # easiest to inspect

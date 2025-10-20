@@ -28,7 +28,7 @@ RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
 
   context 'with active_job instrumentation' do
     subject(:job_class) do
-      stub_const('JOB_EXECUTIONS',  Concurrent::AtomicFixnum.new(0))
+      stub_const('JOB_EXECUTIONS', Concurrent::AtomicFixnum.new(0))
       stub_const('JobDiscardError', Class.new(StandardError))
       stub_const('JobRetryError', Class.new(StandardError))
 
@@ -238,11 +238,11 @@ RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
 
     before do
       Sidekiq.configure_client do |config|
-        config.redis = { url: ENV['REDIS_URL'] }
+        config.redis = {url: ENV['REDIS_URL']}
       end
 
       Sidekiq.configure_server do |config|
-        config.redis = { url: ENV['REDIS_URL'] }
+        config.redis = {url: ENV['REDIS_URL']}
       end
 
       Sidekiq::Testing.inline!
@@ -257,7 +257,8 @@ RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
           Class.new do
             include Sidekiq::Worker
 
-            def perform; end
+            def perform
+            end
           end
         )
       end
@@ -281,7 +282,8 @@ RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
         stub_const(
           'EmptyJob',
           Class.new(ActiveJob::Base) do
-            def perform; end
+            def perform
+            end
           end
         )
       end

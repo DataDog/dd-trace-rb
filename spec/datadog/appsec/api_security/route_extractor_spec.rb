@@ -92,7 +92,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         it { expect(described_class.route_pattern(request)).to eq('/api/v1/users/:id/posts/:post_id') }
       end
 
-      context 'when route_uri_pattern is not set, but request path parameters are present' do
+      context 'when route_uri_pattern is not set and request path_parameters is empty' do
         before do
           allow(request).to receive(:env).and_return({
             'action_dispatch.routes' => route_set,
@@ -105,6 +105,48 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         let(:request) { double('Rack::Request', env: {}, script_name: '', path: '/users/1') }
 
         it { expect(described_class.route_pattern(request)).to eq('/users/1') }
+      end
+
+      context 'when route_uri_pattern is not set and request path_parameters is present' do
+        let(:env) do
+          {
+            'action_dispatch.routes' => route_set,
+            'action_dispatch.request.path_parameters' => {
+              'controller' => 'users', 'action' => 'show', 'id' => '1'
+            }
+          }
+        end
+
+        context 'when request is HEAD' do
+          before do
+            allow(request).to receive(:env).and_return(env)
+            allow(action_dispatch_request).to receive(:env).and_return(env)
+          end
+
+          let(:router) { double('ActionDispatch::Routing::RouteSet::Router') }
+          let(:route_set) { double('ActionDispatch::Routing::RouteSet', router: router, request_class: action_dispatch_request_class) }
+          let(:request) { double('Rack::Request', env: {}, script_name: '', path: '/users/1', head?: true) }
+          let(:action_dispatch_request_class) { double('class ActionDispatch::Request', new: action_dispatch_request) }
+          let(:action_dispatch_request) { double('ActionDispatch::Request', env: {}, script_name: '', path: '/users/1') }
+
+          it 'uses action dispatch request for route recognition' do
+            expect(router).to receive(:recognize).with(action_dispatch_request).and_return('/users/1')
+            expect(described_class.route_pattern(request)).to eq('/users/1')
+          end
+        end
+
+        context 'when request is not HEAD' do
+          before { allow(request).to receive(:env).and_return(env) }
+
+          let(:router) { double('ActionDispatch::Routing::RouteSet::Router') }
+          let(:route_set) { double('ActionDispatch::Routing::RouteSet', router: router) }
+          let(:request) { double('Rack::Request', env: {}, script_name: '', path: '/users/1', head?: false) }
+
+          it 'uses action dispatch request for route recognition' do
+            expect(router).to receive(:recognize).with(request).and_return('/users/1')
+            expect(described_class.route_pattern(request)).to eq('/users/1')
+          end
+        end
       end
 
       context 'when Rails router cannot recognize request' do

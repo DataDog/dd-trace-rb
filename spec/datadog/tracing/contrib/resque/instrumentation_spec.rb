@@ -82,7 +82,7 @@ RSpec.describe 'Resque instrumentation' do
 
       context 'when the job looks like Active Job' do
         let(:job_args) do
-          { 'job_class' => 'UnderlyingTestJob' }
+          {'job_class' => 'UnderlyingTestJob'}
         end
 
         it 'sets the resource to underlying job class' do
@@ -146,7 +146,7 @@ RSpec.describe 'Resque instrumentation' do
       end
     end
 
-    let(:configuration_options) { { auto_instrument: true } }
+    let(:configuration_options) { {auto_instrument: true} }
 
     it_behaves_like 'job execution tracing'
 
@@ -158,7 +158,7 @@ RSpec.describe 'Resque instrumentation' do
   context 'with forking' do
     before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
-    let(:configuration_options) { { auto_instrument: true } }
+    let(:configuration_options) { {auto_instrument: true} }
 
     it_behaves_like 'job execution tracing'
 

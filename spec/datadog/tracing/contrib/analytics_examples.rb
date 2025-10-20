@@ -1,6 +1,6 @@
 require 'datadog/tracing/metadata/ext'
 
-RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_global_flag: true }|
+RSpec.shared_examples_for 'analytics for integration' do |options = {ignore_global_flag: true}|
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
     without_warnings { Datadog.configuration.reset! }

@@ -80,7 +80,8 @@ RSpec.describe 'Server tracer' do
         Class.new do
           include Sidekiq::Worker
 
-          def perform(id) end
+          def perform(id)
+          end
         end
       )
     end
@@ -114,7 +115,7 @@ RSpec.describe 'Server tracer' do
     end
 
     context 'with default quantization' do
-      let(:sidekiq_options) { { service_name: 'sidekiq-slow', quantize: {} } }
+      let(:sidekiq_options) { {service_name: 'sidekiq-slow', quantize: {}} }
 
       it 'hides tag values' do
         perform_async
@@ -129,7 +130,7 @@ RSpec.describe 'Server tracer' do
     end
 
     context 'with quantization showing all' do
-      let(:sidekiq_options) { { service_name: 'sidekiq-slow', quantize: { args: { show: :all } } } }
+      let(:sidekiq_options) { {service_name: 'sidekiq-slow', quantize: {args: {show: :all}}} }
 
       it 'records tag values' do
         perform_async
@@ -162,7 +163,7 @@ RSpec.describe 'Server tracer' do
   end
 
   context 'with delayed extensions',
-    skip: Sidekiq::VERSION >= '7' ? 'Delayed extensions were disabled in Sidekiq 5 and removed in Sidekiq 7.' : nil do
+    skip: (Sidekiq::VERSION >= '7') ? 'Delayed extensions were disabled in Sidekiq 5 and removed in Sidekiq 7.' : nil do
       subject(:do_work) { DelayableClass.delay.do_work }
 
       before do

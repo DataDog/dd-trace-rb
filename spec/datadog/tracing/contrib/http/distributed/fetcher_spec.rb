@@ -20,12 +20,12 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Fetcher do
       let(:key) { 'my-key' }
 
       context 'that is empty' do
-        let(:env) { { 'HTTP_MY_KEY' => '' } }
+        let(:env) { {'HTTP_MY_KEY' => ''} }
         it { is_expected.to be_nil }
       end
 
       context 'that is not empty' do
-        let(:env) { { 'HTTP_MY_KEY' => 'value' } }
+        let(:env) { {'HTTP_MY_KEY' => 'value'} }
         it { is_expected.to eq('value') }
 
         context 'and a plain header' do
@@ -42,12 +42,12 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Fetcher do
       let(:key) { 'rack.session' }
 
       context 'that is empty' do
-        let(:env) { { key => '' } }
+        let(:env) { {key => ''} }
         it { is_expected.to be_nil }
       end
 
       context 'that is not empty' do
-        let(:env) { { key => 'value' } }
+        let(:env) { {key => 'value'} }
         it { is_expected.to eq('value') }
       end
     end

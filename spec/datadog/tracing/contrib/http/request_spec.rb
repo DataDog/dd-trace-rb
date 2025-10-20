@@ -93,8 +93,8 @@ RSpec.describe 'net/http requests' do
       context 'when configured with global tag headers' do
         subject(:response) { client.get(path, request_headers) }
 
-        let(:request_headers) { { 'Request-Id' => 'test-request' } }
-        let(:response_headers) { { 'Response-Id' => 'test-response' } }
+        let(:request_headers) { {'Request-Id' => 'test-request'} }
+        let(:response_headers) { {'Response-Id' => 'test-response'} }
 
         include_examples 'with request tracer header tags' do
           let(:request_header_tag) { 'request-id' }
@@ -218,7 +218,7 @@ RSpec.describe 'net/http requests' do
 
   describe 'with an internal HTTP request' do
     subject(:response) { client.get(path, headers) }
-    let(:headers) { { 'DD-Internal-Untraced-Request' => '1' } }
+    let(:headers) { {'DD-Internal-Untraced-Request' => '1'} }
 
     before { stub_request(:get, "#{uri}#{path}") }
 
@@ -348,19 +348,7 @@ RSpec.describe 'net/http requests' do
         let(:span) { spans.last }
 
         it 'adds distributed tracing headers' do
-          # The block syntax only works with Ruby < 2.3 and the hash syntax
-          # only works with Ruby >= 2.3, so we need to support both.
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
-            expect(WebMock).to(
-              have_requested(:get, "#{uri}#{path}").with { |req|
-                distributed_tracing_headers.all? do |(header, value)|
-                  req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
-                end
-              }
-            )
-          else
-            expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
-          end
+          expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
         end
       end
 
@@ -394,19 +382,7 @@ RSpec.describe 'net/http requests' do
         let(:span) { spans.last }
 
         it 'adds distributed tracing headers' do
-          # The block syntax only works with Ruby < 2.3 and the hash syntax
-          # only works with Ruby >= 2.3, so we need to support both.
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
-            expect(WebMock).to(
-              have_requested(:get, "#{uri}#{path}").with { |req|
-                distributed_tracing_headers.all? do |(header, value)|
-                  req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
-                end
-              }
-            )
-          else
-            expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
-          end
+          expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
         end
       end
 

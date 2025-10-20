@@ -6,7 +6,7 @@ require 'datadog/core/utils/hash'
 RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
   let(:http_header_tags) { described_class.new(header_tags) }
   let(:header_tags) { [header_tag] }
-  let(:headers) { { 'My-Header' => 'MY-VALUE', 'Another-Header' => 'another-value' } }
+  let(:headers) { {'My-Header' => 'MY-VALUE', 'Another-Header' => 'another-value'} }
   let(:case_insensitive_hash) { Datadog::Core::Utils::Hash::CaseInsensitiveWrapper.new(headers) }
 
   shared_context 'a header tag processor' do

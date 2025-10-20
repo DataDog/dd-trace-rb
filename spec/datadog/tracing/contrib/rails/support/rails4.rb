@@ -19,7 +19,7 @@ RSpec.shared_context 'Rails 4 test application' do
 
     klass.send(:define_method, :initialize) do |*args|
       super(*args)
-      redis_cache = [:redis_store, { url: ENV['REDIS_URL'] }]
+      redis_cache = [:redis_store, {url: ENV['REDIS_URL']}]
       file_cache = [:file_store, '/tmp/datadog-rb/cache/']
 
       config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
@@ -59,10 +59,10 @@ RSpec.shared_context 'Rails 4 test application' do
       end
 
       Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
-                                                            :sidekiq
-                                                          else
-                                                            :inline
-                                                          end
+        :sidekiq
+      else
+        :inline
+      end
 
       before_test_init.call
       initialize!

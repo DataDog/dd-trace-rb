@@ -1,10 +1,8 @@
 module Datadog
   module Core
-    class ProcessDiscovery
+    module ProcessDiscovery
       class TracerMemfd
-        attr_accessor logger: Datadog::Core::Logger
-
-        def shutdown!: () -> void
+        def shutdown!: (Datadog::Core::Logger logger) -> void
       end
     end
   end

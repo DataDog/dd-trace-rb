@@ -30,7 +30,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       context 'with trace_flags' do
         context 'with a dropped trace' do
-          let(:options) { { trace_flags: 0xFF, trace_sampling_priority: -1 } }
+          let(:options) { {trace_flags: 0xFF, trace_sampling_priority: -1} }
 
           it 'changes last bit to 0' do
             expect(trace_flags).to eq('fe')
@@ -38,7 +38,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
         end
 
         context 'with a kept trace' do
-          let(:options) { { trace_flags: 0xFE, trace_sampling_priority: 1 } }
+          let(:options) { {trace_flags: 0xFE, trace_sampling_priority: 1} }
 
           it 'changes last bit to 1' do
             expect(trace_flags).to eq('ff')
@@ -46,7 +46,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
         end
 
         context 'with no priority sampling' do
-          let(:options) { { trace_flags: 0xFF, trace_sampling_priority: nil } }
+          let(:options) { {trace_flags: 0xFF, trace_sampling_priority: nil} }
 
           it 'does not change the last bit' do
             expect(trace_flags).to eq('ff')
@@ -175,17 +175,17 @@ RSpec.shared_examples 'Trace Context distributed format' do
         end
 
         context "{ 'key' => 'value' }" do
-          let(:tags) { { 'key' => 'value' } }
+          let(:tags) { {'key' => 'value'} }
           it { expect(tracestate).to eq('dd=t.key:value') }
         end
 
         context "{ '_dd.p.dm' => '-1' }" do
-          let(:tags) { { '_dd.p.dm' => '-1' } }
+          let(:tags) { {'_dd.p.dm' => '-1'} }
           it { expect(tracestate).to eq('dd=t.dm:-1') }
         end
 
         context "{ 'key' => 'value=with=equals' }" do
-          let(:tags) { { 'key' => 'value=with=equals' } }
+          let(:tags) { {'key' => 'value=with=equals'} }
           it { expect(tracestate).to eq('dd=t.key:value~with~equals') }
 
           it 'does not modify the original TraceDigest' do
@@ -194,13 +194,13 @@ RSpec.shared_examples 'Trace Context distributed format' do
         end
 
         context 'too large' do
-          let(:tags) { { 'k' => 'v' * 250 } } # 257 chars after it's formatted as "dd=t.#{key}:#{value}"
+          let(:tags) { {'k' => 'v' * 250} } # 257 chars after it's formatted as "dd=t.#{key}:#{value}"
 
           it { expect(tracestate).to be_nil }
         end
 
         context 'with the maximum size' do
-          let(:tags) { { 'k' => 'v' * 249 } } # 256 chars after it's formatted as "dd=t.#{key}:#{value}"
+          let(:tags) { {'k' => 'v' * 249} } # 256 chars after it's formatted as "dd=t.#{key}:#{value}"
 
           it { expect(tracestate.size).to eq(256) }
         end
@@ -215,7 +215,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
             context character.inspect do
-              let(:tags) { { character => 'value' } }
+              let(:tags) { {character => 'value'} }
 
               it { expect(tracestate).to eq('dd=t._:value') }
             end
@@ -232,7 +232,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
             context character.inspect do
-              let(:tags) { { 'key' => character.dup } }
+              let(:tags) { {'key' => character.dup} }
 
               it { expect(tracestate).to eq('dd=t.key:_') }
 
@@ -266,7 +266,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
       end
 
       context 'with a upstream tracestate' do
-        let(:options) { { trace_state: upstream_tracestate } }
+        let(:options) { {trace_state: upstream_tracestate} }
         let(:upstream_tracestate) { 'other=vendor' }
 
         context 'without local Datadog-specific values' do
@@ -330,8 +330,8 @@ RSpec.shared_examples 'Trace Context distributed format' do
   describe '#extract' do
     subject(:extract) { propagation.extract(data) }
     let(:data) do
-      { prepare_key['traceparent'] => traceparent,
-        prepare_key['tracestate'] => tracestate }
+      {prepare_key['traceparent'] => traceparent,
+       prepare_key['tracestate'] => tracestate}
     end
     let(:traceparent) { "#{version}-#{trace_id}-#{parent_id}-#{trace_flags}" }
     let(:version) { '01' }
@@ -384,7 +384,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to eq({ '_dd.parent_id' => '0000000000000000' }) }
+      it { expect(digest.trace_distributed_tags).to eq({'_dd.parent_id' => '0000000000000000'}) }
     end
 
     context 'with traceparent without tracestate' do
@@ -396,7 +396,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to eq({ '_dd.parent_id' => '0000000000000000' }) }
+      it { expect(digest.trace_distributed_tags).to eq({'_dd.parent_id' => '0000000000000000'}) }
     end
 
     context 'with traceparent and with empty tracestate' do
@@ -409,7 +409,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to eq({ '_dd.parent_id' => '0000000000000000' }) }
+      it { expect(digest.trace_distributed_tags).to eq({'_dd.parent_id' => '0000000000000000'}) }
     end
 
     context 'with valid trace_id and parent_id' do
@@ -427,16 +427,16 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       context 'with sampling priority' do
         [
-          { sampled_flag: 0, priority: -1, expected_priority: -1 },
-          { sampled_flag: 0, priority: 0, expected_priority: 0 },
-          { sampled_flag: 0, priority: 1, expected_priority: 0 },
-          { sampled_flag: 0, priority: 2, expected_priority: 0 },
-          { sampled_flag: 0, priority: nil, expected_priority: 0 },
-          { sampled_flag: 1, priority: nil, expected_priority: 1 },
-          { sampled_flag: 1, priority: -1, expected_priority: 1 },
-          { sampled_flag: 1, priority: 0, expected_priority: 1 },
-          { sampled_flag: 1, priority: 1, expected_priority: 1 },
-          { sampled_flag: 1, priority: 2, expected_priority: 2 },
+          {sampled_flag: 0, priority: -1, expected_priority: -1},
+          {sampled_flag: 0, priority: 0, expected_priority: 0},
+          {sampled_flag: 0, priority: 1, expected_priority: 0},
+          {sampled_flag: 0, priority: 2, expected_priority: 0},
+          {sampled_flag: 0, priority: nil, expected_priority: 0},
+          {sampled_flag: 1, priority: nil, expected_priority: 1},
+          {sampled_flag: 1, priority: -1, expected_priority: 1},
+          {sampled_flag: 1, priority: 0, expected_priority: 1},
+          {sampled_flag: 1, priority: 1, expected_priority: 1},
+          {sampled_flag: 1, priority: 2, expected_priority: 2},
         ].each do |args|
           sampled_flag = args[:sampled_flag]
           priority = args[:priority]
@@ -465,12 +465,12 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         context 'nil' do
           let(:tags) { nil }
-          it { is_expected.to eq({ '_dd.parent_id' => '0000000000000000' }) }
+          it { is_expected.to eq({'_dd.parent_id' => '0000000000000000'}) }
         end
 
         context 'an empty value' do
           let(:tags) { '' }
-          it { is_expected.to eq({ '_dd.parent_id' => '0000000000000000' }) }
+          it { is_expected.to eq({'_dd.parent_id' => '0000000000000000'}) }
         end
 
         context "{ '_dd.p.key' => 'value' }" do
@@ -480,7 +480,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         context 'last datadog parent id in tracestate' do
           let(:tracestate) { 'dd=p:cc00000000000aaa' }
-          it { is_expected.to eq({ '_dd.parent_id' => 'cc00000000000aaa' }) }
+          it { is_expected.to eq({'_dd.parent_id' => 'cc00000000000aaa'}) }
         end
 
         context "{ '_dd.p.dm' => '-1' }" do
@@ -493,13 +493,13 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
           context 'with a kept trace' do
             let(:trace_flags) { '01' }
-            it { is_expected.to eq({ '_dd.p.dm' => '-1', '_dd.parent_id' => '0000000000000000' }) }
+            it { is_expected.to eq({'_dd.p.dm' => '-1', '_dd.parent_id' => '0000000000000000'}) }
           end
         end
 
         context "{ 'key' => 'value~with~tilde' }" do
           let(:tags) { 't.key:value~with~tilde' }
-          it { is_expected.to eq({ '_dd.p.key' => 'value=with=tilde', '_dd.parent_id' => '0000000000000000' }) }
+          it { is_expected.to eq({'_dd.p.key' => 'value=with=tilde', '_dd.parent_id' => '0000000000000000'}) }
         end
       end
 

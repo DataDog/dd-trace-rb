@@ -22,7 +22,7 @@ RSpec.shared_examples 'Baggage distributed format' do
     context 'with TraceDigest' do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
-          baggage: { 'key' => 'value' },
+          baggage: {'key' => 'value'},
         )
       end
 
@@ -36,7 +36,7 @@ RSpec.shared_examples 'Baggage distributed format' do
       context 'with multiple key value' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: { 'key' => 'value', 'key2' => 'value2' },
+            baggage: {'key' => 'value', 'key2' => 'value2'},
           )
         end
 
@@ -51,9 +51,9 @@ RSpec.shared_examples 'Baggage distributed format' do
       context 'with special allowed characters' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: { 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'*+-.^_`|~' =>
+            baggage: {'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'*+-.^_`|~' =>
             'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'()*+-./:<>?@[]^_`{|}~',
-                       'key2' => 'value2' },
+                      'key2' => 'value2'},
           )
         end
 
@@ -69,7 +69,7 @@ RSpec.shared_examples 'Baggage distributed format' do
       context 'with special disallowed characters' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: { 'key with=spacesand%' => 'value with=spaces' },
+            baggage: {'key with=spacesand%' => 'value with=spaces'},
           )
         end
 
@@ -84,7 +84,7 @@ RSpec.shared_examples 'Baggage distributed format' do
       context 'with other special disallowed characters' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: { 'userId' => 'Amélie' },
+            baggage: {'userId' => 'Amélie'},
           )
         end
 
@@ -115,8 +115,8 @@ RSpec.shared_examples 'Baggage distributed format' do
       context 'when baggage size exceeds maximum bytes' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: { 'key1' => 'value1',
-                       'key' => 'a' * (Datadog::Tracing::Distributed::Baggage::DD_TRACE_BAGGAGE_MAX_BYTES + 1) }
+            baggage: {'key1' => 'value1',
+                      'key' => 'a' * (Datadog::Tracing::Distributed::Baggage::DD_TRACE_BAGGAGE_MAX_BYTES + 1)}
           )
         end
 
@@ -141,36 +141,36 @@ RSpec.shared_examples 'Baggage distributed format' do
 
     context 'single key value' do
       let(:data) do
-        { prepare_key['baggage'] => 'key=value' }
+        {prepare_key['baggage'] => 'key=value'}
       end
 
-      it { expect(digest.baggage).to eq({ 'key' => 'value' }) }
+      it { expect(digest.baggage).to eq({'key' => 'value'}) }
     end
 
     context 'multiple key value' do
       let(:data) do
-        { prepare_key['baggage'] => 'key=value,key2=value2' }
+        {prepare_key['baggage'] => 'key=value,key2=value2'}
       end
 
-      it { expect(digest.baggage).to eq({ 'key' => 'value', 'key2' => 'value2' }) }
+      it { expect(digest.baggage).to eq({'key' => 'value', 'key2' => 'value2'}) }
     end
 
     context 'with special allowed characters' do
       let(:data) do
-        { prepare_key['baggage'] => '&\'*`|~=$&\'()*,key2=value2' }
+        {prepare_key['baggage'] => '&\'*`|~=$&\'()*,key2=value2'}
       end
 
       it {
-        expect(digest.baggage).to eq({ '&\'*`|~' => '$&\'()*', 'key2' => 'value2' })
+        expect(digest.baggage).to eq({'&\'*`|~' => '$&\'()*', 'key2' => 'value2'})
       }
     end
 
     context 'with special disallowed characters and trimming whitespace on ends' do
       let(:data) do
-        { prepare_key['baggage'] => ' key%20with%3Dspacesand%25 = value%20with%3Dspaces , key2=value2' }
+        {prepare_key['baggage'] => ' key%20with%3Dspacesand%25 = value%20with%3Dspaces , key2=value2'}
       end
 
-      it { expect(digest.baggage).to eq({ 'key with=spacesand%' => 'value with=spaces', 'key2' => 'value2' }) }
+      it { expect(digest.baggage).to eq({'key with=spacesand%' => 'value with=spaces', 'key2' => 'value2'}) }
     end
   end
 end
@@ -194,7 +194,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
     context 'Default Behavior with no configuration set' do
       let(:data) do
-        { prepare_key['baggage'] => 'user.id=12345,correlation_id=abc-xyz-999,session.id=test123' }
+        {prepare_key['baggage'] => 'user.id=12345,correlation_id=abc-xyz-999,session.id=test123'}
       end
       let(:baggage_tag_keys) { ['user.id', 'session.id', 'account.id'] }
 
@@ -211,7 +211,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
     context 'Specifying Keys in configuration' do
       let(:data) do
-        { prepare_key['baggage'] => 'user.id=99999,session_id=mysession,feature_flag=beta' }
+        {prepare_key['baggage'] => 'user.id=99999,session_id=mysession,feature_flag=beta'}
       end
       let(:baggage_tag_keys) { ['session_id', 'feature_flag'] }
 
@@ -226,7 +226,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
     context 'Disabled Baggage Tags in configuration' do
       let(:data) do
-        { prepare_key['baggage'] => 'user.id=BaggageValue,session.id=mysession' }
+        {prepare_key['baggage'] => 'user.id=BaggageValue,session.id=mysession'}
       end
       let(:baggage_tag_keys) { [] } # Empty array means disabled
 
@@ -239,7 +239,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
     context 'Malformed Baggage Headers (empty values)' do
       let(:data) do
-        { prepare_key['baggage'] => 'user.id=' }
+        {prepare_key['baggage'] => 'user.id='}
       end
       let(:baggage_tag_keys) { ['user.id', 'session.id', 'account.id'] }
 
@@ -251,7 +251,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
     context 'Wildcard configuration (*) includes all baggage keys' do
       let(:data) do
-        { prepare_key['baggage'] => 'user.id=12345,custom.key=custom_value,another.key=another_value' }
+        {prepare_key['baggage'] => 'user.id=12345,custom.key=custom_value,another.key=another_value'}
       end
       let(:baggage_tag_keys) { ['*'] } # Wildcard means all keys
 
@@ -281,7 +281,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
       context 'successful injection' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: { 'key' => 'value' }
+            baggage: {'key' => 'value'}
           )
         end
 
@@ -290,7 +290,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             'instrumentation_telemetry_data.tracers',
             'context_header_style.injected',
             1,
-            tags: { 'header_style' => 'baggage' }
+            tags: {'header_style' => 'baggage'}
           )
 
           propagation.inject!(digest, data)
@@ -309,13 +309,13 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             'instrumentation_telemetry_data.tracers',
             'context_header.truncated',
             1,
-            tags: { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded' }
+            tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'}
           )
           expect(telemetry).to receive(:inc).with(
             'instrumentation_telemetry_data.tracers',
             'context_header_style.injected',
             1,
-            tags: { 'header_style' => 'baggage' }
+            tags: {'header_style' => 'baggage'}
           )
 
           propagation.inject!(digest, data)
@@ -336,13 +336,13 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
             'instrumentation_telemetry_data.tracers',
             'context_header.truncated',
             1,
-            tags: { 'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded' }
+            tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'}
           )
           expect(telemetry).to receive(:inc).with(
             'instrumentation_telemetry_data.tracers',
             'context_header_style.injected',
             1,
-            tags: { 'header_style' => 'baggage' }
+            tags: {'header_style' => 'baggage'}
           )
 
           propagation.inject!(digest, data)
@@ -374,14 +374,14 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
     describe '#extract telemetry' do
       context 'successful extraction' do
-        let(:data) { { 'baggage' => 'key=value' } }
+        let(:data) { {'baggage' => 'key=value'} }
 
         it 'records successful extraction telemetry' do
           expect(telemetry).to receive(:inc).with(
             'instrumentation_telemetry_data.tracers',
             'context_header_style.extracted',
             1,
-            tags: { 'header_style' => 'baggage' }
+            tags: {'header_style' => 'baggage'}
           )
 
           propagation.extract(data)
@@ -389,14 +389,14 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
       end
 
       context 'malformed baggage - missing value' do
-        let(:data) { { 'baggage' => 'key=' } }
+        let(:data) { {'baggage' => 'key='} }
 
         it 'records malformed header telemetry' do
           expect(telemetry).to receive(:inc).with(
             'instrumentation_telemetry_data.tracers',
             'context_header_style.malformed',
             1,
-            tags: { 'header_style' => 'baggage' }
+            tags: {'header_style' => 'baggage'}
           )
 
           result = propagation.extract(data)

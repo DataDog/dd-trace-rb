@@ -14,9 +14,9 @@ module Datadog
 
       type tags = ::Hash[::String, ::String]
 
-      DERIVATIVE_SCHEMA_KEY_PREFIX: ::String
+      ATTRIBUTES_SCHEMA_KEY_PREFIX: ::String
 
-      DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE: ::Integer
+      ATTRIBUTES_SCHEMA_MAX_COMPRESSED_SIZE: ::Integer
 
       ALLOWED_REQUEST_HEADERS: ::Array[::String]
 
@@ -24,7 +24,7 @@ module Datadog
 
       def self.record: (Context context, ?request: _RequestInterface?, ?response: _ResponseInterface?) -> void
 
-      def self.tag_and_keep!: (Context context, WAF::Result waf_result) -> void
+      def self.tag: (Context context, WAF::Result waf_result) -> void
 
       private
 

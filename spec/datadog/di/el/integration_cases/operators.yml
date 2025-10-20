@@ -1,0 +1,68 @@
+- name: eq
+  ast:
+    eq:
+      - ref: foo
+      - 123
+  compiled: (ref('foo')) == (123)
+
+  eval:
+    - locals:
+        foo: 123
+      result: true
+
+    - locals:
+        foo: 12
+      result: false
+
+- name: eq nil
+  ast:
+    eq:
+      - ref: foo
+      -
+  compiled: (ref('foo')) == (nil)
+
+  eval:
+    - name: nil
+      locals:
+        foo:
+      result: true
+
+    - name: not nil
+      locals:
+        foo: false
+      result: false
+
+- name: ne
+  ast:
+    ne:
+      - ref: foo
+      - 123
+  compiled: (ref('foo')) != (123)
+
+- name: ge
+  ast:
+    ge:
+      - ref: foo
+      - 123
+  compiled: (ref('foo')) >= (123)
+
+- name: gt
+  ast:
+    gt:
+      - ref: foo
+      - 123
+  compiled: (ref('foo')) > (123)
+
+- name: le
+  ast:
+    le:
+      - ref: foo
+      - 123
+  compiled: (ref('foo')) <= (123)
+
+- name: lt
+  ast:
+    lt:
+      - ref: foo
+      - 123
+  compiled: (ref('foo')) < (123)

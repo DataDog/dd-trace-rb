@@ -4,7 +4,7 @@
 require 'google/protobuf'
 
 Google::Protobuf::DescriptorPool.generated_pool.build do
-  add_file("test_service.proto", :syntax => :proto3) do
+  add_file("test_service.proto", syntax: :proto3) do
     add_message "ruby.test.TestMessage" do
     end
   end

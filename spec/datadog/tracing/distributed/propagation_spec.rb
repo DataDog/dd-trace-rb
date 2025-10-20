@@ -31,8 +31,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   let(:traceparent) do
-    "00-#{format('%032x', tracecontext_trace_id)}-#{format('%016x', tracecontext_span_id)}-" \
-      "#{format('%02x', tracecontext_trace_flags)}"
+    "00-#{format("%032x", tracecontext_trace_id)}-#{format("%016x", tracecontext_span_id)}-" \
+      "#{format("%02x", tracecontext_trace_flags)}"
   end
 
   describe '::inject!' do
@@ -44,7 +44,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
       let(:span_id) { 9876543210 }
       let(:sampling_priority) { nil }
       let(:origin) { nil }
-      let(:baggage) { { 'key' => 'value', 'key2' => 'value2' } }
+      let(:baggage) { {'key' => 'value', 'key2' => 'value2'} }
 
       it { is_expected.to eq(true) }
 
@@ -264,7 +264,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
       end
 
       context 'tracecontext trace id, parent id, and sampling priority' do
-        let(:data) { { prepare_key['traceparent'] => traceparent } }
+        let(:data) { {prepare_key['traceparent'] => traceparent} }
 
         let(:tracecontext_trace_id) { 0xc0ffee }
         let(:tracecontext_span_id) { 0xbee }
@@ -394,7 +394,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
                 expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
                 expect(trace_digest.span_id).to eq(73456)
                 expect(trace_digest.trace_id).to eq(61185)
-                expect(trace_digest.trace_distributed_tags).to eq({ '_dd.parent_id' => '000000000000000a' })
+                expect(trace_digest.trace_distributed_tags).to eq({'_dd.parent_id' => '000000000000000a'})
               end
             end
           end
@@ -418,7 +418,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           expect(trace_digest.span_id).to eq(73456)
           expect(trace_digest.trace_id).to eq(61185)
           expect(trace_digest.trace_sampling_priority).to be nil
-          expect(trace_digest.baggage).to eq({ 'key' => 'value' })
+          expect(trace_digest.baggage).to eq({'key' => 'value'})
         end
 
         context 'and sampling priority' do
@@ -440,7 +440,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(trace_digest.span_id).to eq(73456)
             expect(trace_digest.trace_id).to eq(61185)
             expect(trace_digest.trace_sampling_priority).to eq(1)
-            expect(trace_digest.baggage).to eq({ 'key' => 'value' })
+            expect(trace_digest.baggage).to eq({'key' => 'value'})
           end
         end
       end
@@ -460,7 +460,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           expect(trace_digest.span_id).to eq(73456)
           expect(trace_digest.trace_id).to eq(61185)
           expect(trace_digest.trace_sampling_priority).to be nil
-          expect(trace_digest.baggage).to eq({ 'key' => 'value' })
+          expect(trace_digest.baggage).to eq({'key' => 'value'})
         end
 
         context 'and sampling priority' do
@@ -479,7 +479,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(trace_digest.span_id).to eq(73456)
             expect(trace_digest.trace_id).to eq(61185)
             expect(trace_digest.trace_sampling_priority).to eq(1)
-            expect(trace_digest.baggage).to eq({ 'key' => 'value' })
+            expect(trace_digest.baggage).to eq({'key' => 'value'})
           end
         end
       end
@@ -492,7 +492,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         let(:tracecontext_span_id) { 0x1111111 }
 
         let(:tracecontext_trace_flags) { 0x01 }
-        let(:baggage) { { 'key' => 'value' } }
+        let(:baggage) { {'key' => 'value'} }
 
         let(:data) do
           {
@@ -514,7 +514,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         end
 
         it 'contains baggage' do
-          expect(trace_digest.baggage).to eq({ 'key' => 'value' })
+          expect(trace_digest.baggage).to eq({'key' => 'value'})
         end
 
         it 'converts baggage to distributed tags for configured keys' do
@@ -524,7 +524,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
 
           modified_trace_digest = propagator.extract(modified_data)
 
-          expect(modified_trace_digest.baggage).to eq({ 'key' => 'value', 'user.id' => 'test-user' })
+          expect(modified_trace_digest.baggage).to eq({'key' => 'value', 'user.id' => 'test-user'})
           expect(modified_trace_digest.trace_distributed_tags).to include('baggage.user.id' => 'test-user')
         end
       end

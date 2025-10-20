@@ -26,7 +26,7 @@ RSpec.describe Datadog::Tracing::SyncWriter do
     subject(:sync_writer) { described_class.new(**options) }
 
     context 'given :agent_settings' do
-      let(:options) { { agent_settings: agent_settings, logger: logger } }
+      let(:options) { {agent_settings: agent_settings, logger: logger} }
       let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
       let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
 

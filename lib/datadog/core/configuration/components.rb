@@ -3,6 +3,7 @@
 require_relative 'agent_settings_resolver'
 require_relative 'components_state'
 require_relative 'ext'
+require_relative 'deprecations'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'
@@ -25,8 +26,6 @@ module Datadog
       # Global components for the trace library.
       class Components
         class << self
-          include Datadog::Tracing::Component
-
           def build_health_metrics(settings, logger, telemetry)
             settings = settings.health_metrics
             options = {enabled: settings.enabled}
@@ -78,10 +77,9 @@ module Datadog
           end
         end
 
-        include Datadog::Tracing::Component::InstanceMethods
-
         attr_reader \
           :health_metrics,
+          :settings,
           :logger,
           :remote,
           :profiler,
@@ -95,8 +93,11 @@ module Datadog
           :agent_info
 
         def initialize(settings)
+          @settings = settings
           @logger = self.class.build_logger(settings)
           @environment_logger_extra = {}
+          StableConfig.log_result(@logger)
+          Deprecations.log_deprecations_from_all_sources(@logger)
 
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend
@@ -109,7 +110,7 @@ module Datadog
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 
           @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
-          @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
+          @tracer = Datadog::Tracing::Component.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
@@ -126,9 +127,17 @@ module Datadog
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
-          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
 
-          self.class.configure_tracing(settings)
+          # Configure non-privileged components.
+          Datadog::Tracing::Contrib::Component.configure(settings)
+        end
+
+        # Hot-swaps with a new sampler.
+        # This operation acquires the Components lock to ensure
+        # there is no concurrent modification of the sampler.
+        def reconfigure_sampler(settings = Datadog.configuration)
+          sampler = Datadog::Tracing::Component.build_sampler(settings)
+          Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
         end
 
         # Starts up components
@@ -154,6 +163,11 @@ module Datadog
             # remote should always be not nil here but steep doesn't know this.
             remote&.start
           end
+
+          # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
+          # initialize new components, shutdown old components, startup new components.
+          # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
+          Core::ProcessDiscovery.publish(settings)
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
         end
@@ -210,7 +224,7 @@ module Datadog
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
 
-          @process_discovery_fd&.shutdown!
+          Core::ProcessDiscovery.shutdown!
         end
 
         # Returns the current state of various components.

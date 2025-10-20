@@ -16,9 +16,9 @@ require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::Writer do
   describe 'instance' do
-    subject(:writer) { described_class.new({ agent_settings: test_agent_settings }.update(options)) }
+    subject(:writer) { described_class.new({agent_settings: test_agent_settings}.update(options)) }
 
-    let(:options) { { transport: transport } }
+    let(:options) { {transport: transport} }
     let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
     let(:logger) { Datadog.logger }
 
@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::Writer do
         end
 
         context 'and custom transport options' do
-          let(:options) { super().merge(transport_options: { api_version: api_version }) }
+          let(:options) { super().merge(transport_options: {api_version: api_version}) }
           let(:api_version) { double('API version') }
 
           it do
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Tracing::Writer do
         context 'with agent_settings' do
           let(:agent_settings) { double('AgentSettings') }
 
-          let(:options) { { agent_settings: agent_settings } }
+          let(:options) { {agent_settings: agent_settings} }
 
           it 'configures the transport using the agent_settings' do
             expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Tracing::Writer do
         end
 
         context 'with shutdown timeout provided in options' do
-          let(:options) { { transport: transport, shutdown_timeout: 1000 } }
+          let(:options) { {transport: transport, shutdown_timeout: 1000} }
           let(:expected_async_transport_params) { async_transport_params.merge(shutdown_timeout: 1000) }
 
           it 'creates worker with configured shutdown timeout' do
