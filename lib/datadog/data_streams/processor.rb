@@ -17,7 +17,7 @@ module Datadog
       PROPAGATION_KEY = 'dd-pathway-ctx-base64'
 
       attr_accessor :enabled
-      attr_reader :pathway_context
+      attr_reader :pathway_context, :buckets, :bucket_size_ns
 
       def initialize(interval: nil)
         require 'datadog/core/ddsketch'
