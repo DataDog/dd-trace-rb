@@ -50,7 +50,7 @@ module Datadog
         def decode_and_set_pathway_context: (::Hash[::String, ::String] headers) -> void
         def compute_pathway_hash: (::Integer current_hash, ::Array[::String] tags) -> ::Integer
         def fnv1_64: (::String data) -> ::Integer
-        def record_checkpoint_stats: (hash: ::Integer, parent_hash: ::Integer, edge_latency_sec: ::Float, payload_size: ::Integer, tags: ::Array[::String], timestamp_sec: ::Float) -> void
+        def record_checkpoint_stats: (hash: ::Integer, parent_hash: ::Integer, edge_latency_sec: ::Float, full_pathway_latency_sec: ::Float, payload_size: ::Integer, tags: ::Array[::String], timestamp_sec: ::Float) -> void
         def record_consumer_stats: (topic: ::String, partition: ::Integer, offset: ::Integer, timestamp_sec: ::Float) -> void
         def aggregate_consumer_stats_by_partition: (::String topic, ::Integer partition, ::Integer offset, ::Float timestamp_sec) -> void
         def aggregate_stats_by_time_buckets: () -> void
