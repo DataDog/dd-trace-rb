@@ -247,6 +247,7 @@ module Datadog
           hash: new_hash,
           parent_hash: parent_hash,
           edge_latency_sec: edge_latency_sec,
+          full_pathway_latency_sec: full_pathway_latency_sec,
           payload_size: payload_size,
           tags: tags,
           timestamp_sec: now_sec
@@ -356,7 +357,10 @@ module Datadog
         hash_value
       end
 
-      def record_checkpoint_stats(hash:, parent_hash:, edge_latency_sec:, payload_size:, tags:, timestamp_sec:)
+      def record_checkpoint_stats(
+        hash:, parent_hash:, edge_latency_sec:, full_pathway_latency_sec:, payload_size:, tags:,
+        timestamp_sec:
+      )
         return nil unless @enabled
 
         @stats_mutex.synchronize do
@@ -368,7 +372,6 @@ module Datadog
           aggr_key = [tags.join(','), hash, parent_hash]
           stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
 
-          full_pathway_latency_sec = timestamp_sec - @pathway_context.pathway_start_sec
           stats[:edge_latency].add(edge_latency_sec)
           stats[:full_pathway_latency].add(full_pathway_latency_sec)
         end
