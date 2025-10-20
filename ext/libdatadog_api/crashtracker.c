@@ -142,19 +142,14 @@ static void ruby_runtime_stack_callback(
   // Only using emit_frame - ignore emit_stacktrace_string parameter
   (void)emit_stacktrace_string;
 
-  /*
   // Walk the Ruby call stack and emit each frame using emit_frame()
-
-  for frame in Ruby call stack
     ddog_crasht_RuntimeStackFrame frame = {
-      .function_name = frame.function_name,
-      .file_name = frame.file_name,
-      .line_number = frame.line_number,
-      .column_number = frame.column_number
+      .function_name = "LOL",
+      .file_name = "hehe",
+      .line_number = 10,
+      .column_number = 5
     };
     emit_frame(&frame);
-  end
-  */
 }
 
 static VALUE _native_register_runtime_stack_callback(VALUE _self, VALUE callback_type) {
