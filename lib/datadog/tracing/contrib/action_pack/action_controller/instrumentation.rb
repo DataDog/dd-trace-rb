@@ -79,8 +79,8 @@ module Datadog
                 if exception.nil?
                   # [christian] in some cases :status is not defined,
                   # rather than firing an error, simply acknowledge we don't know it.
-                  status = payload.fetch(:status, '?').to_s
-                  span.status = 1 if status.start_with?('5')
+                  status = payload[:status]
+                  span.status = 1 if status && Datadog.configuration.tracing.http_error_statuses.server.include?(status)
                 elsif Utils.exception_is_error?(exception)
                   span.set_error(exception)
                 end

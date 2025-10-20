@@ -514,6 +514,13 @@ module Datadog
                   end
                 end
 
+                # Defines the range of status codes to be considered errors on http.client span kinds.
+                # Once set, only the values within the specified range are considered errors.
+                #
+                # Format of env var: comma-separated list of values like 400,401,402 or ranges like 400-499 (e.g. `400,402,404-410`)
+                #
+                # @default `DD_TRACE_HTTP_CLIENT_ERROR_STATUSES` environment variable, otherwise `400..499`.
+                # @return [Tracing::Contrib::StatusRangeMatcher]
                 option :client do |o|
                   o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_CLIENT_ERROR_STATUSES
                   o.default 400..499
