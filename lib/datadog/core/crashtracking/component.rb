@@ -57,6 +57,7 @@ module Datadog
           Utils::AtForkMonkeyPatch.apply!
 
           start_or_update_on_fork(action: :start, tags: tags)
+          register_runtime_stack_callback
 
           ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.at_fork(:child) do
@@ -81,15 +82,6 @@ module Datadog
           logger.error("Failed to stop crash tracking: #{e.message}")
         end
 
-        def register_runtime_stack_callback
-          # Always use frame-based callback since that's the only type we support
-          self.class._native_register_runtime_stack_callback(:frame)
-          logger.debug("Runtime stack callback registered with type: frame")
-        rescue => e
-          logger.error("Failed to register runtime stack callback: #{e.message}")
-          raise
-        end
-
         def runtime_callback_registered?
           self.class._native_is_runtime_callback_registered
         rescue => e
@@ -98,6 +90,15 @@ module Datadog
         end
 
         private
+
+        def register_runtime_stack_callback
+          # Always use frame-based callback since that's the only type we support
+          self.class._native_register_runtime_stack_callback(:frame)
+          logger.debug('Runtime stack callback registered with type: frame')
+        rescue => e
+          logger.error("Failed to register runtime stack callback: #{e.message}")
+          raise
+        end
 
         attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger
 

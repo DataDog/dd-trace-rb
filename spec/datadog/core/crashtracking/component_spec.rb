@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
     let(:agent_settings) do
       instance_double(Datadog::Core::Configuration::AgentSettings)
     end
-    let(:tags) { {'tag1' => 'value1'} }
+    let(:tags) { { 'tag1' => 'value1' } }
     let(:agent_base_url) { 'agent_base_url' }
     let(:ld_library_path) { 'ld_library_path' }
     let(:path_to_crashtracking_receiver_binary) { 'path_to_crashtracking_receiver_binary' }
@@ -110,6 +110,31 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           crashtracker.start
         end
       end
+
+      it 'registers the runtime stack callback automatically' do
+        crashtracker = build_crashtracker(logger: logger)
+
+        expect(described_class).to receive(:_native_start_or_update_on_fork)
+        expect(described_class).to receive(:_native_register_runtime_stack_callback).with(:frame)
+        allow(logger).to receive(:debug) # Allow other debug messages
+        expect(logger).to receive(:debug).with('Runtime stack callback registered with type: frame')
+
+        crashtracker.start
+      end
+
+      context 'when runtime stack callback registration fails' do
+        it 'logs the error and re-raises' do
+          crashtracker = build_crashtracker(logger: logger)
+          error = StandardError.new('Callback registration failed')
+
+          expect(described_class).to receive(:_native_start_or_update_on_fork)
+          expect(described_class).to receive(:_native_register_runtime_stack_callback).and_raise(error)
+          allow(logger).to receive(:debug) # Allow other debug messages
+          expect(logger).to receive(:error).with('Failed to register runtime stack callback: Callback registration failed')
+
+          expect { crashtracker.start }.to raise_error(error)
+        end
+      end
     end
 
     describe '#stop' do
@@ -198,14 +223,16 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       let(:parsed_request) { JSON.parse(request.body, symbolize_names: true) }
       let(:crash_report) { parsed_request.fetch(:payload).first }
       let(:crash_report_message) { JSON.parse(crash_report.fetch(:message), symbolize_names: true) }
+      let(:crash_report_experimental) { crash_report_message.fetch(:experimental) }
+      let(:log_messages) { crash_report_message.fetch(:log_messages) }
       let(:stack_trace) { crash_report_message.fetch(:error).fetch(:stack).fetch(:frames) }
 
       # NOTE: If any of these tests seem flaky, the `upload_timeout_seconds` may need to be raised (or otherwise
       # we need to tweak libdatadog to not need such high timeouts).
 
       [
-        [:fiddle, "rb_fiddle_free", proc { Fiddle.free(42) }],
-        [:signal, "rb_f_kill", proc { Process.kill("SEGV", Process.pid) }],
+        [:fiddle, 'rb_fiddle_free', proc { Fiddle.free(42) }],
+        [:signal, 'rb_f_kill', proc { Process.kill('SEGV', Process.pid) }],
       ].each do |trigger_name, function, trigger|
         it "reports crashes via http when app crashes with #{trigger_name}" do
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
@@ -213,7 +240,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             crash_tracker.start
             trigger.call
           end
-
+          puts(crash_report_experimental)
+          puts(log_messages)
           expect(stack_trace).to match(array_including(hash_including(function: function)))
           expect(stack_trace.size).to be > 10
 
@@ -244,7 +272,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
           crash_tracker = build_crashtracker(
             agent_base_url: agent_base_url,
-            tags: {'latest_settings' => 'included'},
+            tags: { 'latest_settings' => 'included' },
             logger: logger
           )
           crash_tracker.start
@@ -320,28 +348,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
     end
 
-    describe '#register_runtime_stack_callback' do
-      it 'registers a frame-based callback' do
-        crashtracker = build_crashtracker(logger: logger)
-
-        expect(described_class).to receive(:_native_register_runtime_stack_callback).with(:frame).and_return(true)
-        expect(logger).to receive(:debug).with('Runtime stack callback registered with type: frame')
-
-        crashtracker.register_runtime_stack_callback
-      end
-
-      it 'logs and re-raises native exceptions' do
-        crashtracker = build_crashtracker(logger: logger)
-        error = StandardError.new('Native error')
-
-        expect(described_class).to receive(:_native_register_runtime_stack_callback).and_raise(error)
-        expect(logger).to receive(:error).with('Failed to register runtime stack callback: Native error')
-
-        expect {
-          crashtracker.register_runtime_stack_callback
-        }.to raise_error(error)
-      end
-    end
 
     describe '#runtime_callback_registered?' do
       it 'returns true when callback is registered' do
@@ -377,7 +383,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
     described_class.new(
       agent_base_url: options[:agent_base_url] || 'http://localhost:6006',
       tags: options[:tags] ||
-        {'tag1' => 'value1', 'tag2' => 'value2', 'language' => testing_string, 'service' => testing_string},
+        { 'tag1' => 'value1', 'tag2' => 'value2', 'language' => testing_string, 'service' => testing_string },
       path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
       ld_library_path: Libdatadog.ld_library_path,
       logger: options[:logger] || Logger.new($stdout),
