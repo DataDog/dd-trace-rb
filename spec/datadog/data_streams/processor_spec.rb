@@ -187,6 +187,49 @@ RSpec.describe Datadog::DataStreams::Processor do
         expect(processor.pathway_context.pathway_start_sec).to be_within(0.001).of(produce_pathway_start)
       end
     end
+
+    describe 'internal bucket aggregation' do
+      it 'aggregates multiple checkpoints into DDSketch histograms' do
+        now = Time.now.to_f
+
+        # Create multiple checkpoints with the same tags to aggregate
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
+
+        # Access internal buckets to verify aggregation
+        expect(processor.buckets).not_to be_empty
+
+        # Find the bucket for this time window
+        now_ns = (now * 1e9).to_i
+        bucket_time_ns = now_ns - (now_ns % processor.bucket_size_ns)
+
+        bucket = processor.buckets[bucket_time_ns]
+        expect(bucket).not_to be_nil
+
+        # Verify stats were aggregated for this pathway
+        pathway_stats = bucket[:pathway_stats]
+        expect(pathway_stats).not_to be_empty
+
+        # At least one aggregation key should exist
+        aggr_key = pathway_stats.keys.first
+        stats = pathway_stats[aggr_key]
+
+        # Verify DDSketch objects were populated
+        expect(stats[:edge_latency]).to be_a(Datadog::Core::DDSketch)
+        expect(stats[:full_pathway_latency]).to be_a(Datadog::Core::DDSketch)
+
+        # Verify exactly 3 samples were recorded (matching Python test)
+        expect(stats[:edge_latency].count).to eq(3)
+        expect(stats[:full_pathway_latency].count).to eq(3)
+
+        # Verify sketches can be encoded for serialization
+        expect(stats[:edge_latency].encode).to be_a(String)
+        expect(stats[:edge_latency].encode).not_to be_empty
+        expect(stats[:full_pathway_latency].encode).to be_a(String)
+        expect(stats[:full_pathway_latency].encode).not_to be_empty
+      end
+    end
   end
 
   describe 'Kafka tracking methods' do
