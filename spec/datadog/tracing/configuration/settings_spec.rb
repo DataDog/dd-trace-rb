@@ -1046,20 +1046,26 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     end
 
     describe '#http_error_statuses' do
+      # We cannot use described_class (as it is Tracing::Configuration::Settings, not Core::Configuration::Settings)
+      # So we need to create a new `Settings` class to access the anonymous parent setting class of server and client options.
+      parent_setting_class = Datadog::Core::Configuration::Settings.new.tracing.http_error_statuses.class
+
       describe '#server' do
         it_behaves_like 'with error_status_codes setting',
           env: 'DD_TRACE_HTTP_SERVER_ERROR_STATUSES',
           default: 500..599,
-          settings_class: Datadog::Core::Configuration::Settings.new.tracing.http_error_statuses.class,
-          option: :server
+          settings_class: parent_setting_class,
+          option: :server,
+          fallback_to_global: false
       end
 
       describe '#client' do
         it_behaves_like 'with error_status_codes setting',
           env: 'DD_TRACE_HTTP_CLIENT_ERROR_STATUSES',
           default: 400..499,
-          settings_class: Datadog::Core::Configuration::Settings.new.tracing.http_error_statuses.class,
-          option: :client
+          settings_class: parent_setting_class,
+          option: :client,
+          fallback_to_global: false
       end
     end
   end
