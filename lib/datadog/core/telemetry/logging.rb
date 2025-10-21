@@ -49,10 +49,7 @@ module Datadog
           # Anonymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +"#{exception.class.name || exception.class.inspect}" # standard:disable Style/RedundantInterpolation
 
-          if description
-            message << ':'
-            message << " #{description}"
-          end
+          message << ": #{description}" if description
 
           event = Event::Log.new(
             message: message,
