@@ -240,7 +240,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             crash_tracker.start
             trigger.call
           end
-          puts(crash_report_experimental)
+          puts(crash_report_experimental.to_json)
           puts(log_messages)
           expect(stack_trace).to match(array_including(hash_including(function: function)))
           expect(stack_trace.size).to be > 10
@@ -347,7 +347,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         end
       end
     end
-
 
     describe '#runtime_callback_registered?' do
       it 'returns true when callback is registered' do
