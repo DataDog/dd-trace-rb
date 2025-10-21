@@ -1,7 +1,47 @@
-#include <ruby.h>
-#include <datadog/crashtracker.h>
+#include "extconf.h"
 
+#ifdef RUBY_MJIT_HEADER
+  // Pick up internal structures from the private Ruby MJIT header file
+  #include RUBY_MJIT_HEADER
+#else
+  // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
+  // the datadog-ruby_core_source gem to get access to private VM headers.
+
+  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
+  // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-parameter"
+  #pragma GCC diagnostic ignored "-Wattributes"
+  #pragma GCC diagnostic ignored "-Wpragmas"
+  #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
+    #include <vm_core.h>
+  #pragma GCC diagnostic pop
+
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-parameter"
+    #include <iseq.h>
+  #pragma GCC diagnostic pop
+
+  #include <ruby.h>
+
+  #ifndef NO_RACTOR_HEADER_INCLUDE
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-parameter"
+      #include <ractor_core.h>
+    #pragma GCC diagnostic pop
+  #endif
+#endif
+
+#include <datadog/crashtracker.h>
 #include "datadog_ruby_common.h"
+
+// Include profiling stack walking functionality
+// Note: rb_iseq_path and rb_iseq_base_label are already declared in MJIT header
+
+// This was renamed in Ruby 3.2
+#if !defined(ccan_list_for_each) && defined(list_for_each)
+  #define ccan_list_for_each list_for_each
+#endif
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
@@ -14,6 +54,8 @@ static void ruby_runtime_stack_callback(
 );
 
 static bool first_init = true;
+
+// Helper functions for stack walking will be added here when we implement full stack walking
 
 // Used to report Ruby VM crashes.
 // Once initialized, segfaults will be reported automatically using libdatadog.
@@ -142,17 +184,19 @@ static void ruby_runtime_stack_callback(
   // Only using emit_frame - ignore emit_stacktrace_string parameter
   (void)emit_stacktrace_string;
 
-  // Walk the Ruby call stack and emit each frame using emit_frame()
-    ddog_crasht_RuntimeStackFrame frame = {
-      .function_name = "LOL",
-      .file_name = "hehe",
-      .line_number = 10,
-      .column_number = 5
-    };
-    emit_frame(&frame);
+  // Use the simplest possible implementation that we know works
+  // This avoids any risky Ruby VM API calls that might cause hangs
+  ddog_crasht_RuntimeStackFrame frame = {
+    .function_name = "ruby_runtime_callback",
+    .file_name = "crashtracker.c",
+    .line_number = 42,
+    .column_number = 0
+  };
+
+  emit_frame(&frame);
 }
 
-static VALUE _native_register_runtime_stack_callback(VALUE _self, VALUE callback_type) {
+static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self, VALUE callback_type) {
   ENFORCE_TYPE(callback_type, T_SYMBOL);
 
   // Verify we're using the frame type (should always be :frame)
