@@ -23,20 +23,43 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
 
     describe '#find_routes' do
       before do
-        engine.routes.append do
+        stub_const('AuthEngine', Module.new)
+
+        stub_const(
+          'AuthEngine::TokensController',
+          Class.new(ActionController::Base) do
+            def create
+              head :ok
+            end
+          end
+        )
+
+        auth_engine = stub_const(
+          'AuthEngine::Engine',
+          Class.new(::Rails::Engine) do
+            isolate_namespace AuthEngine
+          end
+        )
+
+        auth_engine.routes.append do
           get '/sign-in' => 'tokens#create'
         end
 
-        auth_engine = engine
-        rack_status_app = rack_app.new
+        rack_status_app = stub_const(
+          'RackStatusApp',
+          Class.new do
+            def call(_env)
+              [200, {'Content-Type' => 'text/plain'}, ['OK']]
+            end
+          end
+        )
 
         rails_test_application.instance.routes.append do
           namespace :api, defaults: {format: :json} do
             resources :users, only: %i[show]
 
             mount auth_engine => '/auth'
-
-            match '/status', to: rack_status_app, via: :get
+            mount rack_status_app.new => '/status'
           end
 
           get '/items/:id', to: 'items#by_id', id: /\d+/
@@ -45,17 +68,6 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
           get 'books(/:category)', to: 'books#index'
           get 'books/*section/:title', to: 'books#show'
         end
-      end
-
-      let(:rack_app) do
-        stub_const(
-          'RackStatusApp',
-          Class.new do
-            def call(_env)
-              [200, {'Content-Type' => 'text/plain'}, ['OK']]
-            end
-          end
-        )
       end
 
       let(:controllers) { [users_controller, items_controller, books_controller] }
@@ -97,37 +109,6 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
             def show
               head :ok
             end
-          end
-        )
-      end
-
-      let(:status_controller) do
-        stub_const(
-          'StatusesController',
-          Class.new(ActionController::Base) do
-            def show
-              head :ok
-            end
-          end
-        )
-      end
-
-      let(:engine) do
-        stub_const('AuthEngine', Module.new)
-
-        stub_const(
-          'AuthEngine::TokensController',
-          Class.new(ActionController::Base) do
-            def create
-              head :ok
-            end
-          end
-        )
-
-        stub_const(
-          'AuthEngine::Engine',
-          Class.new(::Rails::Engine) do
-            isolate_namespace AuthEngine
           end
         )
       end
@@ -208,8 +189,8 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
           expect(request_span.tags).not_to have_key('http.route.path')
         end
 
-        it 'sets http.route for a route to a rack app' do
-          get '/api/status'
+        it 'sets http.route for a route to a mounted rack app' do
+          get '/api/status/some_path'
 
           request_span = spans.first
 

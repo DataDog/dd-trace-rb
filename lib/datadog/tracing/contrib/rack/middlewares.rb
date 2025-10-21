@@ -141,17 +141,6 @@ module Datadog
             if status != 404 && (last_route = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
               last_script_name = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH) || ''
 
-              # If the last_script_name is empty but the env['SCRIPT_NAME'] is NOT empty
-              # then the current rack request was not routed and must be accounted for
-              # which only happens in pure nested rack requests i.e /rack/rack/hello/world
-              #
-              # To account for the unaccounted nested rack requests of /rack/hello/world,
-              # we use 'PATH_INFO knowing that rack cannot have named parameters
-              if last_script_name == '' && env['SCRIPT_NAME'] && env['SCRIPT_NAME'] != ''
-                last_script_name = last_route
-                last_route = env['PATH_INFO']
-              end
-
               # Clear the route and route path tags from the request trace to avoid possibility of misplacement
               trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
               trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
@@ -216,10 +205,6 @@ module Datadog
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT).nil? && user_agent
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
-            end
-
-            if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil? && status != 404
-              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, env['PATH_INFO'])
             end
 
             HeaderTagging.tag_request_headers(request_span, request_header_collection, configuration)
