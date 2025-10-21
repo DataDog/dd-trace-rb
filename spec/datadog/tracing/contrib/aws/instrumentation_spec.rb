@@ -14,10 +14,12 @@ require 'datadog/tracing/contrib/aws/patcher'
 
 RSpec.describe 'AWS instrumentation' do
   let(:configuration_options) { {} }
+  let(:server_error_statuses) { nil }
 
   before do
     Datadog.configure do |c|
       c.tracing.instrument :aws, configuration_options
+      c.tracing.http_error_statuses.server = server_error_statuses if server_error_statuses
     end
   end
 
@@ -179,11 +181,7 @@ RSpec.describe 'AWS instrumentation' do
         end
 
         context 'when the server error statuses are configured to include 404' do
-          before do
-            Datadog.configure do |c|
-              c.tracing.http_error_statuses.server = 400..599
-            end
-          end
+          let(:server_error_statuses) { 400..599 }
 
           it 'generates an errored span' do
             expect do
