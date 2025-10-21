@@ -57,7 +57,7 @@ module Datadog
                   set_span_error_message("Request has failed: #{message}")
                 else
                   @datadog_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response_code)
-                  if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(response_code)
+                  if Datadog.configuration.tracing.http_error_statuses.server.include?(response_code)
                     set_span_error_message("Request has failed with HTTP error: #{response_code}")
                   end
                 end

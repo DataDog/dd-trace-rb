@@ -99,7 +99,7 @@ module Datadog
                 end
               end
             rescue ::RestClient::ExceptionWithResponse => e
-              span.set_error(e) if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
+              span.set_error(e) if Datadog.configuration.tracing.http_error_statuses.server.include?(e.http_code)
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, e.http_code)
 
               raise e

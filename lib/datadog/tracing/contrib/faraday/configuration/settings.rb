@@ -13,10 +13,6 @@ module Datadog
           # Custom settings for the Faraday integration
           # @public_api
           class Settings < Contrib::Configuration::Settings
-            DEFAULT_ERROR_HANDLER = lambda do |env|
-              Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(env[:status])
-            end
-
             option :enabled do |o|
               o.type :bool
               o.env Ext::ENV_ENABLED

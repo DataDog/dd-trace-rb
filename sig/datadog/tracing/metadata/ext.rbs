@@ -45,7 +45,6 @@ module Datadog
         end
 
         module HTTP
-          ERROR_RANGE: ::Range[::Integer]
           TAG_BASE_URL: ::String
           TAG_METHOD: ::String
           TAG_STATUS_CODE: ::String

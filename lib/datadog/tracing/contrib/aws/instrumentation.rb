@@ -37,7 +37,7 @@ module Datadog
             span.resource = context.safely(:resource)
 
             # Set error on the span if the Response Status Code is in error range
-            if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(context.safely(:status_code))
+            if Datadog.configuration.tracing.http_error_statuses.server.include?(context.safely(:status_code))
               # At this point we do not have any additional diagnostics
               # besides the HTTP status code which is recorded in the span tags
               # later in this method.
