@@ -1043,11 +1043,23 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         skip_if_signal_handler_sampling_not_supported
 
-        start
+        GC.start
 
-        loop_until { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
+        begin
+          # The expectations below compare number of enqueued samples with actual samples. To avoid flakiness from a
+          # slow GC in the middle of the test causing less samples than expected to be taken (since we only sample after
+          # GC ends), we disable GC during the test setup.
+          # (Note for future changes: Be careful with what you do with GC disabled!)
+          GC.disable
 
-        cpu_and_wall_time_worker.stop
+          start
+
+          loop_until(check_condition_every_seconds: 0.01) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
+
+          cpu_and_wall_time_worker.stop
+        ensure
+          GC.enable
+        end
 
         expect(sample_count).to be > 0
         expect(sample_count).to be_within(20).percent_of(signal_handler_enqueued_sample)
@@ -1648,10 +1660,21 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     )
   end
 
-  def loop_until(timeout_seconds: 5)
-    deadline = Time.now + timeout_seconds
+  def loop_until(timeout_seconds: 5, check_condition_every_seconds: 0)
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
 
-    while Time.now < deadline
+    deadline = started_at + timeout_seconds
+    condition_deadline = started_at + check_condition_every_seconds
+
+    while (now = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)) < deadline
+      if check_condition_every_seconds > 0
+        if now >= condition_deadline
+          condition_deadline = now + check_condition_every_seconds
+        else
+          next
+        end
+      end
+
       result = yield
       return result if result
     end
