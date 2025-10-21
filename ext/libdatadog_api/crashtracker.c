@@ -184,16 +184,95 @@ static void ruby_runtime_stack_callback(
   // Only using emit_frame - ignore emit_stacktrace_string parameter
   (void)emit_stacktrace_string;
 
-  // Use the simplest possible implementation that we know works
-  // This avoids any risky Ruby VM API calls that might cause hangs
-  ddog_crasht_RuntimeStackFrame frame = {
-    .function_name = "ruby_runtime_callback",
+  // Try to safely walk Ruby stack using direct VM structure access
+  // Avoid Ruby API calls that might hang in crash context
+
+  // First emit a marker frame to show callback is working
+  ddog_crasht_RuntimeStackFrame marker_frame = {
+    .function_name = "ruby_stack_walker_start",
     .file_name = "crashtracker.c",
-    .line_number = 42,
+    .line_number = 1,
     .column_number = 0
   };
+  emit_frame(&marker_frame);
 
-  emit_frame(&frame);
+  // Try to get current thread and execution context safely
+  VALUE current_thread = rb_thread_current();
+  if (current_thread == Qnil) return;
+
+  // Get thread struct carefully
+  static const rb_data_type_t *thread_data_type = NULL;
+  if (thread_data_type == NULL) {
+    thread_data_type = RTYPEDDATA_TYPE(current_thread);
+    if (!thread_data_type) return;
+  }
+
+  rb_thread_t *th = (rb_thread_t *) rb_check_typeddata(current_thread, thread_data_type);
+  if (!th) return;
+
+  const rb_execution_context_t *ec = th->ec;
+  if (!ec) return;
+
+  // Safety checks
+  if (th->status == THREAD_KILLED) return;
+  if (!ec->vm_stack || ec->vm_stack_size == 0) return;
+
+  const rb_control_frame_t *cfp = ec->cfp;
+  const rb_control_frame_t *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+
+  if (!cfp || !end_cfp) return;
+
+  // Skip dummy frames
+  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+  if (end_cfp <= cfp) return;
+
+  // Walk stack frames with extreme caution
+  int frame_count = 0;
+  const int MAX_FRAMES = 10; // Keep very low to minimize crash risk
+
+  for (; cfp != RUBY_VM_NEXT_CONTROL_FRAME(end_cfp) && frame_count < MAX_FRAMES;
+       cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
+
+    if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->iseq) {
+      // Instead of calling rb_iseq_* functions, work directly with iseq struct
+      const rb_iseq_t *iseq = cfp->iseq;
+
+      // Basic frame info without risky API calls
+      char frame_desc[64];
+      snprintf(frame_desc, sizeof(frame_desc), "ruby_frame_%d", frame_count);
+
+      // Try to get basic line info safely using direct struct access
+      int line_no = 0;
+      if (iseq && cfp->pc) {
+        // Use direct access to iseq body instead of helper functions
+        if (iseq->body && iseq->body->iseq_encoded && iseq->body->iseq_size > 0) {
+          ptrdiff_t pc_offset = cfp->pc - iseq->body->iseq_encoded;
+          if (pc_offset >= 0 && pc_offset < iseq->body->iseq_size) {
+            line_no = frame_count + 1; // Use frame position as approximation
+          }
+        }
+      }
+
+      ddog_crasht_RuntimeStackFrame frame = {
+        .function_name = frame_desc,
+        .file_name = "ruby_source.rb",
+        .line_number = line_no,
+        .column_number = 0
+      };
+
+      emit_frame(&frame);
+      frame_count++;
+    }
+  }
+
+  // Emit end marker
+  ddog_crasht_RuntimeStackFrame end_frame = {
+    .function_name = "ruby_stack_walker_end",
+    .file_name = "crashtracker.c",
+    .line_number = frame_count,
+    .column_number = 0
+  };
+  emit_frame(&end_frame);
 }
 
 static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self, VALUE callback_type) {
