@@ -34,6 +34,9 @@
 
 #include <datadog/crashtracker.h>
 #include "datadog_ruby_common.h"
+#include <sys/mman.h>
+#include <unistd.h>
+#include <errno.h>
 
 // Include profiling stack walking functionality
 // Note: rb_iseq_path and rb_iseq_base_label are already declared in MJIT header
@@ -55,7 +58,78 @@ static void ruby_runtime_stack_callback(
 
 static bool first_init = true;
 
-// Helper functions for stack walking will be added here when we implement full stack walking
+// Safety checks for signal-safe stack walking
+static bool is_pointer_readable(const void *ptr, size_t size) {
+  if (!ptr) return false;
+
+  // This is signal-safe and doesn't allocate memory
+  size_t page_size = getpagesize();
+  void *aligned_ptr = (void*)((uintptr_t)ptr & ~(page_size - 1));
+  size_t pages = ((char*)ptr + size - (char*)aligned_ptr + page_size - 1) / page_size;
+
+  // Stack-allocate a small buffer for mincore results.. should be safe?
+  char vec[16]; // Support up to 16 pages (64KB on 4K page systems)
+  if (pages > 16) return false; // Too big to check safely
+
+  return mincore(aligned_ptr, pages * page_size, vec) == 0;
+}
+
+static bool is_reasonable_string_size(VALUE str) {
+  if (str == Qnil) return false;
+
+  long len = RSTRING_LEN(str);
+
+  // Sanity checks for corrupted string lengths
+  if (len < 0) return false;  // Negative length, probably corrupted
+  if (len > 1024) return false;  // > 1KB path/function name, suspicious for crash context
+
+  return true;
+}
+
+static const char* safe_string_ptr(VALUE str) {
+  if (str == Qnil) return "<nil>";
+
+  long len = RSTRING_LEN(str);
+  if (len < 0 || len > 2048) return "<corrupted>";
+
+  const char *ptr = RSTRING_PTR(str);
+  if (!ptr) return "<null>";
+
+  if (!is_pointer_readable(ptr, len)) return "<unreadable>";
+
+  return ptr;
+}
+
+static bool is_valid_control_frame(const rb_control_frame_t *cfp,
+                                   const rb_execution_context_t *ec) {
+  if (!cfp) return false;
+
+  void *stack_start = ec->vm_stack;
+  void *stack_end = (char*)stack_start + ec->vm_stack_size * sizeof(VALUE);
+  if ((void*)cfp < stack_start || (void*)cfp >= stack_end) {
+    return false;
+  }
+
+  if (!is_pointer_readable(cfp, sizeof(rb_control_frame_t))) {
+    return false;
+  }
+
+  return true;
+}
+
+static bool is_valid_iseq(const rb_iseq_t *iseq) {
+  if (!iseq) return false;
+  if (!is_pointer_readable(iseq, sizeof(rb_iseq_t))) return false;
+
+  // Check iseq body
+  if (!iseq->body) return false;
+  if (!is_pointer_readable(iseq->body, sizeof(*iseq->body))) return false;
+
+  // Validate iseq size
+  if (iseq->body->iseq_size > 100000) return false; // > 100K instructions, suspicious
+
+  return true;
+}
 
 // Used to report Ruby VM crashes.
 // Once initialized, segfaults will be reported automatically using libdatadog.
@@ -175,28 +249,13 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
   return Qtrue;
 }
 
-// Ruby runtime stack callback implementation
-// This function will be called by libdatadog during crash handling
+
 static void ruby_runtime_stack_callback(
   void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*),
   void (*emit_stacktrace_string)(const char*)
 ) {
-  // Only using emit_frame - ignore emit_stacktrace_string parameter
   (void)emit_stacktrace_string;
 
-  // Try to safely walk Ruby stack using direct VM structure access
-  // Avoid Ruby API calls that might hang in crash context
-
-  // First emit a marker frame to show callback is working
-  ddog_crasht_RuntimeStackFrame marker_frame = {
-    .function_name = "ruby_stack_walker_start",
-    .file_name = "crashtracker.c",
-    .line_number = 1,
-    .column_number = 0
-  };
-  emit_frame(&marker_frame);
-
-  // Try to get current thread and execution context safely
   VALUE current_thread = rb_thread_current();
   if (current_thread == Qnil) return;
 
@@ -213,7 +272,6 @@ static void ruby_runtime_stack_callback(
   const rb_execution_context_t *ec = th->ec;
   if (!ec) return;
 
-  // Safety checks
   if (th->status == THREAD_KILLED) return;
   if (!ec->vm_stack || ec->vm_stack_size == 0) return;
 
@@ -222,40 +280,56 @@ static void ruby_runtime_stack_callback(
 
   if (!cfp || !end_cfp) return;
 
-  // Skip dummy frames
   end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
   if (end_cfp <= cfp) return;
 
-  // Walk stack frames with extreme caution
-  int frame_count = 0;
-  const int MAX_FRAMES = 10; // Keep very low to minimize crash risk
+  const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
 
-  for (; cfp != RUBY_VM_NEXT_CONTROL_FRAME(end_cfp) && frame_count < MAX_FRAMES;
-       cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
+  cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+
+  int frame_count = 0;
+  const int MAX_FRAMES = 20;
+
+  for (; cfp != top_sentinel && frame_count < MAX_FRAMES; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
+    if (!is_valid_control_frame(cfp, ec)) {
+      continue; // Skip invalid frames
+    }
+
+    if (cfp->iseq && !cfp->pc) {
+      continue;
+    }
 
     if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->iseq) {
-      // Instead of calling rb_iseq_* functions, work directly with iseq struct
       const rb_iseq_t *iseq = cfp->iseq;
 
-      // Basic frame info without risky API calls
-      char frame_desc[64];
-      snprintf(frame_desc, sizeof(frame_desc), "ruby_frame_%d", frame_count);
+      if (!iseq || !iseq->body) {
+        continue;
+      }
 
-      // Try to get basic line info safely using direct struct access
+      VALUE name = rb_iseq_base_label(iseq);
+      const char *function_name = (name != Qnil) ? safe_string_ptr(name) : "<unknown>";
+
+      VALUE filename = rb_iseq_path(iseq);
+      const char *file_name = (filename != Qnil) ? safe_string_ptr(filename) : "<unknown>";
+
       int line_no = 0;
       if (iseq && cfp->pc) {
-        // Use direct access to iseq body instead of helper functions
         if (iseq->body && iseq->body->iseq_encoded && iseq->body->iseq_size > 0) {
           ptrdiff_t pc_offset = cfp->pc - iseq->body->iseq_encoded;
           if (pc_offset >= 0 && pc_offset < iseq->body->iseq_size) {
-            line_no = frame_count + 1; // Use frame position as approximation
+            // Use the Ruby VM line calculation like ddtrace_rb_profile_frames
+            size_t pos = pc_offset;
+            if (pos > 0) {
+              pos--; // Use pos-1 because PC points next instruction
+            }
+            line_no = rb_iseq_line_no(iseq, pos);
           }
         }
       }
 
       ddog_crasht_RuntimeStackFrame frame = {
-        .function_name = frame_desc,
-        .file_name = "ruby_source.rb",
+        .function_name = function_name,
+        .file_name = file_name,
         .line_number = line_no,
         .column_number = 0
       };
@@ -264,21 +338,11 @@ static void ruby_runtime_stack_callback(
       frame_count++;
     }
   }
-
-  // Emit end marker
-  ddog_crasht_RuntimeStackFrame end_frame = {
-    .function_name = "ruby_stack_walker_end",
-    .file_name = "crashtracker.c",
-    .line_number = frame_count,
-    .column_number = 0
-  };
-  emit_frame(&end_frame);
 }
 
 static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self, VALUE callback_type) {
   ENFORCE_TYPE(callback_type, T_SYMBOL);
 
-  // Verify we're using the frame type (should always be :frame)
   VALUE frame_symbol = ID2SYM(rb_intern("frame"));
   if (callback_type != frame_symbol) {
     rb_raise(rb_eArgError, "Invalid callback_type. Only :frame is supported");
