@@ -7,7 +7,6 @@ module Datadog
   module DataStreams
     module Configuration
       # Configuration settings for Data Streams Monitoring.
-      # @public_api
       module Settings
         def self.extended(base)
           base.class_eval do
@@ -23,6 +22,17 @@ module Datadog
                 o.type :bool
                 o.env 'DD_DATA_STREAMS_ENABLED'
                 o.default false
+              end
+
+              # The interval (in seconds) at which Data Streams Monitoring stats are flushed.
+              #
+              # @default 10.0
+              # @env '_DD_TRACE_STATS_WRITER_INTERVAL'
+              # @return [Float]
+              option :interval do |o|
+                o.type :float
+                o.env '_DD_TRACE_STATS_WRITER_INTERVAL'
+                o.default 10.0
               end
             end
           end

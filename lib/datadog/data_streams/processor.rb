@@ -5,6 +5,8 @@ require_relative 'pathway_context'
 require_relative '../version'
 require_relative '../core/worker'
 require_relative '../core/workers/polling'
+require_relative '../core/ddsketch'
+require_relative '../core/utils/time'
 
 module Datadog
   module DataStreams
@@ -19,13 +21,11 @@ module Datadog
       attr_accessor :enabled
       attr_reader :pathway_context, :buckets, :bucket_size_ns
 
-      def initialize(interval: nil)
-        require 'datadog/core/ddsketch'
+      def initialize(interval: 10.0, logger: nil, settings: nil)
+        @settings = settings
+        @logger = logger || Datadog.logger
 
-        interval_str = DATADOG_ENV.fetch('_DD_TRACE_STATS_WRITER_INTERVAL') { '10.0' }
-        interval ||= interval_str.to_s.to_f
-
-        now = Time.now.to_f
+        now = Core::Utils::Time.now
         @pathway_context = PathwayContext.new(
           hash_value: 0,
           pathway_start_sec: now,
@@ -182,11 +182,6 @@ module Datadog
         set_checkpoint(checkpoint_tags, nil, 0, span)
       end
 
-      # Stop the periodic worker
-      def stop(force_stop = false, timeout = 1)
-        super
-      end
-
       # Called periodically by the worker to flush stats to the agent
       def perform
         return unless @enabled
@@ -203,15 +198,15 @@ module Datadog
         @pathway_context.encode_b64
       end
 
-      def set_checkpoint(tags, now_sec = nil, payload_size = 0, span = nil)
+      def set_checkpoint(tags, now = nil, payload_size = 0, span = nil)
         return nil unless @enabled
 
-        now_sec ||= Time.now.to_f
+        now ||= Core::Utils::Time.now
 
         current_context = get_current_context
         tags = tags.sort
 
-        direction = ''
+        direction = nil
         tags.each do |tag|
           if tag.start_with?('direction:')
             direction = tag
@@ -279,7 +274,7 @@ module Datadog
           stats_buckets = serialize_buckets
 
           payload = {
-            'Service' => Datadog.configuration.service,
+            'Service' => service_name,
             'TracerVersion' => Datadog::VERSION::STRING,
             'Lang' => 'ruby',
             'Stats' => stats_buckets,
@@ -290,7 +285,7 @@ module Datadog
           @consumer_stats.clear
         end
       rescue => e
-        Datadog.logger.debug("Failed to flush DSM stats to agent: #{e.message}")
+        @logger.debug("Failed to flush DSM stats to agent: #{e.message}")
       end
 
       def get_current_pathway
@@ -301,11 +296,11 @@ module Datadog
 
       def get_current_context
         @pathway_context ||= begin
-          now = Time.now.to_f
+          now = Core::Utils::Time.now
           PathwayContext.new(
             hash_value: 0,
-            pathway_start_sec: now,
-            current_edge_start_sec: now
+            pathway_start: now,
+            current_edge_start: now
           )
         end
       end
@@ -315,7 +310,7 @@ module Datadog
 
         if ctx
           @pathway_context = ctx
-          @pathway_context.previous_direction = ''
+          @pathway_context.previous_direction = nil
           @pathway_context.closest_opposite_direction_hash = 0
           @pathway_context.closest_opposite_direction_edge_start = @pathway_context.current_edge_start_sec
         end
@@ -332,8 +327,8 @@ module Datadog
       # Compute new pathway hash using FNV-1a algorithm.
       # Combines service, env, tags, and parent hash to create unique pathway identifier.
       def compute_pathway_hash(current_hash, tags)
-        service = Datadog.configuration.service || 'ruby-service'
-        env = Datadog.configuration.env || 'none'
+        service = service_name || 'ruby-service'
+        env = env_name || 'none'
 
         bytes = service.bytes + env.bytes
         tags.each { |tag| bytes += tag.bytes }
@@ -445,15 +440,15 @@ module Datadog
         }
 
         response = send_dsm_payload(compressed_data, headers)
-        Datadog.logger.debug("DSM stats sent to agent: #{response.code} #{response.message}")
+        @logger.debug("DSM stats sent to agent: #{response.code} #{response.message}")
       end
 
       def send_dsm_payload(data, headers)
         require 'net/http'
         require 'uri'
 
-        agent_host = Datadog.configuration.agent.host || 'localhost'
-        agent_port = Datadog.configuration.agent.port || 8126
+        agent_host = agent_settings&.hostname || 'localhost'
+        agent_port = agent_settings&.port || 8126
         path = '/v0.1/pipeline_stats'
 
         http = Net::HTTP.new(agent_host, agent_port)
@@ -563,12 +558,23 @@ module Datadog
         @agent_transport ||= begin
           require_relative '../../transport/http'
 
-          agent_settings = Datadog.configuration.agent
           Datadog::Tracing::Transport::HTTP.default(
             agent_settings: agent_settings,
-            logger: Datadog.logger
+            logger: @logger
           )
         end
+      end
+
+      def service_name
+        @settings&.service || Datadog.configuration.service
+      end
+
+      def env_name
+        @settings&.env || Datadog.configuration.env
+      end
+
+      def agent_settings
+        @settings&.agent || Datadog.configuration.agent
       end
     end
   end
