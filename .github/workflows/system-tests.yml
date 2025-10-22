@@ -112,7 +112,7 @@ jobs:
               TRACING_CONFIG_NONDEFAULT
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@2cbe759487228ade311550caa67a9131659a8f0b  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@38d5f42dd9e6e0629d01d475a245eca7a13aeac7  # Automated: This reference is automatically updated.
     secrets: inherit  # zizmor: ignore[secrets-inherit]
     permissions:
       contents: read
@@ -125,7 +125,7 @@ jobs:
       scenarios: ${{ matrix.scenarios }}
       weblogs: ${{ matrix.weblogs }}
       skip_empty_scenarios: true
-      ref: 2cbe759487228ade311550caa67a9131659a8f0b  # Automated: This reference is automatically updated.
+      ref: 38d5f42dd9e6e0629d01d475a245eca7a13aeac7  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
 

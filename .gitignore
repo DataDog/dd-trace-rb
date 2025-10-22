@@ -1,6 +1,8 @@
+.DS_Store
 *.gem
 *.rbc
 *.swp
+*~
 *.vim
 /.config
 /coverage/
