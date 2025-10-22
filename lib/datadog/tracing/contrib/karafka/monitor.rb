@@ -51,7 +51,7 @@ module Datadog
                 # DSM: Track consumer offset stats for batch processing
                 if Datadog.configuration.data_streams.enabled
                   job.messages.each do |message|
-                    Datadog.data_streams.track_kafka_consume(
+                    Datadog::DataStreams.track_kafka_consume(
                       job.executor.topic.name,
                       job.executor.partition,
                       message.metadata.offset,

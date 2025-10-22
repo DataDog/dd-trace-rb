@@ -20,10 +20,10 @@ module Datadog
                   Datadog.logger.debug { "Kafka each_message: DSM enabled for topic #{message.topic}" }
 
                   headers = message.headers || {}
-                  Datadog.data_streams.set_consume_checkpoint(
+                  Datadog::DataStreams.set_consume_checkpoint(
                     type: 'kafka',
                     source: message.topic,
-                    manual_checkpoint: false
+                    autoinstrumentation: true
                   ) { |key| headers[key] }
 
                   yield(message) if block
@@ -38,10 +38,10 @@ module Datadog
                 wrapped_block = proc do |batch|
                   Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
 
-                  Datadog.data_streams.set_consume_checkpoint(
+                  Datadog::DataStreams.set_consume_checkpoint(
                     type: 'kafka',
                     source: batch.topic,
-                    manual_checkpoint: false
+                    autoinstrumentation: true
                   )
 
                   yield(batch) if block

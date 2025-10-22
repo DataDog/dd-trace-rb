@@ -164,7 +164,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     it 'automatically processes pathway context when consuming messages' do
       # Simulate a complete produce → consume flow to test auto-instrumentation
-      processor = Datadog.data_streams
+      processor = Datadog::DataStreams.processor
 
       # Step 1: Produce a message (instrumentation automatically adds pathway context)
       producer_message = OpenStruct.new(topic: 'test_topic', value: 'test', headers: {})
@@ -214,11 +214,6 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
         c.tracing.instrument :kafka
         c.data_streams.enabled = false
       end
-    end
-
-    after do
-      processor = Datadog.data_streams
-      processor&.stop(true, 1)
     end
 
     let(:test_producer_class) do
