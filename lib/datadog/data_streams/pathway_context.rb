@@ -129,9 +129,10 @@ module Datadog
           shift += 7
 
           # Safety: prevent infinite decoding
-          raise EOFError if shift >= 64
+          return nil if shift >= 64
         end
       rescue EOFError
+        # Stream ended unexpectedly - malformed data
         nil
       end
       private_class_method :decode_varint
