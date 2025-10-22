@@ -14,7 +14,7 @@ module Datadog
             # Instance methods for consumer instrumentation
             module InstanceMethods
               def each_message(**kwargs, &block)
-                return super unless Datadog.configuration.data_streams.enabled
+                return super unless Datadog::DataStreams.enabled?
 
                 wrapped_block = proc do |message|
                   Datadog.logger.debug { "Kafka each_message: DSM enabled for topic #{message.topic}" }
@@ -33,7 +33,7 @@ module Datadog
               end
 
               def each_batch(**kwargs, &block)
-                return super unless Datadog.configuration.data_streams.enabled
+                return super unless Datadog::DataStreams.enabled?
 
                 wrapped_block = proc do |batch|
                   Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }

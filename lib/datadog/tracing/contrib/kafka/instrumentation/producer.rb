@@ -13,7 +13,7 @@ module Datadog
 
             module InstanceMethods
               def deliver_messages(**kwargs)
-                if Datadog.configuration.data_streams.enabled
+                if Datadog::DataStreams.enabled?
                   pending_messages = instance_variable_get(:@pending_message_queue)
 
                   if pending_messages && !pending_messages.empty?
@@ -34,7 +34,7 @@ module Datadog
               end
 
               def send_messages(messages, **kwargs)
-                if Datadog.configuration.data_streams.enabled
+                if Datadog::DataStreams.enabled?
                   messages.each do |message|
                     message[:headers] ||= {}
                     Datadog::DataStreams.set_produce_checkpoint(

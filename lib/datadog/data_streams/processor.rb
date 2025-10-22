@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'zlib'
 require_relative 'pathway_context'
 require_relative '../version'
 require_relative '../core/worker'
@@ -18,10 +19,11 @@ module Datadog
 
       PROPAGATION_KEY = 'dd-pathway-ctx-base64'
 
-      attr_accessor :enabled
       attr_reader :pathway_context, :buckets, :bucket_size_ns
 
       def initialize(interval: 10.0, logger: nil, settings: nil)
+        raise 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
+
         @settings = settings
         @logger = logger || Datadog.logger
 
@@ -36,14 +38,8 @@ module Datadog
         @consumer_stats = []
         @stats_mutex = Mutex.new
 
-        unless Datadog::Core::DDSketch.supported?
-          @enabled = false
-          return
-        end
-
         super()
         self.loop_base_interval = interval
-        @enabled = true
 
         perform
       end
@@ -53,10 +49,8 @@ module Datadog
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the produced message
       # @param now [Time] Timestamp (defaults to current time)
-      # @return [Boolean, nil] true if tracking succeeded, nil if disabled
+      # @return [Boolean] true if tracking succeeded
       def track_kafka_produce(topic, partition, offset, now)
-        return nil unless @enabled
-
         now_ns = (now.to_f * 1e9).to_i
         partition_key = "#{topic}:#{partition}"
 
@@ -81,10 +75,8 @@ module Datadog
       # @param partition [Integer] The partition number
       # @param offset [Integer] The committed offset
       # @param now [Time] Timestamp (defaults to current time)
-      # @return [Boolean, nil] true if tracking succeeded, nil if disabled
+      # @return [Boolean] true if tracking succeeded
       def track_kafka_commit(group, topic, partition, offset, now)
-        return nil unless @enabled
-
         now_ns = (now.to_f * 1e9).to_i
         consumer_key = "#{group}:#{topic}:#{partition}"
 
@@ -108,10 +100,8 @@ module Datadog
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the consumed message
       # @param now [Time, nil] Timestamp (defaults to current time)
-      # @return [Boolean, nil] true if tracking succeeded, nil if disabled
+      # @return [Boolean] true if tracking succeeded
       def track_kafka_consume(topic, partition, offset, now = nil)
-        return nil unless @enabled
-
         now ||= Core::Utils::Time.now
 
         record_consumer_stats(
@@ -136,10 +126,8 @@ module Datadog
       # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set (default: true)
       # @param tags [Array<String>] Additional tags to include
       # @yield [key, value] Block to inject context into carrier
-      # @return [String, nil] Base64 encoded pathway context or nil if disabled
+      # @return [String] Base64 encoded pathway context
       def set_produce_checkpoint(type:, destination:, manual_checkpoint: true, tags: [], &block)
-        return nil unless @enabled
-
         checkpoint_tags = ["type:#{type}", "topic:#{destination}", 'direction:out']
         checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
         checkpoint_tags.concat(tags) unless tags.empty?
@@ -162,10 +150,8 @@ module Datadog
       # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set (default: true)
       # @param tags [Array<String>] Additional tags to include
       # @yield [key] Block to extract context from carrier
-      # @return [String, nil] Base64 encoded pathway context or nil if disabled
+      # @return [String] Base64 encoded pathway context
       def set_consume_checkpoint(type:, source:, manual_checkpoint: true, tags: [], &block)
-        return nil unless @enabled
-
         if block
           pathway_ctx = yield(PROPAGATION_KEY)
           if pathway_ctx
@@ -184,8 +170,6 @@ module Datadog
 
       # Called periodically by the worker to flush stats to the agent
       def perform
-        return unless @enabled
-
         flush_stats
         true
       end
@@ -193,14 +177,10 @@ module Datadog
       private
 
       def encode_pathway_context
-        return nil unless @enabled
-
         @pathway_context.encode_b64
       end
 
       def set_checkpoint(tags:, now: nil, payload_size: 0, span: nil)
-        return nil unless @enabled
-
         now ||= Core::Utils::Time.now
 
         current_context = get_current_context
@@ -256,18 +236,16 @@ module Datadog
       end
 
       def decode_pathway_context(encoded_ctx)
-        return nil unless @enabled
-
         PathwayContext.decode_b64(encoded_ctx)
       end
 
       def decode_pathway_b64(encoded_ctx)
-        return nil unless @enabled
-
         PathwayContext.decode_b64(encoded_ctx)
       end
 
       def flush_stats
+        payload = nil
+
         @stats_mutex.synchronize do
           return if @buckets.empty? && @consumer_stats.empty?
 
@@ -281,16 +259,18 @@ module Datadog
             'Hostname' => hostname
           }
 
-          send_stats_to_agent(payload)
+          # Clear consumer stats even if sending fails to prevent unbounded memory growth
+          # Must be done inside mutex before we release it
           @consumer_stats.clear
         end
+
+        # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung
+        send_stats_to_agent(payload) if payload
       rescue => e
         @logger.debug("Failed to flush DSM stats to agent: #{e.message}")
       end
 
       def get_current_pathway
-        return nil unless @enabled
-
         get_current_context
       end
 
@@ -306,8 +286,6 @@ module Datadog
       end
 
       def set_pathway_context(ctx)
-        return unless @enabled
-
         if ctx
           @pathway_context = ctx
           @pathway_context.previous_direction = nil
@@ -317,7 +295,6 @@ module Datadog
       end
 
       def decode_and_set_pathway_context(headers)
-        return unless @enabled
         return unless headers && headers['dd-pathway-ctx-base64']
 
         pathway_ctx = decode_pathway_context(headers['dd-pathway-ctx-base64'])
@@ -356,8 +333,6 @@ module Datadog
         hash:, parent_hash:, edge_latency_sec:, full_pathway_latency_sec:, payload_size:, tags:,
         timestamp_sec:
       )
-        return nil unless @enabled
-
         @stats_mutex.synchronize do
           now_ns = (timestamp_sec * 1e9).to_i
           bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
@@ -375,8 +350,6 @@ module Datadog
       end
 
       def record_consumer_stats(topic:, partition:, offset:, timestamp:)
-        return nil unless @enabled
-
         @stats_mutex.synchronize do
           @consumer_stats << {
             topic: topic,
@@ -466,7 +439,6 @@ module Datadog
       end
 
       def gzip_compress(data)
-        require 'zlib'
         Zlib.gzip(data)
       end
 

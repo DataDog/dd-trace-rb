@@ -35,7 +35,7 @@ module Datadog
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
               end
 
-              if Datadog.configuration.data_streams.enabled
+              if Datadog::DataStreams.enabled?
                 headers = if message.metadata.respond_to?(:raw_headers)
                   message.metadata.raw_headers
                 else
