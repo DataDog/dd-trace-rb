@@ -1,19 +1,17 @@
 # frozen_string_literal: true
 
-require_relative 'core/configuration'
-require_relative 'open_feature/configuration'
+require_relative 'open_feature/extensions'
 
 module Datadog
-  # A namespace for the OpenFeature component.
   module OpenFeature
-    Core::Configuration::Settings.extend(Configuration::Settings)
+    Extensions.activate!
 
     def self.enabled?
       Datadog.configuration.open_feature.enabled
     end
 
-    def self.engine
-      Datadog.send(:components).open_feature&.engine
+    def self.component
+      Datadog.send(:components).open_feature
     end
   end
 end
