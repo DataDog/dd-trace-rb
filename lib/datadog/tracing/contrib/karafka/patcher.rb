@@ -42,10 +42,10 @@ module Datadog
                   message.metadata.headers
                 end
 
-                Datadog.data_streams.set_consume_checkpoint(
+                Datadog::DataStreams.set_consume_checkpoint(
                   type: 'kafka',
                   source: message.topic,
-                  manual_checkpoint: false
+                  autoinstrumentation: true
                 ) { |key| headers[key] }
               end
 

@@ -77,7 +77,7 @@ module Datadog
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
 
-          def build_data_streams_processor(settings)
+          def build_data_streams(settings)
             return unless settings.data_streams.enabled
 
             Datadog::DataStreams::Processor.new
@@ -98,7 +98,7 @@ module Datadog
           :dynamic_instrumentation,
           :appsec,
           :agent_info,
-          :data_streams_processor
+          :data_streams
 
         def initialize(settings)
           @settings = settings
@@ -134,7 +134,7 @@ module Datadog
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
-          @data_streams_processor = self.class.build_data_streams_processor(settings)
+          @data_streams = self.class.build_data_streams(settings)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
           # Configure non-privileged components.
@@ -205,7 +205,7 @@ module Datadog
           runtime_metrics.stop(true, close_metrics: false)
 
           # Shutdown Data Streams Monitoring processor
-          data_streams_processor&.stop(true, 1)
+          data_streams&.stop(true)
 
           # Shutdown the old metrics, unless they are still being used.
           # (e.g. custom Statsd instances.)

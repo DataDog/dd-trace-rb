@@ -69,8 +69,8 @@ RSpec.describe 'Karafka Data Streams Integration' do
   end
 
   after do
-    processor = Datadog.data_streams
-    processor.stop(true, 1) if processor&.enabled
+    processor = Datadog::DataStreams.processor
+    processor.stop(true) if processor&.enabled
   end
 
   describe 'auto-instrumentation' do
@@ -79,7 +79,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
     end
 
     it 'automatically extracts and processes pathway context when consuming messages' do
-      processor = Datadog.data_streams
+      processor = Datadog::DataStreams.processor
 
       # Producer creates pathway context (simulating message from another service)
       producer_ctx_b64 = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
@@ -107,7 +107,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
     end
 
     it 'creates new pathway context when headers are missing' do
-      processor = Datadog.data_streams
+      processor = Datadog::DataStreams.processor
 
       messages = build_karafka_messages([
         {topic: 'orders', partition: 0, offset: 100, headers: {}}
@@ -122,7 +122,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
     end
 
     it 'processes multiple messages in a batch' do
-      processor = Datadog.data_streams
+      processor = Datadog::DataStreams.processor
 
       messages = build_karafka_messages([
         {topic: 'orders', partition: 0, offset: 100},
@@ -149,7 +149,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
     end
 
     it 'maintains pathway continuity through produce → consume → produce chain' do
-      processor = Datadog.data_streams
+      processor = Datadog::DataStreams.processor
 
       # Service A: Producer creates initial pathway
       ctx_a_b64 = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders-topic')

@@ -19,10 +19,10 @@ module Datadog
                   if pending_messages && !pending_messages.empty?
                     pending_messages.each do |message|
                       message.headers ||= {}
-                      Datadog.data_streams.set_produce_checkpoint(
+                      Datadog::DataStreams.set_produce_checkpoint(
                         type: 'kafka',
                         destination: message.topic,
-                        manual_checkpoint: false
+                        autoinstrumentation: true
                       ) do |key, value|
                         message.headers[key] = value
                       end
@@ -37,10 +37,10 @@ module Datadog
                 if Datadog.configuration.data_streams.enabled
                   messages.each do |message|
                     message[:headers] ||= {}
-                    Datadog.data_streams.set_produce_checkpoint(
+                    Datadog::DataStreams.set_produce_checkpoint(
                       type: 'kafka',
                       destination: message[:topic],
-                      manual_checkpoint: false
+                      autoinstrumentation: true
                     ) do |key, value|
                       message[:headers][key] = value
                     end
