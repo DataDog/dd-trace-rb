@@ -209,7 +209,9 @@ module Datadog
             end
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil? && status != 404
-              if (infered_route = RouteFromPathInference.infer(env['REQUEST_PATH']))
+              full_path = env['SCRIPT_NAME'].to_s + env['PATH_INFO'].to_s
+
+              if (infered_route = RouteFromPathInference.infer(full_path))
                 request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, infered_route)
               end
             end
