@@ -19,8 +19,6 @@ module Datadog
         end
 
         def receivers(telemetry)
-          binding.irb
-
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
             changes.each do |change|
