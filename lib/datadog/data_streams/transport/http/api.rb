@@ -31,4 +31,3 @@ module Datadog
     end
   end
 end
-

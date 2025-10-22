@@ -15,9 +15,7 @@ module Datadog
             @data = data
           end
 
-          def data
-            @data
-          end
+          attr_reader :data
         end
 
         # Request for DSM stats
@@ -28,13 +26,13 @@ module Datadog
         class Transport
           attr_reader :client, :apis, :current_api_id, :logger
 
-          def initialize(apis, default_api, logger: Datadog.logger)
+          def initialize(apis, default_api, logger: nil)
             @apis = apis
+            @logger = logger || Datadog.logger
             @default_api = default_api
             @current_api_id = default_api
-            @logger = logger
 
-            @client = HTTP::Client.new(current_api, logger: logger)
+            @client = HTTP::Client.new(current_api, logger: @logger)
           end
 
           def send_stats(payload)
@@ -58,4 +56,3 @@ module Datadog
     end
   end
 end
-

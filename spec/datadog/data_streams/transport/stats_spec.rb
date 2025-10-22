@@ -10,7 +10,7 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
     subject(:transport) { described_class::Transport.new(apis, default_api, logger: logger) }
 
     let(:default_api) { :v01 }
-    let(:apis) { { v01: api_instance } }
+    let(:apis) { {v01: api_instance} }
     let(:api_instance) { instance_double(Datadog::Core::Transport::HTTP::API::Instance) }
     let(:client) { instance_double(Datadog::DataStreams::Transport::HTTP::Client) }
 
@@ -59,13 +59,13 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
         expect(client).to receive(:send_stats_payload) do |request|
           expect(request).to be_a(Datadog::DataStreams::Transport::Stats::Request)
           expect(request.parcel).to be_a(Datadog::DataStreams::Transport::Stats::EncodedParcel)
-          
+
           # Verify the data is compressed MessagePack
           compressed_data = request.parcel.data
           decompressed = Zlib.gunzip(compressed_data)
           unpacked = MessagePack.unpack(decompressed)
           expect(unpacked).to eq(payload)
-          
+
           response
         end
 
@@ -78,4 +78,3 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
     end
   end
 end
-

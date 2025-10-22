@@ -18,7 +18,7 @@ module Datadog
             include Datadog::Core::Transport::HTTP::Response
 
             def initialize(http_response)
-              super(http_response)
+              super
             end
           end
 
@@ -84,4 +84,3 @@ module Datadog
     end
   end
 end
-
