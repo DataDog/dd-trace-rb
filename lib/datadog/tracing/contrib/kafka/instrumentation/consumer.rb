@@ -19,12 +19,16 @@ module Datadog
                 wrapped_block = proc do |message|
                   Datadog.logger.debug { "Kafka each_message: DSM enabled for topic #{message.topic}" }
 
-                  headers = message.headers || {}
-                  Datadog::DataStreams.set_consume_checkpoint(
-                    type: 'kafka',
-                    source: message.topic,
-                    autoinstrumentation: true
-                  ) { |key| headers[key] }
+                  begin
+                    headers = message.headers || {}
+                    Datadog::DataStreams.set_consume_checkpoint(
+                      type: 'kafka',
+                      source: message.topic,
+                      autoinstrumentation: true
+                    ) { |key| headers[key] }
+                  rescue => e
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.message}")
+                  end
 
                   yield(message) if block
                 end
@@ -38,11 +42,15 @@ module Datadog
                 wrapped_block = proc do |batch|
                   Datadog.logger.debug { "Kafka each_batch: DSM enabled for topic #{batch.topic}" }
 
-                  Datadog::DataStreams.set_consume_checkpoint(
-                    type: 'kafka',
-                    source: batch.topic,
-                    autoinstrumentation: true
-                  )
+                  begin
+                    Datadog::DataStreams.set_consume_checkpoint(
+                      type: 'kafka',
+                      source: batch.topic,
+                      autoinstrumentation: true
+                    )
+                  rescue => e
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.message}")
+                  end
 
                   yield(batch) if block
                 end

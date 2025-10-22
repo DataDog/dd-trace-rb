@@ -36,17 +36,21 @@ module Datadog
               end
 
               if Datadog::DataStreams.enabled?
-                headers = if message.metadata.respond_to?(:raw_headers)
-                  message.metadata.raw_headers
-                else
-                  message.metadata.headers
-                end
+                begin
+                  headers = if message.metadata.respond_to?(:raw_headers)
+                    message.metadata.raw_headers
+                  else
+                    message.metadata.headers
+                  end
 
-                Datadog::DataStreams.set_consume_checkpoint(
-                  type: 'kafka',
-                  source: message.topic,
-                  autoinstrumentation: true
-                ) { |key| headers[key] }
+                  Datadog::DataStreams.set_consume_checkpoint(
+                    type: 'kafka',
+                    source: message.topic,
+                    autoinstrumentation: true
+                  ) { |key| headers[key] }
+                rescue => e
+                  Datadog.logger.debug("Error setting DSM checkpoint: #{e.message}")
+                end
               end
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
