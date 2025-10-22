@@ -13,6 +13,7 @@ require_relative 'ext'
 require_relative 'header_collection'
 require_relative 'header_tagging'
 require_relative 'request_queue'
+require_relative 'route_from_path_inference'
 require_relative 'trace_proxy_middleware'
 
 module Datadog
@@ -205,6 +206,12 @@ module Datadog
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT).nil? && user_agent
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
+            end
+
+            if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil? && status != 404
+              if (infered_route = RouteFromPathInference.infer(env['REQUEST_PATH']))
+                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, infered_route)
+              end
             end
 
             HeaderTagging.tag_request_headers(request_span, request_header_collection, configuration)
