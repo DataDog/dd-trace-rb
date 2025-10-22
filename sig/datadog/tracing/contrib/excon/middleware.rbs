@@ -5,8 +5,6 @@ module Datadog
         class Middleware < ::Excon::Middleware::Base
           include Contrib::HttpAnnotationHelper
 
-          DEFAULT_ERROR_HANDLER: untyped
-
           def initialize: (untyped stack, ?::Hash[untyped, untyped] options) -> void
 
           def request_call: (untyped datum) -> untyped

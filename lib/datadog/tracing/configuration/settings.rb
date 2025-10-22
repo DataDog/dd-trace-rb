@@ -2,6 +2,8 @@
 
 require_relative '../../tracing/configuration/ext'
 require_relative '../../core/environment/variable_helpers'
+require_relative '../contrib/status_range_matcher'
+require_relative '../contrib/status_range_env_parser'
 require_relative 'http'
 
 module Datadog
@@ -489,6 +491,46 @@ module Datadog
                 o.type :int
                 o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
+              end
+
+              # HTTP error statuses configuration
+              # @public_api
+              settings :http_error_statuses do
+                # Defines the range of status codes to be considered errors on http.server span kinds.
+                # Once set, only the values within the specified range are considered errors.
+                #
+                # Format of env var: comma-separated list of values like 500,501,502 or ranges like 500-599 (e.g. `500,502,504-510`)
+                #
+                # @default `DD_TRACE_HTTP_SERVER_ERROR_STATUSES` environment variable, otherwise `500..599`.
+                # @return [Tracing::Contrib::StatusRangeMatcher]
+                option :server do |o|
+                  o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_SERVER_ERROR_STATUSES
+                  o.default 500..599
+                  o.setter do |v|
+                    Tracing::Contrib::StatusRangeMatcher.new(v) if v
+                  end
+                  o.env_parser do |values|
+                    Tracing::Contrib::StatusRangeEnvParser.call(values)
+                  end
+                end
+
+                # Defines the range of status codes to be considered errors on http.client span kinds.
+                # Once set, only the values within the specified range are considered errors.
+                #
+                # Format of env var: comma-separated list of values like 400,401,402 or ranges like 400-499 (e.g. `400,402,404-410`)
+                #
+                # @default `DD_TRACE_HTTP_CLIENT_ERROR_STATUSES` environment variable, otherwise `400..499`.
+                # @return [Tracing::Contrib::StatusRangeMatcher]
+                option :client do |o|
+                  o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_CLIENT_ERROR_STATUSES
+                  o.default 400..499
+                  o.setter do |v|
+                    Tracing::Contrib::StatusRangeMatcher.new(v) if v
+                  end
+                  o.env_parser do |values|
+                    Tracing::Contrib::StatusRangeEnvParser.call(values)
+                  end
+                end
               end
             end
           end

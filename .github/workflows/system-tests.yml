@@ -108,7 +108,8 @@ jobs:
               TELEMETRY_APP_STARTED_PRODUCTS_DISABLED,
               TELEMETRY_DEPENDENCY_LOADED_TEST_FOR_DEPENDENCY_COLLECTION_DISABLED,
               TELEMETRY_LOG_GENERATION_DISABLED,
-              TELEMETRY_METRIC_GENERATION_DISABLED
+              TELEMETRY_METRIC_GENERATION_DISABLED,
+              TRACING_CONFIG_NONDEFAULT
     needs:
       - build
     uses: DataDog/system-tests/.github/workflows/system-tests.yml@38d5f42dd9e6e0629d01d475a245eca7a13aeac7  # Automated: This reference is automatically updated.

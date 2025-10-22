@@ -17,10 +17,12 @@ require 'datadog/tracing/contrib/support/http'
 
 RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
   let(:configuration_options) { {} }
+  let(:server_error_statuses) { nil }
 
   before do
     Datadog.configure do |c|
       c.tracing.instrument :rest_client, configuration_options
+      c.tracing.http_error_statuses.server = server_error_statuses if server_error_statuses
     end
 
     WebMock.disable_net_connect!(allow: agent_url)
@@ -173,6 +175,15 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
 
           it 'error is not set' do
             expect(span).to_not have_error_message
+          end
+
+          context 'when the server error statuses are configured to include 404' do
+            let(:server_error_statuses) { 400..599 }
+
+            it 'has error set' do
+              expect(span).to have_error
+              expect(span).to have_error_message('404 Not Found')
+            end
           end
         end
 

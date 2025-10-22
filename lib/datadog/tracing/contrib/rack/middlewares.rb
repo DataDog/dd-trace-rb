@@ -212,7 +212,9 @@ module Datadog
 
             # detect if the status code is a 5xx and flag the request span as an error
             # unless it has been already set by the underlying framework
-            request_span.status = 1 if status.to_s.start_with?('5') && request_span.status.zero?
+            if request_span.status.zero? && Datadog.configuration.tracing.http_error_statuses.server.include?(status)
+              request_span.status = Tracing::Metadata::Ext::Errors::STATUS
+            end
           end
           # rubocop:enable Metrics/AbcSize
           # rubocop:enable Metrics/CyclomaticComplexity

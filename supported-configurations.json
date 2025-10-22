@@ -565,10 +565,16 @@
     "DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE": {
       "version": ["A"]
     },
+    "DD_TRACE_HTTP_CLIENT_ERROR_STATUSES": {
+      "version": ["A"]
+    },
     "DD_TRACE_HTTP_ENABLED": {
       "version": ["A"]
     },
     "DD_TRACE_HTTP_ERROR_STATUS_CODES": {
+      "version": ["A"]
+    },
+    "DD_TRACE_HTTP_SERVER_ERROR_STATUSES": {
       "version": ["A"]
     },
     "DD_TRACE_KAFKA_ANALYTICS_ENABLED": {
