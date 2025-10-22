@@ -101,6 +101,14 @@ module Datadog
         processor.track_kafka_consume(topic, partition, offset, now_sec)
       end
 
+      # Check if Data Streams Monitoring is enabled and available
+      #
+      # @return [Boolean] true if the processor is available
+      # @public_api
+      def enabled?
+        !processor.nil?
+      end
+
       def processor
         components.data_streams
       end

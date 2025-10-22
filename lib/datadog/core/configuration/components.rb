@@ -85,6 +85,9 @@ module Datadog
               logger: logger,
               settings: settings
             )
+          rescue => e
+            logger.warn("Failed to initialize Data Streams Monitoring: #{e.message}")
+            nil
           end
         end
 

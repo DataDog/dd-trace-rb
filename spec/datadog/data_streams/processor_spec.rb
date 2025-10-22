@@ -27,20 +27,10 @@ RSpec.describe Datadog::DataStreams::Processor do
       processor = described_class.new(interval: 5.0)
       expect(processor.loop_base_interval).to eq(5.0)
     end
-
-    it 'disables processor when DDSketch is not supported' do
-      stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', 'Example error loading libdatadog_api')
-      processor = described_class.new
-      expect(processor.enabled).to be false
-    end
-
-    it 'enables processor when DDSketch is supported' do
-      expect(processor.enabled).to be true
-    end
   end
 
   describe 'public checkpoint API' do
-    after { processor.stop(true) if processor.enabled }
+    after { processor.stop(true) }
 
     describe '#set_produce_checkpoint' do
       it 'returns a hash' do
@@ -73,11 +63,6 @@ RSpec.describe Datadog::DataStreams::Processor do
         expect(span).to receive(:set_tag).with('pathway.hash', KAFKA_ORDERS_PRODUCE_HASH.to_s)
 
         processor.set_produce_checkpoint(type: 'kafka', destination: 'orders', manual_checkpoint: false)
-      end
-
-      it 'returns nil when processor is disabled' do
-        processor.enabled = false
-        expect(processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')).to be_nil
       end
 
       it 'advances the pathway context with new hash' do
@@ -138,11 +123,6 @@ RSpec.describe Datadog::DataStreams::Processor do
         expect(span).to receive(:set_tag).with('pathway.hash', KAFKA_ORDERS_CONSUME_HASH_WITHOUT_CARRIER.to_s)
 
         processor.set_consume_checkpoint(type: 'kafka', source: 'orders', manual_checkpoint: false)
-      end
-
-      it 'returns nil when processor is disabled' do
-        processor.enabled = false
-        expect(processor.set_consume_checkpoint(type: 'kafka', source: 'orders')).to be_nil
       end
 
       it 'handles missing pathway context in carrier gracefully' do
@@ -235,7 +215,7 @@ RSpec.describe Datadog::DataStreams::Processor do
   describe 'Kafka tracking methods' do
     let(:base_time) { Time.now }
 
-    after { processor.stop(true) if processor.enabled }
+    after { processor.stop(true) }
 
     describe '#track_kafka_produce' do
       it 'tracks produce offset for topic/partition' do
@@ -261,11 +241,6 @@ RSpec.describe Datadog::DataStreams::Processor do
         processor.track_kafka_produce('orders', 2, 300, base_time)
 
         expect { processor.send(:perform) }.not_to raise_error
-      end
-
-      it 'returns nil when processor is disabled' do
-        processor.enabled = false
-        expect(processor.track_kafka_produce('orders', 0, 100, base_time)).to be_nil
       end
     end
 
@@ -294,11 +269,6 @@ RSpec.describe Datadog::DataStreams::Processor do
         # Should still track successfully despite gap
         expect { processor.send(:perform) }.not_to raise_error
       end
-
-      it 'returns nil when processor is disabled' do
-        processor.enabled = false
-        expect(processor.track_kafka_consume('orders', 0, 100, base_time)).to be_nil
-      end
     end
 
     describe '#track_kafka_commit' do
@@ -323,11 +293,6 @@ RSpec.describe Datadog::DataStreams::Processor do
         processor.track_kafka_commit('group1', 'orders', 0, 102, base_time + 2)
 
         expect { processor.send(:perform) }.not_to raise_error
-      end
-
-      it 'returns nil when processor is disabled' do
-        processor.enabled = false
-        expect(processor.track_kafka_commit('group1', 'orders', 0, 100, base_time)).to be_nil
       end
     end
 

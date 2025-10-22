@@ -10,6 +10,8 @@ module Datadog
 
     def self.track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ?::Float? now_sec) -> (nil | true)
 
+    def self.enabled?: () -> bool
+
     def self.processor: () -> Processor?
 
     private
