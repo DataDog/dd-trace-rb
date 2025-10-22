@@ -16,11 +16,13 @@ module Datadog
             include ViewComponent::Event
 
             EVENT_NAME = 'render.view_component'
+            DEPRECATED_EVENT_NAME = '!render.view_component'
 
             module_function
 
             def event_name
-              self::EVENT_NAME
+              return DEPRECATED_EVENT_NAME if configuration[:use_deprecated_instrumentation_name]
+              return EVENT_NAME
             end
 
             def span_name
