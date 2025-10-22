@@ -19,7 +19,7 @@ module Datadog
 
               module_function
 
-              def on_start(span, event, id, payload)
+              def on_start(span, _event, _id, payload)
                 super
 
                 span.resource = payload[:topic]
