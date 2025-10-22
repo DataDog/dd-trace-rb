@@ -90,6 +90,7 @@ module Datadog
           :error_tracking,
           :dynamic_instrumentation,
           :appsec,
+          :open_feature,
           :agent_info
 
         def initialize(settings)
@@ -124,6 +125,7 @@ module Datadog
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger, telemetry)
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
+          @open_feature = Datadog::OpenFeature::Component.build_open_feature_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
