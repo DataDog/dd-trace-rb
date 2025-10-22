@@ -1,29 +1,36 @@
 # frozen_string_literal: true
 
 require 'stringio'
-require 'datadog/core/utils/base64'
+require_relative '../core/utils/base64'
 
 module Datadog
   module DataStreams
     # Represents a pathway context for data streams monitoring
     class PathwayContext
-      attr_accessor :hash,
-        :pathway_start_sec,
-        :current_edge_start_sec,
-        :parent_hash,
-        :previous_direction,
-        :closest_opposite_direction_hash,
-        :closest_opposite_direction_edge_start
+      # The current pathway hash
+      attr_accessor :hash
+      # When the pathway started
+      attr_accessor :pathway_start
+      # When the current edge started
+      attr_accessor :current_edge_start
+      # The hash of the parent checkpoint
+      attr_accessor :parent_hash
+      # The direction tag of the previous checkpoint (e.g., 'direction:in', 'direction:out'), or nil if none
+      attr_accessor :previous_direction
+      # Hash of the closest checkpoint in opposite direction (used for loop detection)
+      attr_accessor :closest_opposite_direction_hash
+      # Edge start time of the closest opposite direction checkpoint
+      attr_accessor :closest_opposite_direction_edge_start
 
-      def initialize(hash_value:, pathway_start_sec:, current_edge_start_sec:)
+      def initialize(hash_value:, pathway_start:, current_edge_start:)
         @hash = hash_value
-        @pathway_start_sec = pathway_start_sec
-        @current_edge_start_sec = current_edge_start_sec
+        @pathway_start = pathway_start
+        @current_edge_start = current_edge_start
         @parent_hash = nil
 
-        @previous_direction = ''
+        @previous_direction = nil
         @closest_opposite_direction_hash = 0
-        @closest_opposite_direction_edge_start = current_edge_start_sec
+        @closest_opposite_direction_edge_start = current_edge_start
       end
 
       def encode
@@ -32,8 +39,8 @@ module Datadog
         # - VarInt: pathway start time (milliseconds)
         # - VarInt: current edge start time (milliseconds)
         [@hash].pack('Q') <<
-          encode_var_int_64((@pathway_start_sec * 1000).to_i) <<
-          encode_var_int_64((@current_edge_start_sec * 1000).to_i)
+          encode_var_int_64(time_to_ms(@pathway_start)) <<
+          encode_var_int_64(time_to_ms(@current_edge_start))
       end
 
       def encode_b64
@@ -73,14 +80,14 @@ module Datadog
         current_edge_start_ms = decode_varint(reader)
         return nil unless current_edge_start_ms
 
-        # Convert milliseconds to seconds
-        pathway_start_sec = pathway_start_ms / 1000.0
-        current_edge_start_sec = current_edge_start_ms / 1000.0
+        # Convert milliseconds to Time objects
+        pathway_start = ms_to_time(pathway_start_ms)
+        current_edge_start = ms_to_time(current_edge_start_ms)
 
         new(
           hash_value: hash_value,
-          pathway_start_sec: pathway_start_sec,
-          current_edge_start_sec: current_edge_start_sec
+          pathway_start: pathway_start,
+          current_edge_start: current_edge_start
         )
       rescue EOFError
         # Not enough data in binary stream
@@ -127,6 +134,15 @@ module Datadog
         nil
       end
       private_class_method :decode_varint
+
+      def self.ms_to_time(milliseconds)
+        ::Time.at(milliseconds / 1000.0)
+      end
+      private_class_method :ms_to_time
+
+      def time_to_ms(time)
+        (time.to_f * 1000).to_i
+      end
     end
   end
 end

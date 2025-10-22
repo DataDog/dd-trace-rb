@@ -54,7 +54,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
   after do
     processor = Datadog::DataStreams.processor
-    processor.stop(true) if processor&.enabled
+    processor.stop(true) if processor
   end
 
   describe 'auto-instrumentation' do
@@ -86,7 +86,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
         current_ctx = processor.instance_variable_get(:@pathway_context)
         expect(current_ctx).to be_a(Datadog::DataStreams::PathwayContext)
         expect(current_ctx.hash).not_to eq(producer_ctx.hash) # Consume checkpoint has different hash
-        expect(current_ctx.pathway_start_sec).to eq(producer_ctx.pathway_start_sec) # But same pathway
+        expect(current_ctx.pathway_start).to eq(producer_ctx.pathway_start) # But same pathway
       end
     end
 
@@ -148,14 +148,14 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
       ctx_b_consume = processor.instance_variable_get(:@pathway_context)
       expect(ctx_b_consume.hash).not_to eq(ctx_a.hash) # Consume creates new checkpoint
-      expect(ctx_b_consume.pathway_start_sec).to eq(ctx_a.pathway_start_sec) # Same pathway
+      expect(ctx_b_consume.pathway_start).to eq(ctx_a.pathway_start) # Same pathway
 
       # Service B: Produces to next topic
       ctx_b_produce_b64 = processor.set_produce_checkpoint(type: 'kafka', destination: 'processed-orders')
       ctx_b_produce = Datadog::DataStreams::PathwayContext.decode_b64(ctx_b_produce_b64)
 
       # Verify it's still the same pathway
-      expect(ctx_b_produce.pathway_start_sec).to eq(ctx_a.pathway_start_sec)
+      expect(ctx_b_produce.pathway_start).to eq(ctx_a.pathway_start)
 
       # Service C: Consumes from Service B (auto-instrumentation processes it)
       messages_from_b = build_karafka_messages([
@@ -167,7 +167,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
       ctx_c = processor.instance_variable_get(:@pathway_context)
       expect(ctx_c).to be_a(Datadog::DataStreams::PathwayContext)
       expect(ctx_c.hash).to be > 0
-      expect(ctx_c.pathway_start_sec).to eq(ctx_a.pathway_start_sec) # Still same original pathway
+      expect(ctx_c.pathway_start).to eq(ctx_a.pathway_start) # Still same original pathway
 
       # Verify pathway progressed through all services
       # At minimum, consume from A should create different hash than initial produce

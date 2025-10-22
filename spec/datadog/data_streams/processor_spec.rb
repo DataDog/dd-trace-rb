@@ -90,12 +90,12 @@ RSpec.describe Datadog::DataStreams::Processor do
 
       it 'restarts pathway on consecutive same-direction checkpoints (loop detection)' do
         processor.set_produce_checkpoint(type: 'kafka', destination: 'step1')
-        first_pathway_start = processor.pathway_context.pathway_start_sec
+        first_pathway_start = processor.pathway_context.pathway_start
 
         processor.set_produce_checkpoint(type: 'kafka', destination: 'step2')
 
-        expect(processor.pathway_context.pathway_start_sec).not_to eq(first_pathway_start)
-        expect(processor.pathway_context.pathway_start_sec).to be >= first_pathway_start
+        expect(processor.pathway_context.pathway_start).not_to eq(first_pathway_start)
+        expect(processor.pathway_context.pathway_start).to be >= first_pathway_start
       end
     end
 
@@ -176,7 +176,7 @@ RSpec.describe Datadog::DataStreams::Processor do
       it 'maintains pathway continuity through produce and consume' do
         produce_context = processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
         produce_hash = processor.pathway_context.hash
-        produce_pathway_start = processor.pathway_context.pathway_start_sec
+        produce_pathway_start = processor.pathway_context.pathway_start
 
         carrier = {Datadog::DataStreams::Processor::PROPAGATION_KEY => produce_context}
 
@@ -184,7 +184,7 @@ RSpec.describe Datadog::DataStreams::Processor do
         consume_hash = processor.pathway_context.hash
 
         expect(consume_hash).not_to eq(produce_hash)
-        expect(processor.pathway_context.pathway_start_sec).to be_within(0.001).of(produce_pathway_start)
+        expect(processor.pathway_context.pathway_start.to_f).to be_within(0.001).of(produce_pathway_start.to_f)
       end
     end
 
@@ -233,7 +233,7 @@ RSpec.describe Datadog::DataStreams::Processor do
   end
 
   describe 'Kafka tracking methods' do
-    let(:base_time) { Time.now.to_f }
+    let(:base_time) { Time.now }
 
     after { processor.stop(true) if processor.enabled }
 
