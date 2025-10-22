@@ -33,16 +33,6 @@ module Datadog
         @closest_opposite_direction_edge_start = current_edge_start
       end
 
-      def encode
-        # Format:
-        # - 8 bytes: hash value (little-endian)
-        # - VarInt: pathway start time (milliseconds)
-        # - VarInt: current edge start time (milliseconds)
-        [@hash].pack('Q') <<
-          encode_var_int_64(time_to_ms(@pathway_start)) <<
-          encode_var_int_64(time_to_ms(@current_edge_start))
-      end
-
       def encode_b64
         Core::Utils::Base64.strict_encode64(encode)
       end
@@ -58,6 +48,18 @@ module Datadog
           # Invalid base64 or decode error
           nil
         end
+      end
+
+      private
+
+      def encode
+        # Format:
+        # - 8 bytes: hash value (little-endian)
+        # - VarInt: pathway start time (milliseconds)
+        # - VarInt: current edge start time (milliseconds)
+        [@hash].pack('Q') <<
+          encode_var_int_64(time_to_ms(@pathway_start)) <<
+          encode_var_int_64(time_to_ms(@current_edge_start))
       end
 
       # Decode pathway context from binary data
@@ -93,8 +95,7 @@ module Datadog
         # Not enough data in binary stream
         nil
       end
-
-      private
+      private_class_method :decode
 
       def encode_var_int_64(value)
         bytes = []
