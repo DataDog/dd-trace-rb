@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../core/environment/variable_helpers'
-require_relative '../processor'
 
 module Datadog
   module DataStreams
