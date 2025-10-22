@@ -99,6 +99,9 @@ module Datadog
                 end
               end
             rescue ::RestClient::ExceptionWithResponse => e
+              # DEV-3.0: This was previously checking against a 500..599 range.
+              # To not introduce breaking change, this was changed to use `http_error_statuses.server`,
+              # but `rest_client` is a client library, this check should use `http_error_statuses.client` instead.
               span.set_error(e) if Datadog.configuration.tracing.http_error_statuses.server.include?(e.http_code)
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, e.http_code)
 

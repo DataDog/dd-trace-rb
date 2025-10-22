@@ -48,6 +48,8 @@ module Datadog
               o.setter do |value|
                 if value.nil?
                   # Fallback to global config, which is defaulted to client (400..499) + server (500..599)
+                  # DEV-3.0: `httpclient` is a client library, this should fall back to `http_error_statuses.client` only.
+                  # We cannot change it without causing a breaking change.
                   client_global_error_statuses = Datadog.configuration.tracing.http_error_statuses.client
                   server_global_error_statuses = Datadog.configuration.tracing.http_error_statuses.server
                   client_global_error_statuses + server_global_error_statuses

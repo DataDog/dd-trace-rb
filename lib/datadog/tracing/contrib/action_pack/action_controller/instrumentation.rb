@@ -77,8 +77,6 @@ module Datadog
 
                 exception = payload[:exception_object]
                 if exception.nil?
-                  # [christian] in some cases :status is not defined,
-                  # rather than firing an error, simply acknowledge we don't know it.
                   status = payload[:status]
                   if status && Datadog.configuration.tracing.http_error_statuses.server.include?(status)
                     span.status = Tracing::Metadata::Ext::Errors::STATUS
