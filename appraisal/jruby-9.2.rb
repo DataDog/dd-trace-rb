@@ -204,7 +204,6 @@ build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
-build_coverage_matrix('view_component', (3..4), min: '2.34.0')
 # NOTE: JRuby bundler failed to install some dependencies https://github.com/ruby/psych/issues/700
 #       and it could be re-enabled when upstream fix the issue
 # build_coverage_matrix('devise', min: '3.2.1')
@@ -268,6 +267,16 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
     gem 'sinatra-contrib', "~> #{n}"
     gem 'rack-contrib'
     gem 'rack-test' # Dev dependencies for testing rack-based code
+  end
+end
+
+['3.23.2', '4'].each do |v|
+  appraise "view_component-#{v}" do
+    gem 'view_component', "~> #{v}"
+    gem "actionview"
+    gem "rails"
+    gem 'sprockets', '< 4'
+    gem 'pg'
   end
 end
 
