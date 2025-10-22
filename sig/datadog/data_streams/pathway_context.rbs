@@ -39,7 +39,9 @@ module Datadog
         private
 
         def encode_var_int_64: (::Integer value) -> ::String
+        def time_to_ms: (::Time time) -> ::Integer
         def self.decode_varint: (untyped io) -> ::Integer?
+        def self.ms_to_time: (::Integer milliseconds) -> ::Time
       end
     end
   end

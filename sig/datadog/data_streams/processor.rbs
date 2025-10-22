@@ -3,8 +3,6 @@ module Datadog
       class Processor < Core::Worker
         PROPAGATION_KEY: ::String
 
-        @enabled: bool
-
         @pathway_context: PathwayContext
 
         @bucket_size_ns: ::Integer
@@ -15,12 +13,16 @@ module Datadog
 
         @stats_mutex: ::Thread::Mutex
 
-        @agent_transport: untyped
+        @transport: untyped
+
+        @logger: untyped
+
+        @settings: untyped
+
+        @agent_settings: untyped
 
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
-
-        attr_accessor enabled: bool
 
         def initialize: (?interval: ::Float, ?logger: untyped, ?settings: untyped, ?agent_settings: untyped) -> void
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
@@ -33,7 +35,7 @@ module Datadog
 
         def encode_pathway_context: () -> ::String?
 
-        def set_checkpoint: (::Array[::String] tags, ?::Float? now_sec, ?::Integer payload_size, ?untyped span) -> ::String?
+        def set_checkpoint: (tags: ::Array[::String], ?now: ::Time?, ?payload_size: ::Integer, ?span: untyped) -> ::String?
 
         def decode_pathway_context: (::String encoded_ctx) -> PathwayContext?
 
@@ -50,10 +52,10 @@ module Datadog
         def compute_pathway_hash: (::Integer current_hash, ::Array[::String] tags) -> ::Integer
         def fnv1_64: (::String data) -> ::Integer
         def record_checkpoint_stats: (hash: ::Integer, parent_hash: ::Integer, edge_latency_sec: ::Float, full_pathway_latency_sec: ::Float, payload_size: ::Integer, tags: ::Array[::String], timestamp_sec: ::Float) -> void
-        def record_consumer_stats: (topic: ::String, partition: ::Integer, offset: ::Integer, timestamp_sec: ::Float) -> void
-        def aggregate_consumer_stats_by_partition: (::String topic, ::Integer partition, ::Integer offset, ::Float timestamp_sec) -> void
+        def record_consumer_stats: (topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time) -> void
+        def aggregate_consumer_stats_by_partition: (::String topic, ::Integer partition, ::Integer offset, ::Time timestamp) -> void
         def aggregate_stats_by_time_buckets: () -> void
-        def send_stats_to_agent: (::Hash[untyped, untyped] payload) -> void
+        def send_stats_to_agent: (untyped payload) -> void
         def send_dsm_payload: (::String data, ::Hash[::String, ::String] headers) -> untyped
         def compress_payload?: (::String payload) -> bool
         def gzip_compress: (::String data) -> ::String
@@ -62,7 +64,10 @@ module Datadog
         def hostname: () -> ::String
         def create_bucket: () -> { pathway_stats: ::Hash[untyped, untyped], latest_produce_offsets: ::Hash[untyped, untyped], latest_commit_offsets: ::Hash[untyped, untyped] }
         def create_pathway_stats: () -> { edge_latency: untyped, full_pathway_latency: untyped, payload_size_sum: 0, payload_size_count: 0 }
-        def agent_transport: () -> untyped
+        def transport: () -> untyped
+        def service_name: () -> (::String | nil)
+        def env_name: () -> (::String | nil)
+        def resolved_agent_settings: () -> untyped
       end
     end
   end

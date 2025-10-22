@@ -16,8 +16,9 @@ module Datadog
         # Builds a new Transport::HTTP::Client with default settings
         def default(
           agent_settings:,
-          logger: Datadog.logger
+          logger: nil
         )
+          logger ||= Datadog.logger
           Core::Transport::HTTP.build(
             api_instance_class: Stats::API::Instance,
             agent_settings: agent_settings,
@@ -39,4 +40,3 @@ module Datadog
     end
   end
 end
-

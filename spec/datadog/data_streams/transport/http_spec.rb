@@ -80,4 +80,3 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
     end
   end
 end
-

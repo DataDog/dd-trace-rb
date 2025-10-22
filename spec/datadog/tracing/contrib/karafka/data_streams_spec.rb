@@ -53,8 +53,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
   end
 
   after do
-    processor = Datadog::DataStreams.processor
-    processor.stop(true) if processor
+    Datadog::DataStreams.processor&.stop(true)
   end
 
   describe 'auto-instrumentation' do
