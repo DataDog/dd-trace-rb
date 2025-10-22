@@ -3,6 +3,7 @@
 require 'json'
 require 'zlib'
 require_relative 'pathway_context'
+require_relative 'transport/http'
 require_relative '../version'
 require_relative '../core/worker'
 require_relative '../core/workers/polling'
@@ -21,10 +22,11 @@ module Datadog
 
       attr_reader :pathway_context, :buckets, :bucket_size_ns
 
-      def initialize(interval: 10.0, logger: nil, settings: nil)
+      def initialize(interval: 10.0, logger: nil, settings: nil, agent_settings: nil)
         raise 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
 
         @settings = settings
+        @agent_settings = agent_settings
         @logger = logger || Datadog.logger
 
         now = Core::Utils::Time.now
@@ -402,44 +404,15 @@ module Datadog
       end
 
       def send_stats_to_agent(payload)
-        msgpack_data = MessagePack.pack(payload)
-        compressed_data = gzip_compress(msgpack_data)
-
-        headers = {
-          'Content-Type' => 'application/msgpack',
-          'Content-Encoding' => 'gzip',
-          'Datadog-Meta-Lang' => 'ruby',
-          'Datadog-Meta-Tracer-Version' => Datadog::VERSION::STRING
-        }
-
-        response = send_dsm_payload(compressed_data, headers)
-        @logger.debug("DSM stats sent to agent: #{response.code} #{response.message}")
+        response = transport.send_stats(payload)
+        @logger.debug("DSM stats sent to agent: #{response.code if response.respond_to?(:code)}")
       end
 
-      def send_dsm_payload(data, headers)
-        require 'net/http'
-        require 'uri'
-
-        agent_host = agent_settings&.hostname || 'localhost'
-        agent_port = agent_settings&.port || 8126
-        path = '/v0.1/pipeline_stats'
-
-        http = Net::HTTP.new(agent_host, agent_port)
-        http.use_ssl = false
-
-        request = Net::HTTP::Post.new(path)
-        headers.each { |k, v| request[k] = v }
-        request.body = data.force_encoding('ASCII-8BIT')
-
-        http.request(request)
-      end
-
-      def compress_payload?(payload)
-        payload.to_json.bytesize > 1000
-      end
-
-      def gzip_compress(data)
-        Zlib.gzip(data)
+      def transport
+        @transport ||= Transport::HTTP.default(
+          agent_settings: resolved_agent_settings,
+          logger: @logger
+        )
       end
 
       def serialize_buckets
@@ -526,17 +499,6 @@ module Datadog
         }
       end
 
-      def agent_transport
-        @agent_transport ||= begin
-          require_relative '../../transport/http'
-
-          Datadog::Tracing::Transport::HTTP.default(
-            agent_settings: agent_settings,
-            logger: @logger
-          )
-        end
-      end
-
       def service_name
         @settings&.service || Datadog.configuration.service
       end
@@ -545,8 +507,8 @@ module Datadog
         @settings&.env || Datadog.configuration.env
       end
 
-      def agent_settings
-        @settings&.agent || Datadog.configuration.agent
+      def resolved_agent_settings
+        @agent_settings || @settings&.agent || Datadog.configuration.agent
       end
     end
   end
