@@ -3,32 +3,32 @@ module Datadog
       class PathwayContext
         @hash: ::Integer
 
-        @pathway_start_sec: ::Float
+        @pathway_start: ::Time
 
-        @current_edge_start_sec: ::Float
+        @current_edge_start: ::Time
 
         @parent_hash: ::Integer?
-        @previous_direction: ::String
+        @previous_direction: ::String?
 
         @closest_opposite_direction_hash: ::Integer
 
-        @closest_opposite_direction_edge_start: ::Float
+        @closest_opposite_direction_edge_start: ::Time
 
         attr_accessor hash: ::Integer
 
-        attr_accessor pathway_start_sec: ::Float
+        attr_accessor pathway_start: ::Time
 
-        attr_accessor current_edge_start_sec: ::Float
+        attr_accessor current_edge_start: ::Time
 
         attr_accessor parent_hash: ::Integer?
 
-        attr_accessor previous_direction: ::String
+        attr_accessor previous_direction: ::String?
 
         attr_accessor closest_opposite_direction_hash: ::Integer
 
-        attr_accessor closest_opposite_direction_edge_start: ::Float
+        attr_accessor closest_opposite_direction_edge_start: ::Time
 
-        def initialize: (hash_value: ::Integer, pathway_start_sec: ::Float, current_edge_start_sec: ::Float) -> void
+        def initialize: (hash_value: ::Integer, pathway_start: ::Time, current_edge_start: ::Time) -> void
 
         def encode: () -> ::String
 

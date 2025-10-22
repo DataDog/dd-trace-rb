@@ -28,8 +28,8 @@ module Datadog
         now = Core::Utils::Time.now
         @pathway_context = PathwayContext.new(
           hash_value: 0,
-          pathway_start_sec: now,
-          current_edge_start_sec: now
+          pathway_start: now,
+          current_edge_start: now
         )
         @bucket_size_ns = (interval * 1e9).to_i
         @buckets = {}
@@ -52,12 +52,12 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the produced message
-      # @param now_sec [Float] Timestamp in seconds (defaults to current time)
+      # @param now [Time] Timestamp (defaults to current time)
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
-      def track_kafka_produce(topic, partition, offset, now_sec)
+      def track_kafka_produce(topic, partition, offset, now)
         return nil unless @enabled
 
-        now_ns = (now_sec * 1e9).to_i
+        now_ns = (now.to_f * 1e9).to_i
         partition_key = "#{topic}:#{partition}"
 
         @stats_mutex.synchronize do
@@ -80,12 +80,12 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The committed offset
-      # @param now_sec [Float] Timestamp in seconds (defaults to current time)
+      # @param now [Time] Timestamp (defaults to current time)
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
-      def track_kafka_commit(group, topic, partition, offset, now_sec)
+      def track_kafka_commit(group, topic, partition, offset, now)
         return nil unless @enabled
 
-        now_ns = (now_sec * 1e9).to_i
+        now_ns = (now.to_f * 1e9).to_i
         consumer_key = "#{group}:#{topic}:#{partition}"
 
         @stats_mutex.synchronize do
@@ -107,21 +107,21 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the consumed message
-      # @param now_sec [Float, nil] Timestamp in seconds (defaults to current time)
+      # @param now [Time, nil] Timestamp (defaults to current time)
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
-      def track_kafka_consume(topic, partition, offset, now_sec = nil)
+      def track_kafka_consume(topic, partition, offset, now = nil)
         return nil unless @enabled
 
-        now_sec ||= Time.now.to_f
+        now ||= Core::Utils::Time.now
 
         record_consumer_stats(
           topic: topic,
           partition: partition,
           offset: offset,
-          timestamp_sec: now_sec
+          timestamp: now
         )
 
-        aggregate_consumer_stats_by_partition(topic, partition, offset, now_sec)
+        aggregate_consumer_stats_by_partition(topic, partition, offset, now)
 
         true
       end
@@ -215,18 +215,18 @@ module Datadog
         end
 
         # Loop detection: consecutive same-direction checkpoints reuse the opposite direction's hash
-        if !direction.empty? && direction == current_context.previous_direction
+        if direction && direction == current_context.previous_direction
           current_context.hash = current_context.closest_opposite_direction_hash
           if current_context.hash == 0
-            current_context.current_edge_start_sec = now_sec
-            current_context.pathway_start_sec = now_sec
+            current_context.current_edge_start = now
+            current_context.pathway_start = now
           else
-            current_context.current_edge_start_sec = current_context.closest_opposite_direction_edge_start
+            current_context.current_edge_start = current_context.closest_opposite_direction_edge_start
           end
         else
           current_context.previous_direction = direction
           current_context.closest_opposite_direction_hash = current_context.hash
-          current_context.closest_opposite_direction_edge_start = current_context.current_edge_start_sec
+          current_context.closest_opposite_direction_edge_start = current_context.current_edge_start
         end
 
         parent_hash = current_context.hash
@@ -235,8 +235,8 @@ module Datadog
         # Tag the APM span with the pathway hash to link DSM and APM
         span&.set_tag('pathway.hash', new_hash.to_s)
 
-        edge_latency_sec = [now_sec - current_context.current_edge_start_sec, 0.0].max
-        full_pathway_latency_sec = [now_sec - current_context.pathway_start_sec, 0.0].max
+        edge_latency_sec = [now - current_context.current_edge_start, 0.0].max
+        full_pathway_latency_sec = [now - current_context.pathway_start, 0.0].max
 
         record_checkpoint_stats(
           hash: new_hash,
@@ -245,12 +245,12 @@ module Datadog
           full_pathway_latency_sec: full_pathway_latency_sec,
           payload_size: payload_size,
           tags: tags,
-          timestamp_sec: now_sec
+          timestamp_sec: now.to_f
         )
 
         current_context.parent_hash = current_context.hash
         current_context.hash = new_hash
-        current_context.current_edge_start_sec = now_sec
+        current_context.current_edge_start = now
 
         current_context.encode_b64
       end
@@ -312,7 +312,7 @@ module Datadog
           @pathway_context = ctx
           @pathway_context.previous_direction = nil
           @pathway_context.closest_opposite_direction_hash = 0
-          @pathway_context.closest_opposite_direction_edge_start = @pathway_context.current_edge_start_sec
+          @pathway_context.closest_opposite_direction_edge_start = @pathway_context.current_edge_start
         end
       end
 
@@ -374,7 +374,7 @@ module Datadog
         true
       end
 
-      def record_consumer_stats(topic:, partition:, offset:, timestamp_sec:)
+      def record_consumer_stats(topic:, partition:, offset:, timestamp:)
         return nil unless @enabled
 
         @stats_mutex.synchronize do
@@ -382,16 +382,16 @@ module Datadog
             topic: topic,
             partition: partition,
             offset: offset,
-            timestamp_sec: timestamp_sec
+            timestamp_sec: timestamp.to_f
           }
 
-          now_ns = (timestamp_sec * 1e9).to_i
+          now_ns = (timestamp.to_f * 1e9).to_i
           bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
           @buckets[bucket_time_ns] ||= create_bucket
         end
       end
 
-      def aggregate_consumer_stats_by_partition(topic, partition, offset, timestamp_sec)
+      def aggregate_consumer_stats_by_partition(topic, partition, offset, timestamp)
         partition_key = "#{topic}:#{partition}"
 
         @stats_mutex.synchronize do
@@ -406,7 +406,7 @@ module Datadog
               expected_offset: previous_offset + 1,
               actual_offset: offset,
               gap_size: offset - previous_offset - 1,
-              timestamp_sec: timestamp_sec
+              timestamp_sec: timestamp.to_f
             }
           end
 

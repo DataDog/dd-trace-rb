@@ -119,8 +119,10 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
       decoded_ctx = Datadog::DataStreams::PathwayContext.decode_b64(encoded_ctx)
       expect(decoded_ctx).to be_a(Datadog::DataStreams::PathwayContext)
       expect(decoded_ctx.hash).to be > 0 # Should have a deterministic hash
-      expect(decoded_ctx.pathway_start_sec).to be > 0 # Should have a start timestamp
-      expect(decoded_ctx.current_edge_start_sec).to be > 0 # Should have an edge start timestamp
+      expect(decoded_ctx.pathway_start).not_to be_nil
+      expect(decoded_ctx.pathway_start).to be_within(5).of(Time.now) # Should be recent
+      expect(decoded_ctx.current_edge_start).not_to be_nil
+      expect(decoded_ctx.current_edge_start).to be_within(5).of(Time.now) # Should be recent
     end
   end
 
@@ -203,7 +205,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
         expect(current_ctx).to be_a(Datadog::DataStreams::PathwayContext)
         expect(current_ctx.hash).to be > 0
         expect(current_ctx.hash).not_to eq(producer_ctx.hash) # Consumer hash should differ (direction:in vs direction:out)
-        expect(current_ctx.pathway_start_sec).to eq(producer_ctx.pathway_start_sec) # Should preserve pathway start time
+        expect(current_ctx.pathway_start).to eq(producer_ctx.pathway_start) # Should preserve pathway start time
       end
     end
   end

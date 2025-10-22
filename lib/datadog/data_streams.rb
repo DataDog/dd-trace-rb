@@ -3,6 +3,7 @@
 require_relative 'data_streams/processor'
 require_relative 'data_streams/pathway_context'
 require_relative 'data_streams/configuration/settings'
+require_relative 'core/utils/time'
 
 module Datadog
   # Datadog Data Streams Monitoring public API.
@@ -60,14 +61,14 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the produced message
-      # @param now_sec [Float] Timestamp in seconds (defaults to current time)
+      # @param now [Time, nil] Timestamp (defaults to current time)
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
       # @public_api
-      def track_kafka_produce(topic, partition, offset, now_sec = nil)
+      def track_kafka_produce(topic, partition, offset, now = nil)
         return unless processor
 
-        now_sec ||= Time.now.to_f
-        processor.track_kafka_produce(topic, partition, offset, now_sec)
+        now ||= Core::Utils::Time.now
+        processor.track_kafka_produce(topic, partition, offset, now)
       end
 
       # Track Kafka offset commit for consumer lag monitoring
@@ -76,14 +77,14 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The committed offset
-      # @param now_sec [Float] Timestamp in seconds (defaults to current time)
+      # @param now [Time, nil] Timestamp (defaults to current time)
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
       # @public_api
-      def track_kafka_commit(group, topic, partition, offset, now_sec = nil)
+      def track_kafka_commit(group, topic, partition, offset, now = nil)
         return unless processor
 
-        now_sec ||= Time.now.to_f
-        processor.track_kafka_commit(group, topic, partition, offset, now_sec)
+        now ||= Core::Utils::Time.now
+        processor.track_kafka_commit(group, topic, partition, offset, now)
       end
 
       # Track Kafka message consumption for consumer lag monitoring
