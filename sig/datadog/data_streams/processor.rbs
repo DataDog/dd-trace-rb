@@ -42,7 +42,6 @@ module Datadog
         def flush_stats: () -> void
 
         def get_current_pathway: () -> PathwayContext?
-        def stop: (?bool force_stop, ?::Integer timeout) -> void
         def get_current_context: () -> PathwayContext
 
         def set_pathway_context: (PathwayContext? ctx) -> void

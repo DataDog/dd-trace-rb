@@ -2,6 +2,7 @@
 
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/core/ddsketch'
+require 'karafka'
 require 'ostruct'
 
 RSpec.describe 'Karafka Data Streams Integration' do
@@ -45,23 +46,6 @@ RSpec.describe 'Karafka Data Streams Integration' do
   end
 
   before do
-    # Karafka should already be loaded by test suite, but load if needed
-    begin
-      require 'karafka' unless defined?(::Karafka)
-    rescue LoadError
-      # Karafka gem not available, tests will be skipped by RSpec
-    end
-
-    require 'datadog' unless defined?(::Datadog)
-    require 'datadog/tracing/contrib/karafka/integration'
-    require 'datadog/tracing/contrib/karafka/patcher'
-
-    # Patch Messages class to enable auto-instrumentation if not already patched
-    if defined?(::Karafka::Messages::Messages) &&
-        !::Karafka::Messages::Messages.ancestors.include?(::Datadog::Tracing::Contrib::Karafka::MessagesPatch)
-      ::Karafka::Messages::Messages.prepend(::Datadog::Tracing::Contrib::Karafka::MessagesPatch)
-    end
-
     Datadog.configure do |c|
       c.tracing.instrument :karafka
       c.data_streams.enabled = true

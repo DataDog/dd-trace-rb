@@ -40,7 +40,7 @@ RSpec.describe Datadog::DataStreams::Processor do
   end
 
   describe 'public checkpoint API' do
-    after { processor.stop(true, 1) if processor.enabled }
+    after { processor.stop(true) if processor.enabled }
 
     describe '#set_produce_checkpoint' do
       it 'returns a hash' do
@@ -235,7 +235,7 @@ RSpec.describe Datadog::DataStreams::Processor do
   describe 'Kafka tracking methods' do
     let(:base_time) { Time.now.to_f }
 
-    after { processor.stop(true, 1) if processor.enabled }
+    after { processor.stop(true) if processor.enabled }
 
     describe '#track_kafka_produce' do
       it 'tracks produce offset for topic/partition' do
