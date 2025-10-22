@@ -33,6 +33,11 @@ module Datadog
               o.type :string
               o.default 'components/'
             end
+
+            option :use_deprecated_instrumentation_name do |o|
+              o.type :bool
+              o.default false
+            end
           end
         end
       end
