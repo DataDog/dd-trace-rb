@@ -14,19 +14,23 @@ module Datadog
             module InstanceMethods
               def deliver_messages(**kwargs)
                 if Datadog::DataStreams.enabled?
-                  pending_messages = instance_variable_get(:@pending_message_queue)
+                  begin
+                    pending_messages = instance_variable_get(:@pending_message_queue)
 
-                  if pending_messages && !pending_messages.empty?
-                    pending_messages.each do |message|
-                      message.headers ||= {}
-                      Datadog::DataStreams.set_produce_checkpoint(
-                        type: 'kafka',
-                        destination: message.topic,
-                        autoinstrumentation: true
-                      ) do |key, value|
-                        message.headers[key] = value
+                    if pending_messages && !pending_messages.empty?
+                      pending_messages.each do |message|
+                        message.headers ||= {}
+                        Datadog::DataStreams.set_produce_checkpoint(
+                          type: 'kafka',
+                          destination: message.topic,
+                          autoinstrumentation: true
+                        ) do |key, value|
+                          message.headers[key] = value
+                        end
                       end
                     end
+                  rescue => e
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.message}")
                   end
                 end
 
@@ -35,15 +39,19 @@ module Datadog
 
               def send_messages(messages, **kwargs)
                 if Datadog::DataStreams.enabled?
-                  messages.each do |message|
-                    message[:headers] ||= {}
-                    Datadog::DataStreams.set_produce_checkpoint(
-                      type: 'kafka',
-                      destination: message[:topic],
-                      autoinstrumentation: true
-                    ) do |key, value|
-                      message[:headers][key] = value
+                  begin
+                    messages.each do |message|
+                      message[:headers] ||= {}
+                      Datadog::DataStreams.set_produce_checkpoint(
+                        type: 'kafka',
+                        destination: message[:topic],
+                        autoinstrumentation: true
+                      ) do |key, value|
+                        message[:headers][key] = value
+                      end
                     end
+                  rescue => e
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.message}")
                   end
                 end
 
