@@ -145,7 +145,7 @@ module Datadog
         checkpoint_tags.concat(tags) unless tags.empty?
 
         span = Datadog::Tracing.active_span
-        pathway = set_checkpoint(checkpoint_tags, nil, 0, span)
+        pathway = set_checkpoint(tags: checkpoint_tags, span: span)
 
         yield(PROPAGATION_KEY, pathway) if pathway && block
 
@@ -179,7 +179,7 @@ module Datadog
         checkpoint_tags.concat(tags) unless tags.empty?
 
         span = Datadog::Tracing.active_span
-        set_checkpoint(checkpoint_tags, nil, 0, span)
+        set_checkpoint(tags: checkpoint_tags, span: span)
       end
 
       # Called periodically by the worker to flush stats to the agent
@@ -198,7 +198,7 @@ module Datadog
         @pathway_context.encode_b64
       end
 
-      def set_checkpoint(tags, now = nil, payload_size = 0, span = nil)
+      def set_checkpoint(tags:, now: nil, payload_size: 0, span: nil)
         return nil unless @enabled
 
         now ||= Core::Utils::Time.now
