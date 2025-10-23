@@ -6,12 +6,20 @@ module Datadog
   module OpenFeature
     Extensions.activate!
 
-    def self.enabled?
-      Datadog.configuration.open_fetaure.enabled
-    end
+    class << self
+      def enabled?
+        Datadog.configuration.open_fetaure.enabled
+      end
 
-    def self.component
-      Datadog.send(:components).dynamic_instrumentation
+      def evaluator
+        component&.evaluator
+      end
+
+      private
+
+      def component
+        Datadog.send(:components).open_feature
+      end
     end
   end
 end
