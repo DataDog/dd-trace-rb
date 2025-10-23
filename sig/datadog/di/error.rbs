@@ -1,6 +1,8 @@
 module Datadog
   module DI
     class Error < StandardError
+      class InternalError < Error
+      end
       class MissingLineNumber < Error
       end
       class AgentCommunicationError < Error
