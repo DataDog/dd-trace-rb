@@ -1,7 +1,7 @@
 require_relative 'datadog'
 
 def fib(n)
-  n <= 1 ? n : fib(n-1) + fib(n-2)
+  (n <= 1) ? n : fib(n - 1) + fib(n - 2)
 end
 
 def trace(*options, &block)
@@ -49,7 +49,7 @@ if defined?(Ractor)
   # loop do
   #   ractors.collect(&:take)
   # end
-  
+
   # DEV: Use single-threaded version instead for now...
   generate_fib
 else

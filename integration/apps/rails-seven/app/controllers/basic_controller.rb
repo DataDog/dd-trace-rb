@@ -18,7 +18,7 @@ class BasicController < ApplicationController
     Resque.enqueue(TestJob, job_id: request.request_id, records: records.map(&:to_json))
 
     # Return response
-    render json: { job_id: request.request_id }
+    render json: {job_id: request.request_id}
   end
 
   # Runs a recursive implementation of fibonacci.
@@ -37,6 +37,6 @@ class BasicController < ApplicationController
   private
 
   def fib(n)
-    n <= 1 ? n : fib(n-1) + fib(n-2)
+    (n <= 1) ? n : fib(n - 1) + fib(n - 2)
   end
 end
