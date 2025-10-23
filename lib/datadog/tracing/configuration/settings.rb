@@ -274,6 +274,19 @@ module Datadog
                 o.type :bool
               end
 
+              # When set to true, http.endoint is always inferred from path,
+              # instead of using http.route value when it is set.
+              #
+              # This is useful for testing purposes.
+              #
+              # @default false
+              # @return [Boolean]
+              option :resource_renaming_always_simplified_endpoint do |o|
+                o.type :bool, nilable: false
+                o.env Configuration::Ext::ENV_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT
+                o.default false
+              end
+
               # Forces the tracer to always send span events with the native span events format
               # regardless of the agent support. This is useful in agent-less setups.
               #
