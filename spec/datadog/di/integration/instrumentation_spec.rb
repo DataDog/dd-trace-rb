@@ -90,7 +90,13 @@ RSpec.describe 'Instrumentation integration' do
   end
 
   let(:component) do
-    Datadog::DI::Component.build!(settings, agent_settings, logger)
+    # TODO should this use Component.new? We have to manually pass in
+    # the code tracker in that case.
+    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+      if component.nil?
+        raise "Component failed to create - unsuitable environment? Check log entries"
+      end
+    end
   end
 
   let(:expected_installed_payload) do
