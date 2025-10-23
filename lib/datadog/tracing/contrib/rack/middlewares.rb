@@ -142,6 +142,15 @@ module Datadog
             if status != 404 && (last_route = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
               last_script_name = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH) || ''
 
+              # This happens when processing requests to a nested rack application,
+              # when parent app is instrumented, and the nested app is not instrumented
+              if last_script_name == '' && env['SCRIPT_NAME'] != ''
+                if (infered_route = RouteFromPathInference.infer(env['PATH_INFO']))
+                  last_script_name = last_route
+                  last_route = infered_route
+                end
+              end
+
               # Clear the route and route path tags from the request trace to avoid possibility of misplacement
               trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
               trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
@@ -208,6 +217,8 @@ module Datadog
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
             end
 
+            # when route tag is not set, we will try to infer the path for the full request path,
+            # which is SCRIPT_NAME + PATH_INFO for mounted rack applications
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil? && status != 404
               full_path = env['SCRIPT_NAME'].to_s + env['PATH_INFO'].to_s
 

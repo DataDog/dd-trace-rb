@@ -190,13 +190,13 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
         end
 
         it 'sets http.route for a route to a mounted rack app' do
-          get '/api/status/some_path'
+          get '/api/status/some/path/123'
 
           request_span = spans.first
 
           expect(last_response).to be_ok
           expect(request_span.name).to eq('rack.request')
-          expect(request_span.tags.fetch('http.route')).to eq('/api/status')
+          expect(request_span.tags.fetch('http.route')).to eq('/api/status/some/path/{param:int}')
           expect(request_span.tags).not_to have_key('http.route.path')
         end
 
