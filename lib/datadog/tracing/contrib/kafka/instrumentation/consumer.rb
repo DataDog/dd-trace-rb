@@ -27,7 +27,7 @@ module Datadog
                       autoinstrumentation: true
                     ) { |key| headers[key] }
                   rescue => e
-                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.message}")
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
                   end
 
                   yield(message) if block
@@ -49,7 +49,7 @@ module Datadog
                       autoinstrumentation: true
                     )
                   rescue => e
-                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.message}")
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
                   end
 
                   yield(batch) if block
