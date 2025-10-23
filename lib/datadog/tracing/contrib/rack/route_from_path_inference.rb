@@ -9,7 +9,7 @@ module Datadog
         module RouteFromPathInference
           MAX_NUMBER_OF_SEGMENTS = 8
 
-          INT_PARAM_REGEX = /\A[1-9][0-9]+\z/.freeze
+          INT_PARAM_REGEX = /\A[0-9]+\z/.freeze
           INT_ID_PARAM_REGEX = /\A(?=.*\d)[\d._-]{3,}\z/.freeze
           HEX_PARAM_REGEX = /\A(?=.*\d)[A-Fa-f0-9]{6,}\z/.freeze
           HEX_ID_PARAM_REGEX = /\A(?=.*\d)[A-Fa-f0-9._-]{6,}\z/.freeze
