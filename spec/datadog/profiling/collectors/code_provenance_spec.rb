@@ -288,6 +288,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           kind: "library",
           version: "1.2.3",
           path: "/example/path/to/datadog/gem",
+          extra_paths: ["/example/path/to/datadog/extensions"],
         )
 
         serialized_without_to_json = YAML.dump(instance)
@@ -298,7 +299,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           "name" => "datadog",
           "kind" => "library",
           "version" => "1.2.3",
-          "paths" => ["/example/path/to/datadog/gem"],
+          "paths" => ["/example/path/to/datadog/gem", "/example/path/to/datadog/extensions"],
         )
       end
     end

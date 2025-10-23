@@ -24,7 +24,7 @@ module Datadog
           @version: String
           @paths: Array[String]
 
-          def initialize: (kind: String, name: String, version: String, path: String, ?extra_path: String?) -> void
+          def initialize: (kind: String, name: String, version: String, path: String, extra_paths: Array[String?]) -> void
 
           def kind: -> String
           def name: -> String

@@ -29,7 +29,7 @@ module Datadog
               name: "stdlib",
               version: RUBY_VERSION,
               path: standard_library_path,
-              extra_path: ruby_native_filename,
+              extra_paths: [ruby_native_filename],
             )
           )
         end
@@ -85,7 +85,7 @@ module Datadog
                 name: spec.name,
                 version: spec.version,
                 path: spec.gem_dir,
-                extra_path: (spec.extension_dir if spec.extensions.any?),
+                extra_paths: [(spec.extension_dir if spec.extensions.any?)],
               )
             )
             recorded_library = true
@@ -118,12 +118,12 @@ module Datadog
         class Library
           attr_reader :kind, :name, :version
 
-          def initialize(kind:, name:, version:, path:, extra_path: nil)
-            extra_path = nil if extra_path&.empty?
+          def initialize(kind:, name:, version:, path:, extra_paths:)
+            extra_paths = Array(extra_paths).reject { |p| p.nil? || p.empty? }.map { |p| p.dup.freeze }
             @kind = kind.freeze
             @name = name.dup.freeze
             @version = version.to_s.dup.freeze
-            @paths = [path.dup.freeze, extra_path.dup.freeze].compact.freeze
+            @paths = [path.dup.freeze, *extra_paths].freeze
             freeze
           end
 
