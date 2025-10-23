@@ -8,12 +8,12 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::RouteFromPathInference do
       expect(described_class.infer('/')).to eq('/')
     end
 
-    it 'replaces integer params that have at least 2 digits' do
-      expect(described_class.infer('/foo/bar/123/baz')).to eq('/foo/bar/{param:int}/baz')
+    it 'replaces integer params that have at least 1 digits' do
+      expect(described_class.infer('/foo/bar/1/baz')).to eq('/foo/bar/{param:int}/baz')
     end
 
     it 'replaces integer params that have at least 2 digits and at least 1 separator' do
-      expect(described_class.infer('/foo/bar/12-3/baz')).to eq('/foo/bar/{param:int_id}/baz')
+      expect(described_class.infer('/foo/bar/1-3/baz')).to eq('/foo/bar/{param:int_id}/baz')
     end
 
     it 'replaces params containing at least 6 hexadecimal digits' do
