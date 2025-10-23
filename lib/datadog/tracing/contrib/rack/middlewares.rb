@@ -223,6 +223,7 @@ module Datadog
               full_path = env['SCRIPT_NAME'].to_s + env['PATH_INFO'].to_s
 
               if (infered_route = RouteFromPathInference.infer(full_path))
+                # TODO: this should be http.endpoint, not http.route tag
                 request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, infered_route)
               end
             end
