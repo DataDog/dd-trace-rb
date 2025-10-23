@@ -88,7 +88,7 @@ module Datadog
               agent_settings: agent_settings
             )
           rescue => e
-            logger.warn("Failed to initialize Data Streams Monitoring: #{e.message}")
+            logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e}")
             nil
           end
         end

@@ -10,9 +10,9 @@ module Datadog
         class Client
           attr_reader :api, :logger
 
-          def initialize(api, logger: nil)
+          def initialize(api, logger: )
             @api = api
-            @logger = logger || Datadog.logger
+            @logger = logger 
           end
 
           def send_stats_payload(request)
@@ -31,7 +31,7 @@ module Datadog
             yield(api, env)
           rescue => e
             message =
-              "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
+              "Internal error during #{self.class.name} request. Cause: #{e.class}: #{e} " \
                 "Location: #{Array(e.backtrace).first}"
 
             logger.debug(message)

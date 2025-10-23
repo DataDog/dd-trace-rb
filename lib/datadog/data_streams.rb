@@ -23,7 +23,7 @@ module Datadog
       # @yield [key, value] Block to inject context into carrier
       # @return [String, nil] Base64 encoded pathway context or nil if disabled
       # @public_api
-      def set_produce_checkpoint(type:, destination:, autoinstrumentation: false, tags: [], &block)
+      def set_produce_checkpoint(type:, destination:, auto_instrumentation: false, tags: [], &block)
         processor&.set_produce_checkpoint(
           type: type,
           destination: destination,
@@ -42,7 +42,7 @@ module Datadog
       # @yield [key] Block to extract context from carrier
       # @return [String, nil] Base64 encoded pathway context or nil if disabled
       # @public_api
-      def set_consume_checkpoint(type:, source:, autoinstrumentation: false, tags: [], &block)
+      def set_consume_checkpoint(type:, source:, auto_instrumentation: false, tags: [], &block)
         processor&.set_consume_checkpoint(
           type: type,
           source: source,
