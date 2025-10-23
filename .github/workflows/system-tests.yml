@@ -78,7 +78,8 @@ jobs:
     needs:
       - build
     uses: DataDog/system-tests/.github/workflows/system-tests.yml@38d5f42dd9e6e0629d01d475a245eca7a13aeac7  # Automated: This reference is automatically updated.
-    secrets: inherit  # zizmor: ignore[secrets-inherit]
+    secrets:
+      TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}
     permissions:
       contents: read
       id-token: write
@@ -92,6 +93,7 @@ jobs:
       ref: 38d5f42dd9e6e0629d01d475a245eca7a13aeac7  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
+      push_to_test_optimization: true
 
   complete:
     name: System Tests (complete)
