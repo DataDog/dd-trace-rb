@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
 require 'zlib'
 require_relative 'pathway_context'
 require_relative 'transport/http'
@@ -12,6 +11,9 @@ require_relative '../core/utils/time'
 
 module Datadog
   module DataStreams
+    # Raised when Data Streams Monitoring cannot be initialized due to missing dependencies
+    class UnsupportedError < StandardError; end
+
     # Processor for Data Streams Monitoring
     # This class is responsible for collecting and reporting pathway stats
     # Periodically (every interval, 10 seconds by default) flushes stats to the Datadog agent.
@@ -22,12 +24,12 @@ module Datadog
 
       attr_reader :pathway_context, :buckets, :bucket_size_ns
 
-      def initialize(interval: 10.0, logger: nil, settings: nil, agent_settings: nil)
-        raise 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
+      def initialize(interval:, logger:, settings: nil, agent_settings: nil)
+        raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
 
         @settings = settings
         @agent_settings = agent_settings
-        @logger = logger || Datadog.logger
+        @logger = logger
 
         now = Core::Utils::Time.now
         @pathway_context = PathwayContext.new(
@@ -101,11 +103,9 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the consumed message
-      # @param now [Time, nil] Timestamp (defaults to current time)
+      # @param now [Time] Timestamp
       # @return [Boolean] true if tracking succeeded
-      def track_kafka_consume(topic, partition, offset, now = nil)
-        now ||= Core::Utils::Time.now
-
+      def track_kafka_consume(topic, partition, offset, now)
         record_consumer_stats(
           topic: topic,
           partition: partition,
@@ -269,7 +269,7 @@ module Datadog
         # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung
         send_stats_to_agent(payload) if payload
       rescue => e
-        @logger.debug("Failed to flush DSM stats to agent: #{e.message}")
+        @logger.debug("Failed to flush DSM stats to agent: #{e.class}: #{e}")
       end
 
       def get_current_pathway

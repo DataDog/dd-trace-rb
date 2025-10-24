@@ -15,7 +15,7 @@ module Datadog
 
         @transport: untyped
 
-        @logger: untyped
+        @logger: Core::Logger
 
         @settings: untyped
 
@@ -24,10 +24,10 @@ module Datadog
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
 
-        def initialize: (?interval: ::Float, ?logger: untyped, ?settings: untyped, ?agent_settings: untyped) -> void
+        def initialize: (interval: ::Float, logger: Core::Logger, ?settings: untyped, ?agent_settings: untyped) -> void
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def track_kafka_commit: (::String group, ::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
-        def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ?::Time? now) -> (nil | true)
+        def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def set_produce_checkpoint: (type: ::String, destination: ::String, ?manual_checkpoint: bool, ?tags: ::Array[::String]) ?{ (::String, ::String) -> void } -> ::String?
         def set_consume_checkpoint: (type: ::String, source: ::String, ?manual_checkpoint: bool, ?tags: ::Array[::String]) ?{ (::String) -> ::String? } -> ::String?
 

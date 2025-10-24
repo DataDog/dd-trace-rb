@@ -7,17 +7,17 @@ module Datadog
   module DataStreams
     # Represents a pathway context for data streams monitoring
     class PathwayContext
-      # The current pathway hash
+      # The current pathway hash value (result of FNV-1a hash function)
       attr_accessor :hash
       # When the pathway started
       attr_accessor :pathway_start
       # When the current edge started
       attr_accessor :current_edge_start
-      # The hash of the parent checkpoint
+      # The hash value of the parent checkpoint
       attr_accessor :parent_hash
       # The direction tag of the previous checkpoint (e.g., 'direction:in', 'direction:out'), or nil if none
       attr_accessor :previous_direction
-      # Hash of the closest checkpoint in opposite direction (used for loop detection)
+      # Hash value of the closest checkpoint in opposite direction (used for loop detection)
       attr_accessor :closest_opposite_direction_hash
       # Edge start time of the closest opposite direction checkpoint
       attr_accessor :closest_opposite_direction_edge_start
@@ -44,8 +44,9 @@ module Datadog
         begin
           binary_data = Core::Utils::Base64.strict_decode64(encoded_ctx)
           decode(binary_data)
-        rescue
-          # Invalid base64 or decode error
+        rescue ArgumentError => e
+          # Invalid base64 encoding - may indicate version mismatch or corruption
+          Datadog.logger.debug("Failed to decode DSM pathway context: #{e.message}")
           nil
         end
       end

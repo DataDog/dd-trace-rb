@@ -24,7 +24,7 @@ module Datadog
                     Datadog::DataStreams.set_consume_checkpoint(
                       type: 'kafka',
                       source: message.topic,
-                      autoinstrumentation: true
+                      auto_instrumentation: true
                     ) { |key| headers[key] }
                   rescue => e
                     Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
@@ -46,7 +46,7 @@ module Datadog
                     Datadog::DataStreams.set_consume_checkpoint(
                       type: 'kafka',
                       source: batch.topic,
-                      autoinstrumentation: true
+                      auto_instrumentation: true
                     )
                   rescue => e
                     Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")

@@ -27,7 +27,7 @@ module Datadog
         processor&.set_produce_checkpoint(
           type: type,
           destination: destination,
-          manual_checkpoint: !autoinstrumentation,
+          manual_checkpoint: !auto_instrumentation,
           tags: tags,
           &block
         )
@@ -46,7 +46,7 @@ module Datadog
         processor&.set_consume_checkpoint(
           type: type,
           source: source,
-          manual_checkpoint: !autoinstrumentation,
+          manual_checkpoint: !auto_instrumentation,
           tags: tags,
           &block
         )
@@ -57,12 +57,10 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the produced message
-      # @param now [Time, nil] Timestamp (defaults to current time)
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
       # @public_api
-      def track_kafka_produce(topic, partition, offset, now = nil)
-        now ||= Core::Utils::Time.now
-        processor&.track_kafka_produce(topic, partition, offset, now)
+      def track_kafka_produce(topic, partition, offset)
+        processor&.track_kafka_produce(topic, partition, offset, Core::Utils::Time.now)
       end
 
       # Track Kafka offset commit for consumer lag monitoring
@@ -71,12 +69,10 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The committed offset
-      # @param now [Time, nil] Timestamp (defaults to current time)
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
       # @public_api
-      def track_kafka_commit(group, topic, partition, offset, now = nil)
-        now ||= Core::Utils::Time.now
-        processor&.track_kafka_commit(group, topic, partition, offset, now)
+      def track_kafka_commit(group, topic, partition, offset)
+        processor&.track_kafka_commit(group, topic, partition, offset, Core::Utils::Time.now)
       end
 
       # Track Kafka message consumption for consumer lag monitoring
@@ -84,12 +80,10 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the consumed message
-      # @param now [Time, nil] Timestamp (defaults to current time)
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
       # @public_api
-      def track_kafka_consume(topic, partition, offset, now = nil)
-        now ||= Core::Utils::Time.now
-        processor&.track_kafka_consume(topic, partition, offset, now)
+      def track_kafka_consume(topic, partition, offset)
+        processor&.track_kafka_consume(topic, partition, offset, Core::Utils::Time.now)
       end
 
       # Check if Data Streams Monitoring is enabled and available

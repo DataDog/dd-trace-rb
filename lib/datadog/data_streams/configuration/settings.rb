@@ -28,6 +28,7 @@ module Datadog
               # @default 10.0
               # @env '_DD_TRACE_STATS_WRITER_INTERVAL'
               # @return [Float]
+              # @!visibility private
               option :interval do |o|
                 o.type :float
                 o.env '_DD_TRACE_STATS_WRITER_INTERVAL'
