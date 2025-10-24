@@ -12,6 +12,7 @@ module Datadog
         attr_reader libraries_by_path: Hash[String, Library]
         attr_reader seen_files: Set[String]
         attr_reader seen_libraries: Set[Library]
+        attr_reader executable_paths: Array[String]
 
         def record_library: (Library) -> void
         def sort_libraries_by_longest_path_first: () -> void

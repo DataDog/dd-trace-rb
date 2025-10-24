@@ -16,4 +16,5 @@ class Gem::BasicSpecification
   def gem_dir: () -> String
   def extension_dir: () -> String
   def extensions: () -> Array[String]
+  def executables: () -> Array[String]?
 end

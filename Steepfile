@@ -224,6 +224,7 @@ target :datadog do
   # References `RubyVM::YJIT`, which does not have type information.
   ignore 'lib/datadog/core/environment/yjit.rb'
 
+  library 'bundler'
   library 'pathname'
   library 'cgi'
   library 'logger', 'monitor'
