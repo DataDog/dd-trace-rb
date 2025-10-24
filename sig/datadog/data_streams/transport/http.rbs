@@ -4,7 +4,7 @@ module Datadog
       module HTTP
         def self?.default: (
           agent_settings: Core::Configuration::AgentSettings,
-          ?logger: Core::Logger?
+          logger: Core::Logger
         ) ?{ (Core::Transport::HTTP::Builder) -> void } -> Transport::Stats::Transport
       end
     end
