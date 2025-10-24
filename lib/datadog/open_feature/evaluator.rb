@@ -2,8 +2,23 @@
 
 module Datadog
   module OpenFeature
+    # NOTE: This class is a glue between libdatadog evaluation binding and
+    #       provider. It should not contain any SDK code, but rather define its own
     class Evaluator
       attr_writer :ufc
+
+      # NOTE: This structure will come from the binding
+      #       and will copy the structure of the OpenFeature SDK
+      #       I will pile them up here before extracting
+      ResolutionDetails = Struct.new(
+        :value, :reason, :variant, :error_code, :error_message, :flag_metadata, keyword_init: true
+      )
+      ResolutionError = Struct.new(
+        :reason, :code, :message
+      )
+      PROVIDER_NOT_READY = 'PROVIDER_NOT_READY'
+      ERROR_MESSAGE_NOT_READY = 'Waiting for Universal Flag Configuration'
+      INITIALIZING = 'INITIALIZING'
 
       def initialize(telemetry)
         @telemetry = telemetry
@@ -28,7 +43,11 @@ module Datadog
         # now: DateTime<Utc>,
         #
         # NOTE: If configuration is missing it will return Ok(None) which we suppose to convert
-        # into default value
+        # into default value by the provider, so we should return here an error instead
+        # and do a shortcur avoiding call to the binding.
+        if @configuration.nil?
+          return ResolutionError.new(code: PROVIDER_NOT_READY, message: ERROR_MESSAGE_NOT_READY, reason: INITIALIZING)
+        end
 
         # NOTE: https://github.com/open-feature/ruby-sdk-contrib/blob/main/providers/openfeature-go-feature-flag-provider/lib/openfeature/go-feature-flag/go_feature_flag_provider.rb#L17
         # In the example from the OpenFeature there is zero trust to the result of the evaluation
@@ -37,11 +56,13 @@ module Datadog
         # TODO: Implement binding call
         # <binding>.get_assignment(@configuration, flag_key, evaluation_context, expected_type, Time.now.utc)
 
-        ::OpenFeature::SDK::Provider::ResolutionDetails.new(
+        ResolutionDetails.new(
           value: generate(expected_type),
           reason: 'hardcoded',
           variant: 'hardcoded'
         )
+      rescue => e
+        # TODO Handle exception
       end
 
       def reconfigure!
@@ -49,8 +70,8 @@ module Datadog
         # config = datadog_ffe::rules_based::UniversalFlagConfig::from_json(ufc)
         # @configuration = datadog_ffe::rules_based::Configuration::from_server_response(config)
 
-        # TODO: Remove
-        @reconfigured = true
+        # TODO: Replace with binding class
+        @configuration = {configuration: '...'}
       rescue => e
         error_message = 'OpenFeature failed to reconfigure, reverting to the previous configuration'
 
@@ -63,12 +84,12 @@ module Datadog
       # TODO: Remove
       def generate(expected_type)
         case expected_type
-        when :boolean then @reconfigured ? true : false
-        when :string then @reconfigured ? 'hello' : 'goodbye'
-        when :number then @reconfigured ? 9000 : 0
-        when :integer then @reconfigured ? 42 : -42
-        when :float then @reconfigured ? 36.6 : 39.5
-        when :object then @reconfigured ? [1, 2, 3] : {one: :two}
+        when :boolean then true
+        when :string then 'hello'
+        when :number then 9000
+        when :integer then 42
+        when :float then 36.6
+        when :object then [1, 2, 3]
         end
       end
     end
