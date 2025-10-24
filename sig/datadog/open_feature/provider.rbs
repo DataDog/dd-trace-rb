@@ -2,6 +2,7 @@ module Datadog
   module OpenFeature
     class Provider
       NAME: ::String
+      ERROR_MESSAGE_COMPONENT_NOT_CONFIGURED: ::String
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
@@ -52,8 +53,8 @@ module Datadog
       def evaluate: (
         ::String flag_key,
         default_value: ::OpenFeature::SDK::Provider::ResolutionDetails::value_t,
-        expected_type: ::String,
-        evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+        expected_type: ::Symbol,
+        evaluation_context: ::OpenFeature::SDK::EvaluationContext
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def component_not_configured_default: (

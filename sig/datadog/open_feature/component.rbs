@@ -1,33 +1,14 @@
 module Datadog
   module OpenFeature
     class Component
-      @settings: Core::Configuration::Settings
+      attr_reader telemetry: ::Datadog::Core::Telemetry::Component
 
-      @agent_settings: Core::Configuration::AgentSettings
-
-      @logger: Core::Logger
-
-      @telemetry: Core::Telemetry::Component
-
-      @engine: EvaluationEngine
-
-      attr_reader telemetry: Core::Telemetry::Component
-
-      attr_reader engine: EvaluationEngine
-
-      def self.build: (
+      def self.build_open_feature_component: (
         Core::Configuration::Settings settings,
-        Core::Configuration::AgentSettings agent_settings,
-        logger: Core::Logger,
         telemetry: Core::Telemetry::Component
       ) -> Component?
 
-      def initialize: (
-        Core::Configuration::Settings settings,
-        Core::Configuration::AgentSettings agent_settings,
-        logger: Core::Logger,
-        telemetry: Core::Telemetry::Component
-      ) -> void
+      def initialize: (telemetry: ::Datadog::Core::Telemetry::Component) -> void
 
       def flush: () -> void
 
