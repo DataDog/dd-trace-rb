@@ -15,16 +15,12 @@ RSpec.describe Datadog::DataStreams::Processor do
     skip('DDSketch not available') unless Datadog::Core::DDSketch.supported?
   end
 
-  let(:processor) { described_class.new }
+  let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
+  let(:processor) { described_class.new(interval: 10.0, logger: logger) }
 
   describe '#initialize' do
-    it 'sets up periodic worker with default interval' do
-      processor = described_class.new
-      expect(processor.loop_base_interval).to eq(10.0)
-    end
-
     it 'sets up periodic worker with custom interval' do
-      processor = described_class.new(interval: 5.0)
+      processor = described_class.new(interval: 5.0, logger: logger)
       expect(processor.loop_base_interval).to eq(5.0)
     end
   end

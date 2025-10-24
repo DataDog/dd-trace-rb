@@ -24,19 +24,19 @@ module Datadog
               consumer = job.executor.topic.consumer
 
               action = case job_type
-              when 'Periodic', 'PeriodicNonBlocking'
-                'tick'
-              when 'Shutdown'
-                'shutdown'
-              when 'Revoked', 'RevokedNonBlocking'
-                'revoked'
-              when 'Idle'
-                'idle'
-              when 'Eofed', 'EofedNonBlocking'
-                'eofed'
-              else
-                'consume'
-              end
+                       when 'Periodic', 'PeriodicNonBlocking'
+                         'tick'
+                       when 'Shutdown'
+                         'shutdown'
+                       when 'Revoked', 'RevokedNonBlocking'
+                         'revoked'
+                       when 'Idle'
+                         'idle'
+                       when 'Eofed', 'EofedNonBlocking'
+                         'eofed'
+                       else
+                         'consume'
+                       end
 
               span.resource = "#{consumer}##{action}"
 
@@ -54,8 +54,7 @@ module Datadog
                     Datadog::DataStreams.track_kafka_consume(
                       job.executor.topic.name,
                       job.executor.partition,
-                      message.metadata.offset,
-                      Time.now.to_f
+                      message.metadata.offset
                     )
                   end
                 end

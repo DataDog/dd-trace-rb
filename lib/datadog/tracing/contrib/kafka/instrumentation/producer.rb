@@ -23,7 +23,7 @@ module Datadog
                         Datadog::DataStreams.set_produce_checkpoint(
                           type: 'kafka',
                           destination: message.topic,
-                          autoinstrumentation: true
+                          auto_instrumentation: true
                         ) do |key, value|
                           message.headers[key] = value
                         end
@@ -45,7 +45,7 @@ module Datadog
                       Datadog::DataStreams.set_produce_checkpoint(
                         type: 'kafka',
                         destination: message[:topic],
-                        autoinstrumentation: true
+                        auto_instrumentation: true
                       ) do |key, value|
                         message[:headers][key] = value
                       end

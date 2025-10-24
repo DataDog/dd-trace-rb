@@ -1,14 +1,14 @@
 module Datadog
   module DataStreams
-    def self.set_produce_checkpoint: (type: ::String, destination: ::String, ?autoinstrumentation: bool, ?tags: ::Array[::String]) ?{ (::String, ::String) -> void } -> ::String?
+    def self.set_produce_checkpoint: (type: ::String, destination: ::String, ?auto_instrumentation: bool, ?tags: ::Array[::String]) ?{ (::String, ::String) -> void } -> ::String?
 
-    def self.set_consume_checkpoint: (type: ::String, source: ::String, ?autoinstrumentation: bool, ?tags: ::Array[::String]) ?{ (::String) -> ::String? } -> ::String?
+    def self.set_consume_checkpoint: (type: ::String, source: ::String, ?auto_instrumentation: bool, ?tags: ::Array[::String]) ?{ (::String) -> ::String? } -> ::String?
 
-    def self.track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ?::Float? now_sec) -> (nil | true)
+    def self.track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset) -> (nil | true)
 
-    def self.track_kafka_commit: (::String group, ::String topic, ::Integer partition, ::Integer offset, ?::Float? now_sec) -> (nil | true)
+    def self.track_kafka_commit: (::String group, ::String topic, ::Integer partition, ::Integer offset) -> (nil | true)
 
-    def self.track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ?::Float? now_sec) -> (nil | true)
+    def self.track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset) -> (nil | true)
 
     def self.enabled?: () -> bool
 
