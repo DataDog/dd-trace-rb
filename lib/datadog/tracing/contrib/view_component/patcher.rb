@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/core'
-require 'datadog/tracing/contrib/patcher'
+require_relative '../patcher'
 require_relative 'events'
 require_relative 'ext'
 require_relative 'utils'
