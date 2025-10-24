@@ -241,6 +241,14 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
   end
 end
 
+appraise "view_component-2.34.0" do
+  gem 'view_component', "~> 2.34.0", require: "view_component/engine"
+  gem "actionview"
+  gem "rails"
+  gem 'sprockets', '< 4'
+  gem 'pg'
+end
+
 appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
 end
