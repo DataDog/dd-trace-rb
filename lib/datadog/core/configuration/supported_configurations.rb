@@ -267,6 +267,7 @@ module Datadog
          "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED" => {version: ["A"]},
          "DD_TRACE_REPORT_HOSTNAME" => {version: ["A"]},
          "DD_TRACE_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT" => {version: ["A"]},
+         "DD_TRACE_RESOURCE_RENAMING_ENABLED" => {version: ["A"]},
          "DD_TRACE_RESQUE_ANALYTICS_ENABLED" => {version: ["A"]},
          "DD_TRACE_RESQUE_ANALYTICS_SAMPLE_RATE" => {version: ["A"]},
          "DD_TRACE_RESQUE_ENABLED" => {version: ["A"]},
