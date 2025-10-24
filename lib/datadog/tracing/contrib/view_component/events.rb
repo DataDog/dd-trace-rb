@@ -19,7 +19,7 @@ module Datadog
           end
 
           def subscriptions
-            all.collect(&:subscriptions).collect(&:to_a).flatten
+            all.collect(&:subscriptions).flat_map(&:to_a)
           end
 
           def subscribe!
