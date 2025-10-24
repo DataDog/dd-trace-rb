@@ -1,0 +1,42 @@
+module Datadog
+  module Core
+    module FeatureFlags
+      def self.supported?: () -> bool
+
+      # Evaluates a feature flag and returns an Assignment or nil
+      # @param configuration [Configuration] The feature flag configuration
+      # @param flag_key [::String] The key identifying the flag to evaluate
+      # @param evaluation_context [EvaluationContext] The evaluation context
+      # @return [Assignment, nil] The assignment result or nil if no assignment
+      def self.get_assignment: (Configuration configuration, ::String flag_key, EvaluationContext evaluation_context) -> (Assignment | nil)
+
+      # Configuration containing feature flag definitions
+      class Configuration
+        # Creates a new Configuration from JSON
+        # @param json_config [::String] JSON string containing flag configuration
+        def initialize: (::String json_config) -> void
+      end
+
+      # Context for evaluating feature flags
+      class EvaluationContext
+        # Creates a new EvaluationContext with targeting key
+        # @param targeting_key [::String] The key used for targeting decisions
+        def initialize: (::String targeting_key) -> void
+
+        # Creates a new EvaluationContext with targeting key and single attribute
+        # @param targeting_key [::String] The key used for targeting decisions
+        # @param attr_name [::String] Name of the attribute
+        # @param attr_value [::String] Value of the attribute
+        def self.new_with_attribute: (::String targeting_key, ::String attr_name, ::String attr_value) -> EvaluationContext
+
+        # Internal method used by new_with_attribute
+        def initialize_with_attribute: (::String targeting_key, ::String attr_name, ::String attr_value) -> self
+      end
+
+      # Result of feature flag evaluation
+      class Assignment
+        def initialize: () -> void
+      end
+    end
+  end
+end

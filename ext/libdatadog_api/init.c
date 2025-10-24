@@ -6,6 +6,7 @@
 #include "library_config.h"
 
 void ddsketch_init(VALUE core_module);
+void feature_flags_init(VALUE core_module);
 
 void DDTRACE_EXPORT Init_libdatadog_api(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -15,4 +16,5 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   process_discovery_init(core_module);
   library_config_init(core_module);
   ddsketch_init(core_module);
+  feature_flags_init(core_module);
 }
