@@ -27,7 +27,7 @@ module Datadog
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
 
-        def initialize: (interval: ::Float, logger: Core::Logger, ?settings: untyped, ?agent_settings: untyped) -> void
+        def initialize: (interval: ::Float, logger: Core::Logger, settings: untyped, agent_settings: untyped) -> void
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def track_kafka_commit: (::String group, ::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
