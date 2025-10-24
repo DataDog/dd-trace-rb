@@ -6,7 +6,7 @@ module Datadog
   module Tracing
     module Contrib
       module ViewComponent
-        # Defines basic behavior for an ViewComponent event.
+        # Defines basic behavior for a ViewComponent event.
         module Event
           def self.included(base)
             base.include(ActiveSupport::Notifications::Event)
