@@ -5,6 +5,7 @@ REQUIRES = [
   {require: 'datadog', check: 'Datadog::Core'},
   {require: 'datadog/appsec', check: 'Datadog::AppSec'},
   {require: 'datadog/core', check: 'Datadog::Core'},
+  {require: 'datadog/data_streams', check: 'Datadog::DataStreams'},
   {require: 'datadog/error_tracking', check: 'Datadog::ErrorTracking'},
   {require: 'datadog/di', check: 'Datadog::DI',
    env: {DD_DYNAMIC_INSTRUMENTATION_ENABLED: 'false'},

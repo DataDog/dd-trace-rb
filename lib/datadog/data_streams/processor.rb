@@ -52,7 +52,7 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the produced message
-      # @param now [Time] Timestamp (defaults to current time)
+      # @param now [Time] Timestamp
       # @return [Boolean] true if tracking succeeded
       def track_kafka_produce(topic, partition, offset, now)
         now_ns = (now.to_f * 1e9).to_i
@@ -78,7 +78,7 @@ module Datadog
       # @param topic [String] The Kafka topic name
       # @param partition [Integer] The partition number
       # @param offset [Integer] The committed offset
-      # @param now [Time] Timestamp (defaults to current time)
+      # @param now [Time] Timestamp
       # @return [Boolean] true if tracking succeeded
       def track_kafka_commit(group, topic, partition, offset, now)
         now_ns = (now.to_f * 1e9).to_i
