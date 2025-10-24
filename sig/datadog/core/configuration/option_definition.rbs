@@ -4,19 +4,31 @@ module Datadog
       class OptionDefinition
         type option_type = String | Integer | Float | Rational | Symbol | bool | Array[untyped] | Hash[untyped, untyped] | nil
 
-        type option_proc = (^(Options::GenericSettingsClass _settings) [self: Options::GenericSettingsClass] -> option_type)
+        type option_proc = (^(Options::GenericSettingsClass settings) [self: Options::GenericSettingsClass] -> option_type)
 
-        type helper_proc = (^(?) [self: Options::GenericSettingsClass] -> untyped)
+        type generic_proc = (^(?) [self: Options::GenericSettingsClass] -> untyped)
 
         type meta = {
-          default: (option_type | option_proc | Options::GenericSettingsClass)?,
-          default_proc: option_proc?,
-          env: String?,
-          env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?,
-          after_set: (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void)?,
-          resetter: (^(option_type value) [self: Options::GenericSettingsClass] -> option_type)?,
-          setter: (^(option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type),
-          type: Symbol?,
+          ?default: (option_type | option_proc | Options::GenericSettingsClass)?,
+          ?default_proc: generic_proc?,
+          ?env: String?,
+          ?env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?,
+          ?after_set: (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void)?,
+          ?resetter: (^(option_type value) [self: Options::GenericSettingsClass] -> option_type)?,
+          ?setter: (^(option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type)?,
+          ?type: Symbol?,
+          ?type_options: Hash[Symbol, untyped]
+        }
+
+        type meta_with_mandatory_fields = {
+          ?default: (option_type | option_proc | Options::GenericSettingsClass)?,
+          ?default_proc: generic_proc?,
+          ?env: String?,
+          ?env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?,
+          ?after_set: (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void)?,
+          ?resetter: (^(option_type value) [self: Options::GenericSettingsClass] -> option_type)?,
+          ?setter: (^(option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type)?,
+          ?type: Symbol?,
           type_options: Hash[Symbol, untyped]
         }
 
@@ -24,7 +36,7 @@ module Datadog
 
         attr_reader default: option_type | option_proc | Options::GenericSettingsClass
 
-        attr_reader default_proc: option_proc?
+        attr_reader default_proc: generic_proc?
 
         attr_reader env: String?
 
@@ -42,7 +54,7 @@ module Datadog
 
         attr_reader type_options: Hash[Symbol, untyped]
 
-        def initialize: (String | Symbol name, meta meta) ?{ (option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type } -> void
+        def initialize: (String | Symbol name, meta_with_mandatory_fields meta) ?{ (option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type } -> void
 
         def build: (Options::GenericSettingsClass context) -> Option
 
@@ -50,13 +62,13 @@ module Datadog
           class InvalidOptionError < StandardError
           end
 
-          attr_reader helpers: Hash[Symbol, helper_proc]
+          attr_reader helpers: Hash[Symbol, generic_proc]
 
           @env: String?
           @env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?
           @default: option_type | option_proc | Options::GenericSettingsClass
-          @default_proc: option_proc?
-          @helpers: Hash[Symbol, helper_proc]
+          @default_proc: generic_proc?
+          @helpers: Hash[Symbol, generic_proc]
           @name: Symbol
           @after_set: (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void)?
           @resetter: (^(option_type value) [self: Options::GenericSettingsClass] -> option_type)?
@@ -71,9 +83,9 @@ module Datadog
           def env_parser: () ?{ (String env_value) [self: Options::GenericSettingsClass] -> Option::env_value } -> void
 
           # can also be a class that includes Configuration::Base for new settings
-          def default: (?(option_type | option_proc | Options::GenericSettingsClass) value) ?{ () -> (option_type | option_proc | Options::GenericSettingsClass) } -> void
+          def default: (?(option_type | option_proc | Options::GenericSettingsClass) value) ?{ (Options::GenericSettingsClass settings) [self: Options::GenericSettingsClass] -> option_type } -> void
 
-          def default_proc: () ?{ (Options::GenericSettingsClass _settings) [self: Options::GenericSettingsClass] -> option_type } -> void
+          def default_proc: () ?{ (?) [self: Options::GenericSettingsClass] -> untyped } -> void
 
           def type: (Symbol? value, ?nilable: bool) -> void
 
