@@ -72,6 +72,10 @@ module Datadog
 
         # TODO: Replace with binding class
         @configuration = {configuration: '...'}
+
+        # FIXME: If we have to clean the binding class to release memory because
+        #        of the binding unable to GC unused class we will need to guard
+        #        @configuration reading
       rescue => e
         error_message = 'OpenFeature failed to reconfigure, reverting to the previous configuration'
 
