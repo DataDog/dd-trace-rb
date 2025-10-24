@@ -2,6 +2,7 @@
 
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/core/ddsketch'
+require 'datadog/data_streams/spec_helper'
 require 'karafka'
 require 'ostruct'
 
@@ -58,7 +59,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
   describe 'auto-instrumentation' do
     before do
-      skip('DDSketch not available') unless Datadog::Core::DDSketch.supported?
+      skip_if_data_streams_not_supported(self)
     end
 
     it 'automatically extracts and processes pathway context when consuming messages' do
@@ -128,7 +129,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
   describe 'pathway propagation across services' do
     before do
-      skip('DDSketch not available') unless Datadog::Core::DDSketch.supported?
+      skip_if_data_streams_not_supported(self)
     end
 
     it 'maintains pathway continuity through produce → consume → produce chain' do
