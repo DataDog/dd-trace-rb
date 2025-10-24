@@ -21,7 +21,7 @@ module Datadog
     #   client.fetch_string_value(flag_key: 'banner', default_value: 'default')
     class Provider
       NAME = 'Datadog Feature Flagging Provider'
-      ERROR_MESSAGE_WAITING_FOR_UFC = 'Waiting for User Feature Configuration'
+      ERROR_MESSAGE_COMPONENT_NOT_CONFIGURED = "Datadog's OpenFeature component must be configured"
 
       attr_reader :metadata
 
@@ -30,7 +30,6 @@ module Datadog
       end
 
       def init
-        # no-op
         @evaluator = OpenFeature.evaluator
       end
 
@@ -39,73 +38,58 @@ module Datadog
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
-        return provider_not_ready_default(default_value) if @evaluator.nil?
-
-        @evaluator.fetch_value(
-          flag_key: flag_key,
-          expected_type: :boolean,
-          evaluation_context: evaluation_context
-        )
+        evaluate(flag_key, default_value: default_value, expected_type: :boolean, evaluation_context: evaluation_context)
       end
 
       def fetch_string_value(flag_key:, default_value:, evaluation_context: nil)
-        return provider_not_ready_default(default_value) if @evaluator.nil?
-
-        @evaluator.fetch_value(
-          flag_key: flag_key,
-          expected_type: :string,
-          evaluation_context: evaluation_context
-        )
+        evaluate(flag_key, default_value: default_value, expected_type: :string, evaluation_context: evaluation_context)
       end
 
       def fetch_number_value(flag_key:, default_value:, evaluation_context: nil)
-        return provider_not_ready_default(default_value) if @evaluator.nil?
-
-        @evaluator.fetch_value(
-          flag_key: flag_key,
-          expected_type: :number,
-          evaluation_context: evaluation_context
-        )
+        evaluate(flag_key, default_value: default_value, expected_type: :number, evaluation_context: evaluation_context)
       end
 
       def fetch_integer_value(flag_key:, default_value:, evaluation_context: nil)
-        return provider_not_ready_default(default_value) if @evaluator.nil?
-
-        @evaluator.fetch_value(
-          flag_key: flag_key,
-          expected_type: :integer,
-          evaluation_context: evaluation_context
-        )
+        evaluate(flag_key, default_value: default_value, expected_type: :integer, evaluation_context: evaluation_context)
       end
 
       def fetch_float_value(flag_key:, default_value:, evaluation_context: nil)
-        return provider_not_ready_default(default_value) if @evaluator.nil?
-
-        @evaluator.fetch_value(
-          flag_key: flag_key,
-          expected_type: :float,
-          evaluation_context: evaluation_context
-        )
+        evaluate(flag_key, default_value: default_value, expected_type: :float, evaluation_context: evaluation_context)
       end
 
       def fetch_object_value(flag_key:, default_value:, evaluation_context: nil)
-        return provider_not_ready_default(default_value) if @evaluator.nil?
-
-        @evaluator.fetch_value(
-          flag_key: flag_key,
-          expected_type: :object,
-          evaluation_context: evaluation_context
-        )
+        evaluate(flag_key, default_value: default_value, expected_type: :object, evaluation_context: evaluation_context)
       end
 
       private
 
-      def provider_not_ready_default(value)
+      def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
+        return component_not_configured_default(default_value) if @evaluator.nil?
+
+        result = @evaluator.fetch_value(
+          flag_key: flag_key,
+          expected_type: expected_type,
+          evaluation_context: evaluation_context
+        )
+
+        if result.is_a?(Evaluator::ResolutionError)
+          return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
+            value: default_value,
+            error_code: result.code,
+            error_message: result.message,
+            reason: result.reason
+          )
+        end
+
+        result
+      end
+
+      def component_not_configured_default(value)
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: value,
-          error_code: ::OpenFeature::SDK::Provider::ErrorCode::PROVIDER_NOT_READY,
-          error_message: ERROR_MESSAGE_WAITING_FOR_UFC,
-          reason: ::OpenFeature::SDK::Provider::Reason::DEFAULT
+          error_code: ::OpenFeature::SDK::Provider::ErrorCode::PROVIDER_FATAL,
+          error_message: ERROR_MESSAGE_COMPONENT_NOT_CONFIGURED,
+          reason: ::OpenFeature::SDK::Provider::Reason::ERROR
         )
       end
     end
