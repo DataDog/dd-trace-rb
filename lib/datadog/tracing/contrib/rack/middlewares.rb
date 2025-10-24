@@ -139,26 +139,7 @@ module Datadog
             request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
             request_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
 
-            if status != 404 && (last_route = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
-              last_script_name = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH) || ''
-
-              # This happens when processing requests to a nested rack application,
-              # when parent app is instrumented, and the nested app is not instrumented
-              if last_script_name == '' && env['SCRIPT_NAME'] != ''
-                if (infered_route = RouteFromPathInference.infer(env['PATH_INFO']))
-                  last_script_name = last_route
-                  last_route = infered_route
-                end
-              end
-
-              # Clear the route and route path tags from the request trace to avoid possibility of misplacement
-              trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
-              trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
-
-              # Ensure tags are placed in rack.request span as desired
-              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route)
-              request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
-            end
+            set_route_and_endpoint_tags(trace: trace, request_span: request_span, status: status, env: env)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -217,17 +198,6 @@ module Datadog
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
             end
 
-            # when route tag is not set, we will try to infer the path for the full request path,
-            # which is SCRIPT_NAME + PATH_INFO for mounted rack applications
-            if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil? && status != 404
-              full_path = env['SCRIPT_NAME'].to_s + env['PATH_INFO'].to_s
-
-              if (infered_route = RouteFromPathInference.infer(full_path))
-                # TODO: this should be http.endpoint, not http.route tag
-                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, infered_route)
-              end
-            end
-
             HeaderTagging.tag_request_headers(request_span, request_header_collection, configuration)
             HeaderTagging.tag_response_headers(request_span, headers, configuration) if headers
 
@@ -247,6 +217,58 @@ module Datadog
           def configuration
             Datadog.configuration.tracing[:rack]
           end
+
+          # rubocop:disable Metrics/AbcSize
+          # rubocop:disable Metrics/MethodLength
+          # rubocop:disable Metrics/CyclomaticComplexity
+          # rubocop:disable Metrics/PerceivedComplexity
+          def set_route_and_endpoint_tags(trace:, request_span:, status:, env:)
+            return if status == 404
+
+            if (last_route = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              last_script_name = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH) || ''
+
+              # This happens when processing requests to a nested rack application,
+              # when parent app is instrumented, and the nested app is not instrumented
+              #
+              # When resource_renaming_always_simplified_endpoint is set to true,
+              # we infer the route from the full request path.
+              if last_script_name == '' && env['SCRIPT_NAME'] != '' &&
+                  !Datadog.configuration.tracing.resource_renaming_always_simplified_endpoint &&
+                  (inferred_route = RouteFromPathInference.infer(env['PATH_INFO']))
+                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, last_route + inferred_route)
+              end
+
+              # Clear the route and route path tags from the request trace to avoid possibility of misplacement
+              trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+              trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+
+              # Ensure tags are placed in rack.request span as desired
+              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route)
+              request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+            end
+
+            if Datadog.configuration.tracing.resource_renaming_always_simplified_endpoint ||
+                request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil?
+              # when http.route tag wasn't set or resource_renaming_always_simplified_endpoint is set to true,
+              # we will try to infer the path for the full request path,
+              # which is SCRIPT_NAME + PATH_INFO for mounted rack applications
+              full_path = env['SCRIPT_NAME'].to_s + env['PATH_INFO'].to_s
+
+              if (infered_route = RouteFromPathInference.infer(full_path))
+                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, infered_route)
+              end
+            elsif !request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT)
+              request_span.set_tag(
+                Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT,
+                request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+              )
+            end
+          end
+          # rubocop:enable Metrics/AbcSize
+          # rubocop:enable Metrics/MethodLength
+          # rubocop:enable Metrics/CyclomaticComplexity
+          # rubocop:enable Metrics/PerceivedComplexity
 
           # rubocop:disable Metrics/AbcSize
           # rubocop:disable Metrics/MethodLength
