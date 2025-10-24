@@ -18,11 +18,9 @@ module Datadog
           module_function
 
           def infer(path)
-            segments = path.delete_prefix('/').split('/')
+            segments = path.delete_prefix('/').split('/').first(MAX_NUMBER_OF_SEGMENTS)
 
-            segments.map!.with_index do |segment, index|
-              next segment if index >= MAX_NUMBER_OF_SEGMENTS
-
+            segments.map! do |segment|
               case segment
               when INT_PARAM_REGEX
                 '{param:int}'
