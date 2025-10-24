@@ -1,0 +1,18 @@
+module Datadog
+  module OpenFeature
+    class Component
+      attr_reader telemetry: ::Datadog::Core::Telemetry::Component
+
+      attr_reader evaluator: Evaluator
+
+      def self.build_open_feature_component: (
+        Core::Configuration::Settings settings,
+        telemetry: Core::Telemetry::Component
+      ) -> Component?
+
+      def initialize: (telemetry: ::Datadog::Core::Telemetry::Component) -> void
+
+      def shutdown!: () -> void
+    end
+  end
+end

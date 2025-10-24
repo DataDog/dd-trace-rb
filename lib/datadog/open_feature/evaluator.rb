@@ -16,9 +16,13 @@ module Datadog
       ResolutionError = Struct.new(
         :reason, :code, :message
       )
+
       PROVIDER_NOT_READY = 'PROVIDER_NOT_READY'
+      PROVIDER_FATAL = "PROVIDER_FATAL"
+
       ERROR_MESSAGE_NOT_READY = 'Waiting for Universal Flag Configuration'
       INITIALIZING = 'INITIALIZING'
+      ERROR = "ERROR"
 
       def initialize(telemetry)
         @telemetry = telemetry
@@ -62,7 +66,13 @@ module Datadog
           variant: 'hardcoded'
         )
       rescue => e
-        # TODO Handle exception
+        @telemetry.report(e, 'OpenFeature: Failed to fetch value for flag')
+
+        ResolutionError.new(
+          reason: ERROR,
+          code: PROVIDER_FATAL,
+          message: e.message
+        )
       end
 
       def reconfigure!
@@ -71,7 +81,7 @@ module Datadog
         # @configuration = datadog_ffe::rules_based::Configuration::from_server_response(config)
 
         # TODO: Replace with binding class
-        @configuration = {configuration: '...'}
+        @configuration = { ufc: @ufc }
 
         # FIXME: If we have to clean the binding class to release memory because
         #        of the binding unable to GC unused class we will need to guard

@@ -1,0 +1,64 @@
+module Datadog
+  module OpenFeature
+    class Evaluator
+      class ResolutionDetails < ::Struct[untyped]
+        attr_reader value: untyped
+
+        attr_reader reason: ::String
+
+        attr_reader variant: untyped
+
+        attr_reader error_code: ::String
+
+        attr_reader error_message: ::String
+
+        attr_reader flag_metadata: untyped
+
+        def self.new: (
+          ?value: untyped,
+          ?reason: ::String,
+          ?variant: untyped,
+          ?error_code: ::String,
+          ?error_message: ::String,
+          ?flag_metadata: untyped
+        ) -> instance
+      end
+
+      class ResolutionError < ::Struct[untyped]
+        attr_reader reason: ::String
+
+        attr_reader code: ::String
+
+        attr_reader message: ::String
+
+        def self.new: (?reason: ::String, ?code: ::String, ?message: ::String) -> instance
+      end
+
+      PROVIDER_NOT_READY: ::String
+
+      PROVIDER_FATAL: ::String
+
+      ERROR_MESSAGE_NOT_READY: ::String
+
+      INITIALIZING: ::String
+
+      ERROR: ::String
+
+      attr_writer ufc: ::String
+
+      def initialize: (Core::Telemetry::Component telemetry) -> void
+
+      def fetch_value: (
+        flag_key: ::String,
+        expected_type: ::Symbol,
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+      ) -> (ResolutionDetails | ResolutionError)
+
+      def reconfigure!: () -> void
+
+      private
+
+      def generate: (::Symbol expected_type) -> untyped
+    end
+  end
+end
