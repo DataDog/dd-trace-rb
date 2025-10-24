@@ -17,11 +17,13 @@ RSpec.describe Datadog::DataStreams::Processor do
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
-  let(:processor) { described_class.new(interval: 10.0, logger: logger) }
+  let(:settings) { instance_double(Datadog::Core::Configuration::Settings, service: 'test-service', env: 'test') }
+  let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings) }
+  let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
 
   describe '#initialize' do
     it 'sets up periodic worker with custom interval' do
-      processor = described_class.new(interval: 5.0, logger: logger)
+      processor = described_class.new(interval: 5.0, logger: logger, settings: settings, agent_settings: agent_settings)
       expect(processor.loop_base_interval).to eq(5.0)
     end
   end
