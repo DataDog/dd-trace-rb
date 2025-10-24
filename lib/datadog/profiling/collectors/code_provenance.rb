@@ -22,6 +22,7 @@ module Datadog
           @libraries_by_path = {}
           @seen_files = Set.new
           @seen_libraries = Set.new
+          @executable_paths = [Gem.bindir, (Bundler.bin_path.to_s if defined?(Bundler))].uniq.compact.freeze
 
           record_library(
             Library.new(
@@ -29,7 +30,7 @@ module Datadog
               name: "stdlib",
               version: RUBY_VERSION,
               path: standard_library_path,
-              extra_path: ruby_native_filename,
+              extra_paths: [ruby_native_filename],
             )
           )
         end
@@ -51,7 +52,8 @@ module Datadog
           :libraries_by_name,
           :libraries_by_path,
           :seen_files,
-          :seen_libraries
+          :seen_libraries,
+          :executable_paths
 
         def record_library(library)
           libraries_by_name[library.name] = library
@@ -79,13 +81,20 @@ module Datadog
           loaded_specs.each do |spec|
             next if libraries_by_name.key?(spec.name)
 
+            extra_paths = [(spec.extension_dir if spec.extensions.any?)]
+            spec.executables&.each do |executable|
+              executable_paths.each do |path|
+                extra_paths << File.join(path, executable)
+              end
+            end
+
             record_library(
               Library.new(
                 kind: "library",
                 name: spec.name,
                 version: spec.version,
                 path: spec.gem_dir,
-                extra_path: (spec.extension_dir if spec.extensions.any?),
+                extra_paths: extra_paths,
               )
             )
             recorded_library = true
@@ -118,12 +127,12 @@ module Datadog
         class Library
           attr_reader :kind, :name, :version
 
-          def initialize(kind:, name:, version:, path:, extra_path: nil)
-            extra_path = nil if extra_path&.empty?
+          def initialize(kind:, name:, version:, path:, extra_paths:)
+            extra_paths = Array(extra_paths).compact.reject(&:empty?).map { |p| p.dup.freeze }
             @kind = kind.freeze
             @name = name.dup.freeze
             @version = version.to_s.dup.freeze
-            @paths = [path.dup.freeze, extra_path.dup.freeze].compact.freeze
+            @paths = [path.dup.freeze, *extra_paths].freeze
             freeze
           end
 
