@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'msgpack'
+require 'zlib'
 require_relative '../../core/transport/parcel'
 require_relative '../../core/transport/request'
 
