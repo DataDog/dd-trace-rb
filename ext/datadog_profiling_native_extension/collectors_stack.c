@@ -354,6 +354,10 @@ void sample_thread(
           state_label->str  = DDOG_CHARSLICE_C("blocked");
         } else if (CHARSLICE_EQUALS("wait_readable", name_slice)) { // Expected to be IO#wait_readable
           state_label->str  = DDOG_CHARSLICE_C("network");
+        } else if (CHARSLICE_EQUALS("_native_idle_sampling_loop", name_slice)) { // Expected to be Datadog::Profiler::Collectors::IdleSamplingHelper#_native_idle_sampling_loop
+          state_label->str  = DDOG_CHARSLICE_C("waiting");
+        } else if (CHARSLICE_EQUALS("_native_sampling_loop", name_slice)) { // Expected to be Datadog::Profiler::Collectors::CpuAndWallTimeWorker#_native_sampling_loop
+          state_label->str  = DDOG_CHARSLICE_C("sleeping");
         }
         #ifdef NO_PRIMITIVE_POP // Ruby < 3.2
           else if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
