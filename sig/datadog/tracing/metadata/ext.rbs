@@ -46,6 +46,7 @@ module Datadog
 
         module HTTP
           TAG_BASE_URL: ::String
+          TAG_ENDPOINT: ::String
           TAG_METHOD: ::String
           TAG_STATUS_CODE: ::String
           TAG_USER_AGENT: ::String

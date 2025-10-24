@@ -14,6 +14,8 @@ module Datadog
 
           def configuration: () -> untyped
 
+          def set_route_and_endpoint_tags: (trace: untyped, request_span: untyped, status: ::Integer, env: untyped) -> void
+
           def trace_http_server: (untyped span_name, start_time: untyped) -> untyped
 
           def parse_url: (untyped env, untyped original_env) -> untyped

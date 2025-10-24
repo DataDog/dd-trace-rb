@@ -554,6 +554,76 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#resource_renaming_enabled' do
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_RESOURCE_RENAMING_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_RESOURCE_RENAMING_ENABLED => env_var_value) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it 'returns false' do
+            expect(settings.tracing.resource_renaming_enabled).to eq(false)
+          end
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { 'true' }
+
+          it 'returns true' do
+            expect(settings.tracing.resource_renaming_enabled).to eq(true)
+          end
+        end
+      end
+    end
+
+    describe '#resource_renaming_enabled=' do
+      it 'changes the setting' do
+        expect { settings.tracing.resource_renaming_enabled = true }
+          .to change { settings.tracing.resource_renaming_enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
+    describe '#resource_renaming_always_simplified_endpoint' do
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT => env_var_value) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it 'returns false' do
+            expect(settings.tracing.resource_renaming_always_simplified_endpoint).to eq(false)
+          end
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { 'true' }
+
+          it 'returns true' do
+            expect(settings.tracing.resource_renaming_always_simplified_endpoint).to eq(true)
+          end
+        end
+      end
+    end
+
+    describe '#resource_renaming_always_simplified_endpoint=' do
+      it 'changes the setting' do
+        expect { settings.tracing.resource_renaming_always_simplified_endpoint = true }
+          .to change { settings.tracing.resource_renaming_always_simplified_endpoint }
+          .from(false)
+          .to(true)
+      end
+    end
+
     describe '#native_span_events' do
       subject(:native_span_events) { settings.tracing.native_span_events }
 
