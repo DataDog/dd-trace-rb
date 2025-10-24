@@ -33,6 +33,10 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::RouteFromPathInference do
         .to eq('/foo/bar/{param:int}/baz/{param:hex}/{param:int}/{param:int_id}/qux')
     end
 
+    it 'removes empty segments from path' do
+      expect(described_class.infer('/foo//1/bar')).to eq('/foo/{param:int}/bar')
+    end
+
     it 'returns nil if a non-string argument is passed' do
       expect(described_class.infer(nil)).to be_nil
     end

@@ -21,6 +21,8 @@ module Datadog
             segments = path.delete_prefix('/').split('/').first(MAX_NUMBER_OF_SEGMENTS)
 
             segments.map! do |segment|
+              next if segment == ''
+
               case segment
               when INT_PARAM_REGEX
                 '{param:int}'
@@ -36,6 +38,8 @@ module Datadog
                 segment
               end
             end
+
+            segments.compact!
 
             '/' + segments.join('/')
           rescue
