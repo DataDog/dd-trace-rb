@@ -23,42 +23,28 @@ module Datadog
         def receivers(telemetry)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
+            evaluator = OpenFeature.evaluator
+            break unless evaluator
+
             changes.each do |change|
-              next unless OpenFeature.evaluator
+              content = repository[change.path]
 
-              # TODO: Implement payload reading
-              # content = repository[change.path]
-              content = StringIO.new(<<~JSON)
-              [
-                {
-                  "flag": "empty_string_flag",
-                  "variationType": "STRING",
-                  "defaultValue": "default",
-                  "targetingKey": "alice",
-                  "attributes": {
-                    "country": "US"
-                  },
-                  "result": {
-                    "value": ""
-                  }
-                },
-                {
-                  "flag": "empty_string_flag",
-                  "variationType": "STRING",
-                  "defaultValue": "default",
-                  "targetingKey": "bob",
-                  "attributes": {},
-                  "result": {
-                    "value": "non_empty"
-                  }
-                }
-              ]
-              JSON
+              unless content || change.type == :delete
+                next telemetry.error("OpenFeature: RemoteConfig change is not present on #{change.type}")
+              end
 
-              OpenFeature.evaluator.ufc = read_content(content)
+              case change.type
+              when :insert, :update
+                # @type var content: Core::Remote::Configuration::Content
+                evaluator.ufc = read_content(content)
+                content.applied
+              when :delete
+                # no-op
+                # NOTE: Will it ever happen?
+              end
             end
 
-            OpenFeature.evaluator.reconfigure!
+            evaluator.reconfigure!
           end
 
           [receiver]
@@ -66,11 +52,10 @@ module Datadog
 
         private
 
-        def parse_content(content)
+        def read_content(content)
           data = content.data.read
           content.data.rewind
 
-          # FIXME: We should handle it
           raise ReadError, 'EOF reached' if data.nil?
 
           data
