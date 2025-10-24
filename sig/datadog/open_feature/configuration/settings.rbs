@@ -1,0 +1,11 @@
+module Datadog
+  module OpenFeature
+    module Configuration
+      module Settings
+        def self.extended: (untyped) -> void
+
+        def self.add_settings!: (untyped) -> void
+      end
+    end
+  end
+end

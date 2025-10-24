@@ -3,6 +3,7 @@
 module Datadog
   module OpenFeature
     module Configuration
+      # A settings class for the OpenFeature component.
       module Settings
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)

@@ -5,6 +5,8 @@ require_relative '../core/remote/dispatcher'
 module Datadog
   module OpenFeature
     module Remote
+      ReadError = Class.new(StandardError)
+
       class << self
         FFE_FLAG_CONFIGURATION_RULES = 1 << 46
         FFE_PRODUCTS = ['FFE_FLAGS'].freeze
