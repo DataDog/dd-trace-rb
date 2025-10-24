@@ -30,7 +30,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::RouteFromPathInference do
 
     it 'only replaces matches in first 8 segments' do
       expect(described_class.infer('/foo/bar/123/baz/FFF000/345/45-6/qux/567'))
-        .to eq('/foo/bar/{param:int}/baz/{param:hex}/{param:int}/{param:int_id}/qux/567')
+        .to eq('/foo/bar/{param:int}/baz/{param:hex}/{param:int}/{param:int_id}/qux')
     end
 
     it 'returns nil if a non-string argument is passed' do
