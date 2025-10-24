@@ -17,9 +17,15 @@ RSpec.describe Datadog::DataStreams::Processor do
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
-  let(:settings) { instance_double(Datadog::Core::Configuration::Settings, service: 'test-service', env: 'test') }
-  let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
+  let(:settings) { double('Settings', service: Datadog.configuration.service, env: Datadog.configuration.env) }
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettings.new(adapter: :test, hostname: 'localhost', port: 9999) }
   let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
+
+  before do
+    # Stub HTTP requests to the agent
+    stub_request(:post, %r{http://localhost:9999/v0.1/pipeline_stats})
+      .to_return(status: 200, body: '', headers: {})
+  end
 
   describe '#initialize' do
     it 'sets up periodic worker with custom interval' do
@@ -97,7 +103,7 @@ RSpec.describe Datadog::DataStreams::Processor do
 
       it 'can get a previous hash from the carrier' do
         # Producer creates context in carrier
-        producer = described_class.new(interval: 10.0, logger: logger)
+        producer = described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings)
         carrier = {}
         producer.set_produce_checkpoint(type: 'kafka', destination: 'orders', manual_checkpoint: false) do |key, value|
           carrier[key] = value
