@@ -7,6 +7,7 @@ require 'ostruct'
 require 'datadog/tracing/contrib/kafka/integration'
 require 'datadog/tracing/contrib/kafka/instrumentation/producer'
 require 'datadog/tracing/contrib/kafka/instrumentation/consumer'
+require 'datadog'
 module ActiveSupport
   module Notifications
     def self.subscribe(*_args)
@@ -60,7 +61,6 @@ module Kafka
     end
   end
 end
-require 'datadog'
 
 RSpec.describe 'Kafka Data Streams instrumentation' do
   let(:configuration_options) { {} }
