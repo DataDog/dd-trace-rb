@@ -30,7 +30,7 @@ module Datadog
           def initialize: (
             Core::Transport::HTTP::API::Map apis,
             ::String default_api,
-            ?logger: Core::Logger?
+            logger: Core::Logger
           ) -> void
 
           def send_stats: (::Hash[::String, untyped] payload) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)

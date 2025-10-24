@@ -27,10 +27,10 @@ module Datadog
             @messages_array.each do |message|
               if configuration[:distributed_tracing]
                 headers = if message.metadata.respond_to?(:raw_headers)
-                            message.metadata.raw_headers
-                          else
-                            message.metadata.headers
-                          end
+                  message.metadata.raw_headers
+                else
+                  message.metadata.headers
+                end
                 trace_digest = Karafka.extract(headers)
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
               end
@@ -38,10 +38,10 @@ module Datadog
               if Datadog::DataStreams.enabled?
                 begin
                   headers = if message.metadata.respond_to?(:raw_headers)
-                              message.metadata.raw_headers
-                            else
-                              message.metadata.headers
-                            end
+                    message.metadata.raw_headers
+                  else
+                    message.metadata.headers
+                  end
 
                   Datadog::DataStreams.set_consume_checkpoint(
                     type: 'kafka',

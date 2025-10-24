@@ -9,7 +9,7 @@ module Datadog
           attr_reader api: Stats::API::Instance
           attr_reader logger: Core::Logger
 
-          def initialize: (Stats::API::Instance api, ?logger: Core::Logger?) -> void
+          def initialize: (Stats::API::Instance api, logger: Core::Logger) -> void
 
           def send_stats_payload: (Transport::Stats::Request request) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
 
