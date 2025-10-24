@@ -24,7 +24,7 @@ module Datadog
 
       attr_reader :pathway_context, :buckets, :bucket_size_ns
 
-      def initialize(interval:, logger:, settings: nil, agent_settings: nil)
+      def initialize(interval:, logger:, settings:, agent_settings:)
         raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
 
         @settings = settings
@@ -254,7 +254,7 @@ module Datadog
           stats_buckets = serialize_buckets
 
           payload = {
-            'Service' => service_name,
+            'Service' => @settings.service,
             'TracerVersion' => Datadog::VERSION::STRING,
             'Lang' => 'ruby',
             'Stats' => stats_buckets,
@@ -306,8 +306,8 @@ module Datadog
       # Compute new pathway hash using FNV-1a algorithm.
       # Combines service, env, tags, and parent hash to create unique pathway identifier.
       def compute_pathway_hash(current_hash, tags)
-        service = service_name || 'ruby-service'
-        env = env_name || 'none'
+        service = @settings.service || 'ruby-service'
+        env = @settings.env || 'none'
 
         bytes = service.bytes + env.bytes
         tags.each { |tag| bytes += tag.bytes }
@@ -410,7 +410,7 @@ module Datadog
 
       def transport
         @transport ||= Transport::HTTP.default(
-          agent_settings: resolved_agent_settings,
+          agent_settings: @agent_settings,
           logger: @logger
         )
       end
@@ -497,18 +497,6 @@ module Datadog
           payload_size_sum: 0,
           payload_size_count: 0
         }
-      end
-
-      def service_name
-        @settings&.service || Datadog.configuration.service
-      end
-
-      def env_name
-        @settings&.env || Datadog.configuration.env
-      end
-
-      def resolved_agent_settings
-        @agent_settings || @settings&.agent || Datadog.configuration.agent
       end
     end
   end
