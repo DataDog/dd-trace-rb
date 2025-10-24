@@ -16,8 +16,9 @@ module DataStreamsHelpers
 
     return if Datadog::Core::DDSketch.supported?
 
-    # Skip if DDSketch is not available (e.g., in Nix environments where libdatadog isn't built)
-    testcase.skip("Data Streams Monitoring is not available: DDSketch is not supported")
+    # Ensure DDSketch was loaded correctly
+    raise "DDSketch does not seem to be available: #{Datadog::Core::LIBDATADOG_API_FAILURE}. " \
+      "Try running `bundle exec rake compile` before running this test."
   end
 end
 
