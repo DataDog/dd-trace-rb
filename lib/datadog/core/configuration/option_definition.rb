@@ -42,7 +42,8 @@ module Datadog
         # Acts as DSL for building OptionDefinitions
         # @public_api
         class Builder
-          InvalidOptionError = Class.new(StandardError)
+          # Steep: https://github.com/soutaro/steep/issues/1880
+          InvalidOptionError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
 
           attr_reader \
             :helpers
@@ -119,7 +120,8 @@ module Datadog
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             after_set(&options[:after_set]) if options.key?(:after_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
-            setter(&options[:setter]) if options.key?(:setter)
+            # Steep: https://github.com/soutaro/steep/issues/477
+            setter(&options[:setter]) if options.key?(:setter) # steep:ignore BlockTypeMismatch
             type(options[:type], **(options[:type_options] || {})) if options.key?(:type)
           end
 
