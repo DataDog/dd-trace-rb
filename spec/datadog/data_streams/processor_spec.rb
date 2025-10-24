@@ -95,7 +95,7 @@ RSpec.describe Datadog::DataStreams::Processor do
 
       it 'can get a previous hash from the carrier' do
         # Producer creates context in carrier
-        producer = described_class.new
+        producer = described_class.new(interval: 10.0, logger: logger)
         carrier = {}
         producer.set_produce_checkpoint(type: 'kafka', destination: 'orders', manual_checkpoint: false) do |key, value|
           carrier[key] = value
@@ -111,7 +111,7 @@ RSpec.describe Datadog::DataStreams::Processor do
         expect(processor.pathway_context.hash).to eq(KAFKA_ORDERS_CONSUME_HASH)
         expect(processor.pathway_context.hash).not_to eq(produce_hash)
 
-        producer.stop(true, 1)
+        producer.stop(true)
       end
 
       it 'sets tags on the active_span for that hash' do
