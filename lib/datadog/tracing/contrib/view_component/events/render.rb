@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/analytics'
+require_relative '../../../../tracing'
+require_relative '../../../metadata/ext'
+require_relative '../../analytics'
 require_relative '../ext'
 require_relative '../event'
 
