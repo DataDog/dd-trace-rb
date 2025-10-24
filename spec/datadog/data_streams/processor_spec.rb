@@ -18,7 +18,7 @@ RSpec.describe Datadog::DataStreams::Processor do
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
   let(:settings) { instance_double(Datadog::Core::Configuration::Settings, service: 'test-service', env: 'test') }
-  let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings) }
+  let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
   let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
 
   describe '#initialize' do
