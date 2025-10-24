@@ -14,8 +14,9 @@ module Datadog
             settings :open_feature do
               option :enabled do |o|
                 o.type :bool
-                o.env "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED"
-                o.default true
+                # TODO: Add this env variable to the allowed list
+                o.env 'DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED'
+                o.default false
               end
             end
           end
