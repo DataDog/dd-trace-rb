@@ -61,7 +61,13 @@ RSpec.describe 'DI integration from remote config' do
   let(:receiver) { remote.receivers(telemetry)[0] }
 
   let(:component) do
-    Datadog::DI::Component.build!(settings, agent_settings, logger)
+    # TODO should this use Component.new? We have to manually pass in
+    # the code tracker in that case.
+    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+      if component.nil?
+        raise "Component failed to create - unsuitable environment? Check log entries"
+      end
+    end
   end
 
   let(:propagate_all_exceptions) { true }

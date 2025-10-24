@@ -409,9 +409,11 @@ module Datadog
           # TODO test this path
         end
 
-        # TODO internal check - remove or use a proper exception
+        # Internal sanity check - untargeted trace points create a huge
+        # performance impact, and we absolutely do not want to set them
+        # accidentally.
         if !iseq && !permit_untargeted_trace_points
-          raise "Trying to use an untargeted trace point when user did not permit it"
+          raise Error::InternalError, "Trying to use an untargeted trace point when user did not permit it"
         end
 
         lock.synchronize do
