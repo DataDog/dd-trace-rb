@@ -75,45 +75,12 @@ jobs:
           echo "forced_tests=$value" >> "$GITHUB_OUTPUT"
 
   test:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - weblogs: ""  # All of them
-            scenarios: DEFAULT,EVERYTHING_DISABLED,APPSEC_BLOCKING_FULL_DENYLIST,APPSEC_BLOCKING,GRAPHQL_APPSEC,PARAMETRIC
-          - weblogs: rack,rails72
-            scenarios: |
-              APPSEC_API_SECURITY,
-              APPSEC_API_SECURITY_RC,
-              APPSEC_AUTO_EVENTS_EXTENDED,
-              APPSEC_CORRUPTED_RULES,
-              APPSEC_CUSTOM_OBFUSCATION,
-              APPSEC_CUSTOM_RULES,
-              APPSEC_LOW_WAF_TIMEOUT,
-              APPSEC_MISSING_RULES,
-              APPSEC_RATE_LIMITER,
-              APPSEC_RULES_MONITORING_WITH_ERRORS,
-              APPSEC_STANDALONE,
-              CROSSED_TRACING_LIBRARIES,
-              DEBUGGER_PII_REDACTION,
-              DEBUGGER_PROBES_SNAPSHOT,
-              DEBUGGER_PROBES_STATUS,
-              INTEGRATIONS,
-              PROFILING,
-              REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD,
-              REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES,
-              REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE,
-              SAMPLING,
-              SCA_STANDALONE,
-              TELEMETRY_APP_STARTED_PRODUCTS_DISABLED,
-              TELEMETRY_DEPENDENCY_LOADED_TEST_FOR_DEPENDENCY_COLLECTION_DISABLED,
-              TELEMETRY_LOG_GENERATION_DISABLED,
-              TELEMETRY_METRIC_GENERATION_DISABLED,
-              TRACING_CONFIG_NONDEFAULT
     needs:
       - build
     uses: DataDog/system-tests/.github/workflows/system-tests.yml@38d5f42dd9e6e0629d01d475a245eca7a13aeac7  # Automated: This reference is automatically updated.
-    secrets: inherit  # zizmor: ignore[secrets-inherit]
+    secrets:
+      TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}  # key used to pushed test results to test optim
+      DD_API_KEY: ${{ secrets.DD_API_KEY }}  # key used in tests runs
     permissions:
       contents: read
       id-token: write
@@ -122,12 +89,12 @@ jobs:
       library: ruby
       binaries_artifact: dd-trace-rb
       desired_execution_time: 300  # 5 minutes
-      scenarios: ${{ matrix.scenarios }}
-      weblogs: ${{ matrix.weblogs }}
+      scenarios_groups: tracer_release
       skip_empty_scenarios: true
       ref: 38d5f42dd9e6e0629d01d475a245eca7a13aeac7  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
+      push_to_test_optimization: true
 
   complete:
     name: System Tests (complete)
