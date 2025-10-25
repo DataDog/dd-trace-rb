@@ -18,7 +18,7 @@ module Datadog
             raise(ArgumentError, "Feature Flags are not supported: #{Datadog::Core::LIBDATADOG_API_FAILURE}")
           end
 
-          super(json_config)
+          _native_initialize(json_config)
         end
       end
 
@@ -29,7 +29,7 @@ module Datadog
             raise(ArgumentError, "Feature Flags are not supported: #{Datadog::Core::LIBDATADOG_API_FAILURE}")
           end
 
-          super(targeting_key)
+          _native_initialize(targeting_key)
         end
 
         def self.new_with_attribute(targeting_key, attr_name, attr_value)
@@ -38,20 +38,15 @@ module Datadog
           end
 
           context = allocate
-          context.initialize_with_attribute(targeting_key, attr_name, attr_value)
+          context._native_initialize_with_attribute(targeting_key, attr_name, attr_value)
           context
         end
       end
 
       # Assignment result from feature flag evaluation
       class Assignment
-        def initialize
-          unless FeatureFlags.supported?
-            raise(ArgumentError, "Feature Flags are not supported: #{Datadog::Core::LIBDATADOG_API_FAILURE}")
-          end
-
-          super()
-        end
+        # Assignment objects are created by the native get_assignment method
+        # No explicit initialization needed
       end
 
       # Evaluates a feature flag and returns an Assignment or nil
@@ -60,7 +55,7 @@ module Datadog
           raise(ArgumentError, "Feature Flags are not supported: #{Datadog::Core::LIBDATADOG_API_FAILURE}")
         end
 
-        super(configuration, flag_key, evaluation_context)
+        _native_get_assignment(configuration, flag_key, evaluation_context)
       end
     end
   end

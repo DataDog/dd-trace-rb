@@ -16,7 +16,7 @@ static VALUE evaluation_context_initialize_with_attribute(VALUE self, VALUE targ
 static VALUE assignment_alloc(VALUE klass);
 static void assignment_free(void *ptr);
 
-static VALUE native_get_assignment(VALUE config, VALUE flag_key, VALUE context);
+static VALUE native_get_assignment(VALUE self, VALUE config, VALUE flag_key, VALUE context);
 
 NORETURN(static void raise_ffe_error(const char *message, ddog_VoidResult result));
 
@@ -26,20 +26,20 @@ void feature_flags_init(VALUE core_module) {
   // Configuration class
   VALUE configuration_class = rb_define_class_under(feature_flags_module, "Configuration", rb_cObject);
   rb_define_alloc_func(configuration_class, configuration_alloc);
-  rb_define_method(configuration_class, "initialize", configuration_initialize, 1);
+  rb_define_method(configuration_class, "_native_initialize", configuration_initialize, 1);
 
   // EvaluationContext class  
   VALUE evaluation_context_class = rb_define_class_under(feature_flags_module, "EvaluationContext", rb_cObject);
   rb_define_alloc_func(evaluation_context_class, evaluation_context_alloc);
-  rb_define_method(evaluation_context_class, "initialize", evaluation_context_initialize, 1);
-  rb_define_method(evaluation_context_class, "initialize_with_attribute", evaluation_context_initialize_with_attribute, 3);
+  rb_define_method(evaluation_context_class, "_native_initialize", evaluation_context_initialize, 1);
+  rb_define_method(evaluation_context_class, "_native_initialize_with_attribute", evaluation_context_initialize_with_attribute, 3);
 
   // Assignment class
   VALUE assignment_class = rb_define_class_under(feature_flags_module, "Assignment", rb_cObject);
   rb_define_alloc_func(assignment_class, assignment_alloc);
 
   // Module-level method
-  rb_define_module_function(feature_flags_module, "get_assignment", native_get_assignment, 3);
+  rb_define_module_function(feature_flags_module, "_native_get_assignment", native_get_assignment, 3);
 }
 
 // Configuration TypedData definition
@@ -151,7 +151,7 @@ static void raise_ffe_error(const char *message, ddog_VoidResult result) {
   rb_raise(rb_eRuntimeError, "%s: %"PRIsVALUE, message, get_error_details_and_drop(&result.err));
 }
 
-static VALUE native_get_assignment(VALUE config_obj, VALUE flag_key, VALUE context_obj) {
+static VALUE native_get_assignment(VALUE self, VALUE config_obj, VALUE flag_key, VALUE context_obj) {
   Check_Type(flag_key, T_STRING);
 
   ddog_ffe_Handle_Configuration *config;
