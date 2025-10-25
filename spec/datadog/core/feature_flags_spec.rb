@@ -5,7 +5,7 @@ RSpec.describe Datadog::Core::FeatureFlags do
     {
       "data": {
         "type": "universal-flag-configuration",
-        "id": "test-env",
+        "id": "1",
         "attributes": {
           "createdAt": "2024-04-17T19:40:53.716Z",
           "format": "SERVER",
