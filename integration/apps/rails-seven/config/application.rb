@@ -27,7 +27,7 @@ module Acme
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
 
-    config.cache_store = :redis_cache_store, { url: ENV['REDIS_URL'] }
+    config.cache_store = :redis_cache_store, {url: ENV['REDIS_URL']}
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
@@ -35,6 +35,6 @@ module Acme
     # Don't generate system test files.
     config.generators.system_tests = nil
 
-    config.exceptions_app = self.routes
+    config.exceptions_app = routes
   end
 end
