@@ -36,7 +36,7 @@ GEM
       net-http (>= 0.5.0)
     ffi (1.17.2-java)
     hashdiff (1.2.1)
-    json (2.15.1-java)
+    json (2.15.2-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (22.0.1.1.0)
