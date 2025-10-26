@@ -31,7 +31,7 @@ GEM
     dogstatsd-ruby (5.7.1)
     ffi (1.17.2-java)
     hashdiff (1.2.1)
-    json (2.15.1-java)
+    json (2.15.2-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
     karafka (2.5.1)
@@ -43,7 +43,7 @@ GEM
     karafka-core (2.5.7)
       karafka-rdkafka (>= 0.20.0)
       logger (>= 1.6.0)
-    karafka-rdkafka (0.22.0)
+    karafka-rdkafka (0.22.2)
       ffi (~> 1.15)
       json (> 2.0)
       logger
@@ -100,7 +100,7 @@ GEM
     spoon (0.0.6)
       ffi
     warning (1.5.0)
-    waterdrop (2.8.11)
+    waterdrop (2.8.12)
       karafka-core (>= 2.4.9, < 3.0.0)
       karafka-rdkafka (>= 0.20.0)
       zeitwerk (~> 2.3)
