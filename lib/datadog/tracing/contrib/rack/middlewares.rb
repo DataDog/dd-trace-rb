@@ -231,12 +231,12 @@ module Datadog
               # This happens when processing requests to a nested rack application,
               # when parent app is instrumented, and the nested app is not instrumented
               #
-              # When resource_renaming_always_simplified_endpoint is set to true,
+              # When resource_renaming.always_simplified_endpoint is set to true,
               # we infer the route from the full request path.
               if last_script_name == '' && env['SCRIPT_NAME'] != '' &&
-                  !Datadog.configuration.tracing.resource_renaming_always_simplified_endpoint &&
+                  !Datadog.configuration.tracing.resource_renaming.always_simplified_endpoint &&
                   (inferred_route = RouteFromPathInference.infer(env['PATH_INFO']))
-                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, last_route + inferred_route)
+                set_endpoint_tag(request_span, last_route + inferred_route)
               end
 
               # Clear the route and route path tags from the request trace to avoid possibility of misplacement
@@ -248,27 +248,34 @@ module Datadog
               request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
             end
 
-            if Datadog.configuration.tracing.resource_renaming_always_simplified_endpoint ||
+            if Datadog.configuration.tracing.resource_renaming.always_simplified_endpoint ||
                 request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil?
-              # when http.route tag wasn't set or resource_renaming_always_simplified_endpoint is set to true,
+              # when http.route tag wasn't set or resource_renaming.always_simplified_endpoint is set to true,
               # we will try to infer the path for the full request path,
               # which is SCRIPT_NAME + PATH_INFO for mounted rack applications
               full_path = env['SCRIPT_NAME'].to_s + env['PATH_INFO'].to_s
 
-              if (infered_route = RouteFromPathInference.infer(full_path))
-                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, infered_route)
+              if (inferred_route = RouteFromPathInference.infer(full_path))
+                set_endpoint_tag(request_span, inferred_route)
               end
             elsif !request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT)
-              request_span.set_tag(
-                Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT,
-                request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
-              )
+              set_endpoint_tag(request_span, request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
             end
           end
           # rubocop:enable Metrics/AbcSize
           # rubocop:enable Metrics/MethodLength
           # rubocop:enable Metrics/CyclomaticComplexity
           # rubocop:enable Metrics/PerceivedComplexity
+
+          def set_endpoint_tag(request_span, value)
+            # In the first iteration, http.endpoint must be reported in 2 cases:
+            #   1. resource renaming is enabled
+            #   2. AppSec is enabled and resource renaming is disabled (by default, not explicitly)
+            if Datadog.configuration.tracing.resource_renaming.enabled ||
+                Datadog.configuration.appsec.enabled && Datadog.configuration.tracing.resource_renaming.options[:enabled].default_precedence?
+              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, value)
+            end
+          end
 
           # rubocop:disable Metrics/AbcSize
           # rubocop:disable Metrics/MethodLength

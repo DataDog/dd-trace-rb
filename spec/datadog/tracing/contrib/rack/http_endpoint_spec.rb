@@ -17,6 +17,7 @@ RSpec.describe 'Rack testing for http.endpoint tag' do
     example.run
   ensure
     Datadog.configuration.tracing[:rack].reset!
+    Datadog.configuration.tracing.resource_renaming.reset!
   end
 
   let(:app) do
@@ -42,29 +43,70 @@ RSpec.describe 'Rack testing for http.endpoint tag' do
     end
   end
 
-  it 'sets http.endpoint tag on request to base route' do
-    response = get('/hello/world')
+  context 'when resource_renaming.enabled is disabled by default and appsec is enabled' do
+    before do
+      Datadog.configuration.appsec.enabled = true
+      Datadog.configuration.tracing.resource_renaming.reset!
+    end
 
-    expect(response).to be_ok
-    expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT))
-      .to eq('/hello/world')
+    after do
+      Datadog.configuration.appsec.reset!
+    end
+
+    it 'sets http.endpoint tag on request to base route' do
+      response = get('/hello/world')
+
+      expect(response).to be_ok
+      expect(request_span.get_tag('http.endpoint')).to eq('/hello/world')
+    end
   end
 
-  it 'sets http.endpoint tag on request to nested app route' do
-    response = get('/rack/hello/world')
+  context 'when resource_renaming.enabled is explicitly set to false and appsec is enabled' do
+    before do
+      Datadog.configuration.appsec.enabled = true
+      Datadog.configuration.tracing.resource_renaming.enabled = false
+    end
 
-    expect(response).to be_ok
-    expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT))
-      .to eq('/rack/hello/world')
+    after do
+      Datadog.configuration.appsec.reset!
+    end
+
+    it 'does not report http.endpoint' do
+      response = get('/hello/world')
+
+      expect(response).to be_ok
+      expect(request_span.tags).not_to have_key('http.endpoint')
+    end
   end
 
-  it 'sets no http.endpoint tag when response status is 404' do
-    response = get('/no_route')
+  context 'when resource_renaming.enabled is set to true' do
+    before do
+      Datadog.configuration.tracing.resource_renaming.enabled = true
+    end
 
-    expect(response).to be_not_found
-    expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT))
-      .to be_nil
+    it 'sets http.endpoint tag on request to base route' do
+      response = get('/hello/world')
+
+      expect(response).to be_ok
+      expect(request_span.get_tag('http.endpoint')).to eq('/hello/world')
+    end
+
+    it 'sets http.endpoint tag on request to nested app route' do
+      response = get('/rack/hello/world')
+
+      expect(response).to be_ok
+      expect(request_span.get_tag('http.endpoint')).to eq('/rack/hello/world')
+    end
+
+    it 'sets no http.endpoint tag when response status is 404' do
+      response = get('/no_route')
+
+      expect(response).to be_not_found
+      expect(request_span.get_tag('http.endpoint')).to be_nil
+    end
   end
+
+  private
 
   def request_span
     spans.detect do |span|

@@ -14,12 +14,14 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
     let(:no_db) { true }
 
     include Rack::Test::Methods
+
     include_context 'Rails test application'
 
     after do
       Datadog.configuration.tracing[:action_pack].reset!
       Datadog.registry[:rack].reset_configuration!
       Datadog.configuration.tracing.reset!
+      Datadog.configuration.appsec.reset!
     end
 
     describe '#find_routes' do
@@ -207,12 +209,13 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
         end
 
         describe 'http.endpoint tag' do
-          context 'when resource_renaming_always_simplified_endpoint is set to false' do
+          context 'when resource_renaming.enabled is disabled by default and appsec is enabled' do
             before do
-              Datadog.configuration.tracing.resource_renaming_always_simplified_endpoint = false
+              Datadog.configuration.appsec.enabled = true
+              Datadog.configuration.tracing.resource_renaming.reset!
             end
 
-            it 'is set correctly when requesting a known route' do
+            it 'reports http.endpoint for rails routes' do
               get '/api/users/1'
 
               request_span = spans.first
@@ -221,81 +224,120 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
               expect(request_span.name).to eq('rack.request')
               expect(request_span.tags.fetch('http.endpoint')).to eq('/api/users/:id')
             end
-
-            it 'is set correctly for ambiguous route with constraints' do
-              get '/items/1'
-
-              request_span = spans.first
-
-              expect(last_response).to be_ok
-              expect(request_span.name).to eq('rack.request')
-              expect(request_span.tags.fetch('http.endpoint')).to eq('/items/:id')
-            end
-
-            it 'is set correctly for routes with globbing' do
-              get 'books/some/section/title'
-
-              request_span = spans.first
-
-              expect(last_response).to be_ok
-              expect(request_span.name).to eq('rack.request')
-              expect(request_span.tags.fetch('http.endpoint')).to eq('/books/*section/:title')
-            end
-
-            it 'is set correctly for routes with optional parameter' do
-              get 'books/some-category'
-
-              request_span = spans.first
-
-              expect(last_response).to be_ok
-              expect(request_span.name).to eq('rack.request')
-              expect(request_span.tags.fetch('http.endpoint')).to eq('/books(/:category)')
-            end
-
-            it 'is set correctly for rails engine routes' do
-              get '/api/auth/sign-in'
-
-              request_span = spans.first
-
-              expect(last_response).to be_ok
-              expect(request_span.name).to eq('rack.request')
-              expect(request_span.tags.fetch('http.endpoint')).to eq('/api/auth/sign-in')
-            end
-
-            it 'is set using infered route for routes to a mounted rack app' do
-              get '/api/status/some/path/123'
-
-              request_span = spans.first
-
-              expect(last_response).to be_ok
-              expect(request_span.name).to eq('rack.request')
-              expect(request_span.tags.fetch('http.endpoint')).to eq('/api/status/some/path/{param:int}')
-            end
-
-            it 'is not set when requesting an unknown route' do
-              get '/nope'
-
-              request_span = spans.first
-
-              expect(last_response).to be_not_found
-              expect(request_span.name).to eq('rack.request')
-              expect(request_span.tags).not_to have_key('http.endpoint')
-            end
           end
 
-          context 'when tracing.resource_renaming_always_simplified_endpoint is set to true' do
+          context 'when resource_renaming.enabled is explicitly set to false and appsec is enabled' do
             before do
-              Datadog.configuration.tracing.resource_renaming_always_simplified_endpoint = true
+              Datadog.configuration.appsec.enabled = true
+              Datadog.configuration.tracing.resource_renaming.enabled = false
             end
 
-            it 'infers http.endpoint without using http.route tag value' do
+            it 'does not report http.endpoint for rails routes' do
               get '/api/users/1'
 
               request_span = spans.first
 
               expect(last_response).to be_ok
               expect(request_span.name).to eq('rack.request')
-              expect(request_span.tags.fetch('http.endpoint')).to eq('/api/users/{param:int}')
+              expect(request_span.tags).not_to have_key('http.endpoint')
+            end
+          end
+
+          context 'when resource_renaming.enabled is set to true' do
+            before do
+              Datadog.configuration.tracing.resource_renaming.enabled = true
+            end
+
+            context 'when resource_renaming.always_simplified_endpoint is set to false' do
+              before do
+                Datadog.configuration.tracing.resource_renaming.always_simplified_endpoint = false
+              end
+
+              it 'is set correctly when requesting a known route' do
+                get '/api/users/1'
+
+                request_span = spans.first
+
+                expect(last_response).to be_ok
+                expect(request_span.name).to eq('rack.request')
+                expect(request_span.tags.fetch('http.endpoint')).to eq('/api/users/:id')
+              end
+
+              it 'is set correctly for ambiguous route with constraints' do
+                get '/items/1'
+
+                request_span = spans.first
+
+                expect(last_response).to be_ok
+                expect(request_span.name).to eq('rack.request')
+                expect(request_span.tags.fetch('http.endpoint')).to eq('/items/:id')
+              end
+
+              it 'is set correctly for routes with globbing' do
+                get 'books/some/section/title'
+
+                request_span = spans.first
+
+                expect(last_response).to be_ok
+                expect(request_span.name).to eq('rack.request')
+                expect(request_span.tags.fetch('http.endpoint')).to eq('/books/*section/:title')
+              end
+
+              it 'is set correctly for routes with optional parameter' do
+                get 'books/some-category'
+
+                request_span = spans.first
+
+                expect(last_response).to be_ok
+                expect(request_span.name).to eq('rack.request')
+                expect(request_span.tags.fetch('http.endpoint')).to eq('/books(/:category)')
+              end
+
+              it 'is set correctly for rails engine routes' do
+                get '/api/auth/sign-in'
+
+                request_span = spans.first
+
+                expect(last_response).to be_ok
+                expect(request_span.name).to eq('rack.request')
+                expect(request_span.tags.fetch('http.endpoint')).to eq('/api/auth/sign-in')
+              end
+
+              it 'is set using infered route for routes to a mounted rack app' do
+                get '/api/status/some/path/123'
+
+                request_span = spans.first
+
+                expect(last_response).to be_ok
+                expect(request_span.name).to eq('rack.request')
+                expect(request_span.tags.fetch('http.endpoint')).to eq('/api/status/some/path/{param:int}')
+              end
+
+              it 'is not set when requesting an unknown route' do
+                get '/nope'
+
+                request_span = spans.first
+
+                expect(last_response).to be_not_found
+                expect(request_span.name).to eq('rack.request')
+                expect(request_span.tags).not_to have_key('http.endpoint')
+              end
+            end
+
+            context 'when tracing.resource_renaming.always_simplified_endpoint is set to true' do
+              before do
+                Datadog.configuration.tracing.resource_renaming.always_simplified_endpoint = true
+              end
+
+              it 'infers http.endpoint without using http.route tag value' do
+                get '/api/users/1'
+
+                request_span = spans.first
+
+                expect(last_response).to be_ok
+                expect(request_span.name).to eq('rack.request')
+                expect(request_span.tags.fetch('http.endpoint')).to eq('/api/users/{param:int}')
+              end
             end
           end
         end
