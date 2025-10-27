@@ -160,13 +160,30 @@ EOF
 
 echo "✅ Step 2 completed: Build environment set up"
 
-# Step 3: Run Tests
-echo "🧪 Step 3: Compiling and testing..."
+# Step 3: Compile Ruby Extension
+echo "🔨 Step 3: Compiling Ruby extension..."
 
 # Set PKG_CONFIG_PATH to find our custom build
 export PKG_CONFIG_PATH="$(pwd)/my-libdatadog-build/pkgconfig:$PKG_CONFIG_PATH"
 echo "PKG_CONFIG_PATH set to: $PKG_CONFIG_PATH"
 
+# Compile the Ruby extension
+cd ext/libdatadog_api
+echo "Generating Makefile..."
+ruby extconf.rb
+echo "Compiling extension..."
+make
+echo "Installing extension..."
+cp libdatadog_api.*.bundle ../../lib/
+echo "Cleaning up build artifacts..."
+make clean
+rm -f Makefile
+cd ../..
+
+echo "✅ Step 3 completed: Ruby extension built and installed"
+
+# Step 4: Test and Verify
+echo "🧪 Step 4: Testing FFE functionality..."
 echo "🔍 Verifying functionality..."
 bundle exec ruby -e "
 require './lib/datadog/core/feature_flags'
@@ -215,7 +232,13 @@ rescue => e
 end
 "
 
-# echo "📋 Running RSpec tests..."
-# bundle exec rspec spec/datadog/core/feature_flags_spec.rb
+echo "📋 Running RSpec tests..."
+bundle exec rspec spec/datadog/core/feature_flags_spec.rb
+
+echo "✅ Step 4 completed: FFE functionality verified"
+
+# Step 5: Clean up build directory
+echo "🧹 Step 5: Cleaning up build directory..."
+rm -rf my-libdatadog-build
 
 echo "✅ All steps completed successfully!"
