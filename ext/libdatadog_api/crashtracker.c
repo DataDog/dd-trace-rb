@@ -58,7 +58,6 @@ static void ruby_runtime_stack_callback(
 
 static bool first_init = true;
 
-// Safety checks for signal-safe stack walking
 static bool is_pointer_readable(const void *ptr, size_t size) {
   if (!ptr) return false;
 
@@ -68,7 +67,7 @@ static bool is_pointer_readable(const void *ptr, size_t size) {
   size_t pages = ((char*)ptr + size - (char*)aligned_ptr + page_size - 1) / page_size;
 
   // Stack-allocate a small buffer for mincore results.. should be safe?
-  char vec[16]; // Support up to 16 pages (64KB on 4K page systems)
+  char vec[16];
   if (pages > 16) return false; // Too big to check safely
 
   return mincore(aligned_ptr, pages * page_size, vec) == 0;
@@ -288,8 +287,7 @@ static void ruby_runtime_stack_callback(
   cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
   int frame_count = 0;
-  const int MAX_FRAMES = 20;
-
+  const int MAX_FRAMES = 50;
   for (; cfp != top_sentinel && frame_count < MAX_FRAMES; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
     if (!is_valid_control_frame(cfp, ec)) {
       continue; // Skip invalid frames
@@ -300,6 +298,7 @@ static void ruby_runtime_stack_callback(
     }
 
     if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->iseq) {
+      // Handle Ruby frames
       const rb_iseq_t *iseq = cfp->iseq;
 
       if (!iseq || !iseq->body) {
@@ -331,6 +330,28 @@ static void ruby_runtime_stack_callback(
         .function_name = function_name,
         .file_name = file_name,
         .line_number = line_no,
+        .column_number = 0
+      };
+
+      emit_frame(&frame);
+      frame_count++;
+    } else if (VM_FRAME_CFRAME_P(cfp)) {
+      const char *function_name = "<C method>";
+      const char *file_name = "<C extension>";
+
+      // Try to get method entry information
+      const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(cfp);
+      if (me && me->def && me->def->original_id) {
+        const char *method_name = rb_id2name(me->def->original_id);
+        if (method_name && is_pointer_readable(method_name, strlen(method_name))) {
+          function_name = method_name;
+        }
+      }
+
+      ddog_crasht_RuntimeStackFrame frame = {
+        .function_name = function_name,
+        .file_name = file_name,
+        .line_number = 0,
         .column_number = 0
       };
 

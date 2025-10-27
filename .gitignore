@@ -57,3 +57,5 @@ lib/*.so
 
 # Benchmark result files
 /benchmarks/*.json
+
+my-libdatadog-build/
