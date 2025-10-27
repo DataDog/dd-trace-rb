@@ -310,7 +310,7 @@ namespace :spec do
       Rake::Task["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"].invoke
     rescue => e
       # Compilation failed (likely unsupported Ruby version) - tests will skip gracefully
-      puts "Warning: libdatadog_api compilation failed: #{e.message}"
+      puts "Warning: libdatadog_api compilation failed: #{e.class}: #{e}"
       puts "DSM tests will be skipped for this Ruby version"
     end
 
