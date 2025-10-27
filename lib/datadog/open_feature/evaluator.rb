@@ -5,7 +5,7 @@ module Datadog
     # NOTE: This class is a glue between libdatadog evaluation binding and
     #       provider. It should not contain any SDK code, but rather define its own
     class Evaluator
-      attr_writer :ufc
+      attr_accessor :ufc
 
       # TODO: Similar code will come from the binding
       module FFI
