@@ -18,30 +18,24 @@ module Datadog
           module_function
 
           def infer(path)
-            segments = path.delete_prefix('/').split('/').first(MAX_NUMBER_OF_SEGMENTS)
+            segments = path.delete_prefix('/').split('/', MAX_NUMBER_OF_SEGMENTS + 1).first(MAX_NUMBER_OF_SEGMENTS)
 
             segments.map! do |segment|
-              next if segment == ''
+              next if segment.empty?
 
               case segment
-              when INT_PARAM_REGEX
-                '{param:int}'
-              when INT_ID_PARAM_REGEX
-                '{param:int_id}'
-              when HEX_PARAM_REGEX
-                '{param:hex}'
-              when HEX_ID_PARAM_REGEX
-                '{param:hex_id}'
-              when STRING_PARAM_REGEX
-                '{param:str}'
-              else
-                segment
+              when INT_PARAM_REGEX then '{param:int}'
+              when INT_ID_PARAM_REGEX then '{param:int_id}'
+              when HEX_PARAM_REGEX then '{param:hex}'
+              when HEX_ID_PARAM_REGEX then '{param:hex_id}'
+              when STRING_PARAM_REGEX then '{param:str}'
+              else segment
               end
             end
 
             segments.compact!
 
-            '/' + segments.join('/')
+            "/#{segments.join("/")}"
           rescue
             nil
           end

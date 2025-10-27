@@ -43,6 +43,12 @@ RSpec.describe 'Rack testing for http.endpoint tag' do
     end
   end
 
+  let(:request_span) do
+    spans.find do |span|
+      span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
+    end
+  end
+
   context 'when resource_renaming.enabled is disabled by default and appsec is enabled' do
     before do
       Datadog.configuration.appsec.enabled = true
@@ -103,14 +109,6 @@ RSpec.describe 'Rack testing for http.endpoint tag' do
 
       expect(response).to be_not_found
       expect(request_span.get_tag('http.endpoint')).to be_nil
-    end
-  end
-
-  private
-
-  def request_span
-    spans.detect do |span|
-      span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
     end
   end
 end
