@@ -7,22 +7,56 @@ module Datadog
     class Evaluator
       attr_writer :ufc
 
-      # NOTE: This structure will come from the binding
-      #       and will copy the structure of the OpenFeature SDK
-      #       I will pile them up here before extracting
-      ResolutionDetails = Struct.new(
-        :value, :reason, :variant, :error_code, :error_message, :flag_metadata, keyword_init: true
-      )
-      ResolutionError = Struct.new(
-        :reason, :code, :message
-      )
+      # TODO: Similar code will come from the binding
+      module FFI
+        ResolutionDetails = Struct.new(
+          :value,
+          :reason,
+          :variant,
+          :error_code,
+          :error_message,
+          :flag_metadata,
+          keyword_init: true
+        )
+
+        class Configuration
+          def initialize(json)
+            @json = json
+          end
+        end
+
+        module Functions
+          def self.get_assignment(_configuration, _flag_key, _evaluation_context, expected_type, _time)
+            ResolutionDetails.new(
+              value: generate(expected_type),
+              reason: 'hardcoded',
+              variant: 'hardcoded'
+            )
+          end
+
+          private
+
+          def self.generate(expected_type)
+            case expected_type
+            when :boolean then true
+            when :string then 'hello'
+            when :number then 9000
+            when :integer then 42
+            when :float then 36.6
+            when :object then [1, 2, 3]
+            end
+          end
+        end
+      end
+
+      ResolutionError = Struct.new(:reason, :code, :message, keyword_init: true)
 
       PROVIDER_NOT_READY = 'PROVIDER_NOT_READY'
-      PROVIDER_FATAL = "PROVIDER_FATAL"
+      PROVIDER_FATAL = 'PROVIDER_FATAL'
 
       ERROR_MESSAGE_NOT_READY = 'Waiting for Universal Flag Configuration'
       INITIALIZING = 'INITIALIZING'
-      ERROR = "ERROR"
+      ERROR = 'ERROR'
 
       def initialize(telemetry)
         @telemetry = telemetry
@@ -50,7 +84,7 @@ module Datadog
         # into default value by the provider, so we should return here an error instead
         # and do a shortcur avoiding call to the binding.
         if @configuration.nil?
-          return ResolutionError.new(code: PROVIDER_NOT_READY, message: ERROR_MESSAGE_NOT_READY, reason: INITIALIZING)
+          ResolutionError.new(code: PROVIDER_NOT_READY, message: ERROR_MESSAGE_NOT_READY, reason: INITIALIZING)
         end
 
         # NOTE: https://github.com/open-feature/ruby-sdk-contrib/blob/main/providers/openfeature-go-feature-flag-provider/lib/openfeature/go-feature-flag/go_feature_flag_provider.rb#L17
@@ -59,52 +93,19 @@ module Datadog
 
         # TODO: Implement binding call
         # <binding>.get_assignment(@configuration, flag_key, evaluation_context, expected_type, Time.now.utc)
-
-        ResolutionDetails.new(
-          value: generate(expected_type),
-          reason: 'hardcoded',
-          variant: 'hardcoded'
-        )
+        FFI::Functions.get_assignment(@configuration, flag_key, evaluation_context, expected_type, Time.now.utc.to_i)
       rescue => e
         @telemetry.report(e, 'OpenFeature: Failed to fetch value for flag')
-
-        ResolutionError.new(
-          reason: ERROR,
-          code: PROVIDER_FATAL,
-          message: e.message
-        )
+        ResolutionError.new(reason: ERROR, code: PROVIDER_FATAL, message: e.message)
       end
 
       def reconfigure!
-        # TODO: Call to the binding to get configuration created
-        # config = datadog_ffe::rules_based::UniversalFlagConfig::from_json(ufc)
-        # @configuration = datadog_ffe::rules_based::Configuration::from_server_response(config)
-
-        # TODO: Replace with binding class
-        @configuration = { ufc: @ufc }
-
-        # FIXME: If we have to clean the binding class to release memory because
-        #        of the binding unable to GC unused class we will need to guard
-        #        @configuration reading
+        @configuration = FFI::Configuration.new(@ufc)
       rescue => e
         error_message = 'OpenFeature failed to reconfigure, reverting to the previous configuration'
 
         Datadog.logger.error("#{error_message}, error #{e.inspect}")
         @telemetry.report(e, description: error_message)
-      end
-
-      private
-
-      # TODO: Remove
-      def generate(expected_type)
-        case expected_type
-        when :boolean then true
-        when :string then 'hello'
-        when :number then 9000
-        when :integer then 42
-        when :float then 36.6
-        when :object then [1, 2, 3]
-        end
       end
     end
   end
