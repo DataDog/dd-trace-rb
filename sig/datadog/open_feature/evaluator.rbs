@@ -1,7 +1,7 @@
 module Datadog
   module OpenFeature
     class Evaluator
-      module FFI
+      module Binding
         class ResolutionDetails < ::Struct[untyped]
           attr_reader value: untyped
 
@@ -66,7 +66,11 @@ module Datadog
 
       ERROR: ::String
 
-      attr_writer ufc: ::String
+      ALLOWED_TYPES: ::Array[::Symbol]
+
+      UNKNOWN_TYPE: ::String
+
+      attr_writer ufc_json: ::String
 
       def initialize: (Core::Telemetry::Component telemetry) -> void
 
@@ -74,7 +78,7 @@ module Datadog
         flag_key: ::String,
         expected_type: ::Symbol,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
-      ) -> (FFI::ResolutionDetails | ResolutionError)
+      ) -> (Binding::ResolutionDetails | ResolutionError)
 
       def reconfigure!: () -> void
     end

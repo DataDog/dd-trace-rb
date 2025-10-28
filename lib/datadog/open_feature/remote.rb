@@ -36,7 +36,7 @@ module Datadog
               case change.type
               when :insert, :update
                 # @type var content: Core::Remote::Configuration::Content
-                evaluator.ufc = read_content(content)
+                evaluator.ufc_json = read_content(content)
                 content.applied
               when :delete
                 # no-op

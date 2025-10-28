@@ -23,7 +23,6 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
           ClimateControl.modify('DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED' => 'true') { example.run }
         end
 
-
         it { expect(enabled).to be(true) }
       end
 
@@ -31,7 +30,6 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
         around do |example|
           ClimateControl.modify('DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED' => 'false') { example.run }
         end
-
 
         it { expect(enabled).to be(false) }
       end
