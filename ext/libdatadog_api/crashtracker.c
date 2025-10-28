@@ -301,19 +301,29 @@ static void ruby_runtime_stack_callback(
       // Handle Ruby frames
       const rb_iseq_t *iseq = cfp->iseq;
 
-      if (!iseq || !iseq->body) {
+      // Use comprehensive iseq validation
+      if (!is_valid_iseq(iseq)) {
         continue;
       }
 
       VALUE name = rb_iseq_base_label(iseq);
-      const char *function_name = (name != Qnil) ? safe_string_ptr(name) : "<unknown>";
+      const char *function_name = "<unknown>";
+      if (name != Qnil && is_reasonable_string_size(name)) {
+        function_name = safe_string_ptr(name);
+      }
 
       VALUE filename = rb_iseq_path(iseq);
-      const char *file_name = (filename != Qnil) ? safe_string_ptr(filename) : "<unknown>";
+      const char *file_name = "<unknown>";
+      if (filename != Qnil && is_reasonable_string_size(filename)) {
+        file_name = safe_string_ptr(filename);
+      }
 
       int line_no = 0;
       if (iseq && cfp->pc) {
-        if (iseq->body && iseq->body->iseq_encoded && iseq->body->iseq_size > 0) {
+        // Additional safety checks for line number calculation
+        if (iseq->body &&
+            is_pointer_readable(iseq->body->iseq_encoded, iseq->body->iseq_size * sizeof(*iseq->body->iseq_encoded)) &&
+            iseq->body->iseq_size > 0) {
           ptrdiff_t pc_offset = cfp->pc - iseq->body->iseq_encoded;
           if (pc_offset >= 0 && pc_offset < iseq->body->iseq_size) {
             // Use the Ruby VM line calculation like ddtrace_rb_profile_frames
@@ -339,12 +349,18 @@ static void ruby_runtime_stack_callback(
       const char *function_name = "<C method>";
       const char *file_name = "<C extension>";
 
-      // Try to get method entry information
+      // Try to get method entry information with comprehensive safety checks
       const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(cfp);
-      if (me && me->def && me->def->original_id) {
-        const char *method_name = rb_id2name(me->def->original_id);
-        if (method_name && is_pointer_readable(method_name, strlen(method_name))) {
-          function_name = method_name;
+      if (me && is_pointer_readable(me, sizeof(rb_callable_method_entry_t))) {
+        if (me->def && is_pointer_readable(me->def, sizeof(*me->def)) && me->def->original_id) {
+          const char *method_name = rb_id2name(me->def->original_id);
+          if (method_name && is_pointer_readable(method_name, strlen(method_name))) {
+            // Additional length check for method name
+            size_t method_name_len = strlen(method_name);
+            if (method_name_len > 0 && method_name_len < 256) { // Reasonable method name length
+              function_name = method_name;
+            }
+          }
         }
       }
 
@@ -377,11 +393,8 @@ static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self,
   switch (result) {
     case DDOG_CRASHT_CALLBACK_RESULT_OK:
       return Qtrue;
-    case DDOG_CRASHT_CALLBACK_RESULT_NULL_CALLBACK:
-      rb_raise(rb_eRuntimeError, "Failed to register runtime callback: null callback provided");
-      break;
-    case DDOG_CRASHT_CALLBACK_RESULT_UNKNOWN_ERROR:
-      rb_raise(rb_eRuntimeError, "Failed to register runtime callback: unknown error");
+    case DDOG_CRASHT_CALLBACK_RESULT_ERROR:
+      rb_raise(rb_eRuntimeError, "Failed to register runtime callback");
       break;
   }
 
