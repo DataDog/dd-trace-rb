@@ -240,11 +240,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             crash_tracker.start
             trigger.call
           end
-          puts(crash_report_experimental.to_json)
-          puts(log_messages)
           expect(stack_trace).to match(array_including(hash_including(function: function)))
           expect(stack_trace.size).to be > 10
-
           expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
 
           expect(crash_report_message[:metadata]).to include(
@@ -344,6 +341,66 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
               )
             )
           end
+        end
+      end
+
+      # Integration tests for Ruby and C frame capture
+      describe 'Ruby and C method runtime stack capture' do
+        let(:runtime_stack) { crash_report_experimental[:runtime_stack] }
+
+        it 'captures both Ruby and C method frames in mixed stacks' do
+          # Create standalone Ruby script to completely avoid RSpec context
+          # We do this because RSpec context frames show up if we crash within
+          # top level RSpec context
+          test_script_content = <<~RUBY
+            require 'fiddle'
+            require 'datadog'
+
+            # Configure crashtracker
+            Datadog.configure do |c|
+              c.agent.host = '127.0.0.1'
+              c.agent.port = #{agent_base_url.match(/:(\d+)/)[1]}
+            end
+
+            def top_level_ruby_method
+              ruby_method_with_c_calls
+            end
+
+            def ruby_method_with_c_calls
+              "hello world".gsub(/world/) do |match|
+                {a: 1, b: 2}.each do |key, value|
+                  if key == :a
+                    Fiddle.free(42)
+                  end
+                end
+              end
+            end
+
+            top_level_ruby_method
+          RUBY
+
+          temp_script = Tempfile.new(['crash_test_script', '.rb'])
+          temp_script.write(test_script_content)
+          temp_script.close
+
+          expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
+            exec(RbConfig.ruby, temp_script.path)
+          end
+
+          frames = runtime_stack[:frames]
+          function_names = frames.map { |f| f[:function] }
+
+          puts "DEBUG: All captured frames: #{frames.to_json}"
+
+          # Should capture our Ruby method
+          expect(function_names).to include('ruby_method_with_c_calls'),
+            "Expected 'ruby_method_with_c_calls' in stack: #{function_names}"
+
+          # Should capture the Array#each C method
+          expect(function_names).to include('each'),
+            "Expected 'each' C method in stack: #{function_names}"
+
+          temp_script.unlink
         end
       end
     end
