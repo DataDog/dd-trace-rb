@@ -99,7 +99,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
         receiver.call(repository, transaction)
 
-        expect(evaluator.ufc).to eq(content_data)
+        expect(evaluator.ufc_json).to eq(content_data)
         expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
       end
     end
@@ -140,7 +140,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
         receiver.call(repository, transaction)
 
-        expect(evaluator.ufc).to eq(new_content_data)
+        expect(evaluator.ufc_json).to eq(new_content_data)
         expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
       end
     end
