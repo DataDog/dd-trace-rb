@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rack
+        module RouteFromPathInference
+          MAX_NUMBER_OF_SEGMENTS: ::Integer
+
+          INT_PARAM_REGEX: ::Regexp
+          INT_ID_PARAM_REGEX: ::Regexp
+          HEX_PARAM_REGEX: ::Regexp
+          HEX_ID_PARAM_REGEX: ::Regexp
+          STRING_PARAM_REGEX: ::Regexp
+
+          def self.infer: (::String path) -> ::String?
+        end
+      end
+    end
+  end
+end

@@ -274,6 +274,38 @@ module Datadog
                 o.type :bool
               end
 
+              settings :resource_renaming do
+                # Whether resource renaming is enabled. When enabled, http.endpoint tag
+                # containing a route will be reported in traces. If AppSec is enabled,
+                # this feature will be enabled by default.
+                #
+                # For web applications built with instrumented frameworks, http.endpoint tag
+                # will contain the route as it is defined in the application.
+                # For basic Rack applications, or applications that are mounted and are not instrumented,
+                # the route will be inferred from the request path.
+                #
+                # @default `DD_TRACE_RESOURCE_RENAMING_ENABLED` environment variable, otherwise `false`.
+                # @return [Boolean]
+                option :enabled do |o|
+                  o.type :bool, nilable: false
+                  o.env Configuration::Ext::ENV_RESOURCE_RENAMING_ENABLED
+                  o.default false
+                end
+
+                # When set to true, http.endoint is always inferred from path,
+                # instead of using http.route value when it is set.
+                #
+                # This is useful for testing purposes.
+                #
+                # @default false
+                # @return [Boolean]
+                option :always_simplified_endpoint do |o|
+                  o.type :bool, nilable: false
+                  o.env Configuration::Ext::ENV_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT
+                  o.default false
+                end
+              end
+
               # Forces the tracer to always send span events with the native span events format
               # regardless of the agent support. This is useful in agent-less setups.
               #
