@@ -43,7 +43,11 @@ require 'datadog'
 # Need to require datadog/di explicitly because dynamic instrumentation is not
 # currently integrated into the Ruby tracer due to being under development.
 require 'datadog/di'
-require 'datadog/di/proc_responder'
+begin
+  require 'datadog/di/proc_responder'
+rescue LoadError
+  # Old tree
+end
 
 class DIInstrumentBenchmark
   class Target
@@ -110,8 +114,12 @@ class DIInstrumentBenchmark
     executed_proc = lambda do |context|
       calls += 1
     end
-    responder = Datadog::DI::ProcResponder.new(executed_proc)
-    rv = instrumenter.hook_method(probe, responder)
+    if defined?(Datadog::DI::ProcResponder)
+      responder = Datadog::DI::ProcResponder.new(executed_proc)
+      rv = instrumenter.hook_method(probe, responder)
+    else
+      rv = instrumenter.hook_method(probe, &executed_proc)
+    end
     unless rv
       raise "Method probe was not successfully installed"
     end
@@ -152,7 +160,12 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: file, line_no: line + 1)
-    rv = instrumenter.hook_line(probe, responder)
+    if defined?(Datadog::DI::ProcResponder)
+      responder = Datadog::DI::ProcResponder.new(executed_proc)
+      rv = instrumenter.hook_line(probe, responder)
+    else
+      rv = instrumenter.hook_line(probe, &executed_proc)
+    end
     unless rv
       raise "Line probe (in method) was not successfully installed"
     end
@@ -199,7 +212,11 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: targeted_file, line_no: targeted_line + 1)
-    rv = instrumenter.hook_line(probe, responder)
+    if defined?(Datadog::DI::ProcResponder)
+      rv = instrumenter.hook_line(probe, responder)
+    else
+      rv = instrumenter.hook_line(probe, &executed_proc)
+    end
     unless rv
       raise "Line probe (targeted) was not successfully installed"
     end
