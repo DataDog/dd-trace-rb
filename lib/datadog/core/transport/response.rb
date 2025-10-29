@@ -33,6 +33,10 @@ module Datadog
           nil
         end
 
+        def too_many_requests?
+          nil
+        end
+
         def inspect
           maybe_code = if respond_to?(:code)
             " code:#{code}," # steep:ignore

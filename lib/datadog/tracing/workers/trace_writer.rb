@@ -16,6 +16,15 @@ module Datadog
     module Workers
       # Writes traces to transport synchronously
       class TraceWriter < Core::Worker
+        # Default maximum retry queue size for 429 responses
+        DEFAULT_MAX_RETRY_QUEUE_SIZE = 100
+        # Default initial backoff delay in seconds
+        DEFAULT_INITIAL_BACKOFF = 1.0
+        # Default maximum backoff delay in seconds
+        DEFAULT_MAX_BACKOFF = 30.0
+        # Backoff multiplier for exponential backoff
+        BACKOFF_MULTIPLIER = 2.0
+
         attr_reader \
           :logger,
           :transport,
@@ -31,6 +40,17 @@ module Datadog
           @transport = options.fetch(:transport) do
             Datadog::Tracing::Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
           end
+
+          # Retry queue for 429 responses
+          @retry_queue = []
+          @retry_queue_mutex = Mutex.new
+          @max_retry_queue_size = options.fetch(:max_retry_queue_size, DEFAULT_MAX_RETRY_QUEUE_SIZE)
+          
+          # Backoff tracking
+          @current_backoff = DEFAULT_INITIAL_BACKOFF
+          @initial_backoff = options.fetch(:initial_backoff, DEFAULT_INITIAL_BACKOFF)
+          @max_backoff = options.fetch(:max_backoff, DEFAULT_MAX_BACKOFF)
+          @last_429_time = nil
         end
         # rubocop:enable Lint/MissingSuper
 
@@ -43,8 +63,14 @@ module Datadog
         end
 
         def write_traces(traces)
+          # First, try to flush any queued retries if we're not in a backoff period
+          flush_retries if should_flush_retries?
+
           traces = process_traces(traces)
-          flush_traces(traces)
+          responses = flush_traces(traces)
+          
+          # Check if any response was a 429 (too many requests)
+          handle_responses(responses, traces)
         rescue => e
           logger.warn(
             "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
@@ -57,9 +83,90 @@ module Datadog
         end
 
         def flush_traces(traces)
-          transport.send_traces(traces).tap do |response|
-            flush_completed.publish(response)
+          transport.send_traces(traces).tap do |responses|
+            flush_completed.publish(responses)
           end
+        end
+
+        private
+
+        def handle_responses(responses, traces)
+          # Check if any response is a 429
+          if responses.any?(&:too_many_requests?)
+            # Queue traces for retry
+            queue_for_retry(traces)
+            # Update backoff
+            update_backoff_on_429
+          else
+            # Reset backoff on success
+            reset_backoff if responses.all?(&:ok?)
+          end
+        end
+
+        def should_flush_retries?
+          return false if @retry_queue.empty?
+          return true if @last_429_time.nil?
+
+          # Check if enough time has passed since last 429
+          Time.now - @last_429_time >= @current_backoff
+        end
+
+        def flush_retries
+          @retry_queue_mutex.synchronize do
+            return if @retry_queue.empty?
+
+            traces_to_retry = @retry_queue.shift
+            return if traces_to_retry.nil?
+
+            logger.debug { "Retrying #{traces_to_retry.length} traces after backoff" }
+
+            begin
+              responses = transport.send_traces(traces_to_retry)
+              flush_completed.publish(responses)
+
+              # If we got another 429, put back in queue
+              if responses.any?(&:too_many_requests?)
+                queue_for_retry(traces_to_retry)
+                update_backoff_on_429
+              else
+                # Success! Reset backoff
+                reset_backoff if responses.all?(&:ok?)
+              end
+            rescue => e
+              logger.warn(
+                "Error retrying traces: dropped #{traces_to_retry.length} items. Cause: #{e}"
+              )
+            end
+          end
+        end
+
+        def queue_for_retry(traces)
+          @retry_queue_mutex.synchronize do
+            if @retry_queue.length >= @max_retry_queue_size
+              logger.warn(
+                "Retry queue full (size: #{@retry_queue.length}), dropping #{traces.length} traces"
+              )
+              return
+            end
+
+            @retry_queue << traces
+            logger.debug do
+              "Queued #{traces.length} traces for retry due to 429 response. " \
+                "Queue size: #{@retry_queue.length}"
+            end
+          end
+        end
+
+        def update_backoff_on_429
+          @last_429_time = Time.now
+          @current_backoff = [@current_backoff * BACKOFF_MULTIPLIER, @max_backoff].min
+          logger.debug { "Agent backpressure detected (429). Backoff increased to #{@current_backoff}s" }
+        end
+
+        def reset_backoff
+          @current_backoff = @initial_backoff
+          @last_429_time = nil
+          logger.debug { 'Backoff reset after successful flush' }
         end
 
         # TODO: Register `Datadog::Tracing::Diagnostics::EnvironmentLogger.collect_and_log!`

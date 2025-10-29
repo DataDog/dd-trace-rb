@@ -162,6 +162,12 @@ module Datadog
                 code.between?(500, 599)
               end
 
+              def too_many_requests?
+                return super if http_response.nil?
+
+                code == 429
+              end
+
               def inspect
                 "#{super}, http_response:#{http_response}"
               end

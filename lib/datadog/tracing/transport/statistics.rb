@@ -20,7 +20,9 @@ module Datadog
             stats.client_error += 1 if response.client_error?
             stats.server_error += 1 if response.server_error?
             stats.internal_error += 1 if response.internal_error?
-            stats.consecutive_errors += 1
+            # Don't count 429 as a consecutive error for backoff purposes
+            # as the agent is explicitly asking us to retry
+            stats.consecutive_errors += 1 unless response.too_many_requests?
           end
 
           # Send health metrics
