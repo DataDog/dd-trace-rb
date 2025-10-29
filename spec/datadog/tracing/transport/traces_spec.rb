@@ -512,7 +512,9 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     let(:retry_queue) { instance_double(Datadog::Tracing::Transport::Backpressure::RetryQueue) }
     let(:client_v1) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
     let(:client_v2) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
-    let(:agent_info_response) { instance_double(Datadog::Core::Environment::AgentInfo::Response, span_events: false) }
+    let(:agent_info_response) do
+      instance_double(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response, span_events: false)
+    end
 
     before do
       allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).and_return(chunker)
