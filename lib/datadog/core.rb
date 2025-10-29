@@ -20,6 +20,10 @@ module Datadog
       rescue LoadError => e
         e.message
       end
+
+    module_function def ddsketch_supported?
+      LIBDATADOG_API_FAILURE.nil?
+    end
   end
 
   DATADOG_ENV = Core::Configuration::ConfigHelper.new
