@@ -38,7 +38,7 @@ module Datadog
           end
 
           context = allocate
-          context._native_initialize_with_attribute(targeting_key, attr_name, attr_value)
+          context._native_initialize_with_attributes(targeting_key, [{ attr_name => attr_value }])
           context
         end
       end

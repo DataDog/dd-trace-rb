@@ -70,7 +70,12 @@ static VALUE configuration_initialize(VALUE self, VALUE json_str) {
   ddog_ffe_Handle_Configuration *config;
   TypedData_Get_Struct(self, ddog_ffe_Handle_Configuration, &configuration_typed_data, config);
 
-  *config = ddog_ffe_configuration_new(RSTRING_PTR(json_str));
+  struct ddog_ffe_Result_HandleConfiguration result = ddog_ffe_configuration_new(RSTRING_PTR(json_str));
+  if (result.tag == DDOG_FFE_RESULT_HANDLE_CONFIGURATION_ERR_HANDLE_CONFIGURATION) {
+    rb_raise(rb_eRuntimeError, "Failed to create configuration: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+  
+  *config = result.ok;
 
   return self;
 }
@@ -116,10 +121,15 @@ static VALUE evaluation_context_initialize_with_attribute(VALUE self, VALUE targ
   ddog_ffe_Handle_EvaluationContext *context;
   TypedData_Get_Struct(self, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
 
-  *context = ddog_ffe_evaluation_context_new_with_attribute(
+  struct ddog_ffe_AttributePair attr = {
+    .name = RSTRING_PTR(attr_name),
+    .value = RSTRING_PTR(attr_value)
+  };
+  
+  *context = ddog_ffe_evaluation_context_new_with_attributes(
     RSTRING_PTR(targeting_key),
-    RSTRING_PTR(attr_name), 
-    RSTRING_PTR(attr_value)
+    &attr,
+    1
   );
 
   return self;
@@ -160,12 +170,13 @@ static VALUE native_get_assignment(VALUE self, VALUE config_obj, VALUE flag_key,
   ddog_ffe_Handle_EvaluationContext *context;
   TypedData_Get_Struct(context_obj, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
 
-  ddog_ffe_Handle_Assignment assignment_out;
-  ddog_VoidResult result = ddog_ffe_get_assignment(config, RSTRING_PTR(flag_key), context, &assignment_out);
+  struct ddog_ffe_Result_HandleAssignment result = ddog_ffe_get_assignment(*config, RSTRING_PTR(flag_key), *context);
 
-  if (result.tag == DDOG_VOID_RESULT_ERR) {
-    raise_ffe_error("Feature flag evaluation failed", result);
+  if (result.tag == DDOG_FFE_RESULT_HANDLE_ASSIGNMENT_ERR_HANDLE_ASSIGNMENT) {
+    rb_raise(rb_eRuntimeError, "Feature flag evaluation failed: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
+
+  ddog_ffe_Handle_Assignment assignment_out = result.ok;
 
   // Check if assignment is empty (no assignment returned)
   if (assignment_out.inner == NULL) {
