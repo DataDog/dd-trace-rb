@@ -6,7 +6,6 @@ require_relative 'transport/http'
 require_relative '../version'
 require_relative '../core/worker'
 require_relative '../core/workers/polling'
-require_relative '../core/ddsketch'
 require_relative '../core/utils/time'
 
 module Datadog
@@ -25,7 +24,7 @@ module Datadog
       attr_reader :pathway_context, :buckets, :bucket_size_ns
 
       def initialize(interval:, logger:, settings:, agent_settings:)
-        raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
+        raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core.ddsketch_supported?
 
         @settings = settings
         @agent_settings = agent_settings

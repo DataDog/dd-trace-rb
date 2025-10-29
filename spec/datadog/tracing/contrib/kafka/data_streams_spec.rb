@@ -129,7 +129,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
   describe 'checkpointing' do
     before do
-      skip('DDSketch not available') unless Datadog::Core::DDSketch.supported?
+      skip('DDSketch not available') unless Datadog::Core.ddsketch_supported?
     end
 
     let(:test_producer_class) do
