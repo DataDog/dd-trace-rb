@@ -118,16 +118,14 @@ RSpec.describe Datadog::Tracing::Transport::Backpressure::RetryQueue do
       end
 
       before do
-        # Block the retry thread from processing by making send_traces_payload hang
-        allow(client).to receive(:send_traces_payload) do
-          sleep(10) # Long sleep to keep items in queue during test
-        end
+        # Prevent the retry thread from starting by stubbing Thread.new
+        # This keeps items in the queue so we can test full queue behavior
+        mock_thread = instance_double(Thread, alive?: false, join: nil)
+        allow(mock_thread).to receive(:name=)
+        allow(Thread).to receive(:new).and_return(mock_thread)
 
         # Fill the queue to capacity
         2.times { retry_queue.enqueue(request) }
-
-        # Give time for retry thread to start but not complete
-        sleep(0.1)
       end
 
       it 'rejects the request' do
