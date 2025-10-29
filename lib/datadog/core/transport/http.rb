@@ -46,6 +46,7 @@ module Datadog
         def default_headers
           {
             Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => '1',
+            Datadog::Core::Transport::Ext::HTTP::HEADER_SEND_REAL_HTTP_STATUS => '1',
             Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG =>
               Datadog::Core::Environment::Ext::LANG,
             Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_VERSION =>

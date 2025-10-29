@@ -24,6 +24,7 @@ module Datadog
               super(http_response)
               @service_rates = options.fetch(:service_rates, nil)
               @trace_count = options.fetch(:trace_count, 0)
+              @traces = options.fetch(:traces, [])
             end
           end
 
@@ -98,7 +99,7 @@ module Datadog
                 http_response = super
 
                 # Process the response
-                response_options = {trace_count: env.request.parcel.trace_count}.tap do |options|
+                response_options = {trace_count: env.request.parcel.trace_count, traces: env.request.parcel.traces}.tap do |options|
                   # Parse service rates, if configured to do so.
                   if service_rates? && !http_response.payload.to_s.empty?
                     body = JSON.parse(http_response.payload)

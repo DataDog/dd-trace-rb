@@ -108,7 +108,17 @@ RSpec.describe Datadog::Tracing::Writer do
         let(:traces) { get_test_traces(1) }
         let(:transport_stats) { instance_double(Datadog::Tracing::Transport::Statistics) }
         let(:responses) { [response] }
-        let(:response) { double('response') }
+        let(:response) do
+          double(
+            'response',
+            trace_count: traces.length,
+            internal_error?: false,
+            server_error?: false,
+            ok?: true,
+            code: 200,
+            traces: traces
+          )
+        end
 
         before do
           allow(transport).to receive(:send_traces)
@@ -132,26 +142,37 @@ RSpec.describe Datadog::Tracing::Writer do
         end
 
         context 'which returns a response that is' do
-          let(:response) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::Response, trace_count: 1) }
+          let(:response) do
+            double(
+              'response',
+              trace_count: 1,
+              internal_error?: false,
+              server_error?: false,
+              ok?: true,
+              code: 200,
+              traces: traces
+            )
+          end
 
           context 'successful' do
-            before do
-              allow(response).to receive(:ok?).and_return(true)
-              allow(response).to receive(:server_error?).and_return(false)
-              allow(response).to receive(:internal_error?).and_return(false)
-            end
-
             it_behaves_like 'after_send events'
+
+            it 'returns a success result' do
+              expect(send_spans.status).to eq(Datadog::Tracing::Writer::SendResult::SUCCESS)
+            end
           end
 
           context 'a server error' do
             before do
               allow(response).to receive(:ok?).and_return(false)
               allow(response).to receive(:server_error?).and_return(true)
-              allow(response).to receive(:internal_error?).and_return(false)
             end
 
             it_behaves_like 'after_send events'
+
+            it 'returns a server error result' do
+              expect(send_spans.status).to eq(Datadog::Tracing::Writer::SendResult::SERVER_ERROR)
+            end
           end
 
           context 'an internal error' do
@@ -162,23 +183,40 @@ RSpec.describe Datadog::Tracing::Writer do
           end
         end
 
+        context 'when the response is a 429' do
+          let(:retry_traces) { send_spans.retry_traces }
+
+          before do
+            allow(response).to receive(:code).and_return(429)
+          end
+
+          it 'returns a too many requests result with retryable traces' do
+            expect(send_spans.status).to eq(Datadog::Tracing::Writer::SendResult::TOO_MANY_REQUESTS)
+            expect(retry_traces).to eq(traces)
+          end
+        end
+
         context 'with multiple responses' do
           let(:response1) do
-            instance_double(
-              Datadog::Tracing::Transport::HTTP::Traces::Response,
+            double(
+              'response1',
               internal_error?: false,
               server_error?: false,
               ok?: true,
-              trace_count: 10
+              trace_count: 10,
+              code: 200,
+              traces: traces.first(1)
             )
           end
           let(:response2) do
-            instance_double(
-              Datadog::Tracing::Transport::HTTP::Traces::Response,
+            double(
+              'response2',
               internal_error?: false,
               server_error?: false,
               ok?: true,
-              trace_count: 20
+              trace_count: 20,
+              code: 200,
+              traces: traces.last(1)
             )
           end
 
@@ -186,16 +224,19 @@ RSpec.describe Datadog::Tracing::Writer do
 
           context 'and at least one being server error' do
             let(:response2) do
-              instance_double(
-                Datadog::Tracing::Transport::HTTP::Traces::Response,
+              double(
+                'response2',
                 internal_error?: false,
                 server_error?: true,
-                ok?: false
+                ok?: false,
+                trace_count: 20,
+                code: 500,
+                traces: []
               )
             end
 
             it do
-              is_expected.to be_falsey
+              expect(send_spans.status).to eq(Datadog::Tracing::Writer::SendResult::SERVER_ERROR)
               expect(writer.stats[:traces_flushed]).to eq(10)
             end
           end
