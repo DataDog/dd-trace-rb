@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'datadog/core'
+
 module Datadog
   module Core
     # Used to access ddsketch APIs.
