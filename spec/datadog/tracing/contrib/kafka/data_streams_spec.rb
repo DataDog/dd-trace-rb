@@ -207,7 +207,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
         expect(current_ctx).to be_a(Datadog::DataStreams::PathwayContext)
         expect(current_ctx.hash).to be > 0
         expect(current_ctx.hash).not_to eq(producer_ctx.hash) # Consumer hash should differ (direction:in vs direction:out)
-        expect(current_ctx.pathway_start).to eq(producer_ctx.pathway_start) # Should preserve pathway start time
+        expect(current_ctx.pathway_start).to be_within(0.001).of(producer_ctx.pathway_start) # Should preserve pathway start time (within 1ms due to serialization precision loss)
       end
     end
   end
