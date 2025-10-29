@@ -1,4 +1,3 @@
-require 'datadog/core/ddsketch'
 require 'datadog/core/ddsketch_pprof/ddsketch_pb'
 
 RSpec.describe Datadog::Core::DDSketch do
