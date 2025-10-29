@@ -14,7 +14,7 @@ module DataStreamsHelpers
       )
     end
 
-    return if Datadog::Core::DDSketch.supported?
+    return if Datadog::Core.ddsketch_supported?
 
     # Ensure DDSketch was loaded correctly
     raise "DDSketch does not seem to be available: #{Datadog::Core::LIBDATADOG_API_FAILURE}. " \
