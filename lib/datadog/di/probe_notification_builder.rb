@@ -87,6 +87,32 @@ module Datadog
           end
         end
 
+        message = nil
+        evaluation_errors = []
+        if segments = probe.template_segments
+          message, evaluation_errors = evaluate_template(segments, context)
+        end
+        build_snapshot_base(context,
+          evaluation_errors: evaluation_errors, message: message,
+          captures: captures)
+      end
+
+      def build_condition_evaluation_failed(context, expression, exception)
+        error = {
+          message: "#{exception.class}: #{exception}",
+          expr: expression.dsl_expr,
+        }
+        build_snapshot_base(context, evaluation_errors: [error])
+      end
+
+      private
+
+      def build_snapshot_base(context, evaluation_errors: [], captures: nil, message: nil)
+        probe = context.probe
+
+        timestamp = timestamp_now
+        duration = context.duration
+
         location = if probe.line?
           {
             file: context.path,
@@ -103,13 +129,6 @@ module Datadog
           format_caller_locations(caller_locations)
         end
 
-        timestamp = timestamp_now
-        message = nil
-        evaluation_errors = []
-        if segments = probe.template_segments
-          message, evaluation_errors = evaluate_template(segments, context)
-        end
-        duration = context.duration
         {
           service: settings.service,
           "debugger.snapshot": {
@@ -132,7 +151,7 @@ module Datadog
           host: nil,
           logger: {
             name: probe.file,
-            method: probe.method_name || 'no_method',
+            method: probe.method_name,
             thread_name: Thread.current.name,
             # Dynamic instrumentation currently does not need thread_id for
             # anything. It can be sent if a customer requests it at which point
@@ -149,8 +168,6 @@ module Datadog
           timestamp: timestamp,
         }
       end
-
-      private
 
       def build_status(probe, message:, status:)
         {

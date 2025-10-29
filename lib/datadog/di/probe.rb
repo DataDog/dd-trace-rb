@@ -86,6 +86,16 @@ module Datadog
         @rate_limit = rate_limit || (@capture_snapshot ? 1 : 5000)
         @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
 
+        # At most one report per second.
+        # We create the rate limiter here even though it may never be used,
+        # to avoid having to synchronize the creation since method probes
+        # can be executed on multiple threads concurrently (even if line
+        # probes are never executed concurrently since those are done in a
+        # trace point).
+        if condition
+          @condition_evaluation_failed_rate_limiter = Datadog::Core::TokenBucket.new(1)
+        end
+
         @emitting_notified = false
       end
 
@@ -114,6 +124,16 @@ module Datadog
 
       # Rate limiter object. For internal DI use only.
       attr_reader :rate_limiter
+
+      # Rate limiter object for sending snapshots with evaluation errors
+      # for when probe condition evaluation fails.
+      # This rate limit is separate from the "base" rate limit for the probe
+      # because when the condition evaluation succeeds we want the "base"
+      # rate limit applied, not tainted by any evaluation errors
+      # (for example, the condition can be highly selective, and when it
+      # does not hold the evaluation may fail - we don't want to use up the
+      # probe rate limit for the errors).
+      attr_reader :condition_evaluation_failed_rate_limiter
 
       def capture_snapshot?
         @capture_snapshot

@@ -1,0 +1,19 @@
+module Datadog
+  module DI
+    class ProcResponder
+      @executed_proc: untyped
+
+      @failed_proc: untyped
+
+      def initialize: (untyped executed_proc, ?untyped? failed_proc) -> void
+
+      attr_reader executed_proc: untyped
+
+      attr_reader failed_proc: untyped
+
+      def probe_executed_callback: (untyped context) -> untyped
+
+      def probe_condition_evaluation_failed_callback: (untyped context, untyped exc) -> untyped
+    end
+  end
+end

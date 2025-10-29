@@ -622,7 +622,7 @@ RSpec.describe 'Instrumentation integration' do
       context 'simple log probe' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 20,
+            file: 'instrumentation_integration_test_class.rb', line_no: 40,
             capture_snapshot: false,)
         end
 
@@ -686,7 +686,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a method' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 22,
+              file: 'instrumentation_integration_test_class.rb', line_no: 42,
               capture_snapshot: false,)
           end
 
@@ -696,7 +696,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a block' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 33,
+              file: 'instrumentation_integration_test_class.rb', line_no: 53,
               capture_snapshot: false,)
           end
 
@@ -766,12 +766,12 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is else of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 44,
+              file: 'instrumentation_integration_test_class.rb', line_no: 64,
               capture_snapshot: false,)
           end
 
           let(:call_target) do
-            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(2)
+            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(1)
           end
 
           include_examples 'installs but does not invoke probe'
@@ -780,12 +780,12 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is end of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 46,
+              file: 'instrumentation_integration_test_class.rb', line_no: 66,
               capture_snapshot: false,)
           end
 
           let(:call_target) do
-            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(2)
+            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(1)
           end
 
           include_examples 'installs but does not invoke probe'
@@ -794,7 +794,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line contains a comment (no executable code)' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 50,
+              file: 'instrumentation_integration_test_class.rb', line_no: 70,
               capture_snapshot: false,)
           end
 
@@ -808,7 +808,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is in a loaded file that is not in code tracker' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 33,
+              file: 'instrumentation_integration_test_class.rb', line_no: 53,
               capture_snapshot: false,)
           end
 
@@ -842,12 +842,12 @@ RSpec.describe 'Instrumentation integration' do
       context 'enriched probe' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 20,
+            file: 'instrumentation_integration_test_class.rb', line_no: 40,
             capture_snapshot: true,)
         end
 
         let(:expected_captures) do
-          {lines: {20 => {
+          {lines: {40 => {
             locals: {
               a: {type: 'Integer', value: '21'},
               password: {type: 'String', notCapturedReason: 'redactedIdent'},
@@ -906,12 +906,12 @@ RSpec.describe 'Instrumentation integration' do
         context 'when there are instance variables but no local variables' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 7,
+              file: 'instrumentation_integration_test_class.rb', line_no: 27,
               capture_snapshot: true,)
           end
 
           let(:expected_captures) do
-            {lines: {7 => {
+            {lines: {27 => {
               # Reports instance variables but no locals
               locals: {},
               arguments: {
@@ -1042,7 +1042,7 @@ RSpec.describe 'Instrumentation integration' do
 
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 20,
+            file: 'instrumentation_integration_test_class.rb', line_no: 40,
             capture_snapshot: false,)
         end
 
