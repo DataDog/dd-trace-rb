@@ -21,6 +21,7 @@ module Datadog
     #   client.fetch_string_value(flag_key: 'banner', default_value: 'default')
     class Provider
       NAME = 'Datadog Feature Flagging Provider'
+      PROVIDER_FATAL = 'PROVIDER_FATAL'
       ERROR_MESSAGE_COMPONENT_NOT_CONFIGURED = "Datadog's OpenFeature component must be configured"
 
       attr_reader :metadata
@@ -87,7 +88,7 @@ module Datadog
       def component_not_configured_default(value)
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: value,
-          error_code: ::OpenFeature::SDK::Provider::ErrorCode::PROVIDER_FATAL,
+          error_code: PROVIDER_FATAL,
           error_message: ERROR_MESSAGE_COMPONENT_NOT_CONFIGURED,
           reason: ::OpenFeature::SDK::Provider::Reason::ERROR
         )

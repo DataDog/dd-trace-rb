@@ -25,14 +25,12 @@ module Datadog
           ) -> instance
         end
 
-        class Configuration
-          @json: ::String
+        class Evaluator
+          @ufc_json: ::String
 
-          def initialize: (::String json) -> void
-        end
+          def initialize: (::String ufc_json) -> void
 
-        module Functions
-          def self.get_assignment: (
+          def get_assignment: (
             Configuration configuration,
             ::String flag_key,
             untyped evaluation_context,
@@ -42,7 +40,7 @@ module Datadog
 
           private
 
-          def self.generate: (::Symbol expected_type) -> untyped
+          def generate: (::Symbol expected_type) -> untyped
         end
       end
 

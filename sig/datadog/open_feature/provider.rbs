@@ -2,7 +2,10 @@ module Datadog
   module OpenFeature
     class Provider
       NAME: ::String
+
       ERROR_MESSAGE_COMPONENT_NOT_CONFIGURED: ::String
+
+      PROVIDER_FATAL: ::String
 
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
