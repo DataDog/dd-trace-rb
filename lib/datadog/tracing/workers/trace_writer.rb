@@ -120,7 +120,8 @@ module Datadog
         # result from the writer, whereas this method always returns nil.
         def perform(traces)
           super.tap do |responses|
-            loop_back_off! if responses.find(&:server_error?)
+            # Trigger exponential backoff on server errors (5xx) or agent backpressure (429)
+            loop_back_off! if responses.find { |r| r.server_error? || r.too_many_requests? }
           end
 
           nil

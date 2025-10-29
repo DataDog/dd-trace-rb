@@ -27,6 +27,12 @@ module Datadog
           # Header that prevents the Net::HTTP integration from tracing internal trace requests.
           # Set it to any value to skip tracing.
           HEADER_DD_INTERNAL_UNTRACED_REQUEST = 'DD-Internal-Untraced-Request'
+
+          # Header that enables trace agent backpressure handling.
+          # When set, the agent will respond with 429 (Too Many Requests) when overloaded,
+          # instead of silently dropping payloads with a 200 OK response.
+          # Set it to any value to enable this feature.
+          HEADER_SEND_REAL_HTTP_STATUS = 'Datadog-Send-Real-Http-Status'
         end
 
         module Test

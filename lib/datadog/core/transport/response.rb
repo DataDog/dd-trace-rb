@@ -33,6 +33,10 @@ module Datadog
           nil
         end
 
+        def too_many_requests?
+          nil
+        end
+
         def inspect
           maybe_code = if respond_to?(:code)
             " code:#{code}," # steep:ignore
@@ -40,7 +44,7 @@ module Datadog
           "#{self.class} ok?:#{ok?},#{maybe_code} unsupported?:#{unsupported?}, " \
             "not_found?:#{not_found?}, client_error?:#{client_error?}, " \
             "server_error?:#{server_error?}, internal_error?:#{internal_error?}, " \
-            "payload:#{payload}"
+            "too_many_requests?:#{too_many_requests?}, payload:#{payload}"
         end
       end
 

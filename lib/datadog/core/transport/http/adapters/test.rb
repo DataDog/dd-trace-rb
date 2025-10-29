@@ -78,6 +78,10 @@ module Datadog
                 code.between?(500, 599)
               end
 
+              def too_many_requests?
+                code == 429
+              end
+
               def inspect
                 "#{super}, code:#{code}"
               end
