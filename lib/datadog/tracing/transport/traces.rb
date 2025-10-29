@@ -131,9 +131,9 @@ module Datadog
             @apis = apis
             @default_api = default_api
             @logger = logger
+            @retry_queue = nil
 
             change_api!(default_api)
-            initialize_retry_queue
           end
 
           def send_traces(traces)
@@ -155,7 +155,7 @@ module Datadog
 
                 # Handle backpressure by queuing for retry
                 if response.too_many_requests?
-                  retry_queue.enqueue(request)
+                  ensure_retry_queue.enqueue(request)
                 end
               end
             end
@@ -229,8 +229,8 @@ module Datadog
             end
           end
 
-          def initialize_retry_queue
-            @retry_queue = Backpressure::RetryQueue.new(
+          def ensure_retry_queue
+            @retry_queue ||= Backpressure::RetryQueue.new(
               client: @client,
               config: Backpressure::Configuration.new,
               logger: logger
@@ -238,7 +238,7 @@ module Datadog
           end
 
           def shutdown
-            retry_queue&.shutdown
+            @retry_queue&.shutdown
           end
 
           # Raised when configured with an unknown API version

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'thread'
-
 module Datadog
   module Tracing
     module Transport
@@ -83,7 +81,11 @@ module Datadog
           def shutdown
             @shutdown = true
             if @retry_thread&.alive?
-              @retry_thread.wakeup rescue nil # Wake up the thread if sleeping
+              begin
+                @retry_thread.wakeup # Wake up the thread if sleeping
+              rescue ThreadError
+                # Thread may already be dead, ignore
+              end
               @retry_thread.join(5) # Wait up to 5 seconds for thread to finish
             end
           end

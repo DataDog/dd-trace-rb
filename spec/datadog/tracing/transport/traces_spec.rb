@@ -528,26 +528,31 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       transport.shutdown
     end
 
-    describe '#initialize_retry_queue' do
-      it 'creates a retry queue' do
-        expect(transport.retry_queue).to be_a(Datadog::Tracing::Transport::Backpressure::RetryQueue)
+    describe 'lazy retry queue initialization' do
+      it 'does not create retry queue on initialization' do
+        expect(transport.instance_variable_get(:@retry_queue)).to be_nil
       end
 
-      it 'initializes retry queue with default configuration' do
-        expect(transport.retry_queue.config).to be_a(Datadog::Tracing::Transport::Backpressure::Configuration)
-        expect(transport.retry_queue.config.max_retry_queue_size).to eq(100)
-        expect(transport.retry_queue.config.initial_backoff_seconds).to eq(1.0)
+      it 'creates a retry queue on first 429 response' do
+        allow(response).to receive(:too_many_requests?).and_return(true)
+        allow(Datadog::Tracing::Transport::Backpressure::RetryQueue).to receive(:new).and_return(retry_queue)
+        allow(retry_queue).to receive(:enqueue)
+
+        transport.send_traces(traces)
+
+        expect(transport.instance_variable_get(:@retry_queue)).not_to be_nil
       end
     end
 
     describe 'when response is 429 Too Many Requests' do
       before do
         allow(response).to receive(:too_many_requests?).and_return(true)
-        allow(transport.retry_queue).to receive(:enqueue)
+        allow(Datadog::Tracing::Transport::Backpressure::RetryQueue).to receive(:new).and_return(retry_queue)
+        allow(retry_queue).to receive(:enqueue)
       end
 
       it 'enqueues the request to the retry queue' do
-        expect(transport.retry_queue).to receive(:enqueue).with(request)
+        expect(retry_queue).to receive(:enqueue).with(request)
         transport.send_traces(traces)
       end
 
@@ -561,19 +566,33 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       before do
         allow(response).to receive(:too_many_requests?).and_return(false)
         allow(response).to receive(:ok?).and_return(true)
-        allow(transport.retry_queue).to receive(:enqueue)
       end
 
-      it 'does not enqueue to retry queue' do
-        expect(transport.retry_queue).not_to receive(:enqueue)
+      it 'does not create retry queue' do
         transport.send_traces(traces)
+        expect(transport.instance_variable_get(:@retry_queue)).to be_nil
       end
     end
 
     describe '#shutdown' do
-      it 'shuts down the retry queue' do
-        expect(transport.retry_queue).to receive(:shutdown)
-        transport.shutdown
+      context 'when retry queue has been initialized' do
+        before do
+          allow(response).to receive(:too_many_requests?).and_return(true)
+          allow(Datadog::Tracing::Transport::Backpressure::RetryQueue).to receive(:new).and_return(retry_queue)
+          allow(retry_queue).to receive(:enqueue)
+          transport.send_traces(traces) # This initializes the retry queue
+        end
+
+        it 'shuts down the retry queue' do
+          expect(retry_queue).to receive(:shutdown)
+          transport.shutdown
+        end
+      end
+
+      context 'when retry queue has not been initialized' do
+        it 'does not raise an error' do
+          expect { transport.shutdown }.not_to raise_error
+        end
       end
     end
   end
