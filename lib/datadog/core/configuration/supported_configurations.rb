@@ -42,6 +42,7 @@ module Datadog
          "DD_ENV" => {version: ["A"]},
          "DD_ERROR_TRACKING_HANDLED_ERRORS" => {version: ["A"]},
          "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE" => {version: ["A"]},
+         "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED" => {version: ["A"]},
          "DD_GIT_COMMIT_SHA" => {version: ["A"]},
          "DD_GIT_REPOSITORY_URL" => {version: ["A"]},
          "DD_HEALTH_METRICS_ENABLED" => {version: ["A"]},

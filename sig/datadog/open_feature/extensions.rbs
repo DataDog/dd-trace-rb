@@ -1,0 +1,7 @@
+module Datadog
+  module OpenFeature
+    module Extensions
+      def self.activate!: () -> void
+    end
+  end
+end

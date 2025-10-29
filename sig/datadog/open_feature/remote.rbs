@@ -1,0 +1,24 @@
+module Datadog
+  module OpenFeature
+    module Remote
+      class ReadError < ::StandardError
+      end
+
+      FFE_FLAG_CONFIGURATION_RULES: ::Integer
+
+      FFE_PRODUCTS: ::Array[::String]
+
+      FFE_CAPABILITIES: ::Array[::Integer]
+
+      def self.capabilities: () -> ::Array[::Integer]
+
+      def self.products: () -> ::Array[::String]
+
+      def self.receivers: (Core::Telemetry::Component telemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
+
+      private
+
+      def self.read_content: (Core::Remote::Configuration::Content content) -> ::String
+    end
+  end
+end
