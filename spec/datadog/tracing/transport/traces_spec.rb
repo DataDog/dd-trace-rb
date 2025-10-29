@@ -498,4 +498,83 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       it { expect { downgrade! }.to change { transport.current_api }.from(api_v2).to(api_v1) }
     end
   end
+
+  describe 'backpressure handling' do
+    include_context 'APIs with fallbacks'
+
+    let(:traces) { get_test_traces(2) }
+    let(:chunks) { [['chunk1', 1]] }
+    let(:lazy_chunks) { chunks.lazy }
+    let(:chunker) { instance_double(Datadog::Tracing::Transport::Traces::Chunker) }
+    let(:request) { instance_double(Datadog::Tracing::Transport::Traces::Request, parcel: parcel) }
+    let(:parcel) { instance_double(Datadog::Tracing::Transport::Traces::EncodedParcel, trace_count: 1) }
+    let(:response) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::Response) }
+    let(:retry_queue) { instance_double(Datadog::Tracing::Transport::Backpressure::RetryQueue) }
+    let(:agent_info_response) { instance_double(Datadog::Core::Environment::AgentInfo::Response, span_events: false) }
+
+    before do
+      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).and_return(chunker)
+      allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
+      allow(Datadog::Tracing::Transport::Traces::Request).to receive(:new).and_return(request)
+      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).and_return(client_v2)
+      allow(client_v2).to receive(:send_traces_payload).and_return(response)
+      allow(response).to receive(:ok?).and_return(false)
+      allow(response).to receive(:not_found?).and_return(false)
+      allow(response).to receive(:unsupported?).and_return(false)
+      allow_any_instance_of(Datadog::Core::Environment::AgentInfo).to receive(:fetch).and_return(agent_info_response)
+    end
+
+    after do
+      transport.shutdown
+    end
+
+    describe '#initialize_retry_queue' do
+      it 'creates a retry queue' do
+        expect(transport.retry_queue).to be_a(Datadog::Tracing::Transport::Backpressure::RetryQueue)
+      end
+
+      it 'initializes retry queue with default configuration' do
+        expect(transport.retry_queue.config).to be_a(Datadog::Tracing::Transport::Backpressure::Configuration)
+        expect(transport.retry_queue.config.max_retry_queue_size).to eq(100)
+        expect(transport.retry_queue.config.initial_backoff_seconds).to eq(1.0)
+      end
+    end
+
+    describe 'when response is 429 Too Many Requests' do
+      before do
+        allow(response).to receive(:too_many_requests?).and_return(true)
+        allow(transport.retry_queue).to receive(:enqueue)
+      end
+
+      it 'enqueues the request to the retry queue' do
+        expect(transport.retry_queue).to receive(:enqueue).with(request)
+        transport.send_traces(traces)
+      end
+
+      it 'still returns the response' do
+        result = transport.send_traces(traces)
+        expect(result).to eq([response])
+      end
+    end
+
+    describe 'when response is not 429' do
+      before do
+        allow(response).to receive(:too_many_requests?).and_return(false)
+        allow(response).to receive(:ok?).and_return(true)
+        allow(transport.retry_queue).to receive(:enqueue)
+      end
+
+      it 'does not enqueue to retry queue' do
+        expect(transport.retry_queue).not_to receive(:enqueue)
+        transport.send_traces(traces)
+      end
+    end
+
+    describe '#shutdown' do
+      it 'shuts down the retry queue' do
+        expect(transport.retry_queue).to receive(:shutdown)
+        transport.shutdown
+      end
+    end
+  end
 end

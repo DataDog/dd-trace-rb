@@ -23,6 +23,9 @@ module Datadog
           # Use for distinguishing between CRuby, JRuby, and TruffleRuby.
           HEADER_META_LANG_INTERPRETER_VENDOR = 'Datadog-Meta-Lang-Interpreter-Vendor'
           HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'
+          # Opt-in header to receive real HTTP status codes from the Trace Agent.
+          # When set, the agent will return 429 Too Many Requests during backpressure instead of 200 OK.
+          HEADER_SEND_REAL_HTTP_STATUS = 'Datadog-Send-Real-Http-Status'
 
           # Header that prevents the Net::HTTP integration from tracing internal trace requests.
           # Set it to any value to skip tracing.

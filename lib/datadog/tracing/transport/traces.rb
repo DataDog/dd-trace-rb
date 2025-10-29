@@ -5,6 +5,7 @@ require_relative '../../core/transport/parcel'
 require_relative '../../core/transport/request'
 require_relative 'serializable_trace'
 require_relative 'trace_formatter'
+require_relative 'backpressure'
 
 module Datadog
   module Tracing
@@ -124,7 +125,7 @@ module Datadog
         # batches of traces into smaller chunks and handles
         # API version downgrade handshake.
         class Transport
-          attr_reader :client, :apis, :default_api, :current_api_id, :logger
+          attr_reader :client, :apis, :default_api, :current_api_id, :logger, :retry_queue
 
           def initialize(apis, default_api, logger: Datadog.logger)
             @apis = apis
@@ -132,6 +133,7 @@ module Datadog
             @logger = logger
 
             change_api!(default_api)
+            initialize_retry_queue
           end
 
           def send_traces(traces)
@@ -149,6 +151,11 @@ module Datadog
                 if downgrade?(response)
                   downgrade!
                   return send_traces(traces)
+                end
+
+                # Handle backpressure by queuing for retry
+                if response.too_many_requests?
+                  retry_queue.enqueue(request)
                 end
               end
             end
@@ -220,6 +227,18 @@ module Datadog
             else
               false
             end
+          end
+
+          def initialize_retry_queue
+            @retry_queue = Backpressure::RetryQueue.new(
+              client: @client,
+              config: Backpressure::Configuration.new,
+              logger: logger
+            )
+          end
+
+          def shutdown
+            retry_queue&.shutdown
           end
 
           # Raised when configured with an unknown API version

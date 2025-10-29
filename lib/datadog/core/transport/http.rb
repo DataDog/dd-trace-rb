@@ -55,7 +55,9 @@ module Datadog
             Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER_VENDOR =>
               Core::Environment::Ext::LANG_ENGINE,
             Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
-              Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
+              Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION,
+            # Opt-in to receive real HTTP status codes from the Trace Agent (e.g., 429 during backpressure)
+            Datadog::Core::Transport::Ext::HTTP::HEADER_SEND_REAL_HTTP_STATUS => '1'
           }.tap do |headers|
             # Add container ID, if present.
             if (container_id = Datadog::Core::Environment::Container.container_id)
