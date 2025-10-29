@@ -14,11 +14,12 @@ module Datadog
         class EncodedParcel
           include Datadog::Core::Transport::Parcel
 
-          attr_reader :trace_count
+          attr_reader :trace_count, :traces
 
-          def initialize(data, trace_count)
+          def initialize(data, trace_count, traces: [])
             super(data)
             @trace_count = trace_count
+            @traces = traces
           end
 
           def count
@@ -32,7 +33,7 @@ module Datadog
 
         # Traces response
         module Response
-          attr_reader :service_rates, :trace_count
+          attr_reader :service_rates, :trace_count, :traces
         end
 
         # Traces chunker
@@ -67,19 +68,22 @@ module Datadog
           def encode_in_chunks(traces)
             encoded_traces = if traces.respond_to?(:filter_map)
               # DEV Supported since Ruby 2.7, saves an intermediate object creation
-              traces.filter_map { |t| encode_one(t) }
+              traces.filter_map { |t| encode_pair(t) }
             else
-              traces.map { |t| encode_one(t) }.reject(&:nil?)
+              traces.map { |t| encode_pair(t) }.reject(&:nil?)
             end
 
             Datadog::Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
-              [encoder.join(chunk), chunk.size]
+              encoded_chunk = chunk.map(&:encoded)
+              trace_chunk = chunk.map(&:trace)
+
+              [encoder.join(encoded_chunk), trace_chunk.size, trace_chunk]
             end
           end
 
           private
 
-          def encode_one(trace)
+          def encode_pair(trace)
             encoded = Encoder.encode_trace(
               encoder,
               trace,
@@ -95,7 +99,13 @@ module Datadog
               return nil
             end
 
-            encoded
+            EncodedTrace.new(encoded, trace)
+          end
+
+          EncodedTrace = Struct.new(:encoded, :trace) do
+            def size
+              encoded.size
+            end
           end
         end
 
@@ -123,6 +133,8 @@ module Datadog
         # This class initializes the HTTP client, breaks down large
         # batches of traces into smaller chunks and handles
         # API version downgrade handshake.
+        TOO_MANY_REQUESTS_STATUS = 429
+
         class Transport
           attr_reader :client, :apis, :default_api, :current_api_id, :logger
 
@@ -142,30 +154,21 @@ module Datadog
               native_events_supported: native_events_supported?
             )
 
-            responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
-              request = Request.new(EncodedParcel.new(encoded_traces, trace_count))
+            responses = []
 
-              client.send_traces_payload(request).tap do |response|
-                if downgrade?(response)
-                  downgrade!
-                  return send_traces(traces)
-                end
+            chunker.encode_in_chunks(traces.lazy).each do |encoded_traces, trace_count, trace_chunk|
+              request = Request.new(EncodedParcel.new(encoded_traces, trace_count, traces: trace_chunk))
+
+              response = client.send_traces_payload(request)
+              if downgrade?(response)
+                downgrade!
+                return send_traces(traces)
               end
-            end
 
-            # Force resolution of lazy enumerator.
-            #
-            # The "correct" method to call here would be `#force`,
-            # as this method was created to force the eager loading
-            # of a lazy enumerator.
-            #
-            # Unfortunately, JRuby < 9.2.9.0 erroneously eagerly loads
-            # the lazy Enumerator during intermediate steps.
-            # This forces us to use `#to_a`, as this method works for both
-            # lazy and regular Enumerators.
-            # Using `#to_a` can mask the fact that we expect a lazy
-            # Enumerator.
-            responses = responses.to_a
+              responses << response
+
+              break if response.code.to_i == TOO_MANY_REQUESTS_STATUS
+            end
 
             Datadog.health_metrics.transport_chunked(responses.size)
 

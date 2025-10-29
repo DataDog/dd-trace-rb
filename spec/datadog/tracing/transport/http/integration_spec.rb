@@ -49,7 +49,7 @@ RSpec.describe 'Datadog::Tracing::Transport::HTTP integration tests' do
 
       let(:traces) { get_test_traces(1) }
 
-      it { is_expected.to be true }
+      it { expect(send_spans.status).to eq(Datadog::Tracing::Writer::SendResult::SUCCESS) }
     end
   end
 end

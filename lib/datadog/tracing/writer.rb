@@ -12,6 +12,26 @@ module Datadog
     # DEV: Our goal is for {Datadog::Tracing::Workers::TraceWriter} to replace this class in the future
     # @public_api
     class Writer
+      TOO_MANY_REQUESTS_STATUS = Transport::Traces::TOO_MANY_REQUESTS_STATUS
+
+      SendResult = Struct.new(:status, :retry_traces, keyword_init: true) do
+        def success?
+          status == SUCCESS
+        end
+
+        def too_many_requests?
+          status == TOO_MANY_REQUESTS
+        end
+
+        def server_error?
+          status == SERVER_ERROR
+        end
+      end
+
+      SendResult.const_set(:SUCCESS, :success)
+      SendResult.const_set(:TOO_MANY_REQUESTS, :too_many_requests)
+      SendResult.const_set(:SERVER_ERROR, :server_error)
+
       attr_reader \
         :logger,
         :transport,
@@ -84,20 +104,28 @@ module Datadog
       # flush spans to the trace-agent, handles spans only
       # @!visibility private
       def send_spans(traces, transport)
-        return true if traces.empty?
+        return SendResult.new(status: SendResult::SUCCESS, retry_traces: []) if traces.empty?
 
-        # Send traces and get responses
         responses = transport.send_traces(traces)
 
-        # Tally up successful flushes
-        responses.reject { |x| x.internal_error? || x.server_error? }.each do |response|
+        retry_traces = retryable_traces(responses, traces)
+
+        responses.reject { |x| x.internal_error? || x.server_error? || too_many_requests?(x) }.each do |response|
           @traces_flushed += response.trace_count
         end
 
         events.after_send.publish(self, responses)
 
-        # Return if server error occurred.
-        !responses.find(&:server_error?)
+        if retry_traces.any?
+          logger.debug('Trace agent overloaded. Scheduling trace payload for retry.')
+          return SendResult.new(status: SendResult::TOO_MANY_REQUESTS, retry_traces: retry_traces)
+        end
+
+        if responses.find(&:server_error?)
+          return SendResult.new(status: SendResult::SERVER_ERROR, retry_traces: [])
+        end
+
+        SendResult.new(status: SendResult::SUCCESS, retry_traces: [])
       end
 
       # enqueue the trace for submission to the API
@@ -184,6 +212,28 @@ module Datadog
       def reset_stats!
         @traces_flushed = 0
         @transport.stats.reset!
+      end
+
+      def too_many_requests?(response)
+        response.code.to_i == TOO_MANY_REQUESTS_STATUS
+      rescue NoMethodError
+        false
+      end
+
+      def retryable_traces(responses, original_traces)
+        return [] unless original_traces && !original_traces.empty?
+
+        retry_traces = responses.select { |response| too_many_requests?(response) && response.respond_to?(:traces) }
+          .flat_map(&:traces)
+
+        sent_trace_count = responses.select { |response| response.respond_to?(:traces) }
+          .sum { |response| response.traces.length }
+
+        if sent_trace_count < original_traces.length
+          retry_traces.concat(original_traces[sent_trace_count..-1])
+        end
+
+        retry_traces
       end
     end
   end

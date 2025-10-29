@@ -52,7 +52,8 @@ module Datadog
           begin
             traces = @trace_buffer.pop
             traces = Pipeline.process!(traces)
-            @trace_task.call(traces, @transport) unless @trace_task.nil? || traces.empty?
+            result = @trace_task.call(traces, @transport) unless @trace_task.nil? || traces.empty?
+            handle_send_result(result, traces)
           rescue => e
             # ensures that the thread will not die because of an exception.
             # TODO[manu]: findout the reason and reschedule the send if it's not
@@ -108,6 +109,20 @@ module Datadog
         private
 
         alias_method :flush_data, :callback_traces
+
+        def handle_send_result(result, original_traces)
+          case result
+          when Datadog::Tracing::Writer::SendResult
+            if result.too_many_requests?
+              @trace_buffer.unshift(*result.retry_traces)
+              false
+            else
+              result.success?
+            end
+          else
+            result.nil? ? true : result
+          end
+        end
 
         def perform
           loop do
