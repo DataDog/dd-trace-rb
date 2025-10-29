@@ -11,14 +11,13 @@ static VALUE configuration_initialize(VALUE self, VALUE json_str);
 static VALUE evaluation_context_alloc(VALUE klass);
 static void evaluation_context_free(void *ptr);
 static VALUE evaluation_context_initialize(VALUE self, VALUE targeting_key);
-static VALUE evaluation_context_initialize_with_attribute(VALUE self, VALUE targeting_key, VALUE attr_name, VALUE attr_value);
+static VALUE evaluation_context_initialize_with_attributes(VALUE self, VALUE targeting_key, VALUE attributes_hash);
 
 static VALUE assignment_alloc(VALUE klass);
 static void assignment_free(void *ptr);
 
 static VALUE native_get_assignment(VALUE self, VALUE config, VALUE flag_key, VALUE context);
 
-NORETURN(static void raise_ffe_error(const char *message, ddog_VoidResult result));
 
 void feature_flags_init(VALUE open_feature_module) {
   VALUE binding_module = rb_define_module_under(open_feature_module, "Binding");
@@ -32,7 +31,7 @@ void feature_flags_init(VALUE open_feature_module) {
   VALUE evaluation_context_class = rb_define_class_under(binding_module, "EvaluationContext", rb_cObject);
   rb_define_alloc_func(evaluation_context_class, evaluation_context_alloc);
   rb_define_method(evaluation_context_class, "_native_initialize", evaluation_context_initialize, 1);
-  rb_define_method(evaluation_context_class, "_native_initialize_with_attribute", evaluation_context_initialize_with_attribute, 3);
+  rb_define_method(evaluation_context_class, "_native_initialize_with_attributes", evaluation_context_initialize_with_attributes, 2);
 
   // Assignment class
   VALUE assignment_class = rb_define_class_under(binding_module, "Assignment", rb_cObject);
@@ -55,12 +54,15 @@ static const rb_data_type_t configuration_typed_data = {
 
 static VALUE configuration_alloc(VALUE klass) {
   ddog_ffe_Handle_Configuration *config = ruby_xcalloc(1, sizeof(ddog_ffe_Handle_Configuration));
+  config->inner = NULL; // Explicitly initialize to NULL
   return TypedData_Wrap_Struct(klass, &configuration_typed_data, config);
 }
 
 static void configuration_free(void *ptr) {
   ddog_ffe_Handle_Configuration *config = (ddog_ffe_Handle_Configuration *) ptr;
-  ddog_ffe_configuration_drop(config);
+  if (config) {
+    ddog_ffe_configuration_drop(config);
+  }
   ruby_xfree(ptr);
 }
 
@@ -93,12 +95,15 @@ static const rb_data_type_t evaluation_context_typed_data = {
 
 static VALUE evaluation_context_alloc(VALUE klass) {
   ddog_ffe_Handle_EvaluationContext *context = ruby_xcalloc(1, sizeof(ddog_ffe_Handle_EvaluationContext));
+  context->inner = NULL; // Explicitly initialize to NULL
   return TypedData_Wrap_Struct(klass, &evaluation_context_typed_data, context);
 }
 
 static void evaluation_context_free(void *ptr) {
   ddog_ffe_Handle_EvaluationContext *context = (ddog_ffe_Handle_EvaluationContext *) ptr;
-  ddog_ffe_evaluation_context_drop(context);
+  if (context) {
+    ddog_ffe_evaluation_context_drop(context);
+  }
   ruby_xfree(ptr);
 }
 
@@ -113,25 +118,46 @@ static VALUE evaluation_context_initialize(VALUE self, VALUE targeting_key) {
   return self;
 }
 
-static VALUE evaluation_context_initialize_with_attribute(VALUE self, VALUE targeting_key, VALUE attr_name, VALUE attr_value) {
+
+static VALUE evaluation_context_initialize_with_attributes(VALUE self, VALUE targeting_key, VALUE attributes_hash) {
   Check_Type(targeting_key, T_STRING);
-  Check_Type(attr_name, T_STRING);
-  Check_Type(attr_value, T_STRING);
+  Check_Type(attributes_hash, T_HASH);
 
   ddog_ffe_Handle_EvaluationContext *context;
   TypedData_Get_Struct(self, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
 
-  struct ddog_ffe_AttributePair attr = {
-    .name = RSTRING_PTR(attr_name),
-    .value = RSTRING_PTR(attr_value)
-  };
+  // Get the number of attributes
+  long attr_count = RHASH_SIZE(attributes_hash);
+  
+  if (attr_count == 0) {
+    // If no attributes, use the simple version
+    *context = ddog_ffe_evaluation_context_new(RSTRING_PTR(targeting_key));
+    return self;
+  }
+
+  // Allocate array for attributes
+  struct ddog_ffe_AttributePair *attrs = ruby_xcalloc(attr_count, sizeof(struct ddog_ffe_AttributePair));
+  
+  // Convert hash to attribute pairs
+  VALUE keys = rb_funcall(attributes_hash, rb_intern("keys"), 0);
+  for (long i = 0; i < attr_count; i++) {
+    VALUE key = rb_ary_entry(keys, i);
+    VALUE value = rb_hash_aref(attributes_hash, key);
+    
+    Check_Type(key, T_STRING);
+    Check_Type(value, T_STRING);
+    
+    attrs[i].name = RSTRING_PTR(key);
+    attrs[i].value = RSTRING_PTR(value);
+  }
   
   *context = ddog_ffe_evaluation_context_new_with_attributes(
     RSTRING_PTR(targeting_key),
-    &attr,
-    1
+    attrs,
+    attr_count
   );
-
+  
+  ruby_xfree(attrs);
   return self;
 }
 
@@ -148,18 +174,18 @@ static const rb_data_type_t assignment_typed_data = {
 
 static VALUE assignment_alloc(VALUE klass) {
   ddog_ffe_Handle_Assignment *assignment = ruby_xcalloc(1, sizeof(ddog_ffe_Handle_Assignment));
+  assignment->inner = NULL; // Explicitly initialize to NULL
   return TypedData_Wrap_Struct(klass, &assignment_typed_data, assignment);
 }
 
 static void assignment_free(void *ptr) {
   ddog_ffe_Handle_Assignment *assignment = (ddog_ffe_Handle_Assignment *) ptr;
-  ddog_ffe_assignment_drop(assignment);
+  if (assignment) {
+    ddog_ffe_assignment_drop(assignment);
+  }
   ruby_xfree(ptr);
 }
 
-static void raise_ffe_error(const char *message, ddog_VoidResult result) {
-  rb_raise(rb_eRuntimeError, "%s: %"PRIsVALUE, message, get_error_details_and_drop(&result.err));
-}
 
 static VALUE native_get_assignment(VALUE self, VALUE config_obj, VALUE flag_key, VALUE context_obj) {
   Check_Type(flag_key, T_STRING);
@@ -170,7 +196,7 @@ static VALUE native_get_assignment(VALUE self, VALUE config_obj, VALUE flag_key,
   ddog_ffe_Handle_EvaluationContext *context;
   TypedData_Get_Struct(context_obj, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
 
-  struct ddog_ffe_Result_HandleAssignment result = ddog_ffe_get_assignment(*config, RSTRING_PTR(flag_key), *context);
+  struct ddog_ffe_Result_HandleAssignment result = ddog_ffe_get_assignment(config, RSTRING_PTR(flag_key), *context);
 
   if (result.tag == DDOG_FFE_RESULT_HANDLE_ASSIGNMENT_ERR_HANDLE_ASSIGNMENT) {
     rb_raise(rb_eRuntimeError, "Feature flag evaluation failed: %"PRIsVALUE, get_error_details_and_drop(&result.err));

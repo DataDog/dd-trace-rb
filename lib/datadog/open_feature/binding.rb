@@ -32,13 +32,13 @@ module Datadog
           _native_initialize(targeting_key)
         end
 
-        def self.new_with_attribute(targeting_key, attr_name, attr_value)
+        def self.new_with_attributes(targeting_key, attributes_hash = {})
           unless Binding.supported?
             raise(ArgumentError, "Feature Flags are not supported: #{Datadog::Core::LIBDATADOG_API_FAILURE}")
           end
 
           context = allocate
-          context._native_initialize_with_attributes(targeting_key, attr_name, attr_value)
+          context._native_initialize_with_attributes(targeting_key, attributes_hash)
           context
         end
       end
