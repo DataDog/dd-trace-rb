@@ -510,6 +510,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     let(:parcel) { instance_double(Datadog::Tracing::Transport::Traces::EncodedParcel, trace_count: 1) }
     let(:response) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::Response) }
     let(:retry_queue) { instance_double(Datadog::Tracing::Transport::Backpressure::RetryQueue) }
+    let(:client_v1) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
+    let(:client_v2) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
     let(:agent_info_response) { instance_double(Datadog::Core::Environment::AgentInfo::Response, span_events: false) }
 
     before do

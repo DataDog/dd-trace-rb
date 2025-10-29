@@ -187,6 +187,10 @@ module Datadog
             apis[@current_api_id]
           end
 
+          def shutdown
+            @retry_queue&.shutdown
+          end
+
           private
 
           def downgrade?(response)
@@ -235,10 +239,6 @@ module Datadog
               config: Backpressure::Configuration.new,
               logger: logger
             )
-          end
-
-          def shutdown
-            @retry_queue&.shutdown
           end
 
           # Raised when configured with an unknown API version
