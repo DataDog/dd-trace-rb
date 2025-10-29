@@ -10,7 +10,6 @@ static VALUE configuration_initialize(VALUE self, VALUE json_str);
 
 static VALUE evaluation_context_alloc(VALUE klass);
 static void evaluation_context_free(void *ptr);
-static VALUE evaluation_context_initialize(VALUE self, VALUE targeting_key);
 static VALUE evaluation_context_initialize_with_attributes(VALUE self, VALUE targeting_key, VALUE attributes_hash);
 
 static VALUE assignment_alloc(VALUE klass);
@@ -30,7 +29,6 @@ void feature_flags_init(VALUE open_feature_module) {
   // EvaluationContext class  
   VALUE evaluation_context_class = rb_define_class_under(binding_module, "EvaluationContext", rb_cObject);
   rb_define_alloc_func(evaluation_context_class, evaluation_context_alloc);
-  rb_define_method(evaluation_context_class, "_native_initialize", evaluation_context_initialize, 1);
   rb_define_method(evaluation_context_class, "_native_initialize_with_attributes", evaluation_context_initialize_with_attributes, 2);
 
   // Assignment class
@@ -107,16 +105,6 @@ static void evaluation_context_free(void *ptr) {
   ruby_xfree(ptr);
 }
 
-static VALUE evaluation_context_initialize(VALUE self, VALUE targeting_key) {
-  Check_Type(targeting_key, T_STRING);
-
-  ddog_ffe_Handle_EvaluationContext *context;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
-
-  *context = ddog_ffe_evaluation_context_new(RSTRING_PTR(targeting_key));
-
-  return self;
-}
 
 
 static VALUE evaluation_context_initialize_with_attributes(VALUE self, VALUE targeting_key, VALUE attributes_hash) {
@@ -130,8 +118,8 @@ static VALUE evaluation_context_initialize_with_attributes(VALUE self, VALUE tar
   long attr_count = RHASH_SIZE(attributes_hash);
   
   if (attr_count == 0) {
-    // If no attributes, use the simple version
-    *context = ddog_ffe_evaluation_context_new(RSTRING_PTR(targeting_key));
+    // If no attributes, pass NULL and 0
+    *context = ddog_ffe_evaluation_context_new(RSTRING_PTR(targeting_key), NULL, 0);
     return self;
   }
 
@@ -151,7 +139,7 @@ static VALUE evaluation_context_initialize_with_attributes(VALUE self, VALUE tar
     attrs[i].value = RSTRING_PTR(value);
   }
   
-  *context = ddog_ffe_evaluation_context_new_with_attributes(
+  *context = ddog_ffe_evaluation_context_new(
     RSTRING_PTR(targeting_key),
     attrs,
     attr_count
@@ -196,7 +184,7 @@ static VALUE native_get_assignment(VALUE self, VALUE config_obj, VALUE flag_key,
   ddog_ffe_Handle_EvaluationContext *context;
   TypedData_Get_Struct(context_obj, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
 
-  struct ddog_ffe_Result_HandleAssignment result = ddog_ffe_get_assignment(config, RSTRING_PTR(flag_key), *context);
+  struct ddog_ffe_Result_HandleAssignment result = ddog_ffe_get_assignment(config, RSTRING_PTR(flag_key), context);
 
   if (result.tag == DDOG_FFE_RESULT_HANDLE_ASSIGNMENT_ERR_HANDLE_ASSIGNMENT) {
     rb_raise(rb_eRuntimeError, "Feature flag evaluation failed: %"PRIsVALUE, get_error_details_and_drop(&result.err));

@@ -24,23 +24,14 @@ module Datadog
 
       # Evaluation context with targeting key and attributes
       class EvaluationContext
-        def initialize(targeting_key)
+        def initialize(targeting_key, attributes = {})
           unless Binding.supported?
             raise(ArgumentError, "Feature Flags are not supported: #{Datadog::Core::LIBDATADOG_API_FAILURE}")
           end
 
-          _native_initialize(targeting_key)
+          _native_initialize_with_attributes(targeting_key, attributes)
         end
 
-        def self.new_with_attributes(targeting_key, attributes_hash = {})
-          unless Binding.supported?
-            raise(ArgumentError, "Feature Flags are not supported: #{Datadog::Core::LIBDATADOG_API_FAILURE}")
-          end
-
-          context = allocate
-          context._native_initialize_with_attributes(targeting_key, attributes_hash)
-          context
-        end
       end
 
       # Assignment result from feature flag evaluation

@@ -82,8 +82,8 @@ RSpec.describe Datadog::OpenFeature::Binding do
         )
       end
 
-      it 'raises an error for new_with_attribute' do
-        expect { described_class.new_with_attribute('user123', 'country', 'US') }.to raise_error(
+      it 'raises an error for new with attributes' do
+        expect { described_class.new('user123', {'country' => 'US'}) }.to raise_error(
           ArgumentError, 
           'Feature Flags are not supported: Example error loading libdatadog_api'
         )
@@ -133,9 +133,9 @@ RSpec.describe Datadog::OpenFeature::Binding do
         end
       end
 
-      describe '.new_with_attribute' do
+      describe '.new with attributes' do
         let(:context_with_attribute) do
-          described_class.new_with_attribute('user123', 'country', 'US')
+          described_class.new('user123', {'country' => 'US'})
         end
 
         it 'creates an evaluation context with attribute' do
@@ -208,7 +208,7 @@ RSpec.describe Datadog::OpenFeature::Binding do
         config = described_class::Configuration.new(sample_config_json)
 
         # Create evaluation context with attribute
-        context = described_class::EvaluationContext.new_with_attribute('test_user', 'plan', 'premium')
+        context = described_class::EvaluationContext.new('test_user', {'plan' => 'premium'})
         expect(context).to be_a(described_class::EvaluationContext)
 
         # Evaluate flag
