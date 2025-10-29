@@ -8,60 +8,6 @@ require 'ostruct'
 require 'datadog/tracing/contrib/kafka/integration'
 require 'datadog/tracing/contrib/kafka/instrumentation/producer'
 require 'datadog/tracing/contrib/kafka/instrumentation/consumer'
-require 'datadog'
-module ActiveSupport
-  module Notifications
-    def self.subscribe(*_args)
-    end
-  end
-end
-
-# Mock Kafka classes that we need
-module Kafka
-  class Producer
-    attr_accessor :pending_message_queue
-
-    def initialize
-      @pending_message_queue = []
-    end
-
-    def deliver_messages(**kwargs)
-      result = {delivered_count: @pending_message_queue.size}
-      @pending_message_queue.clear
-      result
-    end
-
-    def send_messages(messages, **kwargs)
-      {sent_count: messages.size}
-    end
-  end
-
-  class Consumer
-    def each_message(**kwargs)
-      if block_given?
-        yield OpenStruct.new(
-          topic: 'test_topic',
-          partition: 0,
-          offset: 100,
-          headers: {}
-        )
-      end
-    end
-
-    def each_batch(**kwargs)
-      if block_given?
-        yield OpenStruct.new(
-          topic: 'test_topic',
-          partition: 0,
-          messages: [
-            OpenStruct.new(offset: 100, key: 'key1'),
-            OpenStruct.new(offset: 101, key: 'key2')
-          ]
-        )
-      end
-    end
-  end
-end
 
 RSpec.describe 'Kafka Data Streams instrumentation' do
   let(:configuration_options) { {} }
@@ -130,7 +76,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
   describe 'checkpointing' do
     before do
-      skip('DDSketch not available') unless Datadog::Core::DDSketch.supported?
+      skip_if_data_streams_not_supported(self)
     end
 
     let(:test_producer_class) do
