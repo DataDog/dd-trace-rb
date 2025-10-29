@@ -541,6 +541,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
         allow(response).to receive(:too_many_requests?).and_return(true)
         allow(Datadog::Tracing::Transport::Backpressure::RetryQueue).to receive(:new).and_return(retry_queue)
         allow(retry_queue).to receive(:enqueue)
+        allow(retry_queue).to receive(:shutdown)
 
         transport.send_traces(traces)
 
@@ -553,6 +554,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
         allow(response).to receive(:too_many_requests?).and_return(true)
         allow(Datadog::Tracing::Transport::Backpressure::RetryQueue).to receive(:new).and_return(retry_queue)
         allow(retry_queue).to receive(:enqueue)
+        allow(retry_queue).to receive(:shutdown)
       end
 
       it 'enqueues the request to the retry queue' do
@@ -584,11 +586,13 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           allow(response).to receive(:too_many_requests?).and_return(true)
           allow(Datadog::Tracing::Transport::Backpressure::RetryQueue).to receive(:new).and_return(retry_queue)
           allow(retry_queue).to receive(:enqueue)
+          allow(retry_queue).to receive(:shutdown)
           transport.send_traces(traces) # This initializes the retry queue
         end
 
         it 'shuts down the retry queue' do
-          expect(retry_queue).to receive(:shutdown)
+          # The after block also calls shutdown, so we expect it to be called at least once
+          expect(retry_queue).to receive(:shutdown).at_least(:once)
           transport.shutdown
         end
       end
