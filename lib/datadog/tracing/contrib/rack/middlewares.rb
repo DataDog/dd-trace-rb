@@ -255,9 +255,11 @@ module Datadog
               # which is SCRIPT_NAME + PATH_INFO for mounted rack applications
               full_path = env['SCRIPT_NAME'].to_s + env['PATH_INFO'].to_s
 
-              if (inferred_route = RouteFromPathInference.infer(full_path))
-                set_endpoint_tag(request_span, inferred_route)
-              end
+              # Inferred route calculation might have been done already for AppSec API Security sampling,
+              # in such case the calculation result is stored in request env
+              inferred_route = env[Tracing::Contrib::Rack::Ext::DATADOG_INFERRED_ROUTE] || RouteFromPathInference.infer(full_path)
+
+              set_endpoint_tag(request_span, inferred_route) if inferred_route
             elsif !request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT)
               set_endpoint_tag(request_span, request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
             end
