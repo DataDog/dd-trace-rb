@@ -19,6 +19,7 @@ require_relative '../../error_tracking/component'
 require_relative '../crashtracking/component'
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
+require_relative '../../data_streams/processor'
 
 module Datadog
   module Core
@@ -78,8 +79,6 @@ module Datadog
 
           def build_data_streams(settings, agent_settings, logger)
             return unless settings.data_streams.enabled
-
-            require_relative '../../data_streams/processor'
 
             Datadog::DataStreams::Processor.new(
               interval: settings.data_streams.interval,
