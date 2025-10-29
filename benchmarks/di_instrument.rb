@@ -212,10 +212,10 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: targeted_file, line_no: targeted_line + 1)
-    if defined?(Datadog::DI::ProcResponder)
-      rv = instrumenter.hook_line(probe, responder)
+    rv = if defined?(Datadog::DI::ProcResponder)
+      instrumenter.hook_line(probe, responder)
     else
-      rv = instrumenter.hook_line(probe, &executed_proc)
+      instrumenter.hook_line(probe, &executed_proc)
     end
     unless rv
       raise "Line probe (targeted) was not successfully installed"
