@@ -71,10 +71,14 @@ module Datadog
           
           # Check if any response was a 429 (too many requests)
           handle_responses(responses, traces)
+          
+          # Return responses for compatibility with AsyncTraceWriter
+          responses
         rescue => e
           logger.warn(
             "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
+          nil
         end
 
         def process_traces(traces)
@@ -88,11 +92,27 @@ module Datadog
           end
         end
 
+        # TODO: Register `Datadog::Tracing::Diagnostics::EnvironmentLogger.collect_and_log!`
+        # TODO: as a flush_completed subscriber when the `TraceWriter`
+        # TODO: instantiation code is implemented.
+        def flush_completed
+          @flush_completed ||= FlushCompleted.new
+        end
+
+        # Flush completed event for worker
+        class FlushCompleted < Event
+          def initialize
+            super(:flush_completed)
+          end
+        end
+
         private
 
         def handle_responses(responses, traces)
           # Check if any response is a 429
-          if responses.any?(&:too_many_requests?)
+          has_429 = responses.any? { |r| r.respond_to?(:too_many_requests?) && r.too_many_requests? }
+          
+          if has_429
             # Queue traces for retry
             queue_for_retry(traces)
             # Update backoff
@@ -125,7 +145,9 @@ module Datadog
               flush_completed.publish(responses)
 
               # If we got another 429, put back in queue
-              if responses.any?(&:too_many_requests?)
+              has_429 = responses.any? { |r| r.respond_to?(:too_many_requests?) && r.too_many_requests? }
+              
+              if has_429
                 queue_for_retry(traces_to_retry)
                 update_backoff_on_429
               else
@@ -167,20 +189,6 @@ module Datadog
           @current_backoff = @initial_backoff
           @last_429_time = nil
           logger.debug { 'Backoff reset after successful flush' }
-        end
-
-        # TODO: Register `Datadog::Tracing::Diagnostics::EnvironmentLogger.collect_and_log!`
-        # TODO: as a flush_completed subscriber when the `TraceWriter`
-        # TODO: instantiation code is implemented.
-        def flush_completed
-          @flush_completed ||= FlushCompleted.new
-        end
-
-        # Flush completed event for worker
-        class FlushCompleted < Event
-          def initialize
-            super(:flush_completed)
-          end
         end
       end
 
