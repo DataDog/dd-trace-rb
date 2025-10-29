@@ -62,7 +62,6 @@ module Datadog
               .recognize(request) { |route, _| break route.path.spec.to_s }
 
             # NOTE: If rails is unable to recognize request it returns empty Array
-            #       We want to return nil in that case to skip this request in the Sampler
             pattern = nil if pattern&.empty?
 
             # NOTE: If rails can't recognize the request, we are going to fallback
