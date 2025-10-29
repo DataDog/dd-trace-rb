@@ -286,6 +286,56 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
         result: nil
       )
     end
+
+    context 'when performing with traces' do
+      subject(:perform) do
+        writer.enqueue(traces)
+        writer.send(:perform)
+      end
+
+      let(:traces) { get_test_traces(1).first }
+      let(:response) { instance_double(Datadog::Core::Transport::Response) }
+
+      before do
+        allow(writer.transport).to receive(:send_traces).and_return([response])
+      end
+
+      context 'when response has server error' do
+        before do
+          allow(response).to receive(:server_error?).and_return(true)
+          allow(response).to receive(:too_many_requests?).and_return(false)
+        end
+
+        it 'triggers backoff' do
+          expect(writer).to receive(:loop_back_off!)
+          perform
+        end
+      end
+
+      context 'when response has 429 too many requests' do
+        before do
+          allow(response).to receive(:server_error?).and_return(false)
+          allow(response).to receive(:too_many_requests?).and_return(true)
+        end
+
+        it 'triggers backoff' do
+          expect(writer).to receive(:loop_back_off!)
+          perform
+        end
+      end
+
+      context 'when response is successful' do
+        before do
+          allow(response).to receive(:server_error?).and_return(false)
+          allow(response).to receive(:too_many_requests?).and_return(false)
+        end
+
+        it 'does not trigger backoff' do
+          expect(writer).to_not receive(:loop_back_off!)
+          perform
+        end
+      end
+    end
   end
 
   describe '#enqueue' do

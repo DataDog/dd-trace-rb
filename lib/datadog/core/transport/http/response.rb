@@ -50,6 +50,11 @@ module Datadog
             @http_response.server_error?
           end
 
+          # (see Datadog::Core::Transport::Response#too_many_requests?)
+          def too_many_requests?
+            @http_response.too_many_requests?
+          end
+
           def code
             @http_response.respond_to?(:code) ? @http_response.code : nil
           end

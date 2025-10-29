@@ -153,6 +153,30 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net::Response do
     end
   end
 
+  describe '#too_many_requests?' do
+    subject(:too_many_requests?) { response.too_many_requests? }
+
+    let(:http_response) { instance_double(::Net::HTTPResponse, code: code) }
+
+    context 'when code is 428' do
+      let(:code) { 428 }
+
+      it { is_expected.to be false }
+    end
+
+    context 'when code is 429' do
+      let(:code) { 429 }
+
+      it { is_expected.to be true }
+    end
+
+    context 'when code is 430' do
+      let(:code) { 430 }
+
+      it { is_expected.to be false }
+    end
+  end
+
   describe '#inspect' do
     let(:http_response) { instance_double(::Net::HTTPResponse, code: 202, body: 'body') }
 
