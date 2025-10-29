@@ -14,7 +14,7 @@ echo "✅ Step 1 completed: libdatadog built successfully"
 # Step 2: Set Up dd-trace-rb Build Environment
 echo "🔧 Step 2: Setting up dd-trace-rb build environment..."
 cd ~/dd/dd-trace-rb
-git checkout sameerank/FFL-1273-Bindings-for-libdatadog-datadog-ffe-API
+git checkout sameerank/FFL-1273-Bindings-for-ffe-in-openfeature-provider
 
 # Create local build directory structure
 echo "Creating directory structure..."

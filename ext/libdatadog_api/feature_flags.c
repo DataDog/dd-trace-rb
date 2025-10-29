@@ -20,31 +20,31 @@ static VALUE native_get_assignment(VALUE self, VALUE config, VALUE flag_key, VAL
 
 NORETURN(static void raise_ffe_error(const char *message, ddog_VoidResult result));
 
-void feature_flags_init(VALUE core_module) {
-  VALUE feature_flags_module = rb_define_module_under(core_module, "FeatureFlags");
+void feature_flags_init(VALUE open_feature_module) {
+  VALUE binding_module = rb_define_module_under(open_feature_module, "Binding");
 
   // Configuration class
-  VALUE configuration_class = rb_define_class_under(feature_flags_module, "Configuration", rb_cObject);
+  VALUE configuration_class = rb_define_class_under(binding_module, "Configuration", rb_cObject);
   rb_define_alloc_func(configuration_class, configuration_alloc);
   rb_define_method(configuration_class, "_native_initialize", configuration_initialize, 1);
 
   // EvaluationContext class  
-  VALUE evaluation_context_class = rb_define_class_under(feature_flags_module, "EvaluationContext", rb_cObject);
+  VALUE evaluation_context_class = rb_define_class_under(binding_module, "EvaluationContext", rb_cObject);
   rb_define_alloc_func(evaluation_context_class, evaluation_context_alloc);
   rb_define_method(evaluation_context_class, "_native_initialize", evaluation_context_initialize, 1);
   rb_define_method(evaluation_context_class, "_native_initialize_with_attribute", evaluation_context_initialize_with_attribute, 3);
 
   // Assignment class
-  VALUE assignment_class = rb_define_class_under(feature_flags_module, "Assignment", rb_cObject);
+  VALUE assignment_class = rb_define_class_under(binding_module, "Assignment", rb_cObject);
   rb_define_alloc_func(assignment_class, assignment_alloc);
 
   // Module-level method
-  rb_define_module_function(feature_flags_module, "_native_get_assignment", native_get_assignment, 3);
+  rb_define_module_function(binding_module, "_native_get_assignment", native_get_assignment, 3);
 }
 
 // Configuration TypedData definition
 static const rb_data_type_t configuration_typed_data = {
-  .wrap_struct_name = "Datadog::Core::FeatureFlags::Configuration",
+  .wrap_struct_name = "Datadog::OpenFeature::Binding::Configuration",
   .function = {
     .dmark = NULL,
     .dfree = configuration_free,
@@ -70,14 +70,19 @@ static VALUE configuration_initialize(VALUE self, VALUE json_str) {
   ddog_ffe_Handle_Configuration *config;
   TypedData_Get_Struct(self, ddog_ffe_Handle_Configuration, &configuration_typed_data, config);
 
-  *config = ddog_ffe_configuration_new(RSTRING_PTR(json_str));
+  struct ddog_ffe_Result_HandleConfiguration result = ddog_ffe_configuration_new(RSTRING_PTR(json_str));
+  if (result.tag == DDOG_FFE_RESULT_HANDLE_CONFIGURATION_ERR_HANDLE_CONFIGURATION) {
+    rb_raise(rb_eRuntimeError, "Failed to create configuration: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+  
+  *config = result.ok;
 
   return self;
 }
 
 // EvaluationContext TypedData definition
 static const rb_data_type_t evaluation_context_typed_data = {
-  .wrap_struct_name = "Datadog::Core::FeatureFlags::EvaluationContext",
+  .wrap_struct_name = "Datadog::OpenFeature::Binding::EvaluationContext",
   .function = {
     .dmark = NULL,
     .dfree = evaluation_context_free,
@@ -116,10 +121,15 @@ static VALUE evaluation_context_initialize_with_attribute(VALUE self, VALUE targ
   ddog_ffe_Handle_EvaluationContext *context;
   TypedData_Get_Struct(self, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
 
-  *context = ddog_ffe_evaluation_context_new_with_attribute(
+  struct ddog_ffe_AttributePair attr = {
+    .name = RSTRING_PTR(attr_name),
+    .value = RSTRING_PTR(attr_value)
+  };
+  
+  *context = ddog_ffe_evaluation_context_new_with_attributes(
     RSTRING_PTR(targeting_key),
-    RSTRING_PTR(attr_name), 
-    RSTRING_PTR(attr_value)
+    &attr,
+    1
   );
 
   return self;
@@ -127,7 +137,7 @@ static VALUE evaluation_context_initialize_with_attribute(VALUE self, VALUE targ
 
 // Assignment TypedData definition
 static const rb_data_type_t assignment_typed_data = {
-  .wrap_struct_name = "Datadog::Core::FeatureFlags::Assignment",
+  .wrap_struct_name = "Datadog::OpenFeature::Binding::Assignment",
   .function = {
     .dmark = NULL,
     .dfree = assignment_free,
@@ -160,12 +170,13 @@ static VALUE native_get_assignment(VALUE self, VALUE config_obj, VALUE flag_key,
   ddog_ffe_Handle_EvaluationContext *context;
   TypedData_Get_Struct(context_obj, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
 
-  ddog_ffe_Handle_Assignment assignment_out;
-  ddog_VoidResult result = ddog_ffe_get_assignment(config, RSTRING_PTR(flag_key), context, &assignment_out);
+  struct ddog_ffe_Result_HandleAssignment result = ddog_ffe_get_assignment(*config, RSTRING_PTR(flag_key), *context);
 
-  if (result.tag == DDOG_VOID_RESULT_ERR) {
-    raise_ffe_error("Feature flag evaluation failed", result);
+  if (result.tag == DDOG_FFE_RESULT_HANDLE_ASSIGNMENT_ERR_HANDLE_ASSIGNMENT) {
+    rb_raise(rb_eRuntimeError, "Feature flag evaluation failed: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
+
+  ddog_ffe_Handle_Assignment assignment_out = result.ok;
 
   // Check if assignment is empty (no assignment returned)
   if (assignment_out.inner == NULL) {
@@ -173,7 +184,7 @@ static VALUE native_get_assignment(VALUE self, VALUE config_obj, VALUE flag_key,
   }
 
   // Create a new Assignment Ruby object and wrap the result
-  VALUE assignment_class = rb_const_get_at(rb_const_get_at(rb_const_get(rb_cObject, rb_intern("Datadog")), rb_intern("Core")), rb_intern("FeatureFlags"));
+  VALUE assignment_class = rb_const_get_at(rb_const_get_at(rb_const_get(rb_cObject, rb_intern("Datadog")), rb_intern("OpenFeature")), rb_intern("Binding"));
   assignment_class = rb_const_get(assignment_class, rb_intern("Assignment"));
   
   VALUE assignment_obj = assignment_alloc(assignment_class);
