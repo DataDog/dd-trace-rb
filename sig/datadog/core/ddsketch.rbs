@@ -1,8 +1,6 @@
 module Datadog
   module Core
     class DDSketch
-      def self.supported?: () -> bool
-
       # Adds a single point to the sketch
       # @param point [::Numeric] The value to add to the sketch
       # @return [true] Always returns true on success, raises RuntimeError on failure
