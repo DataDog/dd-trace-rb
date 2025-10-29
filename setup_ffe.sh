@@ -186,14 +186,14 @@ echo "✅ Step 3 completed: Ruby extension built and installed"
 echo "🧪 Step 4: Testing FFE functionality..."
 echo "🔍 Verifying functionality..."
 bundle exec ruby -e "
-require './lib/datadog/core/feature_flags'
-puts 'FFE supported: ' + Datadog::Core::FeatureFlags.supported?.to_s
-puts 'Build successful!' if Datadog::Core::FeatureFlags.supported?
+require './lib/datadog/open_feature'
+puts 'FFE supported: ' + Datadog::OpenFeature::Binding.supported?.to_s
+puts 'Build successful!' if Datadog::OpenFeature::Binding.supported?
 "
 
 echo "🎯 Testing end-to-end functionality..."
 bundle exec ruby -e "
-require './lib/datadog/core/feature_flags'
+require './lib/datadog/open_feature'
 
 # Use Universal Flag Configuration JSON format
 config_json = '{
@@ -222,9 +222,9 @@ config_json = '{
 }'
 
 begin
-  config = Datadog::Core::FeatureFlags::Configuration.new(config_json)
-  context = Datadog::Core::FeatureFlags::EvaluationContext.new('test_user')
-  assignment = Datadog::Core::FeatureFlags.get_assignment(config, 'test_flag', context)
+  config = Datadog::OpenFeature::Binding::Configuration.new(config_json)
+  context = Datadog::OpenFeature::Binding::EvaluationContext.new('test_user')
+  assignment = Datadog::OpenFeature::Binding.get_assignment(config, 'test_flag', context)
   puts 'Assignment result: ' + assignment.inspect
   puts '🎉 FFE end-to-end functionality verified!'
 rescue => e
@@ -233,7 +233,7 @@ end
 "
 
 echo "📋 Running RSpec tests..."
-bundle exec rspec spec/datadog/core/feature_flags_spec.rb
+bundle exec rspec spec/datadog/open_feature/binding_spec.rb
 
 echo "✅ Step 4 completed: FFE functionality verified"
 

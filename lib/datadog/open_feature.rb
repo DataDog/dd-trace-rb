@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'open_feature/extensions'
+require_relative 'open_feature/binding'
 
 module Datadog
   # A namespace for the OpenFeature component.

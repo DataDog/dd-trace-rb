@@ -1,6 +1,6 @@
-require 'datadog/core/feature_flags'
+require 'datadog/open_feature'
 
-RSpec.describe Datadog::Core::FeatureFlags do
+RSpec.describe Datadog::OpenFeature::Binding do
   let(:sample_config_json) do
     {
       "data": {
