@@ -64,18 +64,6 @@ module Datadog
         processor&.track_kafka_produce(topic, partition, offset, Core::Utils::Time.now)
       end
 
-      # Track Kafka offset commit for consumer lag monitoring
-      #
-      # @param group [String] The consumer group name
-      # @param topic [String] The Kafka topic name
-      # @param partition [Integer] The partition number
-      # @param offset [Integer] The committed offset
-      # @return [Boolean, nil] true if tracking succeeded, nil if disabled
-      # @public_api
-      def track_kafka_commit(group, topic, partition, offset)
-        processor&.track_kafka_commit(group, topic, partition, offset, Core::Utils::Time.now)
-      end
-
       # Track Kafka message consumption for consumer lag monitoring
       #
       # @param topic [String] The Kafka topic name
