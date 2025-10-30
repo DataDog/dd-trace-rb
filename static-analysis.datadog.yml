@@ -1,0 +1,7 @@
+schema-version: v1
+rulesets:
+  - ruby-code-style
+  - ruby-security
+  - ruby-best-practices
+  - rails-best-practices
+  - github-actions

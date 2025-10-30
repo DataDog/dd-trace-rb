@@ -10,24 +10,24 @@ module Datadog
 
         @bucket_size_ns: ::Integer
 
-        @buckets: ::Hash[::Integer, untyped]
+        @buckets: ::Hash[::Integer, bucket_type]
 
-        @consumer_stats: ::Array[untyped]
+        @consumer_stats: ::Array[consumer_stat_type]
 
         @stats_mutex: ::Thread::Mutex
 
-        @transport: untyped
+        @transport: Transport::Stats::Transport?
 
         @logger: Core::Logger
 
-        @settings: untyped
+        @settings: Core::Configuration::Settings
 
-        @agent_settings: untyped
+        @agent_settings: Core::Configuration::AgentSettings
 
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
 
-        def initialize: (interval: ::Float, logger: Core::Logger, settings: untyped, agent_settings: untyped) -> void
+        def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings) -> void
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def track_kafka_commit: (::String group, ::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
@@ -38,7 +38,7 @@ module Datadog
 
         def encode_pathway_context: () -> ::String?
 
-        def set_checkpoint: (tags: ::Array[::String], ?now: ::Time?, ?payload_size: ::Integer, ?span: untyped) -> ::String?
+        def set_checkpoint: (tags: ::Array[::String], ?now: ::Time?, ?payload_size: ::Integer, ?span: Tracing::SpanOperation?) -> ::String?
 
         def decode_pathway_context: (::String encoded_ctx) -> PathwayContext?
 
@@ -58,19 +58,23 @@ module Datadog
         def record_consumer_stats: (topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time) -> void
         def aggregate_consumer_stats_by_partition: (::String topic, ::Integer partition, ::Integer offset, ::Time timestamp) -> void
         def aggregate_stats_by_time_buckets: () -> void
-        def send_stats_to_agent: (untyped payload) -> void
+        def send_stats_to_agent: (::Hash[::String, untyped] payload) -> void
         def send_dsm_payload: (::String data, ::Hash[::String, ::String] headers) -> untyped
         def compress_payload?: (::String payload) -> bool
         def gzip_compress: (::String data) -> ::String
-        def serialize_buckets: () -> ::Array[::Hash[untyped, untyped]]
-        def serialize_consumer_backlogs: () -> ::Array[::Hash[untyped, untyped]]
+        def serialize_buckets: () -> ::Array[::Hash[::String, untyped]]
+        def serialize_consumer_backlogs: () -> ::Array[::Hash[::String, untyped]]
         def hostname: () -> ::String
-        def create_bucket: () -> { pathway_stats: ::Hash[untyped, untyped], latest_produce_offsets: ::Hash[untyped, untyped], latest_commit_offsets: ::Hash[untyped, untyped] }
-        def create_pathway_stats: () -> { edge_latency: untyped, full_pathway_latency: untyped, payload_size_sum: 0, payload_size_count: 0 }
-        def transport: () -> untyped
+        def create_bucket: () -> bucket_type
+        def create_pathway_stats: () -> pathway_stats_type
+        def transport: () -> Transport::Stats::Transport
         def service_name: () -> (::String | nil)
         def env_name: () -> (::String | nil)
-        def resolved_agent_settings: () -> untyped
+        def resolved_agent_settings: () -> Core::Configuration::AgentSettings
+
+        type bucket_type = { pathway_stats: ::Hash[::Array[untyped], pathway_stats_type], latest_produce_offsets: ::Hash[::String, ::Integer], latest_commit_offsets: ::Hash[::String, ::Integer] }
+        type pathway_stats_type = { edge_latency: Core::DDSketch, full_pathway_latency: Core::DDSketch, payload_size_sum: ::Integer, payload_size_count: ::Integer }
+        type consumer_stat_type = { topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time, timestamp_sec: ::Float }
       end
     end
   end

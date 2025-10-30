@@ -1,0 +1,8 @@
+module Datadog
+  module DataStreams
+    module Ext
+      ENV_ENABLED: ::String
+    end
+  end
+end
+

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../core/environment/variable_helpers'
+require_relative '../ext'
 
 module Datadog
   module DataStreams
@@ -8,6 +9,11 @@ module Datadog
       # Configuration settings for Data Streams Monitoring.
       module Settings
         def self.extended(base)
+          base = base.singleton_class unless base.is_a?(Class)
+          add_settings!(base)
+        end
+
+        def self.add_settings!(base)
           base.class_eval do
             # Data Streams Monitoring configuration
             # @public_api
@@ -19,7 +25,7 @@ module Datadog
               # @return [Boolean]
               option :enabled do |o|
                 o.type :bool
-                o.env 'DD_DATA_STREAMS_ENABLED'
+                o.env Ext::ENV_ENABLED
                 o.default false
               end
 

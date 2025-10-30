@@ -2,7 +2,7 @@ module Datadog
   module DataStreams
     module Configuration
       module Settings
-        def self.extended: (untyped base) -> void
+        def self.extended: (Module base) -> void
       end
     end
   end

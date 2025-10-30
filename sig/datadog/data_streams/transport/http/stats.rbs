@@ -6,7 +6,7 @@ module Datadog
           class Response
             include Core::Transport::HTTP::Response
 
-            def initialize: (untyped http_response) -> void
+            def initialize: (Core::Transport::HTTP::Response http_response) -> void
           end
 
           module API
@@ -25,7 +25,7 @@ module Datadog
             class Endpoint < Core::Transport::HTTP::API::Endpoint
               def initialize: (::String path) -> void
 
-              def call: (Core::Transport::HTTP::Env env) { (Core::Transport::HTTP::Env) -> untyped } -> Response
+              def call: (Core::Transport::HTTP::Env env) { (Core::Transport::HTTP::Env) -> Core::Transport::HTTP::Response } -> Response
 
               def encoder: () -> nil
             end

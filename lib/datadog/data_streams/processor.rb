@@ -246,7 +246,7 @@ module Datadog
       end
 
       def flush_stats
-        payload = nil
+        payload = nil # : ::Hash[::String, untyped]?
 
         @stats_mutex.synchronize do
           return if @buckets.empty? && @consumer_stats.empty?
@@ -357,6 +357,7 @@ module Datadog
             topic: topic,
             partition: partition,
             offset: offset,
+            timestamp: timestamp,
             timestamp_sec: timestamp.to_f
           }
 
@@ -405,7 +406,7 @@ module Datadog
 
       def send_stats_to_agent(payload)
         response = transport.send_stats(payload)
-        @logger.debug("DSM stats sent to agent: #{response.code if response.respond_to?(:code)}")
+        @logger.debug("DSM stats sent to agent: ok=#{response.ok?}")
       end
 
       def transport

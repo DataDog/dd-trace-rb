@@ -5,7 +5,7 @@ module Datadog
         module API
           V01: ::String
 
-          def self?.defaults: () -> untyped
+          def self?.defaults: () -> ::Hash[::String, Stats::API::Spec]
         end
       end
     end

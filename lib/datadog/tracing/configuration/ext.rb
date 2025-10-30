@@ -112,11 +112,6 @@ module Datadog
           ENV_SERVER_ERROR_STATUSES = 'DD_TRACE_HTTP_SERVER_ERROR_STATUSES'
           ENV_CLIENT_ERROR_STATUSES = 'DD_TRACE_HTTP_CLIENT_ERROR_STATUSES'
         end
-
-        # @public_api
-        module DataStreams
-          ENV_ENABLED = 'DD_DATA_STREAMS_ENABLED'
-        end
       end
     end
   end
