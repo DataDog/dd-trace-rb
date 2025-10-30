@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'binding'
+
 module Datadog
   module OpenFeature
     # NOTE: This class is a glue between libdatadog evaluation binding and
@@ -7,64 +9,6 @@ module Datadog
     class Evaluator
       attr_accessor :ufc_json
 
-      # XXX: Remove in favor of an actual binding
-      module Binding
-        ResolutionDetails = Struct.new(
-          :value,
-          :reason,
-          :variant,
-          :error_code,
-          :error_message,
-          :flag_metadata,
-          keyword_init: true
-        )
-
-        class Evaluator
-          def initialize(ufc_json)
-            # NOTE: In real binding we will parse and create Configuration
-            @ufc_json = ufc_json
-          end
-
-          def get_assignment(_configuration, _flag_key, _evaluation_context, expected_type, _time)
-            # NOTE: @configuration exists as instance variable and should be
-            #       converter to None if missing, that would allow us to have
-            #       default values while waiting for RC to populate UFC
-            # NOTE: it makes sense to hide `now` timestamp because it's not a public interface
-            #       and would not change if we use UTC by default
-            # datadog_ffe::rules_based::get_assignment(Some(&configuration), flag_key, context, None, now);
-            # or
-            # config.eval_flag(flag_key, subject, expected_type, now)
-            #
-            # configuration: Option<&Configuration>,
-            # flag_key: &str,
-            # subject: &EvaluationContext,
-            # expected_type: Option<VariationType>,
-            # now: DateTime<Utc>,
-            #
-            # NOTE: If configuration is missing it will return Ok(None) which we suppose to convert
-            # into default value by the provider, so we should return here an error instead
-            # and do a shortcur avoiding call to the binding.
-            ResolutionDetails.new(
-              value: generate(expected_type),
-              reason: 'hardcoded',
-              variant: 'hardcoded'
-            )
-          end
-
-          private
-
-          def generate(expected_type)
-            case expected_type
-            when :boolean then true
-            when :string then 'hello'
-            when :number then 9000
-            when :integer then 42
-            when :float then 36.6
-            when :object then [1, 2, 3]
-            end
-          end
-        end
-      end
 
       ResolutionError = Struct.new(:reason, :code, :message, keyword_init: true)
 
@@ -107,7 +51,7 @@ module Datadog
       end
 
       def reconfigure!
-        @evaluator = Binding::Evaluator.new(@ufc_json)
+        @evaluator = Datadog::OpenFeature::Binding::Evaluator.new(@ufc_json)
       rescue => e
         error_message = 'OpenFeature failed to reconfigure, reverting to the previous configuration'
 
