@@ -59,14 +59,12 @@ module Datadog
         partition_key = "#{topic}:#{partition}"
 
         @stats_mutex.synchronize do
-          bucket_size_ns = 10 * 1e9 # 10 second buckets
-          bucket_time_ns = now_ns - (now_ns % bucket_size_ns)
+          bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
+          @buckets[bucket_time_ns] ||= create_bucket
 
-          @produce_offsets ||= {}
-          @produce_offsets[bucket_time_ns] ||= {}
-          @produce_offsets[bucket_time_ns][partition_key] = [
+          @buckets[bucket_time_ns][:latest_produce_offsets][partition_key] = [
             offset,
-            @produce_offsets[bucket_time_ns][partition_key] || 0
+            @buckets[bucket_time_ns][:latest_produce_offsets][partition_key] || 0
           ].max
         end
 
@@ -85,14 +83,12 @@ module Datadog
         consumer_key = "#{group}:#{topic}:#{partition}"
 
         @stats_mutex.synchronize do
-          bucket_size_ns = 10 * 1e9 # 10 second buckets
-          bucket_time_ns = now_ns - (now_ns % bucket_size_ns)
+          bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
+          @buckets[bucket_time_ns] ||= create_bucket
 
-          @commit_offsets ||= {}
-          @commit_offsets[bucket_time_ns] ||= {}
-          @commit_offsets[bucket_time_ns][consumer_key] = [
+          @buckets[bucket_time_ns][:latest_commit_offsets][consumer_key] = [
             offset,
-            @commit_offsets[bucket_time_ns][consumer_key] || 0
+            @buckets[bucket_time_ns][:latest_commit_offsets][consumer_key] || 0
           ].max
         end
 
@@ -388,20 +384,6 @@ module Datadog
 
           @latest_consumer_offsets[partition_key] = [offset, previous_offset].max
         end
-      end
-
-      def aggregate_stats_by_time_buckets
-        bucket_size = 10 # seconds
-        buckets = {}
-
-        all_stats = @checkpoint_stats + @consumer_stats
-        all_stats.each do |stat|
-          bucket_timestamp = (stat[:timestamp_sec] / bucket_size).to_i * bucket_size
-          buckets[bucket_timestamp] ||= []
-          buckets[bucket_timestamp] << stat
-        end
-
-        buckets
       end
 
       def send_stats_to_agent(payload)

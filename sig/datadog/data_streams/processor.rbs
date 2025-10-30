@@ -57,7 +57,6 @@ module Datadog
         def record_checkpoint_stats: (hash: ::Integer, parent_hash: ::Integer, edge_latency_sec: ::Float, full_pathway_latency_sec: ::Float, payload_size: ::Integer, tags: ::Array[::String], timestamp_sec: ::Float) -> void
         def record_consumer_stats: (topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time) -> void
         def aggregate_consumer_stats_by_partition: (::String topic, ::Integer partition, ::Integer offset, ::Time timestamp) -> void
-        def aggregate_stats_by_time_buckets: () -> void
         def send_stats_to_agent: (::Hash[::String, untyped] payload) -> void
         def send_dsm_payload: (::String data, ::Hash[::String, ::String] headers) -> untyped
         def compress_payload?: (::String payload) -> bool
