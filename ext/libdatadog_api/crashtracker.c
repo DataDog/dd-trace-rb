@@ -37,9 +37,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <errno.h>
-
-// Include profiling stack walking functionality
-// Note: rb_iseq_path and rb_iseq_base_label are already declared in MJIT header
+#include <string.h>
 
 // This was renamed in Ruby 3.2
 #if !defined(ccan_list_for_each) && defined(list_for_each)
@@ -52,8 +50,7 @@ static VALUE _native_register_runtime_stack_callback(VALUE _self, VALUE callback
 static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self);
 
 static void ruby_runtime_stack_callback(
-  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*),
-  void (*emit_stacktrace_string)(const char*)
+  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*)
 );
 
 static bool first_init = true;
@@ -67,34 +64,63 @@ static bool is_pointer_readable(const void *ptr, size_t size) {
   size_t pages = ((char*)ptr + size - (char*)aligned_ptr + page_size - 1) / page_size;
 
   // Stack-allocate a small buffer for mincore results.. should be safe?
-  char vec[16];
+  unsigned char vec[16];
   if (pages > 16) return false; // Too big to check safely
 
   return mincore(aligned_ptr, pages * page_size, vec) == 0;
 }
 
+static bool is_safe_string_encoding(const char *ptr, long len) {
+  if (!ptr || len <= 0) return false;
+
+  // Should we scan it all?
+  for (long i = 0; i < len && i < 128; i++) {
+    unsigned char c = (unsigned char)ptr[i];
+
+    if (c == 0 && i < len - 1) return false;
+
+    // Control characters (except tab, newline, return) is sus
+    if (c < 0x20 && c != 0x09 && c != 0x0A && c != 0x0D) return false;
+
+    // High bytes
+    if (c >= 0xF8) return false;
+  }
+
+  return true;
+}
+
 static bool is_reasonable_string_size(VALUE str) {
   if (str == Qnil) return false;
+  if (!RB_TYPE_P(str, T_STRING)) return false;
+
+  if (!is_pointer_readable(&str, sizeof(VALUE))) return false;
 
   long len = RSTRING_LEN(str);
 
-  // Sanity checks for corrupted string lengths
   if (len < 0) return false;  // Negative length, probably corrupted
-  if (len > 1024) return false;  // > 1KB path/function name, suspicious for crash context
+  if (len > 2048) return false;  // > 2KB path/function name, sus
+
+  if (len > 0) {
+    if (!is_pointer_readable(RSTRING(str), sizeof(struct RString))) return false;
+  }
 
   return true;
 }
 
 static const char* safe_string_ptr(VALUE str) {
   if (str == Qnil) return "<nil>";
+  if (!RB_TYPE_P(str, T_STRING)) return "<not_string>";
 
   long len = RSTRING_LEN(str);
-  if (len < 0 || len > 2048) return "<corrupted>";
+  if (!is_reasonable_string_size(str)) return "<corrupted>";
 
+  // Use Ruby's standard string pointer access (handles different representations internally)
   const char *ptr = RSTRING_PTR(str);
+
   if (!ptr) return "<null>";
 
-  if (!is_pointer_readable(ptr, len)) return "<unreadable>";
+  if (!is_pointer_readable(ptr, len > 0 ? len : 1)) return "<unreadable>";
+  if (!is_safe_string_encoding(ptr, len)) return "<unsafe_encoding>";
 
   return ptr;
 }
@@ -248,12 +274,9 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
   return Qtrue;
 }
 
-
 static void ruby_runtime_stack_callback(
-  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*),
-  void (*emit_stacktrace_string)(const char*)
+  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*)
 ) {
-  (void)emit_stacktrace_string;
 
   VALUE current_thread = rb_thread_current();
   if (current_thread == Qnil) return;
@@ -279,18 +302,19 @@ static void ruby_runtime_stack_callback(
 
   if (!cfp || !end_cfp) return;
 
+  // Skip dummy frame, `thread_profile_frames` does this too
   end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
   if (end_cfp <= cfp) return;
 
-  const rb_control_frame_t *top_sentinel = RUBY_VM_NEXT_CONTROL_FRAME(cfp);
-
-  cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
   int frame_count = 0;
-  const int MAX_FRAMES = 50;
-  for (; cfp != top_sentinel && frame_count < MAX_FRAMES; cfp = RUBY_VM_NEXT_CONTROL_FRAME(cfp)) {
+  const int MAX_FRAMES = 400;
+
+  // Traverse from current frame backwards to older frames, so that we get the crash point at the top
+  for (; frame_count < MAX_FRAMES && cfp != end_cfp; cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp)) {
     if (!is_valid_control_frame(cfp, ec)) {
-      continue; // Skip invalid frames
+      continue;
     }
 
     if (cfp->iseq && !cfp->pc) {
@@ -301,46 +325,62 @@ static void ruby_runtime_stack_callback(
       // Handle Ruby frames
       const rb_iseq_t *iseq = cfp->iseq;
 
-      // Use comprehensive iseq validation
       if (!is_valid_iseq(iseq)) {
         continue;
       }
 
       VALUE name = rb_iseq_base_label(iseq);
       const char *function_name = "<unknown>";
-      if (name != Qnil && is_reasonable_string_size(name)) {
+      if (name != Qnil) {
         function_name = safe_string_ptr(name);
       }
 
       VALUE filename = rb_iseq_path(iseq);
       const char *file_name = "<unknown>";
-      if (filename != Qnil && is_reasonable_string_size(filename)) {
+      if (filename != Qnil) {
         file_name = safe_string_ptr(filename);
       }
 
       int line_no = 0;
-      if (iseq && cfp->pc) {
-        // Additional safety checks for line number calculation
-        if (iseq->body &&
-            is_pointer_readable(iseq->body->iseq_encoded, iseq->body->iseq_size * sizeof(*iseq->body->iseq_encoded)) &&
-            iseq->body->iseq_size > 0) {
-          ptrdiff_t pc_offset = cfp->pc - iseq->body->iseq_encoded;
-          if (pc_offset >= 0 && pc_offset < iseq->body->iseq_size) {
-            // Use the Ruby VM line calculation like ddtrace_rb_profile_frames
-            size_t pos = pc_offset;
-            if (pos > 0) {
-              pos--; // Use pos-1 because PC points next instruction
+      if (iseq && iseq->body) {
+        if (!cfp->pc) {
+          // Handle case where PC is NULL - use first line number like private_vm_api_access.c
+          if (iseq->body->type == ISEQ_TYPE_TOP) {
+            // For TOP type iseqs, line number should be 0
+            line_no = 0;
+          } else {
+            // Use first line number for other types
+            # ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
+              line_no = iseq->body->location.first_lineno;
+            # else
+              line_no = FIX2INT(iseq->body->location.first_lineno);
+            #endif
+          }
+        } else {
+          // Handle case where PC is available - mirror calc_pos logic
+          if (is_pointer_readable(iseq->body->iseq_encoded, iseq->body->iseq_size * sizeof(*iseq->body->iseq_encoded)) &&
+              iseq->body->iseq_size > 0) {
+            ptrdiff_t pc_offset = cfp->pc - iseq->body->iseq_encoded;
+
+            // bounds checking like private_vm_api_access.c PROF-11475 fix
+            if (pc_offset >= 0 && pc_offset <= iseq->body->iseq_size) {
+              size_t pos = (size_t)pc_offset;
+              if (pos > 0) {
+                // Use pos-1 because PC points to next instruction
+                pos--;
+              }
+              line_no = rb_iseq_line_no(iseq, pos);
             }
-            line_no = rb_iseq_line_no(iseq, pos);
           }
         }
       }
 
       ddog_crasht_RuntimeStackFrame frame = {
-        .function_name = function_name,
-        .file_name = file_name,
-        .line_number = line_no,
-        .column_number = 0
+        .type_name = char_slice_from_cstr(NULL),
+        .function = char_slice_from_cstr(function_name),
+        .file = char_slice_from_cstr(file_name),
+        .line = line_no,
+        .column = 0
       };
 
       emit_frame(&frame);
@@ -349,26 +389,62 @@ static void ruby_runtime_stack_callback(
       const char *function_name = "<C method>";
       const char *file_name = "<C extension>";
 
-      // Try to get method entry information with comprehensive safety checks
+      // Try to get method entry information
       const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(cfp);
       if (me && is_pointer_readable(me, sizeof(rb_callable_method_entry_t))) {
-        if (me->def && is_pointer_readable(me->def, sizeof(*me->def)) && me->def->original_id) {
-          const char *method_name = rb_id2name(me->def->original_id);
-          if (method_name && is_pointer_readable(method_name, strlen(method_name))) {
-            // Additional length check for method name
-            size_t method_name_len = strlen(method_name);
-            if (method_name_len > 0 && method_name_len < 256) { // Reasonable method name length
-              function_name = method_name;
+        if (me->def && is_pointer_readable(me->def, sizeof(*me->def))) {
+          if (me->def->original_id) {
+            const char *method_name = rb_id2name(me->def->original_id);
+            if (method_name && is_pointer_readable(method_name, strlen(method_name))) {
+              // Sanity check for method name length
+              size_t method_name_len = strlen(method_name);
+              if (method_name_len > 0 && method_name_len < 256) {
+                function_name = method_name;
+              }
+            }
+          }
+
+          if (me->def->type == VM_METHOD_TYPE_CFUNC && me->owner) {
+            // Try to get the full class/module path
+            VALUE owner_name = Qnil;
+            VALUE actual_owner = me->owner;
+
+            // If this is a singleton class (like Fiddle's singleton class for module methods),
+            // try to get the attached object which should be the actual module or else we will
+            // just get `Module` which is not that useful lol
+            if (RB_TYPE_P(me->owner, T_CLASS) && FL_TEST(me->owner, FL_SINGLETON)) {
+              VALUE attached = rb_ivar_get(me->owner, rb_intern("__attached__"));
+              if (attached != Qnil) {
+                actual_owner = attached;
+              }
+            }
+
+            // Get the class/module path
+            if (RB_TYPE_P(actual_owner, T_CLASS) || RB_TYPE_P(actual_owner, T_MODULE)) {
+              owner_name = rb_class_path(actual_owner);
+            }
+
+            // Fallback to rb_class_name if rb_class_path fails
+            if (owner_name == Qnil) {
+              owner_name = rb_class_name(actual_owner);
+            }
+
+            if (owner_name != Qnil) {
+              const char *owner_str = safe_string_ptr(owner_name);
+              static char file_buffer[256];
+              snprintf(file_buffer, sizeof(file_buffer), "<%s (C extension)>", owner_str);
+              file_name = file_buffer;
             }
           }
         }
       }
 
       ddog_crasht_RuntimeStackFrame frame = {
-        .function_name = function_name,
-        .file_name = file_name,
-        .line_number = 0,
-        .column_number = 0
+        .type_name = char_slice_from_cstr(NULL),
+        .function = char_slice_from_cstr(function_name),
+        .file = char_slice_from_cstr(file_name),
+        .line = 0,
+        .column = 0
       };
 
       emit_frame(&frame);
@@ -385,17 +461,15 @@ static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self,
     rb_raise(rb_eArgError, "Invalid callback_type. Only :frame is supported");
   }
 
-  enum ddog_crasht_CallbackResult result = ddog_crasht_register_runtime_stack_callback(
-    ruby_runtime_stack_callback,
-    DDOG_CRASHT_CALLBACK_TYPE_FRAME
+  enum ddog_crasht_CallbackResult result = ddog_crasht_register_runtime_frame_callback(
+    ruby_runtime_stack_callback
   );
 
   switch (result) {
     case DDOG_CRASHT_CALLBACK_RESULT_OK:
       return Qtrue;
-    case DDOG_CRASHT_CALLBACK_RESULT_ERROR:
-      rb_raise(rb_eRuntimeError, "Failed to register runtime callback");
-      break;
+    default:
+      return Qfalse;
   }
 
   return Qfalse;
