@@ -37,6 +37,12 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
+
+// Helper macro for creating CharSlice from C strings at runtime
+// This safely converts a const char* to ddog_CharSlice with proper length calculation
+#define DDOG_CHARSLICE_FROM_CSTR(cstr) \
+  ((cstr != NULL) ? (ddog_CharSlice){ .ptr = (cstr), .len = strlen(cstr) } : (ddog_CharSlice){ .ptr = NULL, .len = 0 })
 
 // Include profiling stack walking functionality
 // Note: rb_iseq_path and rb_iseq_base_label are already declared in MJIT header
@@ -52,8 +58,7 @@ static VALUE _native_register_runtime_stack_callback(VALUE _self, VALUE callback
 static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self);
 
 static void ruby_runtime_stack_callback(
-  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*),
-  void (*emit_stacktrace_string)(const char*)
+  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*)
 );
 
 static bool first_init = true;
@@ -67,7 +72,7 @@ static bool is_pointer_readable(const void *ptr, size_t size) {
   size_t pages = ((char*)ptr + size - (char*)aligned_ptr + page_size - 1) / page_size;
 
   // Stack-allocate a small buffer for mincore results.. should be safe?
-  char vec[16];
+  unsigned char vec[16];
   if (pages > 16) return false; // Too big to check safely
 
   return mincore(aligned_ptr, pages * page_size, vec) == 0;
@@ -248,12 +253,9 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
   return Qtrue;
 }
 
-
 static void ruby_runtime_stack_callback(
-  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*),
-  void (*emit_stacktrace_string)(const char*)
+  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*)
 ) {
-  (void)emit_stacktrace_string;
 
   VALUE current_thread = rb_thread_current();
   if (current_thread == Qnil) return;
@@ -337,8 +339,8 @@ static void ruby_runtime_stack_callback(
       }
 
       ddog_crasht_RuntimeStackFrame frame = {
-        .function_name = function_name,
-        .file_name = file_name,
+        .function_name = DDOG_CHARSLICE_FROM_CSTR(function_name),
+        .file_name = DDOG_CHARSLICE_FROM_CSTR(file_name),
         .line_number = line_no,
         .column_number = 0
       };
@@ -365,8 +367,8 @@ static void ruby_runtime_stack_callback(
       }
 
       ddog_crasht_RuntimeStackFrame frame = {
-        .function_name = function_name,
-        .file_name = file_name,
+        .function_name = DDOG_CHARSLICE_FROM_CSTR(function_name),
+        .file_name = DDOG_CHARSLICE_FROM_CSTR(file_name),
         .line_number = 0,
         .column_number = 0
       };
@@ -385,17 +387,15 @@ static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self,
     rb_raise(rb_eArgError, "Invalid callback_type. Only :frame is supported");
   }
 
-  enum ddog_crasht_CallbackResult result = ddog_crasht_register_runtime_stack_callback(
-    ruby_runtime_stack_callback,
-    DDOG_CRASHT_CALLBACK_TYPE_FRAME
+  enum ddog_crasht_CallbackResult result = ddog_crasht_register_runtime_frame_callback(
+    ruby_runtime_stack_callback
   );
 
   switch (result) {
     case DDOG_CRASHT_CALLBACK_RESULT_OK:
       return Qtrue;
-    case DDOG_CRASHT_CALLBACK_RESULT_ERROR:
-      rb_raise(rb_eRuntimeError, "Failed to register runtime callback");
-      break;
+    default:
+      return Qfalse;
   }
 
   return Qfalse;
