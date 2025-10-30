@@ -31,8 +31,8 @@ module Datadog
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def track_kafka_commit: (::String group, ::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
-        def set_produce_checkpoint: (type: ::String, destination: ::String, ?manual_checkpoint: bool, ?tags: ::Array[::String]) ?{ (::String, ::String) -> void } -> ::String?
-        def set_consume_checkpoint: (type: ::String, source: ::String, ?manual_checkpoint: bool, ?tags: ::Array[::String]) ?{ (::String) -> ::String? } -> ::String?
+        def set_produce_checkpoint: (type: ::String, destination: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String, ::String) -> void } -> ::String?
+        def set_consume_checkpoint: (type: ::String, source: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String) -> ::String? } -> ::String?
 
         private
 

@@ -1,8 +1,8 @@
 module Datadog
   module DataStreams
-    def self.set_produce_checkpoint: (type: ::String, destination: ::String, ?auto_instrumentation: bool, ?tags: ::Array[::String]) ?{ (::String, ::String) -> void } -> ::String?
+    def self.set_produce_checkpoint: (type: ::String, destination: ::String, ?auto_instrumentation: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String, ::String) -> void } -> ::String?
 
-    def self.set_consume_checkpoint: (type: ::String, source: ::String, ?auto_instrumentation: bool, ?tags: ::Array[::String]) ?{ (::String) -> ::String? } -> ::String?
+    def self.set_consume_checkpoint: (type: ::String, source: ::String, ?auto_instrumentation: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String) -> ::String? } -> ::String?
 
     def self.track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset) -> (nil | true)
 

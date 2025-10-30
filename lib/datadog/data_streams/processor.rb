@@ -126,13 +126,13 @@ module Datadog
       # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
       # @param destination [String] The destination (e.g., topic, exchange, stream name)
       # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set (default: true)
-      # @param tags [Array<String>] Additional tags to include
+      # @param tags [Hash] Additional tags to include
       # @yield [key, value] Block to inject context into carrier
       # @return [String] Base64 encoded pathway context
-      def set_produce_checkpoint(type:, destination:, manual_checkpoint: true, tags: [], &block)
+      def set_produce_checkpoint(type:, destination:, manual_checkpoint: true, tags: {}, &block)
         checkpoint_tags = ["type:#{type}", "topic:#{destination}", 'direction:out']
         checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
-        checkpoint_tags.concat(tags) unless tags.empty?
+        checkpoint_tags.concat(tags.map { |k, v| "#{k}:#{v}" }) unless tags.empty?
 
         span = Datadog::Tracing.active_span
         pathway = set_checkpoint(tags: checkpoint_tags, span: span)
@@ -150,10 +150,10 @@ module Datadog
       # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
       # @param source [String] The source (e.g., topic, exchange, stream name)
       # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set (default: true)
-      # @param tags [Array<String>] Additional tags to include
+      # @param tags [Hash] Additional tags to include
       # @yield [key] Block to extract context from carrier
       # @return [String] Base64 encoded pathway context
-      def set_consume_checkpoint(type:, source:, manual_checkpoint: true, tags: [], &block)
+      def set_consume_checkpoint(type:, source:, manual_checkpoint: true, tags: {}, &block)
         if block
           pathway_ctx = yield(PROPAGATION_KEY)
           if pathway_ctx
@@ -164,7 +164,7 @@ module Datadog
 
         checkpoint_tags = ["type:#{type}", "topic:#{source}", 'direction:in']
         checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
-        checkpoint_tags.concat(tags) unless tags.empty?
+        checkpoint_tags.concat(tags.map { |k, v| "#{k}:#{v}" }) unless tags.empty?
 
         span = Datadog::Tracing.active_span
         set_checkpoint(tags: checkpoint_tags, span: span)
