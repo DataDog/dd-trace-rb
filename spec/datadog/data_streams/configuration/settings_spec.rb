@@ -99,4 +99,3 @@ RSpec.describe Datadog::DataStreams::Configuration::Settings do
     end
   end
 end
-
