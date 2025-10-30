@@ -5,6 +5,7 @@ module Datadog
 
       class Processor < Core::Worker
         PROPAGATION_KEY: ::String
+        DEFAULT_BUFFER_SIZE: ::Integer
 
         @pathway_context: PathwayContext
 
@@ -15,6 +16,8 @@ module Datadog
         @consumer_stats: ::Array[consumer_stat_type]
 
         @stats_mutex: ::Thread::Mutex
+
+        @event_buffer: Core::Buffer::CRuby
 
         @transport: Transport::Stats::Transport?
 
@@ -27,7 +30,7 @@ module Datadog
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
 
-        def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings) -> void
+        def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings, ?buffer_size: ::Integer) -> void
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def track_kafka_commit: (::String group, ::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
         def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> (nil | true)
@@ -45,6 +48,11 @@ module Datadog
         def decode_pathway_b64: (::String encoded_ctx) -> PathwayContext?
         def perform: () -> (bool | nil)
         def flush_stats: () -> void
+
+        def process_events: () -> void
+        def process_kafka_produce_event: (::Hash[::Symbol, untyped] event) -> void
+        def process_kafka_consume_event: (::Hash[::Symbol, untyped] event) -> void
+        def process_checkpoint_event: (::Hash[::Symbol, untyped] event) -> void
 
         def get_current_pathway: () -> PathwayContext?
         def get_current_context: () -> PathwayContext

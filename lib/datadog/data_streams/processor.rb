@@ -7,6 +7,7 @@ require_relative '../version'
 require_relative '../core/worker'
 require_relative '../core/workers/polling'
 require_relative '../core/ddsketch'
+require_relative '../core/buffer/cruby'
 require_relative '../core/utils/time'
 
 module Datadog
@@ -22,9 +23,13 @@ module Datadog
 
       PROPAGATION_KEY = 'dd-pathway-ctx-base64'
 
+      # Default buffer size for lock-free event queue
+      # Set to handle high-throughput scenarios (e.g., 10k events/sec for 10s interval)
+      DEFAULT_BUFFER_SIZE = 100_000
+
       attr_reader :pathway_context, :buckets, :bucket_size_ns
 
-      def initialize(interval:, logger:, settings:, agent_settings:)
+      def initialize(interval:, logger:, settings:, agent_settings:, buffer_size: DEFAULT_BUFFER_SIZE)
         raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
 
         @settings = settings
@@ -41,6 +46,7 @@ module Datadog
         @buckets = {}
         @consumer_stats = []
         @stats_mutex = Mutex.new
+        @event_buffer = Core::Buffer::CRuby.new(buffer_size)
 
         super()
         self.loop_base_interval = interval
@@ -55,43 +61,15 @@ module Datadog
       # @param now [Time] Timestamp
       # @return [Boolean] true if tracking succeeded
       def track_kafka_produce(topic, partition, offset, now)
-        now_ns = (now.to_f * 1e9).to_i
-        partition_key = "#{topic}:#{partition}"
-
-        @stats_mutex.synchronize do
-          bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
-          @buckets[bucket_time_ns] ||= create_bucket
-
-          @buckets[bucket_time_ns][:latest_produce_offsets][partition_key] = [
-            offset,
-            @buckets[bucket_time_ns][:latest_produce_offsets][partition_key] || 0
-          ].max
-        end
-
-        true
-      end
-
-      # Track Kafka offset commit for consumer lag monitoring
-      # @param group [String] The consumer group name
-      # @param topic [String] The Kafka topic name
-      # @param partition [Integer] The partition number
-      # @param offset [Integer] The committed offset
-      # @param now [Time] Timestamp
-      # @return [Boolean] true if tracking succeeded
-      def track_kafka_commit(group, topic, partition, offset, now)
-        now_ns = (now.to_f * 1e9).to_i
-        consumer_key = "#{group}:#{topic}:#{partition}"
-
-        @stats_mutex.synchronize do
-          bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
-          @buckets[bucket_time_ns] ||= create_bucket
-
-          @buckets[bucket_time_ns][:latest_commit_offsets][consumer_key] = [
-            offset,
-            @buckets[bucket_time_ns][:latest_commit_offsets][consumer_key] || 0
-          ].max
-        end
-
+        @event_buffer.push(
+          {
+            type: :kafka_produce,
+            topic: topic,
+            partition: partition,
+            offset: offset,
+            timestamp_ns: (now.to_f * 1e9).to_i
+          }
+        )
         true
       end
 
@@ -102,15 +80,15 @@ module Datadog
       # @param now [Time] Timestamp
       # @return [Boolean] true if tracking succeeded
       def track_kafka_consume(topic, partition, offset, now)
-        record_consumer_stats(
-          topic: topic,
-          partition: partition,
-          offset: offset,
-          timestamp: now
+        @event_buffer.push(
+          {
+            type: :kafka_consume,
+            topic: topic,
+            partition: partition,
+            offset: offset,
+            timestamp: now
+          }
         )
-
-        aggregate_consumer_stats_by_partition(topic, partition, offset, now)
-
         true
       end
 
@@ -168,11 +146,90 @@ module Datadog
 
       # Called periodically by the worker to flush stats to the agent
       def perform
+        process_events
         flush_stats
         true
       end
 
       private
+
+      # Drain event buffer and apply updates to shared data structures
+      # This runs in the background worker thread, not the critical path
+      def process_events
+        events = @event_buffer.pop
+        return if events.empty?
+
+        @stats_mutex.synchronize do
+          events.each do |event_obj|
+            # Buffer stores Objects; we know they're hashes with symbol keys
+            event = event_obj # : ::Hash[::Symbol, untyped]
+            case event[:type]
+            when :kafka_produce
+              process_kafka_produce_event(event)
+            when :kafka_consume
+              process_kafka_consume_event(event)
+            when :checkpoint
+              process_checkpoint_event(event)
+            end
+          end
+        end
+      end
+
+      def process_kafka_produce_event(event)
+        partition_key = "#{event[:topic]}:#{event[:partition]}"
+        bucket_time_ns = event[:timestamp_ns] - (event[:timestamp_ns] % @bucket_size_ns)
+        bucket = @buckets[bucket_time_ns] ||= create_bucket
+
+        bucket[:latest_produce_offsets][partition_key] = [
+          event[:offset],
+          bucket[:latest_produce_offsets][partition_key] || 0
+        ].max
+      end
+
+      def process_kafka_consume_event(event)
+        @consumer_stats << {
+          topic: event[:topic],
+          partition: event[:partition],
+          offset: event[:offset],
+          timestamp: event[:timestamp],
+          timestamp_sec: event[:timestamp].to_f
+        }
+
+        timestamp_ns = (event[:timestamp].to_f * 1e9).to_i
+        bucket_time_ns = timestamp_ns - (timestamp_ns % @bucket_size_ns)
+        @buckets[bucket_time_ns] ||= create_bucket
+
+        # Track offset gaps for lag detection
+        partition_key = "#{event[:topic]}:#{event[:partition]}"
+        @latest_consumer_offsets ||= {}
+        previous_offset = @latest_consumer_offsets[partition_key] || 0
+
+        if event[:offset] > previous_offset + 1
+          @consumer_lag_events ||= []
+          @consumer_lag_events << {
+            topic: event[:topic],
+            partition: event[:partition],
+            expected_offset: previous_offset + 1,
+            actual_offset: event[:offset],
+            gap_size: event[:offset] - previous_offset - 1,
+            timestamp_sec: event[:timestamp].to_f
+          }
+        end
+
+        @latest_consumer_offsets[partition_key] = [event[:offset], previous_offset].max
+      end
+
+      def process_checkpoint_event(event)
+        now_ns = (event[:timestamp_sec] * 1e9).to_i
+        bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
+        bucket = @buckets[bucket_time_ns] ||= create_bucket
+
+        aggr_key = [event[:tags].join(','), event[:hash], event[:parent_hash]]
+        stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
+
+        stats[:edge_latency].add(event[:edge_latency_sec])
+        stats[:full_pathway_latency].add(event[:full_pathway_latency_sec])
+      end
 
       def encode_pathway_context
         @pathway_context.encode_b64
@@ -331,59 +388,24 @@ module Datadog
         hash:, parent_hash:, edge_latency_sec:, full_pathway_latency_sec:, payload_size:, tags:,
         timestamp_sec:
       )
-        @stats_mutex.synchronize do
-          now_ns = (timestamp_sec * 1e9).to_i
-          bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
-
-          bucket = @buckets[bucket_time_ns] ||= create_bucket
-
-          aggr_key = [tags.join(','), hash, parent_hash]
-          stats = bucket[:pathway_stats][aggr_key] ||= create_pathway_stats
-
-          stats[:edge_latency].add(edge_latency_sec)
-          stats[:full_pathway_latency].add(full_pathway_latency_sec)
-        end
-
+        @event_buffer.push(
+          {
+            type: :checkpoint,
+            hash: hash,
+            parent_hash: parent_hash,
+            edge_latency_sec: edge_latency_sec,
+            full_pathway_latency_sec: full_pathway_latency_sec,
+            payload_size: payload_size,
+            tags: tags,
+            timestamp_sec: timestamp_sec
+          }
+        )
         true
       end
 
       def record_consumer_stats(topic:, partition:, offset:, timestamp:)
-        @stats_mutex.synchronize do
-          @consumer_stats << {
-            topic: topic,
-            partition: partition,
-            offset: offset,
-            timestamp: timestamp,
-            timestamp_sec: timestamp.to_f
-          }
-
-          now_ns = (timestamp.to_f * 1e9).to_i
-          bucket_time_ns = now_ns - (now_ns % @bucket_size_ns)
-          @buckets[bucket_time_ns] ||= create_bucket
-        end
-      end
-
-      def aggregate_consumer_stats_by_partition(topic, partition, offset, timestamp)
-        partition_key = "#{topic}:#{partition}"
-
-        @stats_mutex.synchronize do
-          @latest_consumer_offsets ||= {}
-          previous_offset = @latest_consumer_offsets[partition_key] || 0
-
-          if offset > previous_offset + 1
-            @consumer_lag_events ||= []
-            @consumer_lag_events << {
-              topic: topic,
-              partition: partition,
-              expected_offset: previous_offset + 1,
-              actual_offset: offset,
-              gap_size: offset - previous_offset - 1,
-              timestamp_sec: timestamp.to_f
-            }
-          end
-
-          @latest_consumer_offsets[partition_key] = [offset, previous_offset].max
-        end
+        # Already handled by track_kafka_consume pushing to buffer
+        # This method kept for API compatibility but does nothing
       end
 
       def send_stats_to_agent(payload)
