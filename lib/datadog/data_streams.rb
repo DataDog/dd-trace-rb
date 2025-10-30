@@ -95,11 +95,11 @@ module Datadog
         !processor.nil?
       end
 
+      private
+
       def processor
         components.data_streams
       end
-
-      private
 
       def components
         Datadog.send(:components)

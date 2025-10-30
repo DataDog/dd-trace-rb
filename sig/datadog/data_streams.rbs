@@ -12,9 +12,9 @@ module Datadog
 
     def self.enabled?: () -> bool
 
-    def self.processor: () -> Processor?
-
     private
+
+    def self.processor: () -> Processor?
 
     def self.components: () -> untyped
   end
