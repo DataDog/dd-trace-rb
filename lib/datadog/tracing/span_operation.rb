@@ -289,7 +289,8 @@ module Datadog
       def duration
         return @duration_end - @duration_start if @duration_start && @duration_end
 
-        @end_time - @start_time if @start_time && @end_time
+        # Steep: https://github.com/soutaro/steep/issues/477
+        @end_time - @start_time if @start_time && @end_time # steep:ignore NoMethod
       end
 
       def set_error(e)
@@ -387,7 +388,8 @@ module Datadog
       class Events
         include Tracing::Events
 
-        DEFAULT_ON_ERROR = proc { |span_op, error| span_op&.set_error(error) }
+        # Steep: https://github.com/soutaro/steep/issues/335
+        DEFAULT_ON_ERROR = proc { |span_op, error| span_op&.set_error(error) } # steep:ignore IncompatibleAssignment
 
         attr_reader \
           :logger,
@@ -395,7 +397,7 @@ module Datadog
           :after_stop,
           :before_start
 
-        def initialize(logger: Datadog.logger, on_error: nil)
+        def initialize(logger: Datadog.logger)
           @logger = logger
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
@@ -548,6 +550,10 @@ module Datadog
       # Used for serialization
       # @return [Integer] in nanoseconds since Epoch
       def start_time_nano
+        # The only place where start_time_nano is called previously checks if span is stopped,
+        # which checks if @end_time is not nil, and the only place where @end_time is set is in stop,
+        # which also sets @start_time if it wasn't already set.
+        # @type ivar @start_time: ::Time
         @start_time.to_i * 1000000000 + @start_time.nsec
       end
 

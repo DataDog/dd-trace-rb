@@ -13,7 +13,10 @@ module Datadog
       def initialize(agent_settings:, site:, api_key:, upload_timeout_seconds:)
         @upload_timeout_milliseconds = (upload_timeout_seconds * 1_000).to_i
 
-        @exporter_configuration =
+        # Steep: multiple issues here
+        # first https://github.com/soutaro/steep/issues/363
+        # then https://github.com/soutaro/steep/issues/1603 (remove the .freeze to see it)
+        @exporter_configuration = # steep:ignore IncompatibleAssignment
           if agentless?(site, api_key)
             [:agentless, site, api_key].freeze
           else

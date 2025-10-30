@@ -20,7 +20,7 @@ module Datadog
           ?type_options: Hash[Symbol, untyped]
         }
 
-        type meta_with_mandatory_fields = {
+        type meta_with_type_options = {
           ?default: (option_type | option_proc | Options::GenericSettingsClass)?,
           ?default_proc: generic_proc?,
           ?env: String?,
@@ -54,7 +54,7 @@ module Datadog
 
         attr_reader type_options: Hash[Symbol, untyped]
 
-        def initialize: (String | Symbol name, meta_with_mandatory_fields meta) ?{ (option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type } -> void
+        def initialize: (String | Symbol name, meta_with_type_options meta) ?{ (option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type } -> void
 
         def build: (Options::GenericSettingsClass context) -> Option
 

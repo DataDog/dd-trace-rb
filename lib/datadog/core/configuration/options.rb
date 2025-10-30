@@ -40,14 +40,16 @@ module Datadog
 
           def default_helpers(name)
             option_name = name.to_sym
+            # Steep: https://github.com/soutaro/steep/issues/335
             # @type var opt_getter: Configuration::OptionDefinition::generic_proc
-            opt_getter = proc do
+            opt_getter = proc do # steep:ignore IncompatibleAssignment
               # These Procs uses `get/set_option`, but we only add them to the OptionDefinition helpers here.
               # Steep is right that these methods are not defined, but we only run these Procs in instance context.
               get_option(option_name) # steep:ignore NoMethod
             end
+            # Steep: https://github.com/soutaro/steep/issues/335
             # @type var opt_setter: Configuration::OptionDefinition::generic_proc
-            opt_setter = proc do |value|
+            opt_setter = proc do |value| # steep:ignore IncompatibleAssignment
               set_option(option_name, value) # steep:ignore NoMethod
             end
             {
@@ -127,7 +129,8 @@ module Datadog
           end
         end
 
-        InvalidOptionError = Class.new(StandardError)
+        # Steep: https://github.com/soutaro/steep/issues/1880
+        InvalidOptionError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
       end
     end
   end
