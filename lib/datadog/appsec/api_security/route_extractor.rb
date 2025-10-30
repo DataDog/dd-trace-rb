@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../tracing/contrib/rack/route_from_path_inference'
+require_relative '../../tracing/contrib/rack/route_inference'
 
 module Datadog
   module AppSec
@@ -68,9 +68,7 @@ module Datadog
             #       to generic request path
             (pattern || request.path).delete_suffix(RAILS_FORMAT_SUFFIX)
           else
-            Tracing::Contrib::Rack::RouteFromPathInference.infer(request.path).tap do |inferred_route|
-              request.env[Tracing::Contrib::Rack::Ext::DATADOG_INFERRED_ROUTE] = inferred_route
-            end
+            Tracing::Contrib::Rack::RouteInference.read_or_infer(request.env)
           end
         end
       end

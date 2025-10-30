@@ -13,7 +13,7 @@ require_relative 'ext'
 require_relative 'header_collection'
 require_relative 'header_tagging'
 require_relative 'request_queue'
-require_relative 'route_from_path_inference'
+require_relative 'route_inference'
 require_relative 'trace_proxy_middleware'
 
 module Datadog
@@ -235,7 +235,7 @@ module Datadog
               # we infer the route from the full request path.
               if last_script_name == '' && env['SCRIPT_NAME'] != '' &&
                   !Datadog.configuration.tracing.resource_renaming.always_simplified_endpoint &&
-                  (inferred_route = RouteFromPathInference.infer(env['PATH_INFO']))
+                  (inferred_route = RouteInference.infer(env['PATH_INFO']))
                 set_endpoint_tag(request_span, last_route + inferred_route)
               end
 
@@ -250,16 +250,9 @@ module Datadog
 
             if Datadog.configuration.tracing.resource_renaming.always_simplified_endpoint ||
                 request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil?
-              # when http.route tag wasn't set or resource_renaming.always_simplified_endpoint is set to true,
-              # we will try to infer the path for the full request path,
-              # which is SCRIPT_NAME + PATH_INFO for mounted rack applications
-              full_path = env['SCRIPT_NAME'].to_s + env['PATH_INFO'].to_s
-
-              # Inferred route calculation might have been done already for AppSec API Security sampling,
-              # in such case the calculation result is stored in request env
-              inferred_route = env[Tracing::Contrib::Rack::Ext::DATADOG_INFERRED_ROUTE] || RouteFromPathInference.infer(full_path)
-
-              set_endpoint_tag(request_span, inferred_route) if inferred_route
+              if (inferred_route = RouteInference.read_or_infer(env))
+                set_endpoint_tag(request_span, inferred_route) if inferred_route
+              end
             elsif !request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT)
               set_endpoint_tag(request_span, request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
             end
