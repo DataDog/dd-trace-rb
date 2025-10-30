@@ -1,7 +1,7 @@
 module Datadog
   module Profiling
     class HttpTransport
-      type exporter_configuration_array = [:agentless | :agent, untyped]
+      type exporter_configuration_array = [:agentless, String?, String?] | [:agent, String]
 
       attr_reader exporter_configuration: exporter_configuration_array
 

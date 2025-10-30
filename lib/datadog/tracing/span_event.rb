@@ -69,7 +69,11 @@ module Datadog
 
       private
 
-      MIN_INT64_SIGNED = -2**63
+      # Steep: `Integer ** Integer` can also result in Rational (e.g. 10**-2)
+      # which is why it gives an error if MIN_INT64_SIGNED is set to -2**63.
+      MIN_INT64_SIGNED = -2 << 62
+      # DEV: This is incorrect, 2 << 63 - 1 is not the same as 2**63 - 1 (offset by 1).
+      # The correct formula is `(2 << 62) - 1`. Check if it is a breaking change before fixing it.
       MAX_INT64_SIGNED = 2 << 63 - 1
 
       # Checks the attributes hash to ensure it only contains serializable values.

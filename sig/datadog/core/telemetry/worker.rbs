@@ -14,13 +14,13 @@ module Datadog
         @emitter: Emitter
         @metrics_manager: MetricsManager
         @sent_started_event: bool
-        @shutdown_timeout: Integer
+        @shutdown_timeout: Float | Integer
         @buffer_size: Integer
         @dependency_collection: bool
         @ticks_per_heartbeat: Integer
         @current_ticks: Integer
         @logger: ::Logger
-        
+
         attr_reader logger: ::Logger
         attr_reader initial_event: Telemetry::Event::Base
 	attr_reader initial_event_once: Datadog::Core::Utils::OnlyOnceSuccessful
@@ -38,7 +38,7 @@ module Datadog
         def enqueue: (Event::Base event) -> void
 
         def dequeue: () -> Array[Event::Base]
-	
+
 	def flush: () -> (true | false)
 
         private

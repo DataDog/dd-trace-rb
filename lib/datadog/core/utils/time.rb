@@ -10,7 +10,7 @@ module Datadog
         # Current monotonic time
         #
         # @param unit [Symbol] unit for the resulting value, same as ::Process#clock_gettime, defaults to :float_second
-        # @return [Numeric] timestamp in the requested unit, since some unspecified starting point
+        # @return [Float] timestamp in the requested unit, since some unspecified starting point
         def get_time(unit = :float_second)
           Process.clock_gettime(Process::CLOCK_MONOTONIC, unit)
         end
