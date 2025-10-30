@@ -98,6 +98,17 @@ module Datadog
       end
       private_class_method :decode
 
+      # Encode an unsigned 64-bit integer using LEB128 variable-length encoding.
+      #
+      # This implements unsigned LEB128 (Little Endian Base 128) encoding as specified
+      # in DWARF5 standard section 7.6:
+      # https://dwarfstd.org/doc/DWARF5.pdf#page=301
+      #
+      # Each byte uses 7 bits for data and 1 bit to indicate continuation.
+      # The high bit is set if more bytes follow, clear for the final byte.
+      #
+      # @param value [Integer] Unsigned integer value to encode
+      # @return [String] Binary string of encoded bytes
       def encode_var_int_64(value)
         bytes = []
         while value >= 0x80
@@ -108,12 +119,19 @@ module Datadog
         bytes.pack('C*')
       end
 
-      # Decode VarInt from IO stream using Ruby-idiomatic approach
+      # Decode an unsigned LEB128 variable-length integer from IO stream.
+      #
+      # This implements unsigned LEB128 (Little Endian Base 128) decoding as specified
+      # in DWARF5 standard section 7.6:
+      # https://dwarfstd.org/doc/DWARF5.pdf#page=301
       #
       # VarInt format: Each byte uses 7 bits for data, 1 bit for continuation
       # - High bit set = more bytes follow
       # - High bit clear = final byte
       # - Data bits accumulated in little-endian order
+      #
+      # @param io [StringIO] IO stream to read from
+      # @return [Integer, nil] Decoded unsigned integer, or nil if malformed
       def self.decode_varint(io)
         value = 0
         shift = 0
