@@ -19,7 +19,7 @@ module Datadog
       #
       # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
       # @param destination [String] The destination (e.g., topic, exchange, stream name)
-      # @param autoinstrumentation [Boolean] Whether this checkpoint was set by auto-instrumentation (default: false)
+      # @param auto_instrumentation [Boolean] Whether this checkpoint was set by auto-instrumentation (default: false)
       # @param tags [Hash] Additional tags to include
       # @yield [key, value] Block to inject context into carrier
       # @return [String, nil] Base64 encoded pathway context or nil if disabled
@@ -38,7 +38,7 @@ module Datadog
       #
       # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
       # @param source [String] The source (e.g., topic, exchange, stream name)
-      # @param autoinstrumentation [Boolean] Whether this checkpoint was set by auto-instrumentation (default: false)
+      # @param auto_instrumentation [Boolean] Whether this checkpoint was set by auto-instrumentation (default: false)
       # @param tags [Hash] Additional tags to include
       # @yield [key] Block to extract context from carrier
       # @return [String, nil] Base64 encoded pathway context or nil if disabled

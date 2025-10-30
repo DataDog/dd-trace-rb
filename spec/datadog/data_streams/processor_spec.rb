@@ -183,6 +183,9 @@ RSpec.describe Datadog::DataStreams::Processor do
         processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
         processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
 
+        # Flush the event buffer to process checkpoints
+        processor.send(:process_events)
+
         # Access internal buckets to verify aggregation
         expect(processor.buckets).not_to be_empty
 
@@ -277,41 +280,13 @@ RSpec.describe Datadog::DataStreams::Processor do
       end
     end
 
-    describe '#track_kafka_commit' do
-      it 'tracks commit offset for consumer group/topic/partition' do
-        processor.track_kafka_commit('group1', 'orders', 0, 100, base_time)
-        processor.track_kafka_commit('group1', 'orders', 0, 101, base_time + 1)
-
-        # Verify commit tracking works (metadata only, no stats sent)
-        expect { processor.send(:perform) }.not_to raise_error
-      end
-
-      it 'tracks commits from different consumer groups independently' do
-        processor.track_kafka_commit('group1', 'orders', 0, 100, base_time)
-        processor.track_kafka_commit('group2', 'orders', 0, 200, base_time)
-
-        expect { processor.send(:perform) }.not_to raise_error
-      end
-
-      it 'tracks multiple commits for same consumer group' do
-        processor.track_kafka_commit('group1', 'orders', 0, 100, base_time)
-        processor.track_kafka_commit('group1', 'orders', 0, 101, base_time + 1)
-        processor.track_kafka_commit('group1', 'orders', 0, 102, base_time + 2)
-
-        expect { processor.send(:perform) }.not_to raise_error
-      end
-    end
-
     describe 'end-to-end Kafka flow' do
-      it 'tracks complete produce -> consume -> commit lifecycle' do
+      it 'tracks complete produce -> consume lifecycle' do
         # Producer writes message
         processor.track_kafka_produce('orders', 0, 100, base_time)
 
         # Consumer reads message
         processor.track_kafka_consume('orders', 0, 100, base_time + 1)
-
-        # Consumer commits offset
-        processor.track_kafka_commit('consumer-group', 'orders', 0, 100, base_time + 2)
 
         # Should flush without errors
         expect { processor.send(:perform) }.not_to raise_error

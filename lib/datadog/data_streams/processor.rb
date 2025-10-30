@@ -93,10 +93,6 @@ module Datadog
       end
 
       # Set a produce checkpoint
-      #
-      # Note: For manual instrumentation, use {Datadog::DataStreams.checkpoint_produce} instead.
-      # This method is primarily for internal use by auto-instrumentation.
-      #
       # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
       # @param destination [String] The destination (e.g., topic, exchange, stream name)
       # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set (default: true)
@@ -117,10 +113,6 @@ module Datadog
       end
 
       # Set a consume checkpoint
-      #
-      # Note: For manual instrumentation, use {Datadog::DataStreams.checkpoint_consume} instead.
-      # This method is primarily for internal use by auto-instrumentation.
-      #
       # @param type [String] The type of the checkpoint (e.g., 'kafka', 'kinesis', 'sns')
       # @param source [String] The source (e.g., topic, exchange, stream name)
       # @param manual_checkpoint [Boolean] Whether this checkpoint was manually set (default: true)
