@@ -74,6 +74,16 @@ RSpec.describe Datadog::AppSec::APISecurity::Sampler do
       end
     end
 
+    context 'when response status is 404' do
+      let(:response) { double('Rack::Response', status: 404) }
+
+      it 'always returns false' do
+        3.times do
+          expect(sampler.sample?(request, response)).to be(false)
+        end
+      end
+    end
+
     context 'when sampling for the first time' do
       it { expect(sampler.sample?(request, response)).to be(true) }
     end

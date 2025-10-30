@@ -43,6 +43,7 @@ module Datadog
 
         def sample?(request, response)
           return true if @sample_delay_seconds.zero?
+          return false if response.status == 404
 
           key = Zlib.crc32("#{request.request_method}#{RouteExtractor.route_pattern(request)}#{response.status}")
           current_timestamp = Core::Utils::Time.now.to_i
