@@ -12,7 +12,6 @@ module Datadog
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_RACK_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_RACK_ANALYTICS_SAMPLE_RATE'
           RACK_ENV_REQUEST_SPAN = 'datadog.rack_request_span'
-          DATADOG_INFERRED_ROUTE = 'datadog.inferred_route'
           SPAN_HTTP_PROXY_REQUEST = 'http.proxy.request'
           SPAN_HTTP_PROXY_QUEUE = 'http.proxy.queue'
           SPAN_REQUEST = 'rack.request'

@@ -2,7 +2,7 @@ module Datadog
   module Tracing
     module Contrib
       module Rack
-        module RouteFromPathInference
+        module RouteInference
           MAX_NUMBER_OF_SEGMENTS: ::Integer
 
           INT_PARAM_REGEX: ::Regexp
@@ -10,6 +10,10 @@ module Datadog
           HEX_PARAM_REGEX: ::Regexp
           HEX_ID_PARAM_REGEX: ::Regexp
           STRING_PARAM_REGEX: ::Regexp
+
+          DATADOG_INFERRED_ROUTE_ENV_KEY: ::String
+
+          def self.read_or_infer: (Hash[::String, untyped] request_env) -> ::String?
 
           def self.infer: (::String path) -> ::String?
         end
