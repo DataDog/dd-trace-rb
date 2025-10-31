@@ -13,16 +13,19 @@ LIBDATADOG_PATH="${LIBDATADOG_PATH:-$HOME/dd/libdatadog}"
 DD_TRACE_RB_PATH="${DD_TRACE_RB_PATH:-$HOME/dd/dd-trace-rb}"
 CARGO_BIN="${CARGO_BIN:-$HOME/.cargo/bin/cargo}"
 
-# Detect architecture for build directory
-ARCH=$(uname -m)
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-KERNEL_VERSION=$(uname -r | cut -d. -f1)
-BUILD_ARCH="${ARCH}-${OS}-${KERNEL_VERSION}"
+# Detect architecture using Ruby's platform detection
+BUILD_ARCH=$(ruby -e 'puts Gem::Platform.local.to_s')
+export DD_RUBY_PLATFORM="$BUILD_ARCH"
+
+# Skip profiling extension since we only need FFE functionality
+export DD_PROFILING_NO_EXTENSION=true
 
 echo "🚀 Setting up FFE (Feature Flags & Experimentation) for dd-trace-rb"
 echo "📍 Using libdatadog path: ${LIBDATADOG_PATH}"
 echo "📍 Using dd-trace-rb path: ${DD_TRACE_RB_PATH}"
-echo "📍 Detected build architecture: ${BUILD_ARCH}"
+echo "📍 Detected Ruby platform: ${BUILD_ARCH}"
+echo "📍 DD_RUBY_PLATFORM set to: ${DD_RUBY_PLATFORM}"
+echo "📍 DD_PROFILING_NO_EXTENSION=true (profiling extension disabled for FFE-only setup)"
 
 # Step 1: Build libdatadog
 echo "📦 Step 1: Building libdatadog..."
@@ -41,16 +44,16 @@ git checkout sameerank/FFL-1273-Bindings-for-ffe-in-openfeature-provider
 echo "Creating directory structure..."
 mkdir -p "my-libdatadog-build/${BUILD_ARCH}/lib"
 mkdir -p "my-libdatadog-build/${BUILD_ARCH}/include/datadog"
-mkdir -p my-libdatadog-build/pkgconfig
+mkdir -p "my-libdatadog-build/${BUILD_ARCH}/pkgconfig"
 
-# Copy ALL FFI libraries (this gives us everything we need!)
-echo "Copying all FFI libraries..."
+# Copy FFI libraries needed for FFE functionality
+echo "Copying FFI libraries..."
 cp "${LIBDATADOG_PATH}/target/release/libddcommon_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 cp "${LIBDATADOG_PATH}/target/release/libdatadog_ffe_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 cp "${LIBDATADOG_PATH}/target/release/libdatadog_crashtracker_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 cp "${LIBDATADOG_PATH}/target/release/libddsketch_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 cp "${LIBDATADOG_PATH}/target/release/libdatadog_library_config_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
-cp "${LIBDATADOG_PATH}/target/release/libdatadog_profiling_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
+# Note: Skipping libdatadog_profiling_ffi since DD_PROFILING_NO_EXTENSION=true
 
 # Generate the headers we need, being strategic about what we include
 echo "Generating headers..."
@@ -130,10 +133,10 @@ sed -i.bak3 '/typedef struct ddog_Slice_CChar {/,/} ddog_Slice_CChar;/d' "my-lib
 sed -i.bak4 '/typedef struct ddog_Slice_CChar ddog_CharSlice;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h"
 rm -f "my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h.bak"*
 
-# Create minimal stub headers for libraries we're linking but don't actively use
-echo "Creating minimal stub headers for unused linked libraries..."
+# Create minimal stub headers for libraries we reference but don't actively use
+echo "Creating minimal stub headers..."
 
-# profiling.h - minimal stub  
+# profiling.h - minimal stub required by libdatadog_api extension
 cat > "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h" << 'EOF'
 #ifndef DDOG_PROFILING_H
 #define DDOG_PROFILING_H
@@ -146,7 +149,7 @@ cat > "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h" << 'EOF'
 #include "common.h"
 
 // Minimal declarations for profiling functionality
-// Ruby bindings don't need full profiling API, just enough to link
+// libdatadog_api extension references these headers but we're not building profiling
 
 #ifdef __cplusplus
 extern "C" {
@@ -161,21 +164,19 @@ extern "C" {
 #endif  /* DDOG_PROFILING_H */
 EOF
 
-# No more stub headers needed! We have real ones from cbindgen
-
 # Create pkg-config file for all FFI libraries
 echo "Creating pkg-config file..."
 CURRENT_DIR=$(pwd)
-cat > my-libdatadog-build/pkgconfig/datadog_profiling_with_rpath.pc << EOF
-prefix=${CURRENT_DIR}/my-libdatadog-build
+cat > "my-libdatadog-build/${BUILD_ARCH}/pkgconfig/datadog_profiling_with_rpath.pc" << EOF
+prefix=${CURRENT_DIR}/my-libdatadog-build/${BUILD_ARCH}
 exec_prefix=\${prefix}
-libdir=\${exec_prefix}/${BUILD_ARCH}/lib
-includedir=\${prefix}/${BUILD_ARCH}/include
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
 
 Name: datadog_profiling_with_rpath
-Description: Datadog libdatadog library (with rpath) - Full FFI build
+Description: Datadog libdatadog library (with rpath) - FFE build (profiling disabled)
 Version: 22.1.0
-Libs: -L\${libdir} -ldatadog_ffe_ffi -ldatadog_crashtracker_ffi -lddsketch_ffi -ldatadog_library_config_ffi -ldatadog_profiling_ffi -Wl,-rpath,\${libdir}
+Libs: -L\${libdir} -ldatadog_ffe_ffi -ldatadog_crashtracker_ffi -lddsketch_ffi -ldatadog_library_config_ffi -Wl,-rpath,\${libdir}
 Cflags: -I\${includedir}
 EOF
 
@@ -184,9 +185,11 @@ echo "✅ Step 2 completed: Build environment set up"
 # Step 3: Compile Ruby Extension
 echo "🔨 Step 3: Compiling Ruby extension..."
 
-# Set PKG_CONFIG_PATH to find our custom build
-export PKG_CONFIG_PATH="$(pwd)/my-libdatadog-build/pkgconfig:$PKG_CONFIG_PATH"
+# Set environment variables for Ruby extension build
+export PKG_CONFIG_PATH="$(pwd)/my-libdatadog-build/${BUILD_ARCH}/pkgconfig:$PKG_CONFIG_PATH"
+export LIBDATADOG_VENDOR_OVERRIDE="$(pwd)/my-libdatadog-build/"
 echo "PKG_CONFIG_PATH set to: $PKG_CONFIG_PATH"
+echo "LIBDATADOG_VENDOR_OVERRIDE set to: $LIBDATADOG_VENDOR_OVERRIDE"
 
 # Compile the Ruby extension
 cd ext/libdatadog_api

@@ -2,7 +2,6 @@
 # rubocop:disable Style/GlobalVars
 
 require 'rubygems'
-require 'pathname'
 require_relative '../libdatadog_extconf_helpers'
 
 def skip_building_extension!(reason)
@@ -28,14 +27,8 @@ end
 skip_building_extension!('current Ruby VM is not supported') if RUBY_ENGINE != 'ruby'
 skip_building_extension!('Microsoft Windows is not supported') if Gem.win_platform?
 
-# Check for custom libdatadog build first
-custom_pkgconfig_path = File.join(__dir__, '..', '..', 'my-libdatadog-build', 'pkgconfig', 'datadog_profiling_with_rpath.pc')
-using_custom_build = File.exist?(custom_pkgconfig_path)
-
-unless using_custom_build
-  libdatadog_issue = Datadog::LibdatadogExtconfHelpers.load_libdatadog_or_get_issue
-  skip_building_extension!("issue setting up `libdatadog` gem: #{libdatadog_issue}") if libdatadog_issue
-end
+libdatadog_issue = Datadog::LibdatadogExtconfHelpers.load_libdatadog_or_get_issue
+skip_building_extension!("issue setting up `libdatadog` gem: #{libdatadog_issue}") if libdatadog_issue
 
 require 'mkmf'
 
@@ -80,18 +73,10 @@ if ENV['DDTRACE_DEBUG'] == 'true'
   CONFIG['debugflags'] = '-ggdb3'
 end
 
-# Set up PKG_CONFIG_PATH based on whether we're using custom build or gem
-if using_custom_build
-  custom_pkgconfig_dir = File.dirname(custom_pkgconfig_path)
-  ENV['PKG_CONFIG_PATH'] = "#{ENV["PKG_CONFIG_PATH"]}:#{custom_pkgconfig_dir}"
-  Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV["PKG_CONFIG_PATH"].inspect}\n")
-  $stderr.puts("Using custom libdatadog build from #{custom_pkgconfig_dir}")
-else
-  # If we got here, libdatadog is available and loaded
-  ENV['PKG_CONFIG_PATH'] = "#{ENV["PKG_CONFIG_PATH"]}:#{Libdatadog.pkgconfig_folder}"
-  Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV["PKG_CONFIG_PATH"].inspect}\n")
-  $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
-end
+# If we got here, libdatadog is available and loaded
+ENV['PKG_CONFIG_PATH'] = "#{ENV["PKG_CONFIG_PATH"]}:#{Libdatadog.pkgconfig_folder}"
+Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV["PKG_CONFIG_PATH"].inspect}\n")
+$stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
 unless pkg_config('datadog_profiling_with_rpath')
   Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
@@ -106,20 +91,12 @@ end
 # See comments on the helper methods being used for why we need to additionally set this.
 # The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
 # experimentation. We need to get these special characters across a lot of tools untouched...
-unless using_custom_build
-  extra_relative_rpaths = [
-    Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_native_lib_folder(current_folder: __dir__),
-    *Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
-  ]
-  extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
-  Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
-else
-  # For custom build, add rpath to our custom lib folder
-  custom_lib_folder = File.join(File.dirname(custom_pkgconfig_path), '..', 'arm64-darwin-24', 'lib')
-  custom_relative_path = Pathname.new(custom_lib_folder).relative_path_from(Pathname.new("#{__dir__}/../../lib/")).to_s
-  $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{custom_relative_path}"
-  Logging.message("[datadog] Custom build $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
-end
+extra_relative_rpaths = [
+  Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_native_lib_folder(current_folder: __dir__),
+  *Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
+]
+extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
+Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
