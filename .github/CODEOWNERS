@@ -17,12 +17,12 @@ lib/datadog/profiling.rb @DataDog/profiling-rb @DataDog/ruby-guild
 ext/ @DataDog/profiling-rb @DataDog/ruby-guild
 
 # RBS signatures
-sig/datadog/appsec/ @DataDog/asm-ruby
-sig/datadog/appsec.rbs @DataDog/asm-ruby
-sig/datadog/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
-sig/datadog/tracing.rbs @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
-sig/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby
-sig/datadog/opentelemetry.rbs @DataDog/apm-sdk-capabilities-ruby
+sig/datadog/appsec/ @DataDog/asm-ruby @DataDog/ruby-guild
+sig/datadog/appsec.rbs @DataDog/asm-ruby @DataDog/ruby-guild
+sig/datadog/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+sig/datadog/tracing.rbs @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+sig/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
+sig/datadog/opentelemetry.rbs @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
 sig/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 sig/datadog/profiling.rbs @DataDog/profiling-rb @DataDog/ruby-guild
 
