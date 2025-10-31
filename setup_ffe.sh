@@ -182,18 +182,13 @@ export LIBDATADOG_VENDOR_OVERRIDE="$(pwd)/my-libdatadog-build/"
 echo "PKG_CONFIG_PATH set to: $PKG_CONFIG_PATH"
 echo "LIBDATADOG_VENDOR_OVERRIDE set to: $LIBDATADOG_VENDOR_OVERRIDE"
 
-# Compile the Ruby extension
-cd ext/libdatadog_api
-echo "Generating Makefile..."
-ruby extconf.rb
-echo "Compiling extension..."
-make
-echo "Installing extension..."
-cp libdatadog_api.*.bundle ../../lib/
-echo "Cleaning up build artifacts..."
-make clean
-rm -f Makefile
-cd ../..
+# Compile the Ruby extension using rake-compiler
+echo "Compiling libdatadog_api extension using rake-compiler..."
+RUBY_SHORT_VERSION=$(ruby -e 'puts RUBY_VERSION[/\d+\.\d+/]')
+PLATFORM_NO_DASH=$(echo "${DD_RUBY_PLATFORM}" | sed 's/-\([0-9][0-9]*\)$/\1/')
+PLATFORM_NAME="${RUBY_SHORT_VERSION}_${PLATFORM_NO_DASH}"
+echo "Platform name: ${PLATFORM_NAME}"
+bundle exec rake "compile:libdatadog_api.${PLATFORM_NAME}"
 
 echo "✅ Step 3 completed: Ruby extension built and installed"
 
