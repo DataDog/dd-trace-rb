@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'evaluation_engine'
+require_relative 'exposure'
 
 module Datadog
   module OpenFeature
