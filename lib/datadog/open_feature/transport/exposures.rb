@@ -2,13 +2,15 @@
 
 require_relative '../../core/transport/parcel'
 require_relative '../../core/transport/request'
+
 require_relative 'http/client'
 require_relative 'http/exposures'
 
 module Datadog
   module OpenFeature
     module Transport
-      module Exposure
+      module Exposures
+        # Data transfer object for encoded exposure events
         class EncodedParcel
           include Datadog::Core::Transport::Parcel
 
@@ -17,6 +19,7 @@ module Datadog
           end
         end
 
+        # Exposure events request
         class Request < Datadog::Core::Transport::Request
           attr_reader :headers
 
@@ -26,6 +29,7 @@ module Datadog
           end
         end
 
+        # Sends exposure events based on transport API configuration
         class Transport
           attr_reader :client, :apis, :default_api, :logger
 
@@ -41,7 +45,7 @@ module Datadog
             parcel = EncodedParcel.new(payload)
             request = Request.new(parcel, headers)
 
-            client.send_exposures(request)
+            client.send_exposures_payload(request)
           end
         end
       end

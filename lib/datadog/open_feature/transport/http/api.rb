@@ -2,6 +2,7 @@
 
 require_relative '../../../core/encoding'
 require_relative '../../../core/transport/http/api/map'
+
 require_relative 'exposures'
 
 module Datadog

@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
 require_relative '../../core/transport/http'
-require_relative 'exposure'
+
 require_relative 'http/api'
-require_relative 'http/client'
+require_relative 'exposures'
 
 module Datadog
   module OpenFeature
     module Transport
+      # Namespace for HTTP transport components
       module HTTP
         module_function
 
@@ -23,7 +24,7 @@ module Datadog
             transport.api API::EXPOSURES, apis[API::EXPOSURES]
 
             yield(transport) if block_given?
-          end.to_transport(Datadog::OpenFeature::Transport::Exposure::Transport)
+          end.to_transport(Datadog::OpenFeature::Transport::Exposures::Transport)
         end
       end
     end

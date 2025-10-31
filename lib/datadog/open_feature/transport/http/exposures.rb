@@ -4,6 +4,8 @@ require_relative '../../../core/transport/http/api/endpoint'
 require_relative '../../../core/transport/http/api/instance'
 require_relative '../../../core/transport/http/api/spec'
 
+require_relative 'client'
+
 module Datadog
   module OpenFeature
     module Transport
@@ -25,9 +27,11 @@ module Datadog
               attr_accessor :exposures
 
               def send_exposures(env, &block)
-                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(
-                  'exposures', self
-                ) if exposures.nil?
+                if exposures.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(
+                    'exposures', self
+                  )
+                end
 
                 exposures.call(env, &block)
               end
