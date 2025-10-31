@@ -3,6 +3,8 @@
 // IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
 #include <ruby.h>
+#include <datadog/common.h>
+#include <datadog/library-config.h>
 #include <datadog/profiling.h>
 
 // Used to mark symbols to be exported to the outside of the extension.
