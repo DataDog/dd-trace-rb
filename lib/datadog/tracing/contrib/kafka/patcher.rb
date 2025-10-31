@@ -21,6 +21,20 @@ module Datadog
           def patch
             # Subscribe to Kafka events
             Events.subscribe!
+
+            # Apply monkey patches for additional instrumentation (e.g., DSM)
+            patch_producer if defined?(::Kafka::Producer)
+            patch_consumer if defined?(::Kafka::Consumer)
+          end
+
+          def patch_producer
+            require_relative 'instrumentation/producer'
+            ::Kafka::Producer.prepend(Instrumentation::Producer)
+          end
+
+          def patch_consumer
+            require_relative 'instrumentation/consumer'
+            ::Kafka::Consumer.prepend(Instrumentation::Consumer)
           end
         end
       end

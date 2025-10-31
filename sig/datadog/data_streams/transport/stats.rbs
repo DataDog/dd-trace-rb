@@ -1,0 +1,43 @@
+module Datadog
+  module DataStreams
+    module Transport
+      module Stats
+        class EncodedParcel
+          include Core::Transport::Parcel
+
+          @data: ::String
+
+          attr_reader data: ::String
+
+          def initialize: (::String data) -> void
+        end
+
+        class Request < Core::Transport::Request
+        end
+
+        class Transport
+          @apis: ::Hash[::String, HTTP::Stats::API::Instance]
+          @logger: Core::Logger
+          @default_api: ::String
+          @current_api_id: ::String
+          @client: HTTP::Client
+
+          attr_reader client: HTTP::Client
+          attr_reader apis: ::Hash[::String, HTTP::Stats::API::Instance]
+          attr_reader current_api_id: ::String
+          attr_reader logger: Core::Logger
+
+          def initialize: (
+            ::Hash[::String, HTTP::Stats::API::Instance] apis,
+            ::String default_api,
+            logger: Core::Logger
+          ) -> void
+
+          def send_stats: (::Hash[::String, untyped] payload) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
+
+          def current_api: () -> HTTP::Stats::API::Instance
+        end
+      end
+    end
+  end
+end
