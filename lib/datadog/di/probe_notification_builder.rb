@@ -46,8 +46,6 @@ module Datadog
         build_snapshot(context)
       end
 
-      # Steep: `Integer ** Integer` can also result in Rational (e.g. 10**-2)
-      # which is why it gives an error if NANOSECONDS is set to 10**9.
       NANOSECONDS = 1_000_000_000
       MILLISECONDS = 1000
 

@@ -550,11 +550,10 @@ module Datadog
       # Used for serialization
       # @return [Integer] in nanoseconds since Epoch
       def start_time_nano
-        # The only place where start_time_nano is called previously checks if span is stopped,
-        # which checks if @end_time is not nil, and the only place where @end_time is set is in stop,
-        # which also sets @start_time if it wasn't already set.
-        # @type ivar @start_time: ::Time
-        @start_time.to_i * 1000000000 + @start_time.nsec
+        return 0 if @start_time.nil?
+
+        # Steep: https://github.com/soutaro/steep/issues/477
+        @start_time.to_i * 1000000000 + @start_time.nsec # steep:ignore NoMethod
       end
 
       # Used for serialization
