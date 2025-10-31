@@ -1,47 +1,68 @@
 #!/bin/bash
 set -e
 
+# Configuration - Set these paths to match your local setup
+# You can override these by setting environment variables before running the script:
+# 
+# Example usage with custom paths:
+# export LIBDATADOG_PATH="/path/to/your/libdatadog"
+# export DD_TRACE_RB_PATH="/path/to/your/dd-trace-rb"
+# ./setup_ffe.sh
+#
+LIBDATADOG_PATH="${LIBDATADOG_PATH:-$HOME/dd/libdatadog}"
+DD_TRACE_RB_PATH="${DD_TRACE_RB_PATH:-$HOME/dd/dd-trace-rb}"
+CARGO_BIN="${CARGO_BIN:-$HOME/.cargo/bin/cargo}"
+
+# Detect architecture for build directory
+ARCH=$(uname -m)
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+KERNEL_VERSION=$(uname -r | cut -d. -f1)
+BUILD_ARCH="${ARCH}-${OS}-${KERNEL_VERSION}"
+
 echo "🚀 Setting up FFE (Feature Flags & Experimentation) for dd-trace-rb"
+echo "📍 Using libdatadog path: ${LIBDATADOG_PATH}"
+echo "📍 Using dd-trace-rb path: ${DD_TRACE_RB_PATH}"
+echo "📍 Detected build architecture: ${BUILD_ARCH}"
 
 # Step 1: Build libdatadog
 echo "📦 Step 1: Building libdatadog..."
-cd ~/dd/libdatadog
+cd "${LIBDATADOG_PATH}"
 git checkout sameerank/FFL-1284-Create-datadog-ffe-ffi-crate
-~/.cargo/bin/cargo build --release
+"${CARGO_BIN}" build --release
 
 echo "✅ Step 1 completed: libdatadog built successfully"
 
 # Step 2: Set Up dd-trace-rb Build Environment
 echo "🔧 Step 2: Setting up dd-trace-rb build environment..."
-cd ~/dd/dd-trace-rb
+cd "${DD_TRACE_RB_PATH}"
 git checkout sameerank/FFL-1273-Bindings-for-ffe-in-openfeature-provider
 
 # Create local build directory structure
 echo "Creating directory structure..."
-mkdir -p my-libdatadog-build/arm64-darwin-24/lib
-mkdir -p my-libdatadog-build/arm64-darwin-24/include/datadog
+mkdir -p "my-libdatadog-build/${BUILD_ARCH}/lib"
+mkdir -p "my-libdatadog-build/${BUILD_ARCH}/include/datadog"
 mkdir -p my-libdatadog-build/pkgconfig
 
 # Copy ALL FFI libraries (this gives us everything we need!)
 echo "Copying all FFI libraries..."
-cp ~/dd/libdatadog/target/release/libddcommon_ffi.* my-libdatadog-build/arm64-darwin-24/lib/
-cp ~/dd/libdatadog/target/release/libdatadog_ffe_ffi.* my-libdatadog-build/arm64-darwin-24/lib/
-cp ~/dd/libdatadog/target/release/libdatadog_crashtracker_ffi.* my-libdatadog-build/arm64-darwin-24/lib/
-cp ~/dd/libdatadog/target/release/libddsketch_ffi.* my-libdatadog-build/arm64-darwin-24/lib/
-cp ~/dd/libdatadog/target/release/libdatadog_library_config_ffi.* my-libdatadog-build/arm64-darwin-24/lib/
-cp ~/dd/libdatadog/target/release/libdatadog_profiling_ffi.* my-libdatadog-build/arm64-darwin-24/lib/
+cp "${LIBDATADOG_PATH}/target/release/libddcommon_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
+cp "${LIBDATADOG_PATH}/target/release/libdatadog_ffe_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
+cp "${LIBDATADOG_PATH}/target/release/libdatadog_crashtracker_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
+cp "${LIBDATADOG_PATH}/target/release/libddsketch_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
+cp "${LIBDATADOG_PATH}/target/release/libdatadog_library_config_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
+cp "${LIBDATADOG_PATH}/target/release/libdatadog_profiling_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 
 # Generate the headers we need, being strategic about what we include
 echo "Generating headers..."
-cd ~/dd/libdatadog
-cbindgen ddcommon-ffi --output ~/dd/dd-trace-rb/my-libdatadog-build/arm64-darwin-24/include/datadog/common.h
-cbindgen datadog-ffe-ffi --output ~/dd/dd-trace-rb/my-libdatadog-build/arm64-darwin-24/include/datadog/datadog_ffe.h
-cbindgen datadog-crashtracker-ffi --output ~/dd/dd-trace-rb/my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
-cbindgen ddsketch-ffi --output ~/dd/dd-trace-rb/my-libdatadog-build/arm64-darwin-24/include/datadog/ddsketch.h
-cbindgen datadog-library-config-ffi --output ~/dd/dd-trace-rb/my-libdatadog-build/arm64-darwin-24/include/datadog/library-config.h
+cd "${LIBDATADOG_PATH}"
+cbindgen ddcommon-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUILD_ARCH}/include/datadog/common.h"
+cbindgen datadog-ffe-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUILD_ARCH}/include/datadog/datadog_ffe.h"
+cbindgen datadog-crashtracker-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
+cbindgen ddsketch-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUILD_ARCH}/include/datadog/ddsketch.h"
+cbindgen datadog-library-config-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h"
 
 # Add ddog_VoidResult to common.h since it's needed by crashtracker but not included
-cd ~/dd/dd-trace-rb
+cd "${DD_TRACE_RB_PATH}"
 echo "Adding ddog_VoidResult to common.h..."
 sed -i.bak '/^#endif.*DDOG_COMMON_H/i\
 \
@@ -63,57 +84,57 @@ typedef struct ddog_VoidResult {\
   };\
 } ddog_VoidResult;\
 \
-' my-libdatadog-build/arm64-darwin-24/include/datadog/common.h
-rm -f my-libdatadog-build/arm64-darwin-24/include/datadog/common.h.bak
+' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/common.h"
+rm -f "my-libdatadog-build/${BUILD_ARCH}/include/datadog/common.h.bak"
 
 # Remove specific conflicting types from crashtracker.h that are already in common.h
 echo "Removing duplicate types from crashtracker.h..."
-sed -i.bak1 '/typedef enum ddog_VoidResult_Tag {/,/} ddog_VoidResult;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
-sed -i.bak2 '/typedef struct ddog_Vec_U8 {/,/} ddog_Vec_U8;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
-sed -i.bak3 '/typedef struct ddog_Error {/,/} ddog_Error;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
-sed -i.bak4 '/typedef struct ddog_Slice_CChar {/,/} ddog_Slice_CChar;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
-sed -i.bak5 '/typedef struct ddog_Vec_Tag {/,/} ddog_Vec_Tag;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
-sed -i.bak6 '/typedef struct ddog_StringWrapper {/,/} ddog_StringWrapper;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
-sed -i.bak7 '/typedef struct ddog_Slice_CChar ddog_CharSlice;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
-sed -i.bak8 '/typedef struct ddog_Endpoint ddog_Endpoint;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
-sed -i.bak9 '/typedef struct ddog_Tag ddog_Tag;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
+sed -i.bak1 '/typedef enum ddog_VoidResult_Tag {/,/} ddog_VoidResult;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
+sed -i.bak2 '/typedef struct ddog_Vec_U8 {/,/} ddog_Vec_U8;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
+sed -i.bak3 '/typedef struct ddog_Error {/,/} ddog_Error;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
+sed -i.bak4 '/typedef struct ddog_Slice_CChar {/,/} ddog_Slice_CChar;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
+sed -i.bak5 '/typedef struct ddog_Vec_Tag {/,/} ddog_Vec_Tag;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
+sed -i.bak6 '/typedef struct ddog_StringWrapper {/,/} ddog_StringWrapper;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
+sed -i.bak7 '/typedef struct ddog_Slice_CChar ddog_CharSlice;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
+sed -i.bak8 '/typedef struct ddog_Endpoint ddog_Endpoint;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
+sed -i.bak9 '/typedef struct ddog_Tag ddog_Tag;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
 
 # Fix the internal duplication issue within crashtracker.h where cbindgen generates the same enum twice
 echo "Fixing internal duplicates in crashtracker.h..."
 # Remove the second occurrence of ddog_crasht_StacktraceCollection enum (lines 57-71 based on error)
-sed -i.bak10 '57,71{/typedef enum ddog_crasht_StacktraceCollection {/,/} ddog_crasht_StacktraceCollection;/d;}' my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h
+sed -i.bak10 '57,71{/typedef enum ddog_crasht_StacktraceCollection {/,/} ddog_crasht_StacktraceCollection;/d;}' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
 
-rm -f my-libdatadog-build/arm64-darwin-24/include/datadog/crashtracker.h.bak*
+rm -f "my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h.bak"*
 
 # Remove duplicates from ddsketch.h too
 echo "Removing duplicate types from ddsketch.h..."
-sed -i.bak1 '/typedef enum ddog_VoidResult_Tag {/,/} ddog_VoidResult;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/ddsketch.h
-sed -i.bak2 '/typedef struct ddog_VoidResult {/,/} ddog_VoidResult;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/ddsketch.h
-sed -i.bak3 '/typedef struct ddog_Vec_U8 {/,/} ddog_Vec_U8;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/ddsketch.h
-sed -i.bak4 '/typedef struct ddog_Error {/,/} ddog_Error;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/ddsketch.h
-rm -f my-libdatadog-build/arm64-darwin-24/include/datadog/ddsketch.h.bak*
+sed -i.bak1 '/typedef enum ddog_VoidResult_Tag {/,/} ddog_VoidResult;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/ddsketch.h"
+sed -i.bak2 '/typedef struct ddog_VoidResult {/,/} ddog_VoidResult;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/ddsketch.h"
+sed -i.bak3 '/typedef struct ddog_Vec_U8 {/,/} ddog_Vec_U8;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/ddsketch.h"
+sed -i.bak4 '/typedef struct ddog_Error {/,/} ddog_Error;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/ddsketch.h"
+rm -f "my-libdatadog-build/${BUILD_ARCH}/include/datadog/ddsketch.h.bak"*
 
 # Remove duplicates from datadog_ffe.h too
 echo "Removing duplicate types from datadog_ffe.h..."
-sed -i.bak1 '/typedef enum ddog_VoidResult_Tag {/,/} ddog_VoidResult;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/datadog_ffe.h
-sed -i.bak2 '/typedef struct ddog_VoidResult {/,/} ddog_VoidResult;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/datadog_ffe.h
-sed -i.bak3 '/typedef struct ddog_Vec_U8 {/,/} ddog_Vec_U8;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/datadog_ffe.h
-sed -i.bak4 '/typedef struct ddog_Error {/,/} ddog_Error;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/datadog_ffe.h
-rm -f my-libdatadog-build/arm64-darwin-24/include/datadog/datadog_ffe.h.bak*
+sed -i.bak1 '/typedef enum ddog_VoidResult_Tag {/,/} ddog_VoidResult;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/datadog_ffe.h"
+sed -i.bak2 '/typedef struct ddog_VoidResult {/,/} ddog_VoidResult;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/datadog_ffe.h"
+sed -i.bak3 '/typedef struct ddog_Vec_U8 {/,/} ddog_Vec_U8;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/datadog_ffe.h"
+sed -i.bak4 '/typedef struct ddog_Error {/,/} ddog_Error;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/datadog_ffe.h"
+rm -f "my-libdatadog-build/${BUILD_ARCH}/include/datadog/datadog_ffe.h.bak"*
 
 # Remove duplicates from library-config.h too
 echo "Removing duplicate types from library-config.h..."
-sed -i.bak1 '/typedef struct ddog_Vec_U8 {/,/} ddog_Vec_U8;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/library-config.h
-sed -i.bak2 '/typedef struct ddog_Error {/,/} ddog_Error;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/library-config.h
-sed -i.bak3 '/typedef struct ddog_Slice_CChar {/,/} ddog_Slice_CChar;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/library-config.h
-sed -i.bak4 '/typedef struct ddog_Slice_CChar ddog_CharSlice;/d' my-libdatadog-build/arm64-darwin-24/include/datadog/library-config.h
-rm -f my-libdatadog-build/arm64-darwin-24/include/datadog/library-config.h.bak*
+sed -i.bak1 '/typedef struct ddog_Vec_U8 {/,/} ddog_Vec_U8;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h"
+sed -i.bak2 '/typedef struct ddog_Error {/,/} ddog_Error;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h"
+sed -i.bak3 '/typedef struct ddog_Slice_CChar {/,/} ddog_Slice_CChar;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h"
+sed -i.bak4 '/typedef struct ddog_Slice_CChar ddog_CharSlice;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h"
+rm -f "my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h.bak"*
 
 # Create minimal stub headers for libraries we're linking but don't actively use
 echo "Creating minimal stub headers for unused linked libraries..."
 
 # profiling.h - minimal stub  
-cat > my-libdatadog-build/arm64-darwin-24/include/datadog/profiling.h << 'EOF'
+cat > "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h" << 'EOF'
 #ifndef DDOG_PROFILING_H
 #define DDOG_PROFILING_H
 
@@ -148,8 +169,8 @@ CURRENT_DIR=$(pwd)
 cat > my-libdatadog-build/pkgconfig/datadog_profiling_with_rpath.pc << EOF
 prefix=${CURRENT_DIR}/my-libdatadog-build
 exec_prefix=\${prefix}
-libdir=\${exec_prefix}/arm64-darwin-24/lib
-includedir=\${prefix}/arm64-darwin-24/include
+libdir=\${exec_prefix}/${BUILD_ARCH}/lib
+includedir=\${prefix}/${BUILD_ARCH}/include
 
 Name: datadog_profiling_with_rpath
 Description: Datadog libdatadog library (with rpath) - Full FFI build
