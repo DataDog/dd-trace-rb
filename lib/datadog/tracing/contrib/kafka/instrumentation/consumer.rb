@@ -7,7 +7,7 @@ module Datadog
         module Instrumentation
           # Instrumentation for Kafka::Consumer
           module Consumer
-            def self.included(base)
+            def self.prepended(base)
               base.prepend(InstanceMethods)
             end
 
