@@ -8,6 +8,7 @@ module Datadog
   module OpenFeature
     module Transport
       module HTTP
+        # Namespace for API components
         module API
           EXPOSURES = 'exposures'
 
