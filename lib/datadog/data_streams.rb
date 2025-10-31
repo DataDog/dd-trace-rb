@@ -25,13 +25,16 @@ module Datadog
       # @return [String, nil] Base64 encoded pathway context or nil if disabled
       # @public_api
       def set_produce_checkpoint(type:, destination:, auto_instrumentation: false, tags: {}, &block)
-        processor&.set_produce_checkpoint(
+        Datadog.logger.debug("[DSM PUBLIC API] set_produce_checkpoint called: type=#{type}, dest=#{destination}, processor=#{processor.class}")
+        result = processor&.set_produce_checkpoint(
           type: type,
           destination: destination,
           manual_checkpoint: !auto_instrumentation,
           tags: tags,
           &block
         )
+        Datadog.logger.debug("[DSM PUBLIC API] set_produce_checkpoint returned: #{result.inspect}")
+        result
       end
 
       # Set a consume checkpoint for Data Streams Monitoring

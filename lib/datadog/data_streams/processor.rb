@@ -100,6 +100,7 @@ module Datadog
       # @yield [key, value] Block to inject context into carrier
       # @return [String] Base64 encoded pathway context
       def set_produce_checkpoint(type:, destination:, manual_checkpoint: true, tags: {}, &block)
+        @logger.debug("[DSM PROCESSOR] set_produce_checkpoint called: type=#{type}, dest=#{destination}")
         checkpoint_tags = ["type:#{type}", "topic:#{destination}", 'direction:out']
         checkpoint_tags << 'manual_checkpoint:true' if manual_checkpoint
         checkpoint_tags.concat(tags.map { |k, v| "#{k}:#{v}" }) unless tags.empty?
@@ -107,6 +108,7 @@ module Datadog
         span = Datadog::Tracing.active_span
         pathway = set_checkpoint(tags: checkpoint_tags, span: span)
 
+        @logger.debug("[DSM PROCESSOR] set_produce_checkpoint pathway=#{pathway.inspect}")
         yield(PROPAGATION_KEY, pathway) if pathway && block
 
         pathway
