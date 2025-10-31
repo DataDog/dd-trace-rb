@@ -7,6 +7,7 @@ module Datadog
   module OpenFeature
     module Transport
       module HTTP
+        # Routes, encodes, and sends tracer data to the trace agent via HTTP.
         class Client
           attr_reader :api, :logger
 
