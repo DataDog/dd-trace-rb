@@ -35,6 +35,22 @@ RSpec.describe Datadog::Core::Transport::HTTP do
       end
     end
 
+    context 'when Datadog-Entity-ID header' do
+      context 'with placeholder implementation' do
+        # TODO: This test will be updated when entity ID detection is implemented
+        # For now, the header should not be present because entity_id is empty string
+        it { is_expected.to_not include(Datadog::Core::Transport::Ext::HTTP::HEADER_ENTITY_ID) }
+      end
+
+      context 'when entity ID is detected (future implementation)' do
+        # TODO: Add tests for:
+        # - entity_id with container ID format (cid-<container_id>)
+        # - entity_id with inode format (in-<inode>)
+        # - entity_id presence alongside HEADER_CONTAINER_ID for backward compatibility
+        pending 'will be implemented when entity ID detection is added'
+      end
+    end
+
     context 'when Datadog.configuration.apm.tracing.enabled' do
       before { expect(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(apm_tracing_enabled) }
 

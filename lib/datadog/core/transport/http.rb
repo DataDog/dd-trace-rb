@@ -61,6 +61,15 @@ module Datadog
             if (container_id = Datadog::Core::Environment::Container.container_id)
               headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id
             end
+
+            # Add entity ID for origin detection.
+            # TODO: Implement entity ID detection (container ID or cgroup inode)
+            # For now, always set to empty string as placeholder.
+            entity_id = '' # Placeholder: will be populated with cid-<container_id> or in-<inode>
+            if !entity_id.nil? && !entity_id.empty?
+              headers[Datadog::Core::Transport::Ext::HTTP::HEADER_ENTITY_ID] = entity_id
+            end
+
             # TODO: inject configuration rather than reading from global here
             unless Datadog.configuration.apm.tracing.enabled
               # Sending this header to the agent will disable metrics computation (and billing) on the agent side
