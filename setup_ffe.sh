@@ -17,7 +17,7 @@ CARGO_BIN="${CARGO_BIN:-$HOME/.cargo/bin/cargo}"
 BUILD_ARCH=$(ruby -e 'puts Gem::Platform.local.to_s')
 export DD_RUBY_PLATFORM="$BUILD_ARCH"
 
-# Skip profiling extension since we only need FFE functionality
+# Skip profiling native extension (complex build) but keep profiling FFI libs for compatibility
 export DD_PROFILING_NO_EXTENSION=true
 
 echo "🚀 Setting up FFE (Feature Flags & Experimentation) for dd-trace-rb"
@@ -25,7 +25,7 @@ echo "📍 Using libdatadog path: ${LIBDATADOG_PATH}"
 echo "📍 Using dd-trace-rb path: ${DD_TRACE_RB_PATH}"
 echo "📍 Detected Ruby platform: ${BUILD_ARCH}"
 echo "📍 DD_RUBY_PLATFORM set to: ${DD_RUBY_PLATFORM}"
-echo "📍 DD_PROFILING_NO_EXTENSION=true (profiling extension disabled for FFE-only setup)"
+echo "📍 DD_PROFILING_NO_EXTENSION=true (profiling native extension disabled, but headers/libs included)"
 
 # Step 1: Build libdatadog
 echo "📦 Step 1: Building libdatadog..."
@@ -46,14 +46,14 @@ mkdir -p "my-libdatadog-build/${BUILD_ARCH}/lib"
 mkdir -p "my-libdatadog-build/${BUILD_ARCH}/include/datadog"
 mkdir -p "my-libdatadog-build/${BUILD_ARCH}/pkgconfig"
 
-# Copy FFI libraries needed for FFE functionality
+# Copy all FFI libraries
 echo "Copying FFI libraries..."
 cp "${LIBDATADOG_PATH}/target/release/libddcommon_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 cp "${LIBDATADOG_PATH}/target/release/libdatadog_ffe_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 cp "${LIBDATADOG_PATH}/target/release/libdatadog_crashtracker_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 cp "${LIBDATADOG_PATH}/target/release/libddsketch_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 cp "${LIBDATADOG_PATH}/target/release/libdatadog_library_config_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
-# Note: Skipping libdatadog_profiling_ffi since DD_PROFILING_NO_EXTENSION=true
+cp "${LIBDATADOG_PATH}/target/release/libdatadog_profiling_ffi."* "my-libdatadog-build/${BUILD_ARCH}/lib/"
 
 # Generate the headers we need, being strategic about what we include
 echo "Generating headers..."
@@ -63,6 +63,7 @@ cbindgen datadog-ffe-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUI
 cbindgen datadog-crashtracker-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUILD_ARCH}/include/datadog/crashtracker.h"
 cbindgen ddsketch-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUILD_ARCH}/include/datadog/ddsketch.h"
 cbindgen datadog-library-config-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h"
+cbindgen datadog-profiling-ffi --output "${DD_TRACE_RB_PATH}/my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
 
 # Add ddog_VoidResult to common.h since it's needed by crashtracker but not included
 cd "${DD_TRACE_RB_PATH}"
@@ -133,36 +134,26 @@ sed -i.bak3 '/typedef struct ddog_Slice_CChar {/,/} ddog_Slice_CChar;/d' "my-lib
 sed -i.bak4 '/typedef struct ddog_Slice_CChar ddog_CharSlice;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h"
 rm -f "my-libdatadog-build/${BUILD_ARCH}/include/datadog/library-config.h.bak"*
 
-# Create minimal stub headers for libraries we reference but don't actively use
-echo "Creating minimal stub headers..."
+# Remove duplicates from profiling.h too
+echo "Removing duplicate types from profiling.h..."
+sed -i.bak1 '/typedef enum ddog_VoidResult_Tag {/,/} ddog_VoidResult;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak2 '/typedef struct ddog_VoidResult {/,/} ddog_VoidResult;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak3 '/typedef struct ddog_Vec_U8 {/,/} ddog_Vec_U8;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak4 '/typedef struct ddog_Error {/,/} ddog_Error;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak5 '/typedef struct ddog_Tag ddog_Tag;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak6 '/typedef struct ddog_Slice_CChar {/,/} ddog_Slice_CChar;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak7 '/typedef struct ddog_Slice_CChar ddog_CharSlice;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak8 '/typedef struct ddog_Vec_Tag {/,/} ddog_Vec_Tag;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak9 '/typedef struct ddog_Timespec {/,/} ddog_Timespec;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak10 '/typedef struct ddog_StringWrapper {/,/} ddog_StringWrapper;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak11 '/typedef enum ddog_StringWrapperResult_Tag {/,/} ddog_StringWrapperResult_Tag;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak12 '/typedef struct ddog_StringWrapperResult {/,/} ddog_StringWrapperResult;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
 
-# profiling.h - minimal stub required by libdatadog_api extension
-cat > "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h" << 'EOF'
-#ifndef DDOG_PROFILING_H
-#define DDOG_PROFILING_H
-
-#pragma once
-
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include "common.h"
-
-// Minimal declarations for profiling functionality
-// libdatadog_api extension references these headers but we're not building profiling
-
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
-
-// Stub function declarations - can be extended as needed
-
-#ifdef __cplusplus
-}  // extern "C"
-#endif  // __cplusplus
-
-#endif  /* DDOG_PROFILING_H */
-EOF
+# Fix internal duplicates within profiling.h itself
+sed -i.bak13 '/typedef struct ddog_prof_EncodedProfile ddog_prof_EncodedProfile;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak14 '/typedef struct OpaqueStringId OpaqueStringId;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+sed -i.bak15 '/typedef struct ddog_prof_StringId ddog_prof_StringId;/d' "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h"
+rm -f "my-libdatadog-build/${BUILD_ARCH}/include/datadog/profiling.h.bak"*
 
 # Create pkg-config file for all FFI libraries
 echo "Creating pkg-config file..."
@@ -174,9 +165,9 @@ libdir=\${exec_prefix}/lib
 includedir=\${prefix}/include
 
 Name: datadog_profiling_with_rpath
-Description: Datadog libdatadog library (with rpath) - FFE build (profiling disabled)
+Description: Datadog libdatadog library (with rpath) - Full FFI build with profiling native extension disabled
 Version: 22.1.0
-Libs: -L\${libdir} -ldatadog_ffe_ffi -ldatadog_crashtracker_ffi -lddsketch_ffi -ldatadog_library_config_ffi -Wl,-rpath,\${libdir}
+Libs: -L\${libdir} -ldatadog_ffe_ffi -ldatadog_crashtracker_ffi -lddsketch_ffi -ldatadog_library_config_ffi -ldatadog_profiling_ffi -Wl,-rpath,\${libdir}
 Cflags: -I\${includedir}
 EOF
 
