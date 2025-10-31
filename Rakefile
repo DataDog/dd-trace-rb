@@ -286,7 +286,8 @@ namespace :spec do
     :stripe,
     :sucker_punch,
     :suite,
-    :trilogy
+    :trilogy,
+    :view_component
   ].each do |contrib|
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
