@@ -19,9 +19,9 @@ module Datadog
 
           TELEMETRY_METRICS_EVENTS_INTO_TYPES: Hash[::String, ::String]
 
-          def self.track_user_login_success: (::String login, ?user_or_id user_or_id, attributes metadata) -> void
+          def self.track_user_login_success: (::String login, ?user_or_id user_or_id, ?attributes metadata) -> void
 
-          def self.track_user_login_failure: (::String login, ?bool user_exists, attributes metadata) -> void
+          def self.track_user_login_failure: (::String login, ?bool user_exists, ?attributes metadata) -> void
 
           private
 

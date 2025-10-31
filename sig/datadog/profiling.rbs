@@ -5,7 +5,7 @@ module Datadog
     def self.start_if_enabled: () -> bool
     def self.allocation_count: () -> ::Integer?
     def self.enabled?: () -> bool
-    def self.wait_until_running: () -> true
+    def self.wait_until_running: (?timeout_seconds: Integer) -> true
 
     private
 

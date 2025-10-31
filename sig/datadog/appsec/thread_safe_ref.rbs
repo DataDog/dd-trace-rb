@@ -11,7 +11,7 @@ module Datadog
 
       @mutex: ::Mutex
 
-      def initialize: (untyped initial_obj) -> void
+      def initialize: (WAF::Handle initial_obj, ?finalizer: Symbol) -> void
 
       def acquire: () -> untyped
 

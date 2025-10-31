@@ -21,7 +21,6 @@ target :datadog do
 
     # These first checks are likely the easiest to fix, given they capture a mismatch
     # between the already declared type in `.rbs` and the actual type inferred by Steep.
-    hash[Ruby::DifferentMethodParameterKind] = :information
     hash[Ruby::IncompatibleAssignment] = :information
 
     # These checks are a bit harder, because they represent the lack of sufficient type information.
