@@ -184,11 +184,9 @@ echo "LIBDATADOG_VENDOR_OVERRIDE set to: $LIBDATADOG_VENDOR_OVERRIDE"
 
 # Compile the Ruby extension using rake-compiler
 echo "Compiling libdatadog_api extension using rake-compiler..."
-RUBY_SHORT_VERSION=$(ruby -e 'puts RUBY_VERSION[/\d+\.\d+/]')
-PLATFORM_NO_DASH=$(echo "${DD_RUBY_PLATFORM}" | sed 's/-\([0-9][0-9]*\)$/\1/')
-PLATFORM_NAME="${RUBY_SHORT_VERSION}_${PLATFORM_NO_DASH}"
-echo "Platform name: ${PLATFORM_NAME}"
-bundle exec rake "compile:libdatadog_api.${PLATFORM_NAME}"
+LIBDATADOG_COMPILE_TASK=$(bundle exec rake -T | grep "compile:libdatadog_api\." | head -1 | awk '{print $2}')
+echo "Using rake task: ${LIBDATADOG_COMPILE_TASK}"
+bundle exec rake "${LIBDATADOG_COMPILE_TASK}"
 
 echo "✅ Step 3 completed: Ruby extension built and installed"
 
