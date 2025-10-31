@@ -46,7 +46,7 @@ module Datadog
         build_snapshot(context)
       end
 
-      NANOSECONDS = 10**9
+      NANOSECONDS = 1_000_000_000
       MILLISECONDS = 1000
 
       def build_snapshot(context)

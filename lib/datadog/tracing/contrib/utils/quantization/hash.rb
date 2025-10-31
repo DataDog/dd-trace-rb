@@ -10,7 +10,9 @@ module Datadog
             PLACEHOLDER = '?'
             EXCLUDE_KEYS = [].freeze
             SHOW_KEYS = [].freeze
-            DEFAULT_OPTIONS = {
+
+            # Steep: https://github.com/soutaro/steep/issues/363
+            DEFAULT_OPTIONS = { # steep:ignore IncompatibleAssignment
               exclude: EXCLUDE_KEYS,
               show: SHOW_KEYS,
               placeholder: PLACEHOLDER
