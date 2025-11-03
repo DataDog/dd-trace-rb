@@ -96,15 +96,22 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         before do
           allow(request).to receive(:env).and_return({
             'action_dispatch.routes' => route_set,
-            'action_dispatch.request.path_parameters' => {}
+            'action_dispatch.request.path_parameters' => {},
+            'PATH_INFO' => '/users/1'
           })
         end
 
         let(:router) { double('ActionDispatch::Routing::RouteSet::Router') }
         let(:route_set) { double('ActionDispatch::Routing::RouteSet', router: router) }
-        let(:request) { double('Rack::Request', env: {}, script_name: '', path: '/users/1') }
+        let(:request) { double('Rack::Request', script_name: '', path: '/users/1') }
 
-        it { expect(described_class.route_pattern(request)).to eq('/users/1') }
+        it { expect(described_class.route_pattern(request)).to eq('/users/{param:int}') }
+
+        it 'persists inferred route in the request env' do
+          expect { described_class.route_pattern(request) }
+            .to change { request.env[Datadog::Tracing::Contrib::Rack::RouteInference::DATADOG_INFERRED_ROUTE_ENV_KEY] }
+            .from(nil).to('/users/{param:int}')
+        end
       end
 
       context 'when route_uri_pattern is not set and request path_parameters is present' do
@@ -130,8 +137,8 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
           let(:action_dispatch_request) { double('ActionDispatch::Request', env: {}, script_name: '', path: '/users/1') }
 
           it 'uses action dispatch request for route recognition' do
-            expect(router).to receive(:recognize).with(action_dispatch_request).and_return('/users/1')
-            expect(described_class.route_pattern(request)).to eq('/users/1')
+            expect(router).to receive(:recognize).with(action_dispatch_request).and_return('/users/:id(.:format)')
+            expect(described_class.route_pattern(request)).to eq('/users/:id')
           end
         end
 
@@ -143,16 +150,18 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
           let(:request) { double('Rack::Request', env: {}, script_name: '', path: '/users/1', head?: false) }
 
           it 'uses action dispatch request for route recognition' do
-            expect(router).to receive(:recognize).with(request).and_return('/users/1')
-            expect(described_class.route_pattern(request)).to eq('/users/1')
+            expect(router).to receive(:recognize).with(request).and_return('/users/:id(.:format)')
+            expect(described_class.route_pattern(request)).to eq('/users/:id')
           end
         end
       end
 
       context 'when Rails router cannot recognize request' do
         before do
-          allow(request).to receive(:env).and_return({'action_dispatch.routes' => route_set})
-          allow(request).to receive(:path).and_return('/unmatched/route')
+          allow(request).to receive(:env).and_return({
+            'action_dispatch.routes' => route_set,
+            'PATH_INFO' => '/unmatched/route'
+          })
           allow(router).to receive(:recognize).with(request).and_return([])
         end
 
@@ -169,7 +178,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
       end
 
       context 'when route has nested path' do
-        before { allow(request).to receive(:path).and_return('/some/other/path') }
+        before { allow(request).to receive(:env).and_return({'PATH_INFO' => '/some/other/path'}) }
 
         it { expect(described_class.route_pattern(request)).to eq('/some/other/path') }
       end
