@@ -29,6 +29,15 @@ module Datadog
 
       attr_reader :pathway_context, :buckets, :bucket_size_ns
 
+      # Initialize the Data Streams Monitoring processor
+      #
+      # @param interval [Float] Flush interval in seconds (e.g., 10.0 for 10 seconds)
+      # @param logger [Datadog::Core::Logger] Logger instance for debugging
+      # @param settings [Datadog::Core::Configuration::Settings] Global configuration settings
+      # @param agent_settings [Datadog::Core::Configuration::AgentSettings] Agent connection settings
+      # @param buffer_size [Integer] Size of the lock-free event buffer for async stat collection
+      #   (default: DEFAULT_BUFFER_SIZE). Higher values support more throughput but use more memory.
+      # @raise [UnsupportedError] if DDSketch is not available on this platform
       def initialize(interval:, logger:, settings:, agent_settings:, buffer_size: DEFAULT_BUFFER_SIZE)
         raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
 
