@@ -27,8 +27,8 @@ module Datadog
           def infer(path)
             segments = path.delete_prefix('/').split('/', MAX_NUMBER_OF_SEGMENTS + 1).first(MAX_NUMBER_OF_SEGMENTS)
 
-            segments.map! do |segment|
-              next if segment.empty? # steep:ignore
+            segments.map! do |segment| #: Array[String?]
+              next if segment.empty?
 
               case segment
               when INT_PARAM_REGEX then '{param:int}'
@@ -40,7 +40,7 @@ module Datadog
               end
             end
 
-            segments.compact!
+            segments.compact! #: Array[String]
 
             "/#{segments.join("/")}"
           rescue
