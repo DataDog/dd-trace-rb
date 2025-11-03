@@ -1,7 +1,7 @@
 require "datadog/profiling"
 if Datadog::Profiling.supported?
   require "datadog/profiling/pprof/pprof_pb"
-  require "extlz4"
+  require "zstd-ruby"
 end
 
 module ProfileHelpers
@@ -39,7 +39,7 @@ module ProfileHelpers
   end
 
   def decode_profile(encoded_profile)
-    ::Perftools::Profiles::Profile.decode(LZ4.decode(encoded_profile._native_bytes))
+    ::Perftools::Profiles::Profile.decode(Zstd.decompress(encoded_profile._native_bytes))
   end
 
   def samples_from_pprof(encoded_profile)

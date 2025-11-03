@@ -15,7 +15,7 @@ gem 'concurrent-ruby'
 # @see https://github.com/DataDog/dogstatsd-ruby/issues/182
 gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
 
-gem 'extlz4', '~> 0.3', '>= 0.3.3'
+gem 'zstd-ruby'
 
 # Profiler testing dependencies
 # NOTE: We're excluding versions 3.7.0 and 3.7.1 for the reasons documented in #1424.
