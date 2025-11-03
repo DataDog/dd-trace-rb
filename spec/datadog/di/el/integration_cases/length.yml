@@ -23,9 +23,22 @@
   compiled: len(ref('var'), 'var')
 
   eval:
-    - locals:
+    - name: string
+      locals:
         var: 'test'
       result: 4
+
+    - name: array
+      locals:
+        var: [1, 2, 3]
+      result: 3
+
+    - name: hash
+      locals:
+        var:
+          foo: bar
+          foo1: bar1
+      result: 2
 
 - name: length of complex expression
   ast:

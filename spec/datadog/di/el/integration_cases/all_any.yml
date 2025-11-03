@@ -72,3 +72,32 @@
     - locals:
         collection: []
       result: false
+
+- name: "any with @value"
+  ast:
+    any:
+      - ref: collection
+      - isEmpty:
+          ref: '@value'
+
+  # compiled:
+
+  eval:
+    - locals:
+        collection:
+          foo: ""
+      result: true
+
+    - locals:
+        collection:
+          foo: 42
+      result: false
+
+    - locals:
+        collection: [1]
+      # TODO reconsider - there are no keys in an array
+      result: false
+
+    - locals:
+        collection: []
+      result: false
