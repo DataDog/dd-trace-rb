@@ -46,7 +46,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
           result
         end
 
-        include Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
+        prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
       end
     end
 
@@ -93,7 +93,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
           result
         end
 
-        include Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
+        prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
       end
     end
 
@@ -106,7 +106,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
           yield(@test_message) if @test_message && block_given?
         end
 
-        include Datadog::Tracing::Contrib::Kafka::Instrumentation::Consumer
+        prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Consumer
       end
     end
 
@@ -180,7 +180,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
           result
         end
 
-        include Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
+        prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Producer
       end
     end
 
@@ -192,7 +192,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
           yield(@test_message) if @test_message && block_given?
         end
 
-        include Datadog::Tracing::Contrib::Kafka::Instrumentation::Consumer
+        prepend Datadog::Tracing::Contrib::Kafka::Instrumentation::Consumer
       end
     end
 

@@ -61,17 +61,18 @@ module Datadog
                 super(:post, path)
               end
 
-              def call(env, &block)
-                # Build request
-                env.path = path
-                env.body = env.request.parcel.data
+            def call(env, &block)
+              # Build request
+              env.verb = verb
+              env.path = path
+              env.body = env.request.parcel.data
 
-                # Send request
-                http_response = yield(env)
+              # Send request
+              http_response = yield(env)
 
-                # Build response
-                Response.new(http_response)
-              end
+              # Build response
+              Response.new(http_response)
+            end
 
               def encoder
                 # DSM handles encoding in the transport layer

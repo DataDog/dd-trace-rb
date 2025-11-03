@@ -406,13 +406,10 @@ module Datadog
       end
 
       def transport
-        @transport ||= begin
-          @logger.debug("[DSM] Building transport with agent_settings: adapter=#{@agent_settings.adapter}, hostname=#{@agent_settings.hostname}, port=#{@agent_settings.port}")
-          Transport::HTTP.default(
-            agent_settings: @agent_settings,
-            logger: @logger
-          )
-        end
+        @transport ||= Transport::HTTP.default(
+          agent_settings: @agent_settings,
+          logger: @logger
+        )
       end
 
       def serialize_buckets
