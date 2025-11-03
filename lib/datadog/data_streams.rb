@@ -59,7 +59,7 @@ module Datadog
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the produced message
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
-      # @public_api
+      # @!visibility private
       def track_kafka_produce(topic, partition, offset)
         processor&.track_kafka_produce(topic, partition, offset, Core::Utils::Time.now)
       end
@@ -70,7 +70,7 @@ module Datadog
       # @param partition [Integer] The partition number
       # @param offset [Integer] The offset of the consumed message
       # @return [Boolean, nil] true if tracking succeeded, nil if disabled
-      # @public_api
+      # @!visibility private
       def track_kafka_consume(topic, partition, offset)
         processor&.track_kafka_consume(topic, partition, offset, Core::Utils::Time.now)
       end
