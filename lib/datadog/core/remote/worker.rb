@@ -23,7 +23,7 @@ module Datadog
         attr_reader :logger
 
         def start
-          logger.debug { "remote worker starting (pid: #{$$})" }
+          logger.debug { "remote worker starting (pid: #{Process.pid})" }
 
           acquire_lock
 
