@@ -27,12 +27,12 @@
       locals:
         var: 'test'
       result: 4
-    
+
     - name: array
       locals:
         var: [1, 2, 3]
       result: 3
-      
+
     - name: hash
       locals:
         var:

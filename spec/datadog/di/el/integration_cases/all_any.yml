@@ -80,7 +80,7 @@
       - isEmpty:
           ref: '@value'
 
-  #compiled:
+  # compiled:
 
   eval:
     - locals:
