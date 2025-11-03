@@ -29,7 +29,7 @@ RSpec.describe 'Waterdrop monitor' do
     end
   end
 
-  let(:tracing_options) { { distributed_tracing: false } }
+  let(:tracing_options) { {distributed_tracing: false} }
 
   describe '#produce_sync' do
     it 'traces a producer job' do
@@ -66,9 +66,9 @@ RSpec.describe 'Waterdrop monitor' do
   describe '#produce_many_sync' do
     it 'traces a producer job' do
       messages = [
-        { topic: 'topic_name', payload: 'foo', partition: 1 },
-        { topic: 'topic_name', payload: 'bar' },
-        { topic: 'other_topic', payload: 'baz', partition: 0 },
+        {topic: 'topic_name', payload: 'foo', partition: 1},
+        {topic: 'topic_name', payload: 'bar'},
+        {topic: 'other_topic', payload: 'baz', partition: 0},
       ].shuffle
       producer.produce_many_sync(messages)
 
@@ -87,9 +87,9 @@ RSpec.describe 'Waterdrop monitor' do
   describe '#produce_many_async' do
     it 'traces a producer job' do
       messages = [
-        { topic: 'topic_name', payload: 'foo', partition: 1 },
-        { topic: 'topic_name', payload: 'bar' },
-        { topic: 'other_topic', payload: 'baz', partition: 0 },
+        {topic: 'topic_name', payload: 'foo', partition: 1},
+        {topic: 'topic_name', payload: 'bar'},
+        {topic: 'other_topic', payload: 'baz', partition: 0},
       ].shuffle
       producer.produce_many_async(messages)
 

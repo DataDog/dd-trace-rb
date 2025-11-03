@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module WaterDrop
+        class Integration
+          include Contrib::Integration
+          
+          MINIMUM_VERSION: ::Gem::Version
+
+          # Returns nil | Gem::Version (can be nil if gem not loaded)
+          def self.version: () -> ::Gem::Version?
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+
+          def new_configuration: () -> Configuration::Settings
+
+          # Returns the Patcher module (not an instance)
+          def patcher: () -> untyped
+        end
+      end
+    end
+  end
+end

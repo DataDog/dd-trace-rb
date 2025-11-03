@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module WaterDrop
+        # Injects trace context into message headers
+        def self.inject: (Tracing::TraceDigest digest, ::Hash[untyped, untyped] data) -> void
+
+        # Extracts trace context from message headers, returns TraceDigest or nil
+        def self.extract: (::Hash[untyped, untyped] data) -> Tracing::TraceDigest?
+      end
+    end
+  end
+end

@@ -31,12 +31,12 @@ RSpec.describe 'WaterDrop middleware' do
     end
   end
 
-  let(:tracing_options) { { distributed_tracing: false } }
+  let(:tracing_options) { {distributed_tracing: false} }
 
   describe '.instrument' do
     context 'when distributed tracing is disabled' do
       it 'does not propagate trace context in message headers' do
-        message_1 = { topic: 'topic_name', payload: 'foo' }
+        message_1 = {topic: 'topic_name', payload: 'foo'}
         Datadog::Tracing.trace('test.span') do
           middleware.call(message_1)
         end
@@ -46,10 +46,10 @@ RSpec.describe 'WaterDrop middleware' do
     end
 
     context 'when distributed tracing is enabled' do
-      let(:tracing_options) { { distributed_tracing: true } }
+      let(:tracing_options) { {distributed_tracing: true} }
 
       it 'propagates trace context in message headers' do
-        message = { topic: 'topic_name', payload: 'foo' }
+        message = {topic: 'topic_name', payload: 'foo'}
         Datadog::Tracing.trace('test.span') do
           middleware.call(message)
         end
