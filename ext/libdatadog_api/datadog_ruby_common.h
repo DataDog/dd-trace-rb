@@ -3,7 +3,7 @@
 // IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
 #include <ruby.h>
-#include <datadog/profiling.h>
+#include <datadog/common.h>
 
 // Used to mark symbols to be exported to the outside of the extension.
 // Consider very carefully before tagging a function with this.
