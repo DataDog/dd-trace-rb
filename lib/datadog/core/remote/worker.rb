@@ -50,7 +50,7 @@ module Datadog
         end
 
         def stop
-          logger.debug { "remote worker stopping (pid: #{$$})" }
+          logger.debug { "remote worker stopping (pid: #{Process.pid})" }
 
           acquire_lock
 
