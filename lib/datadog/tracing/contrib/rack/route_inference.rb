@@ -28,7 +28,7 @@ module Datadog
             segments = path.delete_prefix('/').split('/', MAX_NUMBER_OF_SEGMENTS + 1).first(MAX_NUMBER_OF_SEGMENTS)
 
             segments.map! do |segment|
-              next if segment.empty?
+              next if segment.empty? # steep:ignore
 
               case segment
               when INT_PARAM_REGEX then '{param:int}'
