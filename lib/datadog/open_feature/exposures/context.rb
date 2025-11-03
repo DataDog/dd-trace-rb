@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 module Datadog
   module OpenFeature
-    module Exposure
+    module Exposures
       module Context
         module_function
 
