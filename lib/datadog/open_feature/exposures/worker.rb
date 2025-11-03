@@ -10,8 +10,8 @@ module Datadog
   module OpenFeature
     module Exposures
       class Worker
-        include Datadog::Core::Workers::Polling
         include Datadog::Core::Workers::Queue
+        include Datadog::Core::Workers::Polling
 
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
@@ -37,7 +37,7 @@ module Datadog
         end
 
         def start
-          return if running? || forked?
+          return if !enabled? || running? || forked?
 
           perform
         end
@@ -45,11 +45,11 @@ module Datadog
         def enqueue(event)
           return false if forked?
 
-          start unless running?
-
           buffer.push(event)
 
           flush if buffer_length >= @buffer_limit
+
+          start unless running?
 
           true
         end

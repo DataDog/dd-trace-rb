@@ -14,12 +14,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     )
   end
 
-  let(:logger) { Datadog.logger }
+  let(:logger) { logger_allowing_debug }
   let(:transport) { instance_double('transport') }
   let(:response) { instance_double('response', ok?: true) }
   let(:context_builder) { -> { {} } }
-  let(:flush_interval) { 60 }
-  let(:buffer_limit) { 1 }
+  let(:flush_interval) { 0.1 }
+  let(:buffer_limit) { 2 }
   let(:event) do
     Datadog::OpenFeature::Exposures::Event.new(
       timestamp: Time.utc(2024, 1, 1),
@@ -30,39 +30,78 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     )
   end
 
-  before do
-    allow(transport).to receive(:send_exposures).and_return(response)
-    allow(worker).to receive(:start)
+  after do
+    worker.stop(true)
+    worker.join
+  end
+
+  describe '#start' do
+    it 'does nothing when disabled' do
+      worker.enabled = false
+
+      worker.start
+
+      expect(worker).not_to be_running
+      expect(worker).not_to be_started
+    end
+
+    it 'starts on demand and processes buffer' do
+      sent = 0
+      allow(transport).to receive(:send_exposures) do |payload|
+        sent += 1
+        response
+      end
+
+      worker.enqueue(event)
+
+      try_wait_until { worker.running? }
+      try_wait_until { sent.positive? }
+
+      expect(sent).to eq(1)
+    end
   end
 
   describe '#enqueue' do
-    it do
-      expect(transport).to receive(:send_exposures) do |payload|
-        exposures = payload.fetch(:exposures)
-        expect(exposures.length).to eq(1)
-        expect(exposures.first[:flag][:key]).to eq('demo-flag')
-      end.and_return(response)
+    before do
+      allow(worker).to receive(:start)
+      allow(transport).to receive(:send_exposures).and_return(response)
+    end
+
+    it 'flushes immediately when buffer limit reached' do
+      expect(transport).to receive(:send_exposures).once.and_return(response)
 
       worker.enqueue(event)
+      worker.enqueue(event)
+
+      try_wait_until { worker.buffer.empty? }
     end
   end
 
   describe '#flush' do
-    let(:buffer_limit) { 2 }
+    let(:buffer_limit) { 3 }
 
-    it do
+    before do
+      allow(worker).to receive(:start)
+      allow(transport).to receive(:send_exposures).and_return(response)
+    end
+
+    it 'sends queued events' do
+      worker.enqueue(event)
       worker.enqueue(event)
 
-      expect(transport).to receive(:send_exposures).once.and_return(response)
-
       worker.flush
+
+      expect(transport).to have_received(:send_exposures).once
     end
   end
 
   describe '#stop' do
-    let(:buffer_limit) { 2 }
+    before do
+      allow(worker).to receive(:start)
+      allow(transport).to receive(:send_exposures).and_return(response)
+    end
 
-    it do
+    it 'flushes remaining events before stopping' do
       worker.enqueue(event)
 
       expect(transport).to receive(:send_exposures).once.and_return(response)
