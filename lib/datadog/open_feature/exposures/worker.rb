@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'thread'
+require_relative '../../core/workers/polling'
 
 require_relative 'batch'
 require_relative 'buffer'
@@ -10,6 +10,8 @@ module Datadog
   module OpenFeature
     module Exposures
       class Worker
+        include Datadog::Core::Workers::Polling
+
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
 
@@ -24,32 +26,35 @@ module Datadog
         )
           @transport = transport
           @logger = logger
-          @flush_interval_seconds = flush_interval_seconds
-          @buffer = Buffer.new(limit: buffer_limit)
           @context_builder = context_builder || -> { Context.build }
-
-          @state_mutex = Mutex.new
-          @signal = ConditionVariable.new
-          @thread = nil
-          @running = false
-          @stopped = false
-
+          @buffer_limit = buffer_limit
+          @buffer = Buffer.new(buffer_limit)
           @flush_mutex = Mutex.new
+
+          self.loop_base_interval = flush_interval_seconds
+          self.enabled = true
+        end
+
+        def start
+          return if running? || forked?
+
+          perform
         end
 
         def enqueue(event)
-          return false if stopped?
+          return false if forked?
 
-          start_worker
+          start unless running?
 
           @buffer.push(event)
 
-          wakeup_worker if @buffer.full?
+          flush if @buffer.length >= @buffer_limit
+
           true
         end
 
         def flush
-          events, dropped = @buffer.drain
+          events, dropped = @buffer.pop
           log_drops(dropped) if dropped.positive?
 
           return if events.empty?
@@ -58,66 +63,20 @@ module Datadog
           send_payload(payload)
         end
 
-        def stop
-          thread = nil
-
-          @state_mutex.synchronize do
-            thread = @thread
-            return unless thread
-
-            @stopped = true
-            @signal.broadcast
-          end
-
-          thread.join if thread.alive?
+        def stop(force_stop = false, timeout = Datadog::Core::Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT)
+          result = super(force_stop, timeout)
           flush
+          result
         end
 
         private
 
-        def start_worker
-          @state_mutex.synchronize do
-            return if @running || @stopped
-
-            @thread = ::Thread.new { worker_loop }
-            @thread.name = self.class.name
-            @running = true
-          end
+        def perform(*_args)
+          flush unless @buffer.empty?
         end
 
-        def worker_loop
-          loop do
-            break if wait_for_signal_or_timeout
-
-            flush
-          end
-        rescue => e
-          logger.debug { "Exposure worker loop error: #{e.class}: #{e.message}" }
-        ensure
-          flush
-
-          @state_mutex.synchronize do
-            @running = false
-            @thread = nil
-          end
-        end
-
-        def wait_for_signal_or_timeout
-          @state_mutex.synchronize do
-            return true if @stopped
-
-            @signal.wait(@state_mutex, @flush_interval_seconds)
-
-            @stopped
-          end
-        end
-
-        def wakeup_worker
-          @state_mutex.synchronize do
-            return if @thread.nil? || @stopped
-
-            @signal.broadcast
-          end
+        def work_pending?
+          !@buffer.empty?
         end
 
         def build_payload(events)
@@ -141,10 +100,6 @@ module Datadog
 
         def log_drops(count)
           logger.debug { "Exposure worker dropped #{count} events due to full buffer" }
-        end
-
-        def stopped?
-          @state_mutex.synchronize { @stopped }
         end
       end
     end

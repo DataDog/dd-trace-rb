@@ -13,37 +13,18 @@ module Datadog
           @dropped = 0
         end
 
-        def size
-          length
-        end
+        protected
 
-        def limit
-          @max_size
+        def drain!
+          drained = super
+          dropped = @dropped
+          @dropped = 0
+          [drained, dropped]
         end
-
-        def full?
-          synchronize { full_without_sync? }
-        end
-
-        def drain
-          synchronize do
-            drained = @items
-            dropped = @dropped
-            @items = []
-            @dropped = 0
-            [drained, dropped]
-          end
-        end
-
-        private
 
         def replace!(item)
           @dropped += 1
           super
-        end
-
-        def full_without_sync?
-          @max_size.positive? && @items.length >= @max_size
         end
       end
     end
