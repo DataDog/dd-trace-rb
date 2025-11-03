@@ -11,6 +11,7 @@ module Datadog
     module Exposures
       class Worker
         include Datadog::Core::Workers::Polling
+        include Datadog::Core::Workers::Queue
 
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
@@ -28,7 +29,7 @@ module Datadog
           @logger = logger
           @context_builder = context_builder || -> { Context.build }
           @buffer_limit = buffer_limit
-          @buffer = Buffer.new(buffer_limit)
+          self.buffer = Buffer.new(buffer_limit)
           @flush_mutex = Mutex.new
 
           self.loop_base_interval = flush_interval_seconds
@@ -46,21 +47,15 @@ module Datadog
 
           start unless running?
 
-          @buffer.push(event)
+          buffer.push(event)
 
-          flush if @buffer.length >= @buffer_limit
+          flush if buffer_length >= @buffer_limit
 
           true
         end
 
         def flush
-          events, dropped = @buffer.pop
-          log_drops(dropped) if dropped.positive?
-
-          return if events.empty?
-
-          payload = build_payload(events)
-          send_payload(payload)
+          process(*buffer.pop)
         end
 
         def stop(force_stop = false, timeout = Datadog::Core::Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT)
@@ -71,12 +66,25 @@ module Datadog
 
         private
 
-        def perform(*_args)
-          flush unless @buffer.empty?
+        def perform(events = nil, dropped = 0)
+          process(events || [], dropped)
         end
 
-        def work_pending?
-          !@buffer.empty?
+        def buffer_length
+          buffer.length
+        end
+
+        def dequeue
+          buffer.pop
+        end
+
+        def process(events, dropped)
+          log_drops(dropped) if dropped.positive?
+
+          return if events.nil? || events.empty?
+
+          payload = build_payload(events)
+          send_payload(payload)
         end
 
         def build_payload(events)
