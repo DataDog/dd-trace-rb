@@ -44,7 +44,7 @@ module Datadog
         end
 
         def stop(force_stop = false, timeout = Core::Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT)
-          result = super(force_stop, timeout)
+          result = super
           flush
 
           result
