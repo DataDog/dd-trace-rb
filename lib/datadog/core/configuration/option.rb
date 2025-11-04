@@ -168,8 +168,10 @@ module Datadog
         def default_value
           if definition.default.instance_of?(Proc)
             context_eval(&definition.default)
+          elsif definition.default_proc
+            context_eval(&definition.default_proc)
           else
-            definition.default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
+            Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
         end
 
