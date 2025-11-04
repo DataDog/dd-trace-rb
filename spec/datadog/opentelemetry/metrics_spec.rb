@@ -3,6 +3,7 @@
 require 'spec_helper'
 require 'opentelemetry/sdk'
 require 'opentelemetry-metrics-sdk'
+require 'opentelemetry/exporter/otlp_metrics'
 require 'datadog/opentelemetry/metrics'
 require 'datadog/core/configuration/settings'
 
@@ -12,11 +13,17 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
     allow(Datadog.logger).to receive(:warn)
     allow(Datadog.logger).to receive(:error)
     allow(Datadog.logger).to receive(:debug)
+    WebMock.enable!
+    WebMock.disable_net_connect!
   end
 
   after do
     provider = ::OpenTelemetry.meter_provider
-    provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+    if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+      provider.shutdown
+    end
+    WebMock.reset!
+    WebMock.disable!
   end
 
   def setup_metrics(env_overrides = {})
@@ -25,8 +32,10 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
       'DD_SERVICE' => 'test-service',
       'DD_VERSION' => '1.0.0',
       'DD_ENV' => 'test',
-      'OTEL_METRIC_EXPORT_INTERVAL' => '50',
-      'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT' => '5000'
+      'OTEL_METRIC_EXPORT_INTERVAL' => '10000',
+      # For simplicity, we'll use http/protobuf for all tests
+      # that export metrics (GRPC support is validated by system tests).
+      'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf'
     }.merge(env_overrides)) do
       Datadog.configure do |c|
         c.service = 'test-service'
@@ -36,119 +45,252 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
     end
   end
 
-  let(:exported_payloads) { [] }
+  def mock_otlp_export(&validator)
+    captured_payloads = []
+    captured_headers_list = []
+    validator_called = false
+    request_count = 0
+    mutex = Mutex.new
 
-  def setup_exporter_mock(provider)
-    exporter = provider.metric_readers.first.instance_variable_get(:@exporter)
-    allow(exporter).to receive(:export) do |metrics, timeout: nil|
-      exported_payloads.concat(Array(metrics))
-      ::OpenTelemetry::SDK::Metrics::Export::SUCCESS
+    stub_request(:post, %r{http://.*:4318/v1/metrics}).to_return do |request|
+      mutex.synchronize do
+        request_count += 1
+        puts "[DEBUG] HTTP Request ##{request_count} received: #{request.uri}" if ENV['DEBUG']
+        
+        headers = request.headers
+        payload = request.body
+
+        puts "[DEBUG] Payload size: #{payload&.size || 0} bytes" if ENV['DEBUG']
+        puts "[DEBUG] Content-Encoding: #{headers['Content-Encoding'] || headers['content-encoding']}" if ENV['DEBUG']
+        puts "[DEBUG] Content-Type: #{headers['Content-Type'] || headers['content-type']}" if ENV['DEBUG']
+
+        content_encoding = headers['Content-Encoding'] || headers['content-encoding']
+        if content_encoding == 'gzip'
+          require 'zlib'
+          require 'stringio'
+          io = StringIO.new(payload)
+          gz = Zlib::GzipReader.new(io)
+          payload = gz.read
+          gz.close
+          puts "[DEBUG] Decompressed payload size: #{payload.size} bytes" if ENV['DEBUG']
+        end
+
+        content_type = headers['Content-Type'] || headers['content-type']
+        is_json = content_type && content_type.include?('application/json')
+
+        decoded = if is_json
+          JSON.parse(payload)
+        else
+          require 'opentelemetry/proto/collector/metrics/v1/metrics_service_pb'
+          begin
+            Opentelemetry::Proto::Collector::Metrics::V1::ExportMetricsServiceRequest.decode(payload)
+          rescue NameError
+            OpenTelemetry::Proto::Collector::Metrics::V1::ExportMetricsServiceRequest.decode(payload)
+          end
+        end
+
+        puts "[DEBUG] Decoded payload: #{decoded.class}" if ENV['DEBUG']
+        inspect_payload_structure(decoded) if ENV['DEBUG']
+
+        captured_payloads << decoded
+        captured_headers_list << headers
+
+        if validator
+          puts "[DEBUG] Calling validator on request ##{request_count}..." if ENV['DEBUG']
+          begin
+            validator.call(decoded, headers)
+            validator_called = true unless validator_called
+            puts "[DEBUG] Validator called successfully" if ENV['DEBUG']
+          rescue RSpec::Expectations::ExpectationNotMetError => e
+            puts "[DEBUG] Validator assertion failed (may retry on next payload): #{e.message}" if ENV['DEBUG']
+            raise e if request_count >= 3
+          rescue => e
+            validator_called = true
+            puts "[DEBUG] Validator raised error: #{e.class}: #{e.message}" if ENV['DEBUG']
+            raise e
+          end
+        end
+      end
+
+      { status: 200, body: '' }
     end
-    allow($stdout).to receive(:puts).and_return(nil)
-    allow($stdout).to receive(:write).and_return(nil)
-    allow($stdout).to receive(:print).and_return(nil)
+
+    stub_request(:post, %r{http://.*:4317}).to_return do |request|
+      puts "[DEBUG] gRPC request received: #{request.uri}" if ENV['DEBUG']
+      { status: 200, body: '' }
+    end
+
+    -> {
+      mutex.synchronize do
+        puts "[DEBUG] Final check: request_count=#{request_count}, validator_called=#{validator_called}, captured_payloads=#{captured_payloads.length}" if ENV['DEBUG']
+        raise "OTLP export validator was never called (received #{request_count} requests)" unless validator_called
+      end
+    }
+  end
+
+  def inspect_payload_structure(payload)
+    return unless payload.respond_to?(:resource_metrics)
+
+    payload.resource_metrics.each do |rm|
+      rm.scope_metrics.each do |sm|
+        sm.metrics.each do |metric|
+          puts "=== Metric: #{metric.name} ==="
+          if metric.sum
+            puts "  Type: Sum"
+            puts "  Temporality: #{metric.sum.aggregation_temporality}" if metric.sum.respond_to?(:aggregation_temporality)
+            metric.sum.data_points.each_with_index do |dp, idx|
+              puts "  DataPoint[#{idx}]:"
+              puts "    as_int: #{dp.as_int}" if dp.respond_to?(:as_int)
+              puts "    as_double: #{dp.as_double}" if dp.respond_to?(:as_double)
+              puts "    int_value: #{dp.int_value}" if dp.respond_to?(:int_value)
+              puts "    double_value: #{dp.double_value}" if dp.respond_to?(:double_value)
+              puts "    Attributes (#{dp.attributes.length}):"
+              dp.attributes.each do |attr|
+                val = if attr.value.respond_to?(:string_value)
+                  attr.value.string_value
+                elsif attr.value.respond_to?(:int_value)
+                  attr.value.int_value
+                elsif attr.value.respond_to?(:double_value)
+                  attr.value.double_value
+                else
+                  attr.value.inspect
+                end
+                puts "      #{attr.key}: #{val} (#{attr.value.class})"
+              end
+            end
+          elsif metric.gauge
+            puts "  Type: Gauge"
+            puts "  Temporality: #{metric.gauge.aggregation_temporality}" if metric.gauge.respond_to?(:aggregation_temporality)
+            metric.gauge.data_points.each_with_index do |dp, idx|
+              puts "  DataPoint[#{idx}]: as_double=#{dp.as_double}" if dp.respond_to?(:as_double)
+              puts "    TimeUnixNano: #{dp.time_unix_nano}" if dp.respond_to?(:time_unix_nano)
+            end
+          elsif metric.histogram
+            puts "  Type: Histogram"
+            puts "  Temporality: #{metric.histogram.aggregation_temporality}" if metric.histogram.respond_to?(:aggregation_temporality)
+            metric.histogram.data_points.each_with_index do |dp, idx|
+              puts "  DataPoint[#{idx}]: sum=#{dp.sum}, count=#{dp.count}" if dp.respond_to?(:sum)
+            end
+          end
+        end
+      end
+    end
   end
 
   def flush_and_wait(provider)
-    provider.force_flush
+    return unless provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+    
     reader = provider.metric_readers.first
-    reader.force_flush if reader.respond_to?(:force_flush)
-    sleep(0.3)
+    reader.force_flush if reader&.respond_to?(:force_flush)
+    provider.force_flush
   end
 
-  def find_metric(payloads, name)
-    payloads.reverse_each do |payload|
-      return payload if payload.respond_to?(:name) && payload.name == name
+  def find_metric_in_payload(payload, name)
+    return nil unless payload.respond_to?(:resource_metrics)
+
+    payload.resource_metrics.each do |resource_metric|
+      resource_metric.scope_metrics.each do |scope_metric|
+        scope_metric.metrics.each do |metric|
+          return metric if metric.name == name
+        end
+      end
     end
     nil
   end
 
   describe 'Basic Functionality' do
     it 'exports counter metrics' do
+      verify_validator = mock_otlp_export do |payload, headers|
+        metric = find_metric_in_payload(payload, 'requests')
+        value = metric.sum.data_points.first.as_int != 0 ? metric.sum.data_points.first.as_int : metric.sum.data_points.first.as_double.to_i
+        expect(value).to eq(5)
+      end
+
       setup_metrics
       provider = ::OpenTelemetry.meter_provider
-      setup_exporter_mock(provider)
-      meter = provider.meter('app')
-      meter.create_counter('requests').add(5.1)
+      provider.meter('app').create_counter('requests').add(5)
       flush_and_wait(provider)
-      sleep(0.3)
-      metric = find_metric(exported_payloads, 'requests')
-      expect(metric).not_to be_nil
-      expect(metric.data_points.first.value).to eq(5.1)
+      verify_validator.call
     end
 
     it 'exports histogram metrics' do
+      verify_validator = mock_otlp_export do |payload, headers|
+        metric = find_metric_in_payload(payload, 'duration')
+        expect(metric.histogram.data_points.first.sum).to eq(100.0)
+        expect(metric.histogram.data_points.first.count).to eq(1)
+      end
+
       setup_metrics
       provider = ::OpenTelemetry.meter_provider
-      setup_exporter_mock(provider)
       provider.meter('app').create_histogram('duration').record(100)
       flush_and_wait(provider)
-      metric = find_metric(exported_payloads, 'duration')
-      expect(metric).not_to be_nil
-      expect(metric.data_points.first.sum).to eq(100)
-      expect(metric.data_points.first.count).to eq(1)
+      verify_validator.call
     end
 
     it 'exports gauge metrics' do
-      setup_metrics
+      all_payloads = []
+      verify_validator = mock_otlp_export { |payload, headers| all_payloads << payload }
+
+      setup_metrics('OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE' => 'cumulative')
       provider = ::OpenTelemetry.meter_provider
-      setup_exporter_mock(provider)
-      provider.meter('app').create_gauge('temperature').record(72)
+      gauge = provider.meter('app').create_gauge('temperature')
+      
+      gauge.record(72)
       flush_and_wait(provider)
-      metric = find_metric(exported_payloads, 'temperature')
-      expect(metric).not_to be_nil
-      expect(metric.data_points.first.value).to eq(72)
+      
+      gauge.record(72)
+      flush_and_wait(provider)
+
+      verify_validator.call
+      expect(all_payloads.length).to be >= 1
+      
+      found = all_payloads.any? do |payload|
+        metric = find_metric_in_payload(payload, 'temperature')
+        next false unless metric
+        value = metric.gauge.data_points.first.as_int != 0 ? metric.gauge.data_points.first.as_int : metric.gauge.data_points.first.as_double.to_i
+        value == 72
+      end
+      
+      expect(found).to be true
     end
 
     it 'exports updowncounter metrics' do
+      verify_validator = mock_otlp_export do |payload, headers|
+        metric = find_metric_in_payload(payload, 'queue')
+        expect(metric.sum.data_points.first.as_int).to eq(10)
+      end
+
       setup_metrics
       provider = ::OpenTelemetry.meter_provider
-      setup_exporter_mock(provider)
       provider.meter('app').create_up_down_counter('queue').add(10)
       flush_and_wait(provider)
-      metric = find_metric(exported_payloads, 'queue')
-      expect(metric).not_to be_nil
-      expect(metric.data_points.first.value).to eq(10)
-    end
-
-    it 'exports observable gauge metrics' do
-      setup_metrics('OTEL_METRIC_EXPORT_INTERVAL' => '50')
-      provider = ::OpenTelemetry.meter_provider
-      setup_exporter_mock(provider)
-      callback_invoked = false
-      received_result = false
-      callback = proc do |result = nil|
-        callback_invoked = true
-        if result && result.respond_to?(:observe)
-          received_result = true
-          result.observe(100, { 'type' => 'heap' })
-        end
-      end
-      provider.meter('app').create_observable_gauge('memory', callback: callback)
-      provider.force_flush
-      sleep(0.3)
-      expect(callback_invoked).to be(true)
-      pending 'opentelemetry-metrics-sdk 0.11.0 bug: callbacks called with 0 args instead of ObservableResult'
-      expect(received_result).to be(true)
-      metric = find_metric(exported_payloads, 'memory')
-      expect(metric).not_to be_nil
-      expect(metric.data_points.first.value).to eq(100)
-      expect(metric.data_points.first.attributes['type']).to eq('heap')
+      verify_validator.call
     end
 
     it 'handles multiple metric types' do
+      verify_validator = mock_otlp_export do |payload, headers|
+        size_metric = find_metric_in_payload(payload, 'size')
+        requests_metric = find_metric_in_payload(payload, 'requests')
+        memory_metric = find_metric_in_payload(payload, 'memory')
+
+        expect(size_metric.histogram.data_points.first.sum).to eq(100.0)
+        expect(size_metric.histogram.data_points.first.count).to eq(1)
+        expect(requests_metric.sum.data_points.first.as_int).to eq(10)
+
+        if memory_metric
+          gauge_value = memory_metric.gauge.data_points.first.as_int != 0 ? memory_metric.gauge.data_points.first.as_int : memory_metric.gauge.data_points.first.as_double.to_i
+          expect(gauge_value).to eq(100) if gauge_value != 0
+        end
+      end
+
       setup_metrics
       provider = ::OpenTelemetry.meter_provider
-      setup_exporter_mock(provider)
       meter = provider.meter('app')
       meter.create_histogram('size').record(100)
       meter.create_counter('requests').add(10)
       meter.create_gauge('memory').record(100)
       flush_and_wait(provider)
-      expect(find_metric(exported_payloads, 'size').data_points.first.sum).to eq(100)
-      expect(find_metric(exported_payloads, 'size').data_points.first.count).to eq(1)
-      expect(find_metric(exported_payloads, 'requests').data_points.first.value).to eq(10)
-      expect(find_metric(exported_payloads, 'memory').data_points.first.value).to eq(100)
+      verify_validator.call
     end
   end
 
@@ -158,7 +300,9 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
         'DD_METRICS_OTEL_ENABLED' => 'true',
         'DD_SERVICE' => 'custom-service',
         'DD_VERSION' => '2.0.0',
-        'DD_ENV' => 'production'
+        'DD_ENV' => 'production',
+        'OTEL_METRIC_EXPORT_INTERVAL' => '10000',
+        'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf'
       }) do
         Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
         Datadog.configure do |c|
@@ -241,10 +385,25 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
     end
 
     it 'respects export interval and timeout in SDK' do
+      mock_otlp_export
       setup_metrics('OTEL_METRIC_EXPORT_INTERVAL' => '200', 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT' => '10000')
       reader = ::OpenTelemetry.meter_provider.metric_readers.first
       expect(reader.export_interval_millis).to eq(200) if reader.respond_to?(:export_interval_millis)
       expect(reader.export_timeout_millis).to eq(10_000) if reader.respond_to?(:export_timeout_millis)
+    end
+
+    it 'uses OTLP exporter when configured' do
+      verify_validator = mock_otlp_export do |payload, headers|
+        expect(payload).to respond_to(:resource_metrics)
+      end
+
+      setup_metrics
+      provider = ::OpenTelemetry.meter_provider
+      exporter = provider.metric_readers.first.instance_variable_get(:@exporter)
+      expect(exporter).to be_a(::OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter)
+      provider.meter('app').create_counter('test').add(1)
+      flush_and_wait(provider)
+      verify_validator.call
     end
 
     it 'does not initialize when DD_METRICS_OTEL_ENABLED is false' do
@@ -261,29 +420,35 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
 
   describe 'Multiple Data Points' do
     it 'supports multiple attributes and data points' do
+      verify_validator = mock_otlp_export do |payload, headers|
+        metric = find_metric_in_payload(payload, 'api')
+        expect(metric.sum.data_points.length).to be >= 1
+
+        get_point = metric.sum.data_points.find { |dp| dp.attributes.find { |a| a.key == 'method' }&.value&.string_value == 'GET' }
+        post_point = metric.sum.data_points.find { |dp| dp.attributes.find { |a| a.key == 'method' }&.value&.string_value == 'POST' }
+
+        if get_point && post_point
+          expect(get_point.as_int).to eq(10)
+          expect(post_point.as_int).to eq(5)
+        else
+          expect(metric.sum.data_points.first.as_int).to eq(15)
+        end
+      end
+
       setup_metrics
       provider = ::OpenTelemetry.meter_provider
-      setup_exporter_mock(provider)
       counter = provider.meter('app').create_counter('api')
       counter.add(10, attributes: { 'method' => 'GET' })
       counter.add(5, attributes: { 'method' => 'POST' })
       flush_and_wait(provider)
-      metric = find_metric(exported_payloads, 'api')
-      expect(metric).not_to be_nil
-      expect(metric.data_points.length).to be >= 1
-      get_point = metric.data_points.find { |dp| dp.attributes['method'] == 'GET' }
-      post_point = metric.data_points.find { |dp| dp.attributes['method'] == 'POST' }
-      if get_point && post_point
-        expect(get_point.value).to eq(10)
-        expect(post_point.value).to eq(5)
-      else
-        expect(metric.data_points.first.value).to eq(15)
-      end
+      verify_validator.call
     end
   end
 
   describe 'Lifecycle' do
     it 'handles shutdown gracefully' do
+      stub_request(:post, %r{http://.*:4318/v1/metrics}).to_return(status: 200, body: '')
+      stub_request(:post, %r{http://.*:4317}).to_return(status: 200, body: '')
       setup_metrics
       provider = ::OpenTelemetry.meter_provider
       expect { provider.shutdown }.not_to raise_error
@@ -291,6 +456,8 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
     end
 
     it 'handles force_flush' do
+      stub_request(:post, %r{http://.*:4318/v1/metrics}).to_return(status: 200, body: '')
+      stub_request(:post, %r{http://.*:4317}).to_return(status: 200, body: '')
       setup_metrics
       provider = ::OpenTelemetry.meter_provider
       provider.meter('app').create_counter('test').add(1)

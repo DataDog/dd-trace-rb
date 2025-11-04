@@ -243,7 +243,8 @@ end
 
 appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
-  gem 'opentelemetry-metrics-sdk', '>= 0.4.0'
+  gem 'opentelemetry-metrics-sdk', '~> 0.11'
+  gem 'opentelemetry-exporter-otlp-metrics', '~> 0.6'
 end
 
 appraise 'opentelemetry_otlp' do

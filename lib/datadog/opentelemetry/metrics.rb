@@ -88,11 +88,10 @@ module Datadog
           return if exporter_name == 'none'
 
           endpoint = resolve_metrics_endpoint(metrics_config, exporter_config)
-          configure_console_exporter(provider, metrics_config, endpoint)
-        rescue StandardError
+          configure_otlp_exporter(provider, metrics_config, exporter_config, endpoint)
+        rescue StandardError => e
           exporter_name = metrics_config.exporter
-          Datadog.logger.warn("Unknown OpenTelemetry metrics exporter '#{exporter_name}', using console exporter") unless exporter_name == 'none'
-          configure_console_exporter(provider, metrics_config, nil)
+          Datadog.logger.warn("Failed to configure OTLP metrics exporter: #{e.message}") unless exporter_name == 'none'
         end
 
         def resolve_metrics_endpoint(metrics_config, exporter_config)
@@ -110,17 +109,30 @@ module Datadog
           exporter_endpoint.end_with?('/v1/metrics') ? exporter_endpoint : "#{exporter_endpoint}/v1/metrics"
         end
 
-        def configure_console_exporter(provider, metrics_config, endpoint)
-          require 'opentelemetry/sdk/metrics/export/console_metric_pull_exporter'
-          exporter = ::OpenTelemetry::SDK::Metrics::Export::ConsoleMetricPullExporter.new
+        def configure_otlp_exporter(provider, metrics_config, exporter_config, endpoint)
+          require 'opentelemetry/exporter/otlp_metrics'
+
+          return unless endpoint
+
+          timeout = metrics_config.timeout || exporter_config.timeout || 10_000
+          headers = metrics_config.headers || exporter_config.headers || {}
+
+          exporter_options = {
+            endpoint: endpoint,
+            timeout: timeout / 1000.0,
+            headers: headers
+          }
+
+          exporter = ::OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter.new(**exporter_options)
+
           reader = ::OpenTelemetry::SDK::Metrics::Export::PeriodicMetricReader.new(
             exporter: exporter,
             export_interval_millis: metrics_config.export_interval || 60_000,
-            export_timeout_millis: metrics_config.export_timeout || 30_000
+            export_timeout_millis: timeout
           )
           provider.add_metric_reader(reader)
         rescue LoadError => e
-          Datadog.logger.warn("Could not load console metrics exporter: #{e.message}")
+          Datadog.logger.warn("Could not load OTLP metrics exporter: #{e.message}")
         end
       end
     end

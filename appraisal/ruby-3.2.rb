@@ -211,8 +211,9 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
 end
 
 appraise 'opentelemetry' do
-  gem 'opentelemetry-sdk', '~> 1.1'
-  gem 'opentelemetry-metrics-sdk', '>= 0.4.0'
+  gem 'opentelemetry-sdk', '~> 1.2'
+  gem 'opentelemetry-metrics-sdk', '~> 0.11'
+  gem 'opentelemetry-exporter-otlp-metrics', '~> 0.6'
 end
 
 appraise 'opentelemetry_otlp' do
