@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/open_feature/evaluator'
+require 'datadog/open_feature/evaluation_engine'
 
-RSpec.describe Datadog::OpenFeature::Evaluator do
+RSpec.describe Datadog::OpenFeature::EvaluationEngine do
+  let(:evaluator) { described_class.new(telemetry, logger: logger) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:evaluator) { described_class.new(telemetry) }
   let(:logger) { instance_double(Datadog::Core::Logger) }
   let(:ufc) do
     <<~JSON
@@ -40,8 +40,6 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
     JSON
   end
 
-  before { allow(Datadog).to receive(:logger).and_return(logger) }
-
   describe '#fetch_value' do
     let(:result) { evaluator.fetch_value(flag_key: 'test', expected_type: :string) }
 
@@ -55,10 +53,10 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
 
     context 'when binding evaluator returns error' do
       before do
-        evaluator.ufc_json = ufc
+        evaluator.configuration = ufc
         evaluator.reconfigure!
 
-        allow_any_instance_of(described_class::Binding::Evaluator).to receive(:get_assignment)
+        allow_any_instance_of(Datadog::OpenFeature::Binding::Evaluator).to receive(:get_assignment)
           .and_return(error)
       end
 
@@ -73,11 +71,11 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
 
     context 'when binding evaluator raises error' do
       before do
-        evaluator.ufc_json = ufc
+        evaluator.configuration = ufc
         evaluator.reconfigure!
 
         allow(telemetry).to receive(:report)
-        allow_any_instance_of(described_class::Binding::Evaluator).to receive(:get_assignment)
+        allow_any_instance_of(Datadog::OpenFeature::Binding::Evaluator).to receive(:get_assignment)
           .and_raise(error)
       end
 
@@ -92,7 +90,7 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
 
     context 'when expected type not in the allowed list' do
       before do
-        evaluator.ufc_json = ufc
+        evaluator.configuration = ufc
         evaluator.reconfigure!
       end
 
@@ -107,7 +105,7 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
 
     context 'when binding evaluator returns resolution details' do
       before do
-        evaluator.ufc_json = ufc
+        evaluator.configuration = ufc
         evaluator.reconfigure!
       end
 
@@ -118,12 +116,20 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
   end
 
   describe '#reconfigure!' do
+    context 'when configuration is not yet present' do
+      it 'does nothing and logs the issue' do
+        expect(logger).to receive(:debug).with(/OpenFeature: Configuration is not received, skip reconfiguration/)
+
+        evaluator.reconfigure!
+      end
+    end
+
     context 'when binding initialization fails with exception' do
       before do
-        evaluator.ufc_json = ufc
+        evaluator.configuration = ufc
         evaluator.reconfigure!
 
-        allow(described_class::Binding::Evaluator).to receive(:new).and_raise(error)
+        allow(Datadog::OpenFeature::Binding::Evaluator).to receive(:new).and_raise(error)
       end
 
       let(:error) { StandardError.new('Ooops') }
@@ -131,9 +137,9 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
       it 'reports error to telemetry and logs it' do
         expect(logger).to receive(:error).with(/Ooops/)
         expect(telemetry).to receive(:report)
-          .with(error, description: match(/OpenFeature failed to reconfigure/))
+          .with(error, description: match(/OpenFeature: Failed to reconfigure/))
 
-        evaluator.ufc_json = '{}'
+        evaluator.configuration = '{}'
         expect { evaluator.reconfigure! }.not_to raise_error
       end
 
@@ -141,7 +147,7 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
         allow(logger).to receive(:error)
         allow(telemetry).to receive(:report)
 
-        evaluator.ufc_json = '{}'
+        evaluator.configuration = '{}'
         expect { evaluator.reconfigure! }.not_to change {
           evaluator.fetch_value(flag_key: 'test', expected_type: :string).value
         }.from('hello')
@@ -150,7 +156,7 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
 
     context 'when binding initialization succeeds' do
       before do
-        evaluator.ufc_json = ufc
+        evaluator.configuration = ufc
         evaluator.reconfigure!
       end
 
@@ -188,7 +194,7 @@ RSpec.describe Datadog::OpenFeature::Evaluator do
       end
 
       xit 'reconfigures binding evaluator with new flags configuration' do
-        expect { evaluator.ufc_json = new_ufc; evaluator.reconfigure!}
+        expect { evaluator.configuration = new_ufc; evaluator.reconfigure!}
           .to change { evaluator.fetch_value(flag_key: 'test', expected_type: :string).value }
           .from('hello').to('goodbye')
       end
