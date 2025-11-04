@@ -143,7 +143,7 @@ module Datadog
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger, telemetry)
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
-          @open_feature = Datadog::OpenFeature::Component.build_open_feature_component(settings, telemetry: telemetry)
+          @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger)
