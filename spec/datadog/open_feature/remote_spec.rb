@@ -34,10 +34,10 @@ RSpec.describe Datadog::OpenFeature::Remote do
   describe 'receiver logic' do
     before do
       allow(telemetry).to receive(:error)
-      allow(Datadog::OpenFeature).to receive(:evaluator).and_return(evaluator)
+      allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
     end
 
-    let(:evaluator) { Datadog::OpenFeature::Evaluator.new(telemetry) }
+    let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(telemetry) }
     let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
     let(:target) do
       Datadog::Core::Remote::Configuration::Target.parse(
@@ -94,12 +94,12 @@ RSpec.describe Datadog::OpenFeature::Remote do
         repository.transaction { |_, t| t.insert(content.path, target, content) }
       end
 
-      it 'reconfigures evaluator and acknowledges applied change' do
-        expect(evaluator).to receive(:reconfigure!)
+      it 'reconfigures engine and acknowledges applied change' do
+        expect(engine).to receive(:reconfigure!)
 
         receiver.call(repository, transaction)
 
-        expect(evaluator.ufc_json).to eq(content_data)
+        expect(engine.configuration).to eq(content_data)
         expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
       end
     end
@@ -135,12 +135,12 @@ RSpec.describe Datadog::OpenFeature::Remote do
         JSON
       end
 
-      it 'reconfigures evaluator and acknowledges applied change' do
-        expect(evaluator).to receive(:reconfigure!)
+      it 'reconfigures engine and acknowledges applied change' do
+        expect(engine).to receive(:reconfigure!)
 
         receiver.call(repository, transaction)
 
-        expect(evaluator.ufc_json).to eq(new_content_data)
+        expect(engine.configuration).to eq(new_content_data)
         expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
       end
     end
@@ -155,7 +155,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
 
       it 'performs no-op on delete but reconfigures' do
-        expect(evaluator).to receive(:reconfigure!)
+        expect(engine).to receive(:reconfigure!)
         expect { receiver.call(repository, transaction) }.not_to raise_error
       end
     end
@@ -176,7 +176,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
       it 'logs error when content missing and still reconfigures' do
         expect(telemetry).to receive(:error).with(/OpenFeature: RemoteConfig change is not present/)
-        expect(evaluator).to receive(:reconfigure!)
+        expect(engine).to receive(:reconfigure!)
 
         receiver.call(repository, changes)
       end
