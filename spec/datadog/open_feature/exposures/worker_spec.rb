@@ -2,24 +2,22 @@
 
 require 'spec_helper'
 require 'datadog/open_feature/exposures'
+require 'datadog/open_feature/transport/exposures'
 
 RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   subject(:worker) do
     described_class.new(
       transport: transport,
       logger: logger,
-      flush_interval_seconds: flush_interval,
-      buffer_limit: buffer_limit,
-      context_builder: context_builder
+      flush_interval_seconds: 0.1,
+      buffer_limit: 2,
+      context_builder: -> { {} }
     )
   end
 
+  let(:transport) { instance_double(Datadog::OpenFeature::Transport::Exposures::Transport) }
+  let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: true) }
   let(:logger) { logger_allowing_debug }
-  let(:transport) { instance_double('transport') }
-  let(:response) { instance_double('response', ok?: true) }
-  let(:context_builder) { -> { {} } }
-  let(:flush_interval) { 0.1 }
-  let(:buffer_limit) { 2 }
   let(:event) do
     Datadog::OpenFeature::Exposures::Event.new(
       timestamp: Time.utc(2024, 1, 1),
@@ -36,28 +34,32 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   end
 
   describe '#start' do
-    it 'does nothing when disabled' do
-      worker.enabled = false
+    context 'when worker is disabled' do
+      it 'does nothing' do
+        allow(worker).to receive(:enabled?).and_return(false)
 
-      worker.start
+        worker.start
 
-      expect(worker).not_to be_running
-      expect(worker).not_to be_started
+        expect(worker).not_to be_running
+        expect(worker).not_to be_started
+      end
     end
 
-    it 'starts on demand and processes buffer' do
-      sent = 0
-      allow(transport).to receive(:send_exposures) do |payload|
-        sent += 1
-        response
+    context 'when buffer has events' do
+      it 'starts on demand and processes buffer' do
+        sent = 0
+        allow(transport).to receive(:send_exposures) do |payload|
+          sent += 1
+          response
+        end
+
+        worker.enqueue(event)
+
+        try_wait_until { worker.running? }
+        try_wait_until { sent.positive? }
+
+        expect(sent).to eq(1)
       end
-
-      worker.enqueue(event)
-
-      try_wait_until { worker.running? }
-      try_wait_until { sent.positive? }
-
-      expect(sent).to eq(1)
     end
   end
 
@@ -67,31 +69,82 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       allow(transport).to receive(:send_exposures).and_return(response)
     end
 
-    it 'flushes immediately when buffer limit reached' do
-      expect(transport).to receive(:send_exposures).once.and_return(response)
+    context 'when buffer limit is reached' do
+      it 'flushes immediately' do
+        worker.enqueue(event)
+        worker.enqueue(event)
 
-      worker.enqueue(event)
-      worker.enqueue(event)
+        try_wait_until { worker.buffer.empty? }
 
-      try_wait_until { worker.buffer.empty? }
+        expect(transport).to have_received(:send_exposures).once
+      end
     end
   end
 
   describe '#flush' do
-    let(:buffer_limit) { 3 }
-
     before do
       allow(worker).to receive(:start)
       allow(transport).to receive(:send_exposures).and_return(response)
     end
 
-    it 'sends queued events' do
-      worker.enqueue(event)
-      worker.enqueue(event)
+    context 'when buffer has queued events' do
+      it 'sends queued events' do
+        worker.enqueue(event)
 
-      worker.flush
+        worker.flush
 
-      expect(transport).to have_received(:send_exposures).once
+        expect(transport).to have_received(:send_exposures).once
+      end
+    end
+
+    context 'when buffer is empty' do
+      it 'does not send anything' do
+        worker.flush
+
+        expect(transport).not_to have_received(:send_exposures)
+      end
+    end
+
+    context 'when buffer dropped events' do
+      it 'logs debug message' do
+        worker.buffer.concat([event, event, event])
+        expect_lazy_log(logger, :debug, /OpenFeature: Exposure worker dropped 1 event/)
+
+        worker.flush
+      end
+    end
+
+    context 'when transport response does not have expected interface' do
+      let(:response) { nil }
+
+      it 'logs debug message' do
+        expect_lazy_log(logger, :debug, /Send exposures response was not OK/)
+
+        worker.enqueue(event)
+        worker.flush
+      end
+    end
+
+    context 'when transport response is not ok' do
+      let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: false) }
+
+      it 'logs debug message' do
+        expect_lazy_log(logger, :debug, /Send exposures response was not OK/)
+
+        worker.enqueue(event)
+        worker.flush
+      end
+    end
+
+    context 'when transport raises an error' do
+      it 'logs debug message and swallows the error' do
+        allow(transport).to receive(:send_exposures).and_raise(RuntimeError, 'Ooops')
+        expect_lazy_log(logger, :debug, /Failed to flush exposure events/)
+
+        worker.enqueue(event)
+
+        expect { worker.flush }.not_to raise_error
+      end
     end
   end
 
@@ -101,12 +154,13 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       allow(transport).to receive(:send_exposures).and_return(response)
     end
 
-    it 'flushes remaining events before stopping' do
-      worker.enqueue(event)
+    context 'when buffer contains events' do
+      it 'flushes remaining events before stopping' do
+        worker.enqueue(event)
 
-      expect(transport).to receive(:send_exposures).once.and_return(response)
-
-      worker.stop
+        expect(transport).to receive(:send_exposures).once
+        worker.stop
+      end
     end
   end
 end

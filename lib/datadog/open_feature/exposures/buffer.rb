@@ -6,7 +6,9 @@ require_relative '../../core/buffer/thread_safe'
 module Datadog
   module OpenFeature
     module Exposures
-      class Buffer < Core::Buffer::ThreadSafe
+      Base = (Core::Environment::Ext::RUBY_ENGINE == 'ruby') ? Core::Buffer::CRuby : Core::Buffer::ThreadSafe
+
+      class Buffer < Base
         DEFAULT_LIMIT = 1_000
 
         def initialize(limit = DEFAULT_LIMIT)
