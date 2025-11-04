@@ -5,13 +5,20 @@ require 'datadog/open_feature/provider'
 require 'datadog/open_feature/evaluation_engine'
 
 RSpec.describe Datadog::OpenFeature::Provider do
-  let(:provider) { described_class.new }
+  before do
+    allow(telemetry).to receive(:report)
+    allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
+  end
+
+  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(telemetry) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
-  before { allow(telemetry).to receive(:report) }
+  subject(:provider) { described_class.new }
 
   describe '#fetch_boolean_value' do
-    context 'when evaluator is not configured' do
+    context 'when engine is not configured' do
+      before { allow(Datadog::OpenFeature).to receive(:engine).and_return(nil) }
+
       it 'returns default value with error details' do
         result = provider.fetch_boolean_value(flag_key: 'flag', default_value: false)
 
@@ -20,15 +27,10 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when evaluator is configured' do
+    context 'when engine is configured' do
       before do
-        evaluator = Datadog::OpenFeature::Evaluator.new(telemetry)
-        evaluator.ufc_json = ufc
-        evaluator.reconfigure!
-
-        allow(Datadog::OpenFeature).to receive(:evaluator).and_return(evaluator)
-
-        provider.init
+        engine.configuration = ufc
+        engine.reconfigure!
       end
 
       let(:result) { provider.fetch_boolean_value(flag_key: 'flag', default_value: false) }
@@ -70,7 +72,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
   end
 
   describe '#fetch_string_value' do
-    context 'when evaluator is not configured' do
+    context 'when engine is not configured' do
+      before { allow(Datadog::OpenFeature).to receive(:engine).and_return(nil) }
+
       it 'returns default value with error details' do
         result = provider.fetch_string_value(flag_key: 'flag', default_value: 'default')
 
@@ -79,13 +83,10 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when evaluator is configured' do
+    context 'when engine is configured' do
       before do
-        evaluator = Datadog::OpenFeature::Evaluator.new(telemetry)
-        evaluator.ufc_json = ufc
-        evaluator.reconfigure!
-
-        allow(Datadog::OpenFeature).to receive(:evaluator).and_return(evaluator)
+        engine.configuration = ufc
+        engine.reconfigure!
 
         provider.init
       end
@@ -129,7 +130,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
   end
 
   describe '#fetch_number_value' do
-    context 'when evaluator is not configured' do
+    context 'when engine is not configured' do
+      before { allow(Datadog::OpenFeature).to receive(:engine).and_return(nil) }
+
       it 'returns default value with error details' do
         result = provider.fetch_number_value(flag_key: 'flag', default_value: 0)
 
@@ -138,13 +141,10 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when evaluator is configured' do
+    context 'when engine is configured' do
       before do
-        evaluator = Datadog::OpenFeature::Evaluator.new(telemetry)
-        evaluator.ufc_json = ufc
-        evaluator.reconfigure!
-
-        allow(Datadog::OpenFeature).to receive(:evaluator).and_return(evaluator)
+        engine.configuration = ufc
+        engine.reconfigure!
 
         provider.init
       end
@@ -188,7 +188,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
   end
 
   describe '#fetch_integer_value' do
-    context 'when evaluator is not configured' do
+    context 'when engine is not configured' do
+      before { allow(Datadog::OpenFeature).to receive(:engine).and_return(nil) }
+
       it 'returns default value with error details' do
         result = provider.fetch_integer_value(flag_key: 'flag', default_value: 1)
 
@@ -197,13 +199,10 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when evaluator is configured' do
+    context 'when engine is configured' do
       before do
-        evaluator = Datadog::OpenFeature::Evaluator.new(telemetry)
-        evaluator.ufc_json = ufc
-        evaluator.reconfigure!
-
-        allow(Datadog::OpenFeature).to receive(:evaluator).and_return(evaluator)
+        engine.configuration = ufc
+        engine.reconfigure!
 
         provider.init
       end
@@ -247,7 +246,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
   end
 
   describe '#fetch_float_value' do
-    context 'when evaluator is not configured' do
+    context 'when engine is not configured' do
+      before { allow(Datadog::OpenFeature).to receive(:engine).and_return(nil) }
+
       it 'returns default value with error details' do
         result = provider.fetch_float_value(flag_key: 'flag', default_value: 0.0)
 
@@ -256,13 +257,10 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when evaluator is configured' do
+    context 'when engine is configured' do
       before do
-        evaluator = Datadog::OpenFeature::Evaluator.new(telemetry)
-        evaluator.ufc_json = ufc
-        evaluator.reconfigure!
-
-        allow(Datadog::OpenFeature).to receive(:evaluator).and_return(evaluator)
+        engine.configuration = ufc
+        engine.reconfigure!
 
         provider.init
       end
@@ -306,7 +304,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
   end
 
   describe '#fetch_object_value' do
-    context 'when evaluator is not configured' do
+    context 'when engine is not configured' do
+      before { allow(Datadog::OpenFeature).to receive(:engine).and_return(nil) }
+
       it 'returns default value with error details' do
         result = provider.fetch_object_value(flag_key: 'flag', default_value: { 'default' => true })
 
@@ -315,13 +315,10 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when evaluator is configured' do
+    context 'when engine is configured' do
       before do
-        evaluator = Datadog::OpenFeature::Evaluator.new(telemetry)
-        evaluator.ufc_json = ufc
-        evaluator.reconfigure!
-
-        allow(Datadog::OpenFeature).to receive(:evaluator).and_return(evaluator)
+        engine.configuration = ufc
+        engine.reconfigure!
 
         provider.init
       end

@@ -28,7 +28,7 @@ RSpec.describe Datadog::OpenFeature do
     end
   end
 
-  describe '.evaluator' do
+  describe '.engine' do
     context 'when component is not available' do
       around do |example|
         Datadog.configure { |c| c.open_feature.enabled = false }
@@ -37,7 +37,7 @@ RSpec.describe Datadog::OpenFeature do
         Datadog.configuration.reset!
       end
 
-      it { expect(described_class.evaluator).to be_nil }
+      it { expect(described_class.engine).to be_nil }
     end
 
     context 'when component is available' do
@@ -48,7 +48,7 @@ RSpec.describe Datadog::OpenFeature do
         Datadog.configuration.reset!
       end
 
-      it { expect(described_class.evaluator).to be_a(Datadog::OpenFeature::Evaluator) }
+      it { expect(described_class.engine).to be_a(Datadog::OpenFeature::EvaluationEngine) }
     end
   end
 end

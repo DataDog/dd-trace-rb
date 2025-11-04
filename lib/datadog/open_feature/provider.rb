@@ -65,7 +65,7 @@ module Datadog
       private
 
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
-        return component_not_configured_default(default_value) if @evaluator.nil?
+        return component_not_configured_default(default_value) if @engine.nil?
 
         result = @engine.fetch_value(
           flag_key: flag_key,
