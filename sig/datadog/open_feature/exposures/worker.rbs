@@ -1,0 +1,47 @@
+module Datadog
+  module OpenFeature
+    module Exposures
+      class Worker
+        include ::Datadog::Core::Workers::Queue
+        include ::Datadog::Core::Workers::Polling
+
+        DEFAULT_FLUSH_INTERVAL_SECONDS: ::Integer
+        DEFAULT_BUFFER_LIMIT: ::Integer
+
+        attr_reader logger: ::Datadog::Core::Logger
+
+        def initialize: (
+          transport: Transport::Exposures::Transport,
+          logger: Core::Logger,
+          flush_interval_seconds: ::Integer,
+          buffer_limit: ::Integer,
+          context_builder: (^() -> ::Hash[::Symbol, untyped])?
+        ) -> void
+
+        def start: () -> void
+
+        def stop: (?bool, ?::Integer) -> bool
+
+        def enqueue: (Exposures::Event) -> bool
+
+        def dequeue: () -> [::Array[Exposures::Event], ::Integer]
+
+        def flush: () -> void
+
+        private
+
+        def loop_base_interval=: (::Integer) -> ::Integer
+
+        def running?: () -> bool
+
+        def forked?: () -> bool
+
+        def perform: (*untyped) -> void
+
+        def send_events: (::Array[Exposures::Event]?, ::Integer) -> void
+
+        def send_payload: (::Hash[::Symbol, untyped]) -> Core::Transport::Response?
+      end
+    end
+  end
+end
