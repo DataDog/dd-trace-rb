@@ -9,3 +9,4 @@ module Datadog
 end
 
 require_relative 'binding/evaluator'
+require_relative 'binding/internal_evaluator'
