@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative 'evaluator'
+require_relative 'evaluation_engine'
 
 module Datadog
   module OpenFeature
     class Component
-      attr_reader :telemetry, :evaluator
+      attr_reader :telemetry, :engine
 
       def self.build_open_feature_component(settings, telemetry:)
         return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
@@ -19,7 +19,7 @@ module Datadog
 
       def initialize(telemetry:)
         @telemetry = telemetry
-        @evaluator = Evaluator.new(telemetry)
+        @engine = EvaluationEngine.new(telemetry)
       end
 
       def shutdown!

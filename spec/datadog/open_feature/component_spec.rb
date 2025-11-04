@@ -14,7 +14,7 @@ RSpec.describe Datadog::OpenFeature::Component do
 
       it 'returns configured component instance' do
         expect(component).to be_a(described_class)
-        expect(component.evaluator).to be_a(Datadog::OpenFeature::Evaluator)
+        expect(component.engine).to be_a(Datadog::OpenFeature::EvaluationEngine)
       end
     end
 
@@ -27,7 +27,7 @@ RSpec.describe Datadog::OpenFeature::Component do
     context 'when exception happens during initialization' do
       before do
         settings.open_feature.enabled = true
-        allow(Datadog::OpenFeature::Evaluator).to receive(:new).and_raise('Error!')
+        allow(Datadog::OpenFeature::EvaluationEngine).to receive(:new).and_raise('Error!')
       end
 
       it 'logs warning and disables the component' do

@@ -3,7 +3,7 @@
 module Datadog
   module OpenFeature
     # A namespace for binding code
-    class Binding
+    module Binding
     end
   end
 end
