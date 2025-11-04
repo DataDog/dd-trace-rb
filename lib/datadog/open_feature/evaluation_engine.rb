@@ -4,11 +4,8 @@ require_relative 'binding'
 
 module Datadog
   module OpenFeature
-    # NOTE: This class is a glue between libdatadog evaluation binding and
-    #       provider. It should not contain any SDK code, but rather define its own
-    # TODO: Rename into Engine
-    class Evaluator
-      attr_accessor :ufc_json
+    class EvaluationEngine
+      attr_accessor :configuration
 
       ResolutionError = Struct.new(:reason, :code, :message, keyword_init: true)
 
@@ -27,7 +24,7 @@ module Datadog
         @telemetry = telemetry
         # NOTE: We also could create a no-op evaluator?
         @evaluator = nil
-        @ufc_json = nil
+        @configuration = nil
       end
 
       def fetch_value(flag_key:, expected_type:, evaluation_context: nil)
@@ -44,16 +41,17 @@ module Datadog
         # In the example from the OpenFeature there is zero trust to the result of the evaluation
         # do we want to go that way?
 
-        @evaluator.get_assignment(@configuration, flag_key, evaluation_context, expected_type, Time.now.utc.to_i)
+        @evaluator.get_assignment(:todo_remove_this, flag_key, evaluation_context, expected_type, Time.now.utc.to_i)
       rescue => e
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
         ResolutionError.new(reason: ERROR, code: PROVIDER_FATAL, message: e.message)
       end
 
+      # TODO: Put the lock to reconfigure deduplicatoin cache too
       def reconfigure!
-        @evaluator = Binding::Evaluator.new(@ufc_json)
+        @evaluator = Binding::Evaluator.new(@configuration)
       rescue => e
-        error_message = 'OpenFeature failed to reconfigure, reverting to the previous configuration'
+        error_message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
         Datadog.logger.error("#{error_message}, error #{e.inspect}")
         @telemetry.report(e, description: error_message)
