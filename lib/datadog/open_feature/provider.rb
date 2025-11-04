@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'ext'
 require 'open_feature/sdk'
 
 module Datadog
@@ -21,17 +22,16 @@ module Datadog
     #   client.fetch_string_value(flag_key: 'banner', default_value: 'default')
     class Provider
       NAME = 'Datadog Feature Flagging Provider'
-      PROVIDER_FATAL = 'PROVIDER_FATAL'
-      ERROR_MESSAGE_COMPONENT_NOT_CONFIGURED = "Datadog's OpenFeature component must be configured"
 
       attr_reader :metadata
 
       def initialize
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
+        @engine = OpenFeature.engine
       end
 
       def init
-        @evaluator = OpenFeature.evaluator
+        # no-op
       end
 
       def shutdown
@@ -67,13 +67,13 @@ module Datadog
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
         return component_not_configured_default(default_value) if @evaluator.nil?
 
-        result = @evaluator.fetch_value(
+        result = @engine.fetch_value(
           flag_key: flag_key,
           expected_type: expected_type,
           evaluation_context: evaluation_context
         )
 
-        if result.is_a?(Evaluator::ResolutionError)
+        if result.is_a?(EvaluationEngine::ResolutionError)
           return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
             value: default_value,
             error_code: result.code,
@@ -88,9 +88,9 @@ module Datadog
       def component_not_configured_default(value)
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: value,
-          error_code: PROVIDER_FATAL,
-          error_message: ERROR_MESSAGE_COMPONENT_NOT_CONFIGURED,
-          reason: ::OpenFeature::SDK::Provider::Reason::ERROR
+          error_code: Ext::PROVIDER_FATAL,
+          error_message: "Datadog's OpenFeature component must be configured",
+          reason: Ext::ERROR
         )
       end
     end
