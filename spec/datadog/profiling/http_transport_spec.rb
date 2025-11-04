@@ -343,7 +343,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         # The pprof data is compressed in the datadog serializer, nothing to do
         expect(body.fetch(pprof_file_name)).to eq encoded_profile_bytes
         # This one needs to be compressed
-        expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
+        expect(Zstd.decompress(body.fetch(code_provenance_file_name))).to eq code_provenance_data
       end
     end
 
