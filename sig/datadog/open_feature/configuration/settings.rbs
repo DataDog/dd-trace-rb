@@ -1,0 +1,16 @@
+module Datadog
+  module OpenFeature
+    module Configuration
+      module Settings
+        # NOTE: This typespec if completely wrong.
+        #       But it's the best we can do for now.
+        extend Core::Configuration::Base::ClassMethods
+        extend Core::Configuration::Options::ClassMethods
+
+        def self.extended: (::Class | ::Module base) -> void
+
+        def self.add_settings!: (untyped base) -> void
+      end
+    end
+  end
+end
