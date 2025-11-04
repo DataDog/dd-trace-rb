@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 require 'datadog/open_feature/provider'
-require 'datadog/open_feature/evaluator'
+require 'datadog/open_feature/evaluation_engine'
 
 RSpec.describe Datadog::OpenFeature::Provider do
   let(:provider) { described_class.new }
