@@ -178,18 +178,13 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
   describe 'when DSM is disabled' do
     before do
-      require 'karafka' unless defined?(::Karafka)
-    rescue LoadError
-      skip 'Karafka gem not available'
-    end
-
-    it 'skips DSM processing' do
-      # Configure DSM as disabled from the start
       Datadog.configure do |c|
         c.tracing.instrument :karafka
         c.data_streams.enabled = false
       end
+    end
 
+    it 'skips DSM processing' do
       messages = build_karafka_messages([
         {topic: 'orders', partition: 0, offset: 100, headers: {'dd-pathway-ctx-base64' => 'some-context'}}
       ], 'orders')
