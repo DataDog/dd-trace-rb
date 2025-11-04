@@ -20,8 +20,10 @@ module Datadog
 
       ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
-      def initialize(telemetry)
+      def initialize(telemetry, logger: Datadog.logger)
         @telemetry = telemetry
+        @logger = logger
+
         # NOTE: We also could create a no-op evaluator?
         @evaluator = nil
         @configuration = nil
@@ -49,11 +51,17 @@ module Datadog
 
       # TODO: Put the lock to reconfigure deduplicatoin cache too
       def reconfigure!
+        if @configuration.nil?
+          @logger.debug("OpenFeature: Configuration is not received, skip reconfiguration")
+
+          return
+        end
+
         @evaluator = Binding::Evaluator.new(@configuration)
       rescue => e
         error_message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
-        Datadog.logger.error("#{error_message}, error #{e.inspect}")
+        @logger.error("#{error_message}, error #{e.inspect}")
         @telemetry.report(e, description: error_message)
       end
     end
