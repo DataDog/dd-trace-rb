@@ -66,25 +66,23 @@ module Datadog
         end
 
         def flush
-          send_events(*dequeue)
+          events, dropped = dequeue
+          send_events(events || [], dropped || 0)
         end
 
         def perform(*args)
-          send_events(*args)
+          events, dropped = args
+          send_events(events || [], dropped || 0)
         end
 
         private
 
-        def send_events(events, dropped = 0)
-          events ||= []
+        def send_events(events, dropped)
+          return if events.empty?
 
           if dropped.positive?
-            logger.debug do
-              "OpenFeature: Exposure worker dropped #{dropped} event(s) due to full buffer"
-            end
+            logger.debug { "OpenFeature: Exposure worker dropped #{dropped} event(s) due to full buffer" }
           end
-
-          return if events.empty?
 
           payload = Batch.new(context: @context_builder.call, exposures: events).to_h
           send_payload(payload)
