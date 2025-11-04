@@ -23,8 +23,8 @@ module Datadog
         def receivers(telemetry)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
-            evaluator = OpenFeature.evaluator
-            break unless evaluator
+            engine = OpenFeature.engine
+            break unless engine
 
             changes.each do |change|
               content = repository[change.path]
@@ -36,7 +36,7 @@ module Datadog
               case change.type
               when :insert, :update
                 # @type var content: Core::Remote::Configuration::Content
-                evaluator.ufc_json = read_content(content)
+                engine.configuration = read_content(content)
                 content.applied
               when :delete
                 # no-op
@@ -44,7 +44,7 @@ module Datadog
               end
             end
 
-            evaluator.reconfigure!
+            engine.reconfigure!
           end
 
           [receiver]

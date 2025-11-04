@@ -11,8 +11,8 @@ module Datadog
       Datadog.configuration.open_feature.enabled
     end
 
-    def self.evaluator
-      Datadog.send(:components).open_feature&.evaluator
+    def self.engine
+      Datadog.send(:components).open_feature&.engine
     end
   end
 end

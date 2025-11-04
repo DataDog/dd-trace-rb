@@ -1,0 +1,15 @@
+module Datadog
+  module OpenFeature
+    module Ext
+      INITIALIZING: ::String
+
+      ERROR: ::String
+
+      UNKNOWN_TYPE: ::String
+
+      PROVIDER_FATAL: ::String
+
+      PROVIDER_NOT_READY: ::String
+    end
+  end
+end

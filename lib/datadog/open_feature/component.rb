@@ -19,7 +19,7 @@ module Datadog
 
       def initialize(telemetry:)
         @telemetry = telemetry
-        @engine = EvaluationEngine.new(telemetry)
+        @engine = EvaluationEngine.new(telemetry, logger: Datadog.logger)
       end
 
       def shutdown!

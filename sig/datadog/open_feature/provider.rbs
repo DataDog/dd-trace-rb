@@ -3,10 +3,6 @@ module Datadog
     class Provider
       NAME: ::String
 
-      ERROR_MESSAGE_COMPONENT_NOT_CONFIGURED: ::String
-
-      PROVIDER_FATAL: ::String
-
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
       def initialize: () -> void
