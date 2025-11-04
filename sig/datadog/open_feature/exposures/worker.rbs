@@ -38,7 +38,7 @@ module Datadog
 
         def perform: (*untyped) -> void
 
-        def send_events: (::Array[Exposures::Event]?, ::Integer) -> void
+        def send_events: (::Array[Exposures::Event], ::Integer) -> void
 
         def send_payload: (::Hash[::Symbol, untyped]) -> Core::Transport::Response?
       end
