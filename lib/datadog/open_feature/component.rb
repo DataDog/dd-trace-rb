@@ -2,6 +2,7 @@
 
 module Datadog
   module OpenFeature
+    # This class is the entry point for the OpenFeature component
     class Component
       attr_reader :telemetry
 
