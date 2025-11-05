@@ -19,12 +19,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: true) }
   let(:logger) { logger_allowing_debug }
   let(:event) do
-    Datadog::OpenFeature::Exposures::Event.new(
-      timestamp: Time.utc(2024, 1, 1),
-      allocation_key: 'control',
-      flag_key: 'demo-flag',
-      variant_key: 'v1',
-      subject_id: 'user-1'
+    Datadog::OpenFeature::Exposures::Models::Event.new(
+      timestamp: 1_735_689_600_000,
+      allocation: {key: 'control'},
+      flag: {key: 'demo-flag'},
+      variant: {key: 'v1'},
+      subject: {id: 'user-1', attributes: {'plan' => 'pro'}}
     )
   end
 

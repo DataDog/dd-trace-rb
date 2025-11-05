@@ -4,33 +4,29 @@ require 'spec_helper'
 require 'datadog/open_feature/exposures'
 
 RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
-  subject(:reporter) do
-    described_class.new(worker: worker, cache: cache, logger: logger, time_provider: time_provider)
-  end
+  before { allow(Datadog::OpenFeature::Exposures::Deduplicator).to receive(:new).and_return(deduplicator) }
 
-  let(:worker) do
+  subject(:reporter) { described_class.new(worker, telemetry: telemetry, logger: logger) }
+
+  let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:logger) { logger_allowing_debug }
+
+  let(:deduplicator) { instance_double(Datadog::OpenFeature::Exposures::Deduplicator) }
+  let(:context) do
     instance_double(
-      Datadog::OpenFeature::Exposures::Worker,
-      enqueue: true,
-      flush: nil,
-      stop: nil
+      'OpenFeature::SDK::EvaluationContext', fields: {'targeting_key' => 'john-doe'}
     )
   end
-  let(:cache) { Datadog::AppSec::APISecurity::LRUCache.new(5) }
-  let(:logger) { logger_allowing_debug }
-  let(:time_provider) { double('time_provider', now: timestamp) }
-  let(:timestamp) { Time.utc(2025, 1, 1) }
-  let(:context) { {} }
-  let(:result_payload) do
+  let(:result) do
     {
-      'flag' => 'boolean-one-of-matches',
-      'targetingKey' => 'haley',
-      'attributes' => { 'not_matches_flag' => 'False' },
+      'flag' => 'feature_flag',
+      'targetingKey' => 'john-doe',
       'result' => {
         'value' => 4,
         'variant' => '4',
         'flagMetadata' => {
-          'allocationKey' => '4-for-not-matches',
+          'allocationKey' => '4-for-john-doe',
           'variationType' => 'number',
           'doLog' => true
         }
@@ -40,59 +36,57 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
   describe '#report' do
     context 'when exposure has not been reported' do
-      it 'enqueues event with normalized payload' do
-        expect(worker).to receive(:enqueue) do |event|
-          expect(event.flag_key).to eq('boolean-one-of-matches')
-          expect(event.variant_key).to eq('4')
-          expect(event.allocation_key).to eq('4-for-not-matches')
-          expect(event.subject_id).to eq('haley')
-          expect(event.subject_attributes).to eq('not_matches_flag' => 'False')
-          expect(event.timestamp).to eq(1_735_689_600_000)
-        end.and_return(true)
+      before { allow(deduplicator).to receive(:duplicate?).and_return(false) }
 
-        expect(reporter.report(result: result_payload, context: context)).to be(true)
+      it 'enqueues event' do
+        expect(worker).to receive(:enqueue).and_return(true)
+        expect(reporter.report(result, context: context)).to be(true)
       end
     end
 
     context 'when exposure was already reported' do
+      before { allow(deduplicator).to receive(:duplicate?).and_return(true) }
+
       it 'does not enqueue event again' do
-        reporter.report(result: result_payload, context: context)
-
         expect(worker).not_to receive(:enqueue)
-        expect(reporter.report(result: result_payload, context: context)).to be(false)
+        expect(reporter.report(result, context: context)).to be(false)
       end
     end
 
-    context 'when evaluation outcome changes' do
-      let(:updated_payload) do
-        result_payload.merge(
-          'result' => result_payload['result'].merge('variant' => '5')
-        )
+    context 'when worker enqueue fails' do
+      before do
+        allow(deduplicator).to receive(:duplicate?).and_return(false)
+        allow(worker).to receive(:enqueue).and_raise(StandardError, 'boom')
       end
 
-      it 'enqueues event for new outcome' do
-        reporter.report(result: result_payload, context: context)
-
-        expect(worker).to receive(:enqueue).once.and_return(true)
-        expect(reporter.report(result: updated_payload, context: context)).to be(true)
+      it 'returns false and logs debug message' do
+        expect_lazy_log(logger, :debug, /OpenFeature: Reporter failed to enqueue exposure: StandardError: boom/)
+        expect(reporter.report(result, context: context)).to be(false)
       end
     end
 
-    context 'when subject identifier is missing' do
-      let(:result_payload) do
+    context 'when event should not be reported' do
+      let(:result) do
         {
-          'flag' => 'boolean-one-of-matches',
+          'flag' => 'feature_flag',
+          'targetingKey' => 'john-doe',
           'result' => {
             'value' => 4,
             'variant' => '4',
-            'flagMetadata' => { 'allocationKey' => '4-for-not-matches' }
+            'flagMetadata' => {
+              'allocationKey' => '4-for-john-doe',
+              'variationType' => 'number',
+              'doLog' => false
+            }
           }
         }
       end
 
-      it 'does not enqueue event' do
+      it 'skips enqueueing exposure' do
+        expect(deduplicator).not_to receive(:duplicate?)
         expect(worker).not_to receive(:enqueue)
-        expect(reporter.report(result: result_payload, context: context)).to be(false)
+
+        expect(reporter.report(result, context: context)).to be(false)
       end
     end
   end

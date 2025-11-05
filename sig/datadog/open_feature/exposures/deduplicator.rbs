@@ -6,12 +6,7 @@ module Datadog
 
         def initialize: (?limit: ::Integer) -> void
 
-        def duplicate?: (
-          ::String,
-          ::String,
-          allocation_key: ::String,
-          variation_key: ::String
-        ) -> bool
+        def duplicate?: (Models::Event) -> bool
 
         private
 

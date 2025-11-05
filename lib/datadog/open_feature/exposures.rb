@@ -7,7 +7,6 @@ module Datadog
   end
 end
 
-require_relative 'exposures/event'
 require_relative 'exposures/context'
 require_relative 'exposures/batch'
 require_relative 'exposures/buffer'

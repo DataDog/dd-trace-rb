@@ -5,8 +5,6 @@ require 'datadog/open_feature/component'
 
 RSpec.describe Datadog::OpenFeature::Component do
   before do
-    allow(logger).to receive(:warn)
-    allow(logger).to receive(:debug)
     allow(Datadog::OpenFeature::Transport::HTTP).to receive(:exposures).and_return(transport)
     allow(Datadog::OpenFeature::Exposures::Worker).to receive(:new).and_return(worker)
     allow(Datadog::OpenFeature::Exposures::Reporter).to receive(:new).and_return(reporter)
@@ -15,17 +13,10 @@ RSpec.describe Datadog::OpenFeature::Component do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
-  let(:logger) { instance_double(Logger) }
+  let(:logger) { instance_double(Datadog::Core::Logger) }
   let(:transport) { instance_double(Datadog::OpenFeature::Transport::Exposures::Transport) }
-  let(:worker) do
-    instance_double(
-      Datadog::OpenFeature::Exposures::Worker,
-      enqueue: true,
-      flush: nil,
-      stop: nil
-    )
-  end
-  let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter, flush: nil) }
+  let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
+  let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
 
   describe '.build' do
     subject(:component) do
@@ -33,9 +24,7 @@ RSpec.describe Datadog::OpenFeature::Component do
     end
 
     context 'when open_feature is enabled' do
-      before do
-        settings.open_feature.enabled = true
-      end
+      before { settings.open_feature.enabled = true }
 
       context 'when remote configuration is enabled' do
         before { settings.remote.enabled = true }
@@ -87,15 +76,14 @@ RSpec.describe Datadog::OpenFeature::Component do
   end
 
   describe '#shutdown!' do
-    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
-
     before do
       settings.open_feature.enabled = true
       settings.remote.enabled = true
     end
 
-    it 'flushes reporter cache and stops worker' do
-      expect(reporter).to receive(:flush)
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+    it 'flushes worker and stops it' do
       expect(worker).to receive(:flush)
       expect(worker).to receive(:stop).with(true)
 

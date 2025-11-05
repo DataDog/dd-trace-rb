@@ -34,16 +34,13 @@ module Datadog
 
         transport = Transport::HTTP.exposures(agent_settings: agent_settings, logger: logger)
         @worker = Exposures::Worker.new(transport: transport, logger: logger)
-        @reporter = Exposures::Reporter.new(worker: @worker, logger: logger)
+        @reporter = Exposures::Reporter.new(@worker, telemetry: telemetry, logger: logger)
         @engine = EvaluationEngine.new(@reporter, telemetry: telemetry, logger: logger)
       end
 
       def shutdown!
-        @reporter&.flush
-        return unless defined?(@worker) && @worker
-
-        @worker.flush
-        @worker.stop(true)
+        @worker&.flush
+        @worker&.stop(true)
       end
     end
   end
