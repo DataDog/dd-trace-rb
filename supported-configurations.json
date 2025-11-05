@@ -79,6 +79,9 @@
     "DD_CRASHTRACKING_ENABLED": {
       "version": ["A"]
     },
+    "DD_DATA_STREAMS_ENABLED": {
+      "version": ["A"]
+    },
     "DD_DBM_PROPAGATION_MODE": {
       "version": ["A"]
     },

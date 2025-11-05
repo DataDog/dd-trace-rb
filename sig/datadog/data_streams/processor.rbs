@@ -1,0 +1,86 @@
+module Datadog
+  module DataStreams
+      class UnsupportedError < StandardError
+      end
+
+      class Processor < Core::Worker
+        PROPAGATION_KEY: ::String
+        DEFAULT_BUFFER_SIZE: ::Integer
+
+        @pathway_context: PathwayContext
+
+        @bucket_size_ns: ::Integer
+
+        @buckets: ::Hash[::Integer, bucket_type]
+
+        @consumer_stats: ::Array[consumer_stat_type]
+
+        @stats_mutex: ::Thread::Mutex
+
+        @event_buffer: Core::Buffer::CRuby
+
+        @transport: Transport::Stats::Transport?
+
+        @logger: Core::Logger
+
+        @settings: Core::Configuration::Settings
+
+        @agent_settings: Core::Configuration::AgentSettings
+
+        include Core::Workers::Polling
+        include Core::Workers::IntervalLoop
+
+        def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings, ?buffer_size: ::Integer) -> void
+        def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true
+        def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true
+        def set_produce_checkpoint: (type: ::String, destination: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String, ::String) -> void } -> ::String?
+        def set_consume_checkpoint: (type: ::String, source: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String) -> ::String? } -> ::String?
+
+        private
+
+        def encode_pathway_context: () -> ::String?
+
+        def set_checkpoint: (tags: ::Array[::String], ?now: ::Time?, ?payload_size: ::Integer, ?span: Tracing::SpanOperation?) -> ::String?
+
+        def decode_pathway_context: (::String encoded_ctx) -> PathwayContext?
+
+        def decode_pathway_b64: (::String encoded_ctx) -> PathwayContext?
+        def perform: () -> (bool | nil)
+        def flush_stats: () -> void
+
+        def process_events: () -> void
+        def process_kafka_produce_event: (::Hash[::Symbol, untyped] event) -> void
+        def process_kafka_consume_event: (::Hash[::Symbol, untyped] event) -> void
+        def process_checkpoint_event: (::Hash[::Symbol, untyped] event) -> void
+
+        def get_current_pathway: () -> PathwayContext?
+        def get_current_context: () -> PathwayContext
+
+        def set_pathway_context: (PathwayContext? ctx) -> void
+
+        def decode_and_set_pathway_context: (::Hash[::String, ::String] headers) -> void
+        def compute_pathway_hash: (::Integer current_hash, ::Array[::String] tags) -> ::Integer
+        def fnv1_64: (::String data) -> ::Integer
+        def record_checkpoint_stats: (hash: ::Integer, parent_hash: ::Integer, edge_latency_sec: ::Float, full_pathway_latency_sec: ::Float, payload_size: ::Integer, tags: ::Array[::String], timestamp_sec: ::Float) -> void
+        def record_consumer_stats: (topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time) -> void
+        def aggregate_consumer_stats_by_partition: (::String topic, ::Integer partition, ::Integer offset, ::Time timestamp) -> void
+        def send_stats_to_agent: (::Hash[::String, untyped] payload) -> void
+        def send_dsm_payload: (::String data, ::Hash[::String, ::String] headers) -> untyped
+        def compress_payload?: (::String payload) -> bool
+        def gzip_compress: (::String data) -> ::String
+        def serialize_buckets: () -> ::Array[::Hash[::String, untyped]]
+        def serialize_consumer_backlogs: () -> ::Array[::Hash[::String, untyped]]
+        def hostname: () -> ::String
+        def create_bucket: () -> bucket_type
+        def create_pathway_stats: () -> pathway_stats_type
+        def transport: () -> Transport::Stats::Transport
+        def service_name: () -> (::String | nil)
+        def env_name: () -> (::String | nil)
+        def resolved_agent_settings: () -> Core::Configuration::AgentSettings
+
+        type bucket_type = { pathway_stats: ::Hash[::Array[untyped], pathway_stats_type], latest_produce_offsets: ::Hash[::String, ::Integer], latest_commit_offsets: ::Hash[::String, ::Integer] }
+        type pathway_stats_type = { edge_latency: Core::DDSketch, full_pathway_latency: Core::DDSketch, payload_size_sum: ::Integer, payload_size_count: ::Integer }
+        type consumer_stat_type = { topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time, timestamp_sec: ::Float }
+      end
+    end
+  end

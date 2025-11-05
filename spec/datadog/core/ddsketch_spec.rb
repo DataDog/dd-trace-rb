@@ -1,3 +1,4 @@
+require 'datadog/core'
 require 'datadog/core/ddsketch'
 require 'datadog/core/ddsketch_pprof/ddsketch_pb'
 
