@@ -18,12 +18,12 @@ module Datadog
             agent_host = settings&.agent&.host
             unless agent_host
               ext = Datadog::Core::Configuration::Ext
-              url = defined?(DATADOG_ENV) ? DATADOG_ENV[ext::Agent::ENV_DEFAULT_URL] : ENV['DD_TRACE_AGENT_URL']
+              url = DATADOG_ENV[ext::Agent::ENV_DEFAULT_URL]
               if url
                 parsed = URI.parse(url) rescue nil
                 agent_host = parsed&.hostname
               end
-              agent_host ||= defined?(DATADOG_ENV) ? DATADOG_ENV[ext::Agent::ENV_DEFAULT_HOST] : ENV['DD_AGENT_HOST']
+              agent_host ||= DATADOG_ENV[ext::Agent::ENV_DEFAULT_HOST]
               agent_host ||= ext::Agent::HTTP::DEFAULT_HOST
             end
             agent_host
@@ -63,7 +63,7 @@ module Datadog
                     o.type :string, nilable: true
                     o.env 'OTEL_EXPORTER_OTLP_ENDPOINT'
                     o.default do
-                      protocol = defined?(DATADOG_ENV) ? DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL'] : ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
+                      protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
                       protocol ||= 'grpc'
                       host = Datadog::OpenTelemetry::Configuration::Settings.resolve_agent_hostname
                       port = protocol == 'http/protobuf' ? 4318 : 4317
@@ -109,9 +109,9 @@ module Datadog
                     o.type :string, nilable: true
                     o.env 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT'
                     o.default do
-                      metrics_protocol = defined?(DATADOG_ENV) ? DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'] : ENV['OTEL_EXPORTER_OTLP_METRICS_PROTOCOL']
-                      general_protocol = defined?(DATADOG_ENV) ? DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL'] : ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
-                      general_endpoint = defined?(DATADOG_ENV) ? DATADOG_ENV['OTEL_EXPORTER_OTLP_ENDPOINT'] : ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
+                      metrics_protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_PROTOCOL']
+                      general_protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
+                      general_endpoint = DATADOG_ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
                       
                       # If general endpoint is set, don't construct a default - let resolve_metrics_endpoint handle it
                       next nil if general_endpoint
@@ -131,7 +131,7 @@ module Datadog
                     o.type :hash
                     o.env 'OTEL_EXPORTER_OTLP_METRICS_HEADERS'
                     o.default do
-                      general_headers = ENV['OTEL_EXPORTER_OTLP_HEADERS']
+                      general_headers = DATADOG_ENV['OTEL_EXPORTER_OTLP_HEADERS']
                       if general_headers && !general_headers.empty?
                         JSON.parse(general_headers)
                       else
@@ -153,7 +153,7 @@ module Datadog
                     o.type :int
                     o.env 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT'
                     o.default do
-                      general_timeout = ENV['OTEL_EXPORTER_OTLP_TIMEOUT']
+                      general_timeout = DATADOG_ENV['OTEL_EXPORTER_OTLP_TIMEOUT']
                       general_timeout ? general_timeout.to_i : 10_000
                     end
                     o.env_parser { |value| value&.to_i }
@@ -163,7 +163,7 @@ module Datadog
                     o.type :string
                     o.env 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'
                     o.default do
-                      general_protocol = ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
+                      general_protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
                       general_protocol || 'grpc'
                     end
                   end
