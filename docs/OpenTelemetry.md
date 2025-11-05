@@ -92,7 +92,7 @@
 - `OTEL_EXPORTER_OTLP_METRICS_PROTOCOL` - Protocol: `grpc` (default) or `http/protobuf`
 - `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` - Custom endpoint (defaults to agent hostname + protocol port)
 - `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` - `delta` (default) or `cumulative`
-- `OTEL_METRIC_EXPORT_INTERVAL` - Export interval in milliseconds (default: 60000)
+- `OTEL_METRIC_EXPORT_INTERVAL` - Export interval in milliseconds (default: 10000)
 
 General OTLP settings (`OTEL_EXPORTER_OTLP_*`) serve as defaults if metrics-specific settings are not provided.
 

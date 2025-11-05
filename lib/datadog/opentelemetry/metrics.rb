@@ -52,15 +52,13 @@ module Datadog
           require 'opentelemetry/sdk'
           require 'opentelemetry-metrics-sdk'
 
-          metrics_config = settings.opentelemetry.metrics
-          exporter_config = settings.opentelemetry.exporter
-          resource = create_resource(settings)
 
           current_provider = ::OpenTelemetry.meter_provider
           current_provider.shutdown if current_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
 
+          resource = create_resource(settings)
           provider = ::OpenTelemetry::SDK::Metrics::MeterProvider.new(resource: resource)
-          configure_metric_reader(provider, metrics_config, exporter_config)
+          configure_metric_reader(provider, settings)
           ::OpenTelemetry.meter_provider = provider
         end
 
@@ -83,39 +81,35 @@ module Datadog
           ::OpenTelemetry::SDK::Resources::Resource.create(resource_attributes)
         end
 
-        def configure_metric_reader(provider, metrics_config, exporter_config)
-          exporter_name = metrics_config.exporter
+        def configure_metric_reader(provider, settings)
+          exporter_name = settings.opentelemetry.metrics.exporter
           return if exporter_name == 'none'
 
-          endpoint = resolve_metrics_endpoint(metrics_config, exporter_config)
-          configure_otlp_exporter(provider, metrics_config, exporter_config, endpoint)
+          configure_otlp_exporter(provider, settings)
         rescue StandardError => e
-          exporter_name = metrics_config.exporter
-          Datadog.logger.warn("Failed to configure OTLP metrics exporter: #{e.message}") unless exporter_name == 'none'
+          Datadog.logger.warn("Failed to configure OTLP metrics exporter: #{e.message}")
         end
 
         def resolve_metrics_endpoint(metrics_config, exporter_config)
-          metrics_endpoint = metrics_config.endpoint
-          metrics_protocol = ENV['OTEL_EXPORTER_OTLP_METRICS_PROTOCOL']
-          
-          return metrics_endpoint if metrics_endpoint || metrics_protocol
+          if metrics_config.endpoint
+            return metrics_config.endpoint
+          end
 
-          exporter_endpoint = exporter_config.endpoint
-          return nil unless exporter_endpoint
+          if exporter_config.protocol == 'grpc'
+            return exporter_config.endpoint
+          end
 
-          protocol = ENV['OTEL_EXPORTER_OTLP_PROTOCOL'] || 'grpc'
-          return exporter_endpoint unless protocol == 'http/protobuf' || protocol == 'http/json'
-
-          exporter_endpoint.end_with?('/v1/metrics') ? exporter_endpoint : "#{exporter_endpoint}/v1/metrics"
+          "#{exporter_config.endpoint}/v1/metrics"
         end
 
-        def configure_otlp_exporter(provider, metrics_config, exporter_config, endpoint)
+        def configure_otlp_exporter(provider, settings)
           require 'opentelemetry/exporter/otlp_metrics'
 
-          return unless endpoint
-
-          timeout = metrics_config.timeout || exporter_config.timeout || 10_000
-          headers = metrics_config.headers || exporter_config.headers || {}
+          metrics_config = settings.opentelemetry.metrics
+          exporter_config = settings.opentelemetry.exporter
+          endpoint = resolve_metrics_endpoint(metrics_config, exporter_config)
+          timeout = metrics_config.timeout || exporter_config.timeout
+          headers = metrics_config.headers || exporter_config.headers
 
           exporter_options = {
             endpoint: endpoint,
@@ -127,7 +121,7 @@ module Datadog
 
           reader = ::OpenTelemetry::SDK::Metrics::Export::PeriodicMetricReader.new(
             exporter: exporter,
-            export_interval_millis: metrics_config.export_interval || 60_000,
+            export_interval_millis: metrics_config.export_interval,
             export_timeout_millis: timeout
           )
           provider.add_metric_reader(reader)
