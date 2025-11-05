@@ -33,7 +33,7 @@ module Datadog
                   option :headers do |o|
                     o.type :hash
                     o.env 'OTEL_EXPORTER_OTLP_HEADERS'
-                    o.default_proc { {} }
+                    o.default { {} }
                     o.env_parser do |value|
                       return {} unless value && !value.empty?
                       JSON.parse(value)
@@ -46,7 +46,7 @@ module Datadog
                   option :endpoint do |o|
                     o.type :string, nilable: true
                     o.env 'OTEL_EXPORTER_OTLP_ENDPOINT'
-                    o.default_proc do
+                    o.default do
                       settings = defined?(Datadog) && Datadog.respond_to?(:configuration) ? Datadog.configuration : nil
                       agent_host = settings&.agent&.host
                       unless agent_host
@@ -103,7 +103,7 @@ module Datadog
                   option :endpoint do |o|
                     o.type :string, nilable: true
                     o.env 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT'
-                    o.default_proc do
+                    o.default do
                       metrics_protocol = defined?(DATADOG_ENV) ? DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'] : ENV['OTEL_EXPORTER_OTLP_METRICS_PROTOCOL']
                       general_protocol = defined?(DATADOG_ENV) ? DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL'] : ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
                       general_endpoint = defined?(DATADOG_ENV) ? DATADOG_ENV['OTEL_EXPORTER_OTLP_ENDPOINT'] : ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
@@ -136,7 +136,7 @@ module Datadog
                   option :headers do |o|
                     o.type :hash
                     o.env 'OTEL_EXPORTER_OTLP_METRICS_HEADERS'
-                    o.default_proc do
+                    o.default do
                       general_headers = ENV['OTEL_EXPORTER_OTLP_HEADERS']
                       if general_headers && !general_headers.empty?
                         JSON.parse(general_headers)
@@ -158,7 +158,7 @@ module Datadog
                   option :timeout do |o|
                     o.type :int
                     o.env 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT'
-                    o.default_proc do
+                    o.default do
                       general_timeout = ENV['OTEL_EXPORTER_OTLP_TIMEOUT']
                       general_timeout ? general_timeout.to_i : 10_000
                     end
@@ -168,7 +168,7 @@ module Datadog
                   option :protocol do |o|
                     o.type :string
                     o.env 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'
-                    o.default_proc do
+                    o.default do
                       general_protocol = ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
                       general_protocol || 'grpc'
                     end
