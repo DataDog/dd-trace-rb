@@ -10,3 +10,4 @@ end
 
 require_relative 'binding/evaluator'
 require_relative 'binding/internal_evaluator'
+require_relative 'binding/configuration'
