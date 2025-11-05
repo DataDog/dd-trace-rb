@@ -95,7 +95,7 @@ module Datadog
                   option :export_timeout do |o|
                     o.type :int
                     o.env 'OTEL_METRIC_EXPORT_TIMEOUT'
-                    o.default 30_000
+                    o.default 7_500
                     o.env_parser { |value| value&.to_i }
                   end
 
