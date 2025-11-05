@@ -83,7 +83,7 @@ module Datadog
                   option :export_interval do |o|
                     o.type :int
                     o.env 'OTEL_METRIC_EXPORT_INTERVAL'
-                    o.default 60_000
+                    o.default 10_000
                     o.env_parser { |value| value&.to_i }
                   end
 
