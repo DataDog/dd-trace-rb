@@ -6,6 +6,13 @@ require_relative "../core/utils"
 module Datadog
   module Profiling
     # Builds a hash of default plus user tags to be included in a profile
+    #
+    # When changing or adding profiling-related tags, make sure they are
+    # kept in sync with
+    # https://docs.google.com/spreadsheets/d/1LOGMf4c4Avbtn36uZ2SWvhIGKRPLM1BoWkUP4JYj7hA/
+    # (Datadog internal link).
+    #
+    # @api private
     module TagBuilder
       include Datadog::Profiling::Ext::Transport::HTTP # Tag name constants
 
