@@ -1,0 +1,26 @@
+module Datadog
+  module OpenFeature
+    module Exposures
+      class Deduplicator
+        DEFAULT_CACHE_LIMIT: ::Integer
+
+        def initialize: (?limit: ::Integer) -> void
+
+        def duplicate?: (
+          ::String,
+          ::String,
+          allocation_key: ::String,
+          variation_key: ::String
+        ) -> bool
+
+        private
+
+        def key: (::String, ::String) -> ::String
+
+        def digest: (::String, ::String) -> ::Integer
+      end
+    end
+  end
+end
+
+

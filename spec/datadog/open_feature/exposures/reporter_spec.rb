@@ -47,7 +47,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
           expect(event.allocation_key).to eq('4-for-not-matches')
           expect(event.subject_id).to eq('haley')
           expect(event.subject_attributes).to eq('not_matches_flag' => 'False')
-          expect(event.timestamp).to eq(timestamp)
+          expect(event.timestamp).to eq(1_735_689_600_000)
         end.and_return(true)
 
         expect(reporter.report(result: result_payload, context: context)).to be(true)
