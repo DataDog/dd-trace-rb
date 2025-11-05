@@ -4,8 +4,8 @@ module Datadog
       module HTTP
         def self?.exposures: (
           agent_settings: ::Datadog::Core::Configuration::AgentSettings,
-          logger: ::Datadog::Core::Logger?,
-          headers: ::Hash[::Symbol, untyped]?
+          ?logger: ::Datadog::Core::Logger?,
+          ?headers: ::Hash[::Symbol, untyped]?
         ) ?{ (::Datadog::Core::Transport::HTTP::Builder) -> void } -> ::Datadog::OpenFeature::Transport::Exposures::Transport
       end
     end

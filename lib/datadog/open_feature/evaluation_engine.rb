@@ -9,10 +9,12 @@ module Datadog
     # This class performs the evaluation of the feature flag
     class EvaluationEngine
       attr_accessor :configuration
+      attr_reader :reporter
 
       ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
-      def initialize(telemetry, logger: Datadog.logger)
+      def initialize(reporter, telemetry:, logger: Datadog.logger)
+        @reporter = reporter
         @telemetry = telemetry
         @logger = logger
 

@@ -1,0 +1,42 @@
+module Datadog
+  module OpenFeature
+    module Exposures
+      class Reporter
+        DEFAULT_CACHE_LIMIT: ::Integer
+
+        def initialize: (
+          worker: Worker,
+          ?cache: Datadog::AppSec::APISecurity::LRUCache,
+          ?logger: Core::Logger,
+          ?time_provider: untyped
+        ) -> void
+
+        def report: (result: ::Hash[untyped, untyped], ?context: untyped) -> bool
+
+        def clear: () -> void
+
+        private
+
+        def duplicate?: (String, ::Integer) -> bool
+
+        def normalize: (untyped, untyped) -> ::Hash[Symbol, untyped]?
+
+        def build_event: (::Hash[Symbol, untyped]) -> Event
+
+        def extract_subject_id: (::Hash[untyped, untyped], untyped) -> (String | nil)
+
+        def extract_attributes: (::Hash[untyped, untyped], untyped) -> (::Hash[untyped, untyped] | nil)
+
+        def context_value: (untyped, Symbol) -> untyped
+
+        def ensure_hash: (untyped) -> ::Hash[untyped, untyped]
+
+        def cache_key: (untyped, untyped) -> (String | nil)
+
+        def digest: (untyped, untyped) -> ::Integer
+      end
+    end
+  end
+end
+
+
