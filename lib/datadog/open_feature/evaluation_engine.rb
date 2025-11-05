@@ -11,6 +11,8 @@ module Datadog
       attr_accessor :configuration
       attr_reader :reporter
 
+      ResolutionError = Struct.new(:reason, :code, :message, keyword_init: true)
+
       ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
       def initialize(reporter, telemetry:, logger: Datadog.logger)

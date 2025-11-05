@@ -5,6 +5,8 @@ require 'datadog/open_feature/component'
 
 RSpec.describe Datadog::OpenFeature::Component do
   before do
+    allow(logger).to receive(:warn)
+    allow(logger).to receive(:debug)
     allow(Datadog::OpenFeature::Transport::HTTP).to receive(:exposures).and_return(transport)
     allow(Datadog::OpenFeature::Exposures::Worker).to receive(:new).and_return(worker)
     allow(Datadog::OpenFeature::Exposures::Reporter).to receive(:new).and_return(reporter)
@@ -76,14 +78,24 @@ RSpec.describe Datadog::OpenFeature::Component do
   end
 
   describe '#shutdown!' do
+<<<<<<< HEAD
+=======
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+>>>>>>> 0f5c9c2e83 (Create Reporter for exposures reporting)
     before do
       settings.open_feature.enabled = true
       settings.remote.enabled = true
     end
 
+<<<<<<< HEAD
     subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
 
     it 'flushes worker and stops it' do
+=======
+    it 'flushes reporter cache and stops worker' do
+      expect(reporter).to receive(:clear)
+>>>>>>> 0f5c9c2e83 (Create Reporter for exposures reporting)
       expect(worker).to receive(:flush)
       expect(worker).to receive(:stop).with(true)
 
