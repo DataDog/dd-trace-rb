@@ -36,15 +36,17 @@ module Datadog
               "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})")
           end
 
-          # TODO: Implement actual allocation evaluation logic
-          # For now, return mock data but with real flag information
+          # Use actual allocations and variations from the parsed flag
+          selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, _evaluation_context, _time)
+          
+          # Return the actual assignment result
           ResolutionDetails.new(
-            value: generate_mock_value_for_flag(flag, expected_type),
-            reason: 'mock_evaluation',
-            variant: flag.variations.keys.first || 'default',
+            value: selected_variation.value,
+            reason: reason,
+            variant: selected_variation.key,
             flag_metadata: {
-              'allocationKey' => 'mock_allocation',
-              'doLog' => true,
+              'allocationKey' => selected_allocation.key,
+              'doLog' => selected_allocation.do_log,
               'variationType' => flag.variation_type
             }
           )
@@ -128,6 +130,64 @@ module Datadog
           when VariationType::JSON then { 'mock' => 'json' }
           else 'unknown_type'
           end
+        end
+
+        def evaluate_flag_allocations(flag, evaluation_context, time)
+          # If no allocations, find default variation or return first variation
+          if flag.allocations.empty?
+            default_variation = find_default_variation(flag)
+            default_allocation = create_default_allocation(flag)
+            return [default_allocation, default_variation, AssignmentReason::STATIC]
+          end
+
+          # TODO: Implement full allocation evaluation (rules, time bounds, splits)
+          # For now, return the first allocation and its first split's variation
+          first_allocation = flag.allocations.first
+          
+          if first_allocation.splits.any?
+            first_split = first_allocation.splits.first
+            variation_key = first_split.variation_key
+            variation = flag.variations[variation_key]
+            
+            if variation
+              return [first_allocation, variation, AssignmentReason::SPLIT]
+            end
+          end
+
+          # Fallback to default if allocation has no valid splits
+          default_variation = find_default_variation(flag)
+          return [first_allocation, default_variation, AssignmentReason::STATIC]
+        end
+
+        def find_default_variation(flag)
+          # Return first variation as default, or create a mock one
+          if flag.variations.any?
+            flag.variations.values.first
+          else
+            # Create a mock variation based on flag type
+            mock_value = case flag.variation_type
+                         when VariationType::BOOLEAN then true
+                         when VariationType::STRING then 'default'
+                         when VariationType::INTEGER then 0
+                         when VariationType::NUMERIC then 0.0
+                         when VariationType::JSON then {}
+                         else 'default'
+                         end
+            
+            Variation.new(key: 'default', value: mock_value)
+          end
+        end
+
+        def create_default_allocation(flag)
+          # Create a mock allocation for flags with no allocations
+          Allocation.new(
+            key: 'default_allocation',
+            rules: nil,
+            start_at: nil,
+            end_at: nil,
+            splits: [],
+            do_log: true
+          )
         end
 
         def generate_mock_value(expected_type)
