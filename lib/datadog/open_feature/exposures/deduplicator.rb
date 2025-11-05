@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 require 'zlib'
-
-require 'datadog/core/utils/lru_cache'
+require_relative '../../core/utils/lru_cache'
 
 module Datadog
   module OpenFeature
@@ -15,9 +14,9 @@ module Datadog
           @mutex = Mutex.new
         end
 
-        def duplicate?(flag_key, targeting_key, allocation_key:, variation_key:)
-          cache_key = digest(flag_key, targeting_key)
-          cache_digest = digest(allocation_key, variation_key)
+        def duplicate?(event)
+          cache_key = digest(event.flag_key, event.targeting_key)
+          cache_digest = digest(event.allocation_key, event.variation_key)
 
           stored = @cache[cache_key]
           return true if stored == cache_digest

@@ -1,0 +1,34 @@
+module Datadog
+  module OpenFeature
+    module Exposures
+      module Models
+        class Event
+          ALLOWED_FIELD_TYPES: ::Array[::Class]
+
+          TARGETING_KEY_FIELD: ::String
+
+          def self.build: (::Hash[untyped, untyped], context: untyped) -> Event?
+
+          def initialize: (::Hash[Symbol, untyped]) -> void
+
+          def allocation_key: () -> ::String
+
+          def flag_key: () -> ::String
+
+          def variation_key: () -> ::String
+
+          def targeting_key: () -> ::String
+
+          def to_h: () -> ::Hash[Symbol, untyped]
+
+        def self.current_timestamp_ms: () -> ::Integer
+
+        def self.extract_attributes: (untyped) -> ::Hash[untyped, untyped]
+
+        def self.context_targeting_key: (untyped) -> (::String | nil)
+        end
+      end
+    end
+  end
+end
+
