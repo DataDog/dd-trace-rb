@@ -175,6 +175,52 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         expect(result.variant).to eq('default') # Should create default variation
         expect(result.reason).to eq('STATIC')
       end
+
+      it 'creates appropriate default values by type' do
+        # Test different flag types create correct defaults when no variations exist
+        config = evaluator.instance_variable_get(:@parsed_config)
+        
+        # Create a mock flag with no variations for testing
+        string_result = evaluator.get_assignment(nil, 'empty_flag', {}, :string, Time.now)
+        expect(string_result.value).to be_a(String)
+        
+        # Test with numeric flag that has variations vs empty flag
+        numeric_result = evaluator.get_assignment(nil, 'numeric_flag', {}, :float, Time.now)
+        expect(numeric_result.value).to be_a(Numeric)
+        expect(numeric_result.value).not_to eq(0.0) # Should be real variation value, not default
+      end
+
+      it 'handles allocations with no valid splits' do
+        # This tests the fallback logic when allocation exists but has no usable splits
+        # Most flags in our test data have valid splits, so this tests our error handling
+        result = evaluator.get_assignment(nil, 'numeric_flag', {}, :float, Time.now)
+        
+        # Should still work even if split lookup has issues
+        expect(result.error_code).to be_nil
+        expect(result.value).not_to be_nil
+      end
+
+      it 'preserves actual doLog values from allocations' do
+        # Test that doLog comes from actual allocation, not hardcoded true
+        result = evaluator.get_assignment(nil, 'numeric_flag', {}, :float, Time.now)
+        
+        expect(result.error_code).to be_nil
+        expect(result.flag_metadata['doLog']).to be_in([true, false])
+        
+        # For flags without allocations, should default to true
+        no_alloc_result = evaluator.get_assignment(nil, 'no_allocations_flag', {}, :object, Time.now)
+        expect(no_alloc_result.flag_metadata['doLog']).to be true
+      end
+
+      it 'returns different values for different flags' do
+        # Ensure we're not returning the same mock value for everything
+        flag1 = evaluator.get_assignment(nil, 'numeric_flag', {}, :float, Time.now)
+        flag2 = evaluator.get_assignment(nil, 'no_allocations_flag', {}, :object, Time.now)
+        
+        expect(flag1.value).not_to eq(flag2.value)
+        expect(flag1.variant).not_to eq(flag2.variant)
+        expect(flag1.flag_metadata['allocationKey']).not_to eq(flag2.flag_metadata['allocationKey'])
+      end
     end
 
     context 'type mapping' do

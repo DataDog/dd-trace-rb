@@ -1,58 +1,63 @@
 # frozen_string_literal: true
 
 require_relative 'ext'
+require_relative 'binding'
 require_relative 'noop_evaluator'
-require_relative 'resolution_details'
 
 module Datadog
   module OpenFeature
     # This class performs the evaluation of the feature flag
     class EvaluationEngine
-      ReconfigurationError = Class.new(StandardError)
+      attr_accessor :configuration
+      attr_reader :reporter
 
-      ALLOWED_TYPES = %w[boolean string number float integer object].freeze
+      ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
-      def initialize(reporter, telemetry:, logger:)
+      def initialize(reporter, telemetry:, logger: Datadog.logger)
         @reporter = reporter
         @telemetry = telemetry
         @logger = logger
 
+        @mutex = Mutex.new
         @evaluator = NoopEvaluator.new(nil)
+        @configuration = nil
       end
 
-      def fetch_value(flag_key:, default_value:, expected_type:, evaluation_context: nil)
+      def fetch_value(flag_key:, expected_type:, evaluation_context: nil)
         unless ALLOWED_TYPES.include?(expected_type)
           message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(", ")}"
-          return ResolutionDetails.build_error(
-            value: default_value, error_code: Ext::UNKNOWN_TYPE, error_message: message
+
+          return Binding::ResolutionDetails.new(
+            error_code: Ext::UNKNOWN_TYPE, error_message: message, reason: Ext::ERROR
           )
         end
 
-        context = evaluation_context&.fields || {}
-        result = @evaluator.get_assignment(flag_key, default_value, context, expected_type)
-
+        result = @evaluator.get_assignment(@configuration, flag_key, evaluation_context, expected_type, Time.now, nil)
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result
       rescue => e
-        @telemetry.report(e, description: 'OpenFeature: Failed to fetch flag value')
+        @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
 
-        ResolutionDetails.build_error(
-          value: default_value, error_code: Ext::PROVIDER_FATAL, error_message: e.message
+        Binding::ResolutionDetails.new(
+          error_code: Ext::PROVIDER_FATAL, error_message: e.message, reason: Ext::ERROR
         )
       end
 
-      def reconfigure!(configuration)
-        @logger.debug('OpenFeature: Removing configuration') if configuration.nil?
+      def reconfigure!
+        @logger.debug('OpenFeature: Removing configuration') if @configuration.nil?
 
-        @evaluator = NoopEvaluator.new(configuration)
+        @mutex.synchronize do
+          klass = @configuration.nil? ? NoopEvaluator : Binding::Evaluator
+          @evaluator = klass.new(@configuration)
+        end
       rescue => e
-        message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
+        error_message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
-        @logger.error("#{message}, error #{e.inspect}")
-        @telemetry.report(e, description: message)
+        @logger.error("#{error_message}, error #{e.inspect}")
+        @telemetry.report(e, description: error_message)
 
-        raise ReconfigurationError, e.message
+        raise e
       end
     end
   end
