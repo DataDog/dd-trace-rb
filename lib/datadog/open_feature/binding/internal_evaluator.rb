@@ -183,10 +183,10 @@ module Datadog
             return [nil, nil] # After end time
           end
 
-          # Check rules - if rules exist, at least one must pass
+          # Check rules - if rules exist, at least one must pass (OR logic between rules)
           if allocation.rules && !allocation.rules.empty?
             rules_pass = allocation.rules.any? { |rule| evaluate_rule(rule, evaluation_context) }
-            return [nil, nil] unless rules_pass # Rules failed
+            return [nil, nil] unless rules_pass # All rules failed
           end
 
           # Find matching split - for now, return first split if any exist
@@ -205,9 +205,165 @@ module Datadog
         end
 
         def evaluate_rule(rule, evaluation_context)
-          # TODO: Task 3.2 will implement full rule evaluation
-          # For now, return true to allow all allocations with rules
-          true
+          # A rule passes if ALL conditions pass (AND logic)
+          # Empty rule (no conditions) passes by default
+          return true if rule.conditions.empty?
+          
+          rule.conditions.all? { |condition| evaluate_condition(condition, evaluation_context) }
+        end
+
+        def evaluate_condition(condition, evaluation_context)
+          # Get the attribute value from evaluation context
+          attribute_value = get_attribute_from_context(condition.attribute, evaluation_context)
+          
+          # Evaluate the condition based on operator
+          case condition.operator
+          when 'GTE'
+            evaluate_comparison(attribute_value, condition.value, :>=)
+          when 'GT'
+            evaluate_comparison(attribute_value, condition.value, :>)
+          when 'LTE'
+            evaluate_comparison(attribute_value, condition.value, :<=)
+          when 'LT'
+            evaluate_comparison(attribute_value, condition.value, :<)
+          when 'ONE_OF'
+            evaluate_membership(attribute_value, condition.value, true)
+          when 'NOT_ONE_OF'
+            evaluate_membership(attribute_value, condition.value, false)
+          when 'MATCHES'
+            evaluate_regex(attribute_value, condition.value, true)
+          when 'NOT_MATCHES'
+            evaluate_regex(attribute_value, condition.value, false)
+          when 'IS_NULL'
+            evaluate_null_check(attribute_value, condition.value)
+          else
+            # Unknown operator - fail condition
+            false
+          end
+        end
+
+        def get_attribute_from_context(attribute_name, evaluation_context)
+          # Handle different evaluation context formats
+          return nil if evaluation_context.nil?
+          
+          # If evaluation_context is a hash, look up the attribute
+          if evaluation_context.respond_to?(:[])
+            evaluation_context[attribute_name] || evaluation_context[attribute_name.to_sym]
+          elsif evaluation_context.respond_to?(attribute_name)
+            evaluation_context.send(attribute_name)
+          else
+            nil
+          end
+        end
+
+        def evaluate_comparison(attribute_value, condition_value, operator)
+          # Both values must be numeric for comparison
+          return false if attribute_value.nil?
+          
+          begin
+            attr_num = coerce_to_number(attribute_value)
+            cond_num = coerce_to_number(condition_value)
+            return false if attr_num.nil? || cond_num.nil?
+            
+            attr_num.send(operator, cond_num)
+          rescue
+            false
+          end
+        end
+
+        def evaluate_membership(attribute_value, condition_values, expected_membership)
+          return false if attribute_value.nil?
+          
+          # NOT_ONE_OF fails when attribute is missing (matches Rust behavior)
+          return false if !expected_membership && attribute_value.nil?
+          
+          # Ensure condition_values is an array
+          values_array = condition_values.is_a?(Array) ? condition_values : [condition_values]
+          
+          # Convert attribute to string for comparison
+          attr_str = coerce_to_string(attribute_value)
+          return false if attr_str.nil?
+          
+          # Check if attribute matches any value in the array
+          is_member = values_array.any? { |v| coerce_to_string(v) == attr_str }
+          
+          is_member == expected_membership
+        end
+
+        def evaluate_regex(attribute_value, pattern, expected_match)
+          return false if attribute_value.nil?
+          
+          begin
+            attr_str = coerce_to_string(attribute_value)
+            return false if attr_str.nil?
+            
+            regex = Regexp.new(pattern.to_s)
+            matches = !!(attr_str =~ regex)
+            matches == expected_match
+          rescue RegexpError
+            # Invalid regex - condition fails
+            false
+          rescue
+            false
+          end
+        end
+
+        def evaluate_null_check(attribute_value, expected_null)
+          is_null = attribute_value.nil?
+          # Convert condition value to boolean
+          expected_null_bool = coerce_to_boolean(expected_null)
+          return false if expected_null_bool.nil?
+          
+          is_null == expected_null_bool
+        end
+
+        def coerce_to_number(value)
+          case value
+          when Numeric
+            value.to_f
+          when String
+            Float(value) rescue nil
+          when true
+            1.0
+          when false
+            0.0
+          else
+            nil
+          end
+        end
+
+        def coerce_to_string(value)
+          case value
+          when String
+            value
+          when Numeric
+            value.to_s
+          when true
+            'true'
+          when false
+            'false'
+          when nil
+            nil
+          else
+            value.to_s
+          end
+        end
+
+        def coerce_to_boolean(value)
+          case value
+          when true, false
+            value
+          when String
+            case value.downcase
+            when 'true' then true
+            when 'false' then false
+            else nil
+            end
+          when Numeric
+            value != 0
+          else
+            nil
+          end
         end
 
         def determine_assignment_reason(allocation)
