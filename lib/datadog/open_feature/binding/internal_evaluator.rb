@@ -189,15 +189,22 @@ module Datadog
             return [nil, nil] unless rules_pass # All rules failed
           end
 
-          # Find matching split - for now, return first split if any exist
-          # TODO: Task 3.3 will implement proper split/shard matching
+          # Find matching split using shard-based traffic splitting
           if allocation.splits.any?
-            first_split = allocation.splits.first
+            # Get targeting key from evaluation context (for sharding)
+            targeting_key = get_targeting_key(evaluation_context)
             
-            # Determine assignment reason based on allocation properties
-            reason = determine_assignment_reason(allocation)
+            # Find first split that matches the targeting key
+            matching_split = allocation.splits.find { |split| split_matches?(split, targeting_key) }
             
-            return [first_split, reason]
+            if matching_split
+              # Determine assignment reason based on allocation properties
+              reason = determine_assignment_reason(allocation)
+              return [matching_split, reason]
+            else
+              # No splits matched - traffic exposure miss
+              return [nil, nil]
+            end
           end
 
           # No valid splits
@@ -364,6 +371,68 @@ module Datadog
           else
             nil
           end
+        end
+
+        def get_targeting_key(evaluation_context)
+          # The targeting key is typically a user ID, session ID, or other stable identifier
+          # Check common attribute names in order of preference
+          return nil if evaluation_context.nil?
+          
+          if evaluation_context.respond_to?(:[])
+            # Hash-like evaluation context
+            evaluation_context['targeting_key'] || 
+              evaluation_context['user_id'] ||
+              evaluation_context['userId'] ||
+              evaluation_context['id'] ||
+              evaluation_context[:targeting_key] ||
+              evaluation_context[:user_id] ||
+              evaluation_context[:userId] ||
+              evaluation_context[:id]
+          elsif evaluation_context.respond_to?(:targeting_key)
+            evaluation_context.targeting_key
+          elsif evaluation_context.respond_to?(:user_id)
+            evaluation_context.user_id
+          elsif evaluation_context.respond_to?(:id)
+            evaluation_context.id
+          else
+            nil
+          end
+        end
+
+        def split_matches?(split, targeting_key)
+          # If no targeting key, can't do traffic splitting - return false
+          return false if targeting_key.nil?
+          
+          # If split has no shards, it matches everyone (100% allocation)
+          return true if split.shards.empty?
+          
+          # For split to match, ALL shards must match (AND logic)
+          split.shards.all? { |shard| shard_matches?(shard, targeting_key) }
+        end
+
+        def shard_matches?(shard, targeting_key)
+          # Compute shard hash using MD5 algorithm matching Rust implementation
+          shard_value = compute_shard_hash(shard.salt, targeting_key, shard.total_shards)
+          
+          # Check if shard value falls within any of the ranges
+          shard.ranges.any? { |range| shard_value >= range.start && shard_value < range.end_value }
+        end
+
+        def compute_shard_hash(salt, targeting_key, total_shards)
+          # Implementation matches Rust PreSaltedSharder exactly
+          # The Rust code uses PreSaltedSharder::new(&[shard.salt.as_bytes(), b"-"], shard.total_shards)
+          require 'digest/md5'
+          
+          # Create hash with salt + "-" + targeting_key (matches Rust implementation)
+          hasher = Digest::MD5.new
+          hasher.update(salt.to_s) if salt
+          hasher.update("-")  # Separator used in Rust PreSaltedSharder
+          hasher.update(targeting_key.to_s)
+          
+          # Get first 4 bytes as big-endian uint32, then mod by total_shards
+          hash_bytes = hasher.digest
+          hash_value = hash_bytes[0..3].unpack('N')[0] # 'N' = big-endian uint32
+          hash_value % total_shards
         end
 
         def determine_assignment_reason(allocation)
