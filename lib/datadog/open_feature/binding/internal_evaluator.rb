@@ -151,25 +151,77 @@ module Datadog
             raise EvaluationError.new('DEFAULT_ALLOCATION_NULL', 'default allocation is matched and is serving NULL')
           end
 
-          # TODO: Implement full allocation evaluation (rules, time bounds, splits)
-          # For now, return the first allocation and its first split's variation
-          first_allocation = flag.allocations.first
+          # Convert time parameter to Time object for comparisons
+          evaluation_time = time.is_a?(Time) ? time : Time.at(time)
           
-          if first_allocation.splits.any?
-            first_split = first_allocation.splits.first
-            variation_key = first_split.variation_key
-            variation = flag.variations[variation_key]
+          # Iterate through allocations to find the first matching one
+          flag.allocations.each do |allocation|
+            matching_split, reason = find_matching_split_for_allocation(allocation, evaluation_context, evaluation_time)
             
-            if variation
-              return [first_allocation, variation, AssignmentReason::SPLIT]
-            else
-              # Variation referenced by split doesn't exist - configuration error
-              raise EvaluationError.new('CONFIGURATION_PARSE_ERROR', 'failed to parse configuration')
+            if matching_split
+              variation = flag.variations[matching_split.variation_key]
+              if variation
+                return [allocation, variation, reason]
+              else
+                # Variation referenced by split doesn't exist - configuration error
+                raise EvaluationError.new('CONFIGURATION_PARSE_ERROR', 'failed to parse configuration')
+              end
             end
           end
 
-          # No valid splits in allocation - also an error condition
+          # No allocations matched - return DEFAULT_ALLOCATION_NULL error
           raise EvaluationError.new('DEFAULT_ALLOCATION_NULL', 'default allocation is matched and is serving NULL')
+        end
+
+        def find_matching_split_for_allocation(allocation, evaluation_context, evaluation_time)
+          # Check time bounds - allocation must be within active time window
+          if allocation.start_at && evaluation_time < allocation.start_at
+            return [nil, nil] # Before start time
+          end
+          
+          if allocation.end_at && evaluation_time > allocation.end_at
+            return [nil, nil] # After end time
+          end
+
+          # Check rules - if rules exist, at least one must pass
+          if allocation.rules && !allocation.rules.empty?
+            rules_pass = allocation.rules.any? { |rule| evaluate_rule(rule, evaluation_context) }
+            return [nil, nil] unless rules_pass # Rules failed
+          end
+
+          # Find matching split - for now, return first split if any exist
+          # TODO: Task 3.3 will implement proper split/shard matching
+          if allocation.splits.any?
+            first_split = allocation.splits.first
+            
+            # Determine assignment reason based on allocation properties
+            reason = determine_assignment_reason(allocation)
+            
+            return [first_split, reason]
+          end
+
+          # No valid splits
+          [nil, nil]
+        end
+
+        def evaluate_rule(rule, evaluation_context)
+          # TODO: Task 3.2 will implement full rule evaluation
+          # For now, return true to allow all allocations with rules
+          true
+        end
+
+        def determine_assignment_reason(allocation)
+          # Logic matches Rust implementation in eval_assignment.rs:172-178
+          has_rules = allocation.rules && !allocation.rules.empty?
+          has_time_bounds = allocation.start_at || allocation.end_at
+          
+          if has_rules || has_time_bounds
+            AssignmentReason::TARGETING_MATCH
+          elsif allocation.splits.length == 1 && allocation.splits.first.shards.empty?
+            AssignmentReason::STATIC
+          else
+            AssignmentReason::SPLIT
+          end
         end
       end
     end
