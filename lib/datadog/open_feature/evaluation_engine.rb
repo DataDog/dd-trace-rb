@@ -17,7 +17,7 @@ module Datadog
         @telemetry = telemetry
         @logger = logger
 
-        # NOTE: We also could create a no-op evaluator?
+        @mutex = Mutex.new
         @evaluator = nil
         @configuration = nil
       end
@@ -54,7 +54,9 @@ module Datadog
           return
         end
 
-        @evaluator = Binding::Evaluator.new(@configuration)
+        @mutex.synchronize do
+          @evaluator = Binding::Evaluator.new(@configuration)
+        end
       rescue => e
         error_message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
