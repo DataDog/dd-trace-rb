@@ -2,6 +2,7 @@
 
 require_relative 'evaluation_engine'
 require_relative 'exposures'
+require_relative 'transport/http'
 
 module Datadog
   module OpenFeature
@@ -31,11 +32,18 @@ module Datadog
         @logger = logger
         @telemetry = telemetry
 
-        @engine = EvaluationEngine.new(telemetry, logger: logger)
+        transport = Transport::HTTP.exposures(agent_settings: agent_settings, logger: logger)
+        @worker = Exposures::Worker.new(transport: transport, logger: logger)
+        @reporter = Exposures::Reporter.new(worker: @worker, logger: logger)
+        @engine = EvaluationEngine.new(@reporter, telemetry: telemetry, logger: logger)
       end
 
       def shutdown!
-        # no-op
+        @reporter&.clear
+        return unless defined?(@worker) && @worker
+
+        @worker.flush
+        @worker.stop(true)
       end
     end
   end

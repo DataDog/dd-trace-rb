@@ -13,9 +13,9 @@ module Datadog
         def initialize: (
           transport: Transport::Exposures::Transport,
           logger: Core::Logger,
-          flush_interval_seconds: ::Integer,
-          buffer_limit: ::Integer,
-          context_builder: (^() -> ::Hash[::Symbol, untyped])?
+          ?flush_interval_seconds: ::Integer,
+          ?buffer_limit: ::Integer,
+          ?context_builder: (^() -> ::Hash[::Symbol, untyped])
         ) -> void
 
         def start: () -> void

@@ -10,7 +10,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
   end
 
-  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(telemetry) }
+  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry) }
+  let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   subject(:provider) { described_class.new }
