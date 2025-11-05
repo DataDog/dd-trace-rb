@@ -42,7 +42,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   end
 
   describe '#fetch_value' do
-    let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string) }
+    let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string, default_value: 'default') }
 
     context 'when binding evaluator is not ready' do
       it 'returns evaluation error' do
@@ -104,7 +104,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         engine.reconfigure!
       end
 
-      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :whatever) }
+      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :whatever, default_value: 'default') }
 
       it 'returns evaluation error' do
         expect(result.error_code).to eq('UNKNOWN_TYPE')
@@ -119,7 +119,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         engine.reconfigure!
       end
 
-      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string) }
+      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string, default_value: 'default') }
 
       it 'returns resolved value' do
         expect(result.value).to eq('hello')
@@ -161,7 +161,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         engine.configuration = '{}'
         expect { engine.reconfigure! }.not_to change {
-          engine.fetch_value(flag_key: 'test', expected_type: :string).value
+          engine.fetch_value(flag_key: 'test', expected_type: :string, default_value: 'default').value
         }.from('hello')
       end
     end
@@ -207,7 +207,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       xit 'reconfigures binding evaluator with new flags configuration' do
         expect { engine.configuration = new_ufc; engine.reconfigure! }
-          .to change { engine.fetch_value(flag_key: 'test', expected_type: :string).value }
+          .to change { engine.fetch_value(flag_key: 'test', expected_type: :string, default_value: 'default').value }
           .from('hello').to('goodbye')
       end
     end
