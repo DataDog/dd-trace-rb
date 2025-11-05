@@ -20,6 +20,11 @@ RSpec.describe Datadog::Profiling::TagBuilder do
       )
     end
 
+    it "does not include tags that are not allowed" do
+      expect(Datadog::Core::TagBuilder).to receive(:tags).and_return("not_allowed" => "value")
+      expect(call).to_not include("not_allowed")
+    end
+
     describe "unified service tagging" do
       [:env, :service, :version].each do |tag|
         context "when a #{tag} is defined" do
