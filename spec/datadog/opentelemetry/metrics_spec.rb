@@ -28,24 +28,15 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
     clear_testagent_metrics
   end
 
-  # Testagent helpers
-  def testagent_host
-    agent_host || '127.0.0.1'
-  end
-
-  def testagent_port
-    agent_port || 9126
-  end
-
   def clear_testagent_metrics
-    uri = URI("http://#{testagent_host}:#{DEFAULT_OTLP_HTTP_PORT}/test/session/clear")
+    uri = URI("http://#{agent_host}:#{DEFAULT_OTLP_HTTP_PORT}/test/session/clear")
     Net::HTTP.post_form(uri, {})
   rescue
     # Ignore errors if testagent is not available
   end
 
   def get_testagent_metrics(max_retries: 5, wait_time: 0.2)
-    uri = URI("http://#{testagent_host}:#{DEFAULT_OTLP_HTTP_PORT}/test/session/metrics")
+    uri = URI("http://#{agent_host}:#{DEFAULT_OTLP_HTTP_PORT}/test/session/metrics")
     
     max_retries.times do
       response = Net::HTTP.get_response(uri)
@@ -93,10 +84,10 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
       'DD_SERVICE' => 'test-service',
       'DD_VERSION' => '1.0.0',
       'DD_ENV' => 'test',
-      'DD_AGENT_HOST' => testagent_host,
-      'DD_TRACE_AGENT_PORT' => testagent_port.to_s,
+      'DD_AGENT_HOST' => agent_host,
+      'DD_TRACE_AGENT_PORT' => agent_port.to_s,
       'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf',
-      'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT' => "http://#{testagent_host}:#{DEFAULT_OTLP_HTTP_PORT}/v1/metrics"
+      'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT' => "http://#{agent_host}:#{DEFAULT_OTLP_HTTP_PORT}/v1/metrics"
     }
 
     ClimateControl.modify(base_env.merge(env_overrides)) do
@@ -104,8 +95,8 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
         c.service = 'test-service'
         c.version = '1.0.0'
         c.env = 'test'
-        c.agent.host = testagent_host
-        c.agent.port = testagent_port
+        c.agent.host = agent_host
+        c.agent.port = agent_port
       end
     end
   end
