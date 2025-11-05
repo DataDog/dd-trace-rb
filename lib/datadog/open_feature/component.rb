@@ -38,6 +38,10 @@ module Datadog
         @engine = EvaluationEngine.new(@reporter, telemetry: telemetry, logger: logger)
       end
 
+      def evaluator
+        @engine
+      end
+
       def shutdown!
         @worker&.flush
         @worker&.stop(true)

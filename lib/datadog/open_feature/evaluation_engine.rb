@@ -25,7 +25,15 @@ module Datadog
         @configuration = nil
       end
 
-      def fetch_value(flag_key:, expected_type:, evaluation_context: nil)
+      def fetch_value(flag_key:, expected_type:, evaluation_context: nil, default_value:)
+        if @evaluator.nil?
+          return ResolutionError.new(
+            code: Ext::PROVIDER_NOT_READY,
+            message: 'Waiting for Universal Flag Configuration',
+            reason: Ext::INITIALIZING
+          )
+        end
+
         unless ALLOWED_TYPES.include?(expected_type)
           message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(', ')}"
 
@@ -38,8 +46,7 @@ module Datadog
         # In the example from the OpenFeature there is zero trust to the result of the evaluation
         # do we want to go that way?
 
-        @evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now.utc.to_i)
-        # TODO: insert reporting here
+        @evaluator.get_assignment(:todo_remove_this, flag_key, evaluation_context, expected_type, Time.now.utc.to_i, default_value)
       rescue => e
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
 
