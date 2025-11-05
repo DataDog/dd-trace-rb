@@ -85,9 +85,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
       'DD_VERSION' => '1.0.0',
       'DD_ENV' => 'test',
       'DD_AGENT_HOST' => agent_host,
-      'DD_TRACE_AGENT_PORT' => agent_port.to_s,
-      'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf',
-      'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT' => "http://#{agent_host}:#{DEFAULT_OTLP_HTTP_PORT}/v1/metrics"
+      'DD_TRACE_AGENT_PORT' => agent_port,
     }
 
     ClimateControl.modify(base_env.merge(env_overrides)) do

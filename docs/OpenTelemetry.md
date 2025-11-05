@@ -60,19 +60,14 @@
 1. Enable metrics export:
 
     ```ruby
+    # Set environment variable before initalizing metrics support
+    ENV['DD_METRICS_OTEL_ENABLED'] = 'true'
     require 'opentelemetry/sdk'
     require 'opentelemetry-metrics-sdk'
     require 'opentelemetry/exporter/otlp_metrics'
     require 'datadog/opentelemetry/metrics'
 
-    # Set environment variable or configure via Datadog
-    ENV['DD_METRICS_OTEL_ENABLED'] = 'true'
-
-    Datadog.configure do |c|
-      c.service = 'my-service'
-      c.version = '1.0.0'
-      c.env = 'production'
-    end
+    ...
     ```
 
 1. Use the OpenTelemetry Metrics API:
