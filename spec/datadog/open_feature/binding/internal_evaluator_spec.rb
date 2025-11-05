@@ -140,21 +140,40 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       end
     end
 
-    context 'with flag variations' do
-      it 'uses actual variation values when available' do
+    context 'with flag variations and allocations' do
+      it 'uses actual variation values from allocations when available' do
         result = evaluator.get_assignment(nil, 'numeric_flag', {}, :float, Time.now)
         
         expect(result.error_code).to be_nil
         expect(result.value).to be_a(Numeric)
-        expect(result.variant).not_to eq('default') # Should use actual variation key
+        expect(result.variant).not_to eq('default') # Should use actual variation key from split
+        expect(result.reason).to eq('SPLIT') # Should use allocation-based reason
       end
 
-      it 'sets variant from first variation key' do
+      it 'uses first variation for flags without allocations' do
         result = evaluator.get_assignment(nil, 'no_allocations_flag', {}, :object, Time.now)
         
         expect(result.error_code).to be_nil
         expect(result.variant).to be_a(String)
         expect(result.variant).not_to be_empty
+        expect(result.reason).to eq('STATIC') # No allocations = static reason
+      end
+
+      it 'uses real allocation metadata' do
+        result = evaluator.get_assignment(nil, 'numeric_flag', {}, :float, Time.now)
+        
+        expect(result.error_code).to be_nil
+        expect(result.flag_metadata['allocationKey']).not_to eq('mock_allocation')
+        expect(result.flag_metadata['doLog']).to be_in([true, false])
+      end
+
+      it 'handles flags with no variations gracefully' do
+        result = evaluator.get_assignment(nil, 'empty_flag', {}, :string, Time.now)
+        
+        expect(result.error_code).to be_nil
+        expect(result.value).not_to be_nil
+        expect(result.variant).to eq('default') # Should create default variation
+        expect(result.reason).to eq('STATIC')
       end
     end
 
