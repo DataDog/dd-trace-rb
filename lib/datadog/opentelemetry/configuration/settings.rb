@@ -13,6 +13,22 @@ module Datadog
             add_settings!(base)
           end
 
+          def self.resolve_agent_hostname
+            settings = defined?(Datadog) && Datadog.respond_to?(:configuration) ? Datadog.configuration : nil
+            agent_host = settings&.agent&.host
+            unless agent_host
+              ext = Datadog::Core::Configuration::Ext
+              url = defined?(DATADOG_ENV) ? DATADOG_ENV[ext::Agent::ENV_DEFAULT_URL] : ENV['DD_TRACE_AGENT_URL']
+              if url
+                parsed = URI.parse(url) rescue nil
+                agent_host = parsed&.hostname
+              end
+              agent_host ||= defined?(DATADOG_ENV) ? DATADOG_ENV[ext::Agent::ENV_DEFAULT_HOST] : ENV['DD_AGENT_HOST']
+              agent_host ||= ext::Agent::HTTP::DEFAULT_HOST
+            end
+            agent_host
+          end
+
           def self.add_settings!(base)
             base.class_eval do
               settings :opentelemetry do
@@ -47,22 +63,11 @@ module Datadog
                     o.type :string, nilable: true
                     o.env 'OTEL_EXPORTER_OTLP_ENDPOINT'
                     o.default do
-                      settings = defined?(Datadog) && Datadog.respond_to?(:configuration) ? Datadog.configuration : nil
-                      agent_host = settings&.agent&.host
-                      unless agent_host
-                        ext = Datadog::Core::Configuration::Ext
-                        url = defined?(DATADOG_ENV) ? DATADOG_ENV[ext::Agent::ENV_DEFAULT_URL] : ENV['DD_TRACE_AGENT_URL']
-                        if url
-                          parsed = URI.parse(url) rescue nil
-                          agent_host = parsed&.hostname
-                        end
-                        agent_host ||= defined?(DATADOG_ENV) ? DATADOG_ENV[ext::Agent::ENV_DEFAULT_HOST] : ENV['DD_AGENT_HOST']
-                        agent_host ||= ext::Agent::HTTP::DEFAULT_HOST
-                      end
                       protocol = defined?(DATADOG_ENV) ? DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL'] : ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
                       protocol ||= 'grpc'
+                      host = Datadog::OpenTelemetry::Configuration::Settings.resolve_agent_hostname
                       port = protocol == 'http/protobuf' ? 4318 : 4317
-                      "http://#{agent_host}:#{port}"
+                      "http://#{host}:#{port}"
                     end
                   end
                 end
@@ -111,25 +116,14 @@ module Datadog
                       # If general endpoint is set, don't construct a default - let resolve_metrics_endpoint handle it
                       next nil if general_endpoint
                       
-                      # Only construct default if a protocol is set
+                      # Only construct default if a protocol is set. 
                       next nil unless metrics_protocol || general_protocol
 
-                      settings = defined?(Datadog) && Datadog.respond_to?(:configuration) ? Datadog.configuration : nil
-                      agent_host = settings&.agent&.host
-                      unless agent_host
-                        ext = Datadog::Core::Configuration::Ext
-                        url = defined?(DATADOG_ENV) ? DATADOG_ENV[ext::Agent::ENV_DEFAULT_URL] : ENV['DD_TRACE_AGENT_URL']
-                        if url
-                          parsed = URI.parse(url) rescue nil
-                          agent_host = parsed&.hostname
-                        end
-                        agent_host ||= defined?(DATADOG_ENV) ? DATADOG_ENV[ext::Agent::ENV_DEFAULT_HOST] : ENV['DD_AGENT_HOST']
-                        agent_host ||= ext::Agent::HTTP::DEFAULT_HOST
-                      end
                       protocol = metrics_protocol || general_protocol || 'grpc'
+                      host = Datadog::OpenTelemetry::Configuration::Settings.resolve_agent_hostname
                       port = protocol == 'http/protobuf' ? 4318 : 4317
                       path = protocol == 'http/protobuf' ? '/v1/metrics' : ''
-                      "http://#{agent_host}:#{port}#{path}"
+                      "http://#{host}:#{port}#{path}"
                     end
                   end
 
