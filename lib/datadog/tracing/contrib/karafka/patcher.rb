@@ -35,6 +35,24 @@ module Datadog
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
               end
 
+              if Datadog::DataStreams.enabled?
+                begin
+                  headers = if message.metadata.respond_to?(:raw_headers)
+                    message.metadata.raw_headers
+                  else
+                    message.metadata.headers
+                  end
+
+                  Datadog::DataStreams.set_consume_checkpoint(
+                    type: 'kafka',
+                    source: message.topic,
+                    auto_instrumentation: true
+                  ) { |key| headers[key] }
+                rescue => e
+                  Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
+                end
+              end
+
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
                 span.set_tag(Ext::TAG_OFFSET, message.metadata.offset)
                 span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, message.topic)
