@@ -206,7 +206,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       end
 
       xit 'reconfigures binding evaluator with new flags configuration' do
-        expect { engine.configuration = new_ufc; engine.reconfigure!}
+        expect { engine.configuration = new_ufc; engine.reconfigure! }
           .to change { engine.fetch_value(flag_key: 'test', expected_type: :string).value }
           .from('hello').to('goodbye')
       end

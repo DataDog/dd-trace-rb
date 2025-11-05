@@ -13,7 +13,7 @@ module Datadog
 
         def report: (result: ::Hash[untyped, untyped], ?context: untyped) -> bool
 
-        def clear: () -> void
+        def flush: () -> void
 
         private
 

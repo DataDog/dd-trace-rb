@@ -39,7 +39,7 @@ module Datadog
       end
 
       def shutdown!
-        @reporter&.clear
+        @reporter&.flush
         return unless defined?(@worker) && @worker
 
         @worker.flush

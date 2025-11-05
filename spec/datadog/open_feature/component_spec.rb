@@ -25,7 +25,7 @@ RSpec.describe Datadog::OpenFeature::Component do
       stop: nil
     )
   end
-  let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter, clear: nil) }
+  let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter, flush: nil) }
 
   describe '.build' do
     subject(:component) do
@@ -95,7 +95,7 @@ RSpec.describe Datadog::OpenFeature::Component do
     end
 
     it 'flushes reporter cache and stops worker' do
-      expect(reporter).to receive(:clear)
+      expect(reporter).to receive(:flush)
       expect(worker).to receive(:flush)
       expect(worker).to receive(:stop).with(true)
 
