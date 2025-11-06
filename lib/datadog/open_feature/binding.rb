@@ -10,7 +10,6 @@ end
 
 require_relative 'binding/internal_evaluator'
 require_relative 'binding/configuration'
-require_relative 'binding/evaluator'
 
 # Define alias for backward compatibility after InternalEvaluator is loaded
 Datadog::OpenFeature::Binding::Evaluator = Datadog::OpenFeature::Binding::InternalEvaluator
