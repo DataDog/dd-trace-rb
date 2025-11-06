@@ -9,7 +9,7 @@ require 'datadog/core/configuration/settings'
 require 'net/http'
 require 'json'
 
-RSpec.describe 'OpenTelemetry Metrics Integration' do
+RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   include NetworkHelpers
 
   DEFAULT_OTLP_HTTP_PORT = 4318

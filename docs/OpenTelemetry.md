@@ -5,7 +5,7 @@
 | Type          | Documentation                                        | datadog version | Gem version support |
 | ------------- | ---------------------------------------------------- | --------------- | ------------------- |
 | Tracing       | https://github.com/open-telemetry/opentelemetry-ruby | 1.9.0+          | >= 1.1.0            |
-| Metrics       | https://github.com/open-telemetry/opentelemetry-ruby | 2.24.0+          | Metrics SDK >= 0.8, Exporter >= 0.4 |
+| Metrics       | https://github.com/open-telemetry/opentelemetry-ruby | 2.24.0+          | Metrics SDK >= 0.8, Exporter >= 0.4 (requires Ruby >= 3.1) |
 
 ## Configuring OpenTelemetry Tracing
 
