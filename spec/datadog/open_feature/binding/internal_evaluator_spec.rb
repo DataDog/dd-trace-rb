@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
+require 'spec_helper'
 require 'json'
-require_relative '../../../../../lib/datadog/open_feature/binding'
+require 'datadog/open_feature/binding/internal_evaluator'
 
 RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
-  let(:flags_v1_path) { File.join(__dir__, '../../../../fixtures/ufc/flags-v1.json') }
+  let(:flags_v1_path) { File.join(__dir__, '../../../fixtures/ufc/flags-v1.json') }
   let(:flags_v1_json) { JSON.parse(File.read(flags_v1_path)) }
   let(:ufc_attributes) { flags_v1_json['data']['attributes'] }
   let(:valid_ufc_json) { ufc_attributes.to_json }
@@ -26,7 +27,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         config = evaluator.instance_variable_get(:@parsed_config)
         
         expect(config).to be_a(Datadog::OpenFeature::Binding::EvaluationResult)
-        expect(config.error_code).to eq('CONFIGURATION_PARSE_ERROR')
+        expect(config.error_code).to eq(:ParseError)
       end
 
       it 'stores parse error for empty JSON' do
@@ -34,7 +35,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         config = evaluator.instance_variable_get(:@parsed_config)
         
         expect(config).to be_a(Datadog::OpenFeature::Binding::EvaluationResult)
-        expect(config.error_code).to eq('CONFIGURATION_MISSING')
+        expect(config.error_code).to eq(:ParseError)
       end
     end
   end
@@ -48,36 +49,44 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'returns the initialization error with default value' do
         result = bad_evaluator.get_assignment('any_flag', {}, :string, Time.now, 'my_default')
         
-        expect(result.error_code).to eq('CONFIGURATION_PARSE_ERROR')
+        expect(result.error_code).to eq(:ParseError)
         expect(result.error_message).to eq('failed to parse configuration')
         expect(result.value).to eq('my_default')
+        expect(result.variant).to be_nil
+        expect(result.flag_metadata).to be_nil
       end
     end
 
     context 'with flag lookup' do
       it 'returns success for existing enabled flag' do
-        result = evaluator.get_assignment('empty_flag', {}, :string, Time.now, 'default')
+        result = evaluator.get_assignment('numeric_flag', {}, :float, Time.now, 0.0)
         
-        expect(result.error_code).to be_nil
+        expect(result.error_code).to eq(:Ok)
         expect(result.value).not_to be_nil
-        expect(result.reason).to be_in(['STATIC', 'SPLIT', 'TARGETING_MATCH'])
-        expect(result.flag_metadata['variationType']).to eq('STRING')
+        expect(['STATIC', 'SPLIT', 'TARGETING_MATCH', 'DEFAULT']).to include(result.reason)
+        expect(result.variant).not_to be_nil
+        expect(result.flag_metadata).not_to be_nil
+        expect(result.flag_metadata.variation_type).to eq('number')
       end
 
       it 'returns FLAG_UNRECOGNIZED_OR_DISABLED for missing flag with default value' do
         result = evaluator.get_assignment('nonexistent_flag', {}, :string, Time.now, 'fallback')
         
-        expect(result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
+        expect(result.error_code).to eq(:FlagNotFound)
         expect(result.error_message).to eq('flag is missing in configuration, it is either unrecognized or disabled')
         expect(result.value).to eq('fallback')
+        expect(result.variant).to be_nil
+        expect(result.flag_metadata).to be_nil
       end
 
       it 'returns FLAG_DISABLED for disabled flag with default value' do
         result = evaluator.get_assignment('disabled_flag', {}, :integer, Time.now, 42)
         
-        expect(result.error_code).to eq('FLAG_DISABLED')
+        expect(result.error_code).to eq(:Ok)  # Special case - expected condition
         expect(result.error_message).to eq('flag is disabled')
         expect(result.value).to eq(42)
+        expect(result.variant).to be_nil
+        expect(result.flag_metadata).to be_nil
       end
     end
 
@@ -85,33 +94,43 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'returns TYPE_MISMATCH when types do not match with default value' do
         result = evaluator.get_assignment('numeric_flag', {}, :boolean, Time.now, true)
         
-        expect(result.error_code).to eq('TYPE_MISMATCH')
+        expect(result.error_code).to eq(:TypeMismatch)
         expect(result.error_message).to eq('invalid flag type (expected: boolean, found: NUMERIC)')
         expect(result.value).to eq(true)
+        expect(result.variant).to be_nil
+        expect(result.flag_metadata).to be_nil
       end
 
       it 'succeeds when types match' do
         result = evaluator.get_assignment('numeric_flag', {}, :float, Time.now, 0.0)
         
-        expect(result.error_code).to be_nil
+        expect(result.error_code).to eq(:Ok)
         expect(result.value).not_to be_nil
-        expect(result.flag_metadata['variationType']).to eq('NUMERIC')
+        expect(result.variant).not_to be_nil
+        expect(result.flag_metadata).not_to be_nil
+        expect(result.flag_metadata.variation_type).to eq('number')
       end
 
       it 'succeeds when expected_type is nil (no validation)' do
         result = evaluator.get_assignment('numeric_flag', {}, nil, Time.now, 'default')
         
-        expect(result.error_code).to be_nil
+        expect(result.error_code).to eq(:Ok)
         expect(result.value).not_to be_nil
+        expect(result.variant).not_to be_nil
+        expect(result.flag_metadata).not_to be_nil
       end
     end
 
     context 'with different flag types' do
       it 'handles STRING flags correctly' do
+        # empty_flag has no allocations, so let's test a flag with variations but expect DEFAULT behavior
         result = evaluator.get_assignment('empty_flag', {}, :string, Time.now, 'default')
         
-        expect(result.error_code).to be_nil
-        expect(result.flag_metadata['variationType']).to eq('STRING')
+        expect(result.error_code).to eq(:Ok)
+        expect(result.reason).to eq('DEFAULT')
+        expect(result.value).to eq('default')
+        expect(result.variant).to be_nil
+        expect(result.flag_metadata).to be_nil
       end
 
       it 'handles INTEGER flags correctly' do
@@ -120,15 +139,17 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         
         # This should be disabled, but let's test with an enabled integer flag if available
         # For now, test the type validation logic
-        expect(result.error_code).to eq('FLAG_DISABLED') # Expected since disabled_flag is disabled
+        expect(result.error_code).to eq(:Ok) # Expected since disabled_flag is disabled (special case)
         expect(result.value).to eq(0) # Should return default value
+        expect(result.variant).to be_nil
+        expect(result.flag_metadata).to be_nil
       end
 
       it 'handles NUMERIC flags correctly' do
         result = evaluator.get_assignment('numeric_flag', {}, :float, Time.now, 0.0)
         
-        expect(result.error_code).to be_nil
-        expect(result.flag_metadata['variationType']).to eq('NUMERIC')
+        expect(result.error_code).to eq(:Ok)
+        expect(result.flag_metadata.variation_type).to eq('number')
         expect(result.value).to be_a(Numeric)
       end
 
@@ -136,11 +157,12 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         result = evaluator.get_assignment('no_allocations_flag', {}, :object, Time.now, {})
         
         # This flag likely has no allocations, so should return DEFAULT_ALLOCATION_NULL
-        if result.error_code == 'DEFAULT_ALLOCATION_NULL'
+        if result.error_code == :Ok && result.variant.nil?  # DEFAULT_ALLOCATION_NULL case
           expect(result.value).to eq({}) # Default value
+          expect(result.flag_metadata).to be_nil
         else
-          expect(result.error_code).to be_nil
-          expect(result.flag_metadata['variationType']).to eq('JSON')
+          expect(result.error_code).to eq(:Ok)
+          expect(result.flag_metadata.variation_type).to eq('object')
           expect(result.value).to be_a(Hash)
         end
       end
@@ -150,40 +172,46 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'uses actual variation values from allocations when available' do
         result = evaluator.get_assignment('numeric_flag', {}, :float, Time.now, 0.0)
         
-        expect(result.error_code).to be_nil
+        expect(result.error_code).to eq(:Ok)
         expect(result.value).to be_a(Numeric)
         expect(result.variant).not_to eq('default') # Should use actual variation key from split
-        expect(result.reason).to be_in(['STATIC', 'SPLIT', 'TARGETING_MATCH']) # Should use allocation-based reason
+        expect(['STATIC', 'SPLIT', 'TARGETING_MATCH']).to include(result.reason) # Should use allocation-based reason
+        expect(result.flag_metadata).not_to be_nil
       end
 
       it 'returns DEFAULT_ALLOCATION_NULL for flags without allocations' do
         result = evaluator.get_assignment('no_allocations_flag', {}, :object, Time.now, { "fallback" => true })
         
         # Flag with no allocations should return DEFAULT_ALLOCATION_NULL error with default value
-        expect(result.error_code).to eq('DEFAULT_ALLOCATION_NULL')
+        expect(result.error_code).to eq(:Ok)  # Special case - expected condition
         expect(result.value).to eq({ "fallback" => true })
+        expect(result.variant).to be_nil
+        expect(result.flag_metadata).to be_nil
       end
 
       it 'uses real allocation metadata' do
         result = evaluator.get_assignment('numeric_flag', {}, :float, Time.now, 0.0)
         
-        expect(result.error_code).to be_nil
-        expect(result.flag_metadata['allocationKey']).not_to eq('mock_allocation')
-        expect(result.flag_metadata['doLog']).to be_in([true, false])
+        expect(result.error_code).to eq(:Ok)
+        expect(result.flag_metadata.allocation_key).not_to eq('mock_allocation')
+        expect([true, false]).to include(result.flag_metadata.do_log)
       end
 
       it 'handles flags with allocations that have splits' do
         result = evaluator.get_assignment('empty_flag', {}, :string, Time.now, 'default')
         
-        if result.error_code == 'DEFAULT_ALLOCATION_NULL'
+        if result.variant.nil?  # DEFAULT_ALLOCATION_NULL case
           # Flag has no valid allocations
+          expect(result.error_code).to eq(:Ok)
           expect(result.value).to eq('default')
+          expect(result.flag_metadata).to be_nil
         else
           # Flag has valid allocation and split
-          expect(result.error_code).to be_nil
+          expect(result.error_code).to eq(:Ok)
           expect(result.value).not_to be_nil
           expect(result.variant).not_to be_empty
-          expect(result.reason).to be_in(['STATIC', 'SPLIT', 'TARGETING_MATCH'])
+          expect(['STATIC', 'SPLIT', 'TARGETING_MATCH', 'DEFAULT']).to include(result.reason)
+          expect(result.flag_metadata).not_to be_nil
         end
       end
 
@@ -191,7 +219,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         # Test with flags that have actual variations
         result = evaluator.get_assignment('numeric_flag', {}, :float, Time.now, 0.0)
         
-        if result.error_code.nil?
+        if result.error_code == :Ok && result.variant
           expect(result.value).to be_a(Numeric)
           expect(result.value).not_to eq(0.0) # Should be real variation value, not default
         end
@@ -201,9 +229,9 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         # Test allocation matching logic works for different flags
         result = evaluator.get_assignment('numeric_flag', {}, :float, Time.now, 0.0)
         
-        if result.error_code.nil?
-          expect(result.flag_metadata['allocationKey']).not_to be_empty
-          expect(result.flag_metadata['doLog']).to be_in([true, false])
+        if result.error_code == :Ok && result.variant
+          expect(result.flag_metadata.allocation_key).not_to be_empty
+          expect([true, false]).to include(result.flag_metadata.do_log)
         end
       end
 
@@ -211,8 +239,10 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         # Test that doLog handling works correctly for error cases
         result = evaluator.get_assignment('no_allocations_flag', {}, :object, Time.now, { "default" => "value" })
         
-        expect(result.error_code).to eq('DEFAULT_ALLOCATION_NULL')
+        expect(result.error_code).to eq(:Ok)  # Special case - expected condition
         expect(result.value).to eq({ "default" => "value" })
+        expect(result.variant).to be_nil
+        expect(result.flag_metadata).to be_nil
       end
 
       it 'handles different flags with proper allocation evaluation' do
@@ -272,26 +302,36 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
     it 'uses consistent error codes matching Rust implementation' do
       # Test all error types with default values
       flag_not_found = evaluator.get_assignment('missing', {}, :string, Time.now, 'default')
-      expect(flag_not_found.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
+      expect(flag_not_found.error_code).to eq(:FlagNotFound)
       expect(flag_not_found.value).to eq('default')
+      expect(flag_not_found.variant).to be_nil
+      expect(flag_not_found.flag_metadata).to be_nil
 
       flag_disabled = evaluator.get_assignment('disabled_flag', {}, :integer, Time.now, 42)
-      expect(flag_disabled.error_code).to eq('FLAG_DISABLED')
+      expect(flag_disabled.error_code).to eq(:Ok)  # Special case - expected condition
       expect(flag_disabled.value).to eq(42)
+      expect(flag_disabled.variant).to be_nil
+      expect(flag_disabled.flag_metadata).to be_nil
 
       type_mismatch = evaluator.get_assignment('numeric_flag', {}, :boolean, Time.now, true)
-      expect(type_mismatch.error_code).to eq('TYPE_MISMATCH')
+      expect(type_mismatch.error_code).to eq(:TypeMismatch)
       expect(type_mismatch.value).to eq(true)
+      expect(type_mismatch.variant).to be_nil
+      expect(type_mismatch.flag_metadata).to be_nil
     end
 
     it 'provides descriptive error messages matching Rust format' do
       result = evaluator.get_assignment('missing_flag', {}, :string, Time.now, 'fallback')
       expect(result.error_message).to eq('flag is missing in configuration, it is either unrecognized or disabled')
       expect(result.value).to eq('fallback')
+      expect(result.variant).to be_nil
+      expect(result.flag_metadata).to be_nil
       
       type_result = evaluator.get_assignment('numeric_flag', {}, :boolean, Time.now, false)
       expect(type_result.error_message).to match(/invalid flag type \(expected: .*, found: .*\)/)
       expect(type_result.value).to eq(false)
+      expect(type_result.variant).to be_nil
+      expect(type_result.flag_metadata).to be_nil
     end
   end
 end

@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
+require 'spec_helper'
 require 'json'
-require_relative '../../../../../lib/datadog/open_feature/binding/internal_evaluator'
+require 'datadog/open_feature/binding/internal_evaluator'
 
 RSpec.describe 'InternalEvaluator Allocation Matching' do
   describe 'time-based allocation filtering' do
@@ -43,11 +44,11 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
     it 'skips expired allocations and uses active ones' do
       result = evaluator.get_assignment("time_test_flag", {}, :string, Time.now, "default")
       
-      expect(result.error_code).to be_nil
+      expect(result.error_code).to eq(:Ok)
       expect(result.value).to eq("treatment_value") # Should use active allocation
       expect(result.variant).to eq("treatment")
-      expect(result.flag_metadata['allocationKey']).to eq("active_allocation")
-      expect(result.flag_metadata['doLog']).to eq(false)
+      expect(result.flag_metadata.allocation_key).to eq("active_allocation")
+      expect(result.flag_metadata.do_log).to eq(false)
     end
 
     it 'returns assignment reason based on allocation properties' do
@@ -63,8 +64,10 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
     it 'returns user default on flag lookup errors' do
       result = evaluator.get_assignment("missing_flag", {}, :string, Time.now, "user_fallback")
       
-      expect(result.error_code).to eq("FLAG_UNRECOGNIZED_OR_DISABLED") 
+      expect(result.error_code).to eq(:FlagNotFound) 
       expect(result.value).to eq("user_fallback")
+      expect(result.variant).to be_nil
+      expect(result.flag_metadata).to be_nil
     end
 
     it 'preserves different default types correctly' do
@@ -103,8 +106,10 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
       evaluator = Datadog::OpenFeature::Binding::InternalEvaluator.new(config_with_time_bounds.to_json)
       result = evaluator.get_assignment("timed_flag", {}, :boolean, Time.now, false)
       
-      expect(result.error_code).to be_nil
+      expect(result.error_code).to eq(:Ok)
       expect(result.reason).to eq("TARGETING_MATCH") # Has time bounds
+      expect(result.variant).not_to be_nil
+      expect(result.flag_metadata).not_to be_nil
     end
   end
 end
