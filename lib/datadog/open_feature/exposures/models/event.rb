@@ -6,7 +6,7 @@ module Datadog
   module OpenFeature
     module Exposures
       module Models
-        # A data model for an exposure event.
+        # A data model for an exposure event
         class Event
           TARGETING_KEY_FIELD = 'targeting_key'
           ALLOWED_FIELD_TYPES = [
@@ -95,8 +95,6 @@ module Datadog
             @payload.dig(:variant, :key).to_s
           end
 
-          # NOTE: The schema is this
-          #       https://github.com/DataDog/dd-source/blob/c10946901aaa103db960883c20161833a664e093/domains/evp-workers/apps/exposures-worker/schemas/exposure.json
           def to_h
             @payload
           end
