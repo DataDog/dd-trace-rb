@@ -33,7 +33,7 @@ module Datadog
         @telemetry = telemetry
 
         transport = Transport::HTTP.exposures(agent_settings: agent_settings, logger: logger)
-        @worker = Exposures::Worker.new(transport: transport, logger: logger)
+        @worker = Exposures::Worker.new(settings: settings, transport: transport, logger: logger)
         @reporter = Exposures::Reporter.new(@worker, telemetry: telemetry, logger: logger)
         @engine = EvaluationEngine.new(@reporter, telemetry: telemetry, logger: logger)
       end

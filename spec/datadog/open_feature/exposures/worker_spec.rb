@@ -7,14 +7,15 @@ require 'datadog/open_feature/transport/exposures'
 RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   subject(:worker) do
     described_class.new(
+      settings: settings,
       transport: transport,
       logger: logger,
       flush_interval_seconds: 0.1,
-      buffer_limit: 2,
-      context_builder: -> { {} }
+      buffer_limit: 2
     )
   end
 
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:transport) { instance_double(Datadog::OpenFeature::Transport::Exposures::Transport) }
   let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: true) }
   let(:logger) { logger_allowing_debug }

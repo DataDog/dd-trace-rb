@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
+require_relative '../../core/workers/queue'
 require_relative '../../core/workers/polling'
 
-require_relative 'batch'
 require_relative 'buffer'
-require_relative 'context'
+require_relative 'batch_builder'
 
 module Datadog
   module OpenFeature
     module Exposures
+      # This class is responsible for sending exposures to the Agent
       class Worker
         include Datadog::Core::Workers::Queue
         include Datadog::Core::Workers::Polling
@@ -18,17 +19,16 @@ module Datadog
 
         attr_reader :logger
 
-        # NOTE: Context builder and the data model is not finished
         def initialize(
+          settings:,
           transport:,
           logger: Datadog.logger,
           flush_interval_seconds: DEFAULT_FLUSH_INTERVAL_SECONDS,
-          buffer_limit: DEFAULT_BUFFER_LIMIT,
-          context_builder: nil
+          buffer_limit: DEFAULT_BUFFER_LIMIT
         )
           @logger = logger
           @transport = transport
-          @context_builder = context_builder || -> { Context.build }
+          @batch_builder = BatchBuilder.new(settings)
           @buffer_limit = buffer_limit
           @flush_mutex = Mutex.new
 
@@ -67,12 +67,12 @@ module Datadog
 
         def flush
           events, dropped = dequeue
-          send_events(events || [], dropped || 0)
+          send_events(events || [], dropped.to_i)
         end
 
         def perform(*args)
           events, dropped = args
-          send_events(events || [], dropped || 0)
+          send_events(events || [], dropped.to_i)
         end
 
         private
@@ -84,7 +84,7 @@ module Datadog
             logger.debug { "OpenFeature: Exposure worker dropped #{dropped} event(s) due to full buffer" }
           end
 
-          payload = Batch.new(context: @context_builder.call, exposures: events).to_h
+          payload = @batch_builder.payload_for(events)
           send_payload(payload)
         end
 
