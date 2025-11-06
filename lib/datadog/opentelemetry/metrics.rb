@@ -48,10 +48,7 @@ module Datadog
         end
 
         def create_resource(settings)
-          resource_attributes = {}
-          resource_attributes['service.name'] = settings.service if settings.service
-          resource_attributes['deployment.environment'] = settings.env if settings.env
-          resource_attributes['service.version'] = settings.version if settings.version
+          resource_attributes = {'host.name' => Datadog::Core::Environment::Socket.hostname}
 
           settings.tags&.each do |key, value|
             otel_key = case key
@@ -60,8 +57,12 @@ module Datadog
             when 'version' then 'service.version'
             else key
             end
-            resource_attributes[otel_key] = value unless resource_attributes.key?(otel_key)
+            resource_attributes[otel_key] = value
           end
+
+          resource_attributes['service.name'] = settings.service if settings.service
+          resource_attributes['deployment.environment'] = settings.env if settings.env
+          resource_attributes['service.version'] = settings.version if settings.version
 
           ::OpenTelemetry::SDK::Resources::Resource.create(resource_attributes)
         end

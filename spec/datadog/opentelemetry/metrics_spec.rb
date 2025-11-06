@@ -35,8 +35,8 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
   def clear_testagent_metrics
     uri = URI("http://#{agent_host}:#{DEFAULT_OTLP_HTTP_PORT}/test/session/clear")
     Net::HTTP.post_form(uri, {})
-  rescue
-    # Ignore errors if testagent is not available
+  rescue => e
+    puts "Error clearing testagent metrics: #{e.message}"
   end
 
   def get_testagent_metrics(max_retries: 5, wait_time: 0.2)
@@ -179,31 +179,32 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
         'DD_SERVICE' => 'custom-service',
         'DD_VERSION' => '2.0.0',
         'DD_ENV' => 'production',
-        'OTEL_METRIC_EXPORT_INTERVAL' => '10000',
-        'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf'
-      ) do |c|
-        c.service = 'custom-service'
-        c.version = '2.0.0'
-        c.env = 'production'
-      end
+        'DD_TRACE_REPORT_HOSTNAME' => 'true',
+      )
       
       provider = ::OpenTelemetry.meter_provider
       attributes = provider.instance_variable_get(:@resource).attribute_enumerator.to_h
       expect(attributes['service.name']).to eq('custom-service')
       expect(attributes['service.version']).to eq('2.0.0')
       expect(attributes['deployment.environment']).to eq('production')
+      expect(attributes['host.name']).to eq(Datadog::Core::Environment::Socket.hostname)
     end
 
     it 'includes custom tags as resource attributes' do
-      setup_metrics do |c|
+      setup_metrics('DD_SERVICE' => 'unused-name', 'DD_VERSION' => 'x.y.z', 'DD_ENV' => 'unused-env', "DD_TAGS" => "host.name:unused-hostname") do |c|
         c.service = 'test-service'
         c.version = '1.0.0'
         c.env = 'test'
-        c.tags = { 'team' => 'backend', 'region' => 'us-east-1' }
+        c.tags = { 'team' => 'backend', 'region' => 'us-east-1', 'host.name' => 'myhost' }
+        c.tracing.report_hostname = true
       end
-      
+
       provider = ::OpenTelemetry.meter_provider
       attributes = provider.instance_variable_get(:@resource).attribute_enumerator.to_h
+      expect(attributes['service.name']).to eq('test-service')
+      expect(attributes['service.version']).to eq('1.0.0')
+      expect(attributes['deployment.environment']).to eq('test')
+      expect(attributes['host.name']).to eq("myhost")
       expect(attributes['team']).to eq('backend')
       expect(attributes['region']).to eq('us-east-1')
     end
