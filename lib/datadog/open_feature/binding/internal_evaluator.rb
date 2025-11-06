@@ -2,6 +2,7 @@
 
 require 'json'
 require_relative 'configuration'
+require_relative '../ext'
 
 module Datadog
   module OpenFeature
@@ -51,13 +52,13 @@ module Datadog
       class InternalEvaluator
         # libdatadog error code mapping
         ERROR_CODE_MAPPING = {
-          'FLAG_UNRECOGNIZED_OR_DISABLED' => :FlagNotFound,
-          'FLAG_DISABLED' => :Ok,  # Special case - expected condition
-          'TYPE_MISMATCH' => :TypeMismatch,
-          'CONFIGURATION_PARSE_ERROR' => :ParseError,
-          'CONFIGURATION_MISSING' => :ParseError,
-          'DEFAULT_ALLOCATION_NULL' => :Ok,  # Special case - expected condition
-          'PROVIDER_NOT_READY' => :ProviderNotReady
+          Ext::FLAG_UNRECOGNIZED_OR_DISABLED => :FlagNotFound,
+          Ext::FLAG_DISABLED => :Ok,  # Special case - expected condition
+          Ext::TYPE_MISMATCH_ERROR => :TypeMismatch,
+          Ext::CONFIGURATION_PARSE_ERROR => :ParseError,
+          Ext::CONFIGURATION_MISSING => :ProviderNotReady,  # Maps to ProviderNotReady per Rust
+          Ext::DEFAULT_ALLOCATION_NULL => :Ok,  # Special case - expected condition
+          Ext::INTERNAL_ERROR => :General
         }.freeze
 
         # Variation type mapping to libdatadog format
@@ -89,18 +90,18 @@ module Datadog
           
           # Return default value if flag not found - using Rust naming convention
           unless flag
-            return create_error_result(default_value, 'FLAG_UNRECOGNIZED_OR_DISABLED', 
+            return create_error_result(default_value, Ext::FLAG_UNRECOGNIZED_OR_DISABLED, 
               "flag is missing in configuration, it is either unrecognized or disabled")
           end
 
           # Return default value if flag is disabled - using Rust naming and message
           unless flag.enabled
-            return create_error_result(default_value, 'FLAG_DISABLED', "flag is disabled")
+            return create_error_result(default_value, Ext::FLAG_DISABLED, "flag is disabled")
           end
 
           # Validate type compatibility if expected_type is provided - using Rust message format
           if expected_type && !type_matches?(flag.variation_type, expected_type)
-            return create_error_result(default_value, 'TYPE_MISMATCH', 
+            return create_error_result(default_value, Ext::TYPE_MISMATCH_ERROR, 
               "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})")
           end
 
@@ -129,7 +130,7 @@ module Datadog
           # Handle nil or empty input
           if ufc_json.nil? || ufc_json.strip.empty?
             # TODO: Add structured logging for debugging context
-            return create_parse_error('CONFIGURATION_MISSING', 'flags configuration is missing')
+            return create_parse_error(Ext::CONFIGURATION_MISSING, 'flags configuration is missing')
           end
 
           # Parse JSON
@@ -138,23 +139,23 @@ module Datadog
           # Basic structure validation
           unless parsed_json.is_a?(Hash)
             # TODO: Add structured logging for debugging context
-            return create_parse_error('CONFIGURATION_PARSE_ERROR', 'failed to parse configuration')
+            return create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
           # Check for required top-level fields (basic validation for now)
           unless parsed_json.key?('flags') || parsed_json.key?('flagsV1')
             # TODO: Add structured logging for debugging context
-            return create_parse_error('CONFIGURATION_PARSE_ERROR', 'failed to parse configuration')
+            return create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
           # Parse into Configuration object
           Configuration.from_json(parsed_json)
         rescue JSON::ParserError => e
           # TODO: Add structured logging: "Invalid JSON syntax: #{e.message}"
-          create_parse_error('CONFIGURATION_PARSE_ERROR', 'failed to parse configuration')
+          create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
         rescue StandardError => e
           # TODO: Add structured logging: "Unexpected error: #{e.message}"
-          create_parse_error('CONFIGURATION_PARSE_ERROR', 'failed to parse configuration')
+          create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
         end
 
         def create_parse_error(error_code, error_message)
@@ -196,7 +197,7 @@ module Datadog
                               end
           
           # Special cases for expected conditions should not have ERROR reason
-          reason = if ['DEFAULT_ALLOCATION_NULL', 'FLAG_DISABLED'].include?(error_code.to_s)
+          reason = if [Ext::DEFAULT_ALLOCATION_NULL, Ext::FLAG_DISABLED].include?(error_code.to_s)
                      'DEFAULT' # These are expected conditions, not errors
                    else
                      'ERROR'
@@ -225,7 +226,7 @@ module Datadog
         def evaluate_flag_allocations(flag, evaluation_context, time)
           # Return error if no allocations - matches Rust DEFAULT_ALLOCATION_NULL
           if flag.allocations.empty?
-            raise EvaluationError.new('DEFAULT_ALLOCATION_NULL', 'default allocation is matched and is serving NULL')
+            raise EvaluationError.new(Ext::DEFAULT_ALLOCATION_NULL, 'default allocation is matched and is serving NULL')
           end
 
           # Convert time parameter to Time object for comparisons
@@ -241,7 +242,7 @@ module Datadog
                 return [allocation, variation, reason]
               else
                 # Variation referenced by split doesn't exist - configuration error
-                raise EvaluationError.new('CONFIGURATION_PARSE_ERROR', 'failed to parse configuration')
+                raise EvaluationError.new(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
               end
             end
           end
