@@ -49,11 +49,10 @@ module Datadog
                 end
 
                 option :endpoint do |o|
-                  o.type :string, nilable: true
+                  o.type :string
                   o.env 'OTEL_EXPORTER_OTLP_ENDPOINT'
                   o.default do
-                    protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
-                    protocol ||= 'http/protobuf'
+                    protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL'] || 'http/protobuf'
                     host = Datadog::OpenTelemetry::Configuration::Settings.resolve_agent_hostname
                     port = protocol == 'http/protobuf' ? 4318 : 4317
                     "http://#{host}:#{port}"
@@ -99,36 +98,19 @@ module Datadog
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT'
                   o.default do
                     metrics_protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_PROTOCOL']
-                    general_protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
-                    general_endpoint = DATADOG_ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
-                    
-                    # If general endpoint is set, don't construct a default - let resolve_metrics_endpoint handle it
-                    next nil if general_endpoint
-                    
-                    # Only construct default if a protocol is set. 
-                    next nil unless metrics_protocol || general_protocol
+                    next nil unless metrics_protocol
 
-                    protocol = metrics_protocol || general_protocol || 'http/protobuf'
                     host = Datadog::OpenTelemetry::Configuration::Settings.resolve_agent_hostname
-                    port = protocol == 'http/protobuf' ? 4318 : 4317
-                    path = protocol == 'http/protobuf' ? '/v1/metrics' : ''
+                    port = metrics_protocol == 'http/protobuf' ? 4318 : 4317
+                    path = metrics_protocol == 'http/protobuf' ? '/v1/metrics' : ''
                     "http://#{host}:#{port}#{path}"
                   end
                 end
 
                 option :headers do |o|
-                  o.type :hash
+                  o.type :hash, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_HEADERS'
-                  o.default do
-                    general_headers = DATADOG_ENV['OTEL_EXPORTER_OTLP_HEADERS']
-                    if general_headers && !general_headers.empty?
-                      JSON.parse(general_headers)
-                    else
-                      {}
-                    end
-                  rescue JSON::ParserError
-                    {}
-                  end
+                  o.default nil
                   o.env_parser do |value|
                     return {} unless value && !value.empty?
                     JSON.parse(value)
@@ -139,22 +121,16 @@ module Datadog
                 end
 
                 option :timeout do |o|
-                  o.type :int
+                  o.type :int, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT'
-                  o.default do
-                    general_timeout = DATADOG_ENV['OTEL_EXPORTER_OTLP_TIMEOUT']
-                    general_timeout ? general_timeout.to_i : 10_000
-                  end
+                  o.default nil
                   o.env_parser { |value| value&.to_i }
                 end
 
                 option :protocol do |o|
-                  o.type :string
+                  o.type :string, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'
-                  o.default do
-                    general_protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
-                    general_protocol || 'http/protobuf'
-                  end
+                  o.default nil
                 end
               end
             end

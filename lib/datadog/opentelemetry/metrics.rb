@@ -107,7 +107,7 @@ module Datadog
           reader = ::OpenTelemetry::SDK::Metrics::Export::PeriodicMetricReader.new(
             exporter: exporter,
             export_interval_millis: metrics_config.export_interval,
-            export_timeout_millis: timeout
+            export_timeout_millis: metrics_config.export_timeout
           )
           provider.add_metric_reader(reader)
         rescue LoadError => e

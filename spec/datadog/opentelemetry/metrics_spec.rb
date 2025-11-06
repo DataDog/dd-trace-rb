@@ -213,67 +213,58 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
 
     it 'uses default values when environment variables are not set' do
-      ClimateControl.modify(
-        'DD_METRICS_OTEL_ENABLED' => nil,
-        'OTEL_METRIC_EXPORT_INTERVAL' => nil,
-        'OTEL_EXPORTER_OTLP_PROTOCOL' => nil
-      ) do
-        expect(settings.opentelemetry.metrics.enabled).to be false
-        expect(settings.opentelemetry.metrics.export_interval).to eq(10_000)
-        expect(settings.opentelemetry.exporter.protocol).to eq('http/protobuf')
-        expect(settings.opentelemetry.exporter.endpoint).to eq('http://127.0.0.1:4318')
-      end
+      setup_metrics
+
+      provider = ::OpenTelemetry.meter_provider
+      reader = provider.metric_readers.first
+      exporter = reader.instance_variable_get(:@exporter)
+      
+      expect(exporter.instance_variable_get(:@uri).to_s).to eq("http://#{agent_host}:4318/v1/metrics")
+      expect(exporter.instance_variable_get(:@timeout)).to eq(10.0)
+      expect(reader.instance_variable_get(:@export_interval)).to eq(10.0)
+      expect(reader.instance_variable_get(:@export_timeout)).to eq(7.5)
     end
 
     it 'metrics-specific configs take precedence over general OTLP configs' do
-      ClimateControl.modify(
+      setup_metrics(
         'DD_METRICS_OTEL_ENABLED' => 'true',
-        'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT' => 'http://metrics:4317',
+        'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT' => 'http://metrics:4318/v1/metrics',
         'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL' => 'http/protobuf',
         'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT' => '5000',
         'OTEL_EXPORTER_OTLP_METRICS_HEADERS' => '{"metrics":"value"}',
+        'OTEL_METRIC_EXPORT_INTERVAL' => '4000',
+        'OTEL_METRIC_EXPORT_TIMEOUT' => '3000',
         'OTEL_EXPORTER_OTLP_ENDPOINT' => 'http://general:4317',
         'OTEL_EXPORTER_OTLP_PROTOCOL' => 'grpc',
-        'OTEL_EXPORTER_OTLP_TIMEOUT' => '20000',
+        'OTEL_EXPORTER_OTLP_TIMEOUT' => '2000',
         'OTEL_EXPORTER_OTLP_HEADERS' => '{"general":"value"}'
-      ) do
-        expect(settings.opentelemetry.metrics.endpoint).to eq('http://metrics:4317')
-        expect(settings.opentelemetry.metrics.protocol).to eq('http/protobuf')
-        expect(settings.opentelemetry.metrics.timeout).to eq(5_000)
-        expect(settings.opentelemetry.metrics.headers).to eq('metrics' => 'value')
-        expect(settings.opentelemetry.exporter.endpoint).to eq('http://general:4317')
-        expect(settings.opentelemetry.exporter.protocol).to eq('grpc')
-        expect(settings.opentelemetry.exporter.timeout).to eq(20_000)
-        expect(settings.opentelemetry.exporter.headers).to eq('general' => 'value')
-      end
+      )
+
+      provider = ::OpenTelemetry.meter_provider
+      reader = provider.metric_readers.first
+      exporter = reader.instance_variable_get(:@exporter)
+      
+      expect(exporter.instance_variable_get(:@uri).to_s).to eq('http://metrics:4318/v1/metrics')
+      expect(exporter.instance_variable_get(:@timeout)).to eq(5.0)
+      expect(reader.instance_variable_get(:@export_interval)).to eq(4.0)
+      expect(reader.instance_variable_get(:@export_timeout)).to eq(3.0)
+      expect(exporter.instance_variable_get(:@headers)['metrics']).to eq('value')
     end
 
     it 'general OTLP configs work in isolation' do
-      ClimateControl.modify(
-        'DD_METRICS_OTEL_ENABLED' => 'true',
+      setup_metrics(
         'OTEL_EXPORTER_OTLP_ENDPOINT' => 'http://general:4317',
         'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf',
         'OTEL_EXPORTER_OTLP_TIMEOUT' => '8000',
         'OTEL_EXPORTER_OTLP_HEADERS' => '{"general":"value"}'
-      ) do
-        expect(settings.opentelemetry.exporter.endpoint).to eq('http://general:4317')
-        expect(settings.opentelemetry.exporter.protocol).to eq('http/protobuf')
-        expect(settings.opentelemetry.exporter.timeout).to eq(8_000)
-        expect(settings.opentelemetry.exporter.headers).to eq('general' => 'value')
-        expect(settings.opentelemetry.metrics.protocol).to eq('http/protobuf')
-        expect(settings.opentelemetry.metrics.timeout).to eq(8_000)
-        expect(settings.opentelemetry.metrics.headers).to eq('general' => 'value')
-      end
-    end
-
-    it 'respects export interval and timeout in SDK' do
-      setup_metrics(
-        'OTEL_METRIC_EXPORT_INTERVAL' => '200',
-        'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT' => '10000'
       )
-      reader = ::OpenTelemetry.meter_provider.metric_readers.first
-      expect(reader.instance_variable_get(:@export_interval)).to eq(0.2)
-      expect(reader.instance_variable_get(:@export_timeout)).to eq(10.0)
+      provider = ::OpenTelemetry.meter_provider
+      reader = provider.metric_readers.first
+      exporter = reader.instance_variable_get(:@exporter)
+      
+      expect(exporter.instance_variable_get(:@uri).to_s).to eq('http://general:4317/v1/metrics')
+      expect(exporter.instance_variable_get(:@timeout)).to eq(8.0)
+      expect(exporter.instance_variable_get(:@headers)['general']).to eq('value')
     end
 
     it 'uses OTLP exporter when configured' do
