@@ -24,10 +24,10 @@ module Datadog
           @parsed_config = parse_and_validate_json(ufc_json)
         end
 
-        def get_assignment(_configuration, flag_key, _evaluation_context, expected_type, _time, default_value)
+        def get_assignment(flag_key, _evaluation_context, expected_type, _time, default_value)
           # Return default value if JSON parsing failed during initialization
-          if @parsed_config.is_a?(ResolutionDetails)
-            return ResolutionDetails.new(
+          if @parsed_config.is_a?(EvaluationResult)
+            return EvaluationResult.new(
               value: default_value,
               error_code: @parsed_config.error_code,
               error_message: @parsed_config.error_message
@@ -59,18 +59,18 @@ module Datadog
             selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, _evaluation_context, _time)
             
             # Return the actual assignment result
-            ResolutionDetails.new(
+            EvaluationResult.new(
               value: selected_variation.value,
               reason: reason,
               variant: selected_variation.key,
               flag_metadata: {
                 'allocationKey' => selected_allocation.key,
                 'doLog' => selected_allocation.do_log,
-                'variationType' => flag.variation_type
+                'variationType' => convert_variation_type_for_output(flag.variation_type)
               }
             )
           rescue EvaluationError => e
-            # Convert evaluation errors to ResolutionDetails with default value - matches Rust error propagation
+            # Convert evaluation errors to EvaluationResult with default value - matches Rust error propagation
             create_evaluation_error_with_default(e.code, e.message, default_value)
           end
         end
@@ -110,7 +110,7 @@ module Datadog
         end
 
         def create_parse_error(error_code, error_message)
-          ResolutionDetails.new(
+          EvaluationResult.new(
             value: nil,
             error_code: error_code,
             error_message: error_message
@@ -118,7 +118,7 @@ module Datadog
         end
 
         def create_evaluation_error(error_code, error_message)
-          ResolutionDetails.new(
+          EvaluationResult.new(
             value: nil,
             error_code: error_code,
             error_message: error_message
@@ -126,7 +126,7 @@ module Datadog
         end
 
         def create_evaluation_error_with_default(error_code, error_message, default_value)
-          ResolutionDetails.new(
+          EvaluationResult.new(
             value: default_value,
             error_code: error_code,
             error_message: error_message
@@ -255,11 +255,23 @@ module Datadog
           
           # If evaluation_context is a hash, look up the attribute
           if evaluation_context.respond_to?(:[])
-            evaluation_context[attribute_name] || evaluation_context[attribute_name.to_sym]
+            attribute_value = evaluation_context[attribute_name] || evaluation_context[attribute_name.to_sym]
+            
+            # Special handling for 'id' attribute: if not present, use targeting_key
+            if attribute_value.nil? && attribute_name == 'id'
+              attribute_value = get_targeting_key(evaluation_context)
+            end
+            
+            attribute_value
           elsif evaluation_context.respond_to?(attribute_name)
             evaluation_context.send(attribute_name)
           else
-            nil
+            # Special handling for 'id' attribute: if not present, use targeting_key
+            if attribute_name == 'id'
+              get_targeting_key(evaluation_context)
+            else
+              nil
+            end
           end
         end
 
@@ -446,6 +458,19 @@ module Datadog
             AssignmentReason::STATIC
           else
             AssignmentReason::SPLIT
+          end
+        end
+
+        def convert_variation_type_for_output(variation_type)
+          # Convert from SCREAMING_SNAKE_CASE to lowercase format for output
+          # This matches the expected test format
+          case variation_type
+          when VariationType::STRING then 'string'
+          when VariationType::INTEGER then 'number'
+          when VariationType::NUMERIC then 'number'
+          when VariationType::BOOLEAN then 'boolean'
+          when VariationType::JSON then 'object'
+          else variation_type # fallback to original value
           end
         end
       end

@@ -5,14 +5,24 @@ require_relative 'resolution_details'
 module Datadog
   module OpenFeature
     module Binding
+      EvaluationResult = Struct.new(
+        :value,
+        :reason,
+        :variant,
+        :error_code,
+        :error_message,
+        :flag_metadata,
+        keyword_init: true
+      )
+
       class Evaluator
         def initialize(ufc_json)
           # NOTE: In real binding we will parse and create Configuration
           @ufc_json = ufc_json
         end
 
-        def get_assignment(_configuration, _flag_key, _evaluation_context, expected_type, _time, _default_value)
-          ResolutionDetails.new(
+        def get_assignment(_flag_key, _evaluation_context, expected_type, _time, _default_value)
+          EvaluationResult.new(
             value: generate(expected_type),
             reason: 'TARGETING_MATCH',
             variant: 'hardcoded-variant',
