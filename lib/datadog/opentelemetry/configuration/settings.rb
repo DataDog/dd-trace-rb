@@ -3,6 +3,7 @@
 require 'json'
 require 'uri'
 require_relative '../../core/configuration/ext'
+require_relative '../../core/configuration/agent_settings_resolver'
 
 module Datadog
   module OpenTelemetry
@@ -36,7 +37,7 @@ module Datadog
                   option :protocol do |o|
                     o.type :string
                     o.env 'OTEL_EXPORTER_OTLP_PROTOCOL'
-                    o.default 'grpc'
+                    o.default 'http/protobuf'
                   end
 
                   option :timeout do |o|
@@ -64,7 +65,7 @@ module Datadog
                     o.env 'OTEL_EXPORTER_OTLP_ENDPOINT'
                     o.default do
                       protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
-                      protocol ||= 'grpc'
+                      protocol ||= 'http/protobuf'
                       host = Datadog::OpenTelemetry::Configuration::Settings.resolve_agent_hostname
                       port = protocol == 'http/protobuf' ? 4318 : 4317
                       "http://#{host}:#{port}"
@@ -119,7 +120,7 @@ module Datadog
                       # Only construct default if a protocol is set. 
                       next nil unless metrics_protocol || general_protocol
 
-                      protocol = metrics_protocol || general_protocol || 'grpc'
+                      protocol = metrics_protocol || general_protocol || 'http/protobuf'
                       host = Datadog::OpenTelemetry::Configuration::Settings.resolve_agent_hostname
                       port = protocol == 'http/protobuf' ? 4318 : 4317
                       path = protocol == 'http/protobuf' ? '/v1/metrics' : ''
@@ -164,7 +165,7 @@ module Datadog
                     o.env 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'
                     o.default do
                       general_protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL']
-                      general_protocol || 'grpc'
+                      general_protocol || 'http/protobuf'
                     end
                   end
                 end

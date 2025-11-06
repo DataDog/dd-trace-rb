@@ -111,10 +111,10 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
     it 'exports counter metrics' do
       setup_metrics
       provider = ::OpenTelemetry.meter_provider
-      provider.meter('app').create_counter('requests').add(5)
+      provider.meter('app').create_counter('requests_myapp').add(5)
       flush_and_wait(provider)
-      
-      metric = find_metric_in_json(get_testagent_metrics, 'requests')
+
+      metric = find_metric_in_json(get_testagent_metrics, 'requests_myapp')
       expect(metric['sum']['data_points'].first['as_int'].to_i).to eq(5)
     end
 
@@ -158,7 +158,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
       provider = ::OpenTelemetry.meter_provider
       meter = provider.meter('app')
       meter.create_histogram('size').record(100)
-      meter.create_counter('requests').add(10)
+      meter.create_counter('requests.monkey').add(10)
       meter.create_gauge('memory').record(100)
       flush_and_wait(provider)
       
@@ -166,8 +166,8 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
       
       size_metric = find_metric_in_json(metrics, 'size')
       expect(size_metric['histogram']['data_points'].first['sum']).to eq(100.0)
-      
-      requests_metric = find_metric_in_json(metrics, 'requests')
+
+      requests_metric = find_metric_in_json(metrics, 'requests.monkey')
       expect(requests_metric['sum']['data_points'].first['as_int'].to_i).to eq(10)
       
       memory_metric = find_metric_in_json(metrics, 'memory')
@@ -225,8 +225,8 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
       ) do
         expect(settings.opentelemetry.metrics.enabled).to be false
         expect(settings.opentelemetry.metrics.export_interval).to eq(10_000)
-        expect(settings.opentelemetry.exporter.protocol).to eq('grpc')
-        expect(settings.opentelemetry.exporter.endpoint).to eq('http://127.0.0.1:4317')
+        expect(settings.opentelemetry.exporter.protocol).to eq('http/protobuf')
+        expect(settings.opentelemetry.exporter.endpoint).to eq('http://127.0.0.1:4318')
       end
     end
 
