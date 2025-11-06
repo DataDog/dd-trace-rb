@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'uri'
 require_relative '../../core/configuration/ext'
 require_relative '../../core/configuration/agent_settings_resolver'
 
@@ -15,19 +14,8 @@ module Datadog
           end
 
           def self.resolve_agent_hostname
-            settings = defined?(Datadog) && Datadog.respond_to?(:configuration) ? Datadog.configuration : nil
-            agent_host = settings&.agent&.host
-            unless agent_host
-              ext = Datadog::Core::Configuration::Ext
-              url = DATADOG_ENV[ext::Agent::ENV_DEFAULT_URL]
-              if url
-                parsed = URI.parse(url) rescue nil
-                agent_host = parsed&.hostname
-              end
-              agent_host ||= DATADOG_ENV[ext::Agent::ENV_DEFAULT_HOST]
-              agent_host ||= ext::Agent::HTTP::DEFAULT_HOST
-            end
-            agent_host
+            agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(Datadog.configuration)
+            agent_settings.hostname || Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
           end
 
           def self.add_settings!(base)
