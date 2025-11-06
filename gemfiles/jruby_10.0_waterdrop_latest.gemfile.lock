@@ -3,7 +3,7 @@ PATH
   specs:
     datadog (2.23.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 22.0.1.1.0)
+      libdatadog (~> 23.0.0.1.0)
       libddwaf (~> 1.25.1.1.0)
       logger
       msgpack
@@ -42,7 +42,7 @@ GEM
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    libdatadog (22.0.1.1.0)
+    libdatadog (23.0.0.1.0)
     libddwaf (1.25.1.1.0)
       ffi (~> 1.0)
     logger (1.7.0)
@@ -106,6 +106,7 @@ GEM
 
 PLATFORMS
   universal-java-11
+  universal-java-22
 
 DEPENDENCIES
   benchmark
@@ -134,4 +135,4 @@ DEPENDENCIES
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-   2.6.9
+   2.7.2
