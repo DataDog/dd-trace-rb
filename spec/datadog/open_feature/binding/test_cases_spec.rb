@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# This spec validates our InternalEvaluator implementation against comprehensive
-# test cases from the reference implementation, ensuring behavioral compatibility.
+# This spec validates our InternalEvaluator implementation against test cases from 
+# libdatadog, ensuring behavioral compatibility.
 # 
 # The test data comes from the same JSON files used by reference implementations
 # across multiple languages, ensuring we maintain compatibility for eventual 

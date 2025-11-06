@@ -46,7 +46,20 @@ module Datadog
         # In the example from the OpenFeature there is zero trust to the result of the evaluation
         # do we want to go that way?
 
-        @evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now.utc.to_i, default_value)
+        result = @evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now.utc.to_i, default_value)
+        
+        # Handle libdatadog-aligned result format
+        if result.error_code != :Ok
+          # Convert libdatadog error codes to OpenFeature error codes
+          return ResolutionError.new(
+            code: map_libdatadog_error_to_openfeature(result.error_code),
+            message: result.error_message,
+            reason: result.reason || Ext::ERROR
+          )
+        end
+        
+        # Return the result for successful evaluations
+        result
       rescue => e
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
 
@@ -65,6 +78,20 @@ module Datadog
 
         @logger.error("#{error_message}, error #{e.inspect}")
         @telemetry.report(e, description: error_message)
+      end
+
+      private
+
+      # Map libdatadog error codes to OpenFeature error codes
+      def map_libdatadog_error_to_openfeature(libdatadog_error)
+        case libdatadog_error
+        when :TypeMismatch then Ext::TYPE_MISMATCH
+        when :ParseError then Ext::PARSE_ERROR
+        when :FlagNotFound then Ext::FLAG_NOT_FOUND
+        when :ProviderNotReady then Ext::PROVIDER_NOT_READY
+        when :General then Ext::PROVIDER_FATAL
+        else Ext::PROVIDER_FATAL
+        end
       end
     end
   end

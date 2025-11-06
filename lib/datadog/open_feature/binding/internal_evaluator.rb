@@ -2,11 +2,41 @@
 
 require 'json'
 require_relative 'configuration'
-require_relative 'evaluator'
 
 module Datadog
   module OpenFeature
     module Binding
+      # libdatadog-aligned result structures
+      ResultContent = Struct.new(:value, :variant, :flag_metadata, keyword_init: true)
+      FlagMetadata = Struct.new(:allocation_key, :variation_type, :do_log, keyword_init: true)
+      
+      # Dual-layer result structure matching libdatadog interface
+      class EvaluationResult
+        attr_reader :result, :error_code, :error_message, :reason
+        
+        def initialize(result:, error_code: :Ok, error_message: nil, reason: nil)
+          @result = result
+          @error_code = error_code
+          @error_message = error_message  
+          @reason = reason
+        end
+        
+        # Convenience method to get the value from result
+        def value
+          @result&.value
+        end
+        
+        # Convenience method to get variant from result
+        def variant
+          @result&.variant
+        end
+        
+        # Convenience method to get flag_metadata from result
+        def flag_metadata
+          @result&.flag_metadata
+        end
+      end
+
       # Custom error for evaluation failures
       class EvaluationError < StandardError
         attr_reader :code, :message
@@ -19,6 +49,26 @@ module Datadog
       end
 
       class InternalEvaluator
+        # libdatadog error code mapping
+        ERROR_CODE_MAPPING = {
+          'FLAG_UNRECOGNIZED_OR_DISABLED' => :FlagNotFound,
+          'FLAG_DISABLED' => :Ok,  # Special case - expected condition
+          'TYPE_MISMATCH' => :TypeMismatch,
+          'CONFIGURATION_PARSE_ERROR' => :ParseError,
+          'CONFIGURATION_MISSING' => :ParseError,
+          'DEFAULT_ALLOCATION_NULL' => :Ok,  # Special case - expected condition
+          'PROVIDER_NOT_READY' => :ProviderNotReady
+        }.freeze
+
+        # Variation type mapping to libdatadog format
+        VARIATION_TYPE_MAPPING = {
+          'STRING' => 'string',
+          'INTEGER' => 'number', 
+          'NUMERIC' => 'number',
+          'BOOLEAN' => 'boolean',
+          'JSON' => 'object'
+        }.freeze
+        
         def initialize(ufc_json)
           @ufc_json = ufc_json
           @parsed_config = parse_and_validate_json(ufc_json)
@@ -27,10 +77,10 @@ module Datadog
         def get_assignment(flag_key, _evaluation_context, expected_type, _time, default_value)
           # Return default value if JSON parsing failed during initialization
           if @parsed_config.is_a?(EvaluationResult)
-            return EvaluationResult.new(
-              value: default_value,
-              error_code: @parsed_config.error_code,
-              error_message: @parsed_config.error_message
+            return create_error_result(
+              default_value, 
+              @parsed_config.error_code, 
+              @parsed_config.error_message
             )
           end
 
@@ -39,39 +89,37 @@ module Datadog
           
           # Return default value if flag not found - using Rust naming convention
           unless flag
-            return create_evaluation_error_with_default('FLAG_UNRECOGNIZED_OR_DISABLED', 
-              "flag is missing in configuration, it is either unrecognized or disabled", default_value)
+            return create_error_result(default_value, 'FLAG_UNRECOGNIZED_OR_DISABLED', 
+              "flag is missing in configuration, it is either unrecognized or disabled")
           end
 
           # Return default value if flag is disabled - using Rust naming and message
           unless flag.enabled
-            return create_evaluation_error_with_default('FLAG_DISABLED', "flag is disabled", default_value)
+            return create_error_result(default_value, 'FLAG_DISABLED', "flag is disabled")
           end
 
           # Validate type compatibility if expected_type is provided - using Rust message format
           if expected_type && !type_matches?(flag.variation_type, expected_type)
-            return create_evaluation_error_with_default('TYPE_MISMATCH', 
-              "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})", default_value)
+            return create_error_result(default_value, 'TYPE_MISMATCH', 
+              "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})")
           end
 
           # Use actual allocations and variations from the parsed flag
           begin
             selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, _evaluation_context, _time)
             
-            # Return the actual assignment result
-            EvaluationResult.new(
-              value: selected_variation.value,
-              reason: reason,
-              variant: selected_variation.key,
-              flag_metadata: {
-                'allocationKey' => selected_allocation.key,
-                'doLog' => selected_allocation.do_log,
-                'variationType' => convert_variation_type_for_output(flag.variation_type)
-              }
+            # Return the actual assignment result - success case with full metadata
+            create_success_result(
+              selected_variation.value,
+              selected_variation.key,
+              selected_allocation.key,
+              convert_variation_type_for_output(flag.variation_type),
+              selected_allocation.do_log,
+              reason
             )
           rescue EvaluationError => e
             # Convert evaluation errors to EvaluationResult with default value - matches Rust error propagation
-            create_evaluation_error_with_default(e.code, e.message, default_value)
+            create_error_result(default_value, e.code, e.message)
           end
         end
 
@@ -110,26 +158,55 @@ module Datadog
         end
 
         def create_parse_error(error_code, error_message)
-          EvaluationResult.new(
-            value: nil,
-            error_code: error_code,
-            error_message: error_message
-          )
+          create_error_result(nil, error_code, error_message)
         end
 
         def create_evaluation_error(error_code, error_message)
-          EvaluationResult.new(
-            value: nil,
-            error_code: error_code,
-            error_message: error_message
-          )
+          create_error_result(nil, error_code, error_message)
         end
 
         def create_evaluation_error_with_default(error_code, error_message, default_value)
+          create_error_result(default_value, error_code, error_message)
+        end
+
+        # New libdatadog-aligned result creation methods
+        def create_success_result(value, variant, allocation_key, variation_type, do_log, reason)
           EvaluationResult.new(
-            value: default_value,
-            error_code: error_code,
-            error_message: error_message
+            result: ResultContent.new(
+              value: value,
+              variant: variant,
+              flag_metadata: FlagMetadata.new(
+                allocation_key: allocation_key,
+                variation_type: variation_type,
+                do_log: do_log
+              )
+            ),
+            error_code: :Ok,
+            reason: reason
+          )
+        end
+
+        def create_error_result(default_value, error_code, error_message)
+          # Map internal error codes to libdatadog error codes
+          # If error_code is already a symbol, use it directly, otherwise map it
+          mapped_error_code = if error_code.is_a?(Symbol)
+                                error_code
+                              else
+                                ERROR_CODE_MAPPING[error_code] || :General
+                              end
+          
+          # Special cases for expected conditions should not have ERROR reason
+          reason = if ['DEFAULT_ALLOCATION_NULL', 'FLAG_DISABLED'].include?(error_code.to_s)
+                     'DEFAULT' # These are expected conditions, not errors
+                   else
+                     'ERROR'
+                   end
+          
+          EvaluationResult.new(
+            result: ResultContent.new(value: default_value),
+            error_code: mapped_error_code,
+            error_message: error_message,
+            reason: reason
           )
         end
 
@@ -412,11 +489,11 @@ module Datadog
         end
 
         def split_matches?(split, targeting_key)
-          # If no targeting key, can't do traffic splitting - return false
-          return false if targeting_key.nil?
-          
           # If split has no shards, it matches everyone (100% allocation)
           return true if split.shards.empty?
+          
+          # If no targeting key, can't do traffic splitting - return false
+          return false if targeting_key.nil?
           
           # For split to match, ALL shards must match (AND logic)
           split.shards.all? { |shard| shard_matches?(shard, targeting_key) }
@@ -462,16 +539,8 @@ module Datadog
         end
 
         def convert_variation_type_for_output(variation_type)
-          # Convert from SCREAMING_SNAKE_CASE to lowercase format for output
-          # This matches the expected test format
-          case variation_type
-          when VariationType::STRING then 'string'
-          when VariationType::INTEGER then 'number'
-          when VariationType::NUMERIC then 'number'
-          when VariationType::BOOLEAN then 'boolean'
-          when VariationType::JSON then 'object'
-          else variation_type # fallback to original value
-          end
+          # Convert from SCREAMING_SNAKE_CASE to lowercase format for output using mapping
+          VARIATION_TYPE_MAPPING[variation_type] || variation_type.to_s.downcase
         end
       end
     end
