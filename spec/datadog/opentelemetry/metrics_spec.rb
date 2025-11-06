@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'opentelemetry/sdk'
 require 'opentelemetry-metrics-sdk'
 require 'opentelemetry/exporter/otlp_metrics'
-require 'datadog/opentelemetry/metrics'
+require 'datadog/opentelemetry'
 require 'datadog/core/configuration/settings'
 require 'net/http'
 require 'json'
@@ -16,6 +16,9 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
 
   before do
     Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
+    provider = ::OpenTelemetry.meter_provider
+    provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+    ::OpenTelemetry.meter_provider = ::OpenTelemetry::Internal::ProxyMeterProvider.new
     allow(Datadog.logger).to receive(:warn)
     allow(Datadog.logger).to receive(:error)
     allow(Datadog.logger).to receive(:debug)
@@ -24,6 +27,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
 
   after do
     provider = ::OpenTelemetry.meter_provider
+    # Ensures background threads collecting metrics are shutdown.
     provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
     clear_testagent_metrics
   end
@@ -77,25 +81,16 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
     attr&.dig('value', 'string_value') || attr&.dig('value', 'int_value') || attr&.dig('value', 'double_value')
   end
 
-  # Setup helpers
-  def setup_metrics(env_overrides = {})
-    base_env = {
+  def setup_metrics(env_overrides = {}, &config_block)
+    ClimateControl.modify({
       'DD_METRICS_OTEL_ENABLED' => 'true',
-      'DD_SERVICE' => 'test-service',
-      'DD_VERSION' => '1.0.0',
-      'DD_ENV' => 'test',
       'DD_AGENT_HOST' => agent_host,
       'DD_TRACE_AGENT_PORT' => agent_port,
-    }
-
-    ClimateControl.modify(base_env.merge(env_overrides)) do
+    }.merge(env_overrides)) do
       Datadog.configure do |c|
-        c.service = 'test-service'
-        c.version = '1.0.0'
-        c.env = 'test'
-        c.agent.host = agent_host
-        c.agent.port = agent_port
+        config_block&.call(c)
       end
+      OpenTelemetry::SDK.configure
     end
   end
 
@@ -180,32 +175,32 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
 
   describe 'Resource Attributes' do
     it 'includes service name, version, and environment from Datadog config' do
-      ClimateControl.modify(
-        'DD_METRICS_OTEL_ENABLED' => 'true',
+      setup_metrics(
         'DD_SERVICE' => 'custom-service',
         'DD_VERSION' => '2.0.0',
         'DD_ENV' => 'production',
         'OTEL_METRIC_EXPORT_INTERVAL' => '10000',
         'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf'
-      ) do
-        Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
-        Datadog.configure do |c|
-          c.service = 'custom-service'
-          c.version = '2.0.0'
-          c.env = 'production'
-        end
-        
-        provider = ::OpenTelemetry.meter_provider
-        attributes = provider.instance_variable_get(:@resource).attribute_enumerator.to_h
-        expect(attributes['service.name']).to eq('custom-service')
-        expect(attributes['service.version']).to eq('2.0.0')
-        expect(attributes['deployment.environment']).to eq('production')
+      ) do |c|
+        c.service = 'custom-service'
+        c.version = '2.0.0'
+        c.env = 'production'
       end
+      
+      provider = ::OpenTelemetry.meter_provider
+      attributes = provider.instance_variable_get(:@resource).attribute_enumerator.to_h
+      expect(attributes['service.name']).to eq('custom-service')
+      expect(attributes['service.version']).to eq('2.0.0')
+      expect(attributes['deployment.environment']).to eq('production')
     end
 
     it 'includes custom tags as resource attributes' do
-      setup_metrics('DD_TAGS' => 'team:backend,region:us-east-1')
-      Datadog.configure { |c| c.tags = { 'team' => 'backend', 'region' => 'us-east-1' } }
+      setup_metrics do |c|
+        c.service = 'test-service'
+        c.version = '1.0.0'
+        c.env = 'test'
+        c.tags = { 'team' => 'backend', 'region' => 'us-east-1' }
+      end
       
       provider = ::OpenTelemetry.meter_provider
       attributes = provider.instance_variable_get(:@resource).attribute_enumerator.to_h
@@ -277,8 +272,8 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
         'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT' => '10000'
       )
       reader = ::OpenTelemetry.meter_provider.metric_readers.first
-      expect(reader.export_interval_millis).to eq(200) if reader.respond_to?(:export_interval_millis)
-      expect(reader.export_timeout_millis).to eq(10_000) if reader.respond_to?(:export_timeout_millis)
+      expect(reader.instance_variable_get(:@export_interval)).to eq(0.2)
+      expect(reader.instance_variable_get(:@export_timeout)).to eq(10.0)
     end
 
     it 'uses OTLP exporter when configured' do
@@ -294,14 +289,19 @@ RSpec.describe 'OpenTelemetry Metrics Integration' do
     end
 
     it 'does not initialize when DD_METRICS_OTEL_ENABLED is false' do
-      ClimateControl.modify('DD_METRICS_OTEL_ENABLED' => 'false') do
+      ClimateControl.modify('DD_METRICS_OTEL_ENABLED' => 'false', 'DD_SERVICE' => 'dd-service') do
         Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
         provider = ::OpenTelemetry.meter_provider
         provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
         ::OpenTelemetry.meter_provider = ::OpenTelemetry::Internal::ProxyMeterProvider.new
         Datadog.configure { |c| }
+        OpenTelemetry::SDK.configure
       end
-      expect(::OpenTelemetry.meter_provider.class.name).not_to include('SDK')
+      provider = ::OpenTelemetry.meter_provider
+      resource = provider.instance_variable_get(:@resource)
+      attributes = resource.attribute_enumerator.to_h
+      # meter provider should not be configured to use Datadog configurations.
+      expect(attributes['service.name']).not_to eq('dd-service')
     end
   end
 

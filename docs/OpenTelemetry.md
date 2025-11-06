@@ -65,7 +65,7 @@
     require 'opentelemetry/sdk'
     require 'opentelemetry-metrics-sdk'
     require 'opentelemetry/exporter/otlp_metrics'
-    require 'datadog/opentelemetry/metrics'
+    require 'datadog/opentelemetry'
 
     ...
     ```

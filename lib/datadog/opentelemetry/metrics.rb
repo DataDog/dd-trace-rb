@@ -2,22 +2,6 @@
 
 module Datadog
   module OpenTelemetry
-    module MetricsConfiguration
-      def configure(&block)
-        result = super
-        Datadog::OpenTelemetry::Metrics::Initializer.initialize!(self.configuration) if defined?(Datadog::OpenTelemetry::Metrics::Initializer)
-        result
-      end
-    end
-  end
-end
-
-if defined?(::OpenTelemetry::SDK) && defined?(::OpenTelemetry::SDK::Metrics)
-  Datadog.singleton_class.prepend(Datadog::OpenTelemetry::MetricsConfiguration) unless Datadog.singleton_class.ancestors.include?(Datadog::OpenTelemetry::MetricsConfiguration)
-end
-
-module Datadog
-  module OpenTelemetry
     module Metrics
       module Initializer
         module_function
@@ -52,9 +36,10 @@ module Datadog
           require 'opentelemetry/sdk'
           require 'opentelemetry-metrics-sdk'
 
-
           current_provider = ::OpenTelemetry.meter_provider
-          current_provider.shutdown if current_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+          if current_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+            current_provider.shutdown
+          end
 
           resource = create_resource(settings)
           provider = ::OpenTelemetry::SDK::Metrics::MeterProvider.new(resource: resource)
