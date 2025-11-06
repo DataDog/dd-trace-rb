@@ -12,7 +12,7 @@ require 'json'
 
 RSpec.describe 'InternalEvaluator Test Cases' do
   # Path to test data used by reference implementations
-  TEST_DATA_PATH = '/Users/sameeran.kunche/go/src/github.com/DataDog/dd-source/domains/ffe/libs/flagging/rust/evaluation/tests/data'
+  TEST_DATA_PATH = File.expand_path('../../../fixtures/ufc', __dir__)
 
   let(:evaluator) { create_evaluator }
 
@@ -68,11 +68,16 @@ RSpec.describe 'InternalEvaluator Test Cases' do
       expected_meta = expected['flagMetadata']
       actual_meta = actual.flag_metadata
 
-      expect(actual_meta['allocationKey']).to eq(expected_meta['allocationKey']), 
-        "AllocationKey mismatch for #{context_info}: expected #{expected_meta['allocationKey']}, got #{actual_meta['allocationKey']}"
+      # Validate all fields in flagMetadata
+      expected_meta.each do |field, expected_value|
+        expect(actual_meta[field]).to eq(expected_value), 
+          "FlagMetadata field '#{field}' mismatch for #{context_info}: expected #{expected_value}, got #{actual_meta[field]}"
+      end
 
-      expect(actual_meta['doLog']).to eq(expected_meta['doLog']), 
-        "DoLog mismatch for #{context_info}: expected #{expected_meta['doLog']}, got #{actual_meta['doLog']}"
+      # Ensure no unexpected fields are present in actual result
+      unexpected_fields = actual_meta.keys - expected_meta.keys
+      expect(unexpected_fields).to be_empty, 
+        "Unexpected flagMetadata fields for #{context_info}: #{unexpected_fields}"
     end
   end
 
@@ -82,8 +87,8 @@ RSpec.describe 'InternalEvaluator Test Cases' do
   end
 
   # Generate test cases for each JSON test file
-  test_files = if Dir.exist?("#{TEST_DATA_PATH}/tests")
-    Dir.glob("#{TEST_DATA_PATH}/tests/*.json").map { |f| File.basename(f) }.sort
+  test_files = if Dir.exist?("#{TEST_DATA_PATH}/test_cases")
+    Dir.glob("#{TEST_DATA_PATH}/test_cases/*.json").map { |f| File.basename(f) }.sort
   else
     []
   end
@@ -91,12 +96,12 @@ RSpec.describe 'InternalEvaluator Test Cases' do
   test_files.each do |test_filename|
     describe "Test cases from #{test_filename}" do
       let(:test_cases) do
-        test_file_path = File.join(TEST_DATA_PATH, 'tests', test_filename)
+        test_file_path = File.join(TEST_DATA_PATH, 'test_cases', test_filename)
         JSON.parse(File.read(test_file_path))
       end
 
       # Create individual test cases for better granular reporting
-      test_file_path = File.join(TEST_DATA_PATH, 'tests', test_filename)
+      test_file_path = File.join(TEST_DATA_PATH, 'test_cases', test_filename)
       next unless File.exist?(test_file_path)
       
       test_cases_data = JSON.parse(File.read(test_file_path))
@@ -120,7 +125,6 @@ RSpec.describe 'InternalEvaluator Test Cases' do
             evaluation_context = format_evaluation_context(targeting_key, attributes)
 
             result = evaluator.get_assignment(
-              nil, 
               flag_key, 
               evaluation_context, 
               expected_type, 
@@ -130,6 +134,17 @@ RSpec.describe 'InternalEvaluator Test Cases' do
 
             # Validate against expected results
             context_info = "#{test_filename}##{index + 1}(#{targeting_key})"
+            
+            # Debug output for null-operator cases
+            if test_filename.include?('null-operator')
+              puts "\nDEBUG #{context_info}:"
+              puts "  Result class: #{result.class}"
+              puts "  Result: #{result.inspect}"
+              puts "  Flag metadata: #{result.flag_metadata.inspect}"
+              puts "  Flag metadata nil?: #{result.flag_metadata.nil?}"
+              puts "  Flag metadata present?: #{result.flag_metadata ? 'YES' : 'NO'}"
+            end
+            
             validate_result(expected_result, result, context_info)
           end
         end
@@ -147,7 +162,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
       failed_tests = []
 
       test_files.each do |test_filename|
-        test_file_path = File.join(TEST_DATA_PATH, 'tests', test_filename)
+        test_file_path = File.join(TEST_DATA_PATH, 'test_cases', test_filename)
         test_cases = JSON.parse(File.read(test_file_path))
 
         test_cases.each_with_index do |test_case, index|
@@ -165,7 +180,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
             expected_type = map_variation_type_to_symbol(variation_type)
             evaluation_context = format_evaluation_context(targeting_key, attributes)
 
-            result = evaluator.get_assignment(nil, flag_key, evaluation_context, expected_type, Time.now, default_value)
+            result = evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now, default_value)
 
             # Check if test passes (all conditions must match)
             value_matches = result.value == expected_result['value']
@@ -173,9 +188,16 @@ RSpec.describe 'InternalEvaluator Test Cases' do
             
             metadata_matches = true
             if expected_result['flagMetadata']
-              metadata_matches = result.flag_metadata &&
-                                result.flag_metadata['allocationKey'] == expected_result['flagMetadata']['allocationKey'] &&
-                                result.flag_metadata['doLog'] == expected_result['flagMetadata']['doLog']
+              if result.flag_metadata
+                expected_meta = expected_result['flagMetadata']
+                actual_meta = result.flag_metadata
+                # Check all expected fields match and no unexpected fields exist
+                metadata_matches = expected_meta.all? { |field, expected_value| 
+                  actual_meta[field] == expected_value 
+                } && (actual_meta.keys - expected_meta.keys).empty?
+              else
+                metadata_matches = false
+              end
             end
 
             if value_matches && variant_matches && metadata_matches
@@ -248,7 +270,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
       # This test validates the critical MD5 separator fix
       # The targeting key "charlie" should map to variant "two" (shard value >= 5000)
       context = { 'targeting_key' => 'charlie' }
-      result = evaluator.get_assignment(nil, 'integer-flag', context, :integer, Time.now, 0)
+      result = evaluator.get_assignment('integer-flag', context, :integer, Time.now, 0)
       
       expect(result.value).to eq(2), "Expected charlie to get variant 'two' (value 2) due to MD5 sharding"
       expect(result.variant).to eq('two'), "Expected variant 'two' for charlie"
@@ -259,7 +281,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
 
       # Test boolean ONE_OF matching
       context = { 'targeting_key' => 'alice', 'one_of_flag' => true }
-      result = evaluator.get_assignment(nil, 'boolean-one-of-matches', context, :integer, Time.now, 0)
+      result = evaluator.get_assignment('boolean-one-of-matches', context, :integer, Time.now, 0)
       
       expect(result.value).to eq(1), "Expected boolean true to match ONE_OF condition"
     end
@@ -268,7 +290,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
       skip "Evaluator not available" unless evaluator
 
       context = { 'targeting_key' => 'alice' }
-      result = evaluator.get_assignment(nil, 'disabled_flag', context, :integer, Time.now, 42)
+      result = evaluator.get_assignment('disabled_flag', context, :integer, Time.now, 42)
       
       expect(result.value).to eq(42), "Expected default value for disabled flag"
       expect(result.error_code).to eq('FLAG_DISABLED'), "Expected FLAG_DISABLED error"
@@ -278,7 +300,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
       skip "Evaluator not available" unless evaluator
 
       context = { 'targeting_key' => 'alice' }
-      result = evaluator.get_assignment(nil, 'nonexistent-flag', context, :string, Time.now, 'default')
+      result = evaluator.get_assignment('nonexistent-flag', context, :string, Time.now, 'default')
       
       expect(result.value).to eq('default'), "Expected default value for missing flag"
       expect(result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED'), "Expected FLAG_UNRECOGNIZED_OR_DISABLED error"
