@@ -97,13 +97,11 @@ module Datadog
           timeout = metrics_config.timeout || exporter_config.timeout
           headers = metrics_config.headers || exporter_config.headers
 
-          exporter_options = {
+          exporter = ::OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter.new(
             endpoint: endpoint,
             timeout: timeout / 1000.0,
             headers: headers
-          }
-
-          exporter = ::OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter.new(**exporter_options)
+          )
 
           reader = ::OpenTelemetry::SDK::Metrics::Export::PeriodicMetricReader.new(
             exporter: exporter,
