@@ -2,7 +2,6 @@
 
 require 'json'
 require_relative '../../core/configuration/ext'
-require_relative '../../core/configuration/agent_settings_resolver'
 
 module Datadog
   module OpenTelemetry
@@ -14,6 +13,7 @@ module Datadog
         end
 
         def self.resolve_agent_hostname
+          require_relative '../../core/configuration/agent_settings_resolver'
           agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(Datadog.configuration)
           agent_settings.hostname || Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
         end
