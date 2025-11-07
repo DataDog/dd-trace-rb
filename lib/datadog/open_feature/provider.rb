@@ -27,7 +27,6 @@ module Datadog
 
       def initialize
         @metadata = ::OpenFeature::SDK::Provider::ProviderMetadata.new(name: NAME).freeze
-        @engine = OpenFeature.engine
       end
 
       def init
@@ -65,9 +64,9 @@ module Datadog
       private
 
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
-        return component_not_configured_default(default_value) if @engine.nil?
+        return component_not_configured_default(default_value) if OpenFeature.engine.nil?
 
-        result = @engine.fetch_value(
+        result = OpenFeature.engine.fetch_value(
           flag_key: flag_key,
           expected_type: expected_type,
           evaluation_context: evaluation_context
