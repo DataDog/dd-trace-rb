@@ -679,7 +679,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect do
               Datadog::Profiling::Collectors::Stack::Testing
                 ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
-            end.to raise_error(RuntimeError, /Ended a heap recording/)
+            end.to raise_error(Datadog::Profiling::ProfilingError, /Ended a heap recording/)
           end
 
           it "does not keep the active slot mutex locked" do
@@ -878,7 +878,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     context "when serialization fails" do
       before { expect(described_class).to receive(:_native_serialize).and_return([:error, "test error message"]) }
 
-      it { expect { serialize! }.to raise_error(RuntimeError, /test error message/) }
+      it { expect { serialize! }.to raise_error(Datadog::Profiling::ProfilingError, /test error message/) }
     end
   end
 

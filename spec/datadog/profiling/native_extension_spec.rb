@@ -29,9 +29,9 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "when called without releasing the gvl" do
-      it "raises a RuntimeError" do
+      it "raises a ProfilingError" do
         expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "this is a test", nil, false) }
-          .to raise_exception(RuntimeError, /called by thread holding the global VM lock/)
+          .to raise_exception(Datadog::Profiling::ProfilingError, /called by thread holding the global VM lock/)
       end
     end
   end
@@ -58,10 +58,10 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "when called without releasing the gvl" do
-      it "raises a RuntimeError" do
+      it "raises a ProfilingError" do
         expect do
           described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "this is a test", nil, false)
-        end.to raise_exception(RuntimeError, /called by thread holding the global VM lock/)
+        end.to raise_exception(Datadog::Profiling::ProfilingError, /called by thread holding the global VM lock/)
       end
     end
   end

@@ -82,6 +82,44 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         end
       end
     end
+
+    context 'with ProfilingError' do
+      before do
+        skip unless defined?(Datadog::Profiling::ProfilingError)
+      end
+
+      it 'includes the exception message in telemetry' do
+        expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+          expect(event.payload).to include(
+            logs: [{message: 'Datadog::Profiling::ProfilingError: (This is a safe profiler error)', level: 'ERROR', count: 1,
+                    stack_trace: a_string_including('REDACTED')}]
+          )
+        end
+
+        begin
+          raise Datadog::Profiling::ProfilingError, 'This is a safe profiler error'
+        rescue => e
+          component.report(e, level: :error)
+        end
+      end
+
+      context 'with description' do
+        it 'includes both description and exception message' do
+          expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+            expect(event.payload).to include(
+              logs: [{message: 'Datadog::Profiling::ProfilingError: Profiler failed to start (Failed to initialize native extension)', level: 'ERROR', count: 1,
+                      stack_trace: a_string_including('REDACTED')}]
+            )
+          end
+
+          begin
+            raise Datadog::Profiling::ProfilingError, 'Failed to initialize native extension'
+          rescue => e
+            component.report(e, level: :error, description: 'Profiler failed to start')
+          end
+        end
+      end
+    end
   end
 
   describe '.error' do

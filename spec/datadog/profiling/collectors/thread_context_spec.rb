@@ -1582,7 +1582,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     context "when called before on_gc_start/on_gc_finish" do
       it do
-        expect { sample_after_gc(allow_exception: true) }.to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
+        expect { sample_after_gc(allow_exception: true) }.to raise_error(Datadog::Profiling::ProfilingError, /Unexpected call to sample_after_gc/)
       end
     end
 
@@ -1601,7 +1601,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           sample_after_gc
 
           expect { sample_after_gc(allow_exception: true) }
-            .to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
+            .to raise_error(Datadog::Profiling::ProfilingError, /Unexpected call to sample_after_gc/)
         end
       end
 

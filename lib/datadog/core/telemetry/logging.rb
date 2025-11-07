@@ -49,7 +49,13 @@ module Datadog
           # Anonymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +"#{exception.class.name || exception.class.inspect}" # standard:disable Style/RedundantInterpolation
 
-          message << ": #{description}" if description
+          exception_message = constant_exception_message(exception)
+
+          if description || exception_message
+            message << ':'
+            message << " #{description}" if description
+            message << " (#{exception_message})" if exception_message
+          end
 
           event = Event::Log.new(
             message: message,
@@ -62,9 +68,9 @@ module Datadog
 
         private
 
-        def safe_exception_message(exception)
-          # Only include exception messages from ProfilingError, as those are guaranteed to be created by us
-          # with constant, PII-safe messages
+        def constant_exception_message(exception)
+          # Only include exception messages from ProfilingError, as those are guaranteed to contain
+          # constant strings created by Datadog code (not dynamic/PII content)
           if defined?(Datadog::Profiling::ProfilingError) && exception.is_a?(Datadog::Profiling::ProfilingError)
             exception.message
           end
