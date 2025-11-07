@@ -1,6 +1,7 @@
 #include "libdatadog_helpers.h"
 
 #include <ruby.h>
+#include "ruby_helpers.h"
 
 const char *ruby_value_type_to_string(enum ruby_value_type type) {
   return ruby_value_type_to_char_slice(type).ptr;

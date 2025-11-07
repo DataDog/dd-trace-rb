@@ -2,6 +2,7 @@
 #include <datadog/profiling.h>
 
 #include "collectors_gc_profiling_helper.h"
+#include "ruby_helpers.h"
 
 // This helper is used by the Datadog::Profiling::Collectors::ThreadContext to profile garbage collection.
 // It's tested through that class' interfaces.

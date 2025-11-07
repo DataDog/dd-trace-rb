@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #include "datadog_ruby_common.h"
+#include "ruby_helpers.h"
 #include "unsafe_api_calls_check.h"
 #include "extconf.h"
 

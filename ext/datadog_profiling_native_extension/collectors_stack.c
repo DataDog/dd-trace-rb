@@ -17,6 +17,7 @@
 
 #include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
+#include "ruby_helpers.h"
 #include "stack_recorder.h"
 #include "collectors_stack.h"
 

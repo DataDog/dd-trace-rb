@@ -1,6 +1,7 @@
 #include "encoded_profile.h"
 #include "datadog_ruby_common.h"
 #include "libdatadog_helpers.h"
+#include "ruby_helpers.h"
 
 // This class exists to wrap a ddog_prof_EncodedProfile into a Ruby object
 // This file implements the native bits of the Datadog::Profiling::EncodedProfile class

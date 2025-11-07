@@ -1,4 +1,5 @@
 #include "extconf.h"
+#include "ruby_helpers.h"
 
 // This file exports functions used to access private Ruby VM APIs and internals.
 // To do this, it imports a few VM internal (private) headers.
