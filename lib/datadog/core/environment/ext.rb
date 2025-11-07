@@ -33,8 +33,15 @@ module Datadog
         LANG_INTERPRETER = "#{RUBY_ENGINE}-#{RUBY_PLATFORM}"
         LANG_PLATFORM = RUBY_PLATFORM
         LANG_VERSION = RUBY_VERSION
+        PROCESS_TYPE = 'script'
         RUBY_ENGINE = ::RUBY_ENGINE # e.g. 'ruby', 'jruby', 'truffleruby'
         TAG_ENV = 'env'
+        TAG_ENTRYPOINT_BASEDIR = "entrypoint.basedir"
+        TAG_ENTRYPOINT_NAME = "entrypoint.name"
+        TAG_ENTRYPOINT_WORKDIR = "entrypoint.workdir"
+        TAG_ENTRYPOINT_TYPE = "entrypoint.type"
+        TAG_PROCESS_TAGS = "_dd.tags.process"
+        TAG_SERVER_TYPE = "server.type"
         TAG_SERVICE = 'service'
         TAG_VERSION = 'version'
 

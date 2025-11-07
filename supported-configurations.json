@@ -109,6 +109,9 @@
     "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE": {
       "version": ["A"]
     },
+    "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": {
+      "version": ["A"]
+    },
     "DD_GIT_COMMIT_SHA": {
       "version": ["A"]
     },

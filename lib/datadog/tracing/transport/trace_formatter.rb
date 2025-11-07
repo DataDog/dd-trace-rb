@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../core/environment/identity'
+require_relative '../../core/environment/process'
 require_relative '../../core/environment/socket'
 require_relative '../../core/environment/git'
 require_relative '../../core/git/ext'
@@ -60,6 +61,7 @@ module Datadog
           tag_sampling_priority!
           tag_profiling_enabled!
           tag_apm_tracing_disabled!
+          tag_process_tags!
 
           if first_span
             tag_git_repository_url!
@@ -213,6 +215,13 @@ module Datadog
           return if git_commit_sha.nil?
 
           first_span.set_tag(Core::Git::Ext::TAG_COMMIT_SHA, git_commit_sha)
+        end
+
+        def tag_process_tags!
+          return unless trace.experimental_propagate_process_tags_enabled
+          process_tags = Core::Environment::Process.formatted_process_tags_k1_v1
+          return if process_tags.empty?
+          root_span.set_tag(Core::Environment::Ext::TAG_PROCESS_TAGS, process_tags)
         end
 
         private
