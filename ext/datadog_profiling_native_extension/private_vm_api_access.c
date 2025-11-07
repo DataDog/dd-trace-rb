@@ -1,5 +1,4 @@
 #include "extconf.h"
-#include "ruby_helpers.h"
 
 // This file exports functions used to access private Ruby VM APIs and internals.
 // To do this, it imports a few VM internal (private) headers.
@@ -47,6 +46,9 @@
 #else
   #define DDTRACE_UNUSED
 #endif
+
+// Include ruby_helpers.h after all private VM headers are set up
+#include "ruby_helpers.h"
 
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
