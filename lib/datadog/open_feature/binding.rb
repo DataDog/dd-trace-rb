@@ -1,5 +1,12 @@
 # frozen_string_literal: true
 
+# Load the libdatadog_api extension for native FFE support
+begin
+  require "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
+rescue LoadError
+  # Extension not available - will fall back to Ruby-only mode
+end
+
 module Datadog
   module OpenFeature
     # A namespace for binding code

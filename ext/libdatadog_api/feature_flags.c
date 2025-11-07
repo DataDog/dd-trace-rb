@@ -30,6 +30,7 @@ static VALUE native_get_assignment(VALUE self, VALUE config, VALUE flag_key, VAL
 
 
 void feature_flags_init(VALUE open_feature_module) {
+  // Always define the Binding module - it will reuse existing if it exists
   VALUE binding_module = rb_define_module_under(open_feature_module, "Binding");
 
   // Configuration class
@@ -235,6 +236,14 @@ static VALUE native_get_assignment(VALUE self, VALUE config_obj, VALUE flag_key,
   ddog_ffe_Handle_EvaluationContext *context;
   TypedData_Get_Struct(context_obj, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
 
+  // Validate handles before use
+  if (!config || !*config) {
+    rb_raise(rb_eRuntimeError, "Configuration handle is NULL");
+  }
+  if (!context || !*context) {
+    rb_raise(rb_eRuntimeError, "Context handle is NULL"); 
+  }
+
   // Use the new FFI function directly - no Result wrapper
   // For now, use a generic flag type - this could be parameterized later
   ddog_ffe_Handle_ResolutionDetails resolution_details_out = ddog_ffe_get_assignment(
@@ -418,3 +427,4 @@ static VALUE resolution_details_get_do_log(VALUE self) {
   // Use the new FFI function to get the do_log flag
   return ddog_ffe_assignment_get_do_log(*resolution_details) ? Qtrue : Qfalse;
 }
+
