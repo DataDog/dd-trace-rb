@@ -14,10 +14,10 @@ module Datadog
           @deduplicator = Deduplicator.new
         end
 
-        def report(result, context:)
-          return false unless result.dig('result', 'flagMetadata', 'doLog')
+        def report(result, flag_key:, context:)
+          return false unless result.do_log
 
-          event = Models::Event.build(result, context: context)
+          event = Models::Event.build(result, flag_key: flag_key, context: context)
           return false if @deduplicator.duplicate?(event)
 
           @worker.enqueue(event)

@@ -37,6 +37,7 @@ module Datadog
         # do we want to go that way?
 
         @evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now.utc.to_i)
+        # TODO: insert reporting here
       rescue => e
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
 

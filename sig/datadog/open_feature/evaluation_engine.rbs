@@ -3,7 +3,7 @@ module Datadog
     class EvaluationEngine
       ALLOWED_TYPES: ::Array[::Symbol]
 
-      attr_writer configuration: ::String?
+      attr_accessor configuration: ::String?
 
       attr_reader reporter: Exposures::Reporter
 
@@ -12,8 +12,8 @@ module Datadog
       def fetch_value: (
         flag_key: ::String,
         expected_type: ::Symbol,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
-      ) -> ::Hash[::Symbol, untyped]
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+      ) -> Binding::ResolutionDetails
 
       def reconfigure!: () -> void
     end

@@ -6,11 +6,9 @@ module Datadog
 
         def initialize: (?limit: ::Integer) -> void
 
-        def duplicate?: (Models::Event) -> bool
+        def duplicate?: (Models::Event event) -> bool
 
         private
-
-        def key: (::String, ::String) -> ::String
 
         def digest: (::String, ::String) -> ::Integer
       end

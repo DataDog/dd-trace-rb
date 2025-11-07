@@ -8,30 +8,24 @@ RSpec.describe Datadog::OpenFeature::Exposures::Models::Event do
     before { allow(Datadog::Core::Utils::Time).to receive(:now).and_return(now) }
 
     let(:now) { Time.utc(2025, 1, 1, 0, 0, 0) }
-    let(:event) { described_class.build(result, context: context) }
+    let(:event) { described_class.build(result, flag_key: 'feature_flag', context: context) }
     let(:result) do
-      {
-        'flag' => 'feature_flag',
-        'variationType' => 'INTEGER',
-        'defaultValue' => 0,
-        'targetingKey' => 'john-doe',
-        'attributes' => {
-          'not_matches_flag' => 'False'
+      Datadog::OpenFeature::Binding::ResolutionDetails.new(
+        value: 4,
+        allocation_key: '4-for-john-doe',
+        variant: '4',
+        flag_metadata: {
+          'allocationKey' => '4-for-john-doe',
+          'variationType' => 'number',
+          'doLog' => true
         },
-        'result' => {
-          'value' => 4,
-          'variant' => '4',
-          'flagMetadata' => {
-            'allocationKey' => '4-for-john-doe',
-            'variationType' => 'number',
-            'doLog' => true
-          }
-        }
-      }
+        do_log: true
+      )
     end
     let(:context) do
       instance_double(
         'OpenFeature::SDK::EvaluationContext',
+        targeting_key: 'john-doe',
         fields: {
           'targeting_key' => 'john-doe',
           'age' => 21,
@@ -82,7 +76,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Models::Event do
     context 'when context does not contain extra fields' do
       let(:context) do
         instance_double(
-          'OpenFeature::SDK::EvaluationContext', fields: {'targeting_key' => 'john-doe'}
+          'OpenFeature::SDK::EvaluationContext', targeting_key: 'john-doe', fields: {'targeting_key' => 'john-doe'}
         )
       end
       let(:expected) do
