@@ -2,7 +2,7 @@ module Datadog
   module OpenFeature
     module Binding
       class Evaluator
-        @ufc_json: ::String
+        @ufc_json: ::String?
 
         def initialize: (::String? ufc_json) -> void
 
@@ -11,7 +11,7 @@ module Datadog
           ::OpenFeature::SDK::EvaluationContext? evaluation_context,
           ::Symbol expected_type,
           ::Integer time
-        ) -> ::Hash[::Symbol, ::Object]
+        ) -> ResolutionDetails
 
         private
 

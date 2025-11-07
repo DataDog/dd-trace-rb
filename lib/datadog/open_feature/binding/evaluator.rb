@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'resolution_details'
+
 module Datadog
   module OpenFeature
     module Binding
@@ -10,11 +12,18 @@ module Datadog
         end
 
         def get_assignment(_flag_key, _evaluation_context, expected_type, _time)
-          {
+          ResolutionDetails.new(
             value: generate(expected_type),
-            reason: 'hardcoded',
-            variant: 'hardcoded'
-          }
+            reason: 'TARGETING_MATCH',
+            variant: 'hardcoded-variant',
+            allocation_key: 'hardcoded-allocation-key',
+            flag_metadata: {
+              'doLog' => true,
+              'allocationKey' => 'hardcoded-allocation-key'
+            },
+            do_log: true,
+            extra_logging: {}
+          )
         end
 
         private

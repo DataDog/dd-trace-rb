@@ -66,7 +66,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       it 'returns flag result details' do
         expect(result.value).to be(true)
-        expect(result.reason).to eq('hardcoded')
+        expect(result.reason).to eq('TARGETING_MATCH')
       end
     end
   end
@@ -124,7 +124,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       it 'returns flag result details' do
         expect(result.value).to eq('hello')
-        expect(result.reason).to eq('hardcoded')
+        expect(result.reason).to eq('TARGETING_MATCH')
       end
     end
   end
@@ -182,7 +182,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       it 'returns flag result details' do
         expect(result.value).to eq(9000)
-        expect(result.reason).to eq('hardcoded')
+        expect(result.reason).to eq('TARGETING_MATCH')
       end
     end
   end
@@ -240,7 +240,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       it 'returns flag result details' do
         expect(result.value).to eq(42)
-        expect(result.reason).to eq('hardcoded')
+        expect(result.reason).to eq('TARGETING_MATCH')
       end
     end
   end
@@ -298,7 +298,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       it 'returns flag result details' do
         expect(result.value).to eq(36.6)
-        expect(result.reason).to eq('hardcoded')
+        expect(result.reason).to eq('TARGETING_MATCH')
       end
     end
   end
@@ -356,7 +356,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
       it 'returns flag result details' do
         expect(result.value).to eq([1, 2, 3])
-        expect(result.reason).to eq('hardcoded')
+        expect(result.reason).to eq('TARGETING_MATCH')
       end
     end
   end

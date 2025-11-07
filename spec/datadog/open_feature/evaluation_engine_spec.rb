@@ -45,11 +45,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding evaluator is not ready' do
       it 'returns evaluation error' do
-        expect(result).to eq(
-          error_code: 'PROVIDER_NOT_READY',
-          error_message: 'Waiting for universal flag configuration',
-          reason: 'INITIALIZING'
-        )
+        expect(result.error_code).to eq('PROVIDER_NOT_READY')
+        expect(result.error_message).to eq('Waiting for universal flag configuration')
+        expect(result.reason).to eq('INITIALIZING')
       end
     end
 
@@ -63,15 +61,20 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       end
 
       let(:error) do
-        {error_code: 'PROVIDER_FATAL', error_message: 'Ooops', reason: 'ERROR'}
+        Datadog::OpenFeature::Binding::ResolutionDetails.new(
+          error_code: 'PROVIDER_FATAL',
+          error_message: 'Ooops',
+          reason: 'ERROR',
+          flag_metadata: {},
+          extra_logging: {},
+          do_log: false
+        )
       end
 
       it 'returns evaluation error' do
-        expect(result).to eq(
-          error_code: 'PROVIDER_FATAL',
-          error_message: 'Ooops',
-          reason: 'ERROR'
-        )
+        expect(result.error_code).to eq('PROVIDER_FATAL')
+        expect(result.error_message).to eq('Ooops')
+        expect(result.reason).to eq('ERROR')
       end
     end
 
@@ -88,11 +91,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       let(:error) { RuntimeError.new("Crash") }
 
       it 'returns evaluation error' do
-        expect(result).to eq(
-          error_code: 'PROVIDER_FATAL',
-          error_message: 'Crash',
-          reason: 'ERROR'
-        )
+        expect(result.error_code).to eq('PROVIDER_FATAL')
+        expect(result.error_message).to eq('Crash')
+        expect(result.reason).to eq('ERROR')
       end
     end
 
@@ -105,11 +106,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       let(:result) { evaluator.fetch_value(flag_key: 'test', expected_type: :whatever) }
 
       it 'returns evaluation error' do
-        expect(result).to match(
-          error_code: 'UNKNOWN_TYPE',
-          error_message: a_string_starting_with('unknown type :whatever, allowed types'),
-          reason: 'ERROR'
-        )
+        expect(result.error_code).to eq('UNKNOWN_TYPE')
+        expect(result.error_message).to start_with('unknown type :whatever, allowed types')
+        expect(result.reason).to eq('ERROR')
       end
     end
 
@@ -121,7 +120,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       let(:result) { evaluator.fetch_value(flag_key: 'test', expected_type: :string) }
 
-      it { expect(result[:value]).to eq('hello') }
+      it 'returns resolved value' do
+        expect(result.value).to eq('hello')
+      end
     end
   end
 
@@ -159,7 +160,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         evaluator.configuration = '{}'
         expect { evaluator.reconfigure! }.not_to change {
-          evaluator.fetch_value(flag_key: 'test', expected_type: :string)[:value]
+          evaluator.fetch_value(flag_key: 'test', expected_type: :string).value
         }.from('hello')
       end
     end
