@@ -136,7 +136,7 @@ jobs:
         JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
@@ -206,7 +206,7 @@ jobs:
       options: --link mongodb:mongodb_secondary
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
