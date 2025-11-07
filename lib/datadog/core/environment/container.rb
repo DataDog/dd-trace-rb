@@ -94,18 +94,27 @@ module Datadog
           end
         end
 
+        # All cgroup entries have the same container identity.
+        # The first valid one is sufficient.
+        # v2 entries are preferred over v1.
         def entry
           return @entry if defined?(@entry)
 
-          # Prefer v2 entries (hierarchy = 0) over v1 entries.
-          # We partition based on hierarchy, which puts v2 entries first.
+          # We partition based on hierarchy, which naturally
+          # groups v2 entries (hierarchy "0") first.
           entries = Cgroup.entries.partition { |d| d.hierarchy == '0' }.flatten(1)
-          entries.each do |entry|
-            path = entry.path
+          entries.each do |entry_obj|
+            path = entry_obj.path
             next unless path
 
+            # To ease handling, remove the emtpy leading "",
+            # as `path` starts with a "/".
             parts = path.delete_prefix('/').split('/')
-            next if parts.empty?
+
+            # With not path information, we can still use the inode
+            if parts.empty? && entry_obj.inode && !running_on_host?
+              return @entry = Entry.new(nil, nil, nil, entry_obj.inode)
+            end
 
             platform = parts[0][PLATFORM_REGEX, :platform]
 
@@ -126,22 +135,17 @@ module Datadog
 
             # container_id is a better container identifier than inode.
             # We MUST only populate one of them, to avoid ambiguity.
-            @entry = if container_id
-              Entry.new(platform, task_uid, container_id)
-            elsif entry.inode && !running_on_host?
-              Entry.new(platform, task_uid, nil, entry.inode)
+            if container_id
+              return @entry = Entry.new(platform, task_uid, container_id)
+            elsif entry_obj.inode && !running_on_host?
+              return @entry = Entry.new(platform, task_uid, nil, entry_obj.inode)
             end
-
-            # All cgroup entries have the same container identity.
-            # The first valid one is sufficient.
-            break if @entry
           end
 
-          @entry ||= Entry.new # Empty entry if no valid cgroup entry is found
+          @entry = Entry.new # Empty entry if no valid cgroup entry is found
         rescue => e
-          Datadog.logger.error(
-            "Error while parsing container info. Cause: #{e.class.name} #{e.message} " \
-            "Location: #{Array(e.backtrace).first}"
+          Datadog.logger.debug(
+            "Error while reading container entry. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
           )
           @entry = Entry.new unless defined?(@entry)
           @entry

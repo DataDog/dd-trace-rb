@@ -188,7 +188,7 @@ RSpec.describe Datadog::Core::Environment::Container do
 
     context 'when parsing cgroup entries raises an error' do
       before do
-        allow(Datadog.logger).to receive(:error)
+        allow(Datadog.logger).to receive(:debug)
         allow(Datadog::Core::Environment::Cgroup).to receive(:entries).and_raise(StandardError, 'Test error')
       end
 
@@ -199,8 +199,8 @@ RSpec.describe Datadog::Core::Environment::Container do
         expect(entry.container_id).to be_nil
         expect(entry.task_uid).to be_nil
         expect(entry.inode).to be_nil
-        expect(Datadog.logger).to have_received(:error) do |msg|
-          expect(msg).to match(/Error while parsing container info/)
+        expect(Datadog.logger).to have_received(:debug) do |msg|
+          expect(msg).to match(/Error while reading container entry/)
         end
       end
     end
@@ -306,12 +306,16 @@ RSpec.describe Datadog::Core::Environment::Container do
 
     context 'when File.stat raises an error' do
       before do
+        allow(Datadog.logger).to receive(:debug)
         allow(File).to receive(:exist?).with('/proc/self/ns/cgroup').and_return(true)
         allow(File).to receive(:stat).with('/proc/self/ns/cgroup').and_raise(StandardError, 'Test error')
       end
 
-      it 'returns false' do
+      it 'logs the error and returns false' do
         is_expected.to be(false)
+        expect(Datadog.logger).to have_received(:debug) do |msg|
+          expect(msg).to match(/Error while checking cgroup namespace/)
+        end
       end
     end
   end
