@@ -25,7 +25,9 @@ module Datadog
         unless ALLOWED_TYPES.include?(expected_type)
           message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(', ')}"
 
-          return {error_code: Ext::UNKNOWN_TYPE, error_message: message, reason: Ext::ERROR}
+          return Binding::ResolutionDetails.new(
+            error_code: Ext::UNKNOWN_TYPE, error_message: message, reason: Ext::ERROR
+          )
         end
 
         # NOTE: https://github.com/open-feature/ruby-sdk-contrib/blob/main/providers/openfeature-go-feature-flag-provider/lib/openfeature/go-feature-flag/go_feature_flag_provider.rb#L17
@@ -36,7 +38,9 @@ module Datadog
       rescue => e
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
 
-        {error_code: Ext::PROVIDER_FATAL, error_message: e.message, reason: Ext::ERROR}
+        Binding::ResolutionDetails.new(
+          error_code: Ext::PROVIDER_FATAL, error_message: e.message, reason: Ext::ERROR
+        )
       end
 
       def reconfigure!
