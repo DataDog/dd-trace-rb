@@ -47,8 +47,10 @@
   #define DDTRACE_UNUSED
 #endif
 
-// Include ruby_helpers.h after all private VM headers are set up
-#include "ruby_helpers.h"
+// Declare exception class globals from ruby_helpers.h
+// (We can't include ruby_helpers.h here as it pulls in public Ruby headers that conflict with private VM headers)
+extern VALUE datadog_profiling_error_class;
+extern VALUE datadog_profiling_internal_error_class;
 
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
