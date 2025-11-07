@@ -60,6 +60,11 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   datadog_profiling_error_class = rb_const_get(profiling_module, rb_intern("ProfilingError"));
   rb_global_variable(&datadog_profiling_error_class);
 
+  // Initialize the ProfilingInternalError exception class reference
+  // This exception class should be defined in Ruby code (lib/datadog/profiling.rb)
+  datadog_profiling_internal_error_class = rb_const_get(profiling_module, rb_intern("ProfilingInternalError"));
+  rb_global_variable(&datadog_profiling_internal_error_class);
+
   ruby_helpers_init();
   collectors_cpu_and_wall_time_worker_init(profiling_module);
   collectors_discrete_dynamic_sampler_init(profiling_module);

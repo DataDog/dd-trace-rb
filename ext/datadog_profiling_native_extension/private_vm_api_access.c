@@ -738,7 +738,7 @@ void self_test_mn_enabled(void) {
     return;
   #else
     if (ddtrace_get_ractor()->threads.sched.enable_mn_threads == true) {
-      rb_raise(rb_eRuntimeError, "Ruby VM is running with RUBY_MN_THREADS=1. This is not yet supported");
+      rb_raise(datadog_profiling_error_class, "Ruby VM is running with RUBY_MN_THREADS=1. This is not yet supported");
     }
   #endif
 }
@@ -871,11 +871,11 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
       expected_current_fiber = current_fiber_for(rb_thread_current());
     }
 
-    if (expected_current_fiber != actual_current_fiber) rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
+    if (expected_current_fiber != actual_current_fiber) rb_raise(datadog_profiling_error_class, "current_fiber_for() self-test failed");
   }
 #else
   NORETURN(VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread));
 
-  VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
+  VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(datadog_profiling_error_class, "Not implemented for Ruby < 3.1"); }
   void self_test_current_fiber_for(void) { } // Nothing to do
 #endif

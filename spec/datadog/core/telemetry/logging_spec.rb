@@ -120,6 +120,48 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         end
       end
     end
+
+    context 'with ProfilingInternalError' do
+      before do
+        skip unless defined?(Datadog::Profiling::ProfilingInternalError)
+      end
+
+      it 'excludes the exception message from telemetry' do
+        expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+          expect(event.payload).to include(
+            logs: [{message: 'Datadog::Profiling::ProfilingInternalError', level: 'ERROR', count: 1,
+                    stack_trace: a_string_including('REDACTED')}]
+          )
+          # Verify the dynamic content is NOT in the message
+          expect(event.payload[:logs].map { |log| log[:message] }).not_to include(/Failed to initialize.*0x[0-9a-f]+/)
+        end
+
+        begin
+          raise Datadog::Profiling::ProfilingInternalError, 'Failed to initialize string storage: Error at address 0xdeadbeef'
+        rescue => e
+          component.report(e, level: :error)
+        end
+      end
+
+      context 'with description' do
+        it 'includes description but excludes exception message' do
+          expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+            expect(event.payload).to include(
+              logs: [{message: 'Datadog::Profiling::ProfilingInternalError: libdatadog internal error', level: 'ERROR', count: 1,
+                      stack_trace: a_string_including('REDACTED')}]
+            )
+            # Verify the dynamic content is NOT in the message
+            expect(event.payload[:logs].map { |log| log[:message] }).not_to include(/memory address/)
+          end
+
+          begin
+            raise Datadog::Profiling::ProfilingInternalError, 'Failed to serialize profile: Invalid memory address 0x12345678'
+          rescue => e
+            component.report(e, level: :error, description: 'libdatadog internal error')
+          end
+        end
+      end
+    end
   end
 
   describe '.error' do

@@ -3,6 +3,9 @@ module Datadog
     class ProfilingError < StandardError
     end
 
+    class ProfilingInternalError < StandardError
+    end
+
     def self.supported?: () -> bool
     def self.unsupported_reason: () -> ::String?
     def self.start_if_enabled: () -> bool

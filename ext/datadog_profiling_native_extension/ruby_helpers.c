@@ -16,6 +16,10 @@ static ID to_s_id = Qnil;
 // Initialized in profiling.c during extension initialization
 VALUE datadog_profiling_error_class = Qnil;
 
+// Global reference to Datadog::Profiling::ProfilingInternalError exception class
+// Initialized in profiling.c during extension initialization
+VALUE datadog_profiling_internal_error_class = Qnil;
+
 void ruby_helpers_init(void) {
   rb_global_variable(&module_object_space);
 

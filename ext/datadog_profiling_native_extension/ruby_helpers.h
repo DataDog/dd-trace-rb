@@ -7,6 +7,10 @@
 // This is initialized in profiling.c during extension initialization
 extern VALUE datadog_profiling_error_class;
 
+// Global reference to Datadog::Profiling::ProfilingInternalError exception class
+// This is initialized in profiling.c during extension initialization
+extern VALUE datadog_profiling_internal_error_class;
+
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
 // usage of ruby helpers.
 void ruby_helpers_init(void);
