@@ -2,6 +2,7 @@
 
 require_relative 'ext'
 require_relative 'binding'
+require_relative 'noop_evaluator'
 
 module Datadog
   module OpenFeature
@@ -18,22 +19,15 @@ module Datadog
         @logger = logger
 
         @mutex = Mutex.new
-        @evaluator = nil
+        @evaluator = NoopEvaluator.new(nil)
         @configuration = nil
       end
 
       def fetch_value(flag_key:, expected_type:, evaluation_context: nil)
-        if @evaluator.nil?
-          return ResolutionError.new(
-            code: Ext::PROVIDER_NOT_READY,
-            message: 'Waiting for Universal Flag Configuration',
-            reason: Ext::INITIALIZING
-          )
-        end
-
         unless ALLOWED_TYPES.include?(expected_type)
-          message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(',')}"
-          return ResolutionError.new(code: Ext::UNKNOWN_TYPE, message: message, reason: Ext::ERROR)
+          message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(', ')}"
+
+          return {error_code: Ext::UNKNOWN_TYPE, error_message: message, reason: Ext::ERROR}
         end
 
         # NOTE: https://github.com/open-feature/ruby-sdk-contrib/blob/main/providers/openfeature-go-feature-flag-provider/lib/openfeature/go-feature-flag/go_feature_flag_provider.rb#L17
@@ -43,20 +37,15 @@ module Datadog
         @evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now.utc.to_i)
       rescue => e
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
-        ResolutionError.new(code: Ext::PROVIDER_FATAL, message: e.message, reason: Ext::ERROR)
+
+        {error_code: Ext::PROVIDER_FATAL, error_message: e.message, reason: Ext::ERROR}
       end
 
-      # TODO: Put the lock to reconfigure deduplicatoin cache too
       def reconfigure!
-        if @configuration.nil?
-          @logger.debug('OpenFeature: Configuration is not received, skip reconfiguration')
+        @logger.debug('OpenFeature: Removing configuration') if @configuration.nil?
 
-          return
-        end
-
-        @mutex.synchronize do
-          @evaluator = Binding::Evaluator.new(@configuration)
-        end
+        klass = @configuration.nil? ? NoopEvaluator : Binding::Evaluator
+        @mutex.synchronize { @evaluator = klass.new(@configuration) }
       rescue => e
         error_message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 

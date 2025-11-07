@@ -39,8 +39,9 @@ module Datadog
                 engine.configuration = read_content(content)
                 content.applied
               when :delete
-                # no-op
-                # NOTE: Will it ever happen?
+                # NOTE: For now, we treat deletion as clearing the configuration
+                #       In a multi-config scenario, we might track configs per path
+                engine.configuration = nil
               end
             end
 

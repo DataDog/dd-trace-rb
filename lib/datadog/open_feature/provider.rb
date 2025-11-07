@@ -72,16 +72,21 @@ module Datadog
           evaluation_context: evaluation_context
         )
 
-        if result.is_a?(EvaluationEngine::ResolutionError)
+        if result.key?(:error_code)
           return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
             value: default_value,
-            error_code: result.code,
-            error_message: result.message,
-            reason: result.reason
+            error_code: result[:error_code],
+            error_message: result[:error_message],
+            reason: result[:reason]
           )
         end
 
-        result
+        ::OpenFeature::SDK::Provider::ResolutionDetails.new(
+          value: result[:value],
+          variant: result[:variant],
+          reason: result[:reason],
+          flag_metadata: result.fetch(:flag_metadata, {})
+        )
       end
 
       def component_not_configured_default(value)
