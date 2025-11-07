@@ -159,9 +159,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         allow(logger).to receive(:error)
         allow(telemetry).to receive(:report)
 
-        evaluator.configuration = '{}'
-        expect { evaluator.reconfigure! }.not_to change {
-          evaluator.fetch_value(flag_key: 'test', expected_type: :string).value
+        engine.configuration = '{}'
+        expect { engine.reconfigure! }.not_to change {
+          engine.fetch_value(flag_key: 'test', expected_type: :string).value
         }.from('hello')
       end
     end
