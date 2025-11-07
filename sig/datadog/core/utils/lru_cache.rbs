@@ -1,0 +1,23 @@
+module Datadog
+  module Core
+    module Utils
+      class LRUCache
+        extend Forwardable
+
+        @store: ::Hash[untyped, untyped]
+
+        @max_size: ::Integer
+
+        def initialize: (::Integer max_size) -> void
+
+        def []: (untyped key) -> untyped?
+
+        def []=: (untyped key, untyped value) -> untyped
+
+        def clear: () -> void
+
+        def empty?: () -> bool
+      end
+    end
+  end
+end
