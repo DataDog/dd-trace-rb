@@ -57,38 +57,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       end
     end
 
-    context 'with flag lookup' do
-      it 'returns success for existing enabled flag' do
-        result = evaluator.get_assignment('numeric_flag', {}, :float, 0.0)
-        
-        expect(result.error_code).to eq(:Ok)
-        expect(result.value).not_to be_nil
-        expect(['STATIC', 'SPLIT', 'TARGETING_MATCH', 'DEFAULT']).to include(result.reason)
-        expect(result.variant).not_to be_nil
-        expect(result.flag_metadata).not_to be_nil
-        expect(result.flag_metadata.variation_type).to eq('number')
-      end
-
-      it 'returns FLAG_UNRECOGNIZED_OR_DISABLED for missing flag with default value' do
-        result = evaluator.get_assignment('nonexistent_flag', {}, :string, 'fallback')
-        
-        expect(result.error_code).to eq(:FlagNotFound)
-        expect(result.error_message).to eq('flag is missing in configuration, it is either unrecognized or disabled')
-        expect(result.value).to eq('fallback')
-        expect(result.variant).to be_nil
-        expect(result.flag_metadata).to be_nil
-      end
-
-      it 'returns FLAG_DISABLED for disabled flag with default value' do
-        result = evaluator.get_assignment('disabled_flag', {}, :integer, 42)
-        
-        expect(result.error_code).to eq(:Ok)  # Special case - expected condition
-        expect(result.error_message).to eq('flag is disabled')
-        expect(result.value).to eq(42)
-        expect(result.variant).to be_nil
-        expect(result.flag_metadata).to be_nil
-      end
-    end
 
     context 'with type validation' do
       it 'returns TYPE_MISMATCH when types do not match with default value' do
@@ -122,139 +90,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       end
     end
 
-    context 'with different flag types' do
-      it 'handles STRING flags correctly' do
-        # empty_flag has no allocations, so let's test a flag with variations but expect DEFAULT behavior
-        result = evaluator.get_assignment('empty_flag', {}, :string, 'default')
-        
-        expect(result.error_code).to eq(:Ok)
-        expect(result.reason).to eq('DEFAULT')
-        expect(result.value).to eq('default')
-        expect(result.variant).to be_nil
-        expect(result.flag_metadata).to be_nil
-      end
-
-      it 'handles INTEGER flags correctly' do
-        # Find an integer flag in our test data
-        result = evaluator.get_assignment('disabled_flag', {}, :integer, 0)
-        
-        # This should be disabled, but let's test with an enabled integer flag if available
-        # For now, test the type validation logic
-        expect(result.error_code).to eq(:Ok) # Expected since disabled_flag is disabled (special case)
-        expect(result.value).to eq(0) # Should return default value
-        expect(result.variant).to be_nil
-        expect(result.flag_metadata).to be_nil
-      end
-
-      it 'handles NUMERIC flags correctly' do
-        result = evaluator.get_assignment('numeric_flag', {}, :float, 0.0)
-        
-        expect(result.error_code).to eq(:Ok)
-        expect(result.flag_metadata.variation_type).to eq('number')
-        expect(result.value).to be_a(Numeric)
-      end
-
-      it 'handles JSON flags correctly' do
-        result = evaluator.get_assignment('no_allocations_flag', {}, :object, {})
-        
-        # This flag likely has no allocations, so should return DEFAULT_ALLOCATION_NULL
-        if result.error_code == :Ok && result.variant.nil?  # DEFAULT_ALLOCATION_NULL case
-          expect(result.value).to eq({}) # Default value
-          expect(result.flag_metadata).to be_nil
-        else
-          expect(result.error_code).to eq(:Ok)
-          expect(result.flag_metadata.variation_type).to eq('object')
-          expect(result.value).to be_a(Hash)
-        end
-      end
-    end
-
-    context 'with flag variations and allocations' do
-      it 'uses actual variation values from allocations when available' do
-        result = evaluator.get_assignment('numeric_flag', {}, :float, 0.0)
-        
-        expect(result.error_code).to eq(:Ok)
-        expect(result.value).to be_a(Numeric)
-        expect(result.variant).not_to eq('default') # Should use actual variation key from split
-        expect(['STATIC', 'SPLIT', 'TARGETING_MATCH']).to include(result.reason) # Should use allocation-based reason
-        expect(result.flag_metadata).not_to be_nil
-      end
-
-      it 'returns DEFAULT_ALLOCATION_NULL for flags without allocations' do
-        result = evaluator.get_assignment('no_allocations_flag', {}, :object, { "fallback" => true })
-        
-        # Flag with no allocations should return DEFAULT_ALLOCATION_NULL error with default value
-        expect(result.error_code).to eq(:Ok)  # Special case - expected condition
-        expect(result.value).to eq({ "fallback" => true })
-        expect(result.variant).to be_nil
-        expect(result.flag_metadata).to be_nil
-      end
-
-      it 'uses real allocation metadata' do
-        result = evaluator.get_assignment('numeric_flag', {}, :float, 0.0)
-        
-        expect(result.error_code).to eq(:Ok)
-        expect(result.flag_metadata.allocation_key).not_to eq('mock_allocation')
-        expect([true, false]).to include(result.flag_metadata.do_log)
-      end
-
-      it 'handles flags with allocations that have splits' do
-        result = evaluator.get_assignment('empty_flag', {}, :string, 'default')
-        
-        if result.variant.nil?  # DEFAULT_ALLOCATION_NULL case
-          # Flag has no valid allocations
-          expect(result.error_code).to eq(:Ok)
-          expect(result.value).to eq('default')
-          expect(result.flag_metadata).to be_nil
-        else
-          # Flag has valid allocation and split
-          expect(result.error_code).to eq(:Ok)
-          expect(result.value).not_to be_nil
-          expect(result.variant).not_to be_empty
-          expect(['STATIC', 'SPLIT', 'TARGETING_MATCH', 'DEFAULT']).to include(result.reason)
-          expect(result.flag_metadata).not_to be_nil
-        end
-      end
-
-      it 'uses real variation values not generated defaults' do
-        # Test with flags that have actual variations
-        result = evaluator.get_assignment('numeric_flag', {}, :float, 0.0)
-        
-        if result.error_code == :Ok && result.variant
-          expect(result.value).to be_a(Numeric)
-          expect(result.value).not_to eq(0.0) # Should be real variation value, not default
-        end
-      end
-
-      it 'handles allocation matching correctly' do
-        # Test allocation matching logic works for different flags
-        result = evaluator.get_assignment('numeric_flag', {}, :float, 0.0)
-        
-        if result.error_code == :Ok && result.variant
-          expect(result.flag_metadata.allocation_key).not_to be_empty
-          expect([true, false]).to include(result.flag_metadata.do_log)
-        end
-      end
-
-      it 'returns DEFAULT_ALLOCATION_NULL for flags without valid allocations' do
-        # Test that doLog handling works correctly for error cases
-        result = evaluator.get_assignment('no_allocations_flag', {}, :object, { "default" => "value" })
-        
-        expect(result.error_code).to eq(:Ok)  # Special case - expected condition
-        expect(result.value).to eq({ "default" => "value" })
-        expect(result.variant).to be_nil
-        expect(result.flag_metadata).to be_nil
-      end
-
-      it 'handles different flags with proper allocation evaluation' do
-        # Ensure allocation matching works for different flags
-        flag1 = evaluator.get_assignment('numeric_flag', {}, :float, 1.0)
-        flag2 = evaluator.get_assignment('empty_flag', {}, :string, 'empty_default')
-        
-        # Results should be different (either success with different values, or errors with different defaults)
-        expect([flag1.value, flag1.error_code]).not_to eq([flag2.value, flag2.error_code])
-      end
-    end
 
     context 'type mapping' do
       let(:type_checker) { evaluator }
@@ -287,7 +122,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
     end
 
     it 'accesses flag properties correctly' do
-      result = evaluator.get_assignment('empty_flag', {}, :string, 'default')
       config = evaluator.instance_variable_get(:@parsed_config)
       flag = config.get_flag('empty_flag')
       
@@ -333,6 +167,88 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       expect(type_result.value).to eq(false)
       expect(type_result.variant).to be_nil
       expect(type_result.flag_metadata).to be_nil
+    end
+  end
+
+  describe 'test case coverage' do
+    let(:evaluator) { described_class.new(valid_ufc_json) }
+    
+    # Load all test case files at evaluation time
+    Dir.glob(File.join(__dir__, '../../../fixtures/ufc/test_cases/*.json')).each do |test_file|
+      describe "Test cases from #{File.basename(test_file)}" do
+        let(:test_cases) { JSON.parse(File.read(test_file)) }
+        
+        it 'executes all test cases in the file' do
+          test_cases.each_with_index do |test_case, index|
+            # Extract test case data
+            flag_key = test_case['flag']
+            variation_type = test_case['variationType'] 
+            default_value = test_case['defaultValue']
+            targeting_key = test_case['targetingKey']
+            attributes = test_case['attributes'] || {}
+            expected_result = test_case['result']
+            
+            # Convert variation type to expected_type symbol
+            expected_type = case variation_type
+                           when 'STRING' then :string
+                           when 'INTEGER' then :integer
+                           when 'NUMERIC' then :float
+                           when 'BOOLEAN' then :boolean
+                           when 'JSON' then :object
+                           else nil
+                           end
+            
+            # Build evaluation context
+            evaluation_context = attributes.dup
+            evaluation_context['targetingKey'] = targeting_key if targeting_key
+            
+            # Execute test case
+            result = evaluator.get_assignment(flag_key, evaluation_context, expected_type, default_value)
+            
+            # Wrap expectations in aggregate_failures for better error reporting
+            aggregate_failures "Test case ##{index + 1}: #{targeting_key} with #{attributes.keys.join(', ')}" do
+              # Check value
+              expect(result.value).to eq(expected_result['value']), 
+                "Expected value #{expected_result['value'].inspect}, got #{result.value.inspect}"
+              
+              # Check variant (if expected)
+              if expected_result.key?('variant')
+                expect(result.variant).to eq(expected_result['variant']),
+                  "Expected variant #{expected_result['variant'].inspect}, got #{result.variant.inspect}"
+              else
+                expect(result.variant).to be_nil,
+                  "Expected no variant, got #{result.variant.inspect}"
+              end
+              
+              # Check flag metadata (if expected)
+              if expected_result.key?('flagMetadata')
+                expected_metadata = expected_result['flagMetadata']
+                expect(result.flag_metadata).not_to be_nil,
+                  "Expected flag metadata, got nil"
+                expect(result.flag_metadata.allocation_key).to eq(expected_metadata['allocationKey']),
+                  "Expected allocation key #{expected_metadata['allocationKey'].inspect}, got #{result.flag_metadata&.allocation_key.inspect}"
+                expect(result.flag_metadata.variation_type).to eq(expected_metadata['variationType']),
+                  "Expected variation type #{expected_metadata['variationType'].inspect}, got #{result.flag_metadata&.variation_type.inspect}"
+                expect(result.flag_metadata.do_log).to eq(expected_metadata['doLog']),
+                  "Expected do_log #{expected_metadata['doLog'].inspect}, got #{result.flag_metadata&.do_log.inspect}"
+              else
+                expect(result.flag_metadata).to be_nil,
+                  "Expected no flag metadata, got #{result.flag_metadata.inspect}"
+              end
+              
+              # Check error code - should be :Ok for successful evaluations, or specific error for failures
+              if expected_result.key?('variant') || expected_result.key?('flagMetadata')
+                expect(result.error_code).to eq(:Ok),
+                  "Expected :Ok error code for successful evaluation, got #{result.error_code.inspect}"
+              else
+                # For cases that return default value only, check if it's an expected condition
+                expect([nil, :Ok]).to include(result.error_code),
+                  "Expected nil or :Ok error code for default value case, got #{result.error_code.inspect}"
+              end
+            end
+          end
+        end
+      end
     end
   end
 end
