@@ -1,19 +1,9 @@
 module Datadog
   module OpenFeature
     class EvaluationEngine
-      class ResolutionError < ::Struct[untyped]
-        attr_reader reason: ::String
-
-        attr_reader code: ::String
-
-        attr_reader message: ::String
-
-        def self.new: (?reason: ::String, ?code: ::String, ?message: ::String) -> instance
-      end
-
       ALLOWED_TYPES: ::Array[::Symbol]
 
-      attr_writer configuration: ::String
+      attr_writer configuration: ::String?
 
       def initialize: (Core::Telemetry::Component telemetry, ?logger: Core::Logger) -> void
 
@@ -21,7 +11,7 @@ module Datadog
         flag_key: ::String,
         expected_type: ::Symbol,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
-      ) -> (Binding::ResolutionDetails | ResolutionError)
+      ) -> ::Hash[::Symbol, untyped]
 
       def reconfigure!: () -> void
     end

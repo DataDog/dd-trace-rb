@@ -10,8 +10,6 @@ module Datadog
     class EvaluationEngine
       attr_accessor :configuration
 
-      ResolutionError = Struct.new(:reason, :code, :message, keyword_init: true)
-
       ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
       def initialize(telemetry, logger: Datadog.logger)

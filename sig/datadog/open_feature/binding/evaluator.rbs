@@ -1,40 +1,17 @@
 module Datadog
   module OpenFeature
     module Binding
-      class ResolutionDetails < ::Struct[untyped]
-        attr_reader value: untyped
-
-        attr_reader reason: ::String
-
-        attr_reader variant: untyped
-
-        attr_reader error_code: ::String
-
-        attr_reader error_message: ::String
-
-        attr_reader flag_metadata: untyped
-
-        def self.new: (
-          ?value: untyped,
-          ?reason: ::String,
-          ?variant: untyped,
-          ?error_code: ::String,
-          ?error_message: ::String,
-          ?flag_metadata: untyped
-        ) -> instance
-      end
-
       class Evaluator
         @ufc_json: ::String
 
-        def initialize: (::String ufc_json) -> void
+        def initialize: (::String? ufc_json) -> void
 
         def get_assignment: (
           ::String flag_key,
-          untyped evaluation_context,
+          ::OpenFeature::SDK::EvaluationContext? evaluation_context,
           ::Symbol expected_type,
           ::Integer time
-        ) -> ResolutionDetails
+        ) -> ::Hash[::Symbol, ::Object]
 
         private
 

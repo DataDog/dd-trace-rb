@@ -1,0 +1,15 @@
+module Datadog
+  module OpenFeature
+    class NoopEvaluator
+      def initialize: (::String?) -> void
+
+      def get_assignment: (
+        ::String,
+        ::OpenFeature::SDK::EvaluationContext?,
+        ::Symbol,
+        ::Integer
+      ) -> ::Hash[::Symbol, ::String]
+    end
+  end
+end
+
