@@ -878,7 +878,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     context "when serialization fails" do
       before { expect(described_class).to receive(:_native_serialize).and_return([:error, "test error message"]) }
 
-      it { expect { serialize! }.to raise_error(Datadog::Profiling::ProfilingError, /test error message/) }
+      it { expect { serialize! }.to raise_error(Datadog::Profiling::ProfilingInternalError, /test error message/) }
     end
   end
 
