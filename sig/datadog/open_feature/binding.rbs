@@ -1,6 +1,7 @@
 module Datadog
   module OpenFeature
     module Binding
+      Evaluator: class
     end
   end
 end

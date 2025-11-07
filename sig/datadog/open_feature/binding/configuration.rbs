@@ -1,0 +1,176 @@
+module Datadog
+  module OpenFeature
+    module Binding
+      module VariationType
+        STRING: ::String
+        INTEGER: ::String
+        NUMERIC: ::String
+        BOOLEAN: ::String
+        JSON: ::String
+      end
+
+      module ConditionOperator
+        MATCHES: ::String
+        NOT_MATCHES: ::String
+        GTE: ::String
+        GT: ::String
+        LTE: ::String
+        LT: ::String
+        ONE_OF: ::String
+        NOT_ONE_OF: ::String
+        IS_NULL: ::String
+      end
+
+      module AssignmentReason
+        TARGETING_MATCH: ::String
+        SPLIT: ::String
+        STATIC: ::String
+      end
+
+      class Flag
+        attr_reader key: ::String
+        attr_reader enabled: bool
+        attr_reader variation_type: ::String
+        attr_reader variations: ::Hash[::String, Variation]
+        attr_reader allocations: ::Array[Allocation]
+
+        def initialize: (
+          key: ::String,
+          enabled: bool,
+          variation_type: ::String,
+          variations: ::Hash[::String, Variation],
+          allocations: ::Array[Allocation]
+        ) -> void
+
+        def self.from_json: (::String key, ::Hash[::String, untyped] flag_data) -> Flag
+
+        private
+
+        def self.parse_variations: (::Hash[::String, untyped] variations_data) -> ::Hash[::String, Variation]
+
+        def self.parse_allocations: (::Array[untyped] allocations_data) -> ::Array[Allocation]
+      end
+
+      class Variation
+        attr_reader key: ::String
+        attr_reader value: untyped
+
+        def initialize: (key: ::String, value: untyped) -> void
+
+        def self.from_json: (::Hash[::String, untyped] variation_data) -> Variation
+      end
+
+      class Allocation
+        attr_reader key: ::String
+        attr_reader rules: ::Array[Rule]?
+        attr_reader start_at: ::Time?
+        attr_reader end_at: ::Time?
+        attr_reader splits: ::Array[Split]
+        attr_reader do_log: bool
+
+        def initialize: (
+          key: ::String,
+          ?rules: ::Array[Rule]?,
+          ?start_at: ::Time?,
+          ?end_at: ::Time?,
+          splits: ::Array[Split],
+          ?do_log: bool
+        ) -> void
+
+        def self.from_json: (::Hash[::String, untyped] allocation_data) -> Allocation
+
+        private
+
+        def self.parse_rules: (::Array[untyped]? rules_data) -> ::Array[Rule]?
+
+        def self.parse_splits: (::Array[untyped] splits_data) -> ::Array[Split]
+
+        def self.parse_timestamp: (untyped timestamp_data) -> ::Time?
+      end
+
+      class Split
+        attr_reader shards: ::Array[Shard]
+        attr_reader variation_key: ::String
+        attr_reader extra_logging: ::Hash[::String, untyped]
+
+        def initialize: (
+          shards: ::Array[Shard],
+          variation_key: ::String,
+          ?extra_logging: ::Hash[::String, untyped]?
+        ) -> void
+
+        def self.from_json: (::Hash[::String, untyped] split_data) -> Split
+
+        private
+
+        def self.parse_shards: (::Array[untyped] shards_data) -> ::Array[Shard]
+      end
+
+      class Shard
+        attr_reader salt: ::String
+        attr_reader total_shards: ::Integer
+        attr_reader ranges: ::Array[ShardRange]
+
+        def initialize: (
+          salt: ::String,
+          total_shards: ::Integer,
+          ranges: ::Array[ShardRange]
+        ) -> void
+
+        def self.from_json: (::Hash[::String, untyped] shard_data) -> Shard
+
+        private
+
+        def self.parse_ranges: (::Array[untyped] ranges_data) -> ::Array[ShardRange]
+      end
+
+      class ShardRange
+        attr_reader start: ::Integer
+        attr_reader end_value: ::Integer
+
+        def initialize: (start: ::Integer, end_value: ::Integer) -> void
+
+        def self.from_json: (::Hash[::String, untyped] range_data) -> ShardRange
+
+        def end: () -> ::Integer
+      end
+
+      class Rule
+        attr_reader conditions: ::Array[Condition]
+
+        def initialize: (conditions: ::Array[Condition]) -> void
+
+        def self.from_json: (::Hash[::String, untyped] rule_data) -> Rule
+
+        private
+
+        def self.parse_conditions: (::Array[untyped] conditions_data) -> ::Array[Condition]
+      end
+
+      class Condition
+        attr_reader attribute: ::String
+        attr_reader operator: ::String
+        attr_reader value: untyped
+
+        def initialize: (attribute: ::String, operator: ::String, value: untyped) -> void
+
+        def self.from_json: (::Hash[::String, untyped] condition_data) -> Condition
+
+        private
+
+        def self.parse_condition_value: (untyped value_data) -> untyped
+      end
+
+      class Configuration
+        attr_reader flags: ::Hash[::String, Flag]
+        attr_reader schema_version: ::String?
+
+        def initialize: (flags: ::Hash[::String, Flag], ?schema_version: ::String?) -> void
+
+        def self.from_json: (::Hash[::String, untyped] config_data) -> Configuration
+
+        def get_flag: (::String flag_key) -> Flag?
+      end
+    end
+  end
+end

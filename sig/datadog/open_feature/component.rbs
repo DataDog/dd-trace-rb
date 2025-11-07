@@ -29,6 +29,8 @@ module Datadog
         telemetry: Core::Telemetry::Component
       ) -> void
 
+      def evaluator: () -> EvaluationEngine
+
       def shutdown!: () -> void
     end
   end
