@@ -2,13 +2,22 @@ module Datadog
   module Core
     module Environment
       module Cgroup
-        LINE_REGEX: untyped
+        ENTRY_REGEX: Regexp
 
-        Descriptor: untyped
+        class Entry
+          attr_accessor hierarchy: String?
+          attr_accessor controllers: String?
+          attr_accessor path: String?
+          attr_accessor inode: Integer?
 
-        def self?.descriptors: (?::String process) -> untyped
+          def initialize: (String? hierarchy, String? controllers, String? path, ?Integer? inode) -> void
+        end
 
-        def self?.parse: (untyped line) -> untyped
+        def self?.entries: () -> Array[Entry]
+
+        def self?.parse: (String entry_line) -> Entry
+
+        def self?.inode_for: (String? controllers, String? path) -> Integer?
       end
     end
   end
