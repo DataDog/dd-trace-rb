@@ -7,34 +7,18 @@ require_relative '../ext'
 module Datadog
   module OpenFeature
     module Binding
-      # libdatadog-aligned result structures
-      ResultContent = Struct.new(:value, :variant, :flag_metadata, keyword_init: true)
-      FlagMetadata = Struct.new(:allocation_key, :variation_type, :do_log, keyword_init: true)
-      
-      # Dual-layer result structure matching libdatadog interface
-      class EvaluationResult
-        attr_reader :result, :error_code, :error_message, :reason
+      # Flat result structure matching NativeEvaluator ResolutionDetails interface
+      class ResolutionDetails
+        attr_reader :value, :variant, :error_code, :error_message, :reason, :allocation_key, :do_log
         
-        def initialize(result:, error_code: :Ok, error_message: nil, reason: nil)
-          @result = result
+        def initialize(value:, variant: nil, error_code: nil, error_message: nil, reason: nil, allocation_key: nil, do_log: nil)
+          @value = value
+          @variant = variant
           @error_code = error_code
           @error_message = error_message  
           @reason = reason
-        end
-        
-        # Convenience method to get the value from result
-        def value
-          @result&.value
-        end
-        
-        # Convenience method to get variant from result
-        def variant
-          @result&.variant
-        end
-        
-        # Convenience method to get flag_metadata from result
-        def flag_metadata
-          @result&.flag_metadata
+          @allocation_key = allocation_key
+          @do_log = do_log
         end
       end
 
@@ -50,16 +34,22 @@ module Datadog
       end
 
       class InternalEvaluator
-        # libdatadog error code mapping
+        # NativeEvaluator-aligned error code mapping
         ERROR_CODE_MAPPING = {
-          Ext::FLAG_UNRECOGNIZED_OR_DISABLED => :FlagNotFound,
-          Ext::FLAG_DISABLED => :Ok,  # Special case - expected condition
-          Ext::TYPE_MISMATCH_ERROR => :TypeMismatch,
-          Ext::CONFIGURATION_PARSE_ERROR => :ParseError,
-          Ext::CONFIGURATION_MISSING => :ProviderNotReady,  # Maps to ProviderNotReady per Rust
-          Ext::DEFAULT_ALLOCATION_NULL => :Ok,  # Special case - expected condition
-          Ext::INTERNAL_ERROR => :General
+          Ext::FLAG_UNRECOGNIZED_OR_DISABLED => :flag_not_found,
+          Ext::FLAG_DISABLED => nil,  # Success case
+          Ext::TYPE_MISMATCH_ERROR => :type_mismatch,
+          Ext::CONFIGURATION_PARSE_ERROR => :parse_error,
+          Ext::CONFIGURATION_MISSING => :provider_not_ready,
+          Ext::DEFAULT_ALLOCATION_NULL => nil,  # Success case
+          Ext::INTERNAL_ERROR => :general
         }.freeze
+
+        # Additional error codes matching NativeEvaluator
+        ADDITIONAL_ERROR_CODES = [
+          :targeting_key_missing,
+          :invalid_context
+        ].freeze
 
         # Variation type mapping to libdatadog format
         VARIATION_TYPE_MAPPING = {
@@ -77,7 +67,7 @@ module Datadog
 
         def get_assignment(flag_key, _evaluation_context, expected_type, default_value)
           # Return default value if JSON parsing failed during initialization
-          if @parsed_config.is_a?(EvaluationResult)
+          if @parsed_config.is_a?(ResolutionDetails)
             return create_error_result(
               default_value, 
               @parsed_config.error_code, 
@@ -119,7 +109,7 @@ module Datadog
               reason
             )
           rescue EvaluationError => e
-            # Convert evaluation errors to EvaluationResult with default value - matches Rust error propagation
+            # Convert evaluation errors to ResolutionDetails with default value - matches Rust error propagation
             create_error_result(default_value, e.code, e.message)
           end
         end
@@ -142,14 +132,23 @@ module Datadog
             return create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
-          # Check for required top-level fields (basic validation for now)
-          unless parsed_json.key?('flags') || parsed_json.key?('flagsV1')
+          # Handle both UFC format and libdatadog format
+          config_to_parse = if has_libdatadog_format?(parsed_json)
+            # Extract flags from libdatadog format
+            extract_flags_from_libdatadog_format(parsed_json)
+          else
+            # Use UFC format directly
+            parsed_json
+          end
+
+          # Check for required flags field
+          unless config_to_parse.key?('flags') || config_to_parse.key?('flagsV1')
             # TODO: Add structured logging for debugging context
             return create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
           # Parse into Configuration object
-          Configuration.from_json(parsed_json)
+          Configuration.from_json(config_to_parse)
         rescue JSON::ParserError => e
           # TODO: Add structured logging: "Invalid JSON syntax: #{e.message}"
           create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
@@ -170,41 +169,35 @@ module Datadog
           create_error_result(default_value, error_code, error_message)
         end
 
-        # New libdatadog-aligned result creation methods
+        # NativeEvaluator-aligned result creation methods
         def create_success_result(value, variant, allocation_key, variation_type, do_log, reason)
-          EvaluationResult.new(
-            result: ResultContent.new(
-              value: value,
-              variant: variant,
-              flag_metadata: FlagMetadata.new(
-                allocation_key: allocation_key,
-                variation_type: variation_type,
-                do_log: do_log
-              )
-            ),
-            error_code: :Ok,
-            reason: reason
+          ResolutionDetails.new(
+            value: value,
+            variant: variant,
+            error_code: nil,  # nil indicates success
+            reason: convert_reason_to_symbol(reason),
+            allocation_key: allocation_key,
+            do_log: do_log
           )
         end
 
         def create_error_result(default_value, error_code, error_message)
-          # Map internal error codes to libdatadog error codes
-          # If error_code is already a symbol, use it directly, otherwise map it
+          # Map internal error codes to NativeEvaluator error codes
           mapped_error_code = if error_code.is_a?(Symbol)
                                 error_code
                               else
-                                ERROR_CODE_MAPPING[error_code] || :General
+                                ERROR_CODE_MAPPING[error_code] || :general
                               end
           
-          # Special cases for expected conditions should not have ERROR reason
+          # Determine reason based on error type
           reason = if [Ext::DEFAULT_ALLOCATION_NULL, Ext::FLAG_DISABLED].include?(error_code.to_s)
-                     'DEFAULT' # These are expected conditions, not errors
+                     :static # These are expected conditions, not errors
                    else
-                     'ERROR'
+                     :error
                    end
           
-          EvaluationResult.new(
-            result: ResultContent.new(value: default_value),
+          ResolutionDetails.new(
+            value: default_value,
             error_code: mapped_error_code,
             error_message: error_message,
             reason: reason
@@ -542,6 +535,43 @@ module Datadog
         def convert_variation_type_for_output(variation_type)
           # Convert from SCREAMING_SNAKE_CASE to lowercase format for output using mapping
           VARIATION_TYPE_MAPPING[variation_type] || variation_type.to_s.downcase
+        end
+
+        def convert_reason_to_symbol(reason)
+          # Convert string reasons to symbols matching NativeEvaluator format
+          case reason
+          when AssignmentReason::STATIC
+            :static
+          when AssignmentReason::TARGETING_MATCH
+            :targeting_match
+          when AssignmentReason::SPLIT
+            :split
+          when 'ERROR'
+            :error
+          when 'DEFAULT'
+            :static
+          else
+            reason.to_s.downcase.to_sym if reason
+          end
+        end
+
+        # Check if JSON has libdatadog format (with top-level metadata)
+        def has_libdatadog_format?(parsed_json)
+          parsed_json.key?('id') && parsed_json.key?('createdAt') && 
+          parsed_json.key?('format') && parsed_json.key?('environment')
+        end
+
+        # Extract flags section from libdatadog format
+        def extract_flags_from_libdatadog_format(parsed_json)
+          # Validate required libdatadog fields
+          unless parsed_json.key?('flags')
+            raise StandardError.new('Missing flags section in libdatadog format')
+          end
+
+          # Return just the flags section for UFC parsing
+          {
+            'flags' => parsed_json['flags']
+          }
         end
       end
     end
