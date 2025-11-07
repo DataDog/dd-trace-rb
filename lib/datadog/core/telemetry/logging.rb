@@ -66,6 +66,12 @@ module Datadog
           log!(event)
         end
 
+        def error(description)
+          event = Event::Log.new(message: description, level: :error)
+
+          log!(event)
+        end
+
         private
 
         def constant_exception_message(exception)
@@ -74,12 +80,6 @@ module Datadog
           if defined?(Datadog::Profiling::ProfilingError) && exception.is_a?(Datadog::Profiling::ProfilingError)
             exception.message
           end
-        end
-
-        def error(description)
-          event = Event::Log.new(message: description, level: :error)
-
-          log!(event)
         end
       end
     end
