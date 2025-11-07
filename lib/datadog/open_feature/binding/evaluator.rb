@@ -1,16 +1,8 @@
+# frozen_string_literal: true
+
 module Datadog
   module OpenFeature
     module Binding
-      ResolutionDetails = Struct.new(
-        :value,
-        :reason,
-        :variant,
-        :error_code,
-        :error_message,
-        :flag_metadata,
-        keyword_init: true
-      )
-
       class Evaluator
         def initialize(ufc_json)
           # NOTE: In real binding we will parse and create Configuration
@@ -18,11 +10,11 @@ module Datadog
         end
 
         def get_assignment(_flag_key, _evaluation_context, expected_type, _time)
-          ResolutionDetails.new(
+          {
             value: generate(expected_type),
             reason: 'hardcoded',
             variant: 'hardcoded'
-          )
+          }
         end
 
         private
