@@ -43,9 +43,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
 
     # LibFFI native thread
     allow(::HTTP::Connection).to receive(:new).and_wrap_original do |method, *args, &block|
-      ThreadHelpers.with_leaky_thread_creation(:ffi) do
-        method.call(*args, &block)
-      end
+      method.call(*args, &block)
     end
   end
 
