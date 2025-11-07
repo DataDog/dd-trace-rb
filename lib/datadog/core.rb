@@ -21,7 +21,7 @@ module Datadog
         e.message
       end
 
-    module_function def ddsketch_supported?
+    def self.ddsketch_supported?
       LIBDATADOG_API_FAILURE.nil?
     end
   end
