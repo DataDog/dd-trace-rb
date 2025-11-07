@@ -10,7 +10,7 @@ module Datadog
 
       def initialize: (telemetry: ::Datadog::Core::Telemetry::Component) -> void
 
-      def flush: () -> void
+      def evaluator: () -> EvaluationEngine
 
       def shutdown!: () -> void
     end

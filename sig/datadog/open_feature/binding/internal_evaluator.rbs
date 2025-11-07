@@ -1,0 +1,146 @@
+module Datadog
+  module OpenFeature
+    module Binding
+      class ResolutionDetails
+        attr_reader value: untyped
+        attr_reader variant: ::String?
+        attr_reader error_code: ::String?
+        attr_reader error_message: ::String?
+        attr_reader reason: ::String?
+        attr_reader allocation_key: ::String?
+        attr_reader do_log: bool?
+
+        def initialize: (
+          value: untyped,
+          ?variant: ::String?,
+          ?error_code: ::String?,
+          ?error_message: ::String?,
+          ?reason: ::String?,
+          ?allocation_key: ::String?,
+          ?do_log: bool?
+        ) -> void
+      end
+
+      class EvaluationError < ::StandardError
+        attr_reader code: ::String
+        attr_reader message: ::String
+
+        def initialize: (::String code, ::String message) -> void
+      end
+
+      class InternalEvaluator
+        ERROR_CODE_MAPPING: ::Hash[::String, ::Symbol?]
+
+        ADDITIONAL_ERROR_CODES: ::Array[::Symbol]
+
+        VARIATION_TYPE_MAPPING: ::Hash[::String, ::String]
+
+        def initialize: (::String ufc_json) -> void
+
+        def get_assignment: (
+          ::String flag_key,
+          untyped _evaluation_context,
+          ::Symbol expected_type,
+          untyped default_value
+        ) -> ResolutionDetails
+
+        private
+
+        def parse_and_validate_json: (::String ufc_json) -> (Configuration | ResolutionDetails)
+
+        def create_parse_error: (::String code, ::String message) -> ResolutionDetails
+
+        def create_error_result: (untyped value, ::String code, ::String message) -> ResolutionDetails
+
+        def create_success_result: (
+          untyped value,
+          ::String variant,
+          ::String allocation_key,
+          ::String reason,
+          bool do_log,
+          ::String assignment_reason
+        ) -> ResolutionDetails
+
+        def type_matches?: (::String flag_type, ::Symbol expected_type) -> bool
+
+        def convert_variation_type_for_output: (::String flag_type) -> ::String
+
+        def evaluate_flag_allocations: (
+          Flag flag,
+          untyped evaluation_context,
+          ::Time current_time
+        ) -> [Allocation, Variation, ::String]
+
+        def find_matching_allocation: (
+          ::Array[Allocation] allocations,
+          untyped evaluation_context,
+          ::Time current_time
+        ) -> Allocation?
+
+        def allocation_matches?: (
+          Allocation allocation,
+          untyped evaluation_context,
+          ::Time current_time
+        ) -> bool
+
+        def time_matches?: (::Time? start_at, ::Time? end_at, ::Time current_time) -> bool
+
+        def rules_match?: (::Array[Rule]? rules, untyped evaluation_context) -> bool
+
+        def rule_matches?: (Rule rule, untyped evaluation_context) -> bool
+
+        def condition_matches?: (Condition condition, untyped evaluation_context) -> bool
+
+        def get_attribute_value: (untyped evaluation_context, ::String attribute) -> untyped
+
+        def evaluate_split_for_variation: (
+          ::Array[Split] splits,
+          untyped evaluation_context
+        ) -> [Split, Variation]
+
+        def calculate_shard_for_context: (
+          Shard shard,
+          untyped evaluation_context
+        ) -> ::Integer
+
+        def find_split_by_shard: (::Array[Split] splits, ::Integer shard_value) -> Split?
+
+        def shard_matches_ranges?: (::Integer shard_value, ::Array[ShardRange] ranges) -> bool
+
+        def get_targeting_key: (untyped evaluation_context) -> ::String?
+
+        def djb2_hash: (::String input) -> ::Integer
+
+        def coerce_to_string: (untyped value) -> ::String?
+
+        def coerce_to_number: (untyped value) -> ::Numeric?
+
+        def evaluate_is_null: (untyped attribute_value) -> bool
+
+        def evaluate_numeric_comparison: (
+          untyped attribute_value,
+          untyped condition_value,
+          ::Symbol operator
+        ) -> bool
+
+        def evaluate_membership: (
+          untyped attribute_value,
+          untyped condition_values,
+          bool expected_membership
+        ) -> bool
+
+        def evaluate_regex: (
+          untyped attribute_value,
+          untyped pattern,
+          bool expected_match
+        ) -> bool
+
+        def convert_reason_to_openfeature: (::String? reason) -> ::Symbol?
+
+        def has_libdatadog_format?: (::Hash[::String, untyped] parsed_json) -> bool
+
+        def extract_flags_from_libdatadog_format: (::Hash[::String, untyped] parsed_json) -> ::Hash[::String, untyped]
+      end
+    end
+  end
+end
