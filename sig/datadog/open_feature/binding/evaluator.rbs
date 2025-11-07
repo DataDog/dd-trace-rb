@@ -1,27 +1,30 @@
 module Datadog
   module OpenFeature
     module Binding
-      class EvaluationResult < ::Struct[untyped]
+      class ResolutionDetails
         attr_reader value: untyped
 
-        attr_reader reason: ::String
+        attr_reader reason: ::Symbol?
 
         attr_reader variant: untyped
 
-        attr_reader error_code: ::String
+        attr_reader error_code: ::Symbol?
 
-        attr_reader error_message: ::String
+        attr_reader error_message: ::String?
 
-        attr_reader flag_metadata: untyped
+        attr_reader allocation_key: ::String?
 
-        def self.new: (
-          ?value: untyped,
-          ?reason: ::String,
+        attr_reader do_log: bool?
+
+        def initialize: (
+          value: untyped,
           ?variant: untyped,
-          ?error_code: ::String,
-          ?error_message: ::String,
-          ?flag_metadata: untyped
-        ) -> instance
+          ?error_code: ::Symbol?,
+          ?error_message: ::String?,
+          ?reason: ::Symbol?,
+          ?allocation_key: ::String?,
+          ?do_log: bool?
+        ) -> void
       end
 
       class Evaluator
@@ -35,7 +38,7 @@ module Datadog
           ::Symbol expected_type,
           ::Integer time,
           untyped default_value
-        ) -> EvaluationResult
+        ) -> ResolutionDetails
 
         private
 

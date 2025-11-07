@@ -26,7 +26,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         evaluator = described_class.new('invalid json')
         config = evaluator.instance_variable_get(:@parsed_config)
         
-        expect(config).to be_a(Datadog::OpenFeature::Binding::EvaluationResult)
+        expect(config).to be_a(Datadog::OpenFeature::Binding::ResolutionDetails)
         expect(config.error_code).to eq(:ParseError)
       end
 
@@ -34,7 +34,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         evaluator = described_class.new('')
         config = evaluator.instance_variable_get(:@parsed_config)
         
-        expect(config).to be_a(Datadog::OpenFeature::Binding::EvaluationResult)
+        expect(config).to be_a(Datadog::OpenFeature::Binding::ResolutionDetails)
         expect(config.error_code).to eq(:ParseError)
       end
     end
@@ -104,20 +104,21 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'succeeds when types match' do
         result = evaluator.get_assignment('numeric_flag', {}, :float, 0.0)
         
-        expect(result.error_code).to eq(:Ok)
+        expect(result.error_code).to be_nil
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
-        expect(result.flag_metadata).not_to be_nil
-        expect(result.flag_metadata.variation_type).to eq('number')
+        expect(result.allocation_key).not_to be_nil
+        expect([true, false]).to include(result.do_log)
       end
 
       it 'succeeds when expected_type is nil (no validation)' do
         result = evaluator.get_assignment('numeric_flag', {}, nil, 'default')
         
-        expect(result.error_code).to eq(:Ok)
+        expect(result.error_code).to be_nil
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
-        expect(result.flag_metadata).not_to be_nil
+        expect(result.allocation_key).not_to be_nil
+        expect([true, false]).to include(result.do_log)
       end
     end
 
