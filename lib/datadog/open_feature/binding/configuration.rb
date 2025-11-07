@@ -265,9 +265,19 @@ module Datadog
       class Configuration
         attr_reader :flags, :schema_version
 
-        def initialize(flags:, schema_version: nil)
-          @flags = flags || {}
-          @schema_version = schema_version
+        def initialize(flags: nil, schema_version: nil, json_string: nil)
+          if json_string
+            # Native mode - use the C extension
+            _native_initialize(json_string)
+            @native_mode = true
+            @flags = nil  # Flags are handled natively
+            @schema_version = nil
+          else
+            # Pure Ruby mode - parse flags ourselves
+            @flags = flags || {}
+            @schema_version = schema_version
+            @native_mode = false
+          end
         end
 
         def self.from_json(config_data)
@@ -283,8 +293,50 @@ module Datadog
           )
         end
 
+        # Create a native configuration from JSON string
+        def self.from_json_string(json_string)
+          new(json_string: json_string)
+        end
+
         def get_flag(flag_key)
-          @flags[flag_key]
+          if @native_mode
+            # In native mode, flags are accessed through native methods during evaluation
+            raise "get_flag not supported in native mode - use evaluation methods directly"
+          else
+            @flags[flag_key]
+          end
+        end
+
+        def native_mode?
+          @native_mode
+        end
+      end
+
+      # EvaluationContext wrapper that supports both native and Ruby modes
+      class EvaluationContext
+        def initialize(targeting_key, attributes = {})
+          if Configuration.method_defined?(:_native_initialize_with_attributes)
+            # Native mode available - use C extension
+            _native_initialize_with_attributes(targeting_key, attributes)
+            @native_mode = true
+          else
+            # Pure Ruby mode
+            @targeting_key = targeting_key
+            @attributes = attributes || {}
+            @native_mode = false
+          end
+        end
+
+        def targeting_key
+          @targeting_key unless @native_mode
+        end
+
+        def attributes
+          @attributes unless @native_mode
+        end
+
+        def native_mode?
+          @native_mode
         end
       end
     end

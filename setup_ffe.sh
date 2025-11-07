@@ -1,6 +1,28 @@
 #!/bin/bash
 set -e
 
+# Function to clean up on script exit (success or failure)
+cleanup_on_exit() {
+  echo "🧹 Performing cleanup..."
+  cd "${DD_TRACE_RB_PATH}" 2>/dev/null || cd "$(pwd)"
+  rm -rf my-libdatadog-build
+  rm -f setup_ffe.sh.patch
+  find . -name "*.bak*" -delete 2>/dev/null || true
+  
+  # Clean up Ruby extension build artifacts in tmp/ if they exist
+  if [ -d "tmp" ]; then
+    find tmp -name "*libdatadog_api*" -delete 2>/dev/null || true
+    find tmp -type d -empty -delete 2>/dev/null || true
+  fi
+  
+  # Reset environment variables
+  unset PKG_CONFIG_PATH 2>/dev/null || true
+  unset LIBDATADOG_VENDOR_OVERRIDE 2>/dev/null || true
+}
+
+# Set up cleanup trap to run on script exit
+trap cleanup_on_exit EXIT
+
 # Configuration - Set these paths to match your local setup
 # You can override these by setting environment variables before running the script:
 # 
@@ -26,6 +48,10 @@ echo "📍 Using dd-trace-rb path: ${DD_TRACE_RB_PATH}"
 echo "📍 Detected Ruby platform: ${BUILD_ARCH}"
 echo "📍 DD_RUBY_PLATFORM set to: ${DD_RUBY_PLATFORM}"
 echo "📍 DD_PROFILING_NO_EXTENSION=true (profiling native extension disabled, but headers/libs included)"
+
+# Clean up any previous build artifacts first
+echo "🧹 Cleaning up any previous build artifacts..."
+cleanup_on_exit
 
 # Step 1: Build libdatadog
 echo "📦 Step 1: Building libdatadog..."
@@ -242,8 +268,5 @@ bundle exec rspec spec/datadog/open_feature/binding_spec.rb
 
 echo "✅ Step 4 completed: FFE functionality verified"
 
-# Step 5: Clean up build directory
-echo "🧹 Step 5: Cleaning up build directory..."
-rm -rf my-libdatadog-build
-
 echo "✅ All steps completed successfully!"
+echo "🧹 Cleanup will be performed automatically..."
