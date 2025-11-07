@@ -48,7 +48,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'passes rule for users meeting age requirement' do
       adult_context = { "age" => 25 }
-      result = evaluator.get_assignment("age_gated_flag", adult_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("age_gated_flag", adult_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(true)
@@ -58,7 +58,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails rule for users not meeting age requirement' do
       minor_context = { "age" => 16 }
-      result = evaluator.get_assignment("age_gated_flag", minor_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("age_gated_flag", minor_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(false)
@@ -68,7 +68,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails rule when required attribute is missing' do
       no_age_context = { "name" => "John" }
-      result = evaluator.get_assignment("age_gated_flag", no_age_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("age_gated_flag", no_age_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(false)
@@ -120,7 +120,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'passes rule when attribute matches one of the values' do
       premium_context = { "plan" => "premium" }
-      result = evaluator.get_assignment("tier_flag", premium_context, :string, Time.now, "default")
+      result = evaluator.get_assignment("tier_flag", premium_context, :string, "default")
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("premium_features")
@@ -129,7 +129,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'passes rule when attribute matches another value in the list' do
       enterprise_context = { "plan" => "enterprise" }
-      result = evaluator.get_assignment("tier_flag", enterprise_context, :string, Time.now, "default")
+      result = evaluator.get_assignment("tier_flag", enterprise_context, :string, "default")
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("premium_features")
@@ -138,7 +138,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails rule when attribute does not match any value' do
       basic_context = { "plan" => "basic" }
-      result = evaluator.get_assignment("tier_flag", basic_context, :string, Time.now, "default")
+      result = evaluator.get_assignment("tier_flag", basic_context, :string, "default")
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("basic_features")
@@ -195,7 +195,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'passes rule when all conditions are met' do
       eligible_context = { "age" => 25, "country" => "US" }
-      result = evaluator.get_assignment("complex_rule_flag", eligible_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("complex_rule_flag", eligible_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(true)
@@ -204,7 +204,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails rule when first condition fails' do
       young_us_context = { "age" => 16, "country" => "US" }
-      result = evaluator.get_assignment("complex_rule_flag", young_us_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("complex_rule_flag", young_us_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(false)
@@ -213,7 +213,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails rule when second condition fails' do
       adult_non_us_context = { "age" => 25, "country" => "DE" }
-      result = evaluator.get_assignment("complex_rule_flag", adult_non_us_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("complex_rule_flag", adult_non_us_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(false)
@@ -222,7 +222,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails rule when both conditions fail' do
       ineligible_context = { "age" => 16, "country" => "DE" }
-      result = evaluator.get_assignment("complex_rule_flag", ineligible_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("complex_rule_flag", ineligible_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(false)
@@ -283,7 +283,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'matches allocation when first rule passes' do
       admin_context = { "user_type" => "admin", "age" => 30 }
-      result = evaluator.get_assignment("multi_rule_flag", admin_context, :string, Time.now, "default")
+      result = evaluator.get_assignment("multi_rule_flag", admin_context, :string, "default")
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
@@ -292,7 +292,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'matches allocation when second rule passes' do
       senior_context = { "user_type" => "regular", "age" => 70 }
-      result = evaluator.get_assignment("multi_rule_flag", senior_context, :string, Time.now, "default")
+      result = evaluator.get_assignment("multi_rule_flag", senior_context, :string, "default")
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
@@ -301,7 +301,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'matches allocation when both rules pass' do
       admin_senior_context = { "user_type" => "admin", "age" => 70 }
-      result = evaluator.get_assignment("multi_rule_flag", admin_senior_context, :string, Time.now, "default")
+      result = evaluator.get_assignment("multi_rule_flag", admin_senior_context, :string, "default")
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
@@ -310,7 +310,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'uses fallback allocation when no rules pass' do
       regular_context = { "user_type" => "regular", "age" => 30 }
-      result = evaluator.get_assignment("multi_rule_flag", regular_context, :string, Time.now, "default")
+      result = evaluator.get_assignment("multi_rule_flag", regular_context, :string, "default")
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("default_value")
@@ -362,7 +362,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'matches when regex pattern matches' do
       matching_context = { "email" => "user@example.com" }
-      result = evaluator.get_assignment("regex_flag", matching_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("regex_flag", matching_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(true)
@@ -371,7 +371,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails when regex pattern does not match' do
       non_matching_context = { "email" => "user@other.com" }
-      result = evaluator.get_assignment("regex_flag", non_matching_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("regex_flag", non_matching_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(false)
@@ -429,7 +429,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'matches when attribute exists (IS_NULL = false)' do
       has_phone_context = { "phone" => "+1234567890" }
-      result = evaluator.get_assignment("null_check_flag", has_phone_context, :string, Time.now, "default")
+      result = evaluator.get_assignment("null_check_flag", has_phone_context, :string, "default")
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("user_has_attribute")
@@ -438,7 +438,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails when attribute is missing (IS_NULL = false)' do
       no_phone_context = { "email" => "user@example.com" }
-      result = evaluator.get_assignment("null_check_flag", no_phone_context, :string, Time.now, "default")
+      result = evaluator.get_assignment("null_check_flag", no_phone_context, :string, "default")
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("user_missing_attribute")
@@ -490,7 +490,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'passes when attribute is not in blocked list' do
       allowed_context = { "country" => "US" }
-      result = evaluator.get_assignment("exclusion_flag", allowed_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("exclusion_flag", allowed_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(true)
@@ -499,7 +499,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails when attribute is in blocked list' do
       blocked_context = { "country" => "BLOCKED" }
-      result = evaluator.get_assignment("exclusion_flag", blocked_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("exclusion_flag", blocked_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(false)
@@ -508,7 +508,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'fails when attribute is missing (NOT_ONE_OF fails for missing attributes)' do
       no_country_context = { "name" => "John" }
-      result = evaluator.get_assignment("exclusion_flag", no_country_context, :boolean, Time.now, false)
+      result = evaluator.get_assignment("exclusion_flag", no_country_context, :boolean, false)
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq(false)

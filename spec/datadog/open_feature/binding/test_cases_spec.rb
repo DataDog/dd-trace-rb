@@ -180,7 +180,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
             expected_type = map_variation_type_to_symbol(variation_type)
             evaluation_context = format_evaluation_context(targeting_key, attributes)
 
-            result = evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now, default_value)
+            result = evaluator.get_assignment(flag_key, evaluation_context, expected_type, default_value)
 
             # Check if test passes (all conditions must match)
             value_matches = result.value == expected_result['value']
@@ -270,7 +270,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
       # This test validates the critical MD5 separator fix
       # The targeting key "charlie" should map to variant "two" (shard value >= 5000)
       context = { 'targeting_key' => 'charlie' }
-      result = evaluator.get_assignment('integer-flag', context, :integer, Time.now, 0)
+      result = evaluator.get_assignment('integer-flag', context, :integer, 0)
       
       expect(result.value).to eq(2), "Expected charlie to get variant 'two' (value 2) due to MD5 sharding"
       expect(result.variant).to eq('two'), "Expected variant 'two' for charlie"
@@ -281,7 +281,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
 
       # Test boolean ONE_OF matching
       context = { 'targeting_key' => 'alice', 'one_of_flag' => true }
-      result = evaluator.get_assignment('boolean-one-of-matches', context, :integer, Time.now, 0)
+      result = evaluator.get_assignment('boolean-one-of-matches', context, :integer, 0)
       
       expect(result.value).to eq(1), "Expected boolean true to match ONE_OF condition"
     end
@@ -290,7 +290,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
       skip "Evaluator not available" unless evaluator
 
       context = { 'targeting_key' => 'alice' }
-      result = evaluator.get_assignment('disabled_flag', context, :integer, Time.now, 42)
+      result = evaluator.get_assignment('disabled_flag', context, :integer, 42)
       
       expect(result.value).to eq(42), "Expected default value for disabled flag"
       expect(result.error_code).to eq('FLAG_DISABLED'), "Expected FLAG_DISABLED error"
@@ -300,7 +300,7 @@ RSpec.describe 'InternalEvaluator Test Cases' do
       skip "Evaluator not available" unless evaluator
 
       context = { 'targeting_key' => 'alice' }
-      result = evaluator.get_assignment('nonexistent-flag', context, :string, Time.now, 'default')
+      result = evaluator.get_assignment('nonexistent-flag', context, :string, 'default')
       
       expect(result.value).to eq('default'), "Expected default value for missing flag"
       expect(result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED'), "Expected FLAG_UNRECOGNIZED_OR_DISABLED error"
