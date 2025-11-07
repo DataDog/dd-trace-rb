@@ -274,6 +274,9 @@ end
 echo "📋 Running RSpec tests for native evaluator..."
 bundle exec rspec spec/datadog/open_feature/binding/native_evaluator_spec.rb
 
+echo "📋 Running comprehensive fixture-based tests for native evaluator..."
+bundle exec rspec spec/datadog/open_feature/binding/native_evaluator_test_cases_spec.rb --format documentation
+
 echo "✅ Step 4 completed: FFE functionality verified"
 
 echo "✅ All steps completed successfully!"
