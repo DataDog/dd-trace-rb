@@ -265,19 +265,11 @@ module Datadog
       class Configuration
         attr_reader :flags, :schema_version
 
-        def initialize(flags: nil, schema_version: nil, json_string: nil)
-          if json_string
-            # Native mode - use the C extension
-            _native_initialize(json_string)
-            @native_mode = true
-            @flags = nil  # Flags are handled natively
-            @schema_version = nil
-          else
-            # Pure Ruby mode - parse flags ourselves
-            @flags = flags || {}
-            @schema_version = schema_version
-            @native_mode = false
-          end
+        def initialize(flags: nil, schema_version: nil)
+          # Pure Ruby mode initialization
+          @flags = flags || {}
+          @schema_version = schema_version
+          @native_mode = false
         end
 
         def self.from_json(config_data)
@@ -295,7 +287,22 @@ module Datadog
 
         # Create a native configuration from JSON string
         def self.from_json_string(json_string)
-          new(json_string: json_string)
+          # Check if native mode is available
+          if method_defined?(:_native_initialize)
+            # Create an instance that will be initialized natively
+            config = allocate  # Use allocate to create uninitialized object
+            config.send(:_native_initialize, json_string)
+            config.instance_variable_set(:@native_mode, true)
+            config
+          else
+            # Fall back to JSON parsing
+            config_data = JSON.parse(json_string)
+            from_json(config_data)
+          end
+        end
+
+        def native_mode?
+          @native_mode || false
         end
 
         def get_flag(flag_key)
@@ -306,16 +313,12 @@ module Datadog
             @flags[flag_key]
           end
         end
-
-        def native_mode?
-          @native_mode
-        end
       end
 
       # EvaluationContext wrapper that supports both native and Ruby modes
       class EvaluationContext
         def initialize(targeting_key, attributes = {})
-          if Configuration.method_defined?(:_native_initialize_with_attributes)
+          if self.class.method_defined?(:_native_initialize_with_attributes)
             # Native mode available - use C extension
             _native_initialize_with_attributes(targeting_key, attributes)
             @native_mode = true

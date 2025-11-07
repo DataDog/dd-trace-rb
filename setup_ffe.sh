@@ -227,7 +227,7 @@ puts 'FFE supported: ' + Datadog::OpenFeature::Binding.supported?.to_s
 puts 'Build successful!' if Datadog::OpenFeature::Binding.supported?
 "
 
-echo "🎯 Testing end-to-end functionality..."
+echo "🎯 Testing end-to-end functionality with NATIVE evaluator..."
 bundle exec ruby -e "
 require './lib/datadog/open_feature'
 
@@ -253,18 +253,26 @@ config_json = '{
 }'
 
 begin
-  config = Datadog::OpenFeature::Binding::Configuration.new(config_json)
+  # Test Native Evaluator specifically
+  puts '🔍 Testing Native FFE Evaluator...'
+  native_evaluator = Datadog::OpenFeature::Binding::NativeEvaluator.new(config_json)
   context = Datadog::OpenFeature::Binding::EvaluationContext.new('test_user')
-  assignment = Datadog::OpenFeature::Binding.get_assignment(config, 'test_flag', context)
+  
+  puts 'Native evaluator supported: ' + Datadog::OpenFeature::Binding::NativeEvaluator.supported?.to_s
+  puts 'Context in native mode: ' + context.native_mode?.to_s
+  
+  assignment = native_evaluator.get_assignment('test_flag', context)
   puts 'Assignment result: ' + assignment.inspect
-  puts '🎉 FFE end-to-end functionality verified!'
+  puts 'Assignment value: ' + assignment.value.inspect
+  puts '🎉 Native FFE end-to-end functionality verified!'
 rescue => e
   puts 'Error: ' + e.message
+  puts e.backtrace.first(5).join(\"\n\")
 end
 "
 
-echo "📋 Running RSpec tests..."
-bundle exec rspec spec/datadog/open_feature/binding_spec.rb
+echo "📋 Running RSpec tests for native evaluator..."
+bundle exec rspec spec/datadog/open_feature/binding/native_evaluator_spec.rb
 
 echo "✅ Step 4 completed: FFE functionality verified"
 

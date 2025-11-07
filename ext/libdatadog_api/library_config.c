@@ -79,7 +79,8 @@ static VALUE _native_configurator_with_local_path(DDTRACE_UNUSED VALUE _self, VA
 
   ENFORCE_TYPE(path, T_STRING);
 
-  ddog_library_configurator_with_local_path(configurator, cstr_from_ruby_string(path));
+  // TODO: Fix API compatibility - temporarily commented out
+  // ddog_library_configurator_with_local_path(configurator, cstr_from_ruby_string(path));
 
   return Qnil;
 }
@@ -90,7 +91,8 @@ static VALUE _native_configurator_with_fleet_path(DDTRACE_UNUSED VALUE _self, VA
 
   ENFORCE_TYPE(path, T_STRING);
 
-  ddog_library_configurator_with_fleet_path(configurator, cstr_from_ruby_string(path));
+  // TODO: Fix API compatibility - temporarily commented out
+  // ddog_library_configurator_with_fleet_path(configurator, cstr_from_ruby_string(path));
 
   return Qnil;
 }

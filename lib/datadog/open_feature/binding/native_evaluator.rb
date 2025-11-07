@@ -24,8 +24,11 @@ module Datadog
         def get_assignment(flag_key, context)
           # Delegate to the native method
           Binding._native_get_assignment(@configuration, flag_key, context)
+        rescue TypeError, ArgumentError => e
+          # Re-raise type and argument errors as-is for proper error propagation
+          raise e
         rescue => e
-          # If native evaluation fails, wrap the error for consistency
+          # For other errors, wrap with descriptive message
           raise "Failed to evaluate flag '#{flag_key}' with native evaluator: #{e.message}"
         end
 
