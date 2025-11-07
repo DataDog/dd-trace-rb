@@ -2,23 +2,13 @@ module Datadog
   module OpenFeature
     module Exposures
       class Reporter
-        def initialize: (Worker, ?logger: Core::Logger, telemetry: Core::Telemetry::Component) -> void
+        def initialize: (Worker worker, telemetry: Core::Telemetry::Component, ?logger: Core::Logger) -> void
 
-        def report: (::Hash[untyped, untyped], context: untyped) -> bool
-
-        def flush: () -> void
-
-        private
-
-        def normalize: (untyped, untyped) -> ::Hash[Symbol, untyped]?
-
-        def build_exposure: (::Hash[Symbol, untyped]) -> ::Hash[Symbol, untyped]
-
-        def extract_targeting_key: (untyped) -> (String | nil)
-
-        def extract_attributes: (::Hash[untyped, untyped], untyped) -> (::Hash[untyped, untyped] | nil)
-
-        def ensure_hash: (untyped) -> ::Hash[untyped, untyped]
+        def report: (
+          Binding::ResolutionDetails result,
+          flag_key: ::String,
+          context: ::OpenFeature::SDK::EvaluationContext
+        ) -> bool
       end
     end
   end

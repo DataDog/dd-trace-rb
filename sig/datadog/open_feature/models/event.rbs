@@ -7,7 +7,11 @@ module Datadog
 
           TARGETING_KEY_FIELD: ::String
 
-          def self.build: (::Hash[untyped, untyped], context: untyped) -> Event?
+          def self.build: (
+            Binding::ResolutionDetails result,
+            flag_key: ::String,
+            context: ::OpenFeature::SDK::EvaluationContext
+          ) -> Event
 
           def initialize: (::Hash[Symbol, untyped]) -> void
 
@@ -21,11 +25,9 @@ module Datadog
 
           def to_h: () -> ::Hash[Symbol, untyped]
 
-        def self.current_timestamp_ms: () -> ::Integer
+          def self.current_timestamp_ms: () -> ::Integer
 
-        def self.extract_attributes: (untyped) -> ::Hash[untyped, untyped]
-
-        def self.context_targeting_key: (untyped) -> (::String | nil)
+          def self.extract_attributes: (::OpenFeature::SDK::EvaluationContext) -> ::Hash[::String, untyped]
         end
       end
     end

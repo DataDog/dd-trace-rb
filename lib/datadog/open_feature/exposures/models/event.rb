@@ -17,41 +17,15 @@ module Datadog
             FalseClass
           ].freeze
 
-          # NOTE: The result is a Hash-like structure like this
-          #
-          # {
-          #     "flag": "boolean-one-of-matches",
-          #     "variationType": "INTEGER",
-          #     "defaultValue": 0,
-          #     "targetingKey": "haley",
-          #     "attributes": {
-          #       "not_matches_flag": "False"
-          #     },
-          #     "result": {
-          #       "value": 4,
-          #       "variant": "4",
-          #       "flagMetadata": {
-          #         "allocationKey": "4-for-not-matches",
-          #         "variationType": "number",
-          #         "doLog": true
-          #       }
-          #     }
-          # }
           class << self
-            def build(result, context:)
+            def build(result, flag_key:, context:)
               payload = {
                 timestamp: current_timestamp_ms,
-                allocation: {
-                  key: result.dig('result', 'flagMetadata', 'allocationKey').to_s
-                },
-                flag: {
-                  key: result['flag'].to_s
-                },
-                variant: {
-                  key: result.dig('result', 'variant').to_s
-                },
+                allocation: {key: result.allocation_key},
+                flag: {key: flag_key},
+                variant: {key: result.variant},
                 subject: {
-                  id: result['targetingKey'].to_s,
+                  id: context.targeting_key,
                   attributes: extract_attributes(context)
                 }
               }

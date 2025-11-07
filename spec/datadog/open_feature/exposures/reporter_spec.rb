@@ -15,23 +15,21 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
   let(:deduplicator) { instance_double(Datadog::OpenFeature::Exposures::Deduplicator) }
   let(:context) do
     instance_double(
-      'OpenFeature::SDK::EvaluationContext', fields: {'targeting_key' => 'john-doe'}
+      'OpenFeature::SDK::EvaluationContext', targeting_key: 'john-doe', fields: {'targeting_key' => 'john-doe'}
     )
   end
   let(:result) do
-    {
-      'flag' => 'feature_flag',
-      'targetingKey' => 'john-doe',
-      'result' => {
-        'value' => 4,
-        'variant' => '4',
-        'flagMetadata' => {
-          'allocationKey' => '4-for-john-doe',
-          'variationType' => 'number',
-          'doLog' => true
-        }
-      }
-    }
+    Datadog::OpenFeature::Binding::ResolutionDetails.new(
+      value: 4,
+      allocation_key: '4-for-john-doe',
+      variant: '4',
+      flag_metadata: {
+        'allocationKey' => '4-for-john-doe',
+        'variationType' => 'number',
+        'doLog' => true
+      },
+      do_log: true
+    )
   end
 
   describe '#report' do
@@ -40,7 +38,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
       it 'enqueues event' do
         expect(worker).to receive(:enqueue).and_return(true)
-        expect(reporter.report(result, context: context)).to be(true)
+        expect(reporter.report(result, flag_key: 'feature_flag', context: context)).to be(true)
       end
     end
 
@@ -49,7 +47,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
       it 'does not enqueue event again' do
         expect(worker).not_to receive(:enqueue)
-        expect(reporter.report(result, context: context)).to be(false)
+        expect(reporter.report(result, flag_key: 'feature_flag', context: context)).to be(false)
       end
     end
 
@@ -61,7 +59,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
 
       it 'returns false and logs debug message' do
         expect_lazy_log(logger, :debug, /OpenFeature: Reporter failed to enqueue exposure: StandardError: boom/)
-        expect(reporter.report(result, context: context)).to be(false)
+        expect(reporter.report(result, flag_key: 'feature_flag', context: context)).to be(false)
       end
     end
 
@@ -86,7 +84,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
         expect(deduplicator).not_to receive(:duplicate?)
         expect(worker).not_to receive(:enqueue)
 
-        expect(reporter.report(result, context: context)).to be(false)
+        expect(reporter.report(result, flag_key: 'feature_flag', context: context)).to be(false)
       end
     end
   end
