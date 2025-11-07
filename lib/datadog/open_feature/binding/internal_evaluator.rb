@@ -75,7 +75,7 @@ module Datadog
           @parsed_config = parse_and_validate_json(ufc_json)
         end
 
-        def get_assignment(flag_key, _evaluation_context, expected_type, _time, default_value)
+        def get_assignment(flag_key, _evaluation_context, expected_type, default_value)
           # Return default value if JSON parsing failed during initialization
           if @parsed_config.is_a?(EvaluationResult)
             return create_error_result(
@@ -107,7 +107,7 @@ module Datadog
 
           # Use actual allocations and variations from the parsed flag
           begin
-            selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, _evaluation_context, _time)
+            selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, _evaluation_context, Time.now.utc)
             
             # Return the actual assignment result - success case with full metadata
             create_success_result(
