@@ -3,6 +3,8 @@
 #include <datadog/profiling.h>
 #include <ruby.h>
 
+#include "libdatadog_helpers.h"
+
 typedef struct {
   int64_t cpu_time_ns;
   int64_t wall_time_ns;
