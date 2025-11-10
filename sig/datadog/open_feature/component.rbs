@@ -1,7 +1,18 @@
 module Datadog
   module OpenFeature
     class Component
-      attr_reader telemetry: ::Datadog::Core::Telemetry::Component
+      @settings: Core::Configuration::Settings
+
+      @agent_settings: Core::Configuration::AgentSettings
+
+      @logger: Core::Logger
+
+      @telemetry: Core::Telemetry::Component
+
+      @engine: EvaluationEngine
+
+      attr_reader telemetry: Core::Telemetry::Component
+
       attr_reader engine: EvaluationEngine
 
       def self.build: (

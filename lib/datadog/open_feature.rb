@@ -15,9 +15,5 @@ module Datadog
     def self.engine
       Datadog.send(:components).open_feature&.engine
     end
-
-    def self.component
-      Datadog.send(:components).open_feature
-    end
   end
 end
