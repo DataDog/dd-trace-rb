@@ -153,7 +153,7 @@ module Datadog
           end
 
           # Parse into Configuration object
-          Configuration.from_json(config_to_parse)
+          Configuration.from_hash(config_to_parse)
         rescue JSON::ParserError => e
           # TODO: Add structured logging: "Invalid JSON syntax: #{e.message}"
           create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
