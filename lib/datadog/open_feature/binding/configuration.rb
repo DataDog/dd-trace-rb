@@ -67,7 +67,7 @@ module Datadog
         end
       end
 
-      # Represents a variation value for a flag
+      # Represents a flag variation with a key for logging and a value for the application
       class Variation
         attr_reader :key, :value
 
