@@ -4,6 +4,7 @@ require_relative '../core/remote/dispatcher'
 
 module Datadog
   module OpenFeature
+    # This module contains the remote configuration functionality for OpenFeature
     module Remote
       ReadError = Class.new(StandardError)
 
@@ -33,24 +34,22 @@ module Datadog
                 next telemetry.error("OpenFeature: RemoteConfig change is not present on #{change.type}")
               end
 
-              # NOTE: We don't validate config and immediately mark content as
-              #       applied, even tho it might be a failure.
-              #
-              #       The re-configuration process is fail-safe by itself and
-              #       will be changed once RC updated to deliver patches.
+              # NOTE: In the current RC implementation we immediately apply the configuration,
+              #       but that might change if we need to apply patches instead.
               case change.type
               when :insert, :update
                 # @type var content: Core::Remote::Configuration::Content
                 engine.configuration = read_content(content)
+                engine.reconfigure!
+
                 content.applied
               when :delete
                 # NOTE: For now, we treat deletion as clearing the configuration
                 #       In a multi-config scenario, we might track configs per path
                 engine.configuration = nil
+                engine.reconfigure!
               end
             end
-
-            engine.reconfigure!
           end
 
           [receiver]

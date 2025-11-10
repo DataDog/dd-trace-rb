@@ -60,6 +60,8 @@ module Datadog
 
         @logger.error("#{error_message}, error #{e.inspect}")
         @telemetry.report(e, description: error_message)
+
+        raise e
       end
     end
   end

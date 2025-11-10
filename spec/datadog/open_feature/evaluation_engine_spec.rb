@@ -166,7 +166,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           .with(error, description: match(/OpenFeature: Failed to reconfigure/))
 
         engine.configuration = '{}'
-        expect { engine.reconfigure! }.not_to raise_error
+        expect { engine.reconfigure! }.to raise_error(error)
       end
 
       it 'persists previouly configured evaluator' do
@@ -175,9 +175,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         allow(reporter).to receive(:report)
 
         engine.configuration = '{}'
-        expect { engine.reconfigure! }.not_to change {
-          engine.fetch_value(flag_key: 'test', expected_type: :string).value
-        }.from('hello')
+
+        expect { engine.reconfigure! }.to raise_error(error)
+        expect(engine.fetch_value(flag_key: 'test', expected_type: :string).value).to eq('hello')
       end
     end
 

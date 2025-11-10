@@ -105,6 +105,21 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
     end
 
+    context 'when change type is insert and reconfigure fails' do
+      before { allow(engine).to receive(:reconfigure!).and_raise(error) }
+
+      let(:error) { StandardError.new('Ooops') }
+      let(:transaction) do
+        repository.transaction { |_, t| t.insert(content.path, target, content) }
+      end
+
+      it 'does not acknowledge applied change and logs error' do
+        expect { receiver.call(repository, transaction) }.to raise_error(error)
+
+        expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::UNACKNOWLEDGED)
+      end
+    end
+
     context 'when change type is update' do
       before do
         txn = repository.transaction { |_, t| t.insert(content.path, target, content) }
@@ -175,9 +190,9 @@ RSpec.describe Datadog::OpenFeature::Remote do
         Datadog::Core::Remote::Configuration::Path.parse('datadog/1/FFE_FLAGS/other/config')
       end
 
-      it 'logs error when content missing and still reconfigures' do
+      it 'logs error when content is missing and does not reconfigure the engine' do
         expect(telemetry).to receive(:error).with(/OpenFeature: RemoteConfig change is not present/)
-        expect(engine).to receive(:reconfigure!)
+        expect(engine).not_to receive(:reconfigure!)
 
         receiver.call(repository, changes)
       end
