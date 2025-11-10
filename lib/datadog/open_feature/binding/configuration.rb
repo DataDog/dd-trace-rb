@@ -78,8 +78,8 @@ module Datadog
 
         def self.from_hash(variation_data)
           new(
-            key: variation_data['key'],
-            value: variation_data['value']
+            key: variation_data.fetch('key'),
+            value: variation_data.fetch('value')
           )
         end
       end
@@ -99,7 +99,7 @@ module Datadog
 
         def self.from_hash(allocation_data)
           new(
-            key: allocation_data['key'],
+            key: allocation_data.fetch('key'),
             rules: parse_rules(allocation_data['rules']),
             start_at: parse_timestamp(allocation_data['startAt']),
             end_at: parse_timestamp(allocation_data['endAt']),
@@ -148,7 +148,7 @@ module Datadog
         def self.from_hash(split_data)
           new(
             shards: parse_shards(split_data.fetch('shards', [])),
-            variation_key: split_data['variationKey'],
+            variation_key: split_data.fetch('variationKey'),
             extra_logging: split_data.fetch('extraLogging', {})
           )
         end
@@ -172,8 +172,8 @@ module Datadog
 
         def self.from_hash(shard_data)
           new(
-            salt: shard_data['salt'],
-            total_shards: shard_data['totalShards'],
+            salt: shard_data.fetch('salt'),
+            total_shards: shard_data.fetch('totalShards'),
             ranges: parse_ranges(shard_data.fetch('ranges', []))
           )
         end
@@ -196,8 +196,8 @@ module Datadog
 
         def self.from_hash(range_data)
           new(
-            start: range_data['start'],
-            end_value: range_data['end']
+            start: range_data.fetch('start'),
+            end_value: range_data.fetch('end')
           )
         end
 
@@ -240,8 +240,8 @@ module Datadog
 
         def self.from_hash(condition_data)
           new(
-            attribute: condition_data['attribute'],
-            operator: condition_data['operator'],
+            attribute: condition_data.fetch('attribute'),
+            operator: condition_data.fetch('operator'),
             value: parse_condition_value(condition_data['value'])
           )
         end
