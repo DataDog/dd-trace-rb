@@ -7,7 +7,8 @@ module Datadog
     # This class accumulates the context over the request life-cycle and exposes
     # interface sufficient for instrumentation to perform threat detection.
     class Context
-      ActiveContextError = Class.new(StandardError)
+      # Steep: https://github.com/soutaro/steep/issues/1880
+      ActiveContextError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
 
       # TODO: add delegators for active trace span
       attr_reader :trace, :span, :events
