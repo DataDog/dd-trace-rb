@@ -47,10 +47,10 @@ module Datadog
         def self.from_hash(flag_data, key)
           new(
             key: key,
-            enabled: flag_data['enabled'] || false,
+            enabled: flag_data.fetch('enabled', false),
             variation_type: flag_data['variationType'],
-            variations: parse_variations(flag_data['variations'] || {}),
-            allocations: parse_allocations(flag_data['allocations'] || [])
+            variations: parse_variations(flag_data.fetch('variations', {})),
+            allocations: parse_allocations(flag_data.fetch('allocations', []))
           )
         end
 
@@ -103,7 +103,7 @@ module Datadog
             rules: parse_rules(allocation_data['rules']),
             start_at: parse_timestamp(allocation_data['startAt']),
             end_at: parse_timestamp(allocation_data['endAt']),
-            splits: parse_splits(allocation_data['splits'] || []),
+            splits: parse_splits(allocation_data.fetch('splits', [])),
             do_log: allocation_data.fetch('doLog', true)
           )
         end
@@ -149,9 +149,9 @@ module Datadog
 
         def self.from_hash(split_data)
           new(
-            shards: parse_shards(split_data['shards'] || []),
+            shards: parse_shards(split_data.fetch('shards', [])),
             variation_key: split_data['variationKey'],
-            extra_logging: split_data['extraLogging'] || {}
+            extra_logging: split_data.fetch('extraLogging', {})
           )
         end
 
@@ -176,7 +176,7 @@ module Datadog
           new(
             salt: shard_data['salt'],
             total_shards: shard_data['totalShards'],
-            ranges: parse_ranges(shard_data['ranges'] || [])
+            ranges: parse_ranges(shard_data.fetch('ranges', []))
           )
         end
 
@@ -219,7 +219,7 @@ module Datadog
 
         def self.from_hash(rule_data)
           new(
-            conditions: parse_conditions(rule_data['conditions'] || [])
+            conditions: parse_conditions(rule_data.fetch('conditions', []))
           )
         end
 
@@ -271,7 +271,7 @@ module Datadog
         end
 
         def self.from_hash(config_data)
-          flags_data = config_data['flags'] || {}
+          flags_data = config_data.fetch('flags', {})
           
           parsed_flags = flags_data.transform_values do |flag_data|
             Flag.from_hash(flag_data, flag_data['key'] || '')
