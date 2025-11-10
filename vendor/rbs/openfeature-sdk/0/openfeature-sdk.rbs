@@ -1,6 +1,9 @@
 module OpenFeature
   module SDK
     class EvaluationContext
+      def targeting_key: () -> ::String?
+
+      def fields: () -> ::Hash[::String, untyped]
     end
 
     module Provider
@@ -12,12 +15,12 @@ module OpenFeature
         type value_t = bool | ::String | ::Numeric | ::Integer | ::Float | ::Array[untyped] | ::Hash[untyped, untyped]
 
         def self.new: (
-          ?value: value_t,
-          ?variant: untyped,
-          ?flag_metadata: untyped,
-          ?error_code: ErrorCode::t,
-          ?error_message: ::String,
-          ?reason: Reason::t
+          ?value: value_t?,
+          ?variant: untyped?,
+          ?flag_metadata: ::Hash[untyped, untyped]?,
+          ?error_code: ErrorCode::t?,
+          ?error_message: ::String?,
+          ?reason: Reason::t?
         ) -> instance
       end
 

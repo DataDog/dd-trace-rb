@@ -101,8 +101,7 @@ module Datadog
           flag_key: flag_key,
           default_value: default_value,
           expected_type: expected_type,
-          evaluation_context: evaluation_context,
-          default_value: default_value
+          evaluation_context: evaluation_context
         )
 
         if result.error?

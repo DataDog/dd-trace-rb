@@ -4,14 +4,18 @@ module Datadog
       attr_reader telemetry: ::Datadog::Core::Telemetry::Component
       attr_reader engine: EvaluationEngine
 
-      def self.build_open_feature_component: (
+      def self.build: (
         Core::Configuration::Settings settings,
+        Core::Configuration::AgentSettings agent_settings,
+        logger: Core::Logger,
         telemetry: Core::Telemetry::Component
       ) -> Component?
 
       def initialize: (
         Core::Configuration::Settings settings,
-        telemetry: ::Datadog::Core::Telemetry::Component
+        Core::Configuration::AgentSettings agent_settings,
+        logger: Core::Logger,
+        telemetry: Core::Telemetry::Component
       ) -> void
 
       def shutdown!: () -> void

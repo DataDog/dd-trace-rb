@@ -12,13 +12,15 @@ RSpec.describe Datadog::OpenFeature::Component do
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
+  let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
+  let(:logger) { instance_double(Datadog::Core::Logger) }
   let(:transport) { instance_double(Datadog::OpenFeature::Transport::Exposures::Transport) }
   let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
 
-  describe '.build_open_feature_component' do
+  describe '.build' do
     subject(:component) do
-      described_class.build_open_feature_component(settings, telemetry: telemetry)
+      described_class.build(settings, agent_settings, logger: logger, telemetry: telemetry)
     end
 
     context 'when open_feature is enabled' do
@@ -38,7 +40,7 @@ RSpec.describe Datadog::OpenFeature::Component do
         before { settings.remote.enabled = false }
 
         it 'logs warning and returns nil' do
-          expect(Datadog.logger).to receive(:warn)
+          expect(logger).to receive(:warn)
             .with(/could not be enabled as Remote Configuration is currently disabled/)
 
           expect(component).to be_nil
@@ -64,11 +66,6 @@ RSpec.describe Datadog::OpenFeature::Component do
       it { expect(component).to be_nil }
     end
 
-    context 'when settings does not include open_feature' do
-      before { allow(settings).to receive(:respond_to?).with(:open_feature).and_return(false) }
-
-      it { expect(component).to be_nil }
-    end
   end
 
   describe '#shutdown!' do
@@ -77,7 +74,7 @@ RSpec.describe Datadog::OpenFeature::Component do
       settings.remote.enabled = true
     end
 
-    subject(:component) { described_class.new(settings, telemetry: telemetry) }
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
 
     it 'flushes worker and stops it' do
       expect(worker).to receive(:flush)
