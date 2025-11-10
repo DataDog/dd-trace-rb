@@ -23,7 +23,7 @@ module Datadog
         def entrypoint_basedir
           current_basedir = File.expand_path(File.dirname($0.to_s))
           normalized_basedir = current_basedir.tr(File::SEPARATOR, '/')
-          normalized_basedir.sub(%r{^/}, '')
+          normalized_basedir.delete_prefix!('/')
         end
 
         def server_type
