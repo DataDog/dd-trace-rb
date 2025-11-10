@@ -48,7 +48,7 @@ module Datadog
           new(
             key: key,
             enabled: flag_data.fetch('enabled', false),
-            variation_type: flag_data['variationType'],
+            variation_type: flag_data.fetch('variationType'),
             variations: parse_variations(flag_data.fetch('variations', {})),
             allocations: parse_allocations(flag_data.fetch('allocations', []))
           )
