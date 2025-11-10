@@ -201,10 +201,8 @@ module Datadog
           )
         end
 
-        # Alias for backward compatibility
-        def end
-          @end_value
-        end
+        # Alias because "end" is a reserved keyword in Ruby
+        alias_method :end, :end_value
       end
 
       # Represents a targeting rule
