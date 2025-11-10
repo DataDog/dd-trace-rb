@@ -7,7 +7,6 @@ module Datadog
   end
 end
 
-require_relative 'exposures/context'
 require_relative 'exposures/buffer'
 require_relative 'exposures/worker'
 require_relative 'exposures/deduplicator'

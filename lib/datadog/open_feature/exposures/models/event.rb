@@ -21,9 +21,15 @@ module Datadog
             def build(result, flag_key:, context:)
               payload = {
                 timestamp: current_timestamp_ms,
-                allocation: {key: result.allocation_key},
-                flag: {key: flag_key},
-                variant: {key: result.variant},
+                allocation: {
+                  key: result.allocation_key
+                },
+                flag: {
+                  key: flag_key
+                },
+                variant: {
+                  key: result.variant
+                },
                 subject: {
                   id: context.targeting_key,
                   attributes: extract_attributes(context)
@@ -54,19 +60,19 @@ module Datadog
           end
 
           def flag_key
-            @payload.dig(:flag, :key).to_s
+            @payload.dig(:flag, :key)
           end
 
           def targeting_key
-            @payload.dig(:subject, :id).to_s
+            @payload.dig(:subject, :id)
           end
 
           def allocation_key
-            @payload.dig(:allocation, :key).to_s
+            @payload.dig(:allocation, :key)
           end
 
           def variation_key
-            @payload.dig(:variant, :key).to_s
+            @payload.dig(:variant, :key)
           end
 
           def to_h

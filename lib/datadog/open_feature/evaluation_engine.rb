@@ -51,8 +51,10 @@ module Datadog
       def reconfigure!
         @logger.debug('OpenFeature: Removing configuration') if @configuration.nil?
 
-        klass = @configuration.nil? ? NoopEvaluator : Binding::Evaluator
-        @mutex.synchronize { @evaluator = klass.new(@configuration) }
+        @mutex.synchronize do
+          klass = @configuration.nil? ? NoopEvaluator : Binding::Evaluator
+          @evaluator = klass.new(@configuration)
+        end
       rescue => e
         error_message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 

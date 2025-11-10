@@ -18,17 +18,20 @@ module Datadog
           cache_key = digest(event.flag_key, event.targeting_key)
           cache_digest = digest(event.allocation_key, event.variation_key)
 
-          stored = @cache[cache_key]
-          return true if stored == cache_digest
+          @mutex.synchronize do
+            stored = @cache[cache_key]
+            return true if stored == cache_digest
 
-          @mutex.synchronize { @cache[cache_key] = cache_digest }
+            @cache[cache_key] = cache_digest
+          end
+
           false
         end
 
         private
 
         def digest(left, right)
-          Zlib.crc32(left + right)
+          Zlib.crc32("#{left}:#{right}")
         end
       end
     end

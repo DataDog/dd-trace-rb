@@ -33,6 +33,11 @@ module Datadog
                 next telemetry.error("OpenFeature: RemoteConfig change is not present on #{change.type}")
               end
 
+              # NOTE: We don't validate config and immediately mark content as
+              #       applied, even tho it might be a failure.
+              #
+              #       The re-configuration process is fail-safe by itself and
+              #       will be changed once RC updated to deliver patches.
               case change.type
               when :insert, :update
                 # @type var content: Core::Remote::Configuration::Content
