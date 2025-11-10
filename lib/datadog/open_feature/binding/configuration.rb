@@ -271,7 +271,7 @@ module Datadog
         end
 
         def self.from_hash(config_data)
-          flags_data = config_data['flags'] || config_data['flagsV1'] || {}
+          flags_data = config_data['flags'] || {}
           
           parsed_flags = flags_data.transform_values do |flag_data|
             Flag.from_hash(flag_data, flag_data['key'] || '')

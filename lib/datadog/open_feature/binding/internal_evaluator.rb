@@ -137,23 +137,14 @@ module Datadog
             return create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
-          # Handle both UFC (Universal Flag Configuration) format and libdatadog format
-          config_to_parse = if has_libdatadog_format?(parsed_json)
-            # Extract flags from libdatadog format
-            extract_flags_from_libdatadog_format(parsed_json)
-          else
-            # Use UFC (Universal Flag Configuration) format directly
-            parsed_json
-          end
-
           # Check for required flags field
-          unless config_to_parse.key?('flags') || config_to_parse.key?('flagsV1')
+          unless parsed_json.key?('flags')
             # TODO: Add structured logging for debugging context
             return create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
           # Parse into Configuration object
-          Configuration.from_hash(config_to_parse)
+          Configuration.from_hash(parsed_json)
         rescue JSON::ParserError => e
           # TODO: Add structured logging: "Invalid JSON syntax: #{e.message}"
           create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
@@ -560,24 +551,6 @@ module Datadog
           end
         end
 
-        # Check if JSON has libdatadog format (with top-level metadata)
-        def has_libdatadog_format?(parsed_json)
-          parsed_json.key?('id') && parsed_json.key?('createdAt') && 
-          parsed_json.key?('format') && parsed_json.key?('environment')
-        end
-
-        # Extract flags section from libdatadog format
-        def extract_flags_from_libdatadog_format(parsed_json)
-          # Validate required libdatadog fields
-          unless parsed_json.key?('flags')
-            raise StandardError.new('Missing flags section in libdatadog format')
-          end
-
-          # Return just the flags section for UFC parsing
-          {
-            'flags' => parsed_json['flags']
-          }
-        end
       end
     end
   end
