@@ -8,7 +8,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:logger) { instance_double(Datadog::Core::Logger) }
-  let(:ufc) do
+  let(:ufc) do # UFC = Universal Flag Configuration
     <<~JSON
       {
         "data": {

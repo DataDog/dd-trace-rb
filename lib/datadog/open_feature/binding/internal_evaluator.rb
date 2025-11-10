@@ -33,6 +33,9 @@ module Datadog
         end
       end
 
+      # Internal evaluator for UFC (Universal Flag Configuration) format.
+      # UFC is a flexible format for representing feature flag targeting rules
+      # using splits with shard ranges and salts, accommodating most targeting use cases.
       class InternalEvaluator
         # NativeEvaluator-aligned error code mapping
         ERROR_CODE_MAPPING = {
@@ -60,6 +63,8 @@ module Datadog
           'JSON' => 'object'
         }.freeze
         
+        # Initialize evaluator with UFC (Universal Flag Configuration) JSON string.
+        # @param ufc_json [String] JSON string containing feature flag configuration in UFC format
         def initialize(ufc_json)
           @ufc_json = ufc_json
           @parsed_config = parse_and_validate_json(ufc_json)
@@ -132,12 +137,12 @@ module Datadog
             return create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
-          # Handle both UFC format and libdatadog format
+          # Handle both UFC (Universal Flag Configuration) format and libdatadog format
           config_to_parse = if has_libdatadog_format?(parsed_json)
             # Extract flags from libdatadog format
             extract_flags_from_libdatadog_format(parsed_json)
           else
-            # Use UFC format directly
+            # Use UFC (Universal Flag Configuration) format directly
             parsed_json
           end
 
