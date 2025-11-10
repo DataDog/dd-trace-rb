@@ -12,19 +12,21 @@ module Datadog
           end
 
           module API
-            class Spec < ::Datadog::Core::Transport::HTTP::API::Spec
+            class Spec < Datadog::Core::Transport::HTTP::API::Spec
               attr_accessor exposures: Transport::HTTP::Exposures::API::Endpoint?
 
               def send_exposures: (Core::Transport::HTTP::Env) { (Core::Transport::HTTP::Env) -> Core::Transport::Response } -> Core::Transport::Response
             end
 
-            class Instance < ::Datadog::Core::Transport::HTTP::API::Instance
+            class Instance < Datadog::Core::Transport::HTTP::API::Instance
               def send_exposures: (Core::Transport::HTTP::Env) -> Core::Transport::Response
             end
 
-            class Endpoint < ::Datadog::Core::Transport::HTTP::API::Endpoint
+            class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               HEADER_CONTENT_TYPE: ::String
+
               HEADER_SUBDOMAIN: ::String
+
               SUBDOMAIN_VALUE: ::String
 
               attr_reader encoder: Core::Encoding::Encoder

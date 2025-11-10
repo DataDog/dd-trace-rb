@@ -2,8 +2,8 @@ module Datadog
   module OpenFeature
     module Exposures
       class Worker
-        include ::Datadog::Core::Workers::Queue
-        include ::Datadog::Core::Workers::Polling
+        include Datadog::Core::Workers::Queue
+        include Datadog::Core::Workers::Polling
 
         DEFAULT_FLUSH_INTERVAL_SECONDS: ::Integer
         DEFAULT_BUFFER_LIMIT: ::Integer
@@ -13,7 +13,7 @@ module Datadog
         def initialize: (
           settings: Core::Configuration::Settings,
           transport: Transport::Exposures::Transport,
-          logger: Core::Logger,
+          ?logger: Core::Logger,
           ?flush_interval_seconds: ::Integer,
           ?buffer_limit: ::Integer
         ) -> void

@@ -3,10 +3,10 @@ module Datadog
     module Transport
       module HTTP
         def self?.exposures: (
-          agent_settings: ::Datadog::Core::Configuration::AgentSettings,
-          ?logger: ::Datadog::Core::Logger?,
+          agent_settings: Core::Configuration::AgentSettings,
+          ?logger: Core::Logger?,
           ?headers: ::Hash[::Symbol, untyped]?
-        ) ?{ (::Datadog::Core::Transport::HTTP::Builder) -> void } -> ::Datadog::OpenFeature::Transport::Exposures::Transport
+        ) ?{ (Core::Transport::HTTP::Builder) -> void } -> OpenFeature::Transport::Exposures::Transport
       end
     end
   end

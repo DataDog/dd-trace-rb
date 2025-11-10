@@ -1,5 +1,5 @@
 module Datadog
-  module AppSec
+  module OpenFeature
     module Configuration
     end
   end

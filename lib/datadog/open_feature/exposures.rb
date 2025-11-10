@@ -2,6 +2,7 @@
 
 module Datadog
   module OpenFeature
+    # This module contains the exposures events functionality
     module Exposures
     end
   end

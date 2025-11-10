@@ -7,23 +7,25 @@ module Datadog
 
           TARGETING_KEY_FIELD: ::String
 
+          @payload: ::Hash[::Symbol, untyped]
+
           def self.build: (
             Binding::ResolutionDetails result,
             flag_key: ::String,
             context: ::OpenFeature::SDK::EvaluationContext
           ) -> Event
 
-          def initialize: (::Hash[Symbol, untyped]) -> void
+          def initialize: (::Hash[::Symbol, untyped]) -> void
 
-          def allocation_key: () -> ::String
+          def allocation_key: () -> ::String?
 
-          def flag_key: () -> ::String
+          def flag_key: () -> ::String?
 
-          def variation_key: () -> ::String
+          def variation_key: () -> ::String?
 
-          def targeting_key: () -> ::String
+          def targeting_key: () -> ::String?
 
-          def to_h: () -> ::Hash[Symbol, untyped]
+          def to_h: () -> ::Hash[::Symbol, untyped]
 
           def self.current_timestamp_ms: () -> ::Integer
 

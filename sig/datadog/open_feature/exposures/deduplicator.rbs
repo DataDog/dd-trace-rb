@@ -10,7 +10,7 @@ module Datadog
 
         private
 
-        def digest: (::String, ::String) -> ::Integer
+        def digest: (::String?, ::String?) -> ::Integer
       end
     end
   end
