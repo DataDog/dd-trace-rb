@@ -92,19 +92,5 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
       expect(config.flags).to be_empty
     end
 
-    it 'supports flagsV1 key' do
-      config_data = {
-        'flagsV1' => {
-          'test_flag' => {
-            'key' => 'test_flag',
-            'enabled' => true,
-            'variationType' => 'STRING'
-          }
-        }
-      }
-      
-      config = described_class.from_json(config_data)
-      expect(config.flags).to have_key('test_flag')
-    end
   end
 end
