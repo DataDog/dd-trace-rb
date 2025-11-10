@@ -1,37 +1,12 @@
 # frozen_string_literal: true
 
+require_relative 'variation_type'
+require_relative 'condition_operator'
+require_relative 'assignment_reason'
+
 module Datadog
   module OpenFeature
     module Binding
-      # Variation types supported by UFC (Universal Flag Configuration)
-      module VariationType
-        STRING = 'STRING'
-        INTEGER = 'INTEGER'
-        NUMERIC = 'NUMERIC'
-        BOOLEAN = 'BOOLEAN'
-        JSON = 'JSON'
-      end
-
-      # Condition operators for rule evaluation
-      module ConditionOperator
-        MATCHES = 'MATCHES'
-        NOT_MATCHES = 'NOT_MATCHES'
-        GTE = 'GTE'
-        GT = 'GT'
-        LTE = 'LTE'
-        LT = 'LT'
-        ONE_OF = 'ONE_OF'
-        NOT_ONE_OF = 'NOT_ONE_OF'
-        IS_NULL = 'IS_NULL'
-      end
-
-      # Assignment reasons returned in ResolutionDetails
-      module AssignmentReason
-        TARGETING_MATCH = 'TARGETING_MATCH'
-        SPLIT = 'SPLIT'
-        STATIC = 'STATIC'
-      end
-
       # Represents a feature flag configuration
       class Flag
         attr_reader :key, :enabled, :variation_type, :variations, :allocations
