@@ -218,10 +218,10 @@ module Datadog
         end
 
         def tag_process_tags!
-          return unless trace.experimental_propagate_process_tags_enabled
+          return unless Datadog.configuration.tracing.experimental_propagate_process_tags_enabled
           process_tags = Core::Environment::Process.formatted_process_tags_k1_v1
           return if process_tags.empty?
-          root_span.set_tag(Core::Environment::Ext::TAG_PROCESS_TAGS, process_tags)
+          first_span.set_tag(Core::Environment::Ext::TAG_PROCESS_TAGS, process_tags)
         end
 
         private

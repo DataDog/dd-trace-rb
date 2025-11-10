@@ -237,6 +237,23 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
+      shared_examples 'first span with process tags' do
+        it do
+          format!
+          expect(first_span.meta).to include('_dd.tags.process')
+          expect(first_span.meta['_dd.tags.process']).to eq(Datadog::Core::Environment::Process.formatted_process_tags_k1_v1)
+          # TODO figure out if we need an assertion for the value, ie
+          # `"entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:usr/local/bundle/bin,entrypoint.type:script,server.type:placeholder"`
+        end
+      end
+
+      shared_examples 'first span without process tags' do
+        it do
+          format!
+          expect(first_span.meta).to_not include('_dd.tags.process')
+        end
+      end
+
       context 'with no root span' do
         include_context 'no root span'
 
@@ -283,6 +300,18 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'without git metadata' do
           include_context 'no git metadata'
           it_behaves_like 'first span with no git metadata'
+        end
+
+        context 'with process tags enabled' do
+          before do
+            allow(Datadog.configuration.tracing).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+          end
+          it_behaves_like 'first span with process tags'
+        end
+
+        context 'without process tags enabled' do
+          # default is false
+          it_behaves_like 'first span without process tags'
         end
       end
 
@@ -332,6 +361,18 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'without git metadata' do
           include_context 'no git metadata'
           it_behaves_like 'first span with no git metadata'
+        end
+
+        context 'with process tags enabled' do
+          before do
+            allow(Datadog.configuration.tracing).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+          end
+          it_behaves_like 'first span with process tags'
+        end
+
+        context 'without process tags enabled' do
+          # default is false
+          it_behaves_like 'first span without process tags'
         end
       end
 
@@ -383,6 +424,18 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'without git metadata' do
           include_context 'no git metadata'
           it_behaves_like 'first span with no git metadata'
+        end
+
+        context 'with process tags enabled' do
+          before do
+            allow(Datadog.configuration.tracing).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+          end
+          it_behaves_like 'first span with process tags'
+        end
+
+        context 'without process tags enabled' do
+          # default is false
+          it_behaves_like 'first span without process tags'
         end
       end
     end
