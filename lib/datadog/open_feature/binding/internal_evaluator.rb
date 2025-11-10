@@ -70,11 +70,10 @@ module Datadog
           @parsed_config = parse_and_validate_json(ufc_json)
         end
 
-        def get_assignment(flag_key, _evaluation_context, expected_type, default_value)
-          # Return default value if JSON parsing failed during initialization
+        def get_assignment(flag_key, _evaluation_context, expected_type)
+          # Return error result if JSON parsing failed during initialization
           if @parsed_config.is_a?(ResolutionDetails)
             return create_error_result(
-              default_value, 
               @parsed_config.error_code, 
               @parsed_config.error_message
             )
@@ -83,20 +82,20 @@ module Datadog
           # Look up the flag
           flag = @parsed_config.get_flag(flag_key)
           
-          # Return default value if flag not found - using Rust naming convention
+          # Return error result if flag not found - using Rust naming convention
           unless flag
-            return create_error_result(default_value, Ext::FLAG_UNRECOGNIZED_OR_DISABLED, 
+            return create_error_result(Ext::FLAG_UNRECOGNIZED_OR_DISABLED, 
               "flag is missing in configuration, it is either unrecognized or disabled")
           end
 
-          # Return default value if flag is disabled - using Rust naming and message
+          # Return error result if flag is disabled - using Rust naming and message
           unless flag.enabled
-            return create_error_result(default_value, Ext::FLAG_DISABLED, "flag is disabled")
+            return create_error_result(Ext::FLAG_DISABLED, "flag is disabled")
           end
 
           # Validate type compatibility if expected_type is provided - using Rust message format
           if expected_type && !type_matches?(flag.variation_type, expected_type)
-            return create_error_result(default_value, Ext::TYPE_MISMATCH_ERROR, 
+            return create_error_result(Ext::TYPE_MISMATCH_ERROR, 
               "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})")
           end
 
@@ -114,8 +113,8 @@ module Datadog
               reason
             )
           rescue EvaluationError => e
-            # Convert evaluation errors to ResolutionDetails with default value - matches Rust error propagation
-            create_error_result(default_value, e.code, e.message)
+            # Convert evaluation errors to ResolutionDetails - matches Rust error propagation
+            create_error_result(e.code, e.message)
           end
         end
 
@@ -154,15 +153,11 @@ module Datadog
         end
 
         def create_parse_error(error_code, error_message)
-          create_error_result(nil, error_code, error_message)
+          create_error_result(error_code, error_message)
         end
 
         def create_evaluation_error(error_code, error_message)
-          create_error_result(nil, error_code, error_message)
-        end
-
-        def create_evaluation_error_with_default(error_code, error_message, default_value)
-          create_error_result(default_value, error_code, error_message)
+          create_error_result(error_code, error_message)
         end
 
         # NativeEvaluator-aligned result creation methods
@@ -177,7 +172,7 @@ module Datadog
           )
         end
 
-        def create_error_result(default_value, error_code, error_message)
+        def create_error_result(error_code, error_message)
           # Map internal error codes to NativeEvaluator error codes
           mapped_error_code = if error_code.is_a?(Symbol)
                                 error_code
@@ -193,7 +188,7 @@ module Datadog
                    end
           
           ResolutionDetails.new(
-            value: default_value,
+            value: nil,
             error_code: mapped_error_code,
             error_message: error_message,
             reason: reason

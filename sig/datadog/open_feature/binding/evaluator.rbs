@@ -35,8 +35,7 @@ module Datadog
         def get_assignment: (
           ::String flag_key,
           ::OpenFeature::SDK::EvaluationContext? evaluation_context,
-          ::Symbol expected_type,
-          untyped default_value
+          ::Symbol expected_type
         ) -> ResolutionDetails
 
         private
