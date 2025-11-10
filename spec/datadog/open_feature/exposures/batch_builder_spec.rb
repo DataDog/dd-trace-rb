@@ -128,5 +128,3 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
     end
   end
 end
-
-

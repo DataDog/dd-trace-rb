@@ -310,9 +310,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
       before { allow(Datadog::OpenFeature).to receive(:engine).and_return(nil) }
 
       it 'returns default value with error details' do
-        result = provider.fetch_object_value(flag_key: 'flag', default_value: { 'default' => true })
+        result = provider.fetch_object_value(flag_key: 'flag', default_value: {'default' => true})
 
-        expect(result.value).to eq({ 'default' => true })
+        expect(result.value).to eq({'default' => true})
         expect(result.error_message).to match(/OpenFeature component must be configured/)
       end
     end
@@ -325,7 +325,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         provider.init
       end
 
-      let(:result) { provider.fetch_object_value(flag_key: 'flag', default_value: { 'default' => true }) }
+      let(:result) { provider.fetch_object_value(flag_key: 'flag', default_value: {'default' => true}) }
       let(:ufc) do
         <<~JSON
           {

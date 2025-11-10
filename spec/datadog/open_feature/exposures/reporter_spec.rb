@@ -98,5 +98,3 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
     end
   end
 end
-
-

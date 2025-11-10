@@ -17,4 +17,3 @@ RSpec.describe Datadog::OpenFeature::NoopEvaluator do
     end
   end
 end
-

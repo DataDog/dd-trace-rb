@@ -7,7 +7,7 @@ module Datadog
   module OpenFeature
     module Exposures
       BufferBaseClass =
-        Core::Environment::Ext::RUBY_ENGINE == 'ruby' ? Core::Buffer::CRuby : Core::Buffer::ThreadSafe
+        (Core::Environment::Ext::RUBY_ENGINE == 'ruby') ? Core::Buffer::CRuby : Core::Buffer::ThreadSafe
 
       class Buffer < BufferBaseClass
         DEFAULT_LIMIT = 1_000

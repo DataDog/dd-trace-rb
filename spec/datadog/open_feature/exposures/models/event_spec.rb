@@ -32,7 +32,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Models::Event do
           'active' => true,
           'ratio' => 7.5,
           'nickname' => 'johnny',
-          'ignored_hash' => { foo: 'bar' },
+          'ignored_hash' => {foo: 'bar'},
           'ignored_array' => [1, 2]
         }
       )
@@ -43,7 +43,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Models::Event do
         {
           timestamp: 1_735_689_600_000,
           allocation: {
-             key: '4-for-john-doe'
+            key: '4-for-john-doe'
           },
           flag: {
             key: 'feature_flag'
@@ -104,4 +104,3 @@ RSpec.describe Datadog::OpenFeature::Exposures::Models::Event do
     end
   end
 end
-

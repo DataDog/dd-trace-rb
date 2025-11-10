@@ -165,4 +165,3 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     end
   end
 end
-

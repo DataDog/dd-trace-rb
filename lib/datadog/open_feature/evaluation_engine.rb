@@ -25,7 +25,7 @@ module Datadog
 
       def fetch_value(flag_key:, expected_type:, evaluation_context: nil)
         unless ALLOWED_TYPES.include?(expected_type)
-          message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(', ')}"
+          message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(", ")}"
 
           return Binding::ResolutionDetails.new(
             error_code: Ext::UNKNOWN_TYPE, error_message: message, reason: Ext::ERROR

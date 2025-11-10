@@ -34,7 +34,6 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
         )
       end
 
-
       it { expect(deduplicator.duplicate?(event)).to be(true) }
     end
 
@@ -162,5 +161,3 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
     end
   end
 end
-
-
