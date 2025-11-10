@@ -12,6 +12,9 @@ RSpec.describe Datadog::OpenFeature::Component do
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
+  let(:transport) { instance_double(Datadog::OpenFeature::Transport::Exposures::Transport) }
+  let(:worker) { instance_double(Datadog::OpenFeature::Exposures::Worker) }
+  let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
 
   describe '.build_open_feature_component' do
     subject(:component) do
@@ -19,16 +22,24 @@ RSpec.describe Datadog::OpenFeature::Component do
     end
 
     context 'when open_feature is enabled' do
-      before do
-        settings.open_feature.enabled = true
+      before { settings.open_feature.enabled = true }
+
+      context 'when remote configuration is enabled' do
+        before { settings.remote.enabled = true }
+
+        it 'returns configured component instance' do
+          expect(component).to be_a(described_class)
+          expect(component.engine).to be_a(Datadog::OpenFeature::EvaluationEngine)
+          expect(Datadog::OpenFeature::Exposures::Reporter).to have_received(:new)
+        end
       end
 
       context 'when remote configuration is disabled' do
         before { settings.remote.enabled = false }
 
         it 'logs warning and returns nil' do
-          expect(logger).to receive(:warn)
-            .with(/could not be enabled without Remote Configuration/)
+          expect(Datadog.logger).to receive(:warn)
+            .with(/could not be enabled as Remote Configuration is currently disabled/)
 
           expect(component).to be_nil
         end
@@ -61,10 +72,18 @@ RSpec.describe Datadog::OpenFeature::Component do
   end
 
   describe '#shutdown!' do
-    subject(:component) { described_class.new(telemetry: telemetry) }
+    before do
+      settings.open_feature.enabled = true
+      settings.remote.enabled = true
+    end
 
-    it 'is a no-op' do
-      expect { component.shutdown! }.not_to raise_error
+    subject(:component) { described_class.new(settings, telemetry: telemetry) }
+
+    it 'flushes worker and stops it' do
+      expect(worker).to receive(:flush)
+      expect(worker).to receive(:stop).with(true)
+
+      component.shutdown!
     end
   end
 end
