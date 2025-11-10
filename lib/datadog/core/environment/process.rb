@@ -5,7 +5,6 @@ module Datadog
   module Core
     module Environment
       # Retrieves process level information
-      # TODO: Add memoization
       module Process
         module_function
 

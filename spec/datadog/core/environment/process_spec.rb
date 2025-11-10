@@ -34,6 +34,19 @@ RSpec.describe Datadog::Core::Environment::Process do
     it { is_expected.to be_a_kind_of(String) }
   end
 
+  describe '::formatted_process_tags_k1_v1' do
+    subject(:formatted_process_tags_k1_v1) { described_class.formatted_process_tags_k1_v1 }
+
+    it { is_expected.to be_a_kind_of(String) }
+
+    it 'returns the same object when called multiple times' do
+      # Processes are fixed so no need to recompute this on each call
+      first_call = described_class.formatted_process_tags_k1_v1
+      second_call = described_class.formatted_process_tags_k1_v1
+      expect(first_call).to equal(second_call)
+    end
+  end
+
   describe 'Scenario: Real applications' do
     context 'when running a real Rails application' do
       it 'detects Rails process information correctly' do
