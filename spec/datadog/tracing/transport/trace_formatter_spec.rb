@@ -241,7 +241,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         it do
           format!
           expect(first_span.meta).to include('_dd.tags.process')
-          expect(first_span.meta['_dd.tags.process']).to eq(Datadog::Core::Environment::Process.formatted_process_tags_k1_v1)
+          expect(first_span.meta['_dd.tags.process']).to eq(Datadog::Core::Environment::Process.serialized)
           # TODO figure out if we need an assertion for the value, ie
           # `"entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:usr/local/bundle/bin,entrypoint.type:script,server.type:placeholder"`
         end
@@ -304,7 +304,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
 
         context 'with process tags enabled' do
           before do
-            allow(Datadog.configuration.tracing).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+            allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
           end
           it_behaves_like 'first span with process tags'
         end
@@ -365,7 +365,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
 
         context 'with process tags enabled' do
           before do
-            allow(Datadog.configuration.tracing).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+            allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
           end
           it_behaves_like 'first span with process tags'
         end
@@ -428,7 +428,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
 
         context 'with process tags enabled' do
           before do
-            allow(Datadog.configuration.tracing).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+            allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
           end
           it_behaves_like 'first span with process tags'
         end

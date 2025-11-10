@@ -34,15 +34,15 @@ RSpec.describe Datadog::Core::Environment::Process do
     it { is_expected.to be_a_kind_of(String) }
   end
 
-  describe '::formatted_process_tags_k1_v1' do
-    subject(:formatted_process_tags_k1_v1) { described_class.formatted_process_tags_k1_v1 }
+  describe '::serialized' do
+    subject(:serialized) { described_class.serialized }
 
     it { is_expected.to be_a_kind_of(String) }
 
     it 'returns the same object when called multiple times' do
       # Processes are fixed so no need to recompute this on each call
-      first_call = described_class.formatted_process_tags_k1_v1
-      second_call = described_class.formatted_process_tags_k1_v1
+      first_call = described_class.serialized
+      second_call = described_class.serialized
       expect(first_call).to equal(second_call)
     end
   end
@@ -70,7 +70,7 @@ RSpec.describe Datadog::Core::Environment::Process do
                           STDERR.puts "entrypoint_name:\#{Datadog::Core::Environment::Process.entrypoint_name}"
                           STDERR.puts "entrypoint_basedir:\#{Datadog::Core::Environment::Process.entrypoint_basedir}"
                           STDERR.puts "server_type:\#{Datadog::Core::Environment::Process.server_type}"
-                          STDERR.puts "_dd.tags.process:\#{Datadog::Core::Environment::Process.formatted_process_tags_k1_v1}"
+                          STDERR.puts "_dd.tags.process:\#{Datadog::Core::Environment::Process.serialized}"
                           STDERR.flush
                           Thread.new { sleep 1; Process.kill('TERM', Process.pid)}#{' '}
                       end

@@ -203,16 +203,6 @@ module Datadog
                 o.type :bool
               end
 
-              # Enable experimental process tags propagation.
-              #
-              # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `false`
-              # @return [Boolean]
-              option :experimental_propagate_process_tags_enabled do |o|
-                o.env Tracing::Configuration::Ext::ENV_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED
-                o.default false
-                o.type :bool
-              end
-
               # Enable 128 bit trace id injected for logging.
               #
               # @default `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED` environment variable, otherwise `false`
