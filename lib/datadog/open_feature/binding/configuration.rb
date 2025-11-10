@@ -121,8 +121,6 @@ module Datadog
         end
 
         def self.parse_timestamp(timestamp_data)
-          return nil if timestamp_data.nil?
-
           # Handle both Unix timestamps and ISO8601 strings
           case timestamp_data
           when Numeric
