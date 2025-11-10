@@ -20,6 +20,7 @@ module Datadog
         end
       end
 
+
       # Internal evaluator for UFC (Universal Flag Configuration) format.
       # UFC is a flexible format for representing feature flag targeting rules
       # using splits with shard ranges and salts, accommodating most targeting use cases.
@@ -27,11 +28,11 @@ module Datadog
         # NativeEvaluator-aligned error code mapping
         ERROR_CODE_MAPPING = {
           Ext::FLAG_UNRECOGNIZED_OR_DISABLED => :flag_not_found,
-          Ext::FLAG_DISABLED => nil,  # Success case
+          Ext::FLAG_DISABLED => :Ok,  # Success case (matches libdatadog ErrorCode::Ok)
           Ext::TYPE_MISMATCH_ERROR => :type_mismatch,
           Ext::CONFIGURATION_PARSE_ERROR => :parse_error,
           Ext::CONFIGURATION_MISSING => :provider_not_ready,
-          Ext::DEFAULT_ALLOCATION_NULL => nil,  # Success case
+          Ext::DEFAULT_ALLOCATION_NULL => :Ok,  # Success case (matches libdatadog ErrorCode::Ok)
           Ext::INTERNAL_ERROR => :general
         }.freeze
 
@@ -75,9 +76,19 @@ module Datadog
               "flag is missing in configuration, it is either unrecognized or disabled")
           end
 
-          # Return error result if flag is disabled - using Rust naming and message
+          # Return success result with nil value if flag is disabled - matches libdatadog behavior
           unless flag.enabled
-            return create_error_result(Ext::FLAG_DISABLED, "flag is disabled")
+            return ResolutionDetails.new(
+              value: nil,
+              variant: nil,
+              error_code: :Ok,  # :Ok indicates success (matches libdatadog ErrorCode::Ok)
+              error_message: nil,
+              reason: 'DISABLED',
+              allocation_key: nil,
+              do_log: false,
+              flag_metadata: {},  # Empty for disabled flags
+              extra_logging: {}
+            )
           end
 
           # Validate type compatibility if expected_type is provided - using Rust message format
@@ -152,12 +163,16 @@ module Datadog
           ResolutionDetails.new(
             value: value,
             variant: variant,
-            error_code: nil,  # nil indicates success
+            error_code: :Ok,  # :Ok indicates success (matches libdatadog ErrorCode::Ok)
             error_message: nil,
             reason: convert_reason_to_symbol(reason),
             allocation_key: allocation_key,
             do_log: do_log,
-            flag_metadata: { "allocation_key" => allocation_key },
+            flag_metadata: {
+              "allocation_key" => allocation_key,
+              "variationType" => variation_type,
+              "doLog" => do_log
+            },
             extra_logging: {}
           )
         end
