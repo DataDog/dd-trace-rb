@@ -44,7 +44,7 @@ module Datadog
           @allocations = allocations || []
         end
 
-        def self.from_json(key, flag_data)
+        def self.from_hash(flag_data, key)
           new(
             key: key,
             enabled: flag_data['enabled'] || false,
@@ -58,12 +58,12 @@ module Datadog
 
         def self.parse_variations(variations_data)
           variations_data.transform_values do |variation_data|
-            Variation.from_json(variation_data)
+            Variation.from_hash(variation_data)
           end
         end
 
         def self.parse_allocations(allocations_data)
-          allocations_data.map { |allocation_data| Allocation.from_json(allocation_data) }
+          allocations_data.map { |allocation_data| Allocation.from_hash(allocation_data) }
         end
       end
 
@@ -76,7 +76,7 @@ module Datadog
           @value = value
         end
 
-        def self.from_json(variation_data)
+        def self.from_hash(variation_data)
           new(
             key: variation_data['key'],
             value: variation_data['value']
@@ -97,7 +97,7 @@ module Datadog
           @do_log = do_log
         end
 
-        def self.from_json(allocation_data)
+        def self.from_hash(allocation_data)
           new(
             key: allocation_data['key'],
             rules: parse_rules(allocation_data['rules']),
@@ -113,11 +113,11 @@ module Datadog
         def self.parse_rules(rules_data)
           return nil if rules_data.nil? || rules_data.empty?
 
-          rules_data.map { |rule_data| Rule.from_json(rule_data) }
+          rules_data.map { |rule_data| Rule.from_hash(rule_data) }
         end
 
         def self.parse_splits(splits_data)
-          splits_data.map { |split_data| Split.from_json(split_data) }
+          splits_data.map { |split_data| Split.from_hash(split_data) }
         end
 
         def self.parse_timestamp(timestamp_data)
@@ -147,7 +147,7 @@ module Datadog
           @extra_logging = extra_logging || {}
         end
 
-        def self.from_json(split_data)
+        def self.from_hash(split_data)
           new(
             shards: parse_shards(split_data['shards'] || []),
             variation_key: split_data['variationKey'],
@@ -158,7 +158,7 @@ module Datadog
         private
 
         def self.parse_shards(shards_data)
-          shards_data.map { |shard_data| Shard.from_json(shard_data) }
+          shards_data.map { |shard_data| Shard.from_hash(shard_data) }
         end
       end
 
@@ -172,7 +172,7 @@ module Datadog
           @ranges = ranges || []
         end
 
-        def self.from_json(shard_data)
+        def self.from_hash(shard_data)
           new(
             salt: shard_data['salt'],
             total_shards: shard_data['totalShards'],
@@ -183,7 +183,7 @@ module Datadog
         private
 
         def self.parse_ranges(ranges_data)
-          ranges_data.map { |range_data| ShardRange.from_json(range_data) }
+          ranges_data.map { |range_data| ShardRange.from_hash(range_data) }
         end
       end
 
@@ -196,7 +196,7 @@ module Datadog
           @end_value = end_value
         end
 
-        def self.from_json(range_data)
+        def self.from_hash(range_data)
           new(
             start: range_data['start'],
             end_value: range_data['end']
@@ -217,7 +217,7 @@ module Datadog
           @conditions = conditions || []
         end
 
-        def self.from_json(rule_data)
+        def self.from_hash(rule_data)
           new(
             conditions: parse_conditions(rule_data['conditions'] || [])
           )
@@ -226,7 +226,7 @@ module Datadog
         private
 
         def self.parse_conditions(conditions_data)
-          conditions_data.map { |condition_data| Condition.from_json(condition_data) }
+          conditions_data.map { |condition_data| Condition.from_hash(condition_data) }
         end
       end
 
@@ -240,7 +240,7 @@ module Datadog
           @value = value
         end
 
-        def self.from_json(condition_data)
+        def self.from_hash(condition_data)
           new(
             attribute: condition_data['attribute'],
             operator: condition_data['operator'],
@@ -270,11 +270,11 @@ module Datadog
           @schema_version = schema_version
         end
 
-        def self.from_json(config_data)
+        def self.from_hash(config_data)
           flags_data = config_data['flags'] || config_data['flagsV1'] || {}
           
           parsed_flags = flags_data.transform_values do |flag_data|
-            Flag.from_json(flag_data['key'] || '', flag_data)
+            Flag.from_hash(flag_data, flag_data['key'] || '')
           end
 
           new(

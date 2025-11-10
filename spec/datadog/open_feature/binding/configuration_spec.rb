@@ -9,18 +9,18 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
   let(:flags_v1_json) { JSON.parse(File.read(flags_v1_path)) }
   let(:ufc_attributes) { flags_v1_json['data']['attributes'] }
 
-  describe '.from_json' do
+  describe '.from_hash' do
     it 'parses the main flags-v1.json without errors' do
-      expect { described_class.from_json(ufc_attributes) }.not_to raise_error
+      expect { described_class.from_hash(ufc_attributes) }.not_to raise_error
     end
 
     it 'extracts correct number of flags' do
-      config = described_class.from_json(ufc_attributes)
+      config = described_class.from_hash(ufc_attributes)
       expect(config.flags.keys.count).to be > 10
     end
 
     it 'parses specific flags correctly' do
-      config = described_class.from_json(ufc_attributes)
+      config = described_class.from_hash(ufc_attributes)
       
       # Test empty flag
       empty_flag = config.flags['empty_flag']
@@ -37,7 +37,7 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
     end
 
     it 'parses numeric variations correctly' do
-      config = described_class.from_json(ufc_attributes)
+      config = described_class.from_hash(ufc_attributes)
       
       numeric_flag = config.flags['numeric_flag']
       expect(numeric_flag).not_to be_nil
@@ -50,14 +50,14 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
     end
 
     it 'handles all variation types present in test data' do
-      config = described_class.from_json(ufc_attributes)
+      config = described_class.from_hash(ufc_attributes)
       
       variation_types = config.flags.values.map(&:variation_type).uniq
       expect(variation_types).to include('STRING', 'INTEGER', 'NUMERIC')
     end
 
     it 'parses allocations with rules and splits' do
-      config = described_class.from_json(ufc_attributes)
+      config = described_class.from_hash(ufc_attributes)
       
       # Find flags with allocations
       flags_with_allocations = config.flags.values.select { |f| f.allocations.any? }
@@ -72,7 +72,7 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
   end
 
   describe '#get_flag' do
-    let(:config) { described_class.from_json(ufc_attributes) }
+    let(:config) { described_class.from_hash(ufc_attributes) }
 
     it 'returns existing flags' do
       flag = config.get_flag('empty_flag')
