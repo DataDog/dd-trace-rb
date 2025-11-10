@@ -42,7 +42,7 @@ module Datadog
           allocations: ::Array[Allocation]
         ) -> void
 
-        def self.from_json: (::String key, ::Hash[::String, untyped] flag_data) -> Flag
+        def self.from_hash: (::Hash[::String, untyped] flag_data, ::String key) -> Flag
 
         private
 
@@ -57,7 +57,7 @@ module Datadog
 
         def initialize: (key: ::String, value: untyped) -> void
 
-        def self.from_json: (::Hash[::String, untyped] variation_data) -> Variation
+        def self.from_hash: (::Hash[::String, untyped] variation_data) -> Variation
       end
 
       class Allocation
@@ -77,7 +77,7 @@ module Datadog
           ?do_log: bool
         ) -> void
 
-        def self.from_json: (::Hash[::String, untyped] allocation_data) -> Allocation
+        def self.from_hash: (::Hash[::String, untyped] allocation_data) -> Allocation
 
         private
 
@@ -99,7 +99,7 @@ module Datadog
           ?extra_logging: ::Hash[::String, untyped]?
         ) -> void
 
-        def self.from_json: (::Hash[::String, untyped] split_data) -> Split
+        def self.from_hash: (::Hash[::String, untyped] split_data) -> Split
 
         private
 
@@ -117,7 +117,7 @@ module Datadog
           ranges: ::Array[ShardRange]
         ) -> void
 
-        def self.from_json: (::Hash[::String, untyped] shard_data) -> Shard
+        def self.from_hash: (::Hash[::String, untyped] shard_data) -> Shard
 
         private
 
@@ -130,7 +130,7 @@ module Datadog
 
         def initialize: (start: ::Integer, end_value: ::Integer) -> void
 
-        def self.from_json: (::Hash[::String, untyped] range_data) -> ShardRange
+        def self.from_hash: (::Hash[::String, untyped] range_data) -> ShardRange
 
         def end: () -> ::Integer
       end
@@ -140,7 +140,7 @@ module Datadog
 
         def initialize: (conditions: ::Array[Condition]) -> void
 
-        def self.from_json: (::Hash[::String, untyped] rule_data) -> Rule
+        def self.from_hash: (::Hash[::String, untyped] rule_data) -> Rule
 
         private
 
@@ -154,11 +154,8 @@ module Datadog
 
         def initialize: (attribute: ::String, operator: ::String, value: untyped) -> void
 
-        def self.from_json: (::Hash[::String, untyped] condition_data) -> Condition
+        def self.from_hash: (::Hash[::String, untyped] condition_data) -> Condition
 
-        private
-
-        def self.parse_condition_value: (untyped value_data) -> untyped
       end
 
       class Configuration
@@ -167,7 +164,7 @@ module Datadog
 
         def initialize: (flags: ::Hash[::String, Flag], ?schema_version: ::String?) -> void
 
-        def self.from_json: (::Hash[::String, untyped] config_data) -> Configuration
+        def self.from_hash: (::Hash[::String, untyped] config_data) -> Configuration
 
         def get_flag: (::String flag_key) -> Flag?
       end

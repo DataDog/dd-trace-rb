@@ -240,21 +240,10 @@ module Datadog
           new(
             attribute: condition_data.fetch('attribute'),
             operator: condition_data.fetch('operator'),
-            value: parse_condition_value(condition_data['value'])
+            value: condition_data.fetch('value')
           )
         end
 
-        private
-
-        def self.parse_condition_value(value_data)
-          # Handle both single values and arrays for ONE_OF/NOT_ONE_OF operators
-          case value_data
-          when Array
-            value_data
-          else
-            value_data
-          end
-        end
       end
 
       # Main configuration container
