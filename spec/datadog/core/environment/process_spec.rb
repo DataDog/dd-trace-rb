@@ -28,12 +28,6 @@ RSpec.describe Datadog::Core::Environment::Process do
     it { is_expected.to be_a_kind_of(String) }
   end
 
-  describe '::server_type' do
-    subject(:server_type) { described_class.server_type }
-
-    it { is_expected.to be_a_kind_of(String) }
-  end
-
   describe '::serialized' do
     subject(:serialized) { described_class.serialized }
 
@@ -69,7 +63,6 @@ RSpec.describe Datadog::Core::Environment::Process do
                           STDERR.puts "entrypoint_type:\#{Datadog::Core::Environment::Process.entrypoint_type}"
                           STDERR.puts "entrypoint_name:\#{Datadog::Core::Environment::Process.entrypoint_name}"
                           STDERR.puts "entrypoint_basedir:\#{Datadog::Core::Environment::Process.entrypoint_basedir}"
-                          STDERR.puts "server_type:\#{Datadog::Core::Environment::Process.server_type}"
                           STDERR.puts "_dd.tags.process:\#{Datadog::Core::Environment::Process.serialized}"
                           STDERR.flush
                           Thread.new { sleep 1; Process.kill('TERM', Process.pid)}#{' '}
@@ -84,8 +77,7 @@ RSpec.describe Datadog::Core::Environment::Process do
               expect(err).to include('entrypoint_name:rails')
               basedir_test = tmp_dir.sub(%r{^/}, '')
               expect(err).to include("entrypoint_basedir:#{basedir_test}/test_app/bin")
-              expect(err).to include('server_type:placeholder')
-              expected_tags = "entrypoint.workdir:test_app,entrypoint.name:rails,entrypoint.basedir:#{basedir_test}/test_app/bin,entrypoint.type:script,server.type:placeholder"
+              expected_tags = "entrypoint.workdir:test_app,entrypoint.name:rails,entrypoint.basedir:#{basedir_test}/test_app/bin,entrypoint.type:script"
               expect(err).to include("_dd.tags.process:#{expected_tags}")
             end
           end
