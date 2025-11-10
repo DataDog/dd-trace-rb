@@ -21,7 +21,7 @@ module Datadog
           stored = @cache[cache_key]
           return true if stored == cache_digest
 
-          @mutex.synchronize { @cache.store(cache_key, cache_digest) }
+          @mutex.synchronize { @cache[cache_key] = cache_digest }
           false
         end
 

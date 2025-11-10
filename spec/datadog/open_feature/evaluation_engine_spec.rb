@@ -45,7 +45,11 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string) }
 
     context 'when binding evaluator is not ready' do
-      it 'returns evaluation error' do
+      it 'returns evaluation error and reports exposure' do
+        expect(reporter).to receive(:report).with(
+          kind_of(Datadog::OpenFeature::Binding::ResolutionDetails), flag_key: 'test', context: nil
+        )
+
         expect(result.error_code).to eq('PROVIDER_NOT_READY')
         expect(result.error_message).to eq('Waiting for universal flag configuration')
         expect(result.reason).to eq('INITIALIZING')
@@ -72,7 +76,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         )
       end
 
-      it 'returns evaluation error' do
+      it 'returns evaluation error and reports exposure' do
+        expect(reporter).to receive(:report).with(error, flag_key: 'test', context: nil)
+
         expect(result.error_code).to eq('PROVIDER_FATAL')
         expect(result.error_message).to eq('Ooops')
         expect(result.reason).to eq('ERROR')
@@ -91,7 +97,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       let(:error) { RuntimeError.new("Crash") }
 
-      it 'returns evaluation error' do
+      it 'returns evaluation error and does not report exposure' do
+        expect(reporter).not_to receive(:report)
+
         expect(result.error_code).to eq('PROVIDER_FATAL')
         expect(result.error_message).to eq('Crash')
         expect(result.reason).to eq('ERROR')
@@ -106,7 +114,9 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :whatever) }
 
-      it 'returns evaluation error' do
+      it 'returns evaluation error and does not report exposure' do
+        expect(reporter).not_to receive(:report)
+
         expect(result.error_code).to eq('UNKNOWN_TYPE')
         expect(result.error_message).to start_with('unknown type :whatever, allowed types')
         expect(result.reason).to eq('ERROR')
@@ -119,9 +129,13 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         engine.reconfigure!
       end
 
-      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string) }
+      let(:evaluation_context) { instance_double('OpenFeature::SDK::EvaluationContext') }
+      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string, evaluation_context: evaluation_context) }
 
-      it 'returns resolved value' do
+      it 'returns resolved value and reports exposure' do
+        expect(reporter).to receive(:report)
+          .with(kind_of(Datadog::OpenFeature::Binding::ResolutionDetails), flag_key: 'test', context: evaluation_context)
+
         expect(result.value).to eq('hello')
       end
     end
@@ -158,6 +172,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       it 'persists previouly configured evaluator' do
         allow(logger).to receive(:error)
         allow(telemetry).to receive(:report)
+        allow(reporter).to receive(:report)
 
         engine.configuration = '{}'
         expect { engine.reconfigure! }.not_to change {

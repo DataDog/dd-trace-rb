@@ -7,6 +7,7 @@ require 'datadog/open_feature/evaluation_engine'
 RSpec.describe Datadog::OpenFeature::Provider do
   before do
     allow(telemetry).to receive(:report)
+    allow(reporter).to receive(:report)
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
   end
 
