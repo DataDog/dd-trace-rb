@@ -60,24 +60,27 @@ RSpec.describe 'InternalEvaluator Test Cases' do
         "Variant mismatch for #{context_info}: expected #{expected['variant']}, got #{actual.variant}"
     end
 
-    # Validate flag metadata if expected
+    # Validate flag metadata if expected using flat ResolutionDetails structure
     if expected['flagMetadata']
-      expect(actual.flag_metadata).to be_present, 
-        "Expected flagMetadata to be present for #{context_info}"
-
       expected_meta = expected['flagMetadata']
-      actual_meta = actual.flag_metadata
 
-      # Validate all fields in flagMetadata
-      expected_meta.each do |field, expected_value|
-        expect(actual_meta[field]).to eq(expected_value), 
-          "FlagMetadata field '#{field}' mismatch for #{context_info}: expected #{expected_value}, got #{actual_meta[field]}"
+      # Validate allocation key
+      if expected_meta['allocationKey']
+        expect(actual.allocation_key).to eq(expected_meta['allocationKey']), 
+          "AllocationKey mismatch for #{context_info}: expected #{expected_meta['allocationKey']}, got #{actual.allocation_key}"
       end
 
-      # Ensure no unexpected fields are present in actual result
-      unexpected_fields = actual_meta.keys - expected_meta.keys
-      expect(unexpected_fields).to be_empty, 
-        "Unexpected flagMetadata fields for #{context_info}: #{unexpected_fields}"
+      # Validate doLog
+      if expected_meta.key?('doLog')
+        expect(actual.do_log).to eq(expected_meta['doLog']), 
+          "DoLog mismatch for #{context_info}: expected #{expected_meta['doLog']}, got #{actual.do_log}"
+      end
+
+      # Validate variationType (not commonly used but available if needed)
+      if expected_meta['variationType']
+        # This field doesn't have a direct equivalent in ResolutionDetails, so we skip it
+        # It's more for validation than runtime behavior
+      end
     end
   end
 
@@ -128,7 +131,6 @@ RSpec.describe 'InternalEvaluator Test Cases' do
               flag_key, 
               evaluation_context, 
               expected_type, 
-              Time.now, 
               default_value
             )
 
@@ -140,9 +142,9 @@ RSpec.describe 'InternalEvaluator Test Cases' do
               puts "\nDEBUG #{context_info}:"
               puts "  Result class: #{result.class}"
               puts "  Result: #{result.inspect}"
-              puts "  Flag metadata: #{result.flag_metadata.inspect}"
-              puts "  Flag metadata nil?: #{result.flag_metadata.nil?}"
-              puts "  Flag metadata present?: #{result.flag_metadata ? 'YES' : 'NO'}"
+              puts "  Allocation key: #{result.allocation_key.inspect}"
+              puts "  Do log: #{result.do_log.inspect}"
+              puts "  Reason: #{result.reason.inspect}"
             end
             
             validate_result(expected_result, result, context_info)
@@ -188,16 +190,13 @@ RSpec.describe 'InternalEvaluator Test Cases' do
             
             metadata_matches = true
             if expected_result['flagMetadata']
-              if result.flag_metadata
-                expected_meta = expected_result['flagMetadata']
-                actual_meta = result.flag_metadata
-                # Check all expected fields match and no unexpected fields exist
-                metadata_matches = expected_meta.all? { |field, expected_value| 
-                  actual_meta[field] == expected_value 
-                } && (actual_meta.keys - expected_meta.keys).empty?
-              else
-                metadata_matches = false
-              end
+              expected_meta = expected_result['flagMetadata']
+              # Check allocation key and doLog using flat ResolutionDetails structure
+              allocation_matches = expected_meta['allocationKey'].nil? || 
+                                   result.allocation_key == expected_meta['allocationKey']
+              do_log_matches = !expected_meta.key?('doLog') || 
+                               result.do_log == expected_meta['doLog']
+              metadata_matches = allocation_matches && do_log_matches
             end
 
             if value_matches && variant_matches && metadata_matches
@@ -209,7 +208,8 @@ RSpec.describe 'InternalEvaluator Test Cases' do
                 actual: {
                   value: result.value,
                   variant: result.variant,
-                  metadata: result.flag_metadata
+                  allocation_key: result.allocation_key,
+                  do_log: result.do_log
                 }
               }
             end
