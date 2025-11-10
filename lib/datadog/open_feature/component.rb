@@ -11,10 +11,10 @@ module Datadog
       attr_reader :telemetry, :engine
 
       def self.build(settings, agent_settings, logger:, telemetry:)
-        return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
+        return unless settings.open_feature.enabled
 
-        unless settings.respond_to?(:remote) && settings.remote.enabled
-          logger.warn('OpenFeature: Could not be enabled without Remote Configuration Management available')
+        unless settings.remote.enabled
+          logger.warn('OpenFeature: Could not be enabled without Remote Configuration Management available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config')
 
           return
         end

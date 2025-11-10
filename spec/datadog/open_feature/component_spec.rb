@@ -65,14 +65,6 @@ RSpec.describe Datadog::OpenFeature::Component do
 
       it { expect(component).to be_nil }
     end
-
-    context 'when settings does not include open_feature' do
-      before { allow(settings).to receive(:respond_to?).and_return(false) }
-
-      let(:settings) { instance_double(Datadog::Core::Configuration::Settings) }
-
-      it { expect(component).to be_nil }
-    end
   end
 
   describe '#shutdown!' do
