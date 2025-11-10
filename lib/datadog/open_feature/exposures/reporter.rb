@@ -6,6 +6,7 @@ require_relative 'deduplicator'
 module Datadog
   module OpenFeature
     module Exposures
+      # This class is responsible for reporting exposures to the Agent
       class Reporter
         def initialize(worker, telemetry:, logger: Datadog.logger)
           @worker = worker
@@ -16,6 +17,7 @@ module Datadog
 
         def report(result, flag_key:, context:)
           return false unless result.do_log
+          return false if context.nil?
 
           event = Models::Event.build(result, flag_key: flag_key, context: context)
           return false if @deduplicator.duplicate?(event)

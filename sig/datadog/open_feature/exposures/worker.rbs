@@ -22,9 +22,9 @@ module Datadog
 
         def stop: (?bool, ?::Integer) -> bool
 
-        def enqueue: (Exposures::Event) -> bool
+        def enqueue: (Exposures::Models::Event event) -> bool
 
-        def dequeue: () -> [::Array[Exposures::Event], ::Integer]
+        def dequeue: () -> [::Array[Exposures::Models::Event], ::Integer]
 
         def flush: () -> void
 
@@ -38,7 +38,7 @@ module Datadog
 
         def perform: (*untyped) -> void
 
-        def send_events: (::Array[Exposures::Event], ::Integer) -> void
+        def send_events: (::Array[Exposures::Models::Event], ::Integer) -> void
 
         def send_payload: (::Hash[::Symbol, untyped]) -> Core::Transport::Response?
       end

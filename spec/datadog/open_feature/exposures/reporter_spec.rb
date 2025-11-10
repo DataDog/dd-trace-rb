@@ -87,6 +87,15 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
         expect(reporter.report(result, flag_key: 'feature_flag', context: context)).to be(false)
       end
     end
+
+    context 'when evaluation context is nil' do
+      it 'skips enqueueing exposure' do
+        expect(deduplicator).not_to receive(:duplicate?)
+        expect(worker).not_to receive(:enqueue)
+
+        expect(reporter.report(result, flag_key: 'feature_flag', context: nil)).to be(false)
+      end
+    end
   end
 end
 

@@ -36,8 +36,10 @@ module Datadog
         # In the example from the OpenFeature there is zero trust to the result of the evaluation
         # do we want to go that way?
 
-        @evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now.utc.to_i)
-        # TODO: insert reporting here
+        result = @evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now.utc.to_i)
+        @reporter.report(result, flag_key: flag_key, context: evaluation_context)
+
+        result
       rescue => e
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
 
