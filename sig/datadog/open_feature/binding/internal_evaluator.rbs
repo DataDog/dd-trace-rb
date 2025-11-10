@@ -1,26 +1,6 @@
 module Datadog
   module OpenFeature
     module Binding
-      class ResolutionDetails
-        attr_reader value: untyped
-        attr_reader variant: ::String?
-        attr_reader error_code: ::String?
-        attr_reader error_message: ::String?
-        attr_reader reason: ::String?
-        attr_reader allocation_key: ::String?
-        attr_reader do_log: bool?
-
-        def initialize: (
-          value: untyped,
-          ?variant: ::String?,
-          ?error_code: ::String?,
-          ?error_message: ::String?,
-          ?reason: ::String?,
-          ?allocation_key: ::String?,
-          ?do_log: bool?
-        ) -> void
-      end
-
       class EvaluationError < ::StandardError
         attr_reader code: ::String
         attr_reader message: ::String

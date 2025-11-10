@@ -65,7 +65,6 @@ RSpec.describe Datadog::OpenFeature::Component do
 
       it { expect(component).to be_nil }
     end
-
   end
 
   describe '#shutdown!' do

@@ -2,25 +2,12 @@
 
 require 'json'
 require_relative 'configuration'
+require_relative 'resolution_details'
 require_relative '../ext'
 
 module Datadog
   module OpenFeature
     module Binding
-      # Flat result structure matching NativeEvaluator ResolutionDetails interface
-      class ResolutionDetails
-        attr_reader :value, :variant, :error_code, :error_message, :reason, :allocation_key, :do_log
-        
-        def initialize(value:, variant: nil, error_code: nil, error_message: nil, reason: nil, allocation_key: nil, do_log: nil)
-          @value = value
-          @variant = variant
-          @error_code = error_code
-          @error_message = error_message  
-          @reason = reason
-          @allocation_key = allocation_key
-          @do_log = do_log
-        end
-      end
 
       # Custom error for evaluation failures
       class EvaluationError < StandardError
@@ -166,9 +153,12 @@ module Datadog
             value: value,
             variant: variant,
             error_code: nil,  # nil indicates success
+            error_message: nil,
             reason: convert_reason_to_symbol(reason),
             allocation_key: allocation_key,
-            do_log: do_log
+            do_log: do_log,
+            flag_metadata: { "allocation_key" => allocation_key },
+            extra_logging: {}
           )
         end
 
@@ -189,9 +179,14 @@ module Datadog
           
           ResolutionDetails.new(
             value: nil,
+            variant: nil,
             error_code: mapped_error_code,
             error_message: error_message,
-            reason: reason
+            reason: reason,
+            allocation_key: nil,
+            do_log: false,
+            flag_metadata: {},
+            extra_logging: {}
           )
         end
 
