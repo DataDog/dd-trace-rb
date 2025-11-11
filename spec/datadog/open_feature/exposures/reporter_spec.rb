@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/open_feature/exposures'
+require 'datadog/open_feature/exposures/reporter'
 
 RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
   before { allow(Datadog::OpenFeature::Exposures::Deduplicator).to receive(:new).and_return(deduplicator) }
@@ -19,7 +19,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
     )
   end
   let(:result) do
-    Datadog::OpenFeature::Binding::ResolutionDetails.new(
+    Datadog::OpenFeature::ResolutionDetails.new(
       value: 4,
       allocation_key: '4-for-john-doe',
       variant: '4',

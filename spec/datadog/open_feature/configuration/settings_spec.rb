@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/open_feature/configuration/settings'
+require 'datadog/open_feature/configuration'
 
 RSpec.describe Datadog::OpenFeature::Configuration::Settings do
   subject(:settings) { Datadog::Core::Configuration::Settings.new }

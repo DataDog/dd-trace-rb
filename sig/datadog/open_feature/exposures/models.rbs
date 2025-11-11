@@ -1,8 +1,0 @@
-module Datadog
-  module OpenFeature
-    module Exposures
-      module Models
-      end
-    end
-  end
-end

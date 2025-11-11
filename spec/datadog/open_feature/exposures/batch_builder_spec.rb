@@ -17,7 +17,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
         end
       end
       let(:event) do
-        Datadog::OpenFeature::Exposures::Models::Event.new(
+        Datadog::OpenFeature::Exposures::Event.new(
           timestamp: 1_735_689_600_000,
           allocation: {key: 'control'},
           flag: {key: 'demo'},
@@ -49,14 +49,14 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
       end
       let(:events) do
         [
-          Datadog::OpenFeature::Exposures::Models::Event.new(
+          Datadog::OpenFeature::Exposures::Event.new(
             timestamp: 1_735_689_600_001,
             allocation: {key: 'group-a'},
             flag: {key: 'flag-a'},
             variant: {key: 'var-a'},
             subject: {id: 'user-1', attributes: {'plan' => 'pro'}}
           ),
-          Datadog::OpenFeature::Exposures::Models::Event.new(
+          Datadog::OpenFeature::Exposures::Event.new(
             timestamp: 1_735_689_600_002,
             allocation: {key: 'group-b'},
             flag: {key: 'flag-b'},
@@ -96,7 +96,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
         )
       end
       let(:event) do
-        Datadog::OpenFeature::Exposures::Models::Event.new(
+        Datadog::OpenFeature::Exposures::Event.new(
           timestamp: 1_735_689_600_003,
           allocation: {key: 'group-c'},
           flag: {key: 'flag-c'},

@@ -7,7 +7,7 @@ module Datadog
         ::String,
         ::OpenFeature::SDK::EvaluationContext?,
         ::Symbol
-      ) -> Binding::ResolutionDetails
+      ) -> ResolutionDetails
     end
   end
 end

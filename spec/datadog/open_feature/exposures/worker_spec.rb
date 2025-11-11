@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/open_feature/exposures'
 require 'datadog/open_feature/transport/exposures'
 
 RSpec.describe Datadog::OpenFeature::Exposures::Worker do
@@ -20,7 +19,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: true) }
   let(:logger) { logger_allowing_debug }
   let(:event) do
-    Datadog::OpenFeature::Exposures::Models::Event.new(
+    Datadog::OpenFeature::Exposures::Event.new(
       timestamp: 1_735_689_600_000,
       allocation: {key: 'control'},
       flag: {key: 'demo-flag'},

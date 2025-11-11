@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/open_feature/exposures'
+require 'datadog/open_feature/exposures/buffer'
 
 RSpec.describe Datadog::OpenFeature::Exposures::Buffer do
   describe '#push' do

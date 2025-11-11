@@ -13,7 +13,7 @@ module Datadog
         flag_key: ::String,
         expected_type: ::Symbol,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
-      ) -> Binding::ResolutionDetails
+      ) -> ResolutionDetails
 
       def reconfigure!: () -> void
     end

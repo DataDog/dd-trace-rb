@@ -6,7 +6,7 @@ module Datadog
 
         def initialize: (Core::Configuration::Settings settings) -> void
 
-        def payload_for: (::Array[Models::Event] events) -> ::Hash[::Symbol, untyped]
+        def payload_for: (::Array[Event] events) -> ::Hash[::Symbol, untyped]
 
         private
 

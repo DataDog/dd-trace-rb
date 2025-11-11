@@ -1,10 +1,7 @@
 module Datadog
   module OpenFeature
     module Exposures
-      BufferBaseClass: Core::Buffer::ThreadSafe | Core::Buffer::CRuby
-
-      # NOTE: We need to have interface instead of the actual class
-      class Buffer < Core::Buffer::Random
+      class Buffer < Core::Buffer::CRuby
         DEFAULT_LIMIT: ::Integer
 
         def initialize: (?::Integer) -> void

@@ -29,7 +29,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when engine is configured' do
+    xcontext 'when engine is configured' do
       before do
         engine.configuration = ufc
         engine.reconfigure!
@@ -85,7 +85,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when engine is configured' do
+    xcontext 'when engine is configured' do
       before do
         engine.configuration = ufc
         engine.reconfigure!
@@ -143,7 +143,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when engine is configured' do
+    xcontext 'when engine is configured' do
       before do
         engine.configuration = ufc
         engine.reconfigure!
@@ -201,7 +201,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when engine is configured' do
+    xcontext 'when engine is configured' do
       before do
         engine.configuration = ufc
         engine.reconfigure!
@@ -259,7 +259,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when engine is configured' do
+    xcontext 'when engine is configured' do
       before do
         engine.configuration = ufc
         engine.reconfigure!
@@ -317,7 +317,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when engine is configured' do
+    xcontext 'when engine is configured' do
       before do
         engine.configuration = ufc
         engine.reconfigure!

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require_relative 'ext'
-require_relative 'binding'
 require_relative 'noop_evaluator'
+require_relative 'resolution_details'
 
 module Datadog
   module OpenFeature
@@ -25,9 +25,9 @@ module Datadog
 
       def fetch_value(flag_key:, expected_type:, evaluation_context: nil)
         unless ALLOWED_TYPES.include?(expected_type)
-          message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(", ")}"
+          message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(', ')}"
 
-          return Binding::ResolutionDetails.new(
+          return ResolutionDetails.new(
             error_code: Ext::UNKNOWN_TYPE, error_message: message, reason: Ext::ERROR
           )
         end
@@ -39,7 +39,7 @@ module Datadog
       rescue => e
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
 
-        Binding::ResolutionDetails.new(
+        ResolutionDetails.new(
           error_code: Ext::PROVIDER_FATAL, error_message: e.message, reason: Ext::ERROR
         )
       end
@@ -48,8 +48,7 @@ module Datadog
         @logger.debug('OpenFeature: Removing configuration') if @configuration.nil?
 
         @mutex.synchronize do
-          klass = @configuration.nil? ? NoopEvaluator : Binding::Evaluator
-          @evaluator = klass.new(@configuration)
+          @evaluator = NoopEvaluator.new(@configuration)
         end
       rescue => e
         error_message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'

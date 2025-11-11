@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/open_feature/exposures/models/event'
+require 'datadog/open_feature/exposures/event'
 
-RSpec.describe Datadog::OpenFeature::Exposures::Models::Event do
+RSpec.describe Datadog::OpenFeature::Exposures::Event do
   describe '.build' do
     before { allow(Datadog::Core::Utils::Time).to receive(:now).and_return(now) }
 
     let(:now) { Time.utc(2025, 1, 1, 0, 0, 0) }
     let(:event) { described_class.build(result, flag_key: 'feature_flag', context: context) }
     let(:result) do
-      Datadog::OpenFeature::Binding::ResolutionDetails.new(
+      Datadog::OpenFeature::ResolutionDetails.new(
         value: 4,
         allocation_key: '4-for-john-doe',
         variant: '4',

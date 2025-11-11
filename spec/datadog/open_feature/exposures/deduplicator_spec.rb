@@ -10,7 +10,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
     context 'when exposure was never seen' do
       let(:event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag',
           targeting_key: 'user',
           allocation_key: 'alloc',
@@ -26,7 +26,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag',
           targeting_key: 'user',
           allocation_key: 'alloc',
@@ -42,7 +42,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:original_event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag',
           targeting_key: 'user',
           allocation_key: 'alloc',
@@ -52,7 +52,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:changed_event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag',
           targeting_key: 'user',
           allocation_key: 'alloc',
@@ -68,7 +68,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:original_event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag',
           targeting_key: 'user',
           allocation_key: 'alloc',
@@ -78,7 +78,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:changed_event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag',
           targeting_key: 'user',
           allocation_key: 'other',
@@ -94,7 +94,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:original_event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag',
           targeting_key: 'user',
           allocation_key: 'alloc',
@@ -104,7 +104,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:changed_event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag',
           targeting_key: 'other',
           allocation_key: 'alloc',
@@ -126,7 +126,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:first_event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag-one',
           targeting_key: 'user',
           allocation_key: 'alloc',
@@ -136,7 +136,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:second_event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag-two',
           targeting_key: 'user',
           allocation_key: 'alloc',
@@ -146,7 +146,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
       let(:third_event) do
         instance_double(
-          Datadog::OpenFeature::Exposures::Models::Event,
+          Datadog::OpenFeature::Exposures::Event,
           flag_key: 'flag-three',
           targeting_key: 'user',
           allocation_key: 'alloc',

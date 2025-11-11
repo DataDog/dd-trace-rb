@@ -6,7 +6,7 @@ module Datadog
 
         def initialize: (?limit: ::Integer) -> void
 
-        def duplicate?: (Models::Event event) -> bool
+        def duplicate?: (Event event) -> bool
 
         private
 

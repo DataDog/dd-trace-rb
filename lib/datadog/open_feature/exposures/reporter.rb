@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'models/event'
+require_relative 'event'
 require_relative 'deduplicator'
 
 module Datadog
@@ -19,7 +19,7 @@ module Datadog
           return false unless result.do_log
           return false if context.nil?
 
-          event = Models::Event.build(result, flag_key: flag_key, context: context)
+          event = Event.build(result, flag_key: flag_key, context: context)
           return false if @deduplicator.duplicate?(event)
 
           @worker.enqueue(event)
