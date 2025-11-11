@@ -242,7 +242,7 @@ module Datadog
           end
 
           # No allocations matched - return DEFAULT_ALLOCATION_NULL error
-          raise EvaluationError.new('DEFAULT_ALLOCATION_NULL', 'default allocation is matched and is serving NULL')
+          raise EvaluationError.new(Ext::DEFAULT_ALLOCATION_NULL, 'default allocation is matched and is serving NULL')
         end
 
         def find_matching_split_for_allocation(allocation, evaluation_context, evaluation_time)
@@ -465,10 +465,12 @@ module Datadog
           if evaluation_context.respond_to?(:[])
             # Hash-like evaluation context
             evaluation_context['targeting_key'] || 
+              evaluation_context['targetingKey'] ||  # camelCase variant
               evaluation_context['user_id'] ||
               evaluation_context['userId'] ||
               evaluation_context['id'] ||
               evaluation_context[:targeting_key] ||
+              evaluation_context[:targetingKey] ||  # camelCase symbol variant
               evaluation_context[:user_id] ||
               evaluation_context[:userId] ||
               evaluation_context[:id]
