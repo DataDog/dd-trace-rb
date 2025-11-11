@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
 require_relative 'ext'
 require_relative 'binding'
 require_relative 'noop_evaluator'
@@ -49,14 +48,8 @@ module Datadog
         @logger.debug('OpenFeature: Removing configuration') if @configuration.nil?
 
         @mutex.synchronize do
-          if @configuration.nil?
-            @evaluator = NoopEvaluator.new(nil)
-          else
-            # Extract attributes portion for InternalEvaluator
-            config_data = @configuration.is_a?(String) ? JSON.parse(@configuration) : @configuration
-            attributes = config_data.dig('data', 'attributes') || config_data
-            @evaluator = Binding::Evaluator.new(attributes.to_json)
-          end
+          klass = @configuration.nil? ? NoopEvaluator : Binding::Evaluator
+          @evaluator = klass.new(@configuration)
         end
       rescue => e
         error_message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'

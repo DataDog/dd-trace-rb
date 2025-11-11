@@ -39,7 +39,7 @@ module Datadog
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
             end
 
-            if settings.open_feature.enabled
+            if settings.respond_to?(:open_feature) && settings.open_feature.enabled
               register_capabilities(Datadog::OpenFeature::Remote.capabilities)
               register_products(Datadog::OpenFeature::Remote.products)
               register_receivers(Datadog::OpenFeature::Remote.receivers(@telemetry))

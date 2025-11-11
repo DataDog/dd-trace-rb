@@ -41,7 +41,7 @@ RSpec.describe Datadog::OpenFeature::Component do
 
         it 'logs warning and returns nil' do
           expect(logger).to receive(:warn)
-            .with(/could not be enabled as Remote Configuration is currently disabled/)
+            .with(/could not be enabled without Remote Configuration/)
 
           expect(component).to be_nil
         end
