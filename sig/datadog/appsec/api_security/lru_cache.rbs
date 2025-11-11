@@ -1,8 +1,0 @@
-module Datadog
-  module AppSec
-    module APISecurity
-      class LRUCache < ::Datadog::Core::Utils::LRUCache
-      end
-    end
-  end
-end
