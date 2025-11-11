@@ -150,7 +150,7 @@ module Datadog
             variant: variant,
             error_code: nil,  # nil for successful cases (so "if result.error_code" works correctly)
             error_message: '',  # Empty string for Ok cases (matches libdatadog FFI)
-            reason: convert_reason_to_symbol(reason),
+            reason: reason,
             allocation_key: allocation_key,
             do_log: do_log,
             flag_metadata: {
@@ -170,11 +170,14 @@ module Datadog
                                 ERROR_CODE_MAPPING[error_code] || :general
                               end
           
-          # Determine reason based on error type
-          reason = if [Ext::DEFAULT_ALLOCATION_NULL, Ext::FLAG_DISABLED].include?(error_code)
-                     :static # These are expected conditions, not errors
+          # Determine reason based on error type - aligned with libdatadog FFI Reason enum
+          reason = case error_code
+                   when Ext::DEFAULT_ALLOCATION_NULL
+                     AssignmentReason::DEFAULT
+                   when Ext::FLAG_DISABLED
+                     AssignmentReason::DISABLED
                    else
-                     :error
+                     AssignmentReason::ERROR
                    end
           
           ResolutionDetails.new(
@@ -511,25 +514,6 @@ module Datadog
           VARIATION_TYPE_MAPPING[variation_type] || variation_type.to_s.downcase
         end
 
-        def convert_reason_to_symbol(reason)
-          # Convert assignment reasons to string format matching libdatadog Reason enum
-          case reason
-          when AssignmentReason::STATIC
-            'STATIC'
-          when AssignmentReason::TARGETING_MATCH
-            'TARGETING_MATCH'
-          when AssignmentReason::SPLIT
-            'SPLIT'
-          when 'ERROR'
-            'ERROR'
-          when 'DEFAULT'
-            'DEFAULT'
-          when 'DISABLED'
-            'DISABLED'
-          else
-            reason.to_s if reason
-          end
-        end
 
       end
     end
