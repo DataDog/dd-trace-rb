@@ -175,10 +175,10 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
     end
   end
 
-  describe 'test case coverage' do
+  describe 'UFC test case coverage' do
     let(:evaluator) { described_class.new(valid_ufc_json) }
     
-    # Load all test case files at evaluation time
+    # Load all test case files from UFC reference implementation
     Dir.glob(File.join(__dir__, '../../../fixtures/ufc/test_cases/*.json')).each do |test_file|
       describe "Test cases from #{File.basename(test_file)}" do
         let(:test_cases) { JSON.parse(File.read(test_file)) }
@@ -196,7 +196,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
             expected_type = case variation_type
                            when 'STRING' then :string
                            when 'INTEGER' then :integer
-                           when 'NUMERIC' then :float
+                           when 'NUMERIC' then :number
                            when 'BOOLEAN' then :boolean
                            when 'JSON' then :object
                            else nil
@@ -211,30 +211,20 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
             
             # Wrap expectations in aggregate_failures for better error reporting
             aggregate_failures "Test case ##{index + 1}: #{targeting_key} with #{attributes.keys.join(', ')}" do
-              # Check value - for disabled flags and default allocation cases, evaluator returns nil (upstream handles default_value)
-              if flag_key == 'disabled_flag'
-                expect(result.value).to be_nil, 
-                  "Expected nil value for disabled flag, got #{result.value.inspect}"
-              elsif !expected_result.key?('variant') && !expected_result.key?('flagMetadata')
-                # Default allocation null case - no variant/metadata expected, should return nil
-                expect(result.value).to be_nil,
-                  "Expected nil value for default allocation null case, got #{result.value.inspect}"
-              else
+              # Our internal evaluator returns nil for error cases (disabled flags, missing flags, etc.)
+              # The provider layer handles returning default values
+              # Only successful evaluations with variant + flagMetadata return actual values
+              
+              if expected_result.key?('variant') && expected_result.key?('flagMetadata')
+                # Successful evaluation case
                 expect(result.value).to eq(expected_result['value']), 
                   "Expected value #{expected_result['value'].inspect}, got #{result.value.inspect}"
-              end
-              
-              # Check variant (if expected)
-              if expected_result.key?('variant')
                 expect(result.variant).to eq(expected_result['variant']),
                   "Expected variant #{expected_result['variant'].inspect}, got #{result.variant.inspect}"
-              else
-                expect(result.variant).to be_nil,
-                  "Expected no variant, got #{result.variant.inspect}"
-              end
-              
-              # Check flag metadata (if expected)
-              if expected_result.key?('flagMetadata')
+                expect(result.error_code).to be_nil,
+                  "Expected nil error code for successful evaluation, got #{result.error_code.inspect}"
+                  
+                # Validate flag metadata
                 expected_metadata = expected_result['flagMetadata']
                 expect(result.flag_metadata).not_to be_nil,
                   "Expected flag metadata, got nil"
@@ -245,23 +235,17 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                 expect(result.flag_metadata['do_log']).to eq(expected_metadata['doLog']),
                   "Expected do_log #{expected_metadata['doLog'].inspect}, got #{result.flag_metadata&.[]('do_log').inspect}"
               else
-                # Flag metadata is always a hash - either empty or populated (matches libdatadog FFI)
+                # Error case - internal evaluator returns nil, provider handles defaults
+                expect(result.value).to be_nil,
+                  "Expected nil value for error case (provider handles default values), got #{result.value.inspect}"
+                expect(result.variant).to be_nil,
+                  "Expected nil variant for error case, got #{result.variant.inspect}"
                 expect(result.flag_metadata).to eq({}),
-                  "Expected empty flag metadata for cases with no metadata, got #{result.flag_metadata.inspect}"
-              end
-              
-              # Check error code - should be nil for successful evaluations, or specific error for failures
-              if expected_result.key?('variant') || expected_result.key?('flagMetadata')
-                expect(result.error_code).to be_nil,
-                  "Expected nil error code for successful evaluation, got #{result.error_code.inspect}"
-              else
-                # Cases with no variant/flagMetadata could be either:
-                # 1. Default allocation null (flag exists, no allocations match) -> :ok
-                # 2. Missing flag (flag doesn't exist) -> :flag_not_found  
-                # 3. Other error conditions -> specific error codes
-                # All are valid as long as value is nil (upstream handles default_value)
+                  "Expected empty flag metadata for error case, got #{result.flag_metadata.inspect}"
+                
+                # Should have an appropriate error code
                 expect([:ok, :flag_not_found, :type_mismatch, :parse_error, :provider_not_ready, :general]).to include(result.error_code),
-                  "Expected valid error code for default/error case, got #{result.error_code.inspect}"
+                  "Expected valid error code for error case, got #{result.error_code.inspect}"
               end
             end
           end
