@@ -108,8 +108,7 @@ module Datadog
           :appsec,
           :agent_info,
           :data_streams,
-          :open_feature,
-          :agent_info
+          :open_feature
 
         def initialize(settings)
           @settings = settings
