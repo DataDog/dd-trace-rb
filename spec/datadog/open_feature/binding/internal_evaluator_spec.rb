@@ -7,8 +7,7 @@ require 'datadog/open_feature/binding/internal_evaluator'
 RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
   let(:flags_v1_path) { File.join(__dir__, '../../../fixtures/ufc/flags-v1.json') }
   let(:flags_v1_json) { JSON.parse(File.read(flags_v1_path)) }
-  let(:ufc_attributes) { flags_v1_json['data']['attributes'] } # UFC = Universal Flag Configuration
-  let(:valid_ufc_json) { ufc_attributes.to_json }
+  let(:valid_ufc_json) { flags_v1_json.to_json }
 
   describe '#initialize' do
     context 'with valid UFC JSON' do

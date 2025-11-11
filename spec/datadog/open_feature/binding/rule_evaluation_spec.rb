@@ -14,55 +14,61 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
   # The following tests cover scenarios not fully exercised by UFC test cases:
 
   describe 'multiple rules in allocation (OR logic)' do
-    let(:flag_config) do
+    let(:ufc) do
       {
-        "flags" => {
-          "multi_rule_flag" => {
-            "key" => "multi_rule_flag",
-            "enabled" => true,
-            "variationType" => "STRING",
-            "variations" => {
-              "default" => { "key" => "default", "value" => "default_value" },
-              "special" => { "key" => "special", "value" => "special_value" }
-            },
-            "allocations" => [
-              {
-                "key" => "special_users",
-                "rules" => [
+        "data" => {
+          "type" => "universal-flag-configuration",
+          "id" => "1",
+          "attributes" => {
+            "flags" => {
+              "multi_rule_flag" => {
+                "key" => "multi_rule_flag",
+                "enabled" => true,
+                "variationType" => "STRING",
+                "variations" => {
+                  "default" => { "key" => "default", "value" => "default_value" },
+                  "special" => { "key" => "special", "value" => "special_value" }
+                },
+                "allocations" => [
                   {
-                    "conditions" => [
+                    "key" => "special_users",
+                    "rules" => [
                       {
-                        "attribute" => "user_type",
-                        "operator" => "ONE_OF",
-                        "value" => ["admin", "moderator"]
+                        "conditions" => [
+                          {
+                            "attribute" => "user_type",
+                            "operator" => "ONE_OF",
+                            "value" => ["admin", "moderator"]
+                          }
+                        ]
+                      },
+                      {
+                        "conditions" => [
+                          {
+                            "attribute" => "age",
+                            "operator" => "GTE",
+                            "value" => 65
+                          }
+                        ]
                       }
-                    ]
+                    ],
+                    "doLog" => true,
+                    "splits" => [{ "variationKey" => "special", "shards" => [] }]
                   },
                   {
-                    "conditions" => [
-                      {
-                        "attribute" => "age",
-                        "operator" => "GTE",
-                        "value" => 65
-                      }
-                    ]
+                    "key" => "default_allocation",
+                    "doLog" => false,
+                    "splits" => [{ "variationKey" => "default", "shards" => [] }]
                   }
-                ],
-                "doLog" => true,
-                "splits" => [{ "variationKey" => "special", "shards" => [] }]
-              },
-              {
-                "key" => "default_allocation",
-                "doLog" => false,
-                "splits" => [{ "variationKey" => "default", "shards" => [] }]
+                ]
               }
-            ]
+            }
           }
         }
       }
     end
 
-    let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new(flag_config.to_json) }
+    let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new(ufc.to_json) }
 
     it 'matches allocation when first rule passes' do
       admin_context = { "user_type" => "admin", "age" => 30 }
@@ -102,7 +108,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
   end
 
   describe 'invalid regex patterns' do
-    let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"flags": {}}') }
+    let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"data": {"attributes": {"flags": {}}}}') }
 
     it 'handles invalid regex patterns gracefully' do
       # Test the error handling for malformed regex patterns
@@ -112,7 +118,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
   end
 
   describe 'NOT_ONE_OF edge cases' do
-    let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"flags": {}}') }
+    let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"data": {"attributes": {"flags": {}}}}') }
 
     it 'fails when attribute is missing (NOT_ONE_OF fails for missing attributes)' do
       # Test the specific behavior that NOT_ONE_OF fails when attribute is nil
@@ -121,7 +127,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
   end
 
   describe 'type coercion' do
-    let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"flags": {}}') }
+    let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"data": {"attributes": {"flags": {}}}}') }
 
     it 'coerces numeric strings for comparison' do
       # Test the coercion logic directly
