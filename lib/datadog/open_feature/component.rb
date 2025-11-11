@@ -14,7 +14,7 @@ module Datadog
         return unless settings.open_feature.enabled
 
         unless settings.remote.enabled
-          logger.warn('OpenFeature could not be enabled without Remote Configuration. The enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config')
+          logger.warn('OpenFeature could not be enabled as Remote Configuration is currently disabled. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config')
 
           return
         end
