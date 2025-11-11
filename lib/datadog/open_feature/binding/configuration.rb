@@ -244,7 +244,7 @@ module Datadog
         end
 
         def get_flag(flag_key)
-          @flags[flag_key]
+          @flags.values.find { |flag| flag.key == flag_key }
         end
       end
     end

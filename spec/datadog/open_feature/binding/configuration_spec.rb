@@ -2,10 +2,10 @@
 
 # Load only what we need, avoiding conflicts
 require 'json'
-require_relative '../../../../../lib/datadog/open_feature/binding/configuration'
+require_relative '../../../../lib/datadog/open_feature/binding/configuration'
 
 RSpec.describe Datadog::OpenFeature::Binding::Configuration do
-  let(:flags_v1_path) { File.join(__dir__, '../../../../fixtures/ufc/flags-v1.json') }
+  let(:flags_v1_path) { File.join(__dir__, '../../../fixtures/ufc/flags-v1.json') }
   let(:flags_v1_json) { JSON.parse(File.read(flags_v1_path)) }
   let(:ufc_attributes) { flags_v1_json['data']['attributes'] }
 
@@ -67,7 +67,7 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
       allocation = flag_with_allocation.allocations.first
       
       expect(allocation.key).to be_a(String)
-      expect(allocation.do_log).to be_in([true, false])
+      expect([true, false]).to include(allocation.do_log)
     end
   end
 
@@ -88,7 +88,7 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
 
   describe 'error handling' do
     it 'handles empty configuration' do
-      config = described_class.from_json({})
+      config = described_class.from_hash({})
       expect(config.flags).to be_empty
     end
 
