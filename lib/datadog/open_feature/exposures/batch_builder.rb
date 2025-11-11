@@ -19,37 +19,12 @@ module Datadog
         private
 
         def build_context(settings)
-          env = extract_env(settings)
-          service = extract_service(settings)
-          version = extract_version(settings)
-
           context = {}
-          context[:env] = env if env
-          context[:service] = service if service
-          context[:version] = version if version
+          context[:env] = settings.env if settings.env
+          context[:service] = settings.service if settings.service
+          context[:version] = settings.version if settings.version
 
           context
-        end
-
-        def extract_env(settings)
-          return settings.env if settings.respond_to?(:env)
-          return settings.tags['env'] if settings.respond_to?(:tags)
-
-          nil
-        end
-
-        def extract_service(settings)
-          return settings.service if settings.respond_to?(:service)
-          return settings.tags['service'] if settings.respond_to?(:tags)
-
-          nil
-        end
-
-        def extract_version(settings)
-          return settings.version if settings.respond_to?(:version)
-          return settings.tags['version'] if settings.respond_to?(:tags)
-
-          nil
         end
       end
     end

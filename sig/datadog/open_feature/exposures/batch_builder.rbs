@@ -11,12 +11,6 @@ module Datadog
         private
 
         def build_context: (Core::Configuration::Settings settings) -> ::Hash[::Symbol, ::String]
-
-        def extract_env: (Core::Configuration::Settings settings) -> ::String?
-
-        def extract_service: (Core::Configuration::Settings settings) -> ::String?
-
-        def extract_version: (Core::Configuration::Settings settings) -> ::String?
       end
     end
   end
