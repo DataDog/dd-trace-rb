@@ -40,15 +40,34 @@ RSpec.describe Datadog::OpenFeature do
       it { expect(described_class.engine).to be_nil }
     end
 
-    context 'when component is available' do
+    context 'when component and remote configuration are available' do
       around do |example|
-        Datadog.configure { |c| c.open_feature.enabled = true }
+        Datadog.configure do |c|
+          c.remote.enabled = true
+          c.open_feature.enabled = true
+        end
+
         example.run
       ensure
         Datadog.configuration.reset!
       end
 
       it { expect(described_class.engine).to be_a(Datadog::OpenFeature::EvaluationEngine) }
+    end
+
+    context 'when component is available and remote configuration is not available' do
+      around do |example|
+        Datadog.configure do |c|
+          c.remote.enabled = false
+          c.open_feature.enabled = true
+        end
+
+        example.run
+      ensure
+        Datadog.configuration.reset!
+      end
+
+      it { expect(described_class.engine).to be_nil }
     end
   end
 end
