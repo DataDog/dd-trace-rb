@@ -12,7 +12,7 @@ module Datadog
       module HTTP
         module_function
 
-        def exposures(agent_settings:, logger: Datadog.logger, headers: nil)
+        def build(agent_settings:, logger: Datadog.logger, headers: nil)
           Datadog::Core::Transport::HTTP.build(
             api_instance_class: Exposures::API::Instance,
             agent_settings: agent_settings,

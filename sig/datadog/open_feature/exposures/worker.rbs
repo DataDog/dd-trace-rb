@@ -2,8 +2,10 @@ module Datadog
   module OpenFeature
     module Exposures
       class Worker
-        include Datadog::Core::Workers::Queue
-        include Datadog::Core::Workers::Polling
+        include Core::Workers::Queue
+        include Core::Workers::Polling
+        # NOTE: Steep is not picking it up on itself
+        include Core::Workers::Async::Thread
 
         DEFAULT_FLUSH_INTERVAL_SECONDS: ::Integer
         DEFAULT_BUFFER_LIMIT: ::Integer

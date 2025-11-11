@@ -11,7 +11,7 @@ module Datadog
           @ufc_json = ufc_json
         end
 
-        def get_assignment(_flag_key, _evaluation_context, expected_type, _time)
+        def get_assignment(_flag_key, _evaluation_context, expected_type)
           ResolutionDetails.new(
             value: generate(expected_type),
             reason: 'TARGETING_MATCH',

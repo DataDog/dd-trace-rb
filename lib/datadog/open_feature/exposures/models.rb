@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'models/event'
+
 module Datadog
   module OpenFeature
     module Exposures
@@ -8,5 +10,3 @@ module Datadog
     end
   end
 end
-
-require_relative 'models/event'

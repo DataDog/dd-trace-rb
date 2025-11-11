@@ -11,8 +11,8 @@ module Datadog
     module Exposures
       # This class is responsible for sending exposures to the Agent
       class Worker
-        include Datadog::Core::Workers::Queue
-        include Datadog::Core::Workers::Polling
+        include Core::Workers::Queue
+        include Core::Workers::Polling
 
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
@@ -33,12 +33,13 @@ module Datadog
           @flush_mutex = Mutex.new
 
           self.buffer = Buffer.new(buffer_limit)
+          self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
           self.loop_base_interval = flush_interval_seconds
           self.enabled = true
         end
 
         def start
-          return if !enabled? || running? || forked?
+          return if !enabled? || running?
 
           perform
         end
@@ -51,8 +52,6 @@ module Datadog
         end
 
         def enqueue(event)
-          return false if forked?
-
           buffer.push(event)
 
           flush if buffer.length >= @buffer_limit
@@ -67,12 +66,12 @@ module Datadog
 
         def flush
           events, dropped = dequeue
-          send_events(events || [], dropped.to_i)
+          send_events(Array(events), dropped.to_i)
         end
 
         def perform(*args)
           events, dropped = args
-          send_events(events || [], dropped.to_i)
+          send_events(Array(events), dropped.to_i)
         end
 
         private
@@ -81,7 +80,7 @@ module Datadog
           return if events.empty?
 
           if dropped.positive?
-            logger.debug { "OpenFeature: Exposure worker dropped #{dropped} event(s) due to full buffer" }
+            logger.debug { "OpenFeature: Resolution details worker dropped #{dropped} event(s) due to full buffer" }
           end
 
           payload = @batch_builder.payload_for(events)
@@ -91,12 +90,15 @@ module Datadog
         def send_payload(payload)
           @flush_mutex.synchronize do
             response = @transport.send_exposures(payload)
-            logger.debug { "OpenFeature: Send exposures response was not OK: #{response.inspect}" } unless response&.ok?
+
+            unless response&.ok?
+              logger.debug { "OpenFeature: Resolution details upload response was not OK: #{response.inspect}" }
+            end
 
             response
           end
         rescue => e
-          logger.debug { "OpenFeature: Failed to flush exposure events: #{e.class}: #{e.message}" }
+          logger.debug { "OpenFeature: Failed to flush resolution details events: #{e.class}: #{e.message}" }
           nil
         end
       end

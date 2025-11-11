@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'binding/evaluator'
+
 module Datadog
   module OpenFeature
     # A namespace for binding code
@@ -7,5 +9,3 @@ module Datadog
     end
   end
 end
-
-require_relative 'binding/evaluator'

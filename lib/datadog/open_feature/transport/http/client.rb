@@ -21,7 +21,7 @@ module Datadog
 
             yield(api, env)
           rescue => e
-            message = "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
+            message = "Internal error during request. Cause: #{e.class.name} #{e.message} " \
               "Location: #{Array(e.backtrace).first}"
 
             logger.debug(message)

@@ -14,7 +14,7 @@ module Datadog
         return unless settings.open_feature.enabled
 
         unless settings.remote.enabled
-          logger.warn('OpenFeature: Could not be enabled without Remote Configuration Management available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config')
+          logger.warn('OpenFeature could not be enabled without Remote Configuration. The enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config')
 
           return
         end
@@ -32,7 +32,7 @@ module Datadog
         @logger = logger
         @telemetry = telemetry
 
-        transport = Transport::HTTP.exposures(agent_settings: agent_settings, logger: logger)
+        transport = Transport::HTTP.build(agent_settings: agent_settings, logger: logger)
         @worker = Exposures::Worker.new(settings: settings, transport: transport, logger: logger)
         @reporter = Exposures::Reporter.new(@worker, telemetry: telemetry, logger: logger)
         @engine = EvaluationEngine.new(@reporter, telemetry: telemetry, logger: logger)

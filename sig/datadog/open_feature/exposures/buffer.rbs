@@ -10,6 +10,8 @@ module Datadog
         def initialize: (?::Integer) -> void
 
         def drain!: () -> [::Array[Object], ::Integer]
+
+        def replace!: (Object) -> Object?
       end
     end
   end

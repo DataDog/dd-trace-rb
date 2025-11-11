@@ -6,6 +6,7 @@ require_relative '../../core/utils/lru_cache'
 module Datadog
   module OpenFeature
     module Exposures
+      # This class is a deduplication buffer based on LRU cache for exposure events
       class Deduplicator
         DEFAULT_CACHE_LIMIT = 1_000
 

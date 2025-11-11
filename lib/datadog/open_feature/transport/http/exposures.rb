@@ -24,16 +24,16 @@ module Datadog
           module API
             # HTTP API Spec
             class Spec < Core::Transport::HTTP::API::Spec
-              attr_accessor :exposures
+              attr_accessor :endpoint
 
               def send_exposures(env, &block)
-                if exposures.nil?
+                if endpoint.nil?
                   raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(
                     'exposures', self
                   )
                 end
 
-                exposures.call(env, &block)
+                endpoint.call(env, &block)
               end
             end
 

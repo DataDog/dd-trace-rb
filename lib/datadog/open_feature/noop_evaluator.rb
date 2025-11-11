@@ -11,7 +11,7 @@ module Datadog
         # no-op
       end
 
-      def get_assignment(_flag_key, _evaluation_context, _expected_type, _timestamp)
+      def get_assignment(_flag_key, _evaluation_context, _expected_type)
         Binding::ResolutionDetails.new(
           error_code: Ext::PROVIDER_NOT_READY,
           error_message: 'Waiting for universal flag configuration',

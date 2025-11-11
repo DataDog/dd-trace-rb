@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
+require_relative '../../core/buffer/cruby'
 require_relative '../../core/buffer/thread_safe'
 
-# TODO: Replace as module to have 2 implementations CRuby and ThreadSafe one
 module Datadog
   module OpenFeature
     module Exposures

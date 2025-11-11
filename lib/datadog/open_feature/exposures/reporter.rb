@@ -24,7 +24,7 @@ module Datadog
 
           @worker.enqueue(event)
         rescue => e
-          @logger.debug { "OpenFeature: Reporter failed to enqueue exposure: #{e.class}: #{e.message}" }
+          @logger.debug { "OpenFeature: Failed to report resolution details: #{e.class}: #{e.message}" }
 
           false
         end

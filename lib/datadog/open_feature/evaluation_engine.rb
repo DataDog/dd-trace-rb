@@ -32,11 +32,7 @@ module Datadog
           )
         end
 
-        # NOTE: https://github.com/open-feature/ruby-sdk-contrib/blob/main/providers/openfeature-go-feature-flag-provider/lib/openfeature/go-feature-flag/go_feature_flag_provider.rb#L17
-        # In the example from the OpenFeature there is zero trust to the result of the evaluation
-        # do we want to go that way?
-
-        result = @evaluator.get_assignment(flag_key, evaluation_context, expected_type, Time.now.utc.to_i)
+        result = @evaluator.get_assignment(flag_key, evaluation_context, expected_type)
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result

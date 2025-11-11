@@ -109,7 +109,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     context 'when buffer dropped events' do
       it 'logs debug message' do
         worker.buffer.concat([event, event, event])
-        expect_lazy_log(logger, :debug, /OpenFeature: Exposure worker dropped 1 event/)
+        expect_lazy_log(logger, :debug, /OpenFeature: Resolution details worker dropped 1 event/)
 
         worker.flush
       end
@@ -119,7 +119,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       let(:response) { nil }
 
       it 'logs debug message' do
-        expect_lazy_log(logger, :debug, /Send exposures response was not OK/)
+        expect_lazy_log(logger, :debug, /Resolution details upload response was not OK/)
 
         worker.enqueue(event)
         worker.flush
@@ -130,7 +130,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: false) }
 
       it 'logs debug message' do
-        expect_lazy_log(logger, :debug, /Send exposures response was not OK/)
+        expect_lazy_log(logger, :debug, /Resolution details upload response was not OK/)
 
         worker.enqueue(event)
         worker.flush
@@ -140,7 +140,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     context 'when transport raises an error' do
       it 'logs debug message and swallows the error' do
         allow(transport).to receive(:send_exposures).and_raise(RuntimeError, 'Ooops')
-        expect_lazy_log(logger, :debug, /Failed to flush exposure events/)
+        expect_lazy_log(logger, :debug, /Failed to flush resolution details events/)
 
         worker.enqueue(event)
 

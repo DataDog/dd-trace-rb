@@ -58,7 +58,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
       end
 
       it 'returns false and logs debug message' do
-        expect_lazy_log(logger, :debug, /OpenFeature: Reporter failed to enqueue exposure: StandardError: boom/)
+        expect_lazy_log(logger, :debug, /OpenFeature: Failed to report resolution details: StandardError: boom/)
         expect(reporter.report(result, flag_key: 'feature_flag', context: context)).to be(false)
       end
     end

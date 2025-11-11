@@ -44,9 +44,8 @@ module Datadog
             def extract_attributes(context)
               context.fields.select do |key, value|
                 next false if key == TARGETING_KEY_FIELD
-                next true if ALLOWED_FIELD_TYPES.include?(value.class)
 
-                false
+                ALLOWED_FIELD_TYPES.include?(value.class)
               end
             end
 

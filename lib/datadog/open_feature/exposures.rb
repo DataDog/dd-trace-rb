@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+require_relative 'exposures/buffer'
+require_relative 'exposures/worker'
+require_relative 'exposures/deduplicator'
+require_relative 'exposures/reporter'
+
 module Datadog
   module OpenFeature
     # This module contains the exposures events functionality
@@ -7,8 +12,3 @@ module Datadog
     end
   end
 end
-
-require_relative 'exposures/buffer'
-require_relative 'exposures/worker'
-require_relative 'exposures/deduplicator'
-require_relative 'exposures/reporter'

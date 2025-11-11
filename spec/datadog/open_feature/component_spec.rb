@@ -5,7 +5,7 @@ require 'datadog/open_feature/component'
 
 RSpec.describe Datadog::OpenFeature::Component do
   before do
-    allow(Datadog::OpenFeature::Transport::HTTP).to receive(:exposures).and_return(transport)
+    allow(Datadog::OpenFeature::Transport::HTTP).to receive(:build).and_return(transport)
     allow(Datadog::OpenFeature::Exposures::Worker).to receive(:new).and_return(worker)
     allow(Datadog::OpenFeature::Exposures::Reporter).to receive(:new).and_return(reporter)
   end
@@ -41,7 +41,7 @@ RSpec.describe Datadog::OpenFeature::Component do
 
         it 'logs warning and returns nil' do
           expect(logger).to receive(:warn)
-            .with(/Could not be enabled without Remote Configuration Management/)
+            .with(/could not be enabled without Remote Configuration/)
 
           expect(component).to be_nil
         end

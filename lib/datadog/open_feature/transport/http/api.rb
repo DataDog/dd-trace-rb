@@ -18,7 +18,7 @@ module Datadog
           def defaults
             Datadog::Core::Transport::HTTP::API::Map[
               EXPOSURES => Exposures::API::Spec.new do |spec|
-                spec.exposures = Exposures::API::Endpoint.new(
+                spec.endpoint = Exposures::API::Endpoint.new(
                   '/evp_proxy/v2/api/v2/exposures',
                   Datadog::Core::Encoding::JSONEncoder
                 )

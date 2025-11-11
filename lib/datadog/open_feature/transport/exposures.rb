@@ -12,7 +12,7 @@ module Datadog
       module Exposures
         # Data transfer object for encoded exposure events
         class EncodedParcel
-          include Datadog::Core::Transport::Parcel
+          include Core::Transport::Parcel
 
           def encode_with(encoder)
             encoder.encode(data)
