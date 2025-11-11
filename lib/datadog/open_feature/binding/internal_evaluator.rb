@@ -82,7 +82,7 @@ module Datadog
               value: nil,
               variant: nil,
               error_code: :Ok,  # :Ok indicates success (matches libdatadog ErrorCode::Ok)
-              error_message: nil,
+              error_message: '',  # Empty string for Ok cases (matches libdatadog FFI)
               reason: 'DISABLED',
               allocation_key: nil,
               do_log: false,
@@ -164,7 +164,7 @@ module Datadog
             value: value,
             variant: variant,
             error_code: :Ok,  # :Ok indicates success (matches libdatadog ErrorCode::Ok)
-            error_message: nil,
+            error_message: '',  # Empty string for Ok cases (matches libdatadog FFI)
             reason: convert_reason_to_symbol(reason),
             allocation_key: allocation_key,
             do_log: do_log,
@@ -539,20 +539,22 @@ module Datadog
         end
 
         def convert_reason_to_symbol(reason)
-          # Convert string reasons to symbols matching NativeEvaluator format
+          # Convert assignment reasons to string format matching libdatadog Reason enum
           case reason
           when AssignmentReason::STATIC
-            :static
+            'STATIC'
           when AssignmentReason::TARGETING_MATCH
-            :targeting_match
+            'TARGETING_MATCH'
           when AssignmentReason::SPLIT
-            :split
+            'SPLIT'
           when 'ERROR'
-            :error
+            'ERROR'
           when 'DEFAULT'
-            :static
+            'DEFAULT'
+          when 'DISABLED'
+            'DISABLED'
           else
-            reason.to_s.downcase.to_sym if reason
+            reason.to_s if reason
           end
         end
 

@@ -72,7 +72,8 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'succeeds when types match' do
         result = evaluator.get_assignment('numeric_flag', {}, :float)
         
-        expect(result.error_code).to be_nil
+        expect(result.error_code).to eq(:Ok)
+        expect(result.error_message).to eq('')  # Empty string for Ok cases
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
@@ -83,7 +84,8 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'succeeds when expected_type is nil (no validation)' do
         result = evaluator.get_assignment('numeric_flag', {}, nil)
         
-        expect(result.error_code).to be_nil
+        expect(result.error_code).to eq(:Ok)
+        expect(result.error_message).to eq('')  # Empty string for Ok cases
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
@@ -146,6 +148,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
 
       flag_disabled = evaluator.get_assignment('disabled_flag', {}, :integer)
       expect(flag_disabled.error_code).to eq(:Ok)  # Disabled flags return Ok (matches libdatadog)
+      expect(flag_disabled.error_message).to eq('')  # Empty string for Ok cases
       expect(flag_disabled.value).to be_nil
       expect(flag_disabled.variant).to be_nil
       expect(flag_disabled.flag_metadata).to eq({})
@@ -208,9 +211,14 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
             
             # Wrap expectations in aggregate_failures for better error reporting
             aggregate_failures "Test case ##{index + 1}: #{targeting_key} with #{attributes.keys.join(', ')}" do
-              # Check value
-              expect(result.value).to eq(expected_result['value']), 
-                "Expected value #{expected_result['value'].inspect}, got #{result.value.inspect}"
+              # Check value - for disabled flags, evaluator returns nil (upstream handles default_value)
+              if flag_key == 'disabled_flag'
+                expect(result.value).to be_nil, 
+                  "Expected nil value for disabled flag, got #{result.value.inspect}"
+              else
+                expect(result.value).to eq(expected_result['value']), 
+                  "Expected value #{expected_result['value'].inspect}, got #{result.value.inspect}"
+              end
               
               # Check variant (if expected)
               if expected_result.key?('variant')
@@ -233,8 +241,14 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                 expect(result.flag_metadata['doLog']).to eq(expected_metadata['doLog']),
                   "Expected do_log #{expected_metadata['doLog'].inspect}, got #{result.flag_metadata&.[]('doLog').inspect}"
               else
-                expect(result.flag_metadata).to be_nil,
-                  "Expected no flag metadata, got #{result.flag_metadata.inspect}"
+                # For disabled flags, evaluator returns empty hash; for other cases with no metadata, should be nil
+                if flag_key == 'disabled_flag'
+                  expect(result.flag_metadata).to eq({}),
+                    "Expected empty flag metadata for disabled flag, got #{result.flag_metadata.inspect}"
+                else
+                  expect(result.flag_metadata).to be_nil,
+                    "Expected no flag metadata, got #{result.flag_metadata.inspect}"
+                end
               end
               
               # Check error code - should be :Ok for successful evaluations, or specific error for failures
