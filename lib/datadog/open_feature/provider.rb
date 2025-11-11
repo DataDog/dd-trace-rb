@@ -63,21 +63,6 @@ module Datadog
 
       private
 
-      # Convert internal symbol error codes to OpenFeature string error codes
-      SYMBOL_TO_OPENFEATURE_ERROR_CODE = {
-        ok: Ext::FLAG_NOT_FOUND,  # ErrorCode::Ok -> FLAG_NOT_FOUND (closest OpenFeature equivalent - provider returns default_value)
-        flag_not_found: Ext::FLAG_NOT_FOUND,
-        type_mismatch: Ext::TYPE_MISMATCH,
-        parse_error: Ext::PARSE_ERROR,
-        provider_not_ready: Ext::PROVIDER_NOT_READY,
-        general: Ext::ERROR
-      }.freeze
-
-      def convert_error_code(symbol_error_code)
-        return nil if symbol_error_code.nil?
-        SYMBOL_TO_OPENFEATURE_ERROR_CODE[symbol_error_code] || Ext::ERROR
-      end
-
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
         engine = OpenFeature.engine
         return component_not_configured_default(default_value) if engine.nil?
@@ -91,7 +76,7 @@ module Datadog
         if result.error_code
           return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
             value: default_value,
-            error_code: convert_error_code(result.error_code),
+            error_code: result.error_code,
             error_message: result.error_message,
             reason: result.reason
           )
