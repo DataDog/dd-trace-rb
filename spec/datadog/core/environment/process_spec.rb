@@ -48,13 +48,12 @@ RSpec.describe Datadog::Core::Environment::Process do
           Dir.chdir(tmp_dir) do
             Bundler.with_unbundled_env do
               skip('rails gem could not be installed') unless system('gem install rails')
-              unless system('rails new test_app --minimal --skip-test --skip-keeps --skip-git --skip-docker')
+              unless system('rails new test_app --minimal --skip-active-record --skip-test --skip-keeps --skip-git --skip-docker')
                 skip('rails new command failed')
               end
             end
           end
           File.open("#{tmp_dir}/test_app/Gemfile", 'a') do |file|
-            file.puts "gem 'jdbc-sqlite3', platform: :jruby" if RUBY_ENGINE == 'jruby'
             file.puts "gem 'datadog', path: '#{Dir.pwd}', require: false"
           end
           File.write("#{tmp_dir}/test_app/config/initializers/process_initializer.rb", <<-RUBY)
