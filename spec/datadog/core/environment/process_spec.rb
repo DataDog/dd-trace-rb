@@ -54,6 +54,7 @@ RSpec.describe Datadog::Core::Environment::Process do
             end
           end
           File.open("#{tmp_dir}/test_app/Gemfile", 'a') do |file|
+            file.puts "gem 'jdbc-sqlite3', platform: :jruby" if RUBY_ENGINE == 'jruby'
             file.puts "gem 'datadog', path: '#{Dir.pwd}', require: false"
           end
           File.write("#{tmp_dir}/test_app/config/initializers/process_initializer.rb", <<-RUBY)
