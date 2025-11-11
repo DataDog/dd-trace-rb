@@ -164,7 +164,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
                   "number_flag": {
                     "key": "flag",
                     "enabled": true,
-                    "variationType": "NUMBER",
+                    "variationType": "NUMERIC",
                     "variations": {
                       "control": { "key": "control", "value": 1000 }
                     },
@@ -184,7 +184,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
 
       it 'returns flag result details' do
-        expect(result.value).to eq(9000)
+        expect(result.value).to eq(1000)
         expect(result.reason).to eq('STATIC')
       end
     end
@@ -242,7 +242,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
 
       it 'returns flag result details' do
-        expect(result.value).to eq(42)
+        expect(result.value).to eq(21)
         expect(result.reason).to eq('STATIC')
       end
     end
@@ -280,7 +280,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
                   "float_flag": {
                     "key": "flag",
                     "enabled": true,
-                    "variationType": "FLOAT",
+                    "variationType": "NUMERIC",
                     "variations": {
                       "control": { "key": "control", "value": 12.5 }
                     },
@@ -300,7 +300,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
 
       it 'returns flag result details' do
-        expect(result.value).to eq(36.6)
+        expect(result.value).to eq(12.5)
         expect(result.reason).to eq('STATIC')
       end
     end
@@ -338,7 +338,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
                   "object_flag": {
                     "key": "flag",
                     "enabled": true,
-                    "variationType": "OBJECT",
+                    "variationType": "JSON",
                     "variations": {
                       "control": { "key": "control", "value": { "key": "value" } }
                     },
@@ -358,7 +358,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
 
       it 'returns flag result details' do
-        expect(result.value).to eq([1, 2, 3])
+        expect(result.value).to eq({ "key" => "value" })
         expect(result.reason).to eq('STATIC')
       end
     end
