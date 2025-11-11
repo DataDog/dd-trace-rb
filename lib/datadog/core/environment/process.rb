@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require_relative 'ext'
+require_relative '../normalizer'
 
 module Datadog
   module Core
@@ -26,14 +27,21 @@ module Datadog
           normalized_basedir.delete_prefix!('/')
         end
 
+        # Normalize tag key and value using the Datadog Agent's tag normalization logic
+        def serialized_kv_helper(key, value)
+          key = Core::Normalizer.normalize(key)
+          value = Core::Normalizer.normalize(value)
+          "#{key}:#{value}"
+        end
+
         # This method returns a key/value part of serialized tags in the format of k1:v1,k2:v2,k3:v3
         def serialized
           return @serialized if defined?(@serialized)
           tags = []
-          tags << "#{Core::Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{entrypoint_workdir}" if entrypoint_workdir
-          tags << "#{Core::Environment::Ext::TAG_ENTRYPOINT_NAME}:#{entrypoint_name}" if entrypoint_name
-          tags << "#{Core::Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{entrypoint_basedir}" if entrypoint_basedir
-          tags << "#{Core::Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{entrypoint_type}" if entrypoint_type
+          tags << serialized_kv_helper(Core::Environment::Ext::TAG_ENTRYPOINT_WORKDIR, entrypoint_workdir) if entrypoint_workdir
+          tags << serialized_kv_helper(Core::Environment::Ext::TAG_ENTRYPOINT_NAME, entrypoint_name) if entrypoint_name
+          tags << serialized_kv_helper(Core::Environment::Ext::TAG_ENTRYPOINT_BASEDIR, entrypoint_basedir) if entrypoint_basedir
+          tags << serialized_kv_helper(Core::Environment::Ext::TAG_ENTRYPOINT_TYPE, entrypoint_type) if entrypoint_type
           @serialized = tags.join(',').freeze
         end
       end
