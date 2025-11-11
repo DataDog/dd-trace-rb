@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Environment::Process do
                           STDERR.puts "entrypoint_basedir:\#{Datadog::Core::Environment::Process.entrypoint_basedir}"
                           STDERR.puts "_dd.tags.process:\#{Datadog::Core::Environment::Process.serialized}"
                           STDERR.flush
-                          Thread.new { sleep 1; Process.kill('TERM', Process.pid)}#{' '}
+                          Thread.new { sleep 1; Process.kill('TERM', Process.pid)}#{" "}
                       end
           RUBY
           Bundler.with_unbundled_env do

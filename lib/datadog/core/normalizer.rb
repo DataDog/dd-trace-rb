@@ -1,11 +1,14 @@
+# frozen_string_literal: true
+
 module Datadog
   module Core
     module Normalizer
       module_function
+
       INVALID_TAG_CHARACTERS = %r{[^a-z0-9_\-:./]}.freeze
 
       # Based on https://docs.datadoghq.com/getting_started/tagging/#defining-tags
-      # Currently a reimplementation of the logic in the 
+      # Currently a reimplementation of the logic in the
       # Datadog::Tracing::Metadata::Ext::HTTP::Headers.to_tag method with some additional items
       # TODO: Swap out the logic in the Datadog Tracing Metadata headers logic
       def self.normalize(original_value)
@@ -18,7 +21,7 @@ module Datadog
         # Invalid characters are replaced with an underscore
         normalized_value.gsub!(INVALID_TAG_CHARACTERS, '_')
         # Merge consecutive underscores with a single underscore
-        normalized_value.gsub!(/_+/, '_')
+        normalized_value.squeeze!('_')
         # Remove leading non-letter characters
         normalized_value.sub!(/\A[^a-z]+/, "")
         # Maximum length is 200 characters
