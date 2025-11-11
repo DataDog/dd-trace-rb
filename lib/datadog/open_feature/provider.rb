@@ -5,51 +5,21 @@ require 'open_feature/sdk'
 
 module Datadog
   module OpenFeature
-    # OpenFeature feature flagging provider backed by Datadog Remote Configuration.
+    # Example
     #
-    # Implementation follows the OpenFeature contract of Provider SDK.
-    # For details see:
-    #   - https://github.com/open-feature/ruby-sdk/blob/v0.4.1/README.md#develop-a-provider
-    #   - https://github.com/open-feature/ruby-sdk/blob/v0.4.1/lib/open_feature/sdk/provider/no_op_provider.rb
-    #
-    # In the example below you can see how to configure the OpenFeature SDK
-    # https://github.com/open-feature/ruby-sdk to use the Datadog feature flags provider.
-    #
-    # Example:
-    #
-    #   Make sure to enable Remote Configuration and OpenFeature in the Datadog configuration.
-    #
-    #   ```ruby
-    #   # FILE: initializers/datadog.rb
-    #   Datadog.configure do |config|
-    #     config.remote.enabled = true
-    #     config.open_feature.enabled = true
-    #   end
-    #   ```
-    #
-    #   And configure the OpenFeature SDK to use the Datadog feature flagging provider.
-    #
-    #   ```ruby
-    #   # FILE: initializers/open_feature.rb
     #   require 'open_feature/sdk'
     #   require 'datadog/open_feature/provider'
+    #
+    #   Datadog.configure do |config|
+    #     config.open_feature.enabled = true
+    #   end
     #
     #   OpenFeature::SDK.configure do |config|
     #     config.set_provider(Datadog::OpenFeature::Provider.new)
     #   end
-    #   ```
     #
-    #   Now you can create OpenFeature SDK client and use it to fetch feature flag values.
-    #
-    #   ```ruby
     #   client = OpenFeature::SDK.build_client
-    #   context = OpenFeature::SDK::EvaluationContext.new('email' => 'john.doe@gmail.com')
-    #
-    #   client.fetch_string_value(
-    #     flag_key: 'banner', default_value: 'Greetings!', evaluation_context: context
-    #   )
-    #   # => 'Welcome back!'
-    #   ```
+    #   client.fetch_string_value(flag_key: 'banner', default_value: 'default')
     class Provider
       NAME = 'Datadog Feature Flagging Provider'
 
@@ -68,30 +38,45 @@ module Datadog
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'boolean', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :boolean, evaluation_context: evaluation_context)
       end
 
       def fetch_string_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'string', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :string, evaluation_context: evaluation_context)
       end
 
       def fetch_number_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'number', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :number, evaluation_context: evaluation_context)
       end
 
       def fetch_integer_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'integer', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :integer, evaluation_context: evaluation_context)
       end
 
       def fetch_float_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'float', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :float, evaluation_context: evaluation_context)
       end
 
       def fetch_object_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'object', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :object, evaluation_context: evaluation_context)
       end
 
       private
+
+      # Convert internal symbol error codes to OpenFeature string error codes
+      SYMBOL_TO_OPENFEATURE_ERROR_CODE = {
+        ok: Ext::FLAG_NOT_FOUND,  # ErrorCode::Ok -> FLAG_NOT_FOUND (closest OpenFeature equivalent - provider returns default_value)
+        flag_not_found: Ext::FLAG_NOT_FOUND,
+        type_mismatch: Ext::TYPE_MISMATCH,
+        parse_error: Ext::PARSE_ERROR,
+        provider_not_ready: Ext::PROVIDER_NOT_READY,
+        general: Ext::ERROR
+      }.freeze
+
+      def convert_error_code(symbol_error_code)
+        return nil if symbol_error_code.nil?
+        SYMBOL_TO_OPENFEATURE_ERROR_CODE[symbol_error_code] || Ext::ERROR
+      end
 
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
         engine = OpenFeature.engine
@@ -99,15 +84,14 @@ module Datadog
 
         result = engine.fetch_value(
           flag_key: flag_key,
-          default_value: default_value,
           expected_type: expected_type,
           evaluation_context: evaluation_context
         )
 
-        if result.error?
+        if result.error_code
           return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
-            value: result.value,
-            error_code: result.error_code,
+            value: default_value,
+            error_code: convert_error_code(result.error_code),
             error_message: result.error_message,
             reason: result.reason
           )

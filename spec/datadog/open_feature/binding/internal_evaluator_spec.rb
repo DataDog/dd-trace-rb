@@ -72,8 +72,8 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'succeeds when types match' do
         result = evaluator.get_assignment('numeric_flag', {}, :float)
         
-        expect(result.error_code).to eq(:Ok)
-        expect(result.error_message).to eq('')  # Empty string for Ok cases
+        expect(result.error_code).to be_nil  # nil for successful allocation match
+        expect(result.error_message).to eq('')  # Empty string for success cases
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
@@ -84,8 +84,8 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'succeeds when expected_type is nil (no validation)' do
         result = evaluator.get_assignment('numeric_flag', {}, nil)
         
-        expect(result.error_code).to eq(:Ok)
-        expect(result.error_message).to eq('')  # Empty string for Ok cases
+        expect(result.error_code).to be_nil  # nil for successful allocation match
+        expect(result.error_message).to eq('')  # Empty string for success cases
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
@@ -147,7 +147,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       expect(flag_not_found.flag_metadata).to eq({})
 
       flag_disabled = evaluator.get_assignment('disabled_flag', {}, :integer)
-      expect(flag_disabled.error_code).to eq(:Ok)  # Disabled flags return Ok (matches libdatadog)
+      expect(flag_disabled.error_code).to eq(:ok)  # Disabled flags return :ok (matches Rust ErrorCode::Ok)
       expect(flag_disabled.error_message).to eq('')  # Empty string for Ok cases
       expect(flag_disabled.value).to be_nil
       expect(flag_disabled.variant).to be_nil
@@ -202,9 +202,9 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                            else nil
                            end
             
-            # Build evaluation context
+            # Build evaluation context - convert to OpenFeature SDK format (snake_case keys)
             evaluation_context = attributes.dup
-            evaluation_context['targetingKey'] = targeting_key if targeting_key
+            evaluation_context['targeting_key'] = targeting_key if targeting_key  # Convert camelCase to snake_case
             
             # Execute test case
             result = evaluator.get_assignment(flag_key, evaluation_context, expected_type)
@@ -240,27 +240,27 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected flag metadata, got nil"
                 expect(result.flag_metadata['allocation_key']).to eq(expected_metadata['allocationKey']),
                   "Expected allocation key #{expected_metadata['allocationKey'].inspect}, got #{result.flag_metadata&.[]('allocation_key').inspect}"
-                expect(result.flag_metadata['variationType']).to eq(expected_metadata['variationType']),
-                  "Expected variation type #{expected_metadata['variationType'].inspect}, got #{result.flag_metadata&.[]('variationType').inspect}"
-                expect(result.flag_metadata['doLog']).to eq(expected_metadata['doLog']),
-                  "Expected do_log #{expected_metadata['doLog'].inspect}, got #{result.flag_metadata&.[]('doLog').inspect}"
+                expect(result.flag_metadata['variation_type']).to eq(expected_metadata['variationType']),
+                  "Expected variation type #{expected_metadata['variationType'].inspect}, got #{result.flag_metadata&.[]('variation_type').inspect}"
+                expect(result.flag_metadata['do_log']).to eq(expected_metadata['doLog']),
+                  "Expected do_log #{expected_metadata['doLog'].inspect}, got #{result.flag_metadata&.[]('do_log').inspect}"
               else
                 # Flag metadata is always a hash - either empty or populated (matches libdatadog FFI)
                 expect(result.flag_metadata).to eq({}),
                   "Expected empty flag metadata for cases with no metadata, got #{result.flag_metadata.inspect}"
               end
               
-              # Check error code - should be :Ok for successful evaluations, or specific error for failures
+              # Check error code - should be nil for successful evaluations, or specific error for failures
               if expected_result.key?('variant') || expected_result.key?('flagMetadata')
-                expect(result.error_code).to eq(:Ok),
-                  "Expected :Ok error code for successful evaluation, got #{result.error_code.inspect}"
+                expect(result.error_code).to be_nil,
+                  "Expected nil error code for successful evaluation, got #{result.error_code.inspect}"
               else
                 # Cases with no variant/flagMetadata could be either:
-                # 1. Default allocation null (flag exists, no allocations match) -> :Ok
+                # 1. Default allocation null (flag exists, no allocations match) -> :ok
                 # 2. Missing flag (flag doesn't exist) -> :flag_not_found  
                 # 3. Other error conditions -> specific error codes
                 # All are valid as long as value is nil (upstream handles default_value)
-                expect([:Ok, :flag_not_found, :type_mismatch, :parse_error, :provider_not_ready, :general]).to include(result.error_code),
+                expect([:ok, :flag_not_found, :type_mismatch, :parse_error, :provider_not_ready, :general]).to include(result.error_code),
                   "Expected valid error code for default/error case, got #{result.error_code.inspect}"
               end
             end

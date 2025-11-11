@@ -25,22 +25,17 @@ module Datadog
       # UFC is a flexible format for representing feature flag targeting rules
       # using splits with shard ranges and salts, accommodating most targeting use cases.
       class InternalEvaluator
-        # NativeEvaluator-aligned error code mapping
+        # Internal error code mapping (matches Rust impl From<&EvaluationError> for ErrorCode)
         ERROR_CODE_MAPPING = {
           Ext::FLAG_UNRECOGNIZED_OR_DISABLED => :flag_not_found,
-          Ext::FLAG_DISABLED => :Ok,  # Success case (matches libdatadog ErrorCode::Ok)
+          Ext::FLAG_DISABLED => :ok,  # ErrorCode::Ok - matches Rust behavior
           Ext::TYPE_MISMATCH_ERROR => :type_mismatch,
           Ext::CONFIGURATION_PARSE_ERROR => :parse_error,
           Ext::CONFIGURATION_MISSING => :provider_not_ready,
-          Ext::DEFAULT_ALLOCATION_NULL => :Ok,  # Success case (matches libdatadog ErrorCode::Ok)
+          Ext::DEFAULT_ALLOCATION_NULL => :ok,  # ErrorCode::Ok - matches Rust behavior  
           Ext::INTERNAL_ERROR => :general
         }.freeze
 
-        # Additional error codes matching NativeEvaluator
-        ADDITIONAL_ERROR_CODES = [
-          :targeting_key_missing,
-          :invalid_context
-        ].freeze
 
         # Variation type mapping to libdatadog format
         VARIATION_TYPE_MAPPING = {
@@ -76,19 +71,9 @@ module Datadog
               "flag is missing in configuration, it is either unrecognized or disabled")
           end
 
-          # Return success result with nil value if flag is disabled - matches libdatadog behavior
+          # Return error result if flag is disabled - matches libdatadog behavior
           unless flag.enabled
-            return ResolutionDetails.new(
-              value: nil,
-              variant: nil,
-              error_code: :Ok,  # :Ok indicates success (matches libdatadog ErrorCode::Ok)
-              error_message: '',  # Empty string for Ok cases (matches libdatadog FFI)
-              reason: 'DISABLED',
-              allocation_key: nil,
-              do_log: false,
-              flag_metadata: {},  # Empty for disabled flags
-              extra_logging: {}
-            )
+            return create_error_result(Ext::FLAG_DISABLED, '')  # Maps to :ok per libdatadog
           end
 
           # Validate type compatibility if expected_type is provided - using Rust message format
@@ -163,22 +148,22 @@ module Datadog
           ResolutionDetails.new(
             value: value,
             variant: variant,
-            error_code: :Ok,  # :Ok indicates success (matches libdatadog ErrorCode::Ok)
+            error_code: nil,  # nil for successful cases (so "if result.error_code" works correctly)
             error_message: '',  # Empty string for Ok cases (matches libdatadog FFI)
             reason: convert_reason_to_symbol(reason),
             allocation_key: allocation_key,
             do_log: do_log,
             flag_metadata: {
               "allocation_key" => allocation_key,
-              "variationType" => variation_type,
-              "doLog" => do_log
+              "variation_type" => variation_type,
+              "do_log" => do_log
             },
             extra_logging: {}
           )
         end
 
         def create_error_result(error_code, error_message)
-          # Map internal error codes to NativeEvaluator error codes
+          # Map internal error codes to Ruby symbols
           mapped_error_code = if error_code.is_a?(Symbol)
                                 error_code
                               else
@@ -186,7 +171,7 @@ module Datadog
                               end
           
           # Determine reason based on error type
-          reason = if [Ext::DEFAULT_ALLOCATION_NULL, Ext::FLAG_DISABLED].include?(error_code.to_s)
+          reason = if [Ext::DEFAULT_ALLOCATION_NULL, Ext::FLAG_DISABLED].include?(error_code)
                      :static # These are expected conditions, not errors
                    else
                      :error
@@ -458,28 +443,14 @@ module Datadog
         end
 
         def get_targeting_key(evaluation_context)
-          # The targeting key is typically a user ID, session ID, or other stable identifier
-          # Check common attribute names in order of preference
+          # The targeting key from OpenFeature SDK evaluation context (always snake_case)
           return nil if evaluation_context.nil?
           
           if evaluation_context.respond_to?(:[])
-            # Hash-like evaluation context
-            evaluation_context['targeting_key'] || 
-              evaluation_context['targetingKey'] ||  # camelCase variant
-              evaluation_context['user_id'] ||
-              evaluation_context['userId'] ||
-              evaluation_context['id'] ||
-              evaluation_context[:targeting_key] ||
-              evaluation_context[:targetingKey] ||  # camelCase symbol variant
-              evaluation_context[:user_id] ||
-              evaluation_context[:userId] ||
-              evaluation_context[:id]
+            # Hash-like evaluation context - OpenFeature SDK uses snake_case keys
+            evaluation_context['targeting_key'] || evaluation_context[:targeting_key]
           elsif evaluation_context.respond_to?(:targeting_key)
             evaluation_context.targeting_key
-          elsif evaluation_context.respond_to?(:user_id)
-            evaluation_context.user_id
-          elsif evaluation_context.respond_to?(:id)
-            evaluation_context.id
           else
             nil
           end
