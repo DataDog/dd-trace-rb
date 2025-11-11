@@ -120,20 +120,8 @@ module Datadog
             # By default, tags cannot create nested span tag levels:
             # `allow_nested` allows you to override this behavior.
             def to_tag(name, allow_nested: false)
-              # Tag normalization based on: https://docs.datadoghq.com/getting_started/tagging/#defining-tags.
-              #
-              # Only the following characters are accepted.
-              #  * Alphanumerics
-              #  * Underscores
-              #  * Minuses
-              #  * Colons
-              #  * Periods
-              #  * Slashes
-              #
-              # All other characters are replaced with an underscore.
-              tag = name.to_s.strip
-              tag.downcase!
-              tag.gsub!(INVALID_TAG_CHARACTERS, '_')
+              # Reuse the tag normalization logic from the Core::Normalizer module
+              tag = Core::Normalizer.normalize(name)
 
               # Additional HTTP header normalization.
               #

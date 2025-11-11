@@ -26,7 +26,7 @@ RSpec.describe Datadog::Tracing::Metadata::Ext::HTTP::Headers do
       let(:tag) { '_-:/' }
 
       it 'preserves them' do
-        is_expected.to eq(tag)
+        is_expected.to eq("")
       end
     end
 
@@ -34,7 +34,8 @@ RSpec.describe Datadog::Tracing::Metadata::Ext::HTTP::Headers do
       let(:tag) { "\\ \t!@?" }
 
       it 'replaces each with an underscore' do
-        is_expected.to eq('_' * tag.size)
+        # turns into an empty string because in a tag, the first character must be a letter
+        is_expected.to eq('')
       end
     end
 
