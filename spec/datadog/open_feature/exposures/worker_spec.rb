@@ -4,6 +4,11 @@ require 'spec_helper'
 require 'datadog/open_feature/transport/exposures'
 
 RSpec.describe Datadog::OpenFeature::Exposures::Worker do
+  after do
+    worker.stop(true)
+    worker.join
+  end
+
   subject(:worker) do
     described_class.new(
       settings: settings,
@@ -28,11 +33,6 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     )
   end
 
-  after do
-    worker.stop(true)
-    worker.join
-  end
-
   describe '#start' do
     context 'when worker is disabled' do
       it 'does nothing' do
@@ -44,39 +44,44 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
         expect(worker).not_to be_started
       end
     end
+  end
 
-    context 'when buffer has events' do
+  describe '#enqueue' do
+    context 'when worker is not started' do
+      let(:event_2) do
+        Datadog::OpenFeature::Exposures::Event.new(
+          timestamp: 1_735_689_600_000,
+          allocation: {key: 'control-2'},
+          flag: {key: 'demo-flag2'},
+          variant: {key: 'v2'},
+          subject: {id: 'user-2', attributes: {'plan' => 'pro'}}
+        )
+      end
+      let(:event_3) do
+        Datadog::OpenFeature::Exposures::Event.new(
+          timestamp: 1_735_689_600_000,
+          allocation: {key: 'control-3'},
+          flag: {key: 'demo-flag3'},
+          variant: {key: 'v3'},
+          subject: {id: 'user-3', attributes: {'plan' => 'pro'}}
+        )
+      end
+
       it 'starts on demand and processes buffer' do
-        sent = 0
+        batches_sent = 0
         allow(transport).to receive(:send_exposures) do |payload|
-          sent += 1
+          batches_sent += 1
           response
         end
 
         worker.enqueue(event)
+        worker.enqueue(event_2)
+        worker.enqueue(event_3)
 
         try_wait_until { worker.running? }
-        try_wait_until { sent.positive? }
+        try_wait_until { batches_sent.positive? }
 
-        expect(sent).to eq(1)
-      end
-    end
-  end
-
-  describe '#enqueue' do
-    before do
-      allow(worker).to receive(:start)
-      allow(transport).to receive(:send_exposures).and_return(response)
-    end
-
-    context 'when buffer limit is reached' do
-      it 'flushes immediately' do
-        worker.enqueue(event)
-        worker.enqueue(event)
-
-        try_wait_until { worker.buffer.empty? }
-
-        expect(transport).to have_received(:send_exposures).once
+        expect(batches_sent).to eq(1)
       end
     end
   end
@@ -90,7 +95,6 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     context 'when buffer has queued events' do
       it 'sends queued events' do
         worker.enqueue(event)
-
         worker.flush
 
         expect(transport).to have_received(:send_exposures).once
@@ -148,18 +152,39 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     end
   end
 
-  describe '#stop' do
-    before do
-      allow(worker).to receive(:start)
-      allow(transport).to receive(:send_exposures).and_return(response)
-    end
-
+  describe '#graceful_shutdown' do
     context 'when buffer contains events' do
-      it 'flushes remaining events before stopping' do
-        worker.enqueue(event)
+      before do
+        stub_const('Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_EXTRA_SECONDS', 0.1)
+        stub_const('Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHOTDOWN_WAIT_INTERVAL_SECONDS', 0.1)
+      end
 
-        expect(transport).to receive(:send_exposures).once
-        worker.stop
+      let(:event_2) do
+        Datadog::OpenFeature::Exposures::Event.new(
+          timestamp: 1_735_689_600_000,
+          allocation: {key: 'control-2'},
+          flag: {key: 'demo-flag2'},
+          variant: {key: 'v2'},
+          subject: {id: 'user-2', attributes: {'plan' => 'pro'}}
+        )
+      end
+
+      it 'flushes remaining events before stopping' do
+        batches_sent = 0
+        allow(transport).to receive(:send_exposures) do |payload|
+          batches_sent += 1
+          response
+        end
+
+        worker.enqueue(event)
+        try_wait_until { worker.running? }
+        try_wait_until { batches_sent.positive? }
+
+        worker.enqueue(event_2)
+        worker.graceful_shutdown
+        try_wait_until { !worker.running? }
+
+        expect(batches_sent).to eq(2)
       end
     end
   end

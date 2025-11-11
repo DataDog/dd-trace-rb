@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../../core/utils/time'
 require_relative '../../core/workers/queue'
 require_relative '../../core/workers/polling'
 
@@ -13,6 +14,9 @@ module Datadog
       class Worker
         include Core::Workers::Queue
         include Core::Workers::Polling
+
+        GRACEFUL_SHOTDOWN_EXTRA_SECONDS = 5
+        GRACEFUL_SHOTDOWN_WAIT_INTERVAL_SECONDS = 0.5
 
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
@@ -45,17 +49,14 @@ module Datadog
         end
 
         def stop(force_stop = false, timeout = Core::Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT)
-          result = super
-          flush
+          buffer.close if running?
 
-          result
+          super
         end
 
         def enqueue(event)
-          buffer.push(event)
-
-          flush if buffer.length >= @buffer_limit
           start unless running?
+          buffer.push(event)
 
           true
         end
@@ -64,14 +65,31 @@ module Datadog
           buffer.pop
         end
 
+        def perform(*args)
+          events, dropped = args
+          send_events(Array(events), dropped.to_i)
+        end
+
         def flush
           events, dropped = dequeue
           send_events(Array(events), dropped.to_i)
         end
 
-        def perform(*args)
-          events, dropped = args
-          send_events(Array(events), dropped.to_i)
+        def graceful_shutdown
+          return false unless enabled? || !run_loop?
+
+          started = Core::Utils::Time.get_time
+          wait_time = loop_base_interval + GRACEFUL_SHOTDOWN_EXTRA_SECONDS
+
+          loop do
+            break if buffer.empty? && !in_iteration?
+
+            sleep(GRACEFUL_SHOTDOWN_WAIT_INTERVAL_SECONDS)
+
+            break if Core::Utils::Time.get_time - started >= wait_time
+          end
+
+          stop(true)
         end
 
         private

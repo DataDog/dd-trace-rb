@@ -4,10 +4,16 @@ module Datadog
       class Worker
         include Core::Workers::Queue
         include Core::Workers::Polling
-        # NOTE: Steep is not picking it up on itself
+        # NOTE: Steep is not picking it up on itself with included metaprogramming
         include Core::Workers::Async::Thread
+        include Core::Workers::IntervalLoop
+
+        GRACEFUL_SHOTDOWN_EXTRA_SECONDS: ::Integer
+
+        GRACEFUL_SHOTDOWN_WAIT_INTERVAL_SECONDS: ::Float
 
         DEFAULT_FLUSH_INTERVAL_SECONDS: ::Integer
+
         DEFAULT_BUFFER_LIMIT: ::Integer
 
         attr_reader logger: Core::Logger
@@ -29,6 +35,8 @@ module Datadog
         def dequeue: () -> [::Array[Event], ::Integer]
 
         def flush: () -> void
+
+        def graceful_shutdown: () -> bool
 
         private
 

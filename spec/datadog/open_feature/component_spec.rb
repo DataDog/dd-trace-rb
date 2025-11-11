@@ -67,6 +67,21 @@ RSpec.describe Datadog::OpenFeature::Component do
     end
   end
 
+  describe '#flush' do
+    before do
+      settings.open_feature.enabled = true
+      settings.remote.enabled = true
+    end
+
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+    it 'flushes worker' do
+      expect(worker).to receive(:flush)
+
+      component.flush
+    end
+  end
+
   describe '#shutdown!' do
     before do
       settings.open_feature.enabled = true
@@ -75,9 +90,8 @@ RSpec.describe Datadog::OpenFeature::Component do
 
     subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
 
-    it 'flushes worker and stops it' do
-      expect(worker).to receive(:flush)
-      expect(worker).to receive(:stop).with(true)
+    it 'gracefully shutdown the worker' do
+      expect(worker).to receive(:graceful_shutdown)
 
       component.shutdown!
     end
