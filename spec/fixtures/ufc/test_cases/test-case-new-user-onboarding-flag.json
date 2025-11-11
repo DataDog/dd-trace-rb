@@ -9,13 +9,7 @@
       "country": "US"
     },
     "result": {
-      "value": "green",
-      "variant": "green",
-      "flagMetadata": {
-        "allocationKey": "internal users",
-        "variationType": "string",
-        "doLog": false
-      }
+      "value": "green"
     }
   },
   {
@@ -54,13 +48,7 @@
       "age": 25
     },
     "result": {
-      "value": "blue",
-      "variant": "blue",
-      "flagMetadata": {
-        "allocationKey": "rollout",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "blue"
     }
   },
   {
@@ -74,13 +62,7 @@
       "age": 25
     },
     "result": {
-      "value": "purple",
-      "variant": "purple",
-      "flagMetadata": {
-        "allocationKey": "id rule",
-        "variationType": "string",
-        "doLog": false
-      }
+      "value": "purple"
     }
   },
   {
@@ -95,13 +77,7 @@
       "age": 25
     },
     "result": {
-      "value": "blue",
-      "variant": "blue",
-      "flagMetadata": {
-        "allocationKey": "rollout",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "blue"
     }
   },
   {
@@ -137,13 +113,7 @@
       "country": "Mexico"
     },
     "result": {
-      "value": "blue",
-      "variant": "blue",
-      "flagMetadata": {
-        "allocationKey": "rollout",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "blue"
     }
   },
   {
@@ -156,13 +126,7 @@
       "age": 33
     },
     "result": {
-      "value": "control",
-      "variant": "control",
-      "flagMetadata": {
-        "allocationKey": "experiment",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "control"
     }
   },
   {
@@ -174,13 +138,7 @@
       "country": "Germany"
     },
     "result": {
-      "value": "red",
-      "variant": "red",
-      "flagMetadata": {
-        "allocationKey": "experiment",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "red"
     }
   },
   {
@@ -192,13 +150,7 @@
       "country": "Germany"
     },
     "result": {
-      "value": "yellow",
-      "variant": "yellow",
-      "flagMetadata": {
-        "allocationKey": "experiment",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "yellow"
     }
   },
   {
@@ -210,13 +162,7 @@
       "country": "Germany"
     },
     "result": {
-      "value": "yellow",
-      "variant": "yellow",
-      "flagMetadata": {
-        "allocationKey": "experiment",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "yellow"
     }
   },
   {
@@ -228,13 +174,7 @@
       "country": "US"
     },
     "result": {
-      "value": "blue",
-      "variant": "blue",
-      "flagMetadata": {
-        "allocationKey": "rollout",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "blue"
     }
   },
   {
@@ -246,13 +186,7 @@
       "country": "Italy"
     },
     "result": {
-      "value": "red",
-      "variant": "red",
-      "flagMetadata": {
-        "allocationKey": "experiment",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "red"
     }
   },
   {
@@ -296,13 +230,7 @@
       "country": "US"
     },
     "result": {
-      "value": "blue",
-      "variant": "blue",
-      "flagMetadata": {
-        "allocationKey": "rollout",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "blue"
     }
   },
   {
@@ -314,13 +242,7 @@
       "country": "Canada"
     },
     "result": {
-      "value": "blue",
-      "variant": "blue",
-      "flagMetadata": {
-        "allocationKey": "rollout",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "blue"
     }
   },
   {
@@ -342,13 +264,7 @@
       "country": "Denmark"
     },
     "result": {
-      "value": "yellow",
-      "variant": "yellow",
-      "flagMetadata": {
-        "allocationKey": "experiment",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "yellow"
     }
   },
   {
@@ -360,13 +276,7 @@
       "country": "Norway"
     },
     "result": {
-      "value": "control",
-      "variant": "control",
-      "flagMetadata": {
-        "allocationKey": "experiment",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "control"
     }
   },
   {
@@ -378,13 +288,7 @@
       "country": "UK"
     },
     "result": {
-      "value": "control",
-      "variant": "control",
-      "flagMetadata": {
-        "allocationKey": "experiment",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "control"
     }
   },
   {
@@ -408,13 +312,7 @@
       "country": "UK"
     },
     "result": {
-      "value": "red",
-      "variant": "red",
-      "flagMetadata": {
-        "allocationKey": "experiment",
-        "variationType": "string",
-        "doLog": true
-      }
+      "value": "red"
     }
   }
 ]

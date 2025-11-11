@@ -9,13 +9,7 @@
       "country": "US"
     },
     "result": {
-      "value": 3.1415926,
-      "variant": "pi",
-      "flagMetadata": {
-        "allocationKey": "rollout",
-        "variationType": "number",
-        "doLog": true
-      }
+      "value": 3.1415926
     }
   },
   {
@@ -28,13 +22,7 @@
       "country": "Canada"
     },
     "result": {
-      "value": 3.1415926,
-      "variant": "pi",
-      "flagMetadata": {
-        "allocationKey": "rollout",
-        "variationType": "number",
-        "doLog": true
-      }
+      "value": 3.1415926
     }
   },
   {
@@ -46,13 +34,7 @@
       "age": 50
     },
     "result": {
-      "value": 3.1415926,
-      "variant": "pi",
-      "flagMetadata": {
-        "allocationKey": "rollout",
-        "variationType": "number",
-        "doLog": true
-      }
+      "value": 3.1415926
     }
   }
 ]

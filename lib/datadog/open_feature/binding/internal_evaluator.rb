@@ -119,14 +119,14 @@ module Datadog
             return create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
-          # Extract flags from nested structure: data.attributes.flags
-          unless parsed_json.dig('data', 'attributes', 'flags')
+          # Check for flags at root level
+          unless parsed_json.key?('flags')
             # TODO: Add structured logging for debugging context
             return create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
-          # Parse into Configuration object using the attributes section
-          Configuration.from_hash(parsed_json['data']['attributes'])
+          # Parse into Configuration object
+          Configuration.from_hash(parsed_json)
         rescue JSON::ParserError => e
           # TODO: Add structured logging: "Invalid JSON syntax: #{e.message}"
           create_parse_error(Ext::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')

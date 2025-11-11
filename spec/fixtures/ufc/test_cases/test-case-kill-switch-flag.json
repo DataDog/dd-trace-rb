@@ -9,13 +9,7 @@
       "country": "US"
     },
     "result": {
-      "value": true,
-      "variant": "on",
-      "flagMetadata": {
-        "allocationKey": "on-for-NA",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": true
     }
   },
   {
@@ -28,13 +22,7 @@
       "country": "Canada"
     },
     "result": {
-      "value": true,
-      "variant": "on",
-      "flagMetadata": {
-        "allocationKey": "on-for-NA",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": true
     }
   },
   {
@@ -47,13 +35,7 @@
       "country": "canada"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -65,13 +47,7 @@
       "age": 40
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -85,13 +61,7 @@
       "age": 25
     },
     "result": {
-      "value": true,
-      "variant": "on",
-      "flagMetadata": {
-        "allocationKey": "on-for-NA",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": true
     }
   },
   {
@@ -101,13 +71,7 @@
     "targetingKey": "1",
     "attributes": {},
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -119,13 +83,7 @@
       "country": "Mexico"
     },
     "result": {
-      "value": true,
-      "variant": "on",
-      "flagMetadata": {
-        "allocationKey": "on-for-NA",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": true
     }
   },
   {
@@ -138,13 +96,7 @@
       "age": 50
     },
     "result": {
-      "value": true,
-      "variant": "on",
-      "flagMetadata": {
-        "allocationKey": "on-for-age-50+",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": true
     }
   },
   {
@@ -156,13 +108,7 @@
       "country": "Germany"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -174,13 +120,7 @@
       "country": "Germany"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -192,13 +132,7 @@
       "country": "Germany"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -211,13 +145,7 @@
       "age": 12
     },
     "result": {
-      "value": true,
-      "variant": "on",
-      "flagMetadata": {
-        "allocationKey": "on-for-NA",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": true
     }
   },
   {
@@ -230,13 +158,7 @@
       "age": 60
     },
     "result": {
-      "value": true,
-      "variant": "on",
-      "flagMetadata": {
-        "allocationKey": "on-for-age-50+",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": true
     }
   },
   {
@@ -248,13 +170,7 @@
       "email": "email@email.com"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -264,13 +180,7 @@
     "targetingKey": "10",
     "attributes": {},
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -280,13 +190,7 @@
     "targetingKey": "11",
     "attributes": {},
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -298,13 +202,7 @@
       "country": "US"
     },
     "result": {
-      "value": true,
-      "variant": "on",
-      "flagMetadata": {
-        "allocationKey": "on-for-NA",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": true
     }
   },
   {
@@ -316,13 +214,7 @@
       "country": "Canada"
     },
     "result": {
-      "value": true,
-      "variant": "on",
-      "flagMetadata": {
-        "allocationKey": "on-for-NA",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": true
     }
   },
   {
@@ -332,13 +224,7 @@
     "targetingKey": "14",
     "attributes": {},
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -350,13 +236,7 @@
       "country": "Denmark"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -368,13 +248,7 @@
       "country": "Norway"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -386,13 +260,7 @@
       "country": "UK"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -404,13 +272,7 @@
       "country": "UK"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   },
   {
@@ -422,13 +284,7 @@
       "country": "UK"
     },
     "result": {
-      "value": false,
-      "variant": "off",
-      "flagMetadata": {
-        "allocationKey": "off-for-all",
-        "variationType": "boolean",
-        "doLog": true
-      }
+      "value": false
     }
   }
 ]

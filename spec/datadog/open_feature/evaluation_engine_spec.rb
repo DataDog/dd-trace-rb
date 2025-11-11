@@ -8,33 +8,24 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:logger) { instance_double(Datadog::Core::Logger) }
-  let(:ufc) do
+  let(:flag_config) do
     <<~JSON
       {
-        "data": {
-          "type": "universal-flag-configuration",
-          "id": "1",
-          "attributes": {
-            "createdAt": "2024-04-17T19:40:53.716Z",
-            "format": "SERVER",
-            "environment": { "name": "test" },
-            "flags": {
-              "test_flag": {
-                "key": "test",
-                "enabled": true,
-                "variationType": "STRING",
-                "variations": {
-                  "control": { "key": "control", "value": "hello" }
-                },
-                "allocations": [
-                  {
-                    "key": "rollout",
-                    "splits": [{ "variationKey": "control", "shards": [] }],
-                    "doLog": false
-                  }
-                ]
+        "flags": {
+          "test_flag": {
+            "key": "test",
+            "enabled": true,
+            "variationType": "STRING",
+            "variations": {
+              "control": { "key": "control", "value": "hello" }
+            },
+            "allocations": [
+              {
+                "key": "rollout",
+                "splits": [{ "variationKey": "control", "shards": [] }],
+                "doLog": false
               }
-            }
+            ]
           }
         }
       }
@@ -58,7 +49,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding evaluator returns error' do
       before do
-        engine.configuration = ufc
+        engine.configuration = flag_config
         engine.reconfigure!
 
         allow_any_instance_of(Datadog::OpenFeature::Binding::Evaluator).to receive(:get_assignment)
@@ -87,7 +78,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding evaluator raises error' do
       before do
-        engine.configuration = ufc
+        engine.configuration = flag_config
         engine.reconfigure!
 
         allow(telemetry).to receive(:report)
@@ -108,7 +99,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when expected type not in the allowed list' do
       before do
-        engine.configuration = ufc
+        engine.configuration = flag_config
         engine.reconfigure!
       end
 
@@ -125,7 +116,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding evaluator returns resolution details' do
       before do
-        engine.configuration = ufc
+        engine.configuration = flag_config
         engine.reconfigure!
       end
 
@@ -152,7 +143,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding initialization fails with exception' do
       before do
-        engine.configuration = ufc
+        engine.configuration = flag_config
         engine.reconfigure!
 
         allow(Datadog::OpenFeature::Binding::Evaluator).to receive(:new).and_raise(error)
@@ -183,37 +174,28 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding initialization succeeds' do
       before do
-        engine.configuration = ufc
+        engine.configuration = flag_config
         engine.reconfigure!
       end
 
-      let(:new_ufc) do
+      let(:new_flag_config) do
         <<~JSON
           {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "createdAt": "2024-04-17T19:40:53.716Z",
-                "format": "SERVER",
-                "environment": { "name": "test" },
-                "flags": {
-                  "test_flag": {
-                    "key": "test",
-                    "enabled": true,
-                    "variationType": "STRING",
-                    "variations": {
-                      "control": { "key": "control", "value": "goodbye" }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
+            "flags": {
+              "test_flag": {
+                "key": "test",
+                "enabled": true,
+                "variationType": "STRING",
+                "variations": {
+                  "control": { "key": "control", "value": "goodbye" }
+                },
+                "allocations": [
+                  {
+                    "key": "rollout",
+                    "splits": [{ "variationKey": "control", "shards": [] }],
+                    "doLog": false
                   }
-                }
+                ]
               }
             }
           }
@@ -221,7 +203,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       end
 
       xit 'reconfigures binding evaluator with new flags configuration' do
-        engine.configuration = new_ufc
+        engine.configuration = new_flag_config
 
         expect { engine.reconfigure! }.to change { engine.fetch_value(flag_key: 'test', expected_type: :string).value }
           .from('hello').to('goodbye')
