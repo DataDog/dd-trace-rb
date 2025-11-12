@@ -5,6 +5,10 @@ require 'json'
 require 'datadog/open_feature/binding/internal_evaluator'
 
 RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
+  # The InternalEvaluator implements a three-case evaluation model:
+  # Case 1: Successful evaluation with result - has variant and value
+  # Case 2: No results (disabled/default) - not an error but no allocation matched
+  # Case 3: Evaluation error - has error_code and error_message
   let(:flags_v1_path) { File.join(__dir__, '../../../fixtures/ufc/flags-v1.json') }
   let(:flags_v1_json) { JSON.parse(File.read(flags_v1_path)) }
   let(:valid_ufc_json) { flags_v1_json.to_json }

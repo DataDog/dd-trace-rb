@@ -15,8 +15,8 @@ module Datadog
           @key = key
           @enabled = enabled
           @variation_type = variation_type
-          @variations = Hash(variations)
-          @allocations = Array(allocations)
+          @variations = variations
+          @allocations = allocations
         end
 
         def self.from_hash(flag_data, key)
@@ -68,7 +68,7 @@ module Datadog
           @rules = rules
           @start_at = start_at
           @end_at = end_at
-          @splits = Array(splits)
+          @splits = splits
           @do_log = do_log
         end
 
@@ -115,9 +115,9 @@ module Datadog
         attr_reader :shards, :variation_key, :extra_logging
 
         def initialize(shards:, variation_key:, extra_logging: nil)
-          @shards = Array(shards)
+          @shards = shards
           @variation_key = variation_key
-          @extra_logging = Hash(extra_logging)
+          @extra_logging = extra_logging || {}
         end
 
         def self.from_hash(split_data)
@@ -142,7 +142,7 @@ module Datadog
         def initialize(salt:, total_shards:, ranges:)
           @salt = salt
           @total_shards = total_shards
-          @ranges = Array(ranges)
+          @ranges = ranges
         end
 
         def self.from_hash(shard_data)
@@ -185,7 +185,7 @@ module Datadog
         attr_reader :conditions
 
         def initialize(conditions:)
-          @conditions = Array(conditions)
+          @conditions = conditions
         end
 
         def self.from_hash(rule_data)
@@ -226,7 +226,7 @@ module Datadog
         attr_reader :flags, :schema_version
 
         def initialize(flags:, schema_version: nil)
-          @flags = Hash(flags)
+          @flags = flags
           @schema_version = schema_version
         end
 

@@ -117,7 +117,81 @@ module Datadog
             return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
-          # Parse into Configuration object
+          # Validate flags structure - this is the single source of truth for structure validation
+          flags_data = parsed_json['flags']
+          unless flags_data.is_a?(Hash)
+            return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+          end
+
+          # Validate each flag structure to guarantee correct types for all downstream parsing
+          flags_data.each do |flag_key, flag_data|
+            unless flag_data.is_a?(Hash)
+              return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+            end
+            
+            # Validate critical array/hash fields that cause runtime errors if wrong type
+            unless flag_data.fetch('variations', {}).is_a?(Hash)
+              return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+            end
+            
+            unless flag_data.fetch('allocations', []).is_a?(Array)
+              return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+            end
+
+            # Validate allocations structure
+            flag_data.fetch('allocations', []).each do |allocation_data|
+              unless allocation_data.is_a?(Hash)
+                return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+              end
+              
+              unless allocation_data.fetch('splits', []).is_a?(Array)
+                return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+              end
+              
+              # Validate rules array if present
+              rules = allocation_data['rules']
+              if rules && !rules.is_a?(Array)
+                return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+              end
+
+              # Validate splits structure  
+              allocation_data.fetch('splits', []).each do |split_data|
+                unless split_data.is_a?(Hash)
+                  return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+                end
+                
+                unless split_data.fetch('shards', []).is_a?(Array)
+                  return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+                end
+
+                # Validate shards structure
+                split_data.fetch('shards', []).each do |shard_data|
+                  unless shard_data.is_a?(Hash)
+                    return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+                  end
+                  
+                  unless shard_data.fetch('ranges', []).is_a?(Array)
+                    return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+                  end
+                end
+              end
+
+              # Validate rules structure if present
+              if rules
+                rules.each do |rule_data|
+                  unless rule_data.is_a?(Hash)
+                    return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+                  end
+                  
+                  unless rule_data.fetch('conditions', []).is_a?(Array)
+                    return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+                  end
+                end
+              end
+            end
+          end
+
+          # All validation passed, safe to parse - no defensive programming needed elsewhere
           Configuration.from_hash(parsed_json)
         rescue JSON::ParserError => e
           create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
@@ -129,7 +203,7 @@ module Datadog
           create_evaluation_error(error_code, error_message)
         end
 
-        # Case 1: Successful evaluation with result
+        # Case 1: Successful evaluation with result - has variant and value
         def create_evaluation_success(value, variant, allocation_key, variation_type, do_log, reason)
           ResolutionDetails.new(
             value: value,
@@ -148,7 +222,7 @@ module Datadog
           )
         end
 
-        # Case 3: No results (disabled/default) - not an error but no allocation matched
+        # Case 2: No results (disabled/default) - not an error but no allocation matched
         def create_evaluation_no_result(reason)
           ResolutionDetails.new(
             value: nil,
@@ -163,7 +237,7 @@ module Datadog
           )
         end
 
-        # Case 2: Evaluation error
+        # Case 3: Evaluation error - has error_code and error_message
         def create_evaluation_error(error_code, error_message)
           ResolutionDetails.new(
             value: nil,
@@ -268,6 +342,12 @@ module Datadog
           # Get the attribute value from evaluation context
           attribute_value = get_attribute_from_context(condition.attribute, evaluation_context)
           
+          # Pre-convert to string for operators that need it (cache the conversion)
+          attribute_str = nil
+          if ['ONE_OF', 'NOT_ONE_OF', 'MATCHES', 'NOT_MATCHES'].include?(condition.operator)
+            attribute_str = coerce_to_string(attribute_value)
+          end
+          
           # Evaluate the condition based on operator
           case condition.operator
           when 'GTE'
@@ -279,13 +359,13 @@ module Datadog
           when 'LT'
             evaluate_comparison(attribute_value, condition.value, :<)
           when 'ONE_OF'
-            evaluate_membership(attribute_value, condition.value, true)
+            membership_matches?(attribute_str, condition.value, true)
           when 'NOT_ONE_OF'
-            evaluate_membership(attribute_value, condition.value, false)
+            membership_matches?(attribute_str, condition.value, false)
           when 'MATCHES'
-            evaluate_regex(attribute_value, condition.value, true)
+            regex_matches?(attribute_str, condition.value, true)
           when 'NOT_MATCHES'
-            evaluate_regex(attribute_value, condition.value, false)
+            regex_matches?(attribute_str, condition.value, false)
           when 'IS_NULL'
             evaluate_null_check(attribute_value, condition.value)
           else
@@ -341,12 +421,16 @@ module Datadog
           # NOT_ONE_OF fails when attribute is missing
           return false if !expected_membership && attribute_value.nil?
           
-          # Ensure condition_values is an array
-          values_array = condition_values.is_a?(Array) ? condition_values : [condition_values]
-          
           # Convert attribute to string for comparison
           attr_str = coerce_to_string(attribute_value)
+          membership_matches?(attr_str, condition_values, expected_membership)
+        end
+
+        def membership_matches?(attr_str, condition_values, expected_membership)
           return false if attr_str.nil?
+          
+          # Ensure condition_values is an array
+          values_array = condition_values.is_a?(Array) ? condition_values : [condition_values]
           
           # Check if attribute matches any value in the array
           is_member = values_array.any? { |v| coerce_to_string(v) == attr_str }
@@ -357,10 +441,14 @@ module Datadog
         def evaluate_regex(attribute_value, pattern, expected_match)
           return false if attribute_value.nil?
           
+          attr_str = coerce_to_string(attribute_value)
+          regex_matches?(attr_str, pattern, expected_match)
+        end
+
+        def regex_matches?(attr_str, pattern, expected_match)
+          return false if attr_str.nil?
+          
           begin
-            attr_str = coerce_to_string(attribute_value)
-            return false if attr_str.nil?
-            
             regex = Regexp.new(pattern.to_s)
             matches = !!(attr_str =~ regex)
             matches == expected_match
@@ -496,7 +584,12 @@ module Datadog
 
         def convert_variation_type_for_output(variation_type)
           # Convert from SCREAMING_SNAKE_CASE to lowercase format for output using mapping
-          VARIATION_TYPE_MAPPING[variation_type] || variation_type.to_s.downcase
+          mapped_type = VARIATION_TYPE_MAPPING[variation_type]
+          if mapped_type.nil?
+            raise EvaluationError.new(ErrorCodes::CONFIGURATION_PARSE_ERROR, 
+              "Unknown variation type: #{variation_type}. Expected one of: #{VARIATION_TYPE_MAPPING.keys.join(', ')}")
+          end
+          mapped_type
         end
 
 
