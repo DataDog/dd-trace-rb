@@ -5,8 +5,6 @@ module Datadog
 
       attr_accessor configuration: ::String?
 
-      attr_reader reporter: Exposures::Reporter
-
       def initialize: (Exposures::Reporter reporter, telemetry: Core::Telemetry::Component, ?logger: Core::Logger) -> void
 
       def fetch_value: (

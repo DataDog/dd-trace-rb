@@ -86,7 +86,7 @@ module Datadog
 
             sleep(GRACEFUL_SHOTDOWN_WAIT_INTERVAL_SECONDS)
 
-            break if Core::Utils::Time.get_time - started >= wait_time
+            break if Core::Utils::Time.get_time - started > wait_time
           end
 
           stop(true)

@@ -9,7 +9,6 @@ module Datadog
     # This class performs the evaluation of the feature flag
     class EvaluationEngine
       attr_accessor :configuration
-      attr_reader :reporter
 
       ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
@@ -41,7 +40,7 @@ module Datadog
 
         result
       rescue => e
-        @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
+        @telemetry.report(e, description: 'OpenFeature: Failed to fetch flag value')
 
         ResolutionDetails.new(
           error_code: Ext::PROVIDER_FATAL,
