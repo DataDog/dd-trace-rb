@@ -27,7 +27,6 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
         end
       end
 
-
       it 'returns payload with context fields' do
         expect(builder.payload_for([event])).to eq(
           context: {env: 'prod', service: 'dummy-service', version: '1.0.0'},
@@ -86,7 +85,8 @@ RSpec.describe Datadog::OpenFeature::Exposures::BatchBuilder do
             variant: {key: 'a'},
             subject: {id: 'user-1', attributes: {'plan' => 'pro'}}
           }]
-        )      end
+        )
+      end
     end
   end
 end
