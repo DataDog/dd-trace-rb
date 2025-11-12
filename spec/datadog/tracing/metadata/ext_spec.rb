@@ -30,11 +30,18 @@ RSpec.describe Datadog::Tracing::Metadata::Ext::HTTP::Headers do
       end
     end
 
-    context 'with unsupported characters' do
+    context 'with a mix of unsupported and supported characters' do
+      let(:tag) { "\\ \t!@?a" }
+
+      it 'the first letter to show up is the supported character' do
+        is_expected.to eq('a')
+      end
+    end
+
+    context 'with all unsupported characters' do
       let(:tag) { "\\ \t!@?" }
 
-      it 'replaces each with an underscore' do
-        # turns into an empty string because in a tag, the first character must be a letter
+      it 'turns into an empty string because the first character must be a letter' do
         is_expected.to eq('')
       end
     end
