@@ -43,7 +43,7 @@ module Datadog
           @parsed_config = parse_and_validate_json(ufc_json)
         end
 
-        def get_assignment(flag_key, _evaluation_context, expected_type)
+        def get_assignment(flag_key, evaluation_context, expected_type)
           # Return error result if JSON parsing failed during initialization
           if @parsed_config.is_a?(ResolutionDetails)
             return create_evaluation_error(
@@ -74,7 +74,7 @@ module Datadog
 
           # Use actual allocations and variations from the parsed flag
           begin
-            selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, _evaluation_context, Time.now.utc)
+            selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, evaluation_context, Time.now.utc)
             
             # Check if this is a default allocation case (no allocation matched)
             if selected_allocation.nil? && selected_variation.nil?
@@ -381,6 +381,16 @@ module Datadog
           # If evaluation_context is a hash, look up the attribute
           if evaluation_context.respond_to?(:[])
             attribute_value = evaluation_context[attribute_name]
+            
+            # Special handling for 'id' attribute: if not present, use targeting_key
+            if attribute_value.nil? && attribute_name == 'id'
+              attribute_value = get_targeting_key(evaluation_context)
+            end
+            
+            attribute_value
+          elsif evaluation_context.respond_to?(:field)
+            # OpenFeature EvaluationContext interface
+            attribute_value = evaluation_context.field(attribute_name)
             
             # Special handling for 'id' attribute: if not present, use targeting_key
             if attribute_value.nil? && attribute_name == 'id'
