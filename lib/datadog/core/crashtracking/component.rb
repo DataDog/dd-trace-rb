@@ -93,8 +93,13 @@ module Datadog
 
         def register_runtime_stack_callback
           # Always use frame-based callback since that's the only type we support
-          self.class._native_register_runtime_stack_callback(:frame)
-          logger.debug('Runtime stack callback registered with type: frame')
+          success = self.class._native_register_runtime_stack_callback
+
+          unless success
+            error_message = 'Failed to register runtime stack callback: registration returned false (may be already registered or unsupported)'
+            logger.error(error_message)
+            raise StandardError, error_message
+          end
         rescue => e
           logger.error("Failed to register runtime stack callback: #{e.message}")
           raise
