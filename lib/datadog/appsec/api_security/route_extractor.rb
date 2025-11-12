@@ -40,7 +40,7 @@ module Datadog
         #         "/users/:id(.:format)"
         #       Rails > 8.1.1 (fast path)
         #         uses `action_dispatch.route` to store the ActionDispatch::Journey::Route
-        #         that was found when routing the request
+        #         that matched when the request was routed
         #
         # WARNING: This method works only *after* the request has been routed.
         #
