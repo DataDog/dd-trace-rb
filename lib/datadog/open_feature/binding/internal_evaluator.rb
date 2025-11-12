@@ -360,35 +360,17 @@ module Datadog
         end
 
         def get_attribute_from_context(attribute_name, evaluation_context)
-          # Handle different evaluation context formats
+          # Handle hash-based evaluation context only
           return nil if evaluation_context.nil?
 
-          # If evaluation_context is a hash, look up the attribute
-          if evaluation_context.respond_to?(:[])
-            attribute_value = evaluation_context[attribute_name]
+          attribute_value = evaluation_context[attribute_name]
 
-            # Special handling for 'id' attribute: if not present, use targeting_key
-            if attribute_value.nil? && attribute_name == 'id'
-              attribute_value = get_targeting_key(evaluation_context)
-            end
-
-            attribute_value
-          elsif evaluation_context.respond_to?(:field)
-            # OpenFeature EvaluationContext interface
-            attribute_value = evaluation_context.field(attribute_name)
-
-            # Special handling for 'id' attribute: if not present, use targeting_key
-            if attribute_value.nil? && attribute_name == 'id'
-              attribute_value = get_targeting_key(evaluation_context)
-            end
-
-            attribute_value
-          elsif evaluation_context.respond_to?(attribute_name)
-            evaluation_context.send(attribute_name)
-          elsif attribute_name == 'id'
-            # Special handling for 'id' attribute: if not present, use targeting_key
-            get_targeting_key(evaluation_context)
+          # Special handling for 'id' attribute: if not present, use targeting_key
+          if attribute_value.nil? && attribute_name == 'id'
+            attribute_value = get_targeting_key(evaluation_context)
           end
+
+          attribute_value
         end
 
         def evaluate_comparison(attribute_value, condition_value, operator)
@@ -509,15 +491,10 @@ module Datadog
         end
 
         def get_targeting_key(evaluation_context)
-          # The targeting key from OpenFeature SDK evaluation context (always snake_case)
+          # The targeting key from hash-based evaluation context (always snake_case)
           return nil if evaluation_context.nil?
 
-          if evaluation_context.respond_to?(:[])
-            # Hash-like evaluation context - OpenFeature SDK uses string keys only
-            evaluation_context['targeting_key']
-          elsif evaluation_context.respond_to?(:targeting_key)
-            evaluation_context.targeting_key
-          end
+          evaluation_context['targeting_key']
         end
 
         def split_matches?(split, targeting_key)

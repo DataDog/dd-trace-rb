@@ -120,7 +120,11 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         engine.reconfigure!
       end
 
-      let(:evaluation_context) { instance_double('OpenFeature::SDK::EvaluationContext') }
+      let(:evaluation_context) do
+        instance_double('OpenFeature::SDK::EvaluationContext').tap do |ctx|
+          allow(ctx).to receive(:fields).and_return({'targeting_key' => 'test-user'})
+        end
+      end
       let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string, evaluation_context: evaluation_context) }
 
       it 'returns resolved value and reports exposure' do

@@ -32,7 +32,7 @@ module Datadog
           )
         end
 
-        result = @evaluator.get_assignment(flag_key, evaluation_context, expected_type)
+        result = @evaluator.get_assignment(flag_key, evaluation_context&.fields, expected_type)
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result

@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 require 'json'
+require 'open_feature/sdk'
 require 'datadog/open_feature/binding/internal_evaluator'
 
 RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
@@ -111,6 +112,34 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         # Test mismatches
         expect(type_checker.send(:type_matches?, 'BOOLEAN', :string)).to be false
         expect(type_checker.send(:type_matches?, 'STRING', :integer)).to be false
+      end
+    end
+
+    context 'evaluation context types' do
+      it 'accepts hash evaluation contexts including from OpenFeature SDK fields' do
+        # Test with hash-based evaluation context
+        hash_context = {'targeting_key' => 'user123', 'attr1' => 'value1'}
+        hash_result = evaluator.get_assignment('numeric_flag', hash_context, :number)
+
+        expect(hash_result.error_code).to be_nil
+        expect(hash_result.value).not_to be_nil
+        expect(hash_result.variant).not_to be_nil
+
+        # Test with hash extracted from OpenFeature SDK EvaluationContext.fields
+        sdk_context = OpenFeature::SDK::EvaluationContext.new(
+          targeting_key: 'user123',
+          fields: {'attr1' => 'value1'}
+        )
+
+        sdk_result = evaluator.get_assignment('numeric_flag', sdk_context.fields, :number)
+
+        expect(sdk_result.error_code).to be_nil
+        expect(sdk_result.value).not_to be_nil
+        expect(sdk_result.variant).not_to be_nil
+
+        # Both contexts should produce equivalent results for the same user
+        expect(hash_result.variant).to eq(sdk_result.variant)
+        expect(hash_result.value).to eq(sdk_result.value)
       end
     end
   end
