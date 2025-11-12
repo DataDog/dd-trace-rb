@@ -24,7 +24,7 @@ module Datadog
 
         new(settings, agent_settings, logger: logger, telemetry: telemetry)
       rescue
-        Datadog.logger.warn('OpenFeature is disabled, see logged errors above')
+        logger.warn('OpenFeature is disabled, see logged errors above')
 
         nil
       end
