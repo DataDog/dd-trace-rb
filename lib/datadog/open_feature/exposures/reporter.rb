@@ -8,7 +8,7 @@ module Datadog
     module Exposures
       # This class is responsible for reporting exposures to the Agent
       class Reporter
-        def initialize(worker, telemetry:, logger: Datadog.logger)
+        def initialize(worker, telemetry:, logger:)
           @worker = worker
           @logger = logger
           @telemetry = telemetry
