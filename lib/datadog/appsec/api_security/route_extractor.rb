@@ -79,6 +79,10 @@ module Datadog
           else
             Tracing::Contrib::Rack::RouteInference.read_or_infer(request.env)
           end
+        rescue => e
+          AppSec.telemetry&.error('AppSec: Could not extract route pattern for APISecurity sampler')
+
+          nil
         end
       end
     end

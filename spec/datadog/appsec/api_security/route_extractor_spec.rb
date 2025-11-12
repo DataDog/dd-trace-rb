@@ -122,7 +122,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         end
       end
 
-      context 'when neither route or route_uri_pattern is set and request path_parameters is empty' do
+      context 'when neither route or route_uri_pattern is set and request path_parameters are empty' do
         before do
           allow(request).to receive(:env).and_return({
             'action_dispatch.routes' => route_set,
@@ -144,7 +144,7 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         end
       end
 
-      context 'when neither route route_uri_pattern is set and request path_parameters is present' do
+      context 'when neither route route_uri_pattern is set and request path_parameters are present' do
         let(:env) do
           {
             'action_dispatch.routes' => route_set,
@@ -195,6 +195,30 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         let(:route_set) { double('ActionDispatch::Routing::RouteSet', router: router) }
 
         it { expect(described_class.route_pattern(request)).to eq('/unmatched/route') }
+      end
+
+      context 'when an error is raised during route recognition' do
+        before do
+          allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+
+          allow(request).to receive(:env).and_return({
+            'action_dispatch.routes' => route_set,
+            'action_dispatch.request.path_parameters' => { 'controller' => 'users', 'action' => 'show', 'id' => '1' }
+          })
+
+          expect(route_set).to receive(:request_class).and_raise(StandardError)
+        end
+
+        let(:route_set) { double('ActionDispatch::Routing::RouteSet') }
+        let(:telemetry) { spy(Datadog::Core::Telemetry::Component) }
+
+        it { expect(described_class.route_pattern(request)).to be_nil }
+
+        it 'reports the error via telemetry' do
+          expect(telemetry).to receive(:error).with('AppSec: Could not extract route pattern for APISecurity sampler')
+
+          described_class.route_pattern(request)
+        end
       end
     end
 
