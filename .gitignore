@@ -58,4 +58,4 @@ lib/*.so
 # Benchmark result files
 /benchmarks/*.json
 
-my-libdatadog-build/
+debug_runtime_callback.rb

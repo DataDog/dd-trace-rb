@@ -115,9 +115,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         crashtracker = build_crashtracker(logger: logger)
 
         expect(described_class).to receive(:_native_start_or_update_on_fork)
-        expect(described_class).to receive(:_native_register_runtime_stack_callback).with(:frame)
-        allow(logger).to receive(:debug) # Allow other debug messages
-        expect(logger).to receive(:debug).with('Runtime stack callback registered with type: frame')
+        expect(described_class).to receive(:_native_register_runtime_stack_callback).and_return(true)
 
         crashtracker.start
       end
@@ -344,7 +342,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         end
       end
 
-      # Integration tests for Ruby and C frame capture
       describe 'Ruby and C method runtime stack capture' do
         let(:runtime_stack) { crash_report_experimental[:runtime_stack] }
 
@@ -388,17 +385,59 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           end
 
           frames = runtime_stack[:frames]
-          function_names = frames.map { |f| f[:function] }
 
-          puts "DEBUG: All captured frames: #{frames.to_json}"
+          expect(frames).to include(
+            hash_including(
+              file: '<Fiddle (C extension)>',
+              function: 'free'
+            )
+          )
 
-          # Should capture our Ruby method
-          expect(function_names).to include('ruby_method_with_c_calls'),
-            "Expected 'ruby_method_with_c_calls' in stack: #{function_names}"
+          expect(frames).to include(
+            hash_including(
+              file: match(/crash_test_script.*\.rb$/),
+              function: 'ruby_method_with_c_calls',
+              line: 18
+            )
+          )
 
-          # Should capture the Array#each C method
-          expect(function_names).to include('each'),
-            "Expected 'each' C method in stack: #{function_names}"
+          expect(frames).to include(
+            hash_including(
+              file: '<Hash (C extension)>',
+              function: 'each'
+            )
+          )
+
+          expect(frames).to include(
+            hash_including(
+              file: match(/crash_test_script.*\.rb$/),
+              function: 'ruby_method_with_c_calls',
+              line: 16
+            )
+          )
+
+          expect(frames).to include(
+            hash_including(
+              file: '<String (C extension)>',
+              function: 'gsub'
+            )
+          )
+
+          expect(frames).to include(
+            hash_including(
+              file: match(/crash_test_script.*\.rb$/),
+              function: 'ruby_method_with_c_calls',
+              line: 15
+            )
+          )
+
+          expect(frames).to include(
+            hash_including(
+              file: match(/crash_test_script.*\.rb$/),
+              function: 'top_level_ruby_method',
+              line: 11
+            )
+          )
 
           temp_script.unlink
         end
