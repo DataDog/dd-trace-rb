@@ -9,7 +9,6 @@ module Datadog
       end
 
       class InternalEvaluator
-        VARIATION_TYPE_MAPPING: ::Hash[::String, ::String]
 
         def initialize: (::String ufc_json) -> void
 
@@ -29,7 +28,6 @@ module Datadog
           untyped value,
           ::String variant,
           ::String allocation_key,
-          ::String variation_type,
           bool do_log,
           ::String reason
         ) -> ResolutionDetails
@@ -82,7 +80,6 @@ module Datadog
 
         def determine_assignment_reason: (Allocation allocation) -> ::String
 
-        def convert_variation_type_for_output: (::String variation_type) -> ::String
       end
     end
   end
