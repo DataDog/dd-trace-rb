@@ -26,7 +26,7 @@ module Datadog
         def initialize(
           settings:,
           transport:,
-          logger: Datadog.logger,
+          logger:,
           flush_interval_seconds: DEFAULT_FLUSH_INTERVAL_SECONDS,
           buffer_limit: DEFAULT_BUFFER_LIMIT
         )
