@@ -15,8 +15,8 @@ module Datadog
         include Core::Workers::Queue
         include Core::Workers::Polling
 
-        GRACEFUL_SHOTDOWN_EXTRA_SECONDS = 5
-        GRACEFUL_SHOTDOWN_WAIT_INTERVAL_SECONDS = 0.5
+        GRACEFUL_SHUTDOWN_EXTRA_SECONDS = 5
+        GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS = 0.5
 
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
