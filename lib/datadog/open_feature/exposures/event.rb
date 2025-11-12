@@ -54,7 +54,7 @@ module Datadog
         end
 
         def initialize(payload)
-          @payload = payload
+          @payload = payload.freeze
         end
 
         def flag_key
