@@ -8,7 +8,13 @@
       "country": "US"
     },
     "result": {
-      "value": ""
+      "value": "",
+      "variant": "empty_string",
+      "flagMetadata": {
+        "allocationKey": "allocation-empty",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -18,7 +24,13 @@
     "targetingKey": "bob",
     "attributes": {},
     "result": {
-      "value": "non_empty"
+      "value": "non_empty",
+      "variant": "non_empty",
+      "flagMetadata": {
+        "allocationKey": "allocation-test",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   }
 ]

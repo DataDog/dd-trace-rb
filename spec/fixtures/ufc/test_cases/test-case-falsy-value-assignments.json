@@ -8,7 +8,13 @@
       "plan_tier": "free"
     },
     "result": {
-      "value": 0
+      "value": 0,
+      "variant": "zero-limit",
+      "flagMetadata": {
+        "allocationKey": "free-tier-limit",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -20,7 +26,13 @@
       "plan_tier": "premium"
     },
     "result": {
-      "value": 100
+      "value": 100,
+      "variant": "premium-limit",
+      "flagMetadata": {
+        "allocationKey": "premium-tier-limit",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {

@@ -8,7 +8,13 @@
       "content_type": "minimal"
     },
     "result": {
-      "value": ""
+      "value": "",
+      "variant": "empty-content",
+      "flagMetadata": {
+        "allocationKey": "minimal-content",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -20,7 +26,13 @@
       "content_type": "full"
     },
     "result": {
-      "value": "detailed_content"
+      "value": "detailed_content",
+      "variant": "detailed-content",
+      "flagMetadata": {
+        "allocationKey": "full-content",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {

@@ -9,7 +9,13 @@
       "country": "US"
     },
     "result": {
-      "value": "old"
+      "value": "old",
+      "variant": "old",
+      "flagMetadata": {
+        "allocationKey": "null-operator",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -22,7 +28,13 @@
       "country": "Canada"
     },
     "result": {
-      "value": "new"
+      "value": "new",
+      "variant": "new",
+      "flagMetadata": {
+        "allocationKey": "not-null-operator",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -34,7 +46,13 @@
       "size": null
     },
     "result": {
-      "value": "old"
+      "value": "old",
+      "variant": "old",
+      "flagMetadata": {
+        "allocationKey": "null-operator",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -46,7 +64,13 @@
       "size": 26
     },
     "result": {
-      "value": "new"
+      "value": "new",
+      "variant": "new",
+      "flagMetadata": {
+        "allocationKey": "not-null-operator",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -58,7 +82,13 @@
       "country": "UK"
     },
     "result": {
-      "value": "old"
+      "value": "old",
+      "variant": "old",
+      "flagMetadata": {
+        "allocationKey": "null-operator",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   }
 ]

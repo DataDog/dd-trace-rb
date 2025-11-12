@@ -26,16 +26,6 @@ module Datadog
       # UFC is a flexible format for representing feature flag targeting rules
       # using splits with shard ranges and salts, accommodating most targeting use cases.
       class InternalEvaluator
-        # Internal error code mapping (matches Rust impl From<&EvaluationError> for ErrorCode)
-        ERROR_CODE_MAPPING = {
-          ErrorCodes::FLAG_UNRECOGNIZED_OR_DISABLED => :flag_not_found,
-          ErrorCodes::FLAG_DISABLED => :ok,  # ErrorCode::Ok - matches Rust behavior
-          ErrorCodes::TYPE_MISMATCH_ERROR => :type_mismatch,
-          ErrorCodes::CONFIGURATION_PARSE_ERROR => :parse_error,
-          ErrorCodes::CONFIGURATION_MISSING => :provider_not_ready,
-          ErrorCodes::DEFAULT_ALLOCATION_NULL => :ok,  # ErrorCode::Ok - matches Rust behavior  
-          ErrorCodes::INTERNAL_ERROR => :general
-        }.freeze
 
 
         # Variation type mapping to libdatadog format
@@ -181,29 +171,12 @@ module Datadog
 
         # Case 2: Evaluation error
         def create_evaluation_error(error_code, error_message)
-          # Map internal error codes to Ruby symbols
-          mapped_error_code = if error_code.is_a?(Symbol)
-                                error_code
-                              else
-                                ERROR_CODE_MAPPING[error_code] || :general
-                              end
-          
-          # Determine reason based on error type - aligned with libdatadog FFI Reason enum
-          reason = case error_code
-                   when ErrorCodes::DEFAULT_ALLOCATION_NULL
-                     AssignmentReason::DEFAULT
-                   when ErrorCodes::FLAG_DISABLED
-                     AssignmentReason::DISABLED
-                   else
-                     AssignmentReason::ERROR
-                   end
-          
           ResolutionDetails.new(
             value: nil,
             variant: nil,
-            error_code: mapped_error_code,
+            error_code: error_code,
             error_message: error_message,
-            reason: reason,
+            reason: AssignmentReason::ERROR,
             allocation_key: nil,
             do_log: false,
             flag_metadata: {},

@@ -9,10 +9,6 @@ module Datadog
       end
 
       class InternalEvaluator
-        ERROR_CODE_MAPPING: ::Hash[::String, ::Symbol?]
-
-        ADDITIONAL_ERROR_CODES: ::Array[::Symbol]
-
         VARIATION_TYPE_MAPPING: ::Hash[::String, ::String]
 
         def initialize: (::String ufc_json) -> void
@@ -29,16 +25,18 @@ module Datadog
 
         def create_parse_error: (::String code, ::String message) -> ResolutionDetails
 
-        def create_error_result: (::String code, ::String message) -> ResolutionDetails
+        def create_evaluation_error: (::String error_code, ::String error_message) -> ResolutionDetails
 
-        def create_success_result: (
+        def create_evaluation_success: (
           untyped value,
           ::String variant,
           ::String allocation_key,
-          ::String reason,
+          ::String variation_type,
           bool do_log,
-          ::String assignment_reason
+          ::String reason
         ) -> ResolutionDetails
+
+        def create_evaluation_no_result: (::String reason) -> ResolutionDetails
 
         def type_matches?: (::String flag_type, ::Symbol expected_type) -> bool
 

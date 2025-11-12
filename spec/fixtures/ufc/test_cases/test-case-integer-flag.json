@@ -9,7 +9,13 @@
       "country": "US"
     },
     "result": {
-      "value": 3
+      "value": 3,
+      "variant": "three",
+      "flagMetadata": {
+        "allocationKey": "targeted allocation",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -22,7 +28,13 @@
       "country": "Canada"
     },
     "result": {
-      "value": 3
+      "value": 3,
+      "variant": "three",
+      "flagMetadata": {
+        "allocationKey": "targeted allocation",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -34,7 +46,13 @@
       "age": 50
     },
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -48,7 +66,13 @@
       "age": 25
     },
     "result": {
-      "value": 3
+      "value": 3,
+      "variant": "three",
+      "flagMetadata": {
+        "allocationKey": "targeted allocation",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -58,7 +82,13 @@
     "targetingKey": "1",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -68,7 +98,13 @@
     "targetingKey": "2",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -78,7 +114,13 @@
     "targetingKey": "3",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -88,7 +130,13 @@
     "targetingKey": "4",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -98,7 +146,13 @@
     "targetingKey": "5",
     "attributes": {},
     "result": {
-      "value": 1
+      "value": 1,
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -108,7 +162,13 @@
     "targetingKey": "6",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -118,7 +178,13 @@
     "targetingKey": "7",
     "attributes": {},
     "result": {
-      "value": 1
+      "value": 1,
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -128,7 +194,13 @@
     "targetingKey": "8",
     "attributes": {},
     "result": {
-      "value": 1
+      "value": 1,
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -138,7 +210,13 @@
     "targetingKey": "9",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -148,7 +226,13 @@
     "targetingKey": "10",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -158,7 +242,13 @@
     "targetingKey": "11",
     "attributes": {},
     "result": {
-      "value": 1
+      "value": 1,
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -168,7 +258,13 @@
     "targetingKey": "12",
     "attributes": {},
     "result": {
-      "value": 1
+      "value": 1,
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -178,7 +274,13 @@
     "targetingKey": "13",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -188,7 +290,13 @@
     "targetingKey": "14",
     "attributes": {},
     "result": {
-      "value": 1
+      "value": 1,
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -198,7 +306,13 @@
     "targetingKey": "15",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -208,7 +322,13 @@
     "targetingKey": "16",
     "attributes": {},
     "result": {
-      "value": 2
+      "value": 2,
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -218,7 +338,13 @@
     "targetingKey": "17",
     "attributes": {},
     "result": {
-      "value": 1
+      "value": 1,
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -228,7 +354,13 @@
     "targetingKey": "18",
     "attributes": {},
     "result": {
-      "value": 1
+      "value": 1,
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   },
   {
@@ -238,7 +370,13 @@
     "targetingKey": "19",
     "attributes": {},
     "result": {
-      "value": 1
+      "value": 1,
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "number",
+        "doLog": true
+      }
     }
   }
 ]

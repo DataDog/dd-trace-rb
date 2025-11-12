@@ -15,6 +15,12 @@
         "integer": 1,
         "string": "one",
         "float": 1.0
+      },
+      "variant": "one",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "object",
+        "doLog": true
       }
     }
   },
@@ -34,6 +40,12 @@
         "integer": 2,
         "string": "two",
         "float": 2.0
+      },
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "object",
+        "doLog": true
       }
     }
   },
@@ -52,6 +64,12 @@
         "integer": 2,
         "string": "two",
         "float": 2.0
+      },
+      "variant": "two",
+      "flagMetadata": {
+        "allocationKey": "50/50 split",
+        "variationType": "object",
+        "doLog": true
       }
     }
   },
@@ -66,7 +84,13 @@
       "Force Empty": true
     },
     "result": {
-      "value": {}
+      "value": {},
+      "variant": "empty",
+      "flagMetadata": {
+        "allocationKey": "Optionally Force Empty",
+        "variationType": "object",
+        "doLog": true
+      }
     }
   }
 ]

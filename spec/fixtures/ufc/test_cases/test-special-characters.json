@@ -9,6 +9,12 @@
       "value": {
         "a": "kümmert",
         "b": "schön"
+      },
+      "variant": "de",
+      "flagMetadata": {
+        "allocationKey": "allocation-test",
+        "variationType": "object",
+        "doLog": true
       }
     }
   },
@@ -22,6 +28,12 @@
       "value": {
         "a": "піклуватися",
         "b": "любов"
+      },
+      "variant": "ua",
+      "flagMetadata": {
+        "allocationKey": "allocation-test",
+        "variationType": "object",
+        "doLog": true
       }
     }
   },
@@ -35,6 +47,12 @@
       "value": {
         "a": "照顾",
         "b": "漂亮"
+      },
+      "variant": "zh",
+      "flagMetadata": {
+        "allocationKey": "allocation-test",
+        "variationType": "object",
+        "doLog": true
       }
     }
   },
@@ -48,6 +66,12 @@
       "value": {
         "a": "🤗",
         "b": "🌸"
+      },
+      "variant": "emoji",
+      "flagMetadata": {
+        "allocationKey": "allocation-test",
+        "variationType": "object",
+        "doLog": true
       }
     }
   }

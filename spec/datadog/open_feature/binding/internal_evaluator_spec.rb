@@ -26,7 +26,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         config = evaluator.instance_variable_get(:@parsed_config)
         
         expect(config).to be_a(Datadog::OpenFeature::Binding::ResolutionDetails)
-        expect(config.error_code).to eq(:parse_error)
+        expect(config.error_code).to eq('CONFIGURATION_PARSE_ERROR')
       end
 
       it 'stores configuration missing error for empty JSON' do
@@ -34,7 +34,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         config = evaluator.instance_variable_get(:@parsed_config)
         
         expect(config).to be_a(Datadog::OpenFeature::Binding::ResolutionDetails)
-        expect(config.error_code).to eq(:provider_not_ready)
+        expect(config.error_code).to eq('CONFIGURATION_MISSING')
       end
     end
   end
@@ -48,7 +48,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'returns the initialization error' do
         result = bad_evaluator.get_assignment('any_flag', {}, :string)
         
-        expect(result.error_code).to eq(:parse_error)
+        expect(result.error_code).to eq('CONFIGURATION_PARSE_ERROR')
         expect(result.error_message).to eq('failed to parse configuration')
         expect(result.value).to be_nil
         expect(result.variant).to be_nil
@@ -61,7 +61,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'returns TYPE_MISMATCH when types do not match' do
         result = evaluator.get_assignment('numeric_flag', {}, :boolean)
         
-        expect(result.error_code).to eq(:type_mismatch)
+        expect(result.error_code).to eq('TYPE_MISMATCH')
         expect(result.error_message).to eq('invalid flag type (expected: boolean, found: NUMERIC)')
         expect(result.value).to be_nil
         expect(result.variant).to be_nil
@@ -140,7 +140,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
     it 'uses consistent error codes matching Rust implementation' do
       # Test all error types
       flag_not_found = evaluator.get_assignment('missing', {}, :string)
-      expect(flag_not_found.error_code).to eq(:flag_not_found)
+      expect(flag_not_found.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
       expect(flag_not_found.value).to be_nil
       expect(flag_not_found.variant).to be_nil
       expect(flag_not_found.flag_metadata).to eq({})
@@ -154,7 +154,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       expect(flag_disabled.flag_metadata).to eq({})
 
       type_mismatch = evaluator.get_assignment('numeric_flag', {}, :boolean)
-      expect(type_mismatch.error_code).to eq(:type_mismatch)
+      expect(type_mismatch.error_code).to eq('TYPE_MISMATCH')
       expect(type_mismatch.value).to be_nil
       expect(type_mismatch.variant).to be_nil
       expect(type_mismatch.flag_metadata).to eq({})
@@ -211,12 +211,37 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
             
             # Wrap expectations in aggregate_failures for better error reporting
             aggregate_failures "Test case ##{index + 1}: #{targeting_key} with #{attributes.keys.join(', ')}" do
-              # Our internal evaluator returns nil for error cases (disabled flags, missing flags, etc.)
-              # The provider layer handles returning default values
-              # Only successful evaluations with variant + flagMetadata return actual values
+              # Check if test case has detailed expected results (variant and flagMetadata)
+              has_detailed_expectations = expected_result.key?('variant') && expected_result.key?('flagMetadata')
               
-              if result.error_code.nil? && !result.variant.nil?
-                # Case 1: Successful evaluation with result
+              if has_detailed_expectations
+                # Successful evaluation with detailed expectations from test case
+                expect(result.value).to eq(expected_result['value']), 
+                  "Expected value #{expected_result['value'].inspect}, got #{result.value.inspect}"
+                expect(result.variant).to eq(expected_result['variant']),
+                  "Expected variant #{expected_result['variant'].inspect}, got #{result.variant.inspect}"
+                expect(result.error_code).to be_nil,
+                  "Expected nil error code for successful evaluation, got #{result.error_code.inspect}"
+                expect(result.error_message).to be_nil,
+                  "Expected nil error message for successful evaluation, got #{result.error_message.inspect}"
+                expect(['STATIC', 'TARGETING_MATCH', 'SPLIT']).to include(result.reason),
+                  "Expected success reason (static/targeting_match/split), got #{result.reason.inspect}"
+                  
+                # Validate specific flag metadata values from test case
+                expected_flag_metadata = expected_result['flagMetadata']
+                expect(result.flag_metadata['allocationKey']).to eq(expected_flag_metadata['allocationKey']),
+                  "Expected allocationKey #{expected_flag_metadata['allocationKey'].inspect}, got #{result.flag_metadata['allocationKey'].inspect}"
+                expect(result.flag_metadata['variationType']).to eq(expected_flag_metadata['variationType']),
+                  "Expected variationType #{expected_flag_metadata['variationType'].inspect}, got #{result.flag_metadata['variationType'].inspect}"
+                expect(result.flag_metadata['doLog']).to eq(expected_flag_metadata['doLog']),
+                  "Expected doLog #{expected_flag_metadata['doLog'].inspect}, got #{result.flag_metadata['doLog'].inspect}"
+                expect(result.allocation_key).to eq(expected_flag_metadata['allocationKey']),
+                  "Expected allocation_key #{expected_flag_metadata['allocationKey'].inspect}, got #{result.allocation_key.inspect}"
+                expect(result.do_log).to eq(expected_flag_metadata['doLog']),
+                  "Expected do_log #{expected_flag_metadata['doLog'].inspect}, got #{result.do_log.inspect}"
+                  
+              elsif result.error_code.nil? && !result.variant.nil?
+                # Successful evaluation without detailed expectations (fallback to structural validation)
                 expect(result.value).to eq(expected_result['value']), 
                   "Expected value #{expected_result['value'].inspect}, got #{result.value.inspect}"
                 expect(result.variant).not_to be_nil,
@@ -228,7 +253,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                 expect(['STATIC', 'TARGETING_MATCH', 'SPLIT']).to include(result.reason),
                   "Expected success reason (static/targeting_match/split), got #{result.reason.inspect}"
                   
-                # Validate flag metadata structure
+                # Validate flag metadata structure exists
                 expect(result.flag_metadata).not_to be_empty,
                   "Expected flag metadata for successful evaluation, got #{result.flag_metadata.inspect}"
                 expect(result.flag_metadata).to have_key('allocationKey'),
@@ -243,7 +268,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected boolean do_log value, got #{result.do_log.inspect}"
                   
               elsif result.error_code.nil? && result.variant.nil?
-                # Case 3: No results (disabled/default) - not an error but no allocation matched
+                # No allocation matched (disabled flag or no matching rules) - internal evaluator returns nil
                 expect(result.value).to be_nil,
                   "Expected nil value for disabled/default case, got #{result.value.inspect}"
                 expect(result.variant).to be_nil,
@@ -262,7 +287,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected false do_log for disabled/default case, got #{result.do_log.inspect}"
                   
               else
-                # Case 2: Evaluation error
+                # Evaluation error occurred
                 expect(result.value).to be_nil,
                   "Expected nil value for error case, got #{result.value.inspect}"
                 expect(result.variant).to be_nil,

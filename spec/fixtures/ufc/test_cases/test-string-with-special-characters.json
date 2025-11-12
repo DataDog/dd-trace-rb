@@ -8,7 +8,13 @@
       "string_with_spaces": true
     },
     "result": {
-      "value": " a b c d e f "
+      "value": " a b c d e f ",
+      "variant": "string_with_spaces",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_spaces",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -20,7 +26,13 @@
       "string_with_only_one_space": true
     },
     "result": {
-      "value": " "
+      "value": " ",
+      "variant": "string_with_only_one_space",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_space",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -32,7 +44,13 @@
       "string_with_only_multiple_spaces": true
     },
     "result": {
-      "value": "       "
+      "value": "       ",
+      "variant": "string_with_only_multiple_spaces",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_spaces",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -44,7 +62,13 @@
       "string_with_dots": true
     },
     "result": {
-      "value": ".a.b.c.d.e.f."
+      "value": ".a.b.c.d.e.f.",
+      "variant": "string_with_dots",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_dots",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -56,7 +80,13 @@
       "string_with_only_one_dot": true
     },
     "result": {
-      "value": "."
+      "value": ".",
+      "variant": "string_with_only_one_dot",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_dot",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -68,7 +98,13 @@
       "string_with_only_multiple_dots": true
     },
     "result": {
-      "value": "......."
+      "value": ".......",
+      "variant": "string_with_only_multiple_dots",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_dots",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -80,7 +116,13 @@
       "string_with_comas": true
     },
     "result": {
-      "value": ",a,b,c,d,e,f,"
+      "value": ",a,b,c,d,e,f,",
+      "variant": "string_with_comas",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_comas",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -92,7 +134,13 @@
       "string_with_only_one_coma": true
     },
     "result": {
-      "value": ","
+      "value": ",",
+      "variant": "string_with_only_one_coma",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_coma",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -104,7 +152,13 @@
       "string_with_only_multiple_comas": true
     },
     "result": {
-      "value": ",,,,,,,"
+      "value": ",,,,,,,",
+      "variant": "string_with_only_multiple_comas",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_comas",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -116,7 +170,13 @@
       "string_with_colons": true
     },
     "result": {
-      "value": ":a:b:c:d:e:f:"
+      "value": ":a:b:c:d:e:f:",
+      "variant": "string_with_colons",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_colons",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -128,7 +188,13 @@
       "string_with_only_one_colon": true
     },
     "result": {
-      "value": ":"
+      "value": ":",
+      "variant": "string_with_only_one_colon",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_colon",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -140,7 +206,13 @@
       "string_with_only_multiple_colons": true
     },
     "result": {
-      "value": ":::::::"
+      "value": ":::::::",
+      "variant": "string_with_only_multiple_colons",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_colons",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -152,7 +224,13 @@
       "string_with_semicolons": true
     },
     "result": {
-      "value": ";a;b;c;d;e;f;"
+      "value": ";a;b;c;d;e;f;",
+      "variant": "string_with_semicolons",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_semicolons",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -164,7 +242,13 @@
       "string_with_only_one_semicolon": true
     },
     "result": {
-      "value": ";"
+      "value": ";",
+      "variant": "string_with_only_one_semicolon",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_semicolon",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -176,7 +260,13 @@
       "string_with_only_multiple_semicolons": true
     },
     "result": {
-      "value": ";;;;;;;"
+      "value": ";;;;;;;",
+      "variant": "string_with_only_multiple_semicolons",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_semicolons",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -188,7 +278,13 @@
       "string_with_slashes": true
     },
     "result": {
-      "value": "/a/b/c/d/e/f/"
+      "value": "/a/b/c/d/e/f/",
+      "variant": "string_with_slashes",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_slashes",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -200,7 +296,13 @@
       "string_with_only_one_slash": true
     },
     "result": {
-      "value": "/"
+      "value": "/",
+      "variant": "string_with_only_one_slash",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_slash",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -212,7 +314,13 @@
       "string_with_only_multiple_slashes": true
     },
     "result": {
-      "value": "///////"
+      "value": "///////",
+      "variant": "string_with_only_multiple_slashes",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_slashes",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -224,7 +332,13 @@
       "string_with_dashes": true
     },
     "result": {
-      "value": "-a-b-c-d-e-f-"
+      "value": "-a-b-c-d-e-f-",
+      "variant": "string_with_dashes",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_dashes",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -236,7 +350,13 @@
       "string_with_only_one_dash": true
     },
     "result": {
-      "value": "-"
+      "value": "-",
+      "variant": "string_with_only_one_dash",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_dash",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -248,7 +368,13 @@
       "string_with_only_multiple_dashes": true
     },
     "result": {
-      "value": "-------"
+      "value": "-------",
+      "variant": "string_with_only_multiple_dashes",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_dashes",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -260,7 +386,13 @@
       "string_with_underscores": true
     },
     "result": {
-      "value": "_a_b_c_d_e_f_"
+      "value": "_a_b_c_d_e_f_",
+      "variant": "string_with_underscores",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_underscores",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -272,7 +404,13 @@
       "string_with_only_one_underscore": true
     },
     "result": {
-      "value": "_"
+      "value": "_",
+      "variant": "string_with_only_one_underscore",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_underscore",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -284,7 +422,13 @@
       "string_with_only_multiple_underscores": true
     },
     "result": {
-      "value": "_______"
+      "value": "_______",
+      "variant": "string_with_only_multiple_underscores",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_underscores",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -296,7 +440,13 @@
       "string_with_plus_signs": true
     },
     "result": {
-      "value": "+a+b+c+d+e+f+"
+      "value": "+a+b+c+d+e+f+",
+      "variant": "string_with_plus_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_plus_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -308,7 +458,13 @@
       "string_with_only_one_plus_sign": true
     },
     "result": {
-      "value": "+"
+      "value": "+",
+      "variant": "string_with_only_one_plus_sign",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_plus_sign",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -320,7 +476,13 @@
       "string_with_only_multiple_plus_signs": true
     },
     "result": {
-      "value": "+++++++"
+      "value": "+++++++",
+      "variant": "string_with_only_multiple_plus_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_plus_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -332,7 +494,13 @@
       "string_with_equal_signs": true
     },
     "result": {
-      "value": "=a=b=c=d=e=f="
+      "value": "=a=b=c=d=e=f=",
+      "variant": "string_with_equal_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_equal_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -344,7 +512,13 @@
       "string_with_only_one_equal_sign": true
     },
     "result": {
-      "value": "="
+      "value": "=",
+      "variant": "string_with_only_one_equal_sign",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_equal_sign",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -356,7 +530,13 @@
       "string_with_only_multiple_equal_signs": true
     },
     "result": {
-      "value": "======="
+      "value": "=======",
+      "variant": "string_with_only_multiple_equal_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_equal_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -368,7 +548,13 @@
       "string_with_dollar_signs": true
     },
     "result": {
-      "value": "$a$b$c$d$e$f$"
+      "value": "$a$b$c$d$e$f$",
+      "variant": "string_with_dollar_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_dollar_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -380,7 +566,13 @@
       "string_with_only_one_dollar_sign": true
     },
     "result": {
-      "value": "$"
+      "value": "$",
+      "variant": "string_with_only_one_dollar_sign",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_dollar_sign",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -392,7 +584,13 @@
       "string_with_only_multiple_dollar_signs": true
     },
     "result": {
-      "value": "$$$$$$$"
+      "value": "$$$$$$$",
+      "variant": "string_with_only_multiple_dollar_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_dollar_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -404,7 +602,13 @@
       "string_with_at_signs": true
     },
     "result": {
-      "value": "@a@b@c@d@e@f@"
+      "value": "@a@b@c@d@e@f@",
+      "variant": "string_with_at_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_at_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -416,7 +620,13 @@
       "string_with_only_one_at_sign": true
     },
     "result": {
-      "value": "@"
+      "value": "@",
+      "variant": "string_with_only_one_at_sign",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_at_sign",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -428,7 +638,13 @@
       "string_with_only_multiple_at_signs": true
     },
     "result": {
-      "value": "@@@@@@@"
+      "value": "@@@@@@@",
+      "variant": "string_with_only_multiple_at_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_at_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -440,7 +656,13 @@
       "string_with_amp_signs": true
     },
     "result": {
-      "value": "&a&b&c&d&e&f&"
+      "value": "&a&b&c&d&e&f&",
+      "variant": "string_with_amp_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_amp_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -452,7 +674,13 @@
       "string_with_only_one_amp_sign": true
     },
     "result": {
-      "value": "&"
+      "value": "&",
+      "variant": "string_with_only_one_amp_sign",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_amp_sign",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -464,7 +692,13 @@
       "string_with_only_multiple_amp_signs": true
     },
     "result": {
-      "value": "&&&&&&&"
+      "value": "&&&&&&&",
+      "variant": "string_with_only_multiple_amp_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_amp_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -476,7 +710,13 @@
       "string_with_hash_signs": true
     },
     "result": {
-      "value": "#a#b#c#d#e#f#"
+      "value": "#a#b#c#d#e#f#",
+      "variant": "string_with_hash_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_hash_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -488,7 +728,13 @@
       "string_with_only_one_hash_sign": true
     },
     "result": {
-      "value": "#"
+      "value": "#",
+      "variant": "string_with_only_one_hash_sign",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_hash_sign",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -500,7 +746,13 @@
       "string_with_only_multiple_hash_signs": true
     },
     "result": {
-      "value": "#######"
+      "value": "#######",
+      "variant": "string_with_only_multiple_hash_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_hash_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -512,7 +764,13 @@
       "string_with_percentage_signs": true
     },
     "result": {
-      "value": "%a%b%c%d%e%f%"
+      "value": "%a%b%c%d%e%f%",
+      "variant": "string_with_percentage_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_percentage_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -524,7 +782,13 @@
       "string_with_only_one_percentage_sign": true
     },
     "result": {
-      "value": "%"
+      "value": "%",
+      "variant": "string_with_only_one_percentage_sign",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_percentage_sign",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -536,7 +800,13 @@
       "string_with_only_multiple_percentage_signs": true
     },
     "result": {
-      "value": "%%%%%%%"
+      "value": "%%%%%%%",
+      "variant": "string_with_only_multiple_percentage_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_percentage_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -548,7 +818,13 @@
       "string_with_tilde_signs": true
     },
     "result": {
-      "value": "~a~b~c~d~e~f~"
+      "value": "~a~b~c~d~e~f~",
+      "variant": "string_with_tilde_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_tilde_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -560,7 +836,13 @@
       "string_with_only_one_tilde_sign": true
     },
     "result": {
-      "value": "~"
+      "value": "~",
+      "variant": "string_with_only_one_tilde_sign",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_tilde_sign",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -572,7 +854,13 @@
       "string_with_only_multiple_tilde_signs": true
     },
     "result": {
-      "value": "~~~~~~~"
+      "value": "~~~~~~~",
+      "variant": "string_with_only_multiple_tilde_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_tilde_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -584,7 +872,13 @@
       "string_with_asterix_signs": true
     },
     "result": {
-      "value": "*a*b*c*d*e*f*"
+      "value": "*a*b*c*d*e*f*",
+      "variant": "string_with_asterix_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_asterix_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -596,7 +890,13 @@
       "string_with_only_one_asterix_sign": true
     },
     "result": {
-      "value": "*"
+      "value": "*",
+      "variant": "string_with_only_one_asterix_sign",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_asterix_sign",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -608,7 +908,13 @@
       "string_with_only_multiple_asterix_signs": true
     },
     "result": {
-      "value": "*******"
+      "value": "*******",
+      "variant": "string_with_only_multiple_asterix_signs",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_asterix_signs",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -620,7 +926,13 @@
       "string_with_single_quotes": true
     },
     "result": {
-      "value": "'a'b'c'd'e'f'"
+      "value": "'a'b'c'd'e'f'",
+      "variant": "string_with_single_quotes",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_single_quotes",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -632,7 +944,13 @@
       "string_with_only_one_single_quote": true
     },
     "result": {
-      "value": "'"
+      "value": "'",
+      "variant": "string_with_only_one_single_quote",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_single_quote",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -644,7 +962,13 @@
       "string_with_only_multiple_single_quotes": true
     },
     "result": {
-      "value": "'''''''"
+      "value": "'''''''",
+      "variant": "string_with_only_multiple_single_quotes",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_single_quotes",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -656,7 +980,13 @@
       "string_with_question_marks": true
     },
     "result": {
-      "value": "?a?b?c?d?e?f?"
+      "value": "?a?b?c?d?e?f?",
+      "variant": "string_with_question_marks",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_question_marks",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -668,7 +998,13 @@
       "string_with_only_one_question_mark": true
     },
     "result": {
-      "value": "?"
+      "value": "?",
+      "variant": "string_with_only_one_question_mark",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_question_mark",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -680,7 +1016,13 @@
       "string_with_only_multiple_question_marks": true
     },
     "result": {
-      "value": "???????"
+      "value": "???????",
+      "variant": "string_with_only_multiple_question_marks",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_question_marks",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -692,7 +1034,13 @@
       "string_with_exclamation_marks": true
     },
     "result": {
-      "value": "!a!b!c!d!e!f!"
+      "value": "!a!b!c!d!e!f!",
+      "variant": "string_with_exclamation_marks",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_exclamation_marks",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -704,7 +1052,13 @@
       "string_with_only_one_exclamation_mark": true
     },
     "result": {
-      "value": "!"
+      "value": "!",
+      "variant": "string_with_only_one_exclamation_mark",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_exclamation_mark",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -716,7 +1070,13 @@
       "string_with_only_multiple_exclamation_marks": true
     },
     "result": {
-      "value": "!!!!!!!"
+      "value": "!!!!!!!",
+      "variant": "string_with_only_multiple_exclamation_marks",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_exclamation_marks",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -728,7 +1088,13 @@
       "string_with_opening_parentheses": true
     },
     "result": {
-      "value": "(a(b(c(d(e(f("
+      "value": "(a(b(c(d(e(f(",
+      "variant": "string_with_opening_parentheses",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_opening_parentheses",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -740,7 +1106,13 @@
       "string_with_only_one_opening_parenthese": true
     },
     "result": {
-      "value": "("
+      "value": "(",
+      "variant": "string_with_only_one_opening_parenthese",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_opening_parenthese",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -752,7 +1124,13 @@
       "string_with_only_multiple_opening_parentheses": true
     },
     "result": {
-      "value": "((((((("
+      "value": "(((((((",
+      "variant": "string_with_only_multiple_opening_parentheses",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_opening_parentheses",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -764,7 +1142,13 @@
       "string_with_closing_parentheses": true
     },
     "result": {
-      "value": ")a)b)c)d)e)f)"
+      "value": ")a)b)c)d)e)f)",
+      "variant": "string_with_closing_parentheses",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_closing_parentheses",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -776,7 +1160,13 @@
       "string_with_only_one_closing_parenthese": true
     },
     "result": {
-      "value": ")"
+      "value": ")",
+      "variant": "string_with_only_one_closing_parenthese",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_one_closing_parenthese",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -788,7 +1178,13 @@
       "string_with_only_multiple_closing_parentheses": true
     },
     "result": {
-      "value": ")))))))"
+      "value": ")))))))",
+      "variant": "string_with_only_multiple_closing_parentheses",
+      "flagMetadata": {
+        "allocationKey": "allocation-test-string_with_only_multiple_closing_parentheses",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   }
 ]

@@ -9,7 +9,13 @@
       "country": "US"
     },
     "result": {
-      "value": "current"
+      "value": "current",
+      "variant": "current",
+      "flagMetadata": {
+        "allocationKey": "current-versions",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -22,7 +28,13 @@
       "country": "Canada"
     },
     "result": {
-      "value": "current"
+      "value": "current",
+      "variant": "current",
+      "flagMetadata": {
+        "allocationKey": "current-versions",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -34,7 +46,13 @@
       "version": "2.1.13"
     },
     "result": {
-      "value": "current"
+      "value": "current",
+      "variant": "current",
+      "flagMetadata": {
+        "allocationKey": "current-versions",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   }
 ]

@@ -9,7 +9,13 @@
       "email": "alice@example.com"
     },
     "result": {
-      "value": "partial-example"
+      "value": "partial-example",
+      "variant": "partial-example",
+      "flagMetadata": {
+        "allocationKey": "partial-example",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
@@ -22,7 +28,13 @@
       "email": "bob@test.com"
     },
     "result": {
-      "value": "test"
+      "value": "test",
+      "variant": "test",
+      "flagMetadata": {
+        "allocationKey": "test",
+        "variationType": "string",
+        "doLog": true
+      }
     }
   },
   {
