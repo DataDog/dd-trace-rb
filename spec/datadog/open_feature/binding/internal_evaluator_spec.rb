@@ -72,7 +72,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         result = evaluator.get_assignment('numeric_flag', {}, :float)
         
         expect(result.error_code).to be_nil  # nil for successful allocation match
-        expect(result.error_message).to eq('')  # Empty string for success cases
+        expect(result.error_message).to be_nil  # nil for successful cases
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
@@ -84,7 +84,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         result = evaluator.get_assignment('numeric_flag', {}, nil)
         
         expect(result.error_code).to be_nil  # nil for successful allocation match
-        expect(result.error_message).to eq('')  # Empty string for success cases
+        expect(result.error_message).to be_nil  # nil for successful cases
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
@@ -146,8 +146,9 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       expect(flag_not_found.flag_metadata).to eq({})
 
       flag_disabled = evaluator.get_assignment('disabled_flag', {}, :integer)
-      expect(flag_disabled.error_code).to eq(:ok)  # Disabled flags return :ok (matches Rust ErrorCode::Ok)
-      expect(flag_disabled.error_message).to eq('')  # Empty string for Ok cases
+      expect(flag_disabled.error_code).to be_nil  # Disabled flags are successful cases with nil error_code
+      expect(flag_disabled.error_message).to be_nil  # nil for successful disabled cases
+      expect(flag_disabled.reason).to eq('DISABLED')  # Disabled reason
       expect(flag_disabled.value).to be_nil
       expect(flag_disabled.variant).to be_nil
       expect(flag_disabled.flag_metadata).to eq({})

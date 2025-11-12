@@ -46,6 +46,7 @@ RSpec.describe Datadog::OpenFeature do
           c.remote.enabled = true
           c.open_feature.enabled = true
         end
+
         example.run
       ensure
         Datadog.configuration.reset!
