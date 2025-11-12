@@ -12,7 +12,7 @@ module Datadog
 
       ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
-      def initialize(reporter, telemetry:, logger: Datadog.logger)
+      def initialize(reporter, telemetry:, logger:)
         @reporter = reporter
         @telemetry = telemetry
         @logger = logger
