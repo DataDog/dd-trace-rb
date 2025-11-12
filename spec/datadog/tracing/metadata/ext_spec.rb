@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Metadata::Ext::HTTP::Headers do
     context 'with supported special characters' do
       let(:tag) { '_-:/' }
 
-      it 'preserves them' do
+      it 'normalizes them to an empty string' do
         is_expected.to eq("")
       end
     end
