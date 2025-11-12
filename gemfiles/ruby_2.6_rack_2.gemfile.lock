@@ -4,7 +4,7 @@ PATH
     datadog (2.23.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 23.0.0.1.0)
-      libddwaf (~> 1.25.1.1.0)
+      libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
 
@@ -34,9 +34,9 @@ GEM
       addressable (>= 2.4)
     libdatadog (23.0.0.1.0-aarch64-linux)
     libdatadog (23.0.0.1.0-x86_64-linux)
-    libddwaf (1.25.1.1.0-aarch64-linux)
+    libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.25.1.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
@@ -46,7 +46,7 @@ GEM
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
-    rack (2.2.18)
+    rack (2.2.21)
     rack-contrib (2.3.0)
       rack (~> 2.0)
     rack-test (2.1.0)

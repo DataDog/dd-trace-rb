@@ -18,11 +18,8 @@ jobs:
       matrix:
         platform:
           - os: darwin
-            cpu: x86_64
-            base: macos-13 # always x86_64-darwin
-          - os: darwin
             cpu: arm64
-            base: macos-14 # always arm64-darwin
+            base: macos-15 # always arm64-darwin
           - os: linux
             cpu: x86_64
             base: ubuntu-24.04 # always x86_64-linux-gnu

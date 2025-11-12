@@ -37,31 +37,31 @@ jobs:
         engine:
           # ADD NEW RUBIES HERE
           - name: ruby
-            version: '3.5'
+            version: "3.5"
           - name: ruby
-            version: '3.4'
+            version: "3.4"
           - name: ruby
-            version: '3.3'
+            version: "3.3"
           - name: ruby
-            version: '3.2'
+            version: "3.2"
           - name: ruby
-            version: '3.1'
+            version: "3.1"
           - name: ruby
-            version: '3.0'
+            version: "3.0"
           - name: ruby
-            version: '2.7'
+            version: "2.7"
           - name: ruby
-            version: '2.6'
+            version: "2.6"
           - name: ruby
-            version: '2.5'
+            version: "2.5"
           - name: jruby
-            version: '9.4'
+            version: "9.4"
           - name: jruby
-            version: '9.3'
+            version: "9.3"
           - name: jruby
-            version: '9.2'
+            version: "9.2"
           - name: jruby
-            version: '10.0'
+            version: "10.0"
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc
       env:
@@ -103,13 +103,17 @@ jobs:
           path: gemfiles
           pattern: lock-dependency-${{ github.run_id }}-*
           merge-multiple: true
-      - run: git diff --color=always
+      # FIXME: The ghcommit-action does not pick up untracked/unstaged files
+      #        https://github.com/planetscale/ghcommit-action/issues/43
+      - name: Stage changes
+        run: git add gemfiles
+      - run: git diff --cached --color=always
       - name: Commit changes
         uses: planetscale/ghcommit-action@f24050e41f8694750427d111b52f4ef9ca81a32d # v0.2.18
         with:
           repo: ${{ github.repository }}
           branch: ${{ github.head_ref }}
-          file_pattern: 'gemfiles/*'
+          file_pattern: "gemfiles/*"
           commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
