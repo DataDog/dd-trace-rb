@@ -4,13 +4,12 @@ module Datadog
   module OpenFeature
     module Binding
       # Assignment reasons returned in ResolutionDetails
-      # Aligned with libdatadog FFI Reason enum
       module AssignmentReason
         TARGETING_MATCH = 'TARGETING_MATCH'
         SPLIT = 'SPLIT'
         STATIC = 'STATIC'
-        DEFAULT = 'DEFAULT'      # For DefaultAllocationNull cases (matches libdatadog FFI Reason::Default)
-        DISABLED = 'DISABLED'    # For FlagDisabled cases  
+        DEFAULT = 'DEFAULT'
+        DISABLED = 'DISABLED'
         ERROR = 'ERROR'
       end
     end

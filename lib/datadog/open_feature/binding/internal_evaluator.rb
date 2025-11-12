@@ -22,13 +22,12 @@ module Datadog
       end
 
 
-      # Internal evaluator for UFC (Universal Flag Configuration) format.
-      # UFC is a flexible format for representing feature flag targeting rules
-      # using splits with shard ranges and salts, accommodating most targeting use cases.
+      # Internal evaluator for feature flag configuration.
+      # Evaluates flags using targeting rules with splits, shard ranges, and salts.
       class InternalEvaluator
 
 
-        # Variation type mapping to libdatadog format
+        # Variation type mapping from flag configuration to output format
         VARIATION_TYPE_MAPPING = {
           'STRING' => 'string',
           'INTEGER' => 'number', 
@@ -37,8 +36,8 @@ module Datadog
           'JSON' => 'object'
         }.freeze
         
-        # Initialize evaluator with UFC (Universal Flag Configuration) JSON string.
-        # @param ufc_json [String] JSON string containing feature flag configuration in UFC format
+        # Initialize evaluator with feature flag configuration JSON.
+        # @param ufc_json [String] JSON string containing feature flag configuration
         def initialize(ufc_json)
           @ufc_json = ufc_json
           @parsed_config = parse_and_validate_json(ufc_json)
@@ -56,18 +55,18 @@ module Datadog
           # Look up the flag
           flag = @parsed_config.get_flag(flag_key)
           
-          # Return error result if flag not found - using Rust naming convention
+          # Return error result if flag not found
           unless flag
             return create_evaluation_error(ErrorCodes::FLAG_UNRECOGNIZED_OR_DISABLED, 
               "flag is missing in configuration, it is either unrecognized or disabled")
           end
 
-          # Return success result with nil value if flag is disabled
+          # Return no-result if flag is disabled
           unless flag.enabled
             return create_evaluation_no_result(AssignmentReason::DISABLED)
           end
 
-          # Validate type compatibility if expected_type is provided - using Rust message format
+          # Validate type compatibility if expected_type is provided
           if expected_type && !type_matches?(flag.variation_type, expected_type)
             return create_evaluation_error(ErrorCodes::TYPE_MISMATCH_ERROR, 
               "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})")
@@ -92,7 +91,7 @@ module Datadog
               reason
             )
           rescue EvaluationError => e
-            # Convert evaluation errors to ResolutionDetails - matches Rust error propagation
+            # Convert evaluation errors to ResolutionDetails
             create_evaluation_error(e.code, e.message)
           end
         end
@@ -102,7 +101,6 @@ module Datadog
         def parse_and_validate_json(ufc_json)
           # Handle nil or empty input
           if ufc_json.nil? || ufc_json.strip.empty?
-            # TODO: Add structured logging for debugging context
             return create_parse_error(ErrorCodes::CONFIGURATION_MISSING, 'flags configuration is missing')
           end
 
@@ -111,23 +109,19 @@ module Datadog
 
           # Basic structure validation
           unless parsed_json.is_a?(Hash)
-            # TODO: Add structured logging for debugging context
             return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
           # Check for flags at root level
           unless parsed_json.key?('flags')
-            # TODO: Add structured logging for debugging context
             return create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
           end
 
           # Parse into Configuration object
           Configuration.from_hash(parsed_json)
         rescue JSON::ParserError => e
-          # TODO: Add structured logging: "Invalid JSON syntax: #{e.message}"
           create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
         rescue StandardError => e
-          # TODO: Add structured logging: "Unexpected error: #{e.message}"
           create_parse_error(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
         end
 
@@ -185,7 +179,7 @@ module Datadog
         end
 
         def type_matches?(flag_variation_type, expected_type)
-          # Map Ruby expected types to UFC variation types
+          # Map Ruby expected types to flag variation types
           case expected_type
           when :boolean then flag_variation_type == VariationType::BOOLEAN
           when :string then flag_variation_type == VariationType::STRING
@@ -344,7 +338,7 @@ module Datadog
         def evaluate_membership(attribute_value, condition_values, expected_membership)
           return false if attribute_value.nil?
           
-          # NOT_ONE_OF fails when attribute is missing (matches Rust behavior)
+          # NOT_ONE_OF fails when attribute is missing
           return false if !expected_membership && attribute_value.nil?
           
           # Ensure condition_values is an array
@@ -462,7 +456,7 @@ module Datadog
         end
 
         def shard_matches?(shard, targeting_key)
-          # Compute shard hash using MD5 algorithm matching Rust implementation
+          # Compute shard hash using MD5 algorithm
           shard_value = compute_shard_hash(shard.salt, targeting_key, shard.total_shards)
           
           # Check if shard value falls within any of the ranges
