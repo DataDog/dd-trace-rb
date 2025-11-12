@@ -24,6 +24,7 @@ RSpec.describe Datadog::DataStreams::Processor do
 
   after do
     processor.stop(true)
+    processor.join
   end
 
   before do
