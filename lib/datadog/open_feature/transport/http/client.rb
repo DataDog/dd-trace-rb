@@ -11,7 +11,7 @@ module Datadog
         class Client
           attr_reader :api, :logger
 
-          def initialize(api, logger: Datadog.logger)
+          def initialize(api, logger:)
             @api = api
             @logger = logger
           end
@@ -24,7 +24,7 @@ module Datadog
             message = "Internal error during request. Cause: #{e.class.name} #{e.message} " \
               "Location: #{Array(e.backtrace).first}"
 
-            logger.debug(message)
+            @logger.debug(message)
 
             Datadog::Core::Transport::InternalErrorResponse.new(e)
           end

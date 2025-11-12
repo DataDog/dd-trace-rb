@@ -4,7 +4,9 @@ require 'spec_helper'
 require 'datadog/open_feature/exposures/reporter'
 
 RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
-  before { allow(Datadog::OpenFeature::Exposures::Deduplicator).to receive(:new).and_return(deduplicator) }
+  before do
+    allow(Datadog::OpenFeature::Exposures::Deduplicator).to receive(:new).and_return(deduplicator)
+  end
 
   subject(:reporter) { described_class.new(worker, telemetry: telemetry, logger: logger) }
 
@@ -55,30 +57,27 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
     context 'when worker enqueue fails' do
       before do
         allow(deduplicator).to receive(:duplicate?).and_return(false)
-        allow(worker).to receive(:enqueue).and_raise(StandardError, 'boom')
+        allow(worker).to receive(:enqueue).and_raise(error)
       end
 
+      let(:error) { StandardError.new('Oops') }
+
       it 'returns false and logs debug message' do
-        expect_lazy_log(logger, :debug, /OpenFeature: Failed to report resolution details: StandardError: boom/)
+        expect(telemetry).to receive(:report).with(error, description: /Failed to report resolution details/)
+        expect_lazy_log(logger, :debug, /Failed to report resolution details: StandardError: Oops/)
         expect(reporter.report(result, flag_key: 'feature_flag', context: context)).to be(false)
       end
     end
 
     context 'when event should not be reported' do
       let(:result) do
-        {
-          'flag' => 'feature_flag',
-          'targetingKey' => 'john-doe',
-          'result' => {
-            'value' => 4,
-            'variant' => '4',
-            'flagMetadata' => {
-              'allocationKey' => '4-for-john-doe',
-              'variationType' => 'number',
-              'doLog' => false
-            }
-          }
-        }
+        Datadog::OpenFeature::ResolutionDetails.new(
+          value: 4,
+          allocation_key: '4-for-john-doe',
+          flag_metadata: {},
+          log?: false,
+          error?: true
+        )
       end
 
       it 'skips enqueueing exposure' do

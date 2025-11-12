@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'zlib'
 require_relative '../../core/utils/lru_cache'
 
 module Datadog
@@ -15,24 +14,15 @@ module Datadog
           @mutex = Mutex.new
         end
 
-        def duplicate?(event)
-          cache_key = digest(event.flag_key, event.targeting_key)
-          cache_digest = digest(event.allocation_key, event.variation_key)
-
+        def duplicate?(key, value)
           @mutex.synchronize do
-            stored = @cache[cache_key]
-            return true if stored == cache_digest
+            stored = @cache[key]
+            return true if stored == value
 
-            @cache[cache_key] = cache_digest
+            @cache[key] = value
           end
 
           false
-        end
-
-        private
-
-        def digest(left, right)
-          Zlib.crc32("#{left}:#{right}")
         end
       end
     end

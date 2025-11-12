@@ -46,39 +46,12 @@ RSpec.describe Datadog::OpenFeature::Component do
           expect(component).to be_nil
         end
       end
-
-      context 'when exception happens during initialization' do
-        before do
-          settings.remote.enabled = true
-          allow(Datadog::OpenFeature::EvaluationEngine).to receive(:new).and_raise('Error!')
-        end
-
-        it 'logs warning and disables the component' do
-          expect(Datadog.logger).to receive(:warn).with(/OpenFeature is disabled/)
-          expect(component).to be_nil
-        end
-      end
     end
 
     context 'when open_feature is not enabled' do
       before { settings.open_feature.enabled = false }
 
       it { expect(component).to be_nil }
-    end
-  end
-
-  describe '#flush' do
-    before do
-      settings.open_feature.enabled = true
-      settings.remote.enabled = true
-    end
-
-    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
-
-    it 'flushes worker' do
-      expect(worker).to receive(:flush)
-
-      component.flush
     end
   end
 

@@ -8,7 +8,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:logger) { instance_double(Datadog::Core::Logger) }
-  let(:ufc) do
+  let(:configuration) do
     <<~JSON
       {
         "data": {
@@ -42,12 +42,13 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   end
 
   describe '#fetch_value' do
-    let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string) }
+    let(:result) { engine.fetch_value(flag_key: 'test', default_value: 'fallback', expected_type: 'string') }
 
     context 'when binding evaluator is not ready' do
       it 'returns evaluation error and reports exposure' do
         expect(reporter).to receive(:report).with(kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: 'test', context: nil)
 
+        expect(result.value).to eq('fallback')
         expect(result.error_code).to eq('PROVIDER_NOT_READY')
         expect(result.error_message).to eq('Waiting for universal flag configuration')
         expect(result.reason).to eq('INITIALIZING')
@@ -56,15 +57,14 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding evaluator returns error' do
       before do
-        engine.configuration = ufc
-        engine.reconfigure!
-
+        engine.reconfigure!(configuration)
         allow_any_instance_of(Datadog::OpenFeature::NoopEvaluator).to receive(:get_assignment)
           .and_return(error)
       end
 
       let(:error) do
         Datadog::OpenFeature::ResolutionDetails.new(
+          value: 'something',
           error_code: 'PROVIDER_FATAL',
           error_message: 'Ooops',
           reason: 'ERROR',
@@ -78,6 +78,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       it 'returns evaluation error and reports exposure' do
         expect(reporter).to receive(:report).with(error, flag_key: 'test', context: nil)
 
+        expect(result.value).to eq('something')
         expect(result.error_code).to eq('PROVIDER_FATAL')
         expect(result.error_message).to eq('Ooops')
         expect(result.reason).to eq('ERROR')
@@ -86,9 +87,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding evaluator raises error' do
       before do
-        engine.configuration = ufc
-        engine.reconfigure!
-
+        engine.reconfigure!(configuration)
         allow(telemetry).to receive(:report)
         allow_any_instance_of(Datadog::OpenFeature::NoopEvaluator).to receive(:get_assignment)
           .and_raise(error)
@@ -99,6 +98,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       it 'returns evaluation error and does not report exposure' do
         expect(reporter).not_to receive(:report)
 
+        expect(result.value).to eq('fallback')
         expect(result.error_code).to eq('PROVIDER_FATAL')
         expect(result.error_message).to eq('Crash')
         expect(result.reason).to eq('ERROR')
@@ -106,33 +106,33 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     end
 
     context 'when expected type not in the allowed list' do
-      before do
-        engine.configuration = ufc
-        engine.reconfigure!
-      end
+      before { engine.reconfigure!(configuration) }
 
-      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :whatever) }
+      let(:result) { engine.fetch_value(flag_key: 'test', default_value: 'x', expected_type: 'whatever') }
 
       it 'returns evaluation error and does not report exposure' do
         expect(reporter).not_to receive(:report)
 
+        expect(result.value).to eq('x')
         expect(result.error_code).to eq('UNKNOWN_TYPE')
-        expect(result.error_message).to start_with('unknown type :whatever, allowed types')
+        expect(result.error_message).to start_with('unknown type "whatever", allowed types')
         expect(result.reason).to eq('ERROR')
       end
     end
 
     xcontext 'when binding evaluator returns resolution details' do
-      before do
-        engine.configuration = ufc
-        engine.reconfigure!
-      end
+      before { engine.reconfigure!(configuration) }
 
       let(:evaluation_context) { instance_double('OpenFeature::SDK::EvaluationContext') }
-      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string, evaluation_context: evaluation_context) }
+      let(:result) do
+        engine.fetch_value(
+          flag_key: 'test', default_value: 'bye!', expected_type: 'string', evaluation_context: evaluation_context
+        )
+      end
 
       it 'returns resolved value and reports exposure' do
-        expect(reporter).to receive(:report).with(kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: 'test', context: evaluation_context)
+        expect(reporter).to receive(:report)
+          .with(kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: 'test', context: evaluation_context)
 
         expect(result.value).to eq('hello')
       end
@@ -144,14 +144,13 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       it 'does nothing and logs the issue' do
         expect(logger).to receive(:debug).with(/OpenFeature: Removing configuration/)
 
-        engine.reconfigure!
+        engine.reconfigure!(nil)
       end
     end
 
     context 'when binding initialization fails with exception' do
       before do
-        engine.configuration = ufc
-        engine.reconfigure!
+        engine.reconfigure!(configuration)
 
         allow(Datadog::OpenFeature::NoopEvaluator).to receive(:new).and_raise(error)
       end
@@ -163,8 +162,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(telemetry).to receive(:report)
           .with(error, description: match(/OpenFeature: Failed to reconfigure/))
 
-        engine.configuration = '{}'
-        expect { engine.reconfigure! }.to raise_error(error)
+        expect { engine.reconfigure!('{}') }.to raise_error(described_class::ReconfigurationError, 'Ooops')
       end
 
       xit 'persists previouly configured evaluator' do
@@ -172,20 +170,15 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         allow(telemetry).to receive(:report)
         allow(reporter).to receive(:report)
 
-        engine.configuration = '{}'
-
-        expect { engine.reconfigure! }.to raise_error(error)
-        expect(engine.fetch_value(flag_key: 'test', expected_type: :string).value).to eq('hello')
+        expect { engine.reconfigure!('{}') }.to raise_error(described_class::ReconfigurationError, 'Ooops')
+        expect(engine.fetch_value(flag_key: 'test', default_value: 'bye!', expected_type: 'string').value).to eq('hello')
       end
     end
 
     context 'when binding initialization succeeds' do
-      before do
-        engine.configuration = ufc
-        engine.reconfigure!
-      end
+      before { engine.reconfigure!(configuration) }
 
-      let(:new_ufc) do
+      let(:new_configuration) do
         <<~JSON
           {
             "data": {
@@ -219,25 +212,10 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       end
 
       xit 'reconfigures binding evaluator with new flags configuration' do
-        engine.configuration = new_ufc
-
-        expect { engine.reconfigure! }.to change { engine.fetch_value(flag_key: 'test', expected_type: :string).value }
-          .from('hello').to('goodbye')
+        expect { engine.reconfigure!(new_configuration) }.to change {
+          engine.fetch_value(flag_key: 'test', default_value: 'bye!', expected_type: 'string').value
+        }.from('hello').to('goodbye')
       end
-    end
-  end
-
-  xdescribe 'Evaluation logic' do
-    describe 'boolean' do
-    end
-
-    describe 'string' do
-    end
-
-    describe 'number' do
-    end
-
-    describe 'object' do
     end
   end
 end

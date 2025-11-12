@@ -202,6 +202,9 @@ module Datadog
           # Shutdown DI after remote, since remote config triggers DI operations.
           dynamic_instrumentation&.shutdown!
 
+          # Shutdown OpenFeature component
+          open_feature&.shutdown!
+
           # Decommission AppSec
           appsec&.shutdown!
 

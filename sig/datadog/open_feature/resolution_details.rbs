@@ -33,6 +33,13 @@ module Datadog
         ?log?: bool?,
         ?error?: bool?
       ) -> instance
+
+      def self.build_error: (
+        value: untyped,
+        error_code: ::String,
+        error_message: ::String,
+        ?reason: ::String
+      ) -> instance
     end
   end
 end

@@ -8,9 +8,9 @@ module Datadog
         include Core::Workers::Async::Thread
         include Core::Workers::IntervalLoop
 
-        GRACEFUL_SHOTDOWN_EXTRA_SECONDS: ::Integer
+        GRACEFUL_SHUTDOWN_EXTRA_SECONDS: ::Integer
 
-        GRACEFUL_SHOTDOWN_WAIT_INTERVAL_SECONDS: ::Float
+        GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS: ::Float
 
         DEFAULT_FLUSH_INTERVAL_SECONDS: ::Integer
 
@@ -21,7 +21,8 @@ module Datadog
         def initialize: (
           settings: Core::Configuration::Settings,
           transport: Transport::Exposures::Transport,
-          ?logger: Core::Logger,
+          telemetry: Core::Telemetry::Component,
+          logger: Core::Logger,
           ?flush_interval_seconds: ::Integer,
           ?buffer_limit: ::Integer
         ) -> void
@@ -30,11 +31,9 @@ module Datadog
 
         def stop: (?bool, ?::Integer) -> bool
 
-        def enqueue: (Event event) -> bool
+        def enqueue: (Event::t event) -> bool
 
-        def dequeue: () -> [::Array[Event], ::Integer]
-
-        def flush: () -> void
+        def dequeue: () -> [::Array[Event::t], ::Integer]
 
         def graceful_shutdown: () -> bool
 
@@ -48,9 +47,7 @@ module Datadog
 
         def perform: (*untyped) -> void
 
-        def send_events: (::Array[Event], ::Integer) -> void
-
-        def send_payload: (::Hash[::Symbol, untyped]) -> Core::Transport::Response?
+        def send_events: (::Array[Event::t], ::Integer) -> Core::Transport::Response?
       end
     end
   end

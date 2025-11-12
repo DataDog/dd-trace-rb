@@ -1,30 +1,32 @@
 module Datadog
   module OpenFeature
     module Exposures
-      class Event
+      module Event
+        type t = ::Hash[::Symbol, untyped]
+
         ALLOWED_FIELD_TYPES: ::Array[::Class]
 
         TARGETING_KEY_FIELD: ::String
 
-        @payload: ::Hash[::Symbol, untyped]
+        def self.cache_key: (
+          ResolutionDetails result,
+          flag_key: ::String,
+          context: ::OpenFeature::SDK::EvaluationContext
+        ) -> ::String
+
+        def self.cache_value: (
+          ResolutionDetails result,
+          flag_key: ::String,
+          context: ::OpenFeature::SDK::EvaluationContext
+        ) -> ::String
 
         def self.build: (
           ResolutionDetails result,
           flag_key: ::String,
           context: ::OpenFeature::SDK::EvaluationContext
-        ) -> Event
+        ) -> t
 
-        def initialize: (::Hash[::Symbol, untyped]) -> void
-
-        def allocation_key: () -> ::String?
-
-        def flag_key: () -> ::String?
-
-        def variation_key: () -> ::String?
-
-        def targeting_key: () -> ::String?
-
-        def to_h: () -> ::Hash[::Symbol, untyped]
+        private
 
         def self.current_timestamp_ms: () -> ::Integer
 

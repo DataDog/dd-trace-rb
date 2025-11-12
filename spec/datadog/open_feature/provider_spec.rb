@@ -11,9 +11,10 @@ RSpec.describe Datadog::OpenFeature::Provider do
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
   end
 
-  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry) }
+  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:logger) { instance_double(Datadog::Core::Logger) }
 
   subject(:provider) { described_class.new }
 
@@ -31,12 +32,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     xcontext 'when engine is configured' do
       before do
-        engine.configuration = ufc
+        engine.configuration = configuration
         engine.reconfigure!
       end
 
       let(:result) { provider.fetch_boolean_value(flag_key: 'flag', default_value: false) }
-      let(:ufc) do
+      let(:configuration) do
         <<~JSON
           {
             "data": {
@@ -87,14 +88,14 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     xcontext 'when engine is configured' do
       before do
-        engine.configuration = ufc
+        engine.configuration = configuration
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_string_value(flag_key: 'flag', default_value: 'default') }
-      let(:ufc) do
+      let(:configuration) do
         <<~JSON
           {
             "data": {
@@ -145,14 +146,14 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     xcontext 'when engine is configured' do
       before do
-        engine.configuration = ufc
+        engine.configuration = configuration
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_number_value(flag_key: 'flag', default_value: 0) }
-      let(:ufc) do
+      let(:configuration) do
         <<~JSON
           {
             "data": {
@@ -203,14 +204,14 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     xcontext 'when engine is configured' do
       before do
-        engine.configuration = ufc
+        engine.configuration = configuration
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_integer_value(flag_key: 'flag', default_value: 1) }
-      let(:ufc) do
+      let(:configuration) do
         <<~JSON
           {
             "data": {
@@ -261,14 +262,14 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     xcontext 'when engine is configured' do
       before do
-        engine.configuration = ufc
+        engine.configuration = configuration
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_float_value(flag_key: 'flag', default_value: 0.0) }
-      let(:ufc) do
+      let(:configuration) do
         <<~JSON
           {
             "data": {
@@ -319,14 +320,14 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     xcontext 'when engine is configured' do
       before do
-        engine.configuration = ufc
+        engine.configuration = configuration
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_object_value(flag_key: 'flag', default_value: {'default' => true}) }
-      let(:ufc) do
+      let(:configuration) do
         <<~JSON
           {
             "data": {

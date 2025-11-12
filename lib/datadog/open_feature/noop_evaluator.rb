@@ -11,8 +11,9 @@ module Datadog
         # no-op
       end
 
-      def get_assignment(_flag_key, _evaluation_context, _expected_type)
+      def get_assignment(_flag_key, default_value, _context, _expected_type)
         ResolutionDetails.new(
+          value: default_value,
           log?: false,
           error?: true,
           error_code: Ext::PROVIDER_NOT_READY,

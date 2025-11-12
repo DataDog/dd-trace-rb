@@ -7,7 +7,7 @@ RSpec.describe Datadog::OpenFeature::NoopEvaluator do
   subject(:evaluator) { described_class.new(nil) }
 
   describe '#get_assignment' do
-    let(:result) { evaluator.get_assignment('flag', nil, :string) }
+    let(:result) { evaluator.get_assignment('flag', 'fallback', {}, 'string') }
 
     it 'returns provider not ready result' do
       expect(result).to be_error
@@ -15,6 +15,7 @@ RSpec.describe Datadog::OpenFeature::NoopEvaluator do
       expect(result.error_code).to eq('PROVIDER_NOT_READY')
       expect(result.error_message).to eq('Waiting for universal flag configuration')
       expect(result.reason).to eq('INITIALIZING')
+      expect(result.value).to eq('fallback')
     end
   end
 end

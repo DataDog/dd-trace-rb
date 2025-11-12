@@ -10,7 +10,7 @@ module Datadog
 
         @deduplicator: Deduplicator
 
-        def initialize: (Worker worker, telemetry: Core::Telemetry::Component, ?logger: Core::Logger) -> void
+        def initialize: (Worker worker, telemetry: Core::Telemetry::Component, logger: Core::Logger) -> void
 
         def report: (
           ResolutionDetails result,

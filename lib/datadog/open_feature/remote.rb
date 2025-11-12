@@ -31,23 +31,26 @@ module Datadog
               content = repository[change.path]
 
               unless content || change.type == :delete
-                next telemetry.error("OpenFeature: RemoteConfig change is not present on #{change.type}")
+                next telemetry.error("OpenFeature: Remote Configuration change is not present on #{change.type}")
               end
 
               # NOTE: In the current RC implementation we immediately apply the configuration,
               #       but that might change if we need to apply patches instead.
               case change.type
               when :insert, :update
-                # @type var content: Core::Remote::Configuration::Content
-                engine.configuration = read_content(content)
-                engine.reconfigure!
-
-                content.applied
+                begin
+                  # @type var content: Core::Remote::Configuration::Content
+                  engine.reconfigure!(read_content(content))
+                  content.applied
+                rescue ReadError => e
+                  content.errored("Error reading Remote Configuration content: #{e.message}")
+                rescue EvaluationEngine::ReconfigurationError => e
+                  content.errored("Error applying OpenFeature configuration: #{e.message}")
+                end
               when :delete
                 # NOTE: For now, we treat deletion as clearing the configuration
                 #       In a multi-config scenario, we might track configs per path
-                engine.configuration = nil
-                engine.reconfigure!
+                engine.reconfigure!(nil)
               end
             end
           end

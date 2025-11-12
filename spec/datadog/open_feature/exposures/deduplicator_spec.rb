@@ -8,155 +8,43 @@ RSpec.describe Datadog::OpenFeature::Exposures::Deduplicator do
 
   describe '#duplicate?' do
     context 'when exposure was never seen' do
-      let(:event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag',
-          targeting_key: 'user',
-          allocation_key: 'alloc',
-          variation_key: 'variant'
-        )
-      end
-
-      it { expect(deduplicator.duplicate?(event)).to be(false) }
+      it { expect(deduplicator.duplicate?('flag:user', 'alloc:variant')).to be(false) }
     end
 
     context 'when exposure was already reported' do
-      before { deduplicator.duplicate?(event) }
+      before { deduplicator.duplicate?('flag:user', 'alloc:variant') }
 
-      let(:event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag',
-          targeting_key: 'user',
-          allocation_key: 'alloc',
-          variation_key: 'variant'
-        )
-      end
-
-      it { expect(deduplicator.duplicate?(event)).to be(true) }
+      it { expect(deduplicator.duplicate?('flag:user', 'alloc:variant')).to be(true) }
     end
 
     context 'when variation key changes' do
-      before { deduplicator.duplicate?(original_event) }
+      before { deduplicator.duplicate?('flag:user', 'alloc:variant') }
 
-      let(:original_event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag',
-          targeting_key: 'user',
-          allocation_key: 'alloc',
-          variation_key: 'variant'
-        )
-      end
-
-      let(:changed_event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag',
-          targeting_key: 'user',
-          allocation_key: 'alloc',
-          variation_key: 'other'
-        )
-      end
-
-      it { expect(deduplicator.duplicate?(changed_event)).to be(false) }
+      it { expect(deduplicator.duplicate?('flag:user', 'alloc:other')).to be(false) }
     end
 
     context 'when allocation key changes' do
-      before { deduplicator.duplicate?(original_event) }
+      before { deduplicator.duplicate?('flag:user', 'alloc:variant') }
 
-      let(:original_event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag',
-          targeting_key: 'user',
-          allocation_key: 'alloc',
-          variation_key: 'variant'
-        )
-      end
-
-      let(:changed_event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag',
-          targeting_key: 'user',
-          allocation_key: 'other',
-          variation_key: 'variant'
-        )
-      end
-
-      it { expect(deduplicator.duplicate?(changed_event)).to be(false) }
+      it { expect(deduplicator.duplicate?('flag:user', 'other:variant')).to be(false) }
     end
 
     context 'when targeting key changes' do
-      before { deduplicator.duplicate?(original_event) }
+      before { deduplicator.duplicate?('flag:user', 'alloc:variant') }
 
-      let(:original_event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag',
-          targeting_key: 'user',
-          allocation_key: 'alloc',
-          variation_key: 'variant'
-        )
-      end
-
-      let(:changed_event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag',
-          targeting_key: 'other',
-          allocation_key: 'alloc',
-          variation_key: 'variant'
-        )
-      end
-
-      before { deduplicator.duplicate?(original_event) }
-
-      it { expect(deduplicator.duplicate?(changed_event)).to be(false) }
+      it { expect(deduplicator.duplicate?('flag:other', 'alloc:variant')).to be(false) }
     end
 
     context 'when cache evicts previous exposure' do
       before do
-        deduplicator.duplicate?(first_event)
-        deduplicator.duplicate?(second_event)
-        deduplicator.duplicate?(third_event)
-      end
-
-      let(:first_event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag-one',
-          targeting_key: 'user',
-          allocation_key: 'alloc',
-          variation_key: 'variant'
-        )
-      end
-
-      let(:second_event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag-two',
-          targeting_key: 'user',
-          allocation_key: 'alloc',
-          variation_key: 'variant'
-        )
-      end
-
-      let(:third_event) do
-        instance_double(
-          Datadog::OpenFeature::Exposures::Event,
-          flag_key: 'flag-three',
-          targeting_key: 'user',
-          allocation_key: 'alloc',
-          variation_key: 'variant'
-        )
+        deduplicator.duplicate?('flag-one:user', 'alloc:variant')
+        deduplicator.duplicate?('flag-two:user', 'alloc:variant')
+        deduplicator.duplicate?('flag-three:user', 'alloc:variant')
       end
 
       it 'returns false after LRU eviction and true when cached' do
-        expect(deduplicator.duplicate?(first_event)).to be(false)
-        expect(deduplicator.duplicate?(first_event)).to be(true)
+        expect(deduplicator.duplicate?('flag-one:user', 'alloc:variant')).to be(false)
+        expect(deduplicator.duplicate?('flag-one:user', 'alloc:variant')).to be(true)
       end
     end
   end

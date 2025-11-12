@@ -6,11 +6,7 @@ module Datadog
 
         def initialize: (?limit: ::Integer) -> void
 
-        def duplicate?: (Event event) -> bool
-
-        private
-
-        def digest: (::String?, ::String?) -> ::Integer
+        def duplicate?: (::String, ::String) -> bool
       end
     end
   end

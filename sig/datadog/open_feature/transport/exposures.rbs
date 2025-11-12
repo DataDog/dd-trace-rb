@@ -23,7 +23,7 @@ module Datadog
 
           attr_reader logger: Core::Logger
 
-          def initialize: (Core::Transport::HTTP::API::Map, ::String, ?logger: Core::Logger) -> void
+          def initialize: (Core::Transport::HTTP::API::Map, ::String, logger: Core::Logger) -> void
 
           def send_exposures: (::Hash[::Symbol, untyped], ?headers: ::Hash[::Symbol, untyped]?) -> Core::Transport::Response
         end

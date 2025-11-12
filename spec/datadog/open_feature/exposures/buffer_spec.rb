@@ -20,23 +20,17 @@ RSpec.describe Datadog::OpenFeature::Exposures::Buffer do
     context 'when no items were dropped' do
       before { buffer.push(:one) }
 
-      it 'returns the most recent items and dropped items counter' do
-        items, dropped_count = buffer.pop
-
-        expect(items).to eq([:one])
-        expect(dropped_count).to be_zero
+      it 'returns the most recent items and sets dropped count' do
+        expect(buffer.pop).to eq([:one])
+        expect(buffer.dropped_count).to be_zero
       end
 
       it 'returns nothing and keeps resetted dropped count' do
-        items, dropped_count = buffer.pop
+        expect(buffer.pop).to eq([:one])
+        expect(buffer.dropped_count).to be_zero
 
-        expect(items).to eq([:one])
-        expect(dropped_count).to be_zero
-
-        items, dropped_count = buffer.pop
-
-        expect(items).to eq([])
-        expect(dropped_count).to be_zero
+        expect(buffer.pop).to eq([])
+        expect(buffer.dropped_count).to be_zero
       end
     end
 
@@ -48,10 +42,8 @@ RSpec.describe Datadog::OpenFeature::Exposures::Buffer do
       end
 
       it 'returns the most recent items and dropped items counter' do
-        items, dropped_count = buffer.pop
-
-        expect(items).to eq([:three])
-        expect(dropped_count).to eq(2)
+        expect(buffer.pop).to eq([:three])
+        expect(buffer.dropped_count).to eq(2)
       end
     end
   end
@@ -64,10 +56,8 @@ RSpec.describe Datadog::OpenFeature::Exposures::Buffer do
         expect { buffer.concat([:one, :two]) }
           .to change { buffer.length }.from(0).to(2)
 
-        items, dropped = buffer.pop
-
-        expect(items).to contain_exactly(:one, :two)
-        expect(dropped).to be_zero
+        expect(buffer.pop).to contain_exactly(:one, :two)
+        expect(buffer.dropped_count).to be_zero
       end
     end
 
@@ -76,10 +66,8 @@ RSpec.describe Datadog::OpenFeature::Exposures::Buffer do
         expect { buffer.concat([:one, :two, :three, :four, :five]) }
           .to change { buffer.length }.from(0).to(3)
 
-        items, dropped = buffer.pop
-
-        expect(items.length).to eq(3)
-        expect(dropped).to eq(2)
+        expect(buffer.pop.length).to eq(3)
+        expect(buffer.dropped_count).to eq(2)
       end
     end
   end

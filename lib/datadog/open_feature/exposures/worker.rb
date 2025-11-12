@@ -21,20 +21,19 @@ module Datadog
         DEFAULT_FLUSH_INTERVAL_SECONDS = 30
         DEFAULT_BUFFER_LIMIT = Buffer::DEFAULT_LIMIT
 
-        attr_reader :logger
-
         def initialize(
           settings:,
           transport:,
+          telemetry:,
           logger:,
           flush_interval_seconds: DEFAULT_FLUSH_INTERVAL_SECONDS,
           buffer_limit: DEFAULT_BUFFER_LIMIT
         )
           @logger = logger
           @transport = transport
+          @telemetry = telemetry
           @batch_builder = BatchBuilder.new(settings)
           @buffer_limit = buffer_limit
-          @flush_mutex = Mutex.new
 
           self.buffer = Buffer.new(buffer_limit)
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
@@ -55,14 +54,14 @@ module Datadog
         end
 
         def enqueue(event)
-          start unless running?
           buffer.push(event)
+          start unless running?
 
           true
         end
 
         def dequeue
-          buffer.pop
+          [buffer.pop, buffer.dropped_count]
         end
 
         def perform(*args)
@@ -70,22 +69,18 @@ module Datadog
           send_events(Array(events), dropped.to_i)
         end
 
-        def flush
-          events, dropped = dequeue
-          send_events(Array(events), dropped.to_i)
-        end
-
         def graceful_shutdown
           return false unless enabled? || !run_loop?
 
+          self.enabled = false
+
           started = Core::Utils::Time.get_time
-          wait_time = loop_base_interval + GRACEFUL_SHOTDOWN_EXTRA_SECONDS
+          wait_time = loop_base_interval + GRACEFUL_SHUTDOWN_EXTRA_SECONDS
 
           loop do
             break if buffer.empty? && !in_iteration?
 
-            sleep(GRACEFUL_SHOTDOWN_WAIT_INTERVAL_SECONDS)
-
+            sleep(GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS)
             break if Core::Utils::Time.get_time - started > wait_time
           end
 
@@ -98,25 +93,21 @@ module Datadog
           return if events.empty?
 
           if dropped.positive?
-            logger.debug { "OpenFeature: Resolution details worker dropped #{dropped} event(s) due to full buffer" }
+            @logger.debug { "OpenFeature: Resolution details worker dropped #{dropped} event(s) due to full buffer" }
           end
 
           payload = @batch_builder.payload_for(events)
-          send_payload(payload)
-        end
+          response = @transport.send_exposures(payload)
 
-        def send_payload(payload)
-          @flush_mutex.synchronize do
-            response = @transport.send_exposures(payload)
-
-            unless response&.ok?
-              logger.debug { "OpenFeature: Resolution details upload response was not OK: #{response.inspect}" }
-            end
-
-            response
+          unless response&.ok?
+            @logger.debug { "OpenFeature: Resolution details upload response was not OK: #{response.inspect}" }
           end
+
+          response
         rescue => e
-          logger.debug { "OpenFeature: Failed to flush resolution details events: #{e.class}: #{e.message}" }
+          @logger.debug { "OpenFeature: Failed to flush resolution details events: #{e.class}: #{e.message}" }
+          @telemetry.report(e, description: 'OpenFeature: Failed to flush resolution details events')
+
           nil
         end
       end

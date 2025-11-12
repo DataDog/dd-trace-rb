@@ -4,7 +4,7 @@ module Datadog
       module HTTP
         def self?.build: (
           agent_settings: Core::Configuration::AgentSettings,
-          ?logger: Core::Logger,
+          logger: Core::Logger,
           ?headers: ::Hash[::Symbol, untyped]?
         ) ?{ (Core::Transport::HTTP::Builder) -> void } -> OpenFeature::Transport::Exposures::Transport
       end
