@@ -31,6 +31,14 @@ module Datadog
           ?do_log: bool?,
           ?extra_logging: ::Hash[::String, untyped]?
         ) -> instance
+
+        def error?: () -> bool
+
+        def result?: () -> bool
+
+        def log?: () -> bool
+
+        def do_log?: () -> bool
       end
     end
   end
