@@ -10,6 +10,8 @@ module Datadog
 
         RAILS_ROUTE_KEY: String
 
+        RAILS_ROUTE_URI_PATTERN_KEY: String
+
         RAILS_ROUTES_KEY: String
 
         RAILS_PATH_PARAMS_KEY: String
