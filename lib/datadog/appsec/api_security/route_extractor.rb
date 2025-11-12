@@ -61,9 +61,11 @@ module Datadog
           elsif request.env.key?(RAILS_ROUTE_URI_PATTERN_KEY)
             request.env[RAILS_ROUTE_URI_PATTERN_KEY].delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTES_KEY) && !request.env.fetch(RAILS_PATH_PARAMS_KEY, {}).empty?
-            # NOTE: Rails mutates HEAD request in order to understand that route is supported.
-            #       It will assign GET request method and run the route recognition.
-            request = request.env[RAILS_ROUTES_KEY].request_class.new(request.env) if request.head?
+            # NOTE: In Rails < 7.1 this `request` argument will be a Rack::Request,
+            #       it does not have all the methods that ActionDispatch::Request has.
+            #       Before trying to use the router to recognize the route, we need to
+            #       create a new ActionDispatch::Request from the request env
+            request = request.env[RAILS_ROUTES_KEY].request_class.new(request.env)
 
             pattern = request.env[RAILS_ROUTES_KEY].router
               .recognize(request) { |route, _| break route.path.spec.to_s }
