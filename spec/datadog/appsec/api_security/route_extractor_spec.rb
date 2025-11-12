@@ -219,7 +219,8 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         it { expect(described_class.route_pattern(request)).to be_nil }
 
         it 'reports the error via telemetry' do
-          expect(telemetry).to receive(:error).with('AppSec: Could not extract route pattern for APISecurity sampler')
+          expect(telemetry).to receive(:report)
+            .with(an_instance_of(StandardError), description: 'AppSec: Could not extract route pattern')
 
           described_class.route_pattern(request)
         end

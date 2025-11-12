@@ -64,6 +64,9 @@ module Datadog
             #       it does not have all the methods that ActionDispatch::Request has.
             #       Before trying to use the router to recognize the route, we need to
             #       create a new ActionDispatch::Request from the request env
+            #
+            # NOTE: Rails mutates HEAD request by changing the method to GET
+            #       and uses it for route recognition to check if the route is defined
             request = request.env[RAILS_ROUTES_KEY].request_class.new(request.env)
 
             pattern = request.env[RAILS_ROUTES_KEY].router
@@ -78,8 +81,8 @@ module Datadog
           else
             Tracing::Contrib::Rack::RouteInference.read_or_infer(request.env)
           end
-        rescue
-          AppSec.telemetry&.error('AppSec: Could not extract route pattern for APISecurity sampler')
+        rescue => e
+          AppSec.telemetry&.report(e, description: 'AppSec: Could not extract route pattern')
 
           nil
         end
