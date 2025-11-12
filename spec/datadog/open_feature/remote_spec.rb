@@ -60,30 +60,24 @@ RSpec.describe Datadog::OpenFeature::Remote do
     let(:content_data) do
       <<~JSON
         {
-          "data": {
-            "type": "universal-flag-configuration",
-            "id": "1",
-            "attributes": {
-              "createdAt": "2024-04-17T19:40:53.716Z",
-              "format": "SERVER",
-              "environment": { "name": "test" },
-              "flags": {
-                "test_flag": {
-                  "key": "test_flag",
-                  "enabled": true,
-                  "variationType": "STRING",
-                  "variations": {
-                    "control": { "key": "control", "value": "control_value" }
-                  },
-                  "allocations": [
-                    {
-                      "key": "rollout",
-                      "splits": [{ "variationKey": "control", "shards": [] }],
-                      "doLog": false
-                    }
-                  ]
+          "createdAt": "2024-04-17T19:40:53.716Z",
+          "format": "SERVER",
+          "environment": { "name": "test" },
+          "flags": {
+            "test_flag": {
+              "key": "test_flag",
+              "enabled": true,
+              "variationType": "STRING",
+              "variations": {
+                "control": { "key": "control", "value": "control_value" }
+              },
+              "allocations": [
+                {
+                  "key": "rollout",
+                  "splits": [{ "variationKey": "control", "shards": [] }],
+                  "doLog": false
                 }
-              }
+              ]
             }
           }
         }
