@@ -40,11 +40,6 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
     Datadog.configure do |c|
       c.tracing.instrument :httprb, configuration_options
     end
-
-    # LibFFI native thread
-    allow(::HTTP::Connection).to receive(:new).and_wrap_original do |method, *args, &block|
-      method.call(*args, &block)
-    end
   end
 
   around do |example|
