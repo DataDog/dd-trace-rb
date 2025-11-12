@@ -5,21 +5,46 @@ require 'open_feature/sdk'
 
 module Datadog
   module OpenFeature
-    # Example
+    # OpenFeature feature flagging provider backed by Datadog Remote Configuration.
     #
-    #   require 'open_feature/sdk'
-    #   require 'datadog/open_feature/provider'
+    # In the example below you can see how to configure the OpenFeature SDK
+    # https://github.com/open-feature/ruby-sdk to use the Datadog feature flags provider.
     #
+    # Example:
+    #
+    #   Make sure to enable Remote Configuration and OpenFeature in the Datadog configuration.
+    #
+    #   ```ruby
+    #   # FILE: initializers/datadog.rb
     #   Datadog.configure do |config|
+    #     config.remote.enabled = true
     #     config.open_feature.enabled = true
     #   end
+    #   ```
+    #
+    #   And configure the OpenFeature SDK to use the Datadog feature flagging provider.
+    #
+    #   ```ruby
+    #   # FILE: initializers/open_feature.rb
+    #   require 'open_feature/sdk'
+    #   require 'datadog/open_feature/provider'
     #
     #   OpenFeature::SDK.configure do |config|
     #     config.set_provider(Datadog::OpenFeature::Provider.new)
     #   end
+    #   ```
     #
+    #   Now you can create OpenFeature SDK client and use it to fetch feature flag values.
+    #
+    #   ```ruby
     #   client = OpenFeature::SDK.build_client
-    #   client.fetch_string_value(flag_key: 'banner', default_value: 'default')
+    #   context = OpenFeature::SDK::EvaluationContext.new('email' => 'john.doe@gmail.com')
+    #
+    #   client.fetch_string_value(
+    #     flag_key: 'banner', default_value: 'Greetings!', evaluation_context: context
+    #   )
+    #   # => 'Welcome back!'
+    #   ```
     class Provider
       NAME = 'Datadog Feature Flagging Provider'
 
