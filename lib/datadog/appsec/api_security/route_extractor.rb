@@ -56,7 +56,6 @@ module Datadog
             pattern = request.env[SINATRA_ROUTE_KEY].split(SINATRA_ROUTE_SEPARATOR, 2)[1]
             "#{request.script_name}#{pattern}"
           elsif request.env.key?(RAILS_ROUTE_KEY)
-            route = request.env[RAILS_ROUTE_KEY]
             request.env[RAILS_ROUTE_KEY].path.spec.to_s.delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTE_URI_PATTERN_KEY)
             request.env[RAILS_ROUTE_URI_PATTERN_KEY].delete_suffix(RAILS_FORMAT_SUFFIX)
@@ -79,7 +78,7 @@ module Datadog
           else
             Tracing::Contrib::Rack::RouteInference.read_or_infer(request.env)
           end
-        rescue => e
+        rescue
           AppSec.telemetry&.error('AppSec: Could not extract route pattern for APISecurity sampler')
 
           nil

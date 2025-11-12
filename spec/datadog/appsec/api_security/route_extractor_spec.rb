@@ -203,7 +203,11 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
 
           allow(request).to receive(:env).and_return({
             'action_dispatch.routes' => route_set,
-            'action_dispatch.request.path_parameters' => { 'controller' => 'users', 'action' => 'show', 'id' => '1' }
+            'action_dispatch.request.path_parameters' => {
+              'controller' => 'users',
+              'action' => 'show',
+              'id' => '1'
+            }
           })
 
           expect(route_set).to receive(:request_class).and_raise(StandardError)
