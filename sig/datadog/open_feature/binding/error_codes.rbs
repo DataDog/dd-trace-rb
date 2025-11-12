@@ -1,0 +1,15 @@
+module Datadog
+  module OpenFeature
+    module Binding
+      module ErrorCodes
+        TYPE_MISMATCH_ERROR: ::String
+        CONFIGURATION_PARSE_ERROR: ::String
+        CONFIGURATION_MISSING: ::String
+        FLAG_UNRECOGNIZED_OR_DISABLED: ::String
+        FLAG_DISABLED: ::String
+        DEFAULT_ALLOCATION_NULL: ::String
+        INTERNAL_ERROR: ::String
+      end
+    end
+  end
+end

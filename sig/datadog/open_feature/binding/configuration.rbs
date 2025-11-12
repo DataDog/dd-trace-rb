@@ -1,32 +1,6 @@
 module Datadog
   module OpenFeature
     module Binding
-      module VariationType
-        STRING: ::String
-        INTEGER: ::String
-        NUMERIC: ::String
-        BOOLEAN: ::String
-        JSON: ::String
-      end
-
-      module ConditionOperator
-        MATCHES: ::String
-        NOT_MATCHES: ::String
-        GTE: ::String
-        GT: ::String
-        LTE: ::String
-        LT: ::String
-        ONE_OF: ::String
-        NOT_ONE_OF: ::String
-        IS_NULL: ::String
-      end
-
-      module AssignmentReason
-        TARGETING_MATCH: ::String
-        SPLIT: ::String
-        STATIC: ::String
-      end
-
       class Flag
         attr_reader key: ::String
         attr_reader enabled: bool

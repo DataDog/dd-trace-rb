@@ -16,16 +16,14 @@ module Datadog
         def get_assignment: (
           ::String flag_key,
           untyped _evaluation_context,
-          ::Symbol expected_type
+          ::Symbol? expected_type
         ) -> ResolutionDetails
 
         private
 
         def parse_and_validate_json: (::String ufc_json) -> (Configuration | ResolutionDetails)
 
-        def create_parse_error: (::String code, ::String message) -> ResolutionDetails
-
-        def create_evaluation_error: (::String error_code, ::String error_message) -> ResolutionDetails
+        def create_parse_error: (::String error_code, ::String error_message) -> ResolutionDetails
 
         def create_evaluation_success: (
           untyped value,
@@ -38,85 +36,53 @@ module Datadog
 
         def create_evaluation_no_result: (::String reason) -> ResolutionDetails
 
-        def type_matches?: (::String flag_type, ::Symbol expected_type) -> bool
+        def create_evaluation_error: (::String error_code, ::String error_message) -> ResolutionDetails
 
-        def convert_variation_type_for_output: (::String flag_type) -> ::String
+        def type_matches?: (::String flag_variation_type, ::Symbol expected_type) -> bool
 
         def evaluate_flag_allocations: (
           Flag flag,
           untyped evaluation_context,
-          ::Time current_time
-        ) -> [Allocation, Variation, ::String]
+          ::Time time
+        ) -> [Allocation?, Variation?, ::String]
 
-        def find_matching_allocation: (
-          ::Array[Allocation] allocations,
-          untyped evaluation_context,
-          ::Time current_time
-        ) -> Allocation?
-
-        def allocation_matches?: (
+        def find_matching_split_for_allocation: (
           Allocation allocation,
           untyped evaluation_context,
-          ::Time current_time
-        ) -> bool
+          ::Time evaluation_time
+        ) -> [Split?, ::String?]
 
-        def time_matches?: (::Time? start_at, ::Time? end_at, ::Time current_time) -> bool
+        def evaluate_rule: (Rule rule, untyped evaluation_context) -> bool
 
-        def rules_match?: (::Array[Rule]? rules, untyped evaluation_context) -> bool
+        def evaluate_condition: (Condition condition, untyped evaluation_context) -> bool
 
-        def rule_matches?: (Rule rule, untyped evaluation_context) -> bool
+        def get_attribute_from_context: (::String attribute_name, untyped evaluation_context) -> untyped
 
-        def condition_matches?: (Condition condition, untyped evaluation_context) -> bool
+        def evaluate_comparison: (untyped attribute_value, untyped condition_value, ::Symbol operator) -> bool
 
-        def get_attribute_value: (untyped evaluation_context, ::String attribute) -> untyped
+        def evaluate_membership: (untyped attribute_value, untyped condition_values, bool expected_membership) -> bool
 
-        def evaluate_split_for_variation: (
-          ::Array[Split] splits,
-          untyped evaluation_context
-        ) -> [Split, Variation]
+        def evaluate_regex: (untyped attribute_value, untyped pattern, bool expected_match) -> bool
 
-        def calculate_shard_for_context: (
-          Shard shard,
-          untyped evaluation_context
-        ) -> ::Integer
+        def evaluate_null_check: (untyped attribute_value, untyped expected_null) -> bool
 
-        def find_split_by_shard: (::Array[Split] splits, ::Integer shard_value) -> Split?
-
-        def shard_matches_ranges?: (::Integer shard_value, ::Array[ShardRange] ranges) -> bool
-
-        def get_targeting_key: (untyped evaluation_context) -> ::String?
-
-        def djb2_hash: (::String input) -> ::Integer
+        def coerce_to_number: (untyped value) -> ::Float?
 
         def coerce_to_string: (untyped value) -> ::String?
 
-        def coerce_to_number: (untyped value) -> ::Numeric?
+        def coerce_to_boolean: (untyped value) -> bool?
 
-        def evaluate_is_null: (untyped attribute_value) -> bool
+        def get_targeting_key: (untyped evaluation_context) -> ::String?
 
-        def evaluate_numeric_comparison: (
-          untyped attribute_value,
-          untyped condition_value,
-          ::Symbol operator
-        ) -> bool
+        def split_matches?: (Split split, ::String? targeting_key) -> bool
 
-        def evaluate_membership: (
-          untyped attribute_value,
-          untyped condition_values,
-          bool expected_membership
-        ) -> bool
+        def shard_matches?: (Shard shard, ::String targeting_key) -> bool
 
-        def evaluate_regex: (
-          untyped attribute_value,
-          untyped pattern,
-          bool expected_match
-        ) -> bool
+        def compute_shard_hash: (::String? salt, ::String targeting_key, ::Integer total_shards) -> ::Integer
 
-        def convert_reason_to_openfeature: (::String? reason) -> ::Symbol?
+        def determine_assignment_reason: (Allocation allocation) -> ::String
 
-        def has_libdatadog_format?: (::Hash[::String, untyped] parsed_json) -> bool
-
-        def extract_flags_from_libdatadog_format: (::Hash[::String, untyped] parsed_json) -> ::Hash[::String, untyped]
+        def convert_variation_type_for_output: (::String variation_type) -> ::String
       end
     end
   end

@@ -10,7 +10,6 @@ module Datadog
       PROVIDER_FATAL: ::String
 
       PROVIDER_NOT_READY: ::String
-
     end
   end
 end
