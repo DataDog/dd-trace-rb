@@ -64,7 +64,7 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
     it 'returns error result on flag lookup errors' do
       result = evaluator.get_assignment("missing_flag", {}, :string)
       
-      expect(result.error_code).to eq(:flag_not_found) 
+      expect(result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED') 
       expect(result.value).to be_nil  # Internal evaluator returns nil, provider handles defaults
       expect(result.variant).to be_nil
       expect(result.flag_metadata).to eq({})
@@ -78,9 +78,9 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
       expect(string_result.value).to be_nil  # Internal evaluator returns nil
       expect(number_result.value).to be_nil
       expect(bool_result.value).to be_nil
-      expect(string_result.error_code).to eq(:flag_not_found)
-      expect(number_result.error_code).to eq(:flag_not_found)
-      expect(bool_result.error_code).to eq(:flag_not_found)
+      expect(string_result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
+      expect(number_result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
+      expect(bool_result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
     end
   end
 

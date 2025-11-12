@@ -306,7 +306,7 @@ module Datadog
           
           # If evaluation_context is a hash, look up the attribute
           if evaluation_context.respond_to?(:[])
-            attribute_value = evaluation_context[attribute_name] || evaluation_context[attribute_name.to_sym]
+            attribute_value = evaluation_context[attribute_name]
             
             # Special handling for 'id' attribute: if not present, use targeting_key
             if attribute_value.nil? && attribute_name == 'id'
@@ -441,8 +441,8 @@ module Datadog
           return nil if evaluation_context.nil?
           
           if evaluation_context.respond_to?(:[])
-            # Hash-like evaluation context - OpenFeature SDK uses snake_case keys
-            evaluation_context['targeting_key'] || evaluation_context[:targeting_key]
+            # Hash-like evaluation context - OpenFeature SDK uses string keys only
+            evaluation_context['targeting_key']
           elsif evaluation_context.respond_to?(:targeting_key)
             evaluation_context.targeting_key
           else
