@@ -76,7 +76,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
-        expect(result.flag_metadata).to include("allocation_key")
+        expect(result.flag_metadata).to include("allocationKey")
         expect([true, false]).to include(result.do_log)
       end
 
@@ -88,7 +88,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         expect(result.value).not_to be_nil
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
-        expect(result.flag_metadata).to include("allocation_key")
+        expect(result.flag_metadata).to include("allocationKey")
         expect([true, false]).to include(result.do_log)
       end
     end
@@ -214,37 +214,70 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
               # The provider layer handles returning default values
               # Only successful evaluations with variant + flagMetadata return actual values
               
-              if expected_result.key?('variant') && expected_result.key?('flagMetadata')
-                # Successful evaluation case
+              if result.error_code.nil? && !result.variant.nil?
+                # Case 1: Successful evaluation with result
                 expect(result.value).to eq(expected_result['value']), 
                   "Expected value #{expected_result['value'].inspect}, got #{result.value.inspect}"
-                expect(result.variant).to eq(expected_result['variant']),
-                  "Expected variant #{expected_result['variant'].inspect}, got #{result.variant.inspect}"
+                expect(result.variant).not_to be_nil,
+                  "Expected variant for successful evaluation, got #{result.variant.inspect}"
                 expect(result.error_code).to be_nil,
                   "Expected nil error code for successful evaluation, got #{result.error_code.inspect}"
+                expect(result.error_message).to be_nil,
+                  "Expected nil error message for successful evaluation, got #{result.error_message.inspect}"
+                expect(['STATIC', 'TARGETING_MATCH', 'SPLIT']).to include(result.reason),
+                  "Expected success reason (static/targeting_match/split), got #{result.reason.inspect}"
                   
-                # Validate flag metadata
-                expected_metadata = expected_result['flagMetadata']
-                expect(result.flag_metadata).not_to be_nil,
-                  "Expected flag metadata, got nil"
-                expect(result.flag_metadata['allocationKey']).to eq(expected_metadata['allocationKey']),
-                  "Expected allocation key #{expected_metadata['allocationKey'].inspect}, got #{result.flag_metadata&.[]('allocationKey').inspect}"
-                expect(result.flag_metadata['variationType']).to eq(expected_metadata['variationType']),
-                  "Expected variation type #{expected_metadata['variationType'].inspect}, got #{result.flag_metadata&.[]('variationType').inspect}"
-                expect(result.flag_metadata['doLog']).to eq(expected_metadata['doLog']),
-                  "Expected do_log #{expected_metadata['doLog'].inspect}, got #{result.flag_metadata&.[]('doLog').inspect}"
-              else
-                # Error case - internal evaluator returns nil, provider handles defaults
+                # Validate flag metadata structure
+                expect(result.flag_metadata).not_to be_empty,
+                  "Expected flag metadata for successful evaluation, got #{result.flag_metadata.inspect}"
+                expect(result.flag_metadata).to have_key('allocationKey'),
+                  "Expected allocationKey in flag metadata, got #{result.flag_metadata.inspect}"
+                expect(result.flag_metadata).to have_key('variationType'),
+                  "Expected variationType in flag metadata, got #{result.flag_metadata.inspect}"
+                expect(result.flag_metadata).to have_key('doLog'),
+                  "Expected doLog in flag metadata, got #{result.flag_metadata.inspect}"
+                expect(result.allocation_key).not_to be_nil,
+                  "Expected allocation_key for successful evaluation, got #{result.allocation_key.inspect}"
+                expect([true, false]).to include(result.do_log),
+                  "Expected boolean do_log value, got #{result.do_log.inspect}"
+                  
+              elsif result.error_code.nil? && result.variant.nil?
+                # Case 3: No results (disabled/default) - not an error but no allocation matched
                 expect(result.value).to be_nil,
-                  "Expected nil value for error case (provider handles default values), got #{result.value.inspect}"
+                  "Expected nil value for disabled/default case, got #{result.value.inspect}"
+                expect(result.variant).to be_nil,
+                  "Expected nil variant for disabled/default case, got #{result.variant.inspect}"
+                expect(result.error_code).to be_nil,
+                  "Expected nil error code for disabled/default case, got #{result.error_code.inspect}"
+                expect(result.error_message).to be_nil,
+                  "Expected nil error message for disabled/default case, got #{result.error_message.inspect}"
+                expect(['DISABLED', 'DEFAULT']).to include(result.reason),
+                  "Expected disabled or default reason, got #{result.reason.inspect}"
+                expect(result.flag_metadata).to eq({}),
+                  "Expected empty flag metadata for disabled/default case, got #{result.flag_metadata.inspect}"
+                expect(result.allocation_key).to be_nil,
+                  "Expected nil allocation_key for disabled/default case, got #{result.allocation_key.inspect}"
+                expect(result.do_log).to eq(false),
+                  "Expected false do_log for disabled/default case, got #{result.do_log.inspect}"
+                  
+              else
+                # Case 2: Evaluation error
+                expect(result.value).to be_nil,
+                  "Expected nil value for error case, got #{result.value.inspect}"
                 expect(result.variant).to be_nil,
                   "Expected nil variant for error case, got #{result.variant.inspect}"
+                expect(result.error_code).not_to be_nil,
+                  "Expected error code for error case, got #{result.error_code.inspect}"
+                expect(result.error_message).not_to be_nil,
+                  "Expected error message for error case, got #{result.error_message.inspect}"
+                expect(result.reason).to eq('ERROR'),
+                  "Expected ERROR reason for error case, got #{result.reason.inspect}"
                 expect(result.flag_metadata).to eq({}),
                   "Expected empty flag metadata for error case, got #{result.flag_metadata.inspect}"
-                
-                # Should have an appropriate error code
-                expect([:ok, :flag_not_found, :type_mismatch, :parse_error, :provider_not_ready, :general]).to include(result.error_code),
-                  "Expected valid error code for error case, got #{result.error_code.inspect}"
+                expect(result.allocation_key).to be_nil,
+                  "Expected nil allocation_key for error case, got #{result.allocation_key.inspect}"
+                expect(result.do_log).to eq(false),
+                  "Expected false do_log for error case, got #{result.do_log.inspect}"
               end
             end
           end

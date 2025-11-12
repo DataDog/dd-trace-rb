@@ -56,7 +56,7 @@ module Datadog
         def get_assignment(flag_key, _evaluation_context, expected_type)
           # Return error result if JSON parsing failed during initialization
           if @parsed_config.is_a?(ResolutionDetails)
-            return create_error_result(
+            return create_evaluation_error(
               @parsed_config.error_code, 
               @parsed_config.error_message
             )
@@ -67,18 +67,18 @@ module Datadog
           
           # Return error result if flag not found - using Rust naming convention
           unless flag
-            return create_error_result(Ext::FLAG_UNRECOGNIZED_OR_DISABLED, 
+            return create_evaluation_error(Ext::FLAG_UNRECOGNIZED_OR_DISABLED, 
               "flag is missing in configuration, it is either unrecognized or disabled")
           end
 
-          # Return error result if flag is disabled - matches libdatadog behavior
+          # Return success result with nil value if flag is disabled
           unless flag.enabled
-            return create_error_result(Ext::FLAG_DISABLED, '')  # Maps to :ok per libdatadog
+            return create_evaluation_no_result(AssignmentReason::DISABLED)
           end
 
           # Validate type compatibility if expected_type is provided - using Rust message format
           if expected_type && !type_matches?(flag.variation_type, expected_type)
-            return create_error_result(Ext::TYPE_MISMATCH_ERROR, 
+            return create_evaluation_error(Ext::TYPE_MISMATCH_ERROR, 
               "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})")
           end
 
@@ -86,8 +86,13 @@ module Datadog
           begin
             selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, _evaluation_context, Time.now.utc)
             
+            # Check if this is a default allocation case (no allocation matched)
+            if selected_allocation.nil? && selected_variation.nil?
+              return create_evaluation_no_result(AssignmentReason::DEFAULT)
+            end
+            
             # Return the actual assignment result - success case with full metadata
-            create_success_result(
+            create_evaluation_success(
               selected_variation.value,
               selected_variation.key,
               selected_allocation.key,
@@ -97,7 +102,7 @@ module Datadog
             )
           rescue EvaluationError => e
             # Convert evaluation errors to ResolutionDetails - matches Rust error propagation
-            create_error_result(e.code, e.message)
+            create_evaluation_error(e.code, e.message)
           end
         end
 
@@ -136,20 +141,16 @@ module Datadog
         end
 
         def create_parse_error(error_code, error_message)
-          create_error_result(error_code, error_message)
+          create_evaluation_error(error_code, error_message)
         end
 
-        def create_evaluation_error(error_code, error_message)
-          create_error_result(error_code, error_message)
-        end
-
-        # NativeEvaluator-aligned result creation methods
-        def create_success_result(value, variant, allocation_key, variation_type, do_log, reason)
+        # Case 1: Successful evaluation with result
+        def create_evaluation_success(value, variant, allocation_key, variation_type, do_log, reason)
           ResolutionDetails.new(
             value: value,
             variant: variant,
-            error_code: nil,  # nil for successful cases (so "if result.error_code" works correctly)
-            error_message: '',  # Empty string for Ok cases (matches libdatadog FFI)
+            error_code: nil,
+            error_message: nil,
             reason: reason,
             allocation_key: allocation_key,
             do_log: do_log,
@@ -162,7 +163,23 @@ module Datadog
           )
         end
 
-        def create_error_result(error_code, error_message)
+        # Case 3: No results (disabled/default) - not an error but no allocation matched
+        def create_evaluation_no_result(reason)
+          ResolutionDetails.new(
+            value: nil,
+            variant: nil,
+            error_code: nil,
+            error_message: nil,
+            reason: reason,
+            allocation_key: nil,
+            do_log: false,
+            flag_metadata: {},
+            extra_logging: {}
+          )
+        end
+
+        # Case 2: Evaluation error
+        def create_evaluation_error(error_code, error_message)
           # Map internal error codes to Ruby symbols
           mapped_error_code = if error_code.is_a?(Symbol)
                                 error_code
@@ -206,9 +223,9 @@ module Datadog
         end
 
         def evaluate_flag_allocations(flag, evaluation_context, time)
-          # Return error if no allocations - matches Rust DEFAULT_ALLOCATION_NULL
+          # Return default result if no allocations - treated as success with nil value
           if flag.allocations.empty?
-            raise EvaluationError.new(Ext::DEFAULT_ALLOCATION_NULL, 'default allocation is matched and is serving NULL')
+            return [nil, nil, AssignmentReason::DEFAULT]
           end
 
           # Convert time parameter to Time object for comparisons
@@ -229,8 +246,8 @@ module Datadog
             end
           end
 
-          # No allocations matched - return DEFAULT_ALLOCATION_NULL error
-          raise EvaluationError.new(Ext::DEFAULT_ALLOCATION_NULL, 'default allocation is matched and is serving NULL')
+          # No allocations matched - return default result (success with nil value)
+          return [nil, nil, AssignmentReason::DEFAULT]
         end
 
         def find_matching_split_for_allocation(allocation, evaluation_context, evaluation_time)
