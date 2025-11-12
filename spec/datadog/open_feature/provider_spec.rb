@@ -11,10 +11,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
   end
 
-  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
+  let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:logger) { instance_double(Datadog::Core::Logger) }
 
   subject(:provider) { described_class.new }
 
@@ -30,37 +29,31 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    xcontext 'when engine is configured' do
+    context 'when engine is configured' do
       before do
-        engine.configuration = configuration
+        engine.configuration = flag_config
         engine.reconfigure!
       end
 
       let(:result) { provider.fetch_boolean_value(flag_key: 'flag', default_value: false) }
-      let(:configuration) do
+      let(:flag_config) do
         <<~JSON
           {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "boolean_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "BOOLEAN",
-                    "variations": {
-                      "control": { "key": "control", "value": true }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
+            "flags": {
+              "boolean_flag": {
+                "key": "flag",
+                "enabled": true,
+                "variationType": "BOOLEAN",
+                "variations": {
+                  "control": { "key": "control", "value": true }
+                },
+                "allocations": [
+                  {
+                    "key": "rollout",
+                    "splits": [{ "variationKey": "control", "shards": [] }],
+                    "doLog": false
                   }
-                }
+                ]
               }
             }
           }
@@ -86,39 +79,33 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    xcontext 'when engine is configured' do
+    context 'when engine is configured' do
       before do
-        engine.configuration = configuration
+        engine.configuration = flag_config
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_string_value(flag_key: 'flag', default_value: 'default') }
-      let(:configuration) do
+      let(:flag_config) do
         <<~JSON
           {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "string_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "STRING",
-                    "variations": {
-                      "control": { "key": "control", "value": "hello" }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
+            "flags": {
+              "string_flag": {
+                "key": "flag",
+                "enabled": true,
+                "variationType": "STRING",
+                "variations": {
+                  "control": { "key": "control", "value": "hello" }
+                },
+                "allocations": [
+                  {
+                    "key": "rollout",
+                    "splits": [{ "variationKey": "control", "shards": [] }],
+                    "doLog": false
                   }
-                }
+                ]
               }
             }
           }
@@ -144,39 +131,33 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    xcontext 'when engine is configured' do
+    context 'when engine is configured' do
       before do
-        engine.configuration = configuration
+        engine.configuration = flag_config
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_number_value(flag_key: 'flag', default_value: 0) }
-      let(:configuration) do
+      let(:flag_config) do
         <<~JSON
           {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "number_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "NUMERIC",
-                    "variations": {
-                      "control": { "key": "control", "value": 1000 }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
+            "flags": {
+              "number_flag": {
+                "key": "flag",
+                "enabled": true,
+                "variationType": "NUMERIC",
+                "variations": {
+                  "control": { "key": "control", "value": 1000 }
+                },
+                "allocations": [
+                  {
+                    "key": "rollout",
+                    "splits": [{ "variationKey": "control", "shards": [] }],
+                    "doLog": false
                   }
-                }
+                ]
               }
             }
           }
@@ -202,39 +183,33 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    xcontext 'when engine is configured' do
+    context 'when engine is configured' do
       before do
-        engine.configuration = configuration
+        engine.configuration = flag_config
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_integer_value(flag_key: 'flag', default_value: 1) }
-      let(:configuration) do
+      let(:flag_config) do
         <<~JSON
           {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "integer_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "INTEGER",
-                    "variations": {
-                      "control": { "key": "control", "value": 21 }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
+            "flags": {
+              "integer_flag": {
+                "key": "flag",
+                "enabled": true,
+                "variationType": "INTEGER",
+                "variations": {
+                  "control": { "key": "control", "value": 21 }
+                },
+                "allocations": [
+                  {
+                    "key": "rollout",
+                    "splits": [{ "variationKey": "control", "shards": [] }],
+                    "doLog": false
                   }
-                }
+                ]
               }
             }
           }
@@ -260,39 +235,33 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    xcontext 'when engine is configured' do
+    context 'when engine is configured' do
       before do
-        engine.configuration = configuration
+        engine.configuration = flag_config
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_float_value(flag_key: 'flag', default_value: 0.0) }
-      let(:configuration) do
+      let(:flag_config) do
         <<~JSON
           {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "float_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "NUMERIC",
-                    "variations": {
-                      "control": { "key": "control", "value": 12.5 }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
+            "flags": {
+              "float_flag": {
+                "key": "flag",
+                "enabled": true,
+                "variationType": "NUMERIC",
+                "variations": {
+                  "control": { "key": "control", "value": 12.5 }
+                },
+                "allocations": [
+                  {
+                    "key": "rollout",
+                    "splits": [{ "variationKey": "control", "shards": [] }],
+                    "doLog": false
                   }
-                }
+                ]
               }
             }
           }
@@ -318,39 +287,33 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    xcontext 'when engine is configured' do
+    context 'when engine is configured' do
       before do
-        engine.configuration = configuration
+        engine.configuration = flag_config
         engine.reconfigure!
 
         provider.init
       end
 
       let(:result) { provider.fetch_object_value(flag_key: 'flag', default_value: {'default' => true}) }
-      let(:configuration) do
+      let(:flag_config) do
         <<~JSON
           {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "object_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "JSON",
-                    "variations": {
-                      "control": { "key": "control", "value": { "key": "value" } }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
+            "flags": {
+              "object_flag": {
+                "key": "flag",
+                "enabled": true,
+                "variationType": "JSON",
+                "variations": {
+                  "control": { "key": "control", "value": { "key": "value" } }
+                },
+                "allocations": [
+                  {
+                    "key": "rollout",
+                    "splits": [{ "variationKey": "control", "shards": [] }],
+                    "doLog": false
                   }
-                }
+                ]
               }
             }
           }

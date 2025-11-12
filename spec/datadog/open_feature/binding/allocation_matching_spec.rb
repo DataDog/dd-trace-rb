@@ -47,8 +47,8 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
       expect(result.error_code).to be_nil  # nil for successful evaluation
       expect(result.value).to eq("treatment_value") # Should use active allocation
       expect(result.variant).to eq("treatment")
-      expect(result.flag_metadata['allocation_key']).to eq("active_allocation")
-      expect(result.flag_metadata['do_log']).to eq(false)
+      expect(result.flag_metadata['allocationKey']).to eq("active_allocation")
+      expect(result.flag_metadata['doLog']).to eq(false)
     end
 
     it 'returns assignment reason based on allocation properties' do

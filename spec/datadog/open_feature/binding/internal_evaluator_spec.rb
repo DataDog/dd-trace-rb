@@ -227,12 +227,12 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                 expected_metadata = expected_result['flagMetadata']
                 expect(result.flag_metadata).not_to be_nil,
                   "Expected flag metadata, got nil"
-                expect(result.flag_metadata['allocation_key']).to eq(expected_metadata['allocationKey']),
-                  "Expected allocation key #{expected_metadata['allocationKey'].inspect}, got #{result.flag_metadata&.[]('allocation_key').inspect}"
-                expect(result.flag_metadata['variation_type']).to eq(expected_metadata['variationType']),
-                  "Expected variation type #{expected_metadata['variationType'].inspect}, got #{result.flag_metadata&.[]('variation_type').inspect}"
-                expect(result.flag_metadata['do_log']).to eq(expected_metadata['doLog']),
-                  "Expected do_log #{expected_metadata['doLog'].inspect}, got #{result.flag_metadata&.[]('do_log').inspect}"
+                expect(result.flag_metadata['allocationKey']).to eq(expected_metadata['allocationKey']),
+                  "Expected allocation key #{expected_metadata['allocationKey'].inspect}, got #{result.flag_metadata&.[]('allocationKey').inspect}"
+                expect(result.flag_metadata['variationType']).to eq(expected_metadata['variationType']),
+                  "Expected variation type #{expected_metadata['variationType'].inspect}, got #{result.flag_metadata&.[]('variationType').inspect}"
+                expect(result.flag_metadata['doLog']).to eq(expected_metadata['doLog']),
+                  "Expected do_log #{expected_metadata['doLog'].inspect}, got #{result.flag_metadata&.[]('doLog').inspect}"
               else
                 # Error case - internal evaluator returns nil, provider handles defaults
                 expect(result.value).to be_nil,

@@ -70,7 +70,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
-      expect(result.flag_metadata['allocation_key']).to eq("special_users")
+      expect(result.flag_metadata['allocationKey']).to eq("special_users")
     end
 
     it 'matches allocation when second rule passes' do
@@ -79,7 +79,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
-      expect(result.flag_metadata['allocation_key']).to eq("special_users")
+      expect(result.flag_metadata['allocationKey']).to eq("special_users")
     end
 
     it 'matches allocation when both rules pass' do
@@ -88,7 +88,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
-      expect(result.flag_metadata['allocation_key']).to eq("special_users")
+      expect(result.flag_metadata['allocationKey']).to eq("special_users")
     end
 
     it 'uses fallback allocation when no rules pass' do
@@ -97,7 +97,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("default_value")
-      expect(result.flag_metadata['allocation_key']).to eq("default_allocation")
+      expect(result.flag_metadata['allocationKey']).to eq("default_allocation")
     end
   end
 

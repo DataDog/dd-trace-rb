@@ -154,9 +154,9 @@ module Datadog
             allocation_key: allocation_key,
             do_log: do_log,
             flag_metadata: {
-              "allocation_key" => allocation_key,
-              "variation_type" => variation_type,
-              "do_log" => do_log
+              "allocationKey" => allocation_key,
+              "variationType" => variation_type,
+              "doLog" => do_log
             },
             extra_logging: {}
           )
