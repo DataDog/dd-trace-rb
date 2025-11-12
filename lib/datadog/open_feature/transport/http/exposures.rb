@@ -40,12 +40,6 @@ module Datadog
             # HTTP API Instance
             class Instance < Core::Transport::HTTP::API::Instance
               def send_exposures(env)
-                unless spec.is_a?(Exposures::API::Spec)
-                  raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-                    'exposures', self
-                  )
-                end
-
                 spec.send_exposures(env) do |request_env|
                   call(request_env)
                 end
