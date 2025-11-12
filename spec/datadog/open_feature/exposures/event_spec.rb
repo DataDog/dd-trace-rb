@@ -19,7 +19,8 @@ RSpec.describe Datadog::OpenFeature::Exposures::Event do
           'variationType' => 'number',
           'doLog' => true
         },
-        do_log: true
+        log?: true,
+        error?: false
       )
     end
     let(:context) do

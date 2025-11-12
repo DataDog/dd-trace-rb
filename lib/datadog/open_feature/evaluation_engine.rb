@@ -28,7 +28,11 @@ module Datadog
           message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(', ')}"
 
           return ResolutionDetails.new(
-            error_code: Ext::UNKNOWN_TYPE, error_message: message, reason: Ext::ERROR
+            error_code: Ext::UNKNOWN_TYPE,
+            error_message: message,
+            reason: Ext::ERROR,
+            log?: false,
+            error?: true
           )
         end
 
@@ -40,7 +44,11 @@ module Datadog
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
 
         ResolutionDetails.new(
-          error_code: Ext::PROVIDER_FATAL, error_message: e.message, reason: Ext::ERROR
+          error_code: Ext::PROVIDER_FATAL,
+          error_message: e.message,
+          reason: Ext::ERROR,
+          error?: true,
+          log?: false
         )
       end
 

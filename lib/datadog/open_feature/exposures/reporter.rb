@@ -16,7 +16,7 @@ module Datadog
         end
 
         def report(result, flag_key:, context:)
-          return false unless result.do_log
+          return false unless result.log?
           return false if context.nil?
 
           event = Event.build(result, flag_key: flag_key, context: context)

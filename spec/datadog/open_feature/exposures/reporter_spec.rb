@@ -28,7 +28,8 @@ RSpec.describe Datadog::OpenFeature::Exposures::Reporter do
         'variationType' => 'number',
         'doLog' => true
       },
-      do_log: true
+      log?: true,
+      error?: false
     )
   end
 

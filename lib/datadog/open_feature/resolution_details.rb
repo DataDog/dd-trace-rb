@@ -11,8 +11,9 @@ module Datadog
       :error_message,
       :flag_metadata,
       :allocation_key,
-      :do_log,
       :extra_logging,
+      :log?,
+      :error?,
       keyword_init: true
     )
   end

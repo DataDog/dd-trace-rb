@@ -73,7 +73,7 @@ module Datadog
           evaluation_context: evaluation_context
         )
 
-        if result.error_code
+        if result.error?
           return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
             value: default_value,
             error_code: result.error_code,

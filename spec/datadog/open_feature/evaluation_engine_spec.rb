@@ -70,7 +70,8 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           reason: 'ERROR',
           flag_metadata: {},
           extra_logging: {},
-          do_log: false
+          error?: true,
+          log?: false
         )
       end
 
