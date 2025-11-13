@@ -5,7 +5,7 @@
 | Type          | Documentation                                        | datadog version | Gem version support |
 | ------------- | ---------------------------------------------------- | --------------- | ------------------- |
 | Tracing       | https://github.com/open-telemetry/opentelemetry-ruby | 1.9.0+          | >= 1.1.0            |
-| Metrics       | https://github.com/open-telemetry/opentelemetry-ruby | 2.24.0+          | Metrics SDK >= 0.8, Exporter >= 0.4 (requires Ruby >= 3.1) |
+| [Metrics SDK](https://rubygems.org/gems/opentelemetry-metrics-sdk) >= 0.8, [OTLP Metrics Exporter](https://rubygems.org/gems/opentelemetry-exporter-otlp-metrics) >= 0.6 |
 
 ## Configuring OpenTelemetry Tracing
 
@@ -52,7 +52,7 @@
     ```ruby
     gem 'datadog'
     gem 'opentelemetry-metrics-sdk', '>= 0.8'
-    gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4'
+    gem 'opentelemetry-exporter-otlp-metrics', '>= 0.6'
     ```
 
 1. Install gems with `bundle install`
@@ -60,38 +60,34 @@
 1. Enable metrics export:
 
     ```ruby
-    # Set environment variable before initalizing metrics support
+    # Set environment variable before initializing metrics support
     ENV['DD_METRICS_OTEL_ENABLED'] = 'true'
     require 'opentelemetry/sdk'
     require 'opentelemetry-metrics-sdk'
     require 'opentelemetry/exporter/otlp_metrics'
     require 'datadog/opentelemetry'
 
-    ...
+    Datadog.configure do |c|
+      # Configure Datadog settings if needed
+    end
+
+    # Initialize OpenTelemetry SDK (required for metrics)
+    OpenTelemetry::SDK.configure
     ```
 
-1. Use the OpenTelemetry Metrics API:
-
-    ```ruby
-    require 'opentelemetry/metrics'
-
-    provider = OpenTelemetry.meter_provider
-    meter = provider.meter('my-app')
-    counter = meter.create_counter('requests')
-    counter.add(1)
-    ```
+1. Use the [OpenTelemetry Metrics API](https://opentelemetry.io/docs/languages/ruby/instrumentation/#metrics) to create and record metrics.
 
 **Configuration Options:**
 
 - `DD_METRICS_OTEL_ENABLED` - Enable metrics export (default: false)
-- `OTEL_EXPORTER_OTLP_METRICS_PROTOCOL` - Protocol: `http/protobuf` (default), `grpc` and `http/json` is not supported (yet).
-- `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` - Custom endpoint (defaults to agent hostname + protocol port)
+- `OTEL_EXPORTER_OTLP_METRICS_PROTOCOL` - Protocol: `http/protobuf` (default); `grpc` and `http/json` are not yet supported.
+- `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` - Custom endpoint (defaults to the Datadog agent otlp endpoint)
 - `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` - `delta` (default) or `cumulative`
 - `OTEL_METRIC_EXPORT_INTERVAL` - Export interval in milliseconds (default: 10000)
 
-General OTLP settings (`OTEL_EXPORTER_OTLP_*`) serve as defaults if metrics-specific settings are not provided.
+[General OTLP settings](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/) (`OTEL_EXPORTER_OTLP_*`) serve as defaults if metrics-specific settings are not provided.
 
-**Note:** Minimum `opentelemetry-metrics-sdk` is v0.8.0 (contains critical bug fixes). Use the latest version for best support. Exporter minimum depends on the metrics SDK. If OpenTelemetry API breaking changes affect ddtrace, [open a GitHub issue](https://github.com/DataDog/dd-trace-rb/issues).
+**Note:** Minimum `opentelemetry-metrics-sdk` is v0.8.0 (contains critical bug fixes). Use the latest version for best support. OTLP Metrics Exporter minimum depends on the metrics SDK. If an OpenTelemetry API breaking changes affect the `datadog` gem, [open a GitHub issue](https://github.com/DataDog/dd-trace-rb/issues).
 
 ## Limitations
 

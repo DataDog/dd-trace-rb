@@ -213,7 +213,7 @@ end
 appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.2'
   gem 'opentelemetry-metrics-sdk', '>= 0.8'
-  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4', '< 0.5'
+  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.6'
 end
 
 appraise 'opentelemetry_otlp' do
@@ -221,7 +221,7 @@ appraise 'opentelemetry_otlp' do
   gem 'opentelemetry-sdk', '~> 1.1'
   gem 'opentelemetry-exporter-otlp'
   gem 'opentelemetry-metrics-sdk', '>= 0.8'
-  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4', '< 0.5'
+  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.6'
 end
 
 appraise 'opentelemetry_otlp_1_5' do
@@ -229,7 +229,7 @@ appraise 'opentelemetry_otlp_1_5' do
   gem 'opentelemetry-sdk', '~> 1.1'
   gem 'opentelemetry-exporter-otlp'
   gem 'opentelemetry-metrics-sdk', '>= 0.8'
-  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4', '< 0.5'
+  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.6'
 end
 
 appraise 'contrib-old' do
