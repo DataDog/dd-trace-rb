@@ -42,7 +42,7 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
     let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new(flag_config.to_json) }
 
     it 'skips expired allocations and uses active ones' do
-      result = evaluator.get_assignment("time_test_flag", {}, :string)
+      result = evaluator.get_assignment("time_test_flag", {}, 'string')
       
       expect(result.error_code).to be_nil  # nil for successful evaluation
       expect(result.value).to eq("treatment_value") # Should use active allocation
@@ -52,7 +52,7 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
     end
 
     it 'returns assignment reason based on allocation properties' do
-      result = evaluator.get_assignment("time_test_flag", {}, :string)
+      result = evaluator.get_assignment("time_test_flag", {}, 'string')
       
       expect(result.reason).to eq("STATIC") # Single split with no shards = static
     end
@@ -62,7 +62,7 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
     let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"flags": {}}') }
 
     it 'returns error result on flag lookup errors' do
-      result = evaluator.get_assignment("missing_flag", {}, :string)
+      result = evaluator.get_assignment("missing_flag", {}, 'string')
       
       expect(result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED') 
       expect(result.value).to be_nil  # Internal evaluator returns nil, provider handles defaults
@@ -71,9 +71,9 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
     end
 
     it 'returns consistent error results for different types' do
-      string_result = evaluator.get_assignment("missing", {}, :string)
-      number_result = evaluator.get_assignment("missing", {}, :float)
-      bool_result = evaluator.get_assignment("missing", {}, :boolean)
+      string_result = evaluator.get_assignment("missing", {}, 'string')
+      number_result = evaluator.get_assignment("missing", {}, 'float')
+      bool_result = evaluator.get_assignment("missing", {}, 'boolean')
       
       expect(string_result.value).to be_nil  # Internal evaluator returns nil
       expect(number_result.value).to be_nil
@@ -107,7 +107,7 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
       }
       
       evaluator = Datadog::OpenFeature::Binding::InternalEvaluator.new(config_with_time_bounds.to_json)
-      result = evaluator.get_assignment("timed_flag", {}, :boolean)
+      result = evaluator.get_assignment("timed_flag", {}, 'boolean')
       
       expect(result.error_code).to be_nil  # nil for successful evaluation
       expect(result.reason).to eq("TARGETING_MATCH") # Has time bounds

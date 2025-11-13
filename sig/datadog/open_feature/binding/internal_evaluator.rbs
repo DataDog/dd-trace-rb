@@ -15,7 +15,7 @@ module Datadog
         def get_assignment: (
           ::String flag_key,
           untyped _evaluation_context,
-          ::Symbol? expected_type
+          ::String? expected_type
         ) -> ResolutionDetails
 
         private
@@ -36,7 +36,7 @@ module Datadog
 
         def create_evaluation_error: (::String error_code, ::String error_message) -> ResolutionDetails
 
-        def type_matches?: (::String flag_variation_type, ::Symbol expected_type) -> bool
+        def type_matches?: (::String flag_variation_type, ::String expected_type) -> bool
 
         def evaluate_flag_allocations: (
           Flag flag,

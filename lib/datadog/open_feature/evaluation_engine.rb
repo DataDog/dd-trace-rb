@@ -32,7 +32,20 @@ module Datadog
           )
         end
 
-        result = @evaluator.get_assignment(flag_key, evaluation_context&.fields, expected_type)
+        # PLEASE DELETE when Datadog:OpenFeature:Provider is updated to pass strings
+        # Map symbol types to strings for internal evaluator
+        TYPE_MAP = {
+          boolean: 'boolean',
+          string: 'string',
+          integer: 'integer',
+          number: 'float',
+          float: 'float',
+          object: 'object'
+        }.freeze
+
+        string_expected_type = TYPE_MAP[expected_type] || expected_type
+
+        result = @evaluator.get_assignment(flag_key, evaluation_context&.fields, string_expected_type)
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result

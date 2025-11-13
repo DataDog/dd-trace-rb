@@ -5,10 +5,9 @@ module Datadog
 
       def get_assignment: (
         ::String,
-        untyped,
-        ::OpenFeature::SDK::EvaluationContext::fields_t,
+        ::OpenFeature::SDK::EvaluationContext?,
         ::String
-      ) -> ResolutionDetails
+      ) -> Binding::ResolutionDetails
     end
   end
 end

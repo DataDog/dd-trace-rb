@@ -240,11 +240,11 @@ module Datadog
         def type_matches?(flag_variation_type, expected_type)
           # Map Ruby expected types to flag variation types
           case expected_type
-          when :boolean then flag_variation_type == VariationType::BOOLEAN
-          when :string then flag_variation_type == VariationType::STRING
-          when :integer then flag_variation_type == VariationType::INTEGER
-          when :number, :float then flag_variation_type == VariationType::NUMERIC
-          when :object then flag_variation_type == VariationType::JSON
+          when 'boolean' then flag_variation_type == VariationType::BOOLEAN
+          when 'string' then flag_variation_type == VariationType::STRING
+          when 'integer' then flag_variation_type == VariationType::INTEGER
+          when 'float' then flag_variation_type == VariationType::NUMERIC
+          when 'object' then flag_variation_type == VariationType::JSON
           else false
           end
         end

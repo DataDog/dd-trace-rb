@@ -66,7 +66,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'matches allocation when first rule passes' do
       admin_context = { "user_type" => "admin", "age" => 30 }
-      result = evaluator.get_assignment("multi_rule_flag", admin_context, :string)
+      result = evaluator.get_assignment("multi_rule_flag", admin_context, 'string')
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
@@ -75,7 +75,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'matches allocation when second rule passes' do
       senior_context = { "user_type" => "regular", "age" => 70 }
-      result = evaluator.get_assignment("multi_rule_flag", senior_context, :string)
+      result = evaluator.get_assignment("multi_rule_flag", senior_context, 'string')
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
@@ -84,7 +84,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'matches allocation when both rules pass' do
       admin_senior_context = { "user_type" => "admin", "age" => 70 }
-      result = evaluator.get_assignment("multi_rule_flag", admin_senior_context, :string)
+      result = evaluator.get_assignment("multi_rule_flag", admin_senior_context, 'string')
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
@@ -93,7 +93,7 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
 
     it 'uses fallback allocation when no rules pass' do
       regular_context = { "user_type" => "regular", "age" => 30 }
-      result = evaluator.get_assignment("multi_rule_flag", regular_context, :string)
+      result = evaluator.get_assignment("multi_rule_flag", regular_context, 'string')
       
       expect(result.error_code).to be_nil
       expect(result.value).to eq("default_value")
