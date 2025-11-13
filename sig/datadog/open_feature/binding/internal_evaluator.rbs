@@ -15,7 +15,8 @@ module Datadog
         def get_assignment: (
           ::String flag_key,
           untyped _evaluation_context,
-          ::String? expected_type
+          ::String? expected_type,
+          untyped default_value
         ) -> ResolutionDetails
 
         private

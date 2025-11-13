@@ -12,7 +12,8 @@ module Datadog
       def fetch_value: (
         flag_key: ::String,
         expected_type: ::Symbol,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?,
+        default_value: untyped
       ) -> Binding::ResolutionDetails
 
       def reconfigure!: () -> void

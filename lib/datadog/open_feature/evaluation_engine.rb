@@ -13,6 +13,17 @@ module Datadog
 
       ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
+      # PLEASE DELETE when Datadog:OpenFeature:Provider is updated to pass strings
+      # Map symbol types to strings for internal evaluator
+      TYPE_MAP = {
+        boolean: 'boolean',
+        string: 'string',
+        integer: 'integer',
+        number: 'float',
+        float: 'float',
+        object: 'object'
+      }.freeze
+
       def initialize(reporter, telemetry:, logger: Datadog.logger)
         @reporter = reporter
         @telemetry = telemetry
@@ -23,7 +34,7 @@ module Datadog
         @configuration = nil
       end
 
-      def fetch_value(flag_key:, expected_type:, evaluation_context: nil)
+      def fetch_value(flag_key:, expected_type:, evaluation_context: nil, default_value:)
         unless ALLOWED_TYPES.include?(expected_type)
           message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(", ")}"
 
@@ -32,20 +43,9 @@ module Datadog
           )
         end
 
-        # PLEASE DELETE when Datadog:OpenFeature:Provider is updated to pass strings
-        # Map symbol types to strings for internal evaluator
-        TYPE_MAP = {
-          boolean: 'boolean',
-          string: 'string',
-          integer: 'integer',
-          number: 'float',
-          float: 'float',
-          object: 'object'
-        }.freeze
-
         string_expected_type = TYPE_MAP[expected_type] || expected_type
 
-        result = @evaluator.get_assignment(flag_key, evaluation_context&.fields, string_expected_type)
+        result = @evaluator.get_assignment(flag_key, evaluation_context&.fields, string_expected_type, default_value)
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result

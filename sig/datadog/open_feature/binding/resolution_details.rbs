@@ -34,7 +34,6 @@ module Datadog
 
         def error?: () -> bool
 
-        def result?: () -> bool
 
         def log?: () -> bool
 

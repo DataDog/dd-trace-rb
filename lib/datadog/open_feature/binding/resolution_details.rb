@@ -21,10 +21,6 @@ module Datadog
           !error_code.nil?
         end
 
-        # Check if this has a successful result with variant
-        def result?
-          !variant.nil?
-        end
 
         # Ruby-friendly method name for logging flag
         def log?
