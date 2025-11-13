@@ -22,6 +22,11 @@ RSpec.describe Datadog::DataStreams::Processor do
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettings.new(adapter: :test, hostname: 'localhost', port: 9999) }
   let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
 
+  after do
+    processor.stop(true)
+    processor.join
+  end
+
   before do
     # Stub HTTP requests to the agent
     stub_request(:post, %r{http://localhost:9999/v0.1/pipeline_stats})
@@ -29,9 +34,14 @@ RSpec.describe Datadog::DataStreams::Processor do
   end
 
   describe '#initialize' do
-    it 'sets up periodic worker with custom interval' do
-      processor = described_class.new(interval: 5.0, logger: logger, settings: settings, agent_settings: agent_settings)
-      expect(processor.loop_base_interval).to eq(5.0)
+    context 'when custom interval is provided' do
+      let(:processor) do
+        described_class.new(interval: 5.0, logger: logger, settings: settings, agent_settings: agent_settings)
+      end
+
+      it 'sets up periodic worker with custom interval' do
+        expect(processor.loop_base_interval).to eq(5.0)
+      end
     end
   end
 
