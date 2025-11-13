@@ -40,6 +40,8 @@ module Datadog
 
         attr_reader data_streams: Datadog::DataStreams::Processor?
 
+        attr_reader open_feature: Datadog::OpenFeature::Component?
+
         def initialize: (untyped settings) -> untyped
 
         def startup!: (untyped settings) -> untyped

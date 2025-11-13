@@ -3,6 +3,7 @@
 require_relative '../../utils/base64'
 require_relative '../../../appsec/remote'
 require_relative '../../../tracing/remote'
+require_relative '../../../open_feature/remote'
 
 module Datadog
   module Core
@@ -36,6 +37,12 @@ module Datadog
               register_capabilities(Datadog::DI::Remote.capabilities)
               register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
+            end
+
+            if settings.respond_to?(:open_feature) && settings.open_feature.enabled
+              register_capabilities(Datadog::OpenFeature::Remote.capabilities)
+              register_products(Datadog::OpenFeature::Remote.products)
+              register_receivers(Datadog::OpenFeature::Remote.receivers(@telemetry))
             end
 
             register_capabilities(Datadog::Tracing::Remote.capabilities)

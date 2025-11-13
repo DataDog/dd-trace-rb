@@ -8,10 +8,6 @@ module Datadog
   module Core
     # This module builds a hash of tags.
     #
-    # When changing or adding the tags, make sure they are kept in sync with
-    # https://docs.google.com/spreadsheets/d/1LOGMf4c4Avbtn36uZ2SWvhIGKRPLM1BoWkUP4JYj7hA/
-    # (Datadog internal link).
-    #
     # @api private
     module TagBuilder
       def self.fixed_environment_tags

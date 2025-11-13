@@ -4,7 +4,7 @@ PATH
     datadog (2.23.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 23.0.0.1.0)
-      libddwaf (~> 1.25.1.1.0)
+      libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
 
@@ -37,8 +37,8 @@ GEM
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
-    faraday-net_http (3.4.1)
-      net-http (>= 0.5.0)
+    faraday-net_http (3.4.2)
+      net-http (~> 0.5)
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-x86_64-linux-gnu)
     google-protobuf (3.25.4)
@@ -48,14 +48,14 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.15.0)
+    json (2.16.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (23.0.0.1.0-aarch64-linux)
     libdatadog (23.0.0.1.0-x86_64-linux)
-    libddwaf (1.25.1.1.0-aarch64-linux)
+    libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.25.1.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
@@ -63,7 +63,7 @@ GEM
     msgpack (1.8.0)
     multi_json (1.17.0)
     mutex_m (0.2.0)
-    net-http (0.6.0)
+    net-http (0.7.0)
       uri
     opensearch-ruby (3.4.0)
       faraday (>= 1.0, < 3)
@@ -114,7 +114,7 @@ GEM
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
     stringio (3.1.2)
-    uri (1.0.3)
+    uri (1.1.1)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)
