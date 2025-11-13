@@ -5,27 +5,30 @@ module Datadog
     module Normalizer
       module_function
 
-      INVALID_TAG_CHARACTERS = %r{[^a-z0-9_\-:./]}.freeze
+      INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}.freeze
+      LEADING_INVALID_CHARS = %r{\A[^\p{L}:]+}.freeze
+      TRAILING_UNDERSCORES = %r{_+\z}.freeze
+      MAX_CHARACTER_LENGTH = (0...200).freeze
 
-      # Based on https://docs.datadoghq.com/getting_started/tagging/#defining-tags
-      # Currently a reimplementation of the logic in the
-      # Datadog::Tracing::Metadata::Ext::HTTP::Headers.to_tag method with some additional items
-      # TODO: Swap out the logic in the Datadog Tracing Metadata headers logic
+      # Based on https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize.go#L131
+      # Specifically:
+      # - Must be valid UTF-8
+      # - Invalid characters are replaced with an underscore
+      # - Leading non-letter characters are removed but colons are kept
+      # - Trailing non-letter characters are removed
+      # - Trailing underscores are removed
+      # - Consecutive underscores are merged into a single underscore
+      # - Maximum length is 200 characters
       def self.normalize(original_value)
-        return "" if original_value.nil? || original_value.to_s.strip.empty?
+        normalized_value = original_value.to_s.encode('UTF-8', invalid: :replace, undef: :replace).strip
+        return "" if normalized_value.empty?
 
-        # Removes whitespaces
-        normalized_value = original_value.to_s.strip
-        # Lower case characters
         normalized_value.downcase!
-        # Invalid characters are replaced with an underscore
         normalized_value.gsub!(INVALID_TAG_CHARACTERS, '_')
-        # Merge consecutive underscores with a single underscore
+        normalized_value.sub!(LEADING_INVALID_CHARS, "")
+        normalized_value.sub!(TRAILING_UNDERSCORES, "")
         normalized_value.squeeze!('_')
-        # Remove leading non-letter characters
-        normalized_value.sub!(/\A[^a-z]+/, "")
-        # Maximum length is 200 characters
-        normalized_value = normalized_value[0...200] if normalized_value.length > 200
+        normalized_value = normalized_value[MAX_CHARACTER_LENGTH]
 
         normalized_value
       end

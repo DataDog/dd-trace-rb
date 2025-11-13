@@ -2,49 +2,50 @@ require 'spec_helper'
 require 'datadog/core/normalizer'
 
 RSpec.describe Datadog::Core::Normalizer do
-  describe '.normalize' do
-    subject(:normalize) { described_class.normalize(input) }
+  describe 'Follows the normalization logic from the Trace Agent' do
+    # Test cases from the Trace Agent for consistency
+    # https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize_test.go#L17
+    test_cases = [
+      { in: '#test_starting_hash', out: 'test_starting_hash' },
+      { in: 'TestCAPSandSuch', out: 'testcapsandsuch' },
+      { in: 'Test Conversion Of Weird !@#$%^&**() Characters', out: 'test_conversion_of_weird_characters' },
+      { in: '$#weird_starting', out: 'weird_starting' },
+      { in: 'allowed:c0l0ns', out: 'allowed:c0l0ns' },
+      { in: '1love', out: 'love' },
+      { in: 'ünicöde', out: 'ünicöde' },
+      { in: 'ünicöde:metäl', out: 'ünicöde:metäl' },
+      { in: 'Data🐨dog🐶 繋がっ⛰てて', out: 'data_dog_繋がっ_てて' },
+      { in: ' spaces   ', out: 'spaces' },
+      { in: ' #hashtag!@#spaces #__<>#  ', out: 'hashtag_spaces' },
+      { in: ':testing', out: ':testing' },
+      { in: '_foo', out: 'foo' },
+      { in: ':::test', out: ':::test' },
+      { in: 'contiguous_____underscores', out: 'contiguous_underscores' },
+      { in: 'foo_', out: 'foo' },
+      { in: '', out: '' },
+      { in: ' ', out: '' },
+      { in: 'ok', out: 'ok' },
+      { in: 'AlsO:ök', out: 'also:ök' },
+      { in: ':still_ok', out: ':still_ok' },
+      { in: '___trim', out: 'trim' },
+      { in: '12.:trim@', out: ':trim' },
+      { in: '12.:trim@@', out: ':trim' },
+      { in: 'fun:ky__tag/1', out: 'fun:ky_tag/1' },
+      { in: 'fun:ky@tag/2', out: 'fun:ky_tag/2' },
+      { in: 'fun:ky@@@tag/3', out: 'fun:ky_tag/3' },
+      { in: 'tag:1/2.3', out: 'tag:1/2.3' },
+      { in: '---fun:k####y_ta@#g/1_@@#', out: 'fun:k_y_ta_g/1' },
+      { in: 'AlsO:œ#@ö))œk', out: 'also:œ_ö_œk' },
+      { in: "test\x99\x8faaa", out: 'test_aaa' },
+      { in: "test\x99\x8f", out: 'test' },
+      { in: 'a' * 888, out: 'a' * 200 },
+      { in: ' regulartag ', out: 'regulartag' },
+    ]
 
-    context 'keeps normal strings the same' do
-      let(:input) { 'regulartag' }
-      let(:expected_output) { 'regulartag' }
-      it { is_expected.to eq(expected_output) }
-    end
-
-    context 'truncates long strings' do
-      let(:input) { 'a' * 201 }
-      let(:expected_output) { 'a' * 200 }
-      it { is_expected.to eq(expected_output) }
-    end
-
-    context 'transforms special characters to underscores' do
-      let(:input) { 'a&**!' }
-      let(:expected_output) { 'a_' }
-      it { is_expected.to eq(expected_output) }
-    end
-
-    context 'capital letters are lower cased' do
-      let(:input) { 'A' * 10 }
-      let(:expected_output) { 'a' * 10 }
-      it { is_expected.to eq(expected_output) }
-    end
-
-    context 'removes whitespaces' do
-      let(:input) { '  hi  ' }
-      let(:expected_output) { 'hi' }
-      it { is_expected.to eq(expected_output) }
-    end
-
-    context 'characters must start with a letter' do
-      let(:input) { '1hi' }
-      let(:expected_output) { 'hi' }
-      it { is_expected.to eq(expected_output) }
-    end
-
-    context 'if none of the characters are valid to start the value, the string is empty' do
-      let(:input) { '111111111' }
-      let(:expected_output) { '' }
-      it { is_expected.to eq(expected_output) }
+    test_cases.each do |test_case|
+      it "normalizes #{test_case[:in].inspect} to #{test_case[:out].inspect} like the Trace Agent" do
+        expect(described_class.normalize(test_case[:in])).to eq(test_case[:out])
+      end
     end
   end
 end
