@@ -145,6 +145,8 @@ module Datadog
         def error_tracking: () -> Datadog::Core::Configuration::Settings::_ErrorTracking
 
         def open_feature: () -> _OpenFeature
+
+        def tracing: () -> untyped
       end
     end
   end

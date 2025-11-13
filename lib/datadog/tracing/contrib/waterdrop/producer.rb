@@ -27,6 +27,8 @@ module Datadog
           def extract_span_tags(messages)
             messages = [messages] if messages.is_a?(Hash)
             span = Datadog::Tracing.active_span
+            return unless span
+
             topics = []
             partitions = []
             messages.each do |message|
