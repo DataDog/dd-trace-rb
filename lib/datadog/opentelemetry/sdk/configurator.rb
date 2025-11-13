@@ -33,12 +33,9 @@ module Datadog
         # Override metrics_configuration_hook to use Datadog's metrics initialization
         def metrics_configuration_hook
           require_relative '../../metrics' if defined?(OpenTelemetry::SDK::Metrics)
-          return unless defined?(Datadog::OpenTelemetry::Metrics::Initializer)
-          
+          return super unless defined?(Datadog::OpenTelemetry::Metrics::Initializer)
           # Only initialize if metrics are enabled, otherwise let default SDK handle it
-          unless Datadog.configuration.opentelemetry.metrics.enabled
-            return super
-          end
+          return super unless Datadog.configuration.opentelemetry.metrics.enabled
 
           Datadog::OpenTelemetry::Metrics::Initializer.initialize!(Datadog.configuration)
         end

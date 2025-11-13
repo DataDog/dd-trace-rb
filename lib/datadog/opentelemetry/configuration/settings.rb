@@ -12,12 +12,6 @@ module Datadog
           add_settings!(base)
         end
 
-        def self.resolve_agent_hostname
-          require_relative '../../core/configuration/agent_settings_resolver'
-          agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(Datadog.configuration)
-          agent_settings.hostname || Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
-        end
-
         def self.add_settings!(base)
           base.class_eval do
             settings :opentelemetry do
@@ -49,14 +43,9 @@ module Datadog
                 end
 
                 option :endpoint do |o|
-                  o.type :string
+                  o.type :string, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_ENDPOINT'
-                  o.default do
-                    protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_PROTOCOL'] || 'http/protobuf'
-                    host = Datadog::OpenTelemetry::Configuration::Settings.resolve_agent_hostname
-                    port = protocol == 'http/protobuf' ? 4318 : 4317
-                    "http://#{host}:#{port}"
-                  end
+                  o.default nil
                 end
               end
 
@@ -96,15 +85,7 @@ module Datadog
                 option :endpoint do |o|
                   o.type :string, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT'
-                  o.default do
-                    metrics_protocol = DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_PROTOCOL']
-                    next nil unless metrics_protocol
-
-                    host = Datadog::OpenTelemetry::Configuration::Settings.resolve_agent_hostname
-                    port = metrics_protocol == 'http/protobuf' ? 4318 : 4317
-                    path = metrics_protocol == 'http/protobuf' ? '/v1/metrics' : ''
-                    "http://#{host}:#{port}#{path}"
-                  end
+                  o.default nil
                 end
 
                 option :headers do |o|

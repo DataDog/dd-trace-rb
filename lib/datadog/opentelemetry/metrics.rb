@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../core/configuration/ext'
+
 module Datadog
   module OpenTelemetry
     module Metrics
@@ -48,7 +50,12 @@ module Datadog
         end
 
         def create_resource(settings)
-          resource_attributes = {'host.name' => Datadog::Core::Environment::Socket.hostname}
+          resource_attributes = {
+            'service.name' => settings.service || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME,
+            'deployment.environment' => settings.env || '',
+            'service.version' => settings.version || '',
+          }
+          resource_attributes['host.name'] = Datadog::Core::Environment::Socket.hostname if settings.tracing.report_hostname
 
           settings.tags&.each do |key, value|
             otel_key = case key
@@ -59,10 +66,6 @@ module Datadog
             end
             resource_attributes[otel_key] = value
           end
-
-          resource_attributes['service.name'] = settings.service if settings.service
-          resource_attributes['deployment.environment'] = settings.env if settings.env
-          resource_attributes['service.version'] = settings.version if settings.version
 
           ::OpenTelemetry::SDK::Resources::Resource.create(resource_attributes)
         end
@@ -76,16 +79,28 @@ module Datadog
           Datadog.logger.warn("Failed to configure OTLP metrics exporter: #{e.message}")
         end
 
+        def resolve_agent_hostname
+          require_relative '../core/configuration/agent_settings_resolver'
+          agent_settings = Datadog::Core::Configuration::AgentSettingsResolver.call(Datadog.configuration)
+          agent_settings.hostname || Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
+        end
+
         def resolve_metrics_endpoint(metrics_config, exporter_config)
-          if metrics_config.endpoint
-            return metrics_config.endpoint
+          return metrics_config.endpoint if metrics_config.endpoint
+
+          if metrics_config.protocol
+            protocol = metrics_config.protocol
+            port = protocol == 'http/protobuf' ? 4318 : 4317
+            path = protocol == 'http/protobuf' ? '/v1/metrics' : ''
+            return "http://#{resolve_agent_hostname}:#{port}#{path}"
           end
 
-          if exporter_config.protocol == 'grpc'
-            return exporter_config.endpoint
-          end
+          return exporter_config.endpoint if exporter_config.endpoint
 
-          "#{exporter_config.endpoint}/v1/metrics"
+          protocol = exporter_config.protocol || 'http/protobuf'
+          port = protocol == 'http/protobuf' ? 4318 : 4317
+          path = protocol == 'http/protobuf' ? '/v1/metrics' : ''
+          "http://#{resolve_agent_hostname}:#{port}#{path}"
         end
 
         def configure_otlp_exporter(provider, settings)
@@ -95,7 +110,7 @@ module Datadog
           exporter_config = settings.opentelemetry.exporter
           endpoint = resolve_metrics_endpoint(metrics_config, exporter_config)
           timeout = metrics_config.timeout || exporter_config.timeout
-          headers = metrics_config.headers || exporter_config.headers
+          headers = metrics_config.headers || exporter_config.headers || {}
 
           exporter = ::OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter.new(
             endpoint: endpoint,
