@@ -32,6 +32,19 @@ module Datadog
           parse_and_validate_json(ufc_json)
         end
 
+        # Evaluates a feature flag assignment for the given flag key and context.
+        # This method performs flag evaluation including type validation, targeting rules,
+        # traffic splitting, and allocation matching.
+        #
+        # @param flag_key [String] The unique identifier for the feature flag
+        # @param evaluation_context [Hash, nil] Context data for flag evaluation.
+        #   When using OpenFeature SDK, pass evaluation_context&.fields to extract
+        #   the hash representation. Common fields include 'targeting_key' and custom attributes.
+        # @param expected_type [String] Expected value type: "string", "integer", "float", "boolean", or "object"
+        # @param default_value [Object] Default value to return when flag evaluation fails or no allocation matches
+        # @return [ResolutionDetails] Evaluation result where result.value is ensured to never be nil.
+        #   For successful evaluations, contains the flag's assigned value and metadata.
+        #   For errors or disabled flags, contains the provided default_value.
         def get_assignment(flag_key, evaluation_context, expected_type, default_value)
           # Return error result if JSON parsing failed during initialization
           if @parse_error
@@ -90,7 +103,7 @@ module Datadog
         def parse_and_validate_json(ufc_json)
           # Handle nil or empty input
           if ufc_json.nil? || ufc_json.strip.empty?
-            @parse_error = { error_code: ErrorCodes::CONFIGURATION_MISSING, error_message: 'flags configuration is missing' }
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_MISSING, error_message: 'flags configuration is missing'}
             return
           end
 
@@ -99,111 +112,140 @@ module Datadog
 
           # Basic structure validation
           unless parsed_json.is_a?(Hash)
-            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
             return
           end
 
           # Check for flags at root level
           unless parsed_json.key?('flags')
-            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
             return
           end
 
           # Validate flags structure - this is the single source of truth for structure validation
           flags_data = parsed_json['flags']
           unless flags_data.is_a?(Hash)
-            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
             return
           end
 
           # Validate each flag structure to guarantee correct types for all downstream parsing
-          flags_data.each do |flag_key, flag_data|
-            unless flag_data.is_a?(Hash)
-              @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-              return
-            end
-
-            # Validate critical array/hash fields that cause runtime errors if wrong type
-            unless flag_data.fetch('variations', {}).is_a?(Hash)
-              @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-              return
-            end
-
-            unless flag_data.fetch('allocations', []).is_a?(Array)
-              @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-              return
-            end
-
-            # Validate allocations structure
-            flag_data.fetch('allocations', []).each do |allocation_data|
-              unless allocation_data.is_a?(Hash)
-                @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-                return
-              end
-
-              unless allocation_data.fetch('splits', []).is_a?(Array)
-                @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-                return
-              end
-
-              # Validate rules array if present
-              rules = allocation_data['rules']
-              if rules && !rules.is_a?(Array)
-                @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-                return
-              end
-
-              # Validate splits structure
-              allocation_data.fetch('splits', []).each do |split_data|
-                unless split_data.is_a?(Hash)
-                  @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-                  return
-                end
-
-                unless split_data.fetch('shards', []).is_a?(Array)
-                  @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-                  return
-                end
-
-                # Validate shards structure
-                split_data.fetch('shards', []).each do |shard_data|
-                  unless shard_data.is_a?(Hash)
-                    @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-                    return
-                  end
-
-                  unless shard_data.fetch('ranges', []).is_a?(Array)
-                    @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-                    return
-                  end
-                end
-              end
-
-              # Validate rules structure if present
-              if rules
-                rules.each do |rule_data|
-                  unless rule_data.is_a?(Hash)
-                    @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-                    return
-                  end
-
-                  unless rule_data.fetch('conditions', []).is_a?(Array)
-                    @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
-                    return
-                  end
-                end
-              end
-            end
+          error_found = flags_data.any? do |flag_key, flag_data|
+            validate_flag_structure(flag_data)
           end
+
+          return if error_found
 
           # All validation passed, safe to parse - no defensive programming needed elsewhere
           @parsed_config = Configuration.from_hash(parsed_json)
         rescue JSON::ParserError
-          @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
+          @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
         rescue
-          @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration' }
+          @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
         end
 
+        def validate_flag_structure(flag_data)
+          unless flag_data.is_a?(Hash)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          # Validate critical array/hash fields that cause runtime errors if wrong type
+          unless flag_data.fetch('variations', {}).is_a?(Hash)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          unless flag_data.fetch('allocations', []).is_a?(Array)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          # Validate allocations structure
+          flag_data.fetch('allocations', []).any? do |allocation_data|
+            validate_allocation_structure(allocation_data)
+          end
+        end
+
+        def validate_allocation_structure(allocation_data)
+          unless allocation_data.is_a?(Hash)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          unless allocation_data.fetch('splits', []).is_a?(Array)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          # Validate rules array if present
+          rules = allocation_data['rules']
+          if rules && !rules.is_a?(Array)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          # Validate splits structure
+          splits_error = allocation_data.fetch('splits', []).any? do |split_data|
+            validate_split_structure(split_data)
+          end
+
+          return true if splits_error
+
+          # Validate rules structure if present
+          if rules
+            rules.any? do |rule_data|
+              validate_rule_structure(rule_data)
+            end
+          else
+            false
+          end
+        end
+
+        def validate_split_structure(split_data)
+          unless split_data.is_a?(Hash)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          unless split_data.fetch('shards', []).is_a?(Array)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          # Validate shards structure
+          split_data.fetch('shards', []).any? do |shard_data|
+            validate_shard_structure(shard_data)
+          end
+        end
+
+        def validate_shard_structure(shard_data)
+          unless shard_data.is_a?(Hash)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          unless shard_data.fetch('ranges', []).is_a?(Array)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          false
+        end
+
+        def validate_rule_structure(rule_data)
+          unless rule_data.is_a?(Hash)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          unless rule_data.fetch('conditions', []).is_a?(Array)
+            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            return true
+          end
+
+          false
+        end
 
         # Case 1: Successful evaluation with result - has variant and value
         def create_evaluation_success(value, variant, allocation_key, do_log, reason)

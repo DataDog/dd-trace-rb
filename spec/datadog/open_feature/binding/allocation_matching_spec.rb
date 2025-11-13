@@ -12,10 +12,10 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
           "time_test_flag" => {
             "key" => "time_test_flag",
             "enabled" => true,
-            "variationType" => "STRING", 
+            "variationType" => "STRING",
             "variations" => {
-              "control" => { "key" => "control", "value" => "control_value" },
-              "treatment" => { "key" => "treatment", "value" => "treatment_value" }
+              "control" => {"key" => "control", "value" => "control_value"},
+              "treatment" => {"key" => "treatment", "value" => "treatment_value"}
             },
             "allocations" => [
               {
@@ -23,14 +23,14 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
                 "endAt" => (Time.now - 3600).to_i, # Expired 1 hour ago
                 "doLog" => true,
                 "splits" => [
-                  { "variationKey" => "control", "shards" => [] }
+                  {"variationKey" => "control", "shards" => []}
                 ]
               },
               {
-                "key" => "active_allocation", 
+                "key" => "active_allocation",
                 "doLog" => false,
                 "splits" => [
-                  { "variationKey" => "treatment", "shards" => [] }
+                  {"variationKey" => "treatment", "shards" => []}
                 ]
               }
             ]
@@ -38,12 +38,12 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
         }
       }
     end
-    
+
     let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new(flag_config.to_json) }
 
     it 'skips expired allocations and uses active ones' do
       result = evaluator.get_assignment("time_test_flag", {}, 'string', 'test_default')
-      
+
       expect(result.error_code).to be_nil  # nil for successful evaluation
       expect(result.value).to eq("treatment_value") # Should use active allocation
       expect(result.variant).to eq("treatment")
@@ -53,7 +53,7 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
 
     it 'returns assignment reason based on allocation properties' do
       result = evaluator.get_assignment("time_test_flag", {}, 'string', 'test_default')
-      
+
       expect(result.reason).to eq("STATIC") # Single split with no shards = static
     end
   end
@@ -63,9 +63,9 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
 
     it 'returns error result on flag lookup errors' do
       result = evaluator.get_assignment("missing_flag", {}, 'string', 'test_default')
-      
-      expect(result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED') 
-      expect(result.value).to be_nil  # Internal evaluator returns nil, provider handles defaults
+
+      expect(result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
+      expect(result.value).to eq('test_default')  # Internal evaluator returns default_value for errors
       expect(result.variant).to be_nil
       expect(result.flag_metadata).to eq({})
     end
@@ -74,10 +74,10 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
       string_result = evaluator.get_assignment("missing", {}, 'string', 'test_default')
       number_result = evaluator.get_assignment("missing", {}, 'float', 'test_default')
       bool_result = evaluator.get_assignment("missing", {}, 'boolean', 'test_default')
-      
-      expect(string_result.value).to be_nil  # Internal evaluator returns nil
-      expect(number_result.value).to be_nil
-      expect(bool_result.value).to be_nil
+
+      expect(string_result.value).to eq('test_default')  # Internal evaluator returns default_value
+      expect(number_result.value).to eq('test_default')
+      expect(bool_result.value).to eq('test_default')
       expect(string_result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
       expect(number_result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
       expect(bool_result.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
@@ -92,23 +92,23 @@ RSpec.describe 'InternalEvaluator Allocation Matching' do
             "key" => "timed_flag",
             "enabled" => true,
             "variationType" => "BOOLEAN",
-            "variations" => { "var1" => { "key" => "var1", "value" => true } },
+            "variations" => {"var1" => {"key" => "var1", "value" => true}},
             "allocations" => [
               {
                 "key" => "timed_allocation",
                 "startAt" => (Time.now - 3600).to_i, # Started 1 hour ago
-                "endAt" => (Time.now + 3600).to_i,   # Ends 1 hour from now  
+                "endAt" => (Time.now + 3600).to_i,   # Ends 1 hour from now
                 "doLog" => true,
-                "splits" => [{ "variationKey" => "var1", "shards" => [] }]
+                "splits" => [{"variationKey" => "var1", "shards" => []}]
               }
             ]
           }
         }
       }
-      
+
       evaluator = Datadog::OpenFeature::Binding::InternalEvaluator.new(config_with_time_bounds.to_json)
       result = evaluator.get_assignment("timed_flag", {}, 'boolean', 'test_default')
-      
+
       expect(result.error_code).to be_nil  # nil for successful evaluation
       expect(result.reason).to eq("TARGETING_MATCH") # Has time bounds
       expect(result.variant).not_to be_nil

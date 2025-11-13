@@ -33,7 +33,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   end
 
   describe '#fetch_value' do
-    let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string) }
+    let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string, default_value: 'default') }
 
     context 'when binding evaluator is not ready' do
       it 'returns evaluation error and reports exposure' do
@@ -103,7 +103,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         engine.reconfigure!
       end
 
-      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :whatever) }
+      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :whatever, default_value: 'default') }
 
       it 'returns evaluation error and does not report exposure' do
         expect(reporter).not_to receive(:report)
@@ -125,7 +125,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           allow(ctx).to receive(:fields).and_return({'targeting_key' => 'test-user'})
         end
       end
-      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string, evaluation_context: evaluation_context) }
+      let(:result) { engine.fetch_value(flag_key: 'test', expected_type: :string, evaluation_context: evaluation_context, default_value: 'default') }
 
       it 'returns resolved value and reports exposure' do
         expect(reporter).to receive(:report)
@@ -172,7 +172,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         engine.configuration = '{}'
 
         expect { engine.reconfigure! }.to raise_error(error)
-        expect(engine.fetch_value(flag_key: 'test', expected_type: :string).value).to eq('hello')
+        expect(engine.fetch_value(flag_key: 'test', expected_type: :string, default_value: 'default').value).to eq('hello')
       end
     end
 
@@ -209,7 +209,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       xit 'reconfigures binding evaluator with new flags configuration' do
         engine.configuration = new_flag_config
 
-        expect { engine.reconfigure! }.to change { engine.fetch_value(flag_key: 'test', expected_type: :string).value }
+        expect { engine.reconfigure! }.to change { engine.fetch_value(flag_key: 'test', expected_type: :string, default_value: 'default').value }
           .from('hello').to('goodbye')
       end
     end

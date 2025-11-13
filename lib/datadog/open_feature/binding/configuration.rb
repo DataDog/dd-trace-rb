@@ -29,8 +29,6 @@ module Datadog
           )
         end
 
-        private
-
         def self.parse_variations(variations_data)
           variations_data.transform_values do |variation_data|
             Variation.from_hash(variation_data)
@@ -40,6 +38,8 @@ module Datadog
         def self.parse_allocations(allocations_data)
           allocations_data.map { |allocation_data| Allocation.from_hash(allocation_data) }
         end
+
+        private_class_method :parse_variations, :parse_allocations
       end
 
       # Represents a flag variation with a key for logging and a value for the application
@@ -63,7 +63,7 @@ module Datadog
       class Allocation
         attr_reader :key, :rules, :start_at, :end_at, :splits, :do_log
 
-        def initialize(key:, rules: nil, start_at: nil, end_at: nil, splits:, do_log: true)
+        def initialize(key:, splits:, rules: nil, start_at: nil, end_at: nil, do_log: true)
           @key = key
           @rules = rules
           @start_at = start_at
@@ -83,8 +83,6 @@ module Datadog
           )
         end
 
-        private
-
         def self.parse_rules(rules_data)
           return nil if rules_data.nil? || rules_data.empty?
 
@@ -102,12 +100,12 @@ module Datadog
             Time.at(timestamp_data)
           when String
             Time.parse(timestamp_data)
-          else
-            nil
           end
-        rescue StandardError
+        rescue
           nil
         end
+
+        private_class_method :parse_rules, :parse_splits, :parse_timestamp
       end
 
       # Represents a traffic split within an allocation
@@ -128,11 +126,11 @@ module Datadog
           )
         end
 
-        private
-
         def self.parse_shards(shards_data)
           shards_data.map { |shard_data| Shard.from_hash(shard_data) }
         end
+
+        private_class_method :parse_shards
       end
 
       # Represents a shard configuration for traffic splitting
@@ -153,11 +151,11 @@ module Datadog
           )
         end
 
-        private
-
         def self.parse_ranges(ranges_data)
           ranges_data.map { |range_data| ShardRange.from_hash(range_data) }
         end
+
+        private_class_method :parse_ranges
       end
 
       # Represents a shard range for traffic allocation
@@ -194,11 +192,11 @@ module Datadog
           )
         end
 
-        private
-
         def self.parse_conditions(conditions_data)
           conditions_data.map { |condition_data| Condition.from_hash(condition_data) }
         end
+
+        private_class_method :parse_conditions
       end
 
       # Represents a single condition within a rule
@@ -218,7 +216,6 @@ module Datadog
             value: condition_data.fetch('value')
           )
         end
-
       end
 
       # Main configuration container
@@ -232,7 +229,7 @@ module Datadog
 
         def self.from_hash(config_data)
           flags_data = config_data.fetch('flags', {})
-          
+
           parsed_flags = flags_data.transform_values do |flag_data|
             Flag.from_hash(flag_data, flag_data['key'] || '')
           end

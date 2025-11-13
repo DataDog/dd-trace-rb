@@ -39,7 +39,7 @@ module Datadog
           message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(", ")}"
 
           return Binding::ResolutionDetails.new(
-            error_code: Ext::UNKNOWN_TYPE, error_message: message, reason: Ext::ERROR
+            value: default_value, error_code: Ext::UNKNOWN_TYPE, error_message: message, reason: Ext::ERROR
           )
         end
 
@@ -53,7 +53,7 @@ module Datadog
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch value for flag')
 
         Binding::ResolutionDetails.new(
-          error_code: Ext::PROVIDER_FATAL, error_message: e.message, reason: Ext::ERROR
+          value: default_value, error_code: Ext::PROVIDER_FATAL, error_message: e.message, reason: Ext::ERROR
         )
       end
 

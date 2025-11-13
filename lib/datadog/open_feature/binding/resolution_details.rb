@@ -21,12 +21,11 @@ module Datadog
           !error_code.nil?
         end
 
-
         # Ruby-friendly method name for logging flag
         def log?
           do_log
         end
-        
+
         # Keep do_log as an alias for backwards compatibility
         alias_method :do_log?, :log?
       end

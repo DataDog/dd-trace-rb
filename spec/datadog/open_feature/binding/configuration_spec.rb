@@ -21,14 +21,14 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
 
     it 'parses specific flags correctly' do
       config = described_class.from_hash(flag_config)
-      
+
       # Test empty flag
       empty_flag = config.flags['empty_flag']
       expect(empty_flag).not_to be_nil
       expect(empty_flag.key).to eq('empty_flag')
       expect(empty_flag.enabled).to be true
       expect(empty_flag.variation_type).to eq('STRING')
-      
+
       # Test disabled flag
       disabled_flag = config.flags['disabled_flag']
       expect(disabled_flag).not_to be_nil
@@ -38,11 +38,11 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
 
     it 'parses numeric variations correctly' do
       config = described_class.from_hash(flag_config)
-      
+
       numeric_flag = config.flags['numeric_flag']
       expect(numeric_flag).not_to be_nil
       expect(numeric_flag.variation_type).to eq('NUMERIC')
-      
+
       if numeric_flag.variations['e']
         e_value = numeric_flag.variations['e'].value
         expect(e_value).to be_within(0.001).of(2.7182818)
@@ -51,21 +51,21 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
 
     it 'handles all variation types present in test data' do
       config = described_class.from_hash(flag_config)
-      
+
       variation_types = config.flags.values.map(&:variation_type).uniq
       expect(variation_types).to include('STRING', 'INTEGER', 'NUMERIC')
     end
 
     it 'parses allocations with rules and splits' do
       config = described_class.from_hash(flag_config)
-      
+
       # Find flags with allocations
       flags_with_allocations = config.flags.values.select { |f| f.allocations.any? }
       expect(flags_with_allocations).not_to be_empty
-      
+
       flag_with_allocation = flags_with_allocations.first
       allocation = flag_with_allocation.allocations.first
-      
+
       expect(allocation.key).to be_a(String)
       expect([true, false]).to include(allocation.do_log)
     end
@@ -91,6 +91,5 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
       config = described_class.from_hash({})
       expect(config.flags).to be_empty
     end
-
   end
 end

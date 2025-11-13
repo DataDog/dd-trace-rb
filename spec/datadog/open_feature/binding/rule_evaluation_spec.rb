@@ -7,10 +7,10 @@ require 'datadog/open_feature/binding/internal_evaluator'
 RSpec.describe 'InternalEvaluator Rule Evaluation' do
   # Most rule evaluation scenarios are covered by UFC test cases:
   # - GTE/comparison operators: test-case-comparator-operator-flag.json
-  # - ONE_OF membership: test-case-boolean-one-of-matches.json  
+  # - ONE_OF membership: test-case-boolean-one-of-matches.json
   # - Regex matching: test-case-regex-flag.json
   # - Null checks: test-case-null-operator-flag.json
-  # 
+  #
   # The following tests cover scenarios not fully exercised by UFC test cases:
 
   describe 'multiple rules in allocation (OR logic)' do
@@ -22,8 +22,8 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
             "enabled" => true,
             "variationType" => "STRING",
             "variations" => {
-              "default" => { "key" => "default", "value" => "default_value" },
-              "special" => { "key" => "special", "value" => "special_value" }
+              "default" => {"key" => "default", "value" => "default_value"},
+              "special" => {"key" => "special", "value" => "special_value"}
             },
             "allocations" => [
               {
@@ -49,12 +49,12 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
                   }
                 ],
                 "doLog" => true,
-                "splits" => [{ "variationKey" => "special", "shards" => [] }]
+                "splits" => [{"variationKey" => "special", "shards" => []}]
               },
               {
                 "key" => "default_allocation",
                 "doLog" => false,
-                "splits" => [{ "variationKey" => "default", "shards" => [] }]
+                "splits" => [{"variationKey" => "default", "shards" => []}]
               }
             ]
           }
@@ -65,36 +65,36 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
     let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new(flag_config.to_json) }
 
     it 'matches allocation when first rule passes' do
-      admin_context = { "user_type" => "admin", "age" => 30 }
+      admin_context = {"user_type" => "admin", "age" => 30}
       result = evaluator.get_assignment("multi_rule_flag", admin_context, 'string', 'test_default')
-      
+
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
       expect(result.flag_metadata['allocationKey']).to eq("special_users")
     end
 
     it 'matches allocation when second rule passes' do
-      senior_context = { "user_type" => "regular", "age" => 70 }
+      senior_context = {"user_type" => "regular", "age" => 70}
       result = evaluator.get_assignment("multi_rule_flag", senior_context, 'string', 'test_default')
-      
+
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
       expect(result.flag_metadata['allocationKey']).to eq("special_users")
     end
 
     it 'matches allocation when both rules pass' do
-      admin_senior_context = { "user_type" => "admin", "age" => 70 }
+      admin_senior_context = {"user_type" => "admin", "age" => 70}
       result = evaluator.get_assignment("multi_rule_flag", admin_senior_context, 'string', 'test_default')
-      
+
       expect(result.error_code).to be_nil
       expect(result.value).to eq("special_value")
       expect(result.flag_metadata['allocationKey']).to eq("special_users")
     end
 
     it 'uses fallback allocation when no rules pass' do
-      regular_context = { "user_type" => "regular", "age" => 30 }
+      regular_context = {"user_type" => "regular", "age" => 30}
       result = evaluator.get_assignment("multi_rule_flag", regular_context, 'string', 'test_default')
-      
+
       expect(result.error_code).to be_nil
       expect(result.value).to eq("default_value")
       expect(result.flag_metadata['allocationKey']).to eq("default_allocation")
