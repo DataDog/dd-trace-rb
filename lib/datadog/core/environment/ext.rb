@@ -33,7 +33,7 @@ module Datadog
         LANG_INTERPRETER = "#{RUBY_ENGINE}-#{RUBY_PLATFORM}"
         LANG_PLATFORM = RUBY_PLATFORM
         LANG_VERSION = RUBY_VERSION
-        PROCESS_TYPE = 'script'
+        PROCESS_TYPE = 'script' # Out of the options [jar, script, class, executable], we consider Ruby to always be a script
         RUBY_ENGINE = ::RUBY_ENGINE # e.g. 'ruby', 'jruby', 'truffleruby'
         TAG_ENV = 'env'
         TAG_ENTRYPOINT_BASEDIR = "entrypoint.basedir"
