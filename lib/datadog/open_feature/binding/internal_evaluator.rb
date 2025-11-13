@@ -325,8 +325,8 @@ module Datadog
               if variation
                 return [allocation, variation, reason]
               else
-                # Variation referenced by split doesn't exist - configuration error
-                raise EvaluationError.new(ErrorCodes::CONFIGURATION_PARSE_ERROR, 'failed to parse configuration')
+                # Variation referenced by split doesn't exist - default allocation null
+                raise EvaluationError.new(ErrorCodes::DEFAULT_ALLOCATION_NULL, 'allocation references non-existent variation')
               end
             end
           end
