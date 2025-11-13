@@ -2,10 +2,6 @@
 
 ## [Unreleased]
 
-### Changed
-
-* Core: Upgrade libdatadog dependency to version 24.0.0 ([#5045][])
-
 ## [2.22.0] - 2025-10-15
 
 ### Added
