@@ -28,6 +28,13 @@ module Datadog
 
               included_middlewares = producer.middleware.instance_variable_get(:@steps)
               producer.middleware.append(Middleware) unless included_middlewares.include?(Middleware)
+
+              producer.monitor.subscribe('message.acknowledged') do |ack_event|
+                if Datadog::DataStreams.enabled?
+                  payload = ack_event.payload
+                  Datadog::DataStreams.track_kafka_produce(payload[:topic], payload[:partition], payload[:offset])
+                end
+              end
             end
           end
         end
