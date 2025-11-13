@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module WaterDrop
+        module Configuration
+          class Settings < Contrib::Configuration::Settings
+            def self.option: (Symbol name, ?untyped meta) ?{ (untyped) -> void } -> untyped
+          end
+        end
+      end
+    end
+  end
+end

@@ -144,6 +144,7 @@ build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.20.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
+build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
 build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk')
 
