@@ -45,7 +45,7 @@ module Datadog
 
         string_expected_type = TYPE_MAP[expected_type] || expected_type
 
-        result = @evaluator.get_assignment(flag_key, evaluation_context&.fields, string_expected_type, default_value)
+        result = @evaluator.get_assignment(flag_key, default_value, evaluation_context&.fields, string_expected_type)
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
         result

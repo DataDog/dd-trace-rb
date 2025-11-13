@@ -7,7 +7,7 @@ RSpec.describe Datadog::OpenFeature::NoopEvaluator do
   subject(:evaluator) { described_class.new(nil) }
 
   describe '#get_assignment' do
-    let(:result) { evaluator.get_assignment('flag', nil, :string, 'default_value') }
+    let(:result) { evaluator.get_assignment('flag', 'default_value', nil, :string) }
 
     it 'returns provider not ready result' do
       expect(result.do_log).to be(false)

@@ -28,7 +28,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
     context 'with invalid UFC JSON' do
       it 'stores parse error for malformed JSON' do
         evaluator = described_class.new('invalid json')
-        result = evaluator.get_assignment('any_flag', {}, 'string', 'test_default')
+        result = evaluator.get_assignment('any_flag', 'test_default', {}, 'string')
 
         expect(result.error_code).to eq('CONFIGURATION_PARSE_ERROR')
         expect(result.error_message).to eq('failed to parse configuration')
@@ -38,7 +38,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
 
       it 'stores configuration missing error for empty JSON' do
         evaluator = described_class.new('')
-        result = evaluator.get_assignment('any_flag', {}, 'string', 'test_default')
+        result = evaluator.get_assignment('any_flag', 'test_default', {}, 'string')
 
         expect(result.error_code).to eq('CONFIGURATION_MISSING')
         expect(result.error_message).to eq('flags configuration is missing')
@@ -55,7 +55,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       let(:bad_evaluator) { described_class.new('invalid json') }
 
       it 'returns the initialization error' do
-        result = bad_evaluator.get_assignment('any_flag', {}, 'string', 'test_default')
+        result = bad_evaluator.get_assignment('any_flag', 'test_default', {}, 'string')
 
         expect(result.error_code).to eq('CONFIGURATION_PARSE_ERROR')
         expect(result.error_message).to eq('failed to parse configuration')
@@ -67,7 +67,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
 
     context 'with type validation' do
       it 'returns TYPE_MISMATCH when types do not match' do
-        result = evaluator.get_assignment('numeric_flag', {}, 'boolean', 'test_default')
+        result = evaluator.get_assignment('numeric_flag', 'test_default', {}, 'boolean')
 
         expect(result.error_code).to eq('TYPE_MISMATCH')
         expect(result.error_message).to eq('invalid flag type (expected: boolean, found: NUMERIC)')
@@ -77,7 +77,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       end
 
       it 'succeeds when types match' do
-        result = evaluator.get_assignment('numeric_flag', {}, 'float', 'test_default')
+        result = evaluator.get_assignment('numeric_flag', 'test_default', {}, 'float')
 
         expect(result.error_code).to be_nil  # nil for successful allocation match
         expect(result.error_message).to be_nil  # nil for successful cases
@@ -89,7 +89,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       end
 
       it 'succeeds when expected_type is nil (no validation)' do
-        result = evaluator.get_assignment('numeric_flag', {}, nil, 'test_default')
+        result = evaluator.get_assignment('numeric_flag', 'test_default', {}, nil)
 
         expect(result.error_code).to be_nil  # nil for successful allocation match
         expect(result.error_message).to be_nil  # nil for successful cases
@@ -123,7 +123,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       it 'accepts hash evaluation contexts including from OpenFeature SDK fields' do
         # Test with hash-based evaluation context
         hash_context = {'targeting_key' => 'user123', 'attr1' => 'value1'}
-        hash_result = evaluator.get_assignment('numeric_flag', hash_context, 'float', 'test_default')
+        hash_result = evaluator.get_assignment('numeric_flag', 'test_default', hash_context, 'float')
 
         expect(hash_result.error_code).to be_nil
         expect(hash_result.value).not_to be_nil
@@ -135,7 +135,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
           fields: {'attr1' => 'value1'}
         )
 
-        sdk_result = evaluator.get_assignment('numeric_flag', sdk_context.fields, 'float', 'test_default')
+        sdk_result = evaluator.get_assignment('numeric_flag', 'test_default', sdk_context.fields, 'float')
 
         expect(sdk_result.error_code).to be_nil
         expect(sdk_result.value).not_to be_nil
@@ -174,13 +174,13 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
 
     it 'uses consistent error codes matching Rust implementation' do
       # Test all error types
-      flag_not_found = evaluator.get_assignment('missing', {}, 'string', 'test_default')
+      flag_not_found = evaluator.get_assignment('missing', 'test_default', {}, 'string')
       expect(flag_not_found.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
       expect(flag_not_found.value).to eq('test_default')
       expect(flag_not_found.variant).to be_nil
       expect(flag_not_found.flag_metadata).to eq({})
 
-      flag_disabled = evaluator.get_assignment('disabled_flag', {}, 'integer', 'test_default')
+      flag_disabled = evaluator.get_assignment('disabled_flag', 'test_default', {}, 'integer')
       expect(flag_disabled.error_code).to be_nil  # Disabled flags are successful cases with nil error_code
       expect(flag_disabled.error_message).to be_nil  # nil for successful disabled cases
       expect(flag_disabled.reason).to eq('DISABLED')  # Disabled reason
@@ -188,7 +188,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       expect(flag_disabled.variant).to be_nil
       expect(flag_disabled.flag_metadata).to eq({})
 
-      type_mismatch = evaluator.get_assignment('numeric_flag', {}, 'boolean', 'test_default')
+      type_mismatch = evaluator.get_assignment('numeric_flag', 'test_default', {}, 'boolean')
       expect(type_mismatch.error_code).to eq('TYPE_MISMATCH')
       expect(type_mismatch.value).to eq('test_default')
       expect(type_mismatch.variant).to be_nil
@@ -196,13 +196,13 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
     end
 
     it 'provides descriptive error messages matching Rust format' do
-      result = evaluator.get_assignment('missing_flag', {}, 'string', 'test_default')
+      result = evaluator.get_assignment('missing_flag', 'test_default', {}, 'string')
       expect(result.error_message).to eq('flag is missing in configuration, it is either unrecognized or disabled')
       expect(result.value).to eq('test_default')
       expect(result.variant).to be_nil
       expect(result.flag_metadata).to eq({})
 
-      type_result = evaluator.get_assignment('numeric_flag', {}, 'boolean', 'test_default')
+      type_result = evaluator.get_assignment('numeric_flag', 'test_default', {}, 'boolean')
       expect(type_result.error_message).to match(/invalid flag type \(expected: .*, found: .*\)/)
       expect(type_result.value).to eq('test_default')
       expect(type_result.variant).to be_nil
@@ -241,7 +241,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
             evaluation_context['targeting_key'] = targeting_key if targeting_key  # Convert camelCase to snake_case
 
             # Execute test case
-            result = evaluator.get_assignment(flag_key, evaluation_context, expected_type, 'test_default')
+            result = evaluator.get_assignment(flag_key, 'test_default', evaluation_context, expected_type)
 
             # Wrap expectations in aggregate_failures for better error reporting
             aggregate_failures "Test case ##{index + 1}: #{targeting_key} with #{attributes.keys.join(", ")}" do

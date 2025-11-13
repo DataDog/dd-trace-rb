@@ -37,15 +37,15 @@ module Datadog
         # traffic splitting, and allocation matching.
         #
         # @param flag_key [String] The unique identifier for the feature flag
+        # @param default_value [Object] Default value to return when flag evaluation fails or no allocation matches
         # @param evaluation_context [Hash, nil] Context data for flag evaluation.
         #   When using OpenFeature SDK, pass evaluation_context&.fields to extract
         #   the hash representation. Common fields include 'targeting_key' and custom attributes.
         # @param expected_type [String] Expected value type: "string", "integer", "float", "boolean", or "object"
-        # @param default_value [Object] Default value to return when flag evaluation fails or no allocation matches
         # @return [ResolutionDetails] Evaluation result where result.value is ensured to never be nil.
         #   For successful evaluations, contains the flag's assigned value and metadata.
         #   For errors or disabled flags, contains the provided default_value.
-        def get_assignment(flag_key, evaluation_context, expected_type, default_value)
+        def get_assignment(flag_key, default_value, evaluation_context, expected_type)
           # Return error result if JSON parsing failed during initialization
           if @parse_error
             return create_evaluation_error(
