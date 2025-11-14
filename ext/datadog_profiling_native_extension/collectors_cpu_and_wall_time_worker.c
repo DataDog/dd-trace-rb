@@ -289,7 +289,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
       after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
     ) {
-      rb_raise(datadog_profiling_error_class, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
+      RAISE_PROFILING_TELEMETRY_SAFE("Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
   #else
     gc_finalize_deferred_workaround = objspace_ptr_for_gc_finalize_deferred_workaround();
@@ -472,10 +472,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   cpu_and_wall_time_worker_state *old_state = active_sampler_instance_state;
   if (old_state != NULL) {
     if (is_thread_alive(old_state->owner_thread)) {
-      rb_raise(
-        datadog_profiling_error_class,
-        "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread"
-      );
+      RAISE_PROFILING_TELEMETRY_SAFE("Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread");
     } else {
       // The previously active thread seems to have died without cleaning up after itself.
       // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing tracepoint
@@ -1284,7 +1281,7 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
 
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error) {
   // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
-  stop_state(state, rb_exc_new_cstr(datadog_profiling_error_class, error));
+  stop_state(state, rb_exc_new_cstr(datadog_profiling_constant_error_class, error));
 }
 
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg) {

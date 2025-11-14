@@ -14,11 +14,11 @@ static ID to_s_id = Qnil;
 
 // Global reference to Datadog::Profiling::ProfilingError exception class
 // Initialized in profiling.c during extension initialization
-VALUE datadog_profiling_error_class = Qnil;
+VALUE datadog_profiling_constant_error_class = Qnil;
 
 // Global reference to Datadog::Profiling::ProfilingInternalError exception class
 // Initialized in profiling.c during extension initialization
-VALUE datadog_profiling_internal_error_class = Qnil;
+VALUE datadog_profiling_dynamic_error_class = Qnil;
 
 void ruby_helpers_init(void) {
   rb_global_variable(&module_object_space);
@@ -52,7 +52,7 @@ void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
 
   if (is_current_thread_holding_the_gvl()) {
     rb_raise(
-      datadog_profiling_error_class,
+      datadog_profiling_constant_error_class,
       "grab_gvl_and_raise called by thread holding the global VM lock. exception_message: '%s'",
       args.exception_message
     );
@@ -84,7 +84,7 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
 
   if (is_current_thread_holding_the_gvl()) {
     rb_raise(
-      datadog_profiling_error_class,
+      datadog_profiling_constant_error_class,
       "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%s'",
       syserr_errno,
       args.exception_message
