@@ -19,7 +19,7 @@ module Datadog
         # Returns the entrypoint type of the process
         # @return [String] the type of the process, which is fixed in Ruby
         def entrypoint_type
-          Core::Environment::Ext::PROCESS_TYPE
+          Environment::Ext::PROCESS_TYPE
         end
 
         # Returns the last segment of the base directory of the process
@@ -41,8 +41,8 @@ module Datadog
         # @param value [String] the original value
         # @return [String] normalized key:value pair
         def serialized_kv_helper(key, value)
-          key = Core::Normalizer.normalize(key)
-          value = Core::Normalizer.normalize(value)
+          key = Normalizer.normalize(key)
+          value = Normalizer.normalize(value)
           "#{key}:#{value}"
         end
 
@@ -51,10 +51,10 @@ module Datadog
         def serialized
           return @serialized if defined?(@serialized)
           tags = []
-          tags << serialized_kv_helper(Core::Environment::Ext::TAG_ENTRYPOINT_WORKDIR, entrypoint_workdir) if entrypoint_workdir
-          tags << serialized_kv_helper(Core::Environment::Ext::TAG_ENTRYPOINT_NAME, entrypoint_name) if entrypoint_name
-          tags << serialized_kv_helper(Core::Environment::Ext::TAG_ENTRYPOINT_BASEDIR, entrypoint_basedir) if entrypoint_basedir
-          tags << serialized_kv_helper(Core::Environment::Ext::TAG_ENTRYPOINT_TYPE, entrypoint_type) if entrypoint_type
+          tags << serialized_kv_helper(Environment::Ext::TAG_ENTRYPOINT_WORKDIR, entrypoint_workdir) if entrypoint_workdir
+          tags << serialized_kv_helper(Environment::Ext::TAG_ENTRYPOINT_NAME, entrypoint_name) if entrypoint_name
+          tags << serialized_kv_helper(Environment::Ext::TAG_ENTRYPOINT_BASEDIR, entrypoint_basedir) if entrypoint_basedir
+          tags << serialized_kv_helper(Environment::Ext::TAG_ENTRYPOINT_TYPE, entrypoint_type) if entrypoint_type
           @serialized = tags.join(',').freeze
         end
       end
