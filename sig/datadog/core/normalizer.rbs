@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Normalizer
       INVALID_TAG_CHARACTERS: ::Regexp
-      def self.normalize: (untyped original_value) -> ("" | untyped)
+      def self.normalize: (untyped original_value) -> ::String
     end
   end
 end
