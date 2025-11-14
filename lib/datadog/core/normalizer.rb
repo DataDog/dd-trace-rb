@@ -20,7 +20,8 @@ module Datadog
       # - Consecutive underscores are merged into a single underscore
       # - Maximum length is 200 characters
       def self.normalize(original_value)
-        normalized_value = original_value.to_s.encode('UTF-8', invalid: :replace, undef: :replace).strip
+        normalized_value = original_value.to_s.encode('UTF-8', invalid: :replace, undef: :replace)
+        normalized_value.strip!
         return "" if normalized_value.empty?
 
         normalized_value.downcase!
