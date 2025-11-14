@@ -490,9 +490,8 @@ module Datadog
         def compute_shard_hash(salt, targeting_key, total_shards)
           require 'digest/md5'
 
-          # nosemgrep: ruby.lang.security.weak-hashes-md5.weak-hashes-md5
           # MD5 is used for feature flag allocation hashing, not cryptographic security
-          hasher = Digest::MD5.new
+          hasher = Digest::MD5.new # nosemgrep: ruby.lang.security.weak-hashes-md5.weak-hashes-md5
           hasher.update(salt.to_s) if salt
           hasher.update('-') # Separator used in libdatadog PreSaltedSharder
           hasher.update(targeting_key.to_s)
