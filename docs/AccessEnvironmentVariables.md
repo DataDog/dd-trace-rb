@@ -77,9 +77,9 @@ Edit the `supported-configurations.json` file and add your variable (Please keep
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.new_variable"],
-        "defaultValue": "true", # optional, default value in string format that will be parsed
-        "aliases": ["DD_ALIAS_1", "DD_ALIAS_2"], # optional, these env vars can be set, but not used in dd-trace-rb code
-        "deprecated": true, # optional, true | false, will log a deprecation message if the env var is set
+        "defaultValue": "true",
+        "aliases": ["DD_ALIAS_1", "DD_ALIAS_2"],
+        "deprecated": true
       }
     ]
   }
