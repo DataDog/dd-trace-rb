@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/core'
-require 'datadog/core/ddsketch'
 require 'datadog/data_streams/spec_helper'
 require 'karafka'
 require 'ostruct'

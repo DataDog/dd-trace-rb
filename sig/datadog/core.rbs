@@ -2,5 +2,7 @@ module Datadog
   module Core
     LIBDATADOG_API_FAILURE: ::String?
     extend Core::Deprecations
+    
+    def self.ddsketch_supported?: () -> bool
   end
 end
