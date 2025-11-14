@@ -1,0 +1,58 @@
+module Datadog
+  module Core
+    module FeatureFlags
+      class Error < StandardError
+      end
+
+      class Configuration
+        def self.new: (String json_str) -> Configuration
+
+        # Get assignment for a feature flag
+        #
+        # @param flag_key [String] The key of the feature flag
+        # @param expected_type [Symbol] Expected type (:boolean, :string, :number, :object, :any, :integer, :float)
+        # @param context [Hash] Evaluation context with targeting_key and other attributes
+        # @return [ResolutionDetails] The resolution details
+        def get_assignment: (String flag_key, Symbol expected_type, Hash[String, untyped] context) -> ResolutionDetails
+      end
+
+      class ResolutionDetails
+        # Get the resolved value
+        # @return The value can be any type depending on the feature flag
+        def value: () -> untyped
+
+        # Get the variant identifier
+        # @return [String, nil] The variant identifier or nil
+        def variant: () -> String?
+
+        # Get the allocation key
+        # @return [String, nil] The allocation key or nil
+        def allocation_key: () -> String?
+
+        # Get the reason for the resolution
+        # @return [String] One of: "STATIC", "DEFAULT", "TARGETING_MATCH", "SPLIT", "DISABLED", "ERROR", "UNKNOWN"
+        def reason: () -> String
+
+        # Check if the resolution resulted in an error
+        # @return [bool] True if there was an error
+        def error?: () -> bool
+
+        # Get the error code if there was an error
+        # @return [String, nil] Error code or nil if no error
+        def error_code: () -> String?
+
+        # Get the error message if there was an error
+        # @return [String, nil] Error message or nil
+        def error_message: () -> String?
+
+        # Check if this resolution should be logged
+        # @return [bool] True if should be logged
+        def log?: () -> bool
+
+        # Get the flag metadata
+        # @return [Hash[String, String]] The flag metadata as a hash
+        def flag_metadata: () -> Hash[String, String]
+      end
+    end
+  end
+end

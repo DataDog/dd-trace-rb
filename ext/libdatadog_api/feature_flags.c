@@ -1,295 +1,263 @@
-#include <ruby.h>
-#include <datadog/datadog_ffe.h>
-#include <string.h>
-#include <stdlib.h>
+#include "feature_flags.h"
+
+#include <stdio.h>
+#include <datadog/ffe.h>
+#include <datadog/common.h>
 
 #include "datadog_ruby_common.h"
 
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+
 // Forward declarations
-static VALUE configuration_alloc(VALUE klass);
+static VALUE configuration_new(VALUE klass, VALUE json_str);
 static void configuration_free(void *ptr);
-static VALUE configuration_initialize(VALUE self, VALUE json_str);
+static VALUE configuration_get_assignment(
+  VALUE self, VALUE flag_key, VALUE expected_type, VALUE context);
 
-static VALUE evaluation_context_alloc(VALUE klass);
-static void evaluation_context_free(void *ptr);
-static VALUE evaluation_context_initialize_with_attributes(VALUE self, VALUE targeting_key, VALUE attributes_hash);
-
-static VALUE resolution_details_alloc(VALUE klass);
 static void resolution_details_free(void *ptr);
-
-// Resolution details accessor methods
 static VALUE resolution_details_get_value(VALUE self);
-static VALUE resolution_details_get_reason(VALUE self);
-static VALUE resolution_details_get_error_code(VALUE self);
-static VALUE resolution_details_get_error_message(VALUE self);
 static VALUE resolution_details_get_variant(VALUE self);
 static VALUE resolution_details_get_allocation_key(VALUE self);
+static VALUE resolution_details_get_reason(VALUE self);
+static VALUE resolution_details_is_error(VALUE self);
+static VALUE resolution_details_get_error_code(VALUE self);
+static VALUE resolution_details_get_error_message(VALUE self);
 static VALUE resolution_details_get_do_log(VALUE self);
 static VALUE resolution_details_get_flag_metadata(VALUE self);
 
-static VALUE native_get_assignment(VALUE self, VALUE config, VALUE flag_key, VALUE context);
-
-
-void feature_flags_init(VALUE open_feature_module) {
-  // Always define the Binding module - it will reuse existing if it exists
-  VALUE binding_module = rb_define_module_under(open_feature_module, "Binding");
-
-  // Configuration class
-  VALUE configuration_class = rb_define_class_under(binding_module, "Configuration", rb_cObject);
-  rb_define_alloc_func(configuration_class, configuration_alloc);
-  rb_define_method(configuration_class, "_native_initialize", configuration_initialize, 1);
-
-  // EvaluationContext class
-  VALUE evaluation_context_class = rb_define_class_under(binding_module, "EvaluationContext", rb_cObject);
-  rb_define_alloc_func(evaluation_context_class, evaluation_context_alloc);
-  rb_define_method(evaluation_context_class, "_native_initialize_with_attributes", evaluation_context_initialize_with_attributes, 2);
-
-  // ResolutionDetails class
-  VALUE resolution_details_class = rb_define_class_under(binding_module, "ResolutionDetails", rb_cObject);
-  rb_define_alloc_func(resolution_details_class, resolution_details_alloc);
-
-  rb_define_method(resolution_details_class, "value", resolution_details_get_value, 0);
-  rb_define_method(resolution_details_class, "reason", resolution_details_get_reason, 0);
-  rb_define_method(resolution_details_class, "error_code", resolution_details_get_error_code, 0);
-  rb_define_method(resolution_details_class, "error_message", resolution_details_get_error_message, 0);
-  rb_define_method(resolution_details_class, "variant", resolution_details_get_variant, 0);
-  rb_define_method(resolution_details_class, "allocation_key", resolution_details_get_allocation_key, 0);
-  rb_define_method(resolution_details_class, "do_log", resolution_details_get_do_log, 0);
-
-  // Module-level method
-  rb_define_module_function(binding_module, "_native_get_assignment", native_get_assignment, 3);
-}
-
-// Configuration TypedData definition
-static const rb_data_type_t configuration_typed_data = {
-  .wrap_struct_name = "Datadog::OpenFeature::Binding::Configuration",
+static const rb_data_type_t configuration_data_type = {
+  .wrap_struct_name = "Datadog::Core::FeatureFlags::Configuration",
   .function = {
     .dmark = NULL,
     .dfree = configuration_free,
     .dsize = NULL,
   },
-  .flags = RUBY_TYPED_FREE_IMMEDIATELY
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
 
-static VALUE configuration_alloc(VALUE klass) {
-  ddog_ffe_Handle_Configuration *config = ruby_xcalloc(1, sizeof(ddog_ffe_Handle_Configuration));
-  *config = NULL; // Initialize the handle to NULL
-  return TypedData_Wrap_Struct(klass, &configuration_typed_data, config);
-}
-
-static void configuration_free(void *ptr) {
-  ddog_ffe_Handle_Configuration *config = (ddog_ffe_Handle_Configuration *) ptr;
-  if (config && *config) {
-    ddog_ffe_configuration_drop(config);
-  }
-  ruby_xfree(ptr);
-}
-
-static VALUE configuration_initialize(VALUE self, VALUE json_str) {
-  Check_Type(json_str, T_STRING);
-
-  ddog_ffe_Handle_Configuration *config;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_Configuration, &configuration_typed_data, config);
-
-  // Create BorrowedStr for the JSON input
-  struct ddog_ffe_BorrowedStr json_borrowed = {
-    .ptr = (const uint8_t*)RSTRING_PTR(json_str),
-    .len = RSTRING_LEN(json_str)
-  };
-
-  struct ddog_ffe_Result_HandleConfiguration result = ddog_ffe_configuration_new(json_borrowed);
-  if (result.tag == DDOG_FFE_RESULT_HANDLE_CONFIGURATION_ERR_HANDLE_CONFIGURATION) {
-    rb_raise(rb_eRuntimeError, "Failed to create configuration: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
-
-  *config = result.ok;
-
-  return self;
-}
-
-// EvaluationContext TypedData definition
-static const rb_data_type_t evaluation_context_typed_data = {
-  .wrap_struct_name = "Datadog::OpenFeature::Binding::EvaluationContext",
-  .function = {
-    .dmark = NULL,
-    .dfree = evaluation_context_free,
-    .dsize = NULL,
-  },
-  .flags = RUBY_TYPED_FREE_IMMEDIATELY
-};
-
-static VALUE evaluation_context_alloc(VALUE klass) {
-  ddog_ffe_Handle_EvaluationContext *context = ruby_xcalloc(1, sizeof(ddog_ffe_Handle_EvaluationContext));
-  *context = NULL; // Initialize the handle to NULL
-  return TypedData_Wrap_Struct(klass, &evaluation_context_typed_data, context);
-}
-
-static void evaluation_context_free(void *ptr) {
-  ddog_ffe_Handle_EvaluationContext *context = (ddog_ffe_Handle_EvaluationContext *) ptr;
-  if (context && *context) {
-    ddog_ffe_evaluation_context_drop(context);
-  }
-  ruby_xfree(ptr);
-}
-
-
-
-static VALUE evaluation_context_initialize_with_attributes(VALUE self, VALUE targeting_key, VALUE attributes_hash) {
-  Check_Type(targeting_key, T_STRING);
-  Check_Type(attributes_hash, T_HASH);
-
-  ddog_ffe_Handle_EvaluationContext *context;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
-
-  // Get the number of attributes
-  long attr_count = RHASH_SIZE(attributes_hash);
-
-  if (attr_count == 0) {
-    // If no attributes, pass NULL and 0
-    *context = ddog_ffe_evaluation_context_new(RSTRING_PTR(targeting_key), NULL, 0);
-    return self;
-  }
-
-  // Allocate array for attributes
-  struct ddog_ffe_AttributePair *attrs = ruby_xcalloc(attr_count, sizeof(struct ddog_ffe_AttributePair));
-
-  // Convert hash to attribute pairs
-  VALUE keys = rb_funcall(attributes_hash, rb_intern("keys"), 0);
-  for (long i = 0; i < attr_count; i++) {
-    VALUE key = rb_ary_entry(keys, i);
-    VALUE value = rb_hash_aref(attributes_hash, key);
-
-    Check_Type(key, T_STRING);
-
-    attrs[i].name = RSTRING_PTR(key);
-
-    // Set the value based on its Ruby type
-    switch (TYPE(value)) {
-      case T_STRING:
-        attrs[i].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
-        attrs[i].value.string = RSTRING_PTR(value);
-        break;
-      case T_FIXNUM:
-      case T_FLOAT:
-        attrs[i].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_NUMBER;
-        attrs[i].value.number = NUM2DBL(value);
-        break;
-      case T_TRUE:
-        attrs[i].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
-        attrs[i].value.boolean = true;
-        break;
-      case T_FALSE:
-        attrs[i].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
-        attrs[i].value.boolean = false;
-        break;
-      default:
-        // Default to string representation
-        value = rb_funcall(value, rb_intern("to_s"), 0);
-        attrs[i].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
-        attrs[i].value.string = RSTRING_PTR(value);
-        break;
-    }
-  }
-
-  *context = ddog_ffe_evaluation_context_new(
-    RSTRING_PTR(targeting_key),
-    attrs,
-    attr_count
-  );
-
-  ruby_xfree(attrs);
-  return self;
-}
-
-// ResolutionDetails TypedData definition
 static const rb_data_type_t resolution_details_typed_data = {
-  .wrap_struct_name = "Datadog::OpenFeature::Binding::ResolutionDetails",
+  .wrap_struct_name = "Datadog::Core::FeatureFlags::ResolutionDetails",
   .function = {
     .dmark = NULL,
     .dfree = resolution_details_free,
     .dsize = NULL,
   },
-  .flags = RUBY_TYPED_FREE_IMMEDIATELY
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
 
-static VALUE resolution_details_alloc(VALUE klass) {
-  ddog_ffe_Handle_ResolutionDetails *resolution_details = ruby_xcalloc(1, sizeof(ddog_ffe_Handle_ResolutionDetails));
-  *resolution_details = NULL; // Initialize the handle to NULL
-  return TypedData_Wrap_Struct(klass, &resolution_details_typed_data, resolution_details);
+// Cached values to use in function later in the code.
+static VALUE feature_flags_error_class = Qnil;
+static VALUE resolution_details_class = Qnil;
+static ID id_boolean;
+static ID id_string;
+static ID id_number;
+static ID id_object;
+static ID id_any;
+static ID id_integer;
+static ID id_float;
+
+// SAFETY: The returned borrowed string points directly to Ruby's
+// internal string buffer. This is safe as long as the GVL is held
+// preventing garbage collection. (It is held automatically when C
+// extension is called.)
+static inline ddog_ffe_BorrowedStr borrow_str(VALUE str) {
+  ENFORCE_TYPE(str, T_STRING);
+  return (ddog_ffe_BorrowedStr){
+    .ptr = (const uint8_t*)RSTRING_PTR(str),
+    .len = RSTRING_LEN(str)
+  };
+}
+
+// Create a new Ruby string from borrowed string. Returns nil if the
+// borrowed string pointer is NULL.
+static inline VALUE str_from_borrow(ddog_ffe_BorrowedStr str) {
+  if (str.ptr == NULL) {
+    return Qnil;
+  }
+
+  return rb_str_new((const char *)str.ptr, str.len);
+}
+
+void feature_flags_init(VALUE core_module) {
+  // Always define the FeatureFlags module - it will reuse existing one if it exists.
+  VALUE feature_flags_module = rb_define_module_under(core_module, "FeatureFlags");
+
+  feature_flags_error_class = rb_define_class_under(feature_flags_module, "Error", rb_eStandardError);
+
+  VALUE configuration_class = rb_define_class_under(feature_flags_module, "Configuration", rb_cObject);
+  rb_undef_alloc_func(configuration_class);
+  rb_define_singleton_method(configuration_class, "new", configuration_new, 1);
+  rb_define_method(configuration_class, "get_assignment", configuration_get_assignment, 3);
+
+  resolution_details_class = rb_define_class_under(feature_flags_module, "ResolutionDetails", rb_cObject);
+  rb_undef_alloc_func(resolution_details_class);
+  rb_define_method(resolution_details_class, "value", resolution_details_get_value, 0);
+  rb_define_method(resolution_details_class, "variant", resolution_details_get_variant, 0);
+  rb_define_method(resolution_details_class, "allocation_key", resolution_details_get_allocation_key, 0);
+  rb_define_method(resolution_details_class, "reason", resolution_details_get_reason, 0);
+  rb_define_method(resolution_details_class, "error?", resolution_details_is_error, 0);
+  rb_define_method(resolution_details_class, "error_code", resolution_details_get_error_code, 0);
+  rb_define_method(resolution_details_class, "error_message", resolution_details_get_error_message, 0);
+  rb_define_method(resolution_details_class, "log?", resolution_details_get_do_log, 0);
+  rb_define_method(resolution_details_class, "flag_metadata", resolution_details_get_flag_metadata, 0);
+
+  // Cache symbol IDs for expected types
+  id_boolean = rb_intern_const("boolean");
+  id_string = rb_intern_const("string");
+  id_number = rb_intern_const("number");
+  id_object = rb_intern_const("object");
+  id_any = rb_intern_const("any");
+  id_integer = rb_intern_const("integer");
+  id_float = rb_intern_const("float");
+}
+
+static VALUE configuration_new(VALUE klass, VALUE json_str) {
+  struct ddog_ffe_Result_HandleConfiguration result = ddog_ffe_configuration_new(borrow_str(json_str));
+  if (result.tag == DDOG_FFE_RESULT_HANDLE_CONFIGURATION_ERR_HANDLE_CONFIGURATION) {
+    rb_raise(feature_flags_error_class, "Failed to create configuration from JSON: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+  return TypedData_Wrap_Struct(klass, &configuration_data_type, result.ok);
+}
+
+static void configuration_free(void *ptr) {
+  ddog_ffe_Handle_Configuration config = (ddog_ffe_Handle_Configuration)ptr;
+  ddog_ffe_configuration_drop(&config);
+}
+
+static ddog_ffe_ExpectedFlagType expected_type_from_value(VALUE expected_type) {
+  ENFORCE_TYPE(expected_type, T_SYMBOL);
+
+  const ID id = rb_sym2id(expected_type);
+  if (id == id_boolean) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_BOOLEAN;
+  } else if (id == id_string) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_STRING;
+  } else if (id == id_number) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_NUMBER;
+  } else if (id == id_object) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_OBJECT;
+  } else if (id == id_any) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_ANY;
+  } else if (id == id_integer) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_INTEGER;
+  } else if (id == id_float) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_FLOAT;
+  } else {
+    rb_raise(feature_flags_error_class, "Internal: Unexpected flag type: %"PRIsVALUE, expected_type);
+  }
+}
+
+// The hash should contain attributes for feature flag evaluation. The
+// special key "targeting_key" (if present) is extracted separately as
+// it has special meaning in the libdatadog API. All other key-value
+// pairs become attributes.
+//
+// Note: all strings are copied into the new EvaluationContext, so
+// there are no safety concerns regarding string lifetimes. However,
+// the caller is responsible for the returned EvaluationContext and
+// must free it when no longer in use.
+static ddog_ffe_Handle_EvaluationContext evaluation_context_from_hash(VALUE hash) {
+  ENFORCE_TYPE(hash, T_HASH);
+
+  const char *targeting_key = NULL;
+  const long max_attr_count = RHASH_SIZE(hash);
+  ddog_ffe_AttributePair *const attrs = ruby_xcalloc(max_attr_count, sizeof(struct ddog_ffe_AttributePair));
+
+  const VALUE keys = rb_funcall(hash, rb_intern_const("keys"), 0);
+  // Number of currently filled attributes.
+  long attr_count = 0;
+
+  for (long i = 0; i < max_attr_count; i++) {
+    const VALUE key = rb_ary_entry(keys, i);
+    ENFORCE_TYPE(key, T_STRING);
+    const VALUE value = rb_hash_aref(hash, key);
+    const char *name = RSTRING_PTR(key);
+
+    if (strcmp(name, "targeting_key") == 0 && TYPE(value) == T_STRING) {
+      targeting_key = RSTRING_PTR(value);
+      continue;
+    }
+
+    attrs[attr_count].name = name;
+
+    switch (TYPE(value)) {
+      case T_STRING:
+        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
+        attrs[attr_count].value.string = RSTRING_PTR(value);
+        break;
+      case T_FIXNUM:
+      case T_FLOAT:
+        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_NUMBER;
+        attrs[attr_count].value.number = NUM2DBL(value);
+        break;
+      case T_TRUE:
+        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
+        attrs[attr_count].value.boolean = true;
+        break;
+      case T_FALSE:
+        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
+        attrs[attr_count].value.boolean = false;
+        break;
+      default:
+        // Default to string representation
+        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
+        // SAFETY: RSTRING_PTR returns pointer to the Ruby heap, which
+        // lives long enough for ddog_ffe_evaluation_context_new to copy the underlying
+        // string. It will not get garbage collected until we exit C
+        // extension or release GVL.
+        attrs[attr_count].value.string = RSTRING_PTR(rb_funcall(value, rb_intern("to_s"), 0));
+        break;
+    }
+
+    attr_count += 1;
+  }
+
+  const ddog_ffe_Handle_EvaluationContext context = ddog_ffe_evaluation_context_new(
+    targeting_key,
+    attrs,
+    attr_count
+  );
+
+  ruby_xfree(attrs);
+
+  return context;
+}
+
+static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE expected_type, VALUE context_hash) {
+  ENFORCE_TYPED_DATA(self, &configuration_data_type);
+  ENFORCE_TYPE(flag_key, T_STRING);
+  ENFORCE_TYPE(expected_type, T_SYMBOL);
+  ENFORCE_TYPE(context_hash, T_HASH);
+
+  const ddog_ffe_Handle_Configuration config = (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
+  const ddog_ffe_ExpectedFlagType expected_ty = expected_type_from_value(expected_type);
+  const ddog_ffe_Handle_EvaluationContext context = evaluation_context_from_hash(context_hash);
+
+  ddog_ffe_Handle_ResolutionDetails resolution_details = ddog_ffe_get_assignment(
+    config,
+    RSTRING_PTR(flag_key),
+    expected_ty,
+    context
+  );
+
+  return TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, resolution_details);
 }
 
 static void resolution_details_free(void *ptr) {
-  ddog_ffe_Handle_ResolutionDetails *resolution_details = (ddog_ffe_Handle_ResolutionDetails *) ptr;
-  if (resolution_details && *resolution_details) {
-    // Use the new FFI drop function
-    ddog_ffe_assignment_drop(resolution_details);
-  }
-  ruby_xfree(ptr);
+  ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)ptr;
+  ddog_ffe_assignment_drop(&resolution_details);
 }
 
-
-static VALUE native_get_assignment(VALUE self, VALUE config_obj, VALUE flag_key, VALUE context_obj) {
-  Check_Type(flag_key, T_STRING);
-
-  ddog_ffe_Handle_Configuration *config;
-  TypedData_Get_Struct(config_obj, ddog_ffe_Handle_Configuration, &configuration_typed_data, config);
-
-  ddog_ffe_Handle_EvaluationContext *context;
-  TypedData_Get_Struct(context_obj, ddog_ffe_Handle_EvaluationContext, &evaluation_context_typed_data, context);
-
-  // Validate handles before use
-  if (!config || !*config) {
-    rb_raise(rb_eRuntimeError, "Configuration handle is NULL");
-  }
-  if (!context || !*context) {
-    rb_raise(rb_eRuntimeError, "Context handle is NULL");
-  }
-
-  // Use the new FFI function directly - no Result wrapper
-  // For now, use a generic flag type - this could be parameterized later
-  ddog_ffe_Handle_ResolutionDetails resolution_details_out = ddog_ffe_get_assignment(
-    *config,
-    RSTRING_PTR(flag_key),
-    DDOG_FFE_EXPECTED_FLAG_TYPE_STRING,  // Default to string type
-    *context
-  );
-
-  // Check if resolution_details is NULL (no assignment returned)
-  if (resolution_details_out == NULL) {
-    return Qnil;
-  }
-
-  // Create a new ResolutionDetails Ruby object and wrap the result
-  VALUE resolution_details_class = rb_const_get_at(rb_const_get_at(rb_const_get(rb_cObject, rb_intern("Datadog")), rb_intern("OpenFeature")), rb_intern("Binding"));
-  resolution_details_class = rb_const_get(resolution_details_class, rb_intern("ResolutionDetails"));
-
-  VALUE resolution_details_obj = resolution_details_alloc(resolution_details_class);
-
-  ddog_ffe_Handle_ResolutionDetails *resolution_details_ptr;
-  TypedData_Get_Struct(resolution_details_obj, ddog_ffe_Handle_ResolutionDetails, &resolution_details_typed_data, resolution_details_ptr);
-
-  *resolution_details_ptr = resolution_details_out;
-
-  return resolution_details_obj;
-}
-
-// Accessor methods for ResolutionDetails
 static VALUE resolution_details_get_value(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails *resolution_details;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_ResolutionDetails, &resolution_details_typed_data, resolution_details);
+  ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
 
-  if (!resolution_details) {
-    return Qnil;
-  }
-
-  // Use the new FFI function to get the value
-  struct ddog_ffe_VariantValue value = ddog_ffe_assignment_get_value(*resolution_details);
+  struct ddog_ffe_VariantValue value = ddog_ffe_assignment_get_value(resolution_details);
 
   switch (value.tag) {
-    case DDOG_FFE_VARIANT_VALUE_NONE:
-      return Qnil;
     case DDOG_FFE_VARIANT_VALUE_STRING:
-      return rb_str_new((const char*)value.string.ptr, value.string.len);
+      return str_from_borrow(value.string);
     case DDOG_FFE_VARIANT_VALUE_INTEGER:
       return LONG2NUM(value.integer);
     case DDOG_FFE_VARIANT_VALUE_FLOAT:
@@ -297,136 +265,96 @@ static VALUE resolution_details_get_value(VALUE self) {
     case DDOG_FFE_VARIANT_VALUE_BOOLEAN:
       return value.boolean ? Qtrue : Qfalse;
     case DDOG_FFE_VARIANT_VALUE_OBJECT:
-      return rb_str_new((const char*)value.object.ptr, value.object.len);
+      return str_from_borrow(value.string);
+    case DDOG_FFE_VARIANT_VALUE_NONE:
     default:
       return Qnil;
   }
+}
+
+static VALUE resolution_details_get_variant(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  struct ddog_ffe_BorrowedStr variant = ddog_ffe_assignment_get_variant(resolution_details);
+  return str_from_borrow(variant);
+}
+
+static VALUE resolution_details_get_allocation_key(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  struct ddog_ffe_BorrowedStr allocation_key =ddog_ffe_assignment_get_allocation_key(resolution_details);
+  return str_from_borrow(allocation_key);
 }
 
 static VALUE resolution_details_get_reason(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails *resolution_details;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_ResolutionDetails, &resolution_details_typed_data, resolution_details);
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
 
-  if (!resolution_details) {
-    return Qnil;
-  }
-
-  // Use the new FFI function to get the reason
-  enum ddog_ffe_Reason reason = ddog_ffe_assignment_get_reason(*resolution_details);
+  enum ddog_ffe_Reason reason = ddog_ffe_assignment_get_reason(resolution_details);
 
   switch (reason) {
     case DDOG_FFE_REASON_STATIC:
-      return ID2SYM(rb_intern("static"));
+      return rb_str_new_lit("STATIC");
     case DDOG_FFE_REASON_DEFAULT:
-      return ID2SYM(rb_intern("default"));
+      return rb_str_new_lit("DEFAULT");
     case DDOG_FFE_REASON_TARGETING_MATCH:
-      return ID2SYM(rb_intern("targeting_match"));
+      return rb_str_new_lit("TARGETING_MATCH");
     case DDOG_FFE_REASON_SPLIT:
-      return ID2SYM(rb_intern("split"));
+      return rb_str_new_lit("SPLIT");
     case DDOG_FFE_REASON_DISABLED:
-      return ID2SYM(rb_intern("disabled"));
+      return rb_str_new_lit("DISABLED");
     case DDOG_FFE_REASON_ERROR:
-      return ID2SYM(rb_intern("error"));
+      return rb_str_new_lit("ERROR");
     default:
-      return Qnil;
+      return rb_str_new_lit("UNKNOWN");
   }
 }
 
+static VALUE resolution_details_is_error(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  enum ddog_ffe_Reason reason = ddog_ffe_assignment_get_reason(resolution_details);
+  return reason == DDOG_FFE_REASON_ERROR ? Qtrue : Qfalse;
+}
+
 static VALUE resolution_details_get_error_code(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails *resolution_details;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_ResolutionDetails, &resolution_details_typed_data, resolution_details);
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
 
-  if (!resolution_details) {
-    return Qnil;
-  }
-
-  // Use the new FFI function to get the error code
-  enum ddog_ffe_ErrorCode error_code = ddog_ffe_assignment_get_error_code(*resolution_details);
+  enum ddog_ffe_ErrorCode error_code = ddog_ffe_assignment_get_error_code(resolution_details);
 
   switch (error_code) {
-    case DDOG_FFE_ERROR_CODE_TYPE_MISMATCH:
-      return ID2SYM(rb_intern("type_mismatch"));
-    case DDOG_FFE_ERROR_CODE_PARSE_ERROR:
-      return ID2SYM(rb_intern("parse_error"));
-    case DDOG_FFE_ERROR_CODE_FLAG_NOT_FOUND:
-      return ID2SYM(rb_intern("flag_not_found"));
-    case DDOG_FFE_ERROR_CODE_TARGETING_KEY_MISSING:
-      return ID2SYM(rb_intern("targeting_key_missing"));
-    case DDOG_FFE_ERROR_CODE_INVALID_CONTEXT:
-      return ID2SYM(rb_intern("invalid_context"));
-    case DDOG_FFE_ERROR_CODE_PROVIDER_NOT_READY:
-      return ID2SYM(rb_intern("provider_not_ready"));
-    case DDOG_FFE_ERROR_CODE_GENERAL:
-      return ID2SYM(rb_intern("general"));
-    default:
+    case DDOG_FFE_ERROR_CODE_OK:
       return Qnil;
+    case DDOG_FFE_ERROR_CODE_TYPE_MISMATCH:
+      return rb_str_new_lit("TYPE_MISMATCH");
+    case DDOG_FFE_ERROR_CODE_PARSE_ERROR:
+      return rb_str_new_lit("PARSE_ERROR");
+    case DDOG_FFE_ERROR_CODE_FLAG_NOT_FOUND:
+      return rb_str_new_lit("FLAG_NOT_FOUND");
+    case DDOG_FFE_ERROR_CODE_TARGETING_KEY_MISSING:
+      return rb_str_new_lit("TARGETING_KEY_MISSING");
+    case DDOG_FFE_ERROR_CODE_INVALID_CONTEXT:
+      return rb_str_new_lit("INVALID_CONTEXT");
+    case DDOG_FFE_ERROR_CODE_PROVIDER_NOT_READY:
+      return rb_str_new_lit("PROVIDER_NOT_READY");
+    case DDOG_FFE_ERROR_CODE_GENERAL:
+    default:
+      return rb_str_new_lit("GENERAL");
   }
 }
 
 static VALUE resolution_details_get_error_message(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails *resolution_details;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_ResolutionDetails, &resolution_details_typed_data, resolution_details);
-
-  if (!resolution_details) {
-    return Qnil;
-  }
-
-  // Use the new FFI function to get the error message
-  struct ddog_ffe_BorrowedStr error_message = ddog_ffe_assignment_get_error_message(*resolution_details);
-
-  if (error_message.ptr == NULL || error_message.len == 0) {
-    return Qnil;
-  }
-
-  return rb_str_new((const char*)error_message.ptr, error_message.len);
-}
-
-static VALUE resolution_details_get_variant(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails *resolution_details;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_ResolutionDetails, &resolution_details_typed_data, resolution_details);
-
-  if (!resolution_details) {
-    return Qnil;
-  }
-
-  // Use the new FFI function to get the variant
-  struct ddog_ffe_BorrowedStr variant = ddog_ffe_assignment_get_variant(*resolution_details);
-
-  if (variant.ptr == NULL || variant.len == 0) {
-    return Qnil;
-  }
-
-  return rb_str_new((const char*)variant.ptr, variant.len);
-}
-
-static VALUE resolution_details_get_allocation_key(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails *resolution_details;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_ResolutionDetails, &resolution_details_typed_data, resolution_details);
-
-  if (!resolution_details) {
-    return Qnil;
-  }
-
-  // Use the new FFI function to get the allocation key
-  struct ddog_ffe_BorrowedStr allocation_key = ddog_ffe_assignment_get_allocation_key(*resolution_details);
-
-  if (allocation_key.ptr == NULL || allocation_key.len == 0) {
-    return Qnil;
-  }
-
-  return rb_str_new((const char*)allocation_key.ptr, allocation_key.len);
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  struct ddog_ffe_BorrowedStr error_message = ddog_ffe_assignment_get_error_message(resolution_details);
+  return str_from_borrow(error_message);
 }
 
 static VALUE resolution_details_get_do_log(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails *resolution_details;
-  TypedData_Get_Struct(self, ddog_ffe_Handle_ResolutionDetails, &resolution_details_typed_data, resolution_details);
-
-  if (!resolution_details) {
-    return Qfalse;
-  }
-
-  // Use the new FFI function to get the do_log flag
-  return ddog_ffe_assignment_get_do_log(*resolution_details) ? Qtrue : Qfalse;
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  return ddog_ffe_assignment_get_do_log(resolution_details) ? Qtrue : Qfalse;
 }
 
 static VALUE resolution_details_get_flag_metadata(VALUE self) {
