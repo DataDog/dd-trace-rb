@@ -29,44 +29,60 @@ module Datadog
 
         def get_assignment(flag_key, default_value, evaluation_context, expected_type)
           if @parse_error
-            return create_evaluation_error(
-              @parse_error[:error_code],
-              @parse_error[:error_message],
-              default_value
+            return ResolutionDetails.build_error(
+              value: default_value,
+              error_code: @parse_error[:error_code],
+              error_message: @parse_error[:error_message],
+              reason: AssignmentReason::ERROR
             )
           end
 
           flag = @parsed_config.get_flag(flag_key)
           unless flag
-            return create_evaluation_error(ErrorCodes::FLAG_UNRECOGNIZED_OR_DISABLED,
-              "flag is missing in configuration, it is either unrecognized or disabled", default_value)
+            return ResolutionDetails.build_error(
+              value: default_value,
+              error_code: ErrorCodes::FLAG_UNRECOGNIZED_OR_DISABLED,
+              error_message: 'flag is missing in configuration, it is either unrecognized or disabled',
+              reason: AssignmentReason::ERROR
+            )
           end
 
-          unless flag.enabled
-            return create_evaluation_default(default_value, AssignmentReason::DISABLED)
-          end
+          return ResolutionDetails.build_default(value: default_value, reason: AssignmentReason::DISABLED) unless flag.enabled
 
           if expected_type && !type_matches?(flag.variation_type, expected_type)
-            return create_evaluation_error(ErrorCodes::TYPE_MISMATCH_ERROR,
-              "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})", default_value)
+            return ResolutionDetails.build_error(
+              value: default_value,
+              error_code: ErrorCodes::TYPE_MISMATCH_ERROR,
+              error_message: "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})",
+              reason: AssignmentReason::ERROR
+            )
           end
 
           begin
-            selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, evaluation_context, Time.now.utc)
+            selected_allocation, selected_variation, reason = evaluate_flag_allocations(
+              flag,
+              evaluation_context,
+              Time.now.utc
+            )
 
             if selected_allocation.nil? && selected_variation.nil?
-              return create_evaluation_default(default_value, AssignmentReason::DEFAULT)
+              return ResolutionDetails.build_default(value: default_value, reason: AssignmentReason::DEFAULT)
             end
 
-            create_evaluation_success(
-              selected_variation.value,
-              selected_variation.key,
-              selected_allocation.key,
-              selected_allocation.do_log,
-              reason
+            ResolutionDetails.build_success(
+              value: selected_variation.value,
+              variant: selected_variation.key,
+              allocation_key: selected_allocation.key,
+              do_log: selected_allocation.do_log,
+              reason: reason
             )
           rescue EvaluationError => e
-            create_evaluation_error(e.code, e.message, default_value)
+            ResolutionDetails.build_error(
+              value: default_value,
+              error_code: e.code,
+              error_message: e.message,
+              reason: AssignmentReason::ERROR
+            )
           end
         end
 
@@ -74,29 +90,33 @@ module Datadog
 
         def parse_and_validate_json(ufc_json)
           if ufc_json.nil? || ufc_json.strip.empty?
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_MISSING, error_message: 'flags configuration is missing'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_MISSING,
+                             error_message: 'flags configuration is missing' }
             return
           end
 
           parsed_json = JSON.parse(ufc_json)
 
           unless parsed_json.is_a?(Hash)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return
           end
 
           unless parsed_json.key?('flags')
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return
           end
 
           flags_data = parsed_json['flags']
           unless flags_data.is_a?(Hash)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return
           end
 
-          error_found = flags_data.any? do |flag_key, flag_data|
+          error_found = flags_data.any? do |_flag_key, flag_data|
             validate_flag_structure(flag_data)
           end
 
@@ -104,24 +124,29 @@ module Datadog
 
           @parsed_config = Configuration.from_hash(parsed_json)
         rescue JSON::ParserError
-          @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+          @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                           error_message: 'failed to parse configuration' }
         rescue
-          @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+          @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                           error_message: 'failed to parse configuration' }
         end
 
         def validate_flag_structure(flag_data)
           unless flag_data.is_a?(Hash)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
           unless flag_data.fetch('variations', {}).is_a?(Hash)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
           unless flag_data.fetch('allocations', []).is_a?(Array)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
@@ -132,18 +157,21 @@ module Datadog
 
         def validate_allocation_structure(allocation_data)
           unless allocation_data.is_a?(Hash)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
           unless allocation_data.fetch('splits', []).is_a?(Array)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
           rules = allocation_data['rules']
           if rules && !rules.is_a?(Array)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
@@ -164,12 +192,14 @@ module Datadog
 
         def validate_split_structure(split_data)
           unless split_data.is_a?(Hash)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
           unless split_data.fetch('shards', []).is_a?(Array)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
@@ -180,12 +210,14 @@ module Datadog
 
         def validate_shard_structure(shard_data)
           unless shard_data.is_a?(Hash)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
           unless shard_data.fetch('ranges', []).is_a?(Array)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
@@ -194,68 +226,20 @@ module Datadog
 
         def validate_rule_structure(rule_data)
           unless rule_data.is_a?(Hash)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
           unless rule_data.fetch('conditions', []).is_a?(Array)
-            @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
+            @parse_error = { error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR,
+                             error_message: 'failed to parse configuration' }
             return true
           end
 
           false
         end
 
-        # Case 1: Successful evaluation with result - has variant and value
-        def create_evaluation_success(value, variant, allocation_key, do_log, reason)
-          Datadog::OpenFeature::ResolutionDetails.new(
-            value: value,
-            variant: variant,
-            error_code: nil,
-            error_message: nil,
-            reason: reason,
-            allocation_key: allocation_key,
-            log?: do_log,
-            error?: false,
-            flag_metadata: {
-              "allocationKey" => allocation_key,
-              "doLog" => do_log
-            },
-            extra_logging: {}
-          )
-        end
-
-        # Case 2: Default value (disabled/default) - return provided default_value
-        def create_evaluation_default(default_value, reason)
-          Datadog::OpenFeature::ResolutionDetails.new(
-            value: default_value,
-            variant: nil,
-            error_code: nil,
-            error_message: nil,
-            reason: reason,
-            allocation_key: nil,
-            log?: false,
-            error?: false,
-            flag_metadata: {},
-            extra_logging: {}
-          )
-        end
-
-        # Case 3: Evaluation error - has error_code and error_message, returns default_value
-        def create_evaluation_error(error_code, error_message, default_value)
-          Datadog::OpenFeature::ResolutionDetails.new(
-            value: default_value,
-            variant: nil,
-            error_code: error_code,
-            error_message: error_message,
-            reason: AssignmentReason::ERROR,
-            allocation_key: nil,
-            log?: false,
-            error?: true,
-            flag_metadata: {},
-            extra_logging: {}
-          )
-        end
 
         def type_matches?(flag_variation_type, expected_type)
           case expected_type
@@ -269,22 +253,23 @@ module Datadog
         end
 
         def evaluate_flag_allocations(flag, evaluation_context, time)
-          if flag.allocations.empty?
-            return [nil, nil, AssignmentReason::DEFAULT]
-          end
+          return [nil, nil, AssignmentReason::DEFAULT] if flag.allocations.empty?
 
           evaluation_time = time.is_a?(Time) ? time : Time.at(time)
 
           flag.allocations.each do |allocation|
             matching_split, reason = find_matching_split_for_allocation(allocation, evaluation_context, evaluation_time)
 
-            if matching_split
-              variation = flag.variations[matching_split.variation_key]
-              if variation
-                return [allocation, variation, reason]
-              else
-                raise EvaluationError.new(ErrorCodes::DEFAULT_ALLOCATION_NULL, 'allocation references non-existent variation')
-              end
+            next unless matching_split
+
+            variation = flag.variations[matching_split.variation_key]
+            if variation
+              return [allocation, variation, reason]
+            else
+              raise EvaluationError.new(
+                ErrorCodes::DEFAULT_ALLOCATION_NULL,
+                'allocation references non-existent variation'
+              )
             end
           end
 
@@ -364,9 +349,7 @@ module Datadog
 
           attribute_value = evaluation_context[attribute_name]
 
-          if attribute_value.nil? && attribute_name == 'id'
-            attribute_value = get_targeting_key(evaluation_context)
-          end
+          attribute_value = get_targeting_key(evaluation_context) if attribute_value.nil? && attribute_name == 'id'
 
           attribute_value
         end
@@ -389,6 +372,7 @@ module Datadog
           return false if attribute_value.nil?
 
           return false if !expected_membership && attribute_value.nil?
+
           attr_str = coerce_to_string(attribute_value)
           membership_matches?(attr_str, condition_values, expected_membership)
         end
@@ -505,7 +489,7 @@ module Datadog
 
           hasher = Digest::MD5.new
           hasher.update(salt.to_s) if salt
-          hasher.update("-")  # Separator used in libdatadog PreSaltedSharder
+          hasher.update('-') # Separator used in libdatadog PreSaltedSharder
           hasher.update(targeting_key.to_s)
 
           hash_bytes = hasher.digest

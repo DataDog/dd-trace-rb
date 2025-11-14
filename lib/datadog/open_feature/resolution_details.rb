@@ -20,14 +20,51 @@ module Datadog
       :error?,
       keyword_init: true
     )
+      def self.build_success(value:, variant:, allocation_key:, do_log:, reason:)
+        new(
+          value: value,
+          variant: variant,
+          error_code: nil,
+          error_message: nil,
+          reason: reason,
+          allocation_key: allocation_key,
+          log?: do_log,
+          error?: false,
+          flag_metadata: {
+            'allocationKey' => allocation_key,
+            'doLog' => do_log
+          },
+          extra_logging: {}
+        ).freeze
+      end
+
+      def self.build_default(value:, reason:)
+        new(
+          value: value,
+          variant: nil,
+          error_code: nil,
+          error_message: nil,
+          reason: reason,
+          allocation_key: nil,
+          log?: false,
+          error?: false,
+          flag_metadata: {},
+          extra_logging: {}
+        ).freeze
+      end
+
       def self.build_error(value:, error_code:, error_message:, reason: Ext::ERROR)
         new(
           value: value,
+          variant: nil,
           error_code: error_code,
           error_message: error_message,
           reason: reason,
+          allocation_key: nil,
+          log?: false,
           error?: true,
-          log?: false
+          flag_metadata: {},
+          extra_logging: {}
         ).freeze
       end
     end
