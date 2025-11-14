@@ -3,7 +3,6 @@
 module Datadog
   module OpenFeature
     module Binding
-      # Assignment reasons returned in ResolutionDetails
       module AssignmentReason
         TARGETING_MATCH = 'TARGETING_MATCH'
         SPLIT = 'SPLIT'

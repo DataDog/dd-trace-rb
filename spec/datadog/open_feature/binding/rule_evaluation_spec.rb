@@ -105,7 +105,6 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
     let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"flags": {}}') }
 
     it 'handles invalid regex patterns gracefully' do
-      # Test the error handling for malformed regex patterns
       expect(evaluator.send(:evaluate_regex, "test", "[invalid", true)).to eq(false)
       expect(evaluator.send(:evaluate_regex, "test", "*invalid", false)).to eq(false)
     end
@@ -115,7 +114,6 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
     let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"flags": {}}') }
 
     it 'fails when attribute is missing (NOT_ONE_OF fails for missing attributes)' do
-      # Test the specific behavior that NOT_ONE_OF fails when attribute is nil
       expect(evaluator.send(:evaluate_membership, nil, ["value"], false)).to eq(false)
     end
   end
@@ -124,7 +122,6 @@ RSpec.describe 'InternalEvaluator Rule Evaluation' do
     let(:evaluator) { Datadog::OpenFeature::Binding::InternalEvaluator.new('{"flags": {}}') }
 
     it 'coerces numeric strings for comparison' do
-      # Test the coercion logic directly
       expect(evaluator.send(:coerce_to_number, "25")).to eq(25.0)
       expect(evaluator.send(:coerce_to_number, "3.14")).to eq(3.14)
       expect(evaluator.send(:coerce_to_number, "invalid")).to be_nil

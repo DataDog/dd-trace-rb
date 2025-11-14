@@ -7,7 +7,6 @@ require_relative 'assignment_reason'
 module Datadog
   module OpenFeature
     module Binding
-      # Represents a feature flag configuration
       class Flag
         attr_reader :key, :enabled, :variation_type, :variations, :allocations
 

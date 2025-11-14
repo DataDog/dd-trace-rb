@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# Load only what we need, avoiding conflicts
 require 'json'
 require_relative '../../../../lib/datadog/open_feature/binding/configuration'
 
@@ -22,14 +21,12 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
     it 'parses specific flags correctly' do
       config = described_class.from_hash(flag_config)
 
-      # Test empty flag
       empty_flag = config.flags['empty_flag']
       expect(empty_flag).not_to be_nil
       expect(empty_flag.key).to eq('empty_flag')
       expect(empty_flag.enabled).to be true
       expect(empty_flag.variation_type).to eq('STRING')
 
-      # Test disabled flag
       disabled_flag = config.flags['disabled_flag']
       expect(disabled_flag).not_to be_nil
       expect(disabled_flag.enabled).to be false
@@ -59,7 +56,6 @@ RSpec.describe Datadog::OpenFeature::Binding::Configuration do
     it 'parses allocations with rules and splits' do
       config = described_class.from_hash(flag_config)
 
-      # Find flags with allocations
       flags_with_allocations = config.flags.values.select { |f| f.allocations.any? }
       expect(flags_with_allocations).not_to be_empty
 

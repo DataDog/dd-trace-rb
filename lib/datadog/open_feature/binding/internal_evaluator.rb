@@ -9,7 +9,6 @@ require_relative '../resolution_details'
 module Datadog
   module OpenFeature
     module Binding
-      # Custom error for evaluation failures
       class EvaluationError < StandardError
         attr_reader :code, :message
 
@@ -20,11 +19,7 @@ module Datadog
         end
       end
 
-      # Internal evaluator for feature flag configuration.
-      # Evaluates flags using targeting rules with splits, shard ranges, and salts.
       class InternalEvaluator
-        # Initialize evaluator with feature flag configuration JSON.
-        # @param ufc_json [String] JSON string containing feature flag configuration
         def initialize(ufc_json)
           @ufc_json = ufc_json
           @parsed_config = nil
@@ -32,21 +27,7 @@ module Datadog
           parse_and_validate_json(ufc_json)
         end
 
-        # Evaluates a feature flag assignment for the given flag key and context.
-        # This method performs flag evaluation including type validation, targeting rules,
-        # traffic splitting, and allocation matching.
-        #
-        # @param flag_key [String] The unique identifier for the feature flag
-        # @param default_value [Object] Default value to return when flag evaluation fails or no allocation matches
-        # @param evaluation_context [Hash, nil] Context data for flag evaluation.
-        #   When using OpenFeature SDK, pass evaluation_context&.fields to extract
-        #   the hash representation. Common fields include 'targeting_key' and custom attributes.
-        # @param expected_type [String] Expected value type: "string", "integer", "float", "boolean", or "object"
-        # @return [ResolutionDetails] Evaluation result where result.value is ensured to never be nil.
-        #   For successful evaluations, contains the flag's assigned value and metadata.
-        #   For errors or disabled flags, contains the provided default_value.
         def get_assignment(flag_key, default_value, evaluation_context, expected_type)
-          # Return error result if JSON parsing failed during initialization
           if @parse_error
             return create_evaluation_error(
               @parse_error[:error_code],
@@ -55,36 +36,28 @@ module Datadog
             )
           end
 
-          # Look up the flag
           flag = @parsed_config.get_flag(flag_key)
-
-          # Return error result if flag not found
           unless flag
             return create_evaluation_error(ErrorCodes::FLAG_UNRECOGNIZED_OR_DISABLED,
               "flag is missing in configuration, it is either unrecognized or disabled", default_value)
           end
 
-          # Return default value if flag is disabled
           unless flag.enabled
             return create_evaluation_default(default_value, AssignmentReason::DISABLED)
           end
 
-          # Validate type compatibility if expected_type is provided
           if expected_type && !type_matches?(flag.variation_type, expected_type)
             return create_evaluation_error(ErrorCodes::TYPE_MISMATCH_ERROR,
               "invalid flag type (expected: #{expected_type}, found: #{flag.variation_type})", default_value)
           end
 
-          # Use actual allocations and variations from the parsed flag
           begin
             selected_allocation, selected_variation, reason = evaluate_flag_allocations(flag, evaluation_context, Time.now.utc)
 
-            # Check if this is a default allocation case (no allocation matched)
             if selected_allocation.nil? && selected_variation.nil?
               return create_evaluation_default(default_value, AssignmentReason::DEFAULT)
             end
 
-            # Return the actual assignment result - success case with full metadata
             create_evaluation_success(
               selected_variation.value,
               selected_variation.key,
@@ -93,7 +66,6 @@ module Datadog
               reason
             )
           rescue EvaluationError => e
-            # Convert evaluation errors to ResolutionDetails
             create_evaluation_error(e.code, e.message, default_value)
           end
         end
@@ -101,42 +73,35 @@ module Datadog
         private
 
         def parse_and_validate_json(ufc_json)
-          # Handle nil or empty input
           if ufc_json.nil? || ufc_json.strip.empty?
             @parse_error = {error_code: ErrorCodes::CONFIGURATION_MISSING, error_message: 'flags configuration is missing'}
             return
           end
 
-          # Parse JSON
           parsed_json = JSON.parse(ufc_json)
 
-          # Basic structure validation
           unless parsed_json.is_a?(Hash)
             @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
             return
           end
 
-          # Check for flags at root level
           unless parsed_json.key?('flags')
             @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
             return
           end
 
-          # Validate flags structure - this is the single source of truth for structure validation
           flags_data = parsed_json['flags']
           unless flags_data.is_a?(Hash)
             @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
             return
           end
 
-          # Validate each flag structure to guarantee correct types for all downstream parsing
           error_found = flags_data.any? do |flag_key, flag_data|
             validate_flag_structure(flag_data)
           end
 
           return if error_found
 
-          # All validation passed, safe to parse - no defensive programming needed elsewhere
           @parsed_config = Configuration.from_hash(parsed_json)
         rescue JSON::ParserError
           @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
@@ -150,7 +115,6 @@ module Datadog
             return true
           end
 
-          # Validate critical array/hash fields that cause runtime errors if wrong type
           unless flag_data.fetch('variations', {}).is_a?(Hash)
             @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
             return true
@@ -161,7 +125,6 @@ module Datadog
             return true
           end
 
-          # Validate allocations structure
           flag_data.fetch('allocations', []).any? do |allocation_data|
             validate_allocation_structure(allocation_data)
           end
@@ -178,21 +141,18 @@ module Datadog
             return true
           end
 
-          # Validate rules array if present
           rules = allocation_data['rules']
           if rules && !rules.is_a?(Array)
             @parse_error = {error_code: ErrorCodes::CONFIGURATION_PARSE_ERROR, error_message: 'failed to parse configuration'}
             return true
           end
 
-          # Validate splits structure
           splits_error = allocation_data.fetch('splits', []).any? do |split_data|
             validate_split_structure(split_data)
           end
 
           return true if splits_error
 
-          # Validate rules structure if present
           if rules
             rules.any? do |rule_data|
               validate_rule_structure(rule_data)
@@ -213,7 +173,6 @@ module Datadog
             return true
           end
 
-          # Validate shards structure
           split_data.fetch('shards', []).any? do |shard_data|
             validate_shard_structure(shard_data)
           end
@@ -299,7 +258,6 @@ module Datadog
         end
 
         def type_matches?(flag_variation_type, expected_type)
-          # Map Ruby expected types to flag variation types
           case expected_type
           when 'boolean' then flag_variation_type == VariationType::BOOLEAN
           when 'string' then flag_variation_type == VariationType::STRING
@@ -311,15 +269,12 @@ module Datadog
         end
 
         def evaluate_flag_allocations(flag, evaluation_context, time)
-          # Return default result if no allocations - treated as success with nil value
           if flag.allocations.empty?
             return [nil, nil, AssignmentReason::DEFAULT]
           end
 
-          # Convert time parameter to Time object for comparisons
           evaluation_time = time.is_a?(Time) ? time : Time.at(time)
 
-          # Iterate through allocations to find the first matching one
           flag.allocations.each do |allocation|
             matching_split, reason = find_matching_split_for_allocation(allocation, evaluation_context, evaluation_time)
 
@@ -328,18 +283,15 @@ module Datadog
               if variation
                 return [allocation, variation, reason]
               else
-                # Variation referenced by split doesn't exist - default allocation null
                 raise EvaluationError.new(ErrorCodes::DEFAULT_ALLOCATION_NULL, 'allocation references non-existent variation')
               end
             end
           end
 
-          # No allocations matched - return default result (success with nil value)
           [nil, nil, AssignmentReason::DEFAULT]
         end
 
         def find_matching_split_for_allocation(allocation, evaluation_context, evaluation_time)
-          # Check time bounds - allocation must be within active time window
           if allocation.start_at && evaluation_time < allocation.start_at
             return [nil, nil] # Before start time
           end
@@ -348,53 +300,41 @@ module Datadog
             return [nil, nil] # After end time
           end
 
-          # Check rules - if rules exist, at least one must pass (OR logic between rules)
           if allocation.rules && !allocation.rules.empty?
             rules_pass = allocation.rules.any? { |rule| evaluate_rule(rule, evaluation_context) }
             return [nil, nil] unless rules_pass # All rules failed
           end
 
-          # Find matching split using shard-based traffic splitting
           if allocation.splits.any?
-            # Get targeting key from evaluation context (for sharding)
             targeting_key = get_targeting_key(evaluation_context)
 
-            # Find first split that matches the targeting key
             matching_split = allocation.splits.find { |split| split_matches?(split, targeting_key) }
 
             if matching_split
-              # Determine assignment reason based on allocation properties
               reason = determine_assignment_reason(allocation)
               return [matching_split, reason]
             else
-              # No splits matched - traffic exposure miss
               return [nil, nil]
             end
           end
 
-          # No valid splits
           [nil, nil]
         end
 
         def evaluate_rule(rule, evaluation_context)
-          # A rule passes if ALL conditions pass (AND logic)
-          # Empty rule (no conditions) passes by default
           return true if rule.conditions.empty?
 
           rule.conditions.all? { |condition| evaluate_condition(condition, evaluation_context) }
         end
 
         def evaluate_condition(condition, evaluation_context)
-          # Get the attribute value from evaluation context
           attribute_value = get_attribute_from_context(condition.attribute, evaluation_context)
 
-          # Pre-convert to string for operators that need it (cache the conversion)
           attribute_str = nil
           if ['ONE_OF', 'NOT_ONE_OF', 'MATCHES', 'NOT_MATCHES'].include?(condition.operator)
             attribute_str = coerce_to_string(attribute_value)
           end
 
-          # Evaluate the condition based on operator
           case condition.operator
           when 'GTE'
             evaluate_comparison(attribute_value, condition.value, :>=)
@@ -415,18 +355,15 @@ module Datadog
           when 'IS_NULL'
             evaluate_null_check(attribute_value, condition.value)
           else
-            # Unknown operator - fail condition
             false
           end
         end
 
         def get_attribute_from_context(attribute_name, evaluation_context)
-          # Handle hash-based evaluation context only
           return nil if evaluation_context.nil?
 
           attribute_value = evaluation_context[attribute_name]
 
-          # Special handling for 'id' attribute: if not present, use targeting_key
           if attribute_value.nil? && attribute_name == 'id'
             attribute_value = get_targeting_key(evaluation_context)
           end
@@ -435,7 +372,6 @@ module Datadog
         end
 
         def evaluate_comparison(attribute_value, condition_value, operator)
-          # Both values must be numeric for comparison
           return false if attribute_value.nil?
 
           begin
@@ -452,10 +388,7 @@ module Datadog
         def evaluate_membership(attribute_value, condition_values, expected_membership)
           return false if attribute_value.nil?
 
-          # NOT_ONE_OF fails when attribute is missing
           return false if !expected_membership && attribute_value.nil?
-
-          # Convert attribute to string for comparison
           attr_str = coerce_to_string(attribute_value)
           membership_matches?(attr_str, condition_values, expected_membership)
         end
@@ -463,10 +396,8 @@ module Datadog
         def membership_matches?(attr_str, condition_values, expected_membership)
           return false if attr_str.nil?
 
-          # Ensure condition_values is an array
           values_array = condition_values.is_a?(Array) ? condition_values : [condition_values]
 
-          # Check if attribute matches any value in the array
           is_member = values_array.any? { |v| coerce_to_string(v) == attr_str }
 
           is_member == expected_membership
@@ -487,7 +418,6 @@ module Datadog
             matches = !!(attr_str =~ regex)
             matches == expected_match
           rescue RegexpError
-            # Invalid regex - condition fails
             false
           rescue
             false
@@ -496,7 +426,6 @@ module Datadog
 
         def evaluate_null_check(attribute_value, expected_null)
           is_null = attribute_value.nil?
-          # Convert condition value to boolean
           expected_null_bool = coerce_to_boolean(expected_null)
           return false if expected_null_bool.nil?
 
@@ -552,50 +481,39 @@ module Datadog
         end
 
         def get_targeting_key(evaluation_context)
-          # The targeting key from hash-based evaluation context (always snake_case)
           return nil if evaluation_context.nil?
 
           evaluation_context['targeting_key']
         end
 
         def split_matches?(split, targeting_key)
-          # If split has no shards, it matches everyone (100% allocation)
           return true if split.shards.empty?
 
-          # If no targeting key, can't do traffic splitting - return false
           return false if targeting_key.nil?
 
-          # For split to match, ALL shards must match (AND logic)
           split.shards.all? { |shard| shard_matches?(shard, targeting_key) }
         end
 
         def shard_matches?(shard, targeting_key)
-          # Compute shard hash using MD5 algorithm
           shard_value = compute_shard_hash(shard.salt, targeting_key, shard.total_shards)
 
-          # Check if shard value falls within any of the ranges
           shard.ranges.any? { |range| shard_value >= range.start && shard_value < range.end_value }
         end
 
         def compute_shard_hash(salt, targeting_key, total_shards)
-          # Implementation matches Rust PreSaltedSharder exactly
-          # The Rust code uses PreSaltedSharder::new(&[shard.salt.as_bytes(), b"-"], shard.total_shards)
           require 'digest/md5'
 
-          # Create hash with salt + "-" + targeting_key (matches Rust implementation)
           hasher = Digest::MD5.new
           hasher.update(salt.to_s) if salt
-          hasher.update("-")  # Separator used in Rust PreSaltedSharder
+          hasher.update("-")  # Separator used in libdatadog PreSaltedSharder
           hasher.update(targeting_key.to_s)
 
-          # Get first 4 bytes as big-endian uint32, then mod by total_shards
           hash_bytes = hasher.digest
           hash_value = hash_bytes[0..3].unpack1('N') # 'N' = big-endian uint32
           hash_value % total_shards
         end
 
         def determine_assignment_reason(allocation)
-          # Logic matches Rust implementation in eval_assignment.rs:172-178
           has_rules = allocation.rules && !allocation.rules.empty?
           has_time_bounds = allocation.start_at || allocation.end_at
 

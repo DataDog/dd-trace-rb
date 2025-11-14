@@ -3,7 +3,6 @@
 module Datadog
   module OpenFeature
     module Binding
-      # Condition operators for rule evaluation
       module ConditionOperator
         MATCHES = 'MATCHES'
         NOT_MATCHES = 'NOT_MATCHES'

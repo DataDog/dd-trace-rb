@@ -105,7 +105,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       let(:type_checker) { evaluator }
 
       it 'maps Ruby types to UFC variation types correctly' do
-        # Access the private method for testing
         expect(type_checker.send(:type_matches?, 'BOOLEAN', 'boolean')).to be true
         expect(type_checker.send(:type_matches?, 'STRING', 'string')).to be true
         expect(type_checker.send(:type_matches?, 'INTEGER', 'integer')).to be true
@@ -113,7 +112,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         expect(type_checker.send(:type_matches?, 'NUMERIC', 'float')).to be true
         expect(type_checker.send(:type_matches?, 'JSON', 'object')).to be true
 
-        # Test mismatches
         expect(type_checker.send(:type_matches?, 'BOOLEAN', 'string')).to be false
         expect(type_checker.send(:type_matches?, 'STRING', 'integer')).to be false
       end
@@ -121,7 +119,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
 
     context 'evaluation context types' do
       it 'accepts hash evaluation contexts including from OpenFeature SDK fields' do
-        # Test with hash-based evaluation context
         hash_context = {'targeting_key' => 'user123', 'attr1' => 'value1'}
         hash_result = evaluator.get_assignment('numeric_flag', 'test_default', hash_context, 'float')
 
@@ -129,7 +126,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         expect(hash_result.value).not_to be_nil
         expect(hash_result.variant).not_to be_nil
 
-        # Test with hash extracted from OpenFeature SDK EvaluationContext.fields
         sdk_context = OpenFeature::SDK::EvaluationContext.new(
           targeting_key: 'user123',
           fields: {'attr1' => 'value1'}
@@ -141,7 +137,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         expect(sdk_result.value).not_to be_nil
         expect(sdk_result.variant).not_to be_nil
 
-        # Both contexts should produce equivalent results for the same user
         expect(hash_result.variant).to eq(sdk_result.variant)
         expect(hash_result.value).to eq(sdk_result.value)
       end
@@ -169,11 +164,10 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
     end
   end
 
-  describe 'error message consistency' do
+  describe 'error message correctness' do
     let(:evaluator) { described_class.new(valid_ufc_json) }
 
-    it 'uses consistent error codes matching Rust implementation' do
-      # Test all error types
+    it 'uses correct error codes' do
       flag_not_found = evaluator.get_assignment('missing', 'test_default', {}, 'string')
       expect(flag_not_found.error_code).to eq('FLAG_UNRECOGNIZED_OR_DISABLED')
       expect(flag_not_found.value).to eq('test_default')
@@ -195,7 +189,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
       expect(type_mismatch.flag_metadata).to eq({})
     end
 
-    it 'provides descriptive error messages matching Rust format' do
+    it 'provides descriptive error messages' do
       result = evaluator.get_assignment('missing_flag', 'test_default', {}, 'string')
       expect(result.error_message).to eq('flag is missing in configuration, it is either unrecognized or disabled')
       expect(result.value).to eq('test_default')
@@ -213,21 +207,18 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
   describe 'UFC test case coverage' do
     let(:evaluator) { described_class.new(valid_ufc_json) }
 
-    # Load all test case files from UFC reference implementation
     Dir.glob(File.join(__dir__, '../../../fixtures/ufc/test_cases/*.json')).each do |test_file|
       describe "Test cases from #{File.basename(test_file)}" do
         let(:test_cases) { JSON.parse(File.read(test_file)) }
 
         it 'executes all test cases in the file' do
           test_cases.each_with_index do |test_case, index|
-            # Extract test case data
             flag_key = test_case['flag']
             variation_type = test_case['variationType']
             targeting_key = test_case['targetingKey']
             attributes = test_case['attributes'] || {}
             expected_result = test_case['result']
 
-            # Convert variation type to expected_type symbol
             expected_type = case variation_type
             when 'STRING' then 'string'
             when 'INTEGER' then 'integer'
@@ -236,20 +227,15 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
             when 'JSON' then 'object'
             end
 
-            # Build evaluation context - convert to OpenFeature SDK format (snake_case keys)
             evaluation_context = attributes.dup
             evaluation_context['targeting_key'] = targeting_key if targeting_key  # Convert camelCase to snake_case
 
-            # Execute test case
             result = evaluator.get_assignment(flag_key, 'test_default', evaluation_context, expected_type)
 
-            # Wrap expectations in aggregate_failures for better error reporting
             aggregate_failures "Test case ##{index + 1}: #{targeting_key} with #{attributes.keys.join(", ")}" do
-              # Check if test case has detailed expected results (variant and flagMetadata)
               has_detailed_expectations = expected_result.key?('variant') && expected_result.key?('flagMetadata')
 
               if has_detailed_expectations
-                # Successful evaluation with detailed expectations from test case
                 expect(result.value).to eq(expected_result['value']),
                   "Expected value #{expected_result["value"].inspect}, got #{result.value.inspect}"
                 expect(result.variant).to eq(expected_result['variant']),
@@ -261,7 +247,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                 expect(['STATIC', 'TARGETING_MATCH', 'SPLIT']).to include(result.reason),
                   "Expected success reason (static/targeting_match/split), got #{result.reason.inspect}"
 
-                # Validate specific flag metadata values from test case
                 expected_flag_metadata = expected_result['flagMetadata']
                 expect(result.flag_metadata['allocationKey']).to eq(expected_flag_metadata['allocationKey']),
                   "Expected allocationKey #{expected_flag_metadata["allocationKey"].inspect}, got #{result.flag_metadata["allocationKey"].inspect}"
@@ -273,7 +258,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected log? #{expected_flag_metadata["doLog"].inspect}, got #{result.log?.inspect}"
 
               elsif result.error_code.nil? && !result.variant.nil?
-                # Successful evaluation without detailed expectations (fallback to structural validation)
                 expect(result.value).to eq(expected_result['value']),
                   "Expected value #{expected_result["value"].inspect}, got #{result.value.inspect}"
                 expect(result.variant).not_to be_nil,
@@ -285,7 +269,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                 expect(['STATIC', 'TARGETING_MATCH', 'SPLIT']).to include(result.reason),
                   "Expected success reason (static/targeting_match/split), got #{result.reason.inspect}"
 
-                # Validate flag metadata structure exists
                 expect(result.flag_metadata).not_to be_empty,
                   "Expected flag metadata for successful evaluation, got #{result.flag_metadata.inspect}"
                 expect(result.flag_metadata).to have_key('allocationKey'),
@@ -298,7 +281,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected boolean log? value, got #{result.log?.inspect}"
 
               elsif result.error_code.nil? && result.variant.nil?
-                # No allocation matched (disabled flag or no matching rules) - internal evaluator returns nil
                 expect(result.value).to eq('test_default'),
                   "Expected nil value for disabled/default case, got #{result.value.inspect}"
                 expect(result.variant).to be_nil,
@@ -317,7 +299,6 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected false log? for disabled/default case, got #{result.log?.inspect}"
 
               else
-                # Evaluation error occurred
                 expect(result.value).to eq('test_default'),
                   "Expected nil value for error case, got #{result.value.inspect}"
                 expect(result.variant).to be_nil,
