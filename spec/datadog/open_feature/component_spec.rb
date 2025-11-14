@@ -41,20 +41,8 @@ RSpec.describe Datadog::OpenFeature::Component do
 
         it 'logs warning and returns nil' do
           expect(logger).to receive(:warn)
-            .with(/could not be enabled without Remote Configuration/)
+            .with(/could not be enabled as Remote Configuration is currently disabled/)
 
-          expect(component).to be_nil
-        end
-      end
-
-      context 'when exception happens during initialization' do
-        before do
-          settings.remote.enabled = true
-          allow(Datadog::OpenFeature::EvaluationEngine).to receive(:new).and_raise('Error!')
-        end
-
-        it 'logs warning and disables the component' do
-          expect(Datadog.logger).to receive(:warn).with(/OpenFeature is disabled/)
           expect(component).to be_nil
         end
       end
@@ -75,9 +63,8 @@ RSpec.describe Datadog::OpenFeature::Component do
 
     subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
 
-    it 'flushes worker and stops it' do
-      expect(worker).to receive(:flush)
-      expect(worker).to receive(:stop).with(true)
+    it 'gracefully shutdown the worker' do
+      expect(worker).to receive(:graceful_shutdown)
 
       component.shutdown!
     end

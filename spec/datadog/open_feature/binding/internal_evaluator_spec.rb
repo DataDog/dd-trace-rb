@@ -85,7 +85,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
         expect(result.flag_metadata).to include("allocationKey")
-        expect([true, false]).to include(result.do_log)
+        expect([true, false]).to include(result.log?)
       end
 
       it 'succeeds when expected_type is nil (no validation)' do
@@ -97,7 +97,7 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
         expect(result.variant).not_to be_nil
         expect(result.allocation_key).not_to be_nil
         expect(result.flag_metadata).to include("allocationKey")
-        expect([true, false]).to include(result.do_log)
+        expect([true, false]).to include(result.log?)
       end
     end
 
@@ -269,8 +269,8 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected doLog #{expected_flag_metadata["doLog"].inspect}, got #{result.flag_metadata["doLog"].inspect}"
                 expect(result.allocation_key).to eq(expected_flag_metadata['allocationKey']),
                   "Expected allocation_key #{expected_flag_metadata["allocationKey"].inspect}, got #{result.allocation_key.inspect}"
-                expect(result.do_log).to eq(expected_flag_metadata['doLog']),
-                  "Expected do_log #{expected_flag_metadata["doLog"].inspect}, got #{result.do_log.inspect}"
+                expect(result.log?).to eq(expected_flag_metadata['doLog']),
+                  "Expected log? #{expected_flag_metadata["doLog"].inspect}, got #{result.log?.inspect}"
 
               elsif result.error_code.nil? && !result.variant.nil?
                 # Successful evaluation without detailed expectations (fallback to structural validation)
@@ -294,8 +294,8 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected doLog in flag metadata, got #{result.flag_metadata.inspect}"
                 expect(result.allocation_key).not_to be_nil,
                   "Expected allocation_key for successful evaluation, got #{result.allocation_key.inspect}"
-                expect([true, false]).to include(result.do_log),
-                  "Expected boolean do_log value, got #{result.do_log.inspect}"
+                expect([true, false]).to include(result.log?),
+                  "Expected boolean log? value, got #{result.log?.inspect}"
 
               elsif result.error_code.nil? && result.variant.nil?
                 # No allocation matched (disabled flag or no matching rules) - internal evaluator returns nil
@@ -313,8 +313,8 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected empty flag metadata for disabled/default case, got #{result.flag_metadata.inspect}"
                 expect(result.allocation_key).to be_nil,
                   "Expected nil allocation_key for disabled/default case, got #{result.allocation_key.inspect}"
-                expect(result.do_log).to eq(false),
-                  "Expected false do_log for disabled/default case, got #{result.do_log.inspect}"
+                expect(result.log?).to eq(false),
+                  "Expected false log? for disabled/default case, got #{result.log?.inspect}"
 
               else
                 # Evaluation error occurred
@@ -332,8 +332,8 @@ RSpec.describe Datadog::OpenFeature::Binding::InternalEvaluator do
                   "Expected empty flag metadata for error case, got #{result.flag_metadata.inspect}"
                 expect(result.allocation_key).to be_nil,
                   "Expected nil allocation_key for error case, got #{result.allocation_key.inspect}"
-                expect(result.do_log).to eq(false),
-                  "Expected false do_log for error case, got #{result.do_log.inspect}"
+                expect(result.log?).to eq(false),
+                  "Expected false log? for error case, got #{result.log?.inspect}"
               end
             end
           end

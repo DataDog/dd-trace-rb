@@ -5,17 +5,17 @@ require 'datadog/open_feature/remote'
 require 'datadog/core/remote/configuration/repository'
 
 RSpec.describe Datadog::OpenFeature::Remote do
-  let(:remote) { described_class }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:receivers) { remote.receivers(telemetry) }
+  let(:receivers) { described_class.receivers(telemetry) }
   let(:receiver) { receivers[0] }
+  let(:logger) { instance_double(Datadog::Core::Logger) }
 
   describe '.capabilities' do
-    it { expect(remote.capabilities).to eq([70368744177664]) }
+    it { expect(described_class.capabilities).to eq([70368744177664]) }
   end
 
   describe '.products' do
-    it { expect(remote.products).to eq(['FFE_FLAGS']) }
+    it { expect(described_class.products).to eq(['FFE_FLAGS']) }
   end
 
   describe '.receivers' do
@@ -37,7 +37,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
     end
 
-    let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry) }
+    let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
     let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
     let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
     let(:target) do
@@ -60,30 +60,24 @@ RSpec.describe Datadog::OpenFeature::Remote do
     let(:content_data) do
       <<~JSON
         {
-          "data": {
-            "type": "universal-flag-configuration",
-            "id": "1",
-            "attributes": {
-              "createdAt": "2024-04-17T19:40:53.716Z",
-              "format": "SERVER",
-              "environment": { "name": "test" },
-              "flags": {
-                "test_flag": {
-                  "key": "test_flag",
-                  "enabled": true,
-                  "variationType": "STRING",
-                  "variations": {
-                    "control": { "key": "control", "value": "control_value" }
-                  },
-                  "allocations": [
-                    {
-                      "key": "rollout",
-                      "splits": [{ "variationKey": "control", "shards": [] }],
-                      "doLog": false
-                    }
-                  ]
+          "createdAt": "2024-04-17T19:40:53.716Z",
+          "format": "SERVER",
+          "environment": { "name": "test" },
+          "flags": {
+            "test_flag": {
+              "key": "test_flag",
+              "enabled": true,
+              "variationType": "STRING",
+              "variations": {
+                "control": { "key": "control", "value": "control_value" }
+              },
+              "allocations": [
+                {
+                  "key": "rollout",
+                  "splits": [{ "variationKey": "control", "shards": [] }],
+                  "doLog": false
                 }
-              }
+              ]
             }
           }
         }
@@ -96,11 +90,10 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
 
       it 'reconfigures engine and acknowledges applied change' do
-        expect(engine).to receive(:reconfigure!)
+        expect(engine).to receive(:reconfigure!).with(content_data)
 
         receiver.call(repository, transaction)
 
-        expect(engine.configuration).to eq(content_data)
         expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
       end
     end
@@ -108,15 +101,15 @@ RSpec.describe Datadog::OpenFeature::Remote do
     context 'when change type is insert and reconfigure fails' do
       before { allow(engine).to receive(:reconfigure!).and_raise(error) }
 
-      let(:error) { StandardError.new('Ooops') }
+      let(:error) { Datadog::OpenFeature::EvaluationEngine::ReconfigurationError.new('Ooops') }
       let(:transaction) do
         repository.transaction { |_, t| t.insert(content.path, target, content) }
       end
 
-      it 'does not acknowledge applied change and logs error' do
-        expect { receiver.call(repository, transaction) }.to raise_error(error)
+      it 'marks content as errored' do
+        receiver.call(repository, transaction)
 
-        expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::UNACKNOWLEDGED)
+        expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR)
       end
     end
 
@@ -152,11 +145,10 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
 
       it 'reconfigures engine and acknowledges applied change' do
-        expect(engine).to receive(:reconfigure!)
+        expect(engine).to receive(:reconfigure!).with(new_content_data)
 
         receiver.call(repository, transaction)
 
-        expect(engine.configuration).to eq(new_content_data)
         expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
       end
     end
@@ -176,6 +168,20 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
     end
 
+    context 'when content data cannot be read' do
+      before { allow(content.data).to receive(:read).and_return(nil) }
+
+      let(:transaction) do
+        repository.transaction { |_, t| t.insert(content.path, target, content) }
+      end
+
+      it 'marks content as errored' do
+        receiver.call(repository, transaction)
+
+        expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR)
+      end
+    end
+
     context 'when content is missing' do
       let(:changes) do
         [
@@ -191,7 +197,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
 
       it 'logs error when content is missing and does not reconfigure the engine' do
-        expect(telemetry).to receive(:error).with(/OpenFeature: RemoteConfig change is not present/)
+        expect(telemetry).to receive(:error).with(/Remote Configuration change is not present/)
         expect(engine).not_to receive(:reconfigure!)
 
         receiver.call(repository, changes)

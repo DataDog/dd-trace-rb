@@ -1,22 +1,21 @@
 module Datadog
   module OpenFeature
     class EvaluationEngine
-      ALLOWED_TYPES: ::Array[::Symbol]
+      class ReconfigurationError < StandardError
+      end
 
-      attr_accessor configuration: ::String?
+      ALLOWED_TYPES: ::Array[::String]
 
-      attr_reader reporter: Exposures::Reporter
-
-      def initialize: (Exposures::Reporter reporter, telemetry: Core::Telemetry::Component, ?logger: Core::Logger) -> void
+      def initialize: (Exposures::Reporter reporter, telemetry: Core::Telemetry::Component, logger: Core::Logger) -> void
 
       def fetch_value: (
         flag_key: ::String,
-        expected_type: ::Symbol,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?,
-        default_value: untyped
-      ) -> Binding::ResolutionDetails
+        default_value: untyped,
+        expected_type: ::String,
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+      ) -> ResolutionDetails
 
-      def reconfigure!: () -> void
+      def reconfigure!: (::String? configuration) -> void
     end
   end
 end

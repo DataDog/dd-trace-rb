@@ -2,9 +2,9 @@
 
 require 'json'
 require_relative 'configuration'
-require_relative 'resolution_details'
 require_relative 'error_codes'
 require_relative '../ext'
+require_relative '../resolution_details'
 
 module Datadog
   module OpenFeature
@@ -249,14 +249,15 @@ module Datadog
 
         # Case 1: Successful evaluation with result - has variant and value
         def create_evaluation_success(value, variant, allocation_key, do_log, reason)
-          ResolutionDetails.new(
+          Datadog::OpenFeature::ResolutionDetails.new(
             value: value,
             variant: variant,
             error_code: nil,
             error_message: nil,
             reason: reason,
             allocation_key: allocation_key,
-            do_log: do_log,
+            log?: do_log,
+            error?: false,
             flag_metadata: {
               "allocationKey" => allocation_key,
               "doLog" => do_log
@@ -267,14 +268,15 @@ module Datadog
 
         # Case 2: Default value (disabled/default) - return provided default_value
         def create_evaluation_default(default_value, reason)
-          ResolutionDetails.new(
+          Datadog::OpenFeature::ResolutionDetails.new(
             value: default_value,
             variant: nil,
             error_code: nil,
             error_message: nil,
             reason: reason,
             allocation_key: nil,
-            do_log: false,
+            log?: false,
+            error?: false,
             flag_metadata: {},
             extra_logging: {}
           )
@@ -282,14 +284,15 @@ module Datadog
 
         # Case 3: Evaluation error - has error_code and error_message, returns default_value
         def create_evaluation_error(error_code, error_message, default_value)
-          ResolutionDetails.new(
+          Datadog::OpenFeature::ResolutionDetails.new(
             value: default_value,
             variant: nil,
             error_code: error_code,
             error_message: error_message,
             reason: AssignmentReason::ERROR,
             allocation_key: nil,
-            do_log: false,
+            log?: false,
+            error?: true,
             flag_metadata: {},
             extra_logging: {}
           )
