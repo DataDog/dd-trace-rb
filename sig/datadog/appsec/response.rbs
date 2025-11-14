@@ -1,6 +1,8 @@
 module Datadog
   module AppSec
     class Response
+      SECURITY_RESPONSE_ID_PLACEHOLDER: ::String
+
       attr_reader status: ::Integer
       attr_reader headers: ::Hash[::String, ::String]
       attr_reader body: ::Array[::String]
@@ -21,7 +23,7 @@ module Datadog
       def self.redirect_response: (::Hash[::String, ::String] interrupt_params) -> Response
 
       def self.content_type: (::String) -> ::String
-      def self.content: (::String) -> ::String
+      def self.content: (security_response_id: ::String, content_type: ::String) -> ::String
     end
   end
 end
