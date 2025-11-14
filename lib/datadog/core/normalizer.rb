@@ -6,8 +6,8 @@ module Datadog
       module_function
 
       INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}
-      LEADING_INVALID_CHARS = %r{\A[^\p{L}:]+}
-      TRAILING_UNDERSCORES = %r{_+\z}
+      LEADING_INVALID_CHARS = %r{\A[^\p{L}:]{1,200}}
+      TRAILING_UNDERSCORES = %r{_{1,200}\z}
       MAX_CHARACTER_LENGTH = 200
 
       # Based on https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize.go#L131
