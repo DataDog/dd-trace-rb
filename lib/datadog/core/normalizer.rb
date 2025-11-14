@@ -5,10 +5,10 @@ module Datadog
     module Normalizer
       module_function
 
-      INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}.freeze
-      LEADING_INVALID_CHARS = %r{\A[^\p{L}:]+}.freeze
-      TRAILING_UNDERSCORES = %r{_+\z}.freeze
-      MAX_CHARACTER_LENGTH = (0...200).freeze
+      INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}
+      LEADING_INVALID_CHARS = %r{\A[^\p{L}:]+}
+      TRAILING_UNDERSCORES = %r{_+\z}
+      MAX_CHARACTER_LENGTH = 200
 
       # Based on https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize.go#L131
       # Specifically:
@@ -27,8 +27,8 @@ module Datadog
         normalized_value.gsub!(INVALID_TAG_CHARACTERS, '_')
         normalized_value.sub!(LEADING_INVALID_CHARS, "")
         normalized_value.sub!(TRAILING_UNDERSCORES, "")
-        normalized_value.squeeze!('_')
-        normalized_value = normalized_value[MAX_CHARACTER_LENGTH]
+        normalized_value.squeeze!('_') if normalized_value.include?('__')
+        normalized_value.slice!(MAX_CHARACTER_LENGTH..-1) if normalized_value.length > MAX_CHARACTER_LENGTH
 
         normalized_value
       end
