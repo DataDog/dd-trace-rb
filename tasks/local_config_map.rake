@@ -2,6 +2,7 @@
 
 require 'json'
 require 'pp' # rubocop:disable Lint/RedundantRequireStatement
+require 'set'
 
 # Pretty print setup
 class ConfigPrinter < ::PP
