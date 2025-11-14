@@ -268,7 +268,7 @@ module Datadog
                   @type_key => parsed_error.type,
                   @stacktrace_key => parsed_error.backtrace,
                   @message_key => graphql_error['message'],
-                  @locations_key => serialize_error_locations(graphql_error['locations']),
+                  @locations_key => self.class.serialize_error_locations(graphql_error['locations']),
                   @path_key => graphql_error['path'],
                 )
               )
@@ -285,7 +285,11 @@ module Datadog
           #   ]
           # is serialized as:
           #   ["3:10", "7:8"]
-          def serialize_error_locations(locations)
+          def self.serialize_error_locations(locations)
+            # locations are only provided by the `graphql` library when the error can
+            # be associated to a particular point in the query.
+            return [] if locations.nil?
+
             locations.map do |location|
               "#{location["line"]}:#{location["column"]}"
             end
