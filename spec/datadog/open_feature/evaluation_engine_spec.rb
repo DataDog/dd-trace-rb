@@ -58,7 +58,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     context 'when binding evaluator returns error' do
       before do
         engine.reconfigure!(configuration)
-        allow_any_instance_of(Datadog::OpenFeature::NoopEvaluator).to receive(:get_assignment)
+        allow_any_instance_of(Datadog::OpenFeature::Binding::InternalEvaluator).to receive(:get_assignment)
           .and_return(error)
       end
 
@@ -89,7 +89,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       before do
         engine.reconfigure!(configuration)
         allow(telemetry).to receive(:report)
-        allow_any_instance_of(Datadog::OpenFeature::NoopEvaluator).to receive(:get_assignment)
+        allow_any_instance_of(Datadog::OpenFeature::Binding::InternalEvaluator).to receive(:get_assignment)
           .and_raise(error)
       end
 
@@ -152,7 +152,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       before do
         engine.reconfigure!(configuration)
 
-        allow(Datadog::OpenFeature::NoopEvaluator).to receive(:new).and_raise(error)
+        allow(Datadog::OpenFeature::Binding::InternalEvaluator).to receive(:new).and_raise(error)
       end
 
       let(:error) { StandardError.new('Ooops') }

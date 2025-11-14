@@ -1,0 +1,87 @@
+module Datadog
+  module OpenFeature
+    module Binding
+      class EvaluationError < ::StandardError
+        attr_reader code: ::String
+        attr_reader message: ::String
+
+        def initialize: (::String code, ::String message) -> void
+      end
+
+      class InternalEvaluator
+
+        def initialize: (::String ufc_json) -> void
+
+        def get_assignment: (
+          ::String flag_key,
+          untyped default_value,
+          ::Hash[::String, untyped]? evaluation_context,
+          ::String? expected_type
+        ) -> ::Datadog::OpenFeature::ResolutionDetails
+
+        private
+
+        def parse_and_validate_json: (::String ufc_json) -> void
+
+        def validate_flag_structure: (::Hash[::String, untyped] flag_data) -> bool
+
+        def validate_allocation_structure: (::Hash[::String, untyped] allocation_data) -> bool
+
+        def validate_split_structure: (::Hash[::String, untyped] split_data) -> bool
+
+        def validate_shard_structure: (::Hash[::String, untyped] shard_data) -> bool
+
+        def validate_rule_structure: (::Hash[::String, untyped] rule_data) -> bool
+
+        def membership_matches?: (::String? attr_str, (::Array[untyped] | untyped) condition_values, bool expected_membership) -> bool
+
+        def regex_matches?: (::String? attr_str, ::String pattern, bool expected_match) -> bool
+
+        def type_matches?: (::String flag_variation_type, ::String expected_type) -> bool
+
+        def evaluate_flag_allocations: (
+          Flag flag,
+          ::Hash[::String, untyped]? evaluation_context,
+          ::Time time
+        ) -> [(Allocation | nil), (Variation | nil), (::String | nil)]
+
+        def find_matching_split_for_allocation: (
+          Allocation allocation,
+          ::Hash[::String, untyped]? evaluation_context,
+          ::Time evaluation_time
+        ) -> [Split?, ::String?]
+
+        def evaluate_rule: (Rule rule, ::Hash[::String, untyped]? evaluation_context) -> bool
+
+        def evaluate_condition: (Condition condition, ::Hash[::String, untyped]? evaluation_context) -> bool
+
+        def get_attribute_from_context: (::String attribute_name, ::Hash[::String, untyped]? evaluation_context) -> untyped
+
+        def evaluate_comparison: (untyped attribute_value, untyped condition_value, ::Symbol operator) -> bool
+
+        def evaluate_membership: (untyped attribute_value, untyped condition_values, bool expected_membership) -> bool
+
+        def evaluate_regex: (untyped attribute_value, untyped pattern, bool expected_match) -> bool
+
+        def evaluate_null_check: (untyped attribute_value, untyped expected_null) -> bool
+
+        def coerce_to_number: (untyped value) -> ::Float?
+
+        def coerce_to_string: (untyped value) -> ::String?
+
+        def coerce_to_boolean: (untyped value) -> bool?
+
+        def get_targeting_key: (::Hash[::String, untyped]? evaluation_context) -> ::String?
+
+        def split_matches?: (Split split, ::String? targeting_key) -> bool
+
+        def shard_matches?: (Shard shard, ::String targeting_key) -> bool
+
+        def compute_shard_hash: (::String? salt, ::String targeting_key, ::Integer total_shards) -> ::Integer
+
+        def determine_assignment_reason: (Allocation allocation) -> ::String
+
+      end
+    end
+  end
+end
