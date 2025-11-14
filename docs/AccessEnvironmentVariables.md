@@ -72,36 +72,29 @@ Edit the `supported-configurations.json` file and add your variable (Please keep
 ```json
 {
   "supportedConfigurations": {
-    "DD_YOUR_NEW_VARIABLE": {
-      "version": ["A"]
-    }
+    "DD_YOUR_NEW_VARIABLE": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "propertyKeys": ["tracing.new_variable"],
+        "defaultValue": "true", # optional, default value in string format that will be parsed
+        "aliases": ["DD_ALIAS_1", "DD_ALIAS_2"], # optional, these env vars can be set, but not used in dd-trace-rb code
+        "deprecated": true, # optional, true | false, will log a deprecation message if the env var is set
+      }
+    ]
   }
 }
 ```
 
 #### Configuration Structure
 
-- **supportedConfigurations**: Maps variable names to configuration metadata
-  - `version`: (Defaults to `["A"]`) Array indicating which implementations the tracer supports. Implementations are defined in the Configuration Registry and multiple implementations could be set for a single environment variable (e.g. the base one `A`, and an extra one `B` that adds new possible values). Versions are non-numeric to avoid confusion with library versions.
-
-  In the future, the structure will also contain more information such as the type, the default value...
-
-- **aliases**: Maps canonical variable names to arrays of alias names
-
-  ```json
-  "aliases": {
-    "DD_SERVICE": ["OTEL_SERVICE_NAME"]
-  }
-  ```
-
-- **deprecations**: Adds a log message to deprecated environment variables.
-
-  ```json
-  "deprecations": {
-    "DD_OLD_VARIABLE": "Please use DD_NEW_VARIABLE",
-    "DD_REMOVED_VARIABLE": "This feature will be removed in the next release"
-  }
-  ```
+- **supportedConfigurations**: Maps variable names to configuration metadata. For now, we only support a single version per configuration but it is an array for future usage.
+  - `version`: String indicating which implementations the tracer supports. Implementations are defined in the Configuration Registry. Versions are non-numeric to avoid confusion with library versions.
+  - `type`: Optional, one of `boolean | int | float | string | array | map`. Indicates the type of the configuration value. This will tells the parser how to parse the environment variable value.
+  - `propertyKeys`: Optional, array containing a single value, the path to access the configuration from `Datadog.configuration`. This is an array for future usage.
+  - `defaultValue`: Optional, the default value, as a string, that will be parsed like an environment variable value.
+  - `aliases`: Optional, maps the config to an array of alias names. These environment variables should not be used in dd-trace-rb code. These aliases are by default considered deprecated. To accept non-deprecated environment variables, you must also add them as a separate configuration.
+  - `deprecated`: Optional, true | false, adds a log message to deprecated environment variables.
 
 ### Step 2: Generate Configuration Assets
 
