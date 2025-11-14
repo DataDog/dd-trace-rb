@@ -76,7 +76,7 @@ RSpec.describe Datadog::AppSec::Response do
           let(:interrupt_params) { {} }
           subject(:response) { described_class.from_interrupt_params(interrupt_params, http_accept_header) }
 
-          it 'uses default response and removes [security_response_id] from the template' do
+          it 'uses default response and removes security response id placeholder from the template' do
             expect(response.status).to eq 403
             expect(response.headers['Content-Type']).to eq 'text/html'
 
@@ -175,7 +175,7 @@ RSpec.describe Datadog::AppSec::Response do
       context('with Accept: text/html') do
         let(:http_accept_header) { 'text/html' }
 
-        it 'returns default html template security response ID' do
+        it 'returns default html template with security response ID' do
           expect(body).to eq([
             Datadog::AppSec::Assets
               .blocked(format: :html)
@@ -189,7 +189,7 @@ RSpec.describe Datadog::AppSec::Response do
       context('with Accept: application/json') do
         let(:http_accept_header) { 'application/json' }
 
-        it 'returns default json template security response ID' do
+        it 'returns default json template with security response ID' do
           expect(body).to eq([
             Datadog::AppSec::Assets
               .blocked(format: :json)
@@ -203,7 +203,7 @@ RSpec.describe Datadog::AppSec::Response do
       context('with Accept: text/plain') do
         let(:http_accept_header) { 'text/plain' }
 
-        it 'returns default text template security response ID' do
+        it 'returns default text template with security response ID' do
           expect(body).to eq([
             Datadog::AppSec::Assets
               .blocked(format: :text)
