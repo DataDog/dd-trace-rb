@@ -47,7 +47,6 @@ RSpec.describe Datadog::Core::Environment::Process do
         Dir.mktmpdir do |tmp_dir|
           Dir.chdir(tmp_dir) do
             Bundler.with_unbundled_env do
-              skip('rails gem could not be installed') unless system('gem install rails')
               unless system('rails new test_app --minimal --skip-active-record --skip-test --skip-keeps --skip-git --skip-docker')
                 skip('rails new command failed')
               end
