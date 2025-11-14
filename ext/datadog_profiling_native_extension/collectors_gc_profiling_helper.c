@@ -2,6 +2,7 @@
 #include <datadog/profiling.h>
 
 #include "collectors_gc_profiling_helper.h"
+#include "ruby_helpers.h"
 
 // This helper is used by the Datadog::Profiling::Collectors::ThreadContext to profile garbage collection.
 // It's tested through that class' interfaces.
@@ -119,7 +120,7 @@ uint8_t gc_profiling_set_metadata(ddog_prof_Label *labels, int labels_length) {
   };
 
   if (label_pos > max_label_count) {
-    rb_raise(rb_eRuntimeError, "BUG: gc_profiling_set_metadata unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
+    RAISE_PROFILING_TELEMETRY_UNSAFE("BUG: gc_profiling_set_metadata unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
 
   return label_pos;

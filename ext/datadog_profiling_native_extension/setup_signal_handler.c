@@ -71,11 +71,7 @@ static void install_sigprof_signal_handler_internal(
       );
     }
 
-    rb_raise(
-      rb_eRuntimeError,
-      "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler",
-      handler_pretty_name
-    );
+    RAISE_PROFILING_TELEMETRY_UNSAFE("Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler", handler_pretty_name);
   }
 }
 

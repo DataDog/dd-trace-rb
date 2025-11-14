@@ -3,6 +3,25 @@
 #include <stdbool.h>
 #include "datadog_ruby_common.h"
 
+// Global reference to Datadog::Profiling::ProfilingError exception class
+// This is initialized in profiling.c during extension initialization
+// Used for raising exceptions with constant error messages
+extern VALUE datadog_profiling_constant_error_class;
+
+// Global reference to Datadog::Profiling::ProfilingInternalError exception class
+// This is initialized in profiling.c during extension initialization
+// Used for raising exceptions with dynamic/formatted error messages
+extern VALUE datadog_profiling_dynamic_error_class;
+
+// Macro for raising ProfilingError with compile-time verified constant string
+// The "" string concatenation trick ensures the message is a string literal at compile time
+#define RAISE_PROFILING_TELEMETRY_SAFE(msg) \
+  rb_raise(datadog_profiling_constant_error_class, "" msg)
+
+// Macro for raising ProfilingInternalError with dynamic/formatted content
+#define RAISE_PROFILING_TELEMETRY_UNSAFE(fmt, ...) \
+  rb_raise(datadog_profiling_dynamic_error_class, fmt, ##__VA_ARGS__)
+
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
 // usage of ruby helpers.
 void ruby_helpers_init(void);
