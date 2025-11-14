@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 require 'json'
+require 'set'
 
 RSpec.describe 'Supported configurations' do
   describe 'consistency validation' do
