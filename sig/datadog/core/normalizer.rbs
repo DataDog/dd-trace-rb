@@ -2,6 +2,9 @@ module Datadog
   module Core
     module Normalizer
       INVALID_TAG_CHARACTERS: ::Regexp
+      LEADING_INVALID_CHARS: ::Regexp
+      TRAILING_UNDERSCORES: ::Regexp
+      MAX_CHARACTER_LENGTH: ::Integer
       def self.normalize: (untyped original_value) -> ::String
     end
   end

@@ -33,7 +33,7 @@ module Datadog
         def entrypoint_basedir
           current_basedir = File.expand_path(File.dirname($0))
           normalized_basedir = current_basedir.tr(File::SEPARATOR, '/')
-          normalized_basedir.delete_prefix!('/')
+          normalized_basedir.delete_prefix('/')
         end
 
         # Normalize tag key and value using the Trace Agent's tag normalization logic

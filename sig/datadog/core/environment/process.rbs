@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Environment
       module Process
-        @serialized: ::String?
+        @serialized: ::String
 
         def self?.entrypoint_workdir: () -> ::String
 
