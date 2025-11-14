@@ -1337,7 +1337,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
-    describe '#experimental_propagate_process_tags_enabled' do
+  describe '#experimental_propagate_process_tags_enabled' do
     subject(:experimental_propagate_process_tags_enabled) { settings.experimental_propagate_process_tags_enabled }
 
     context "when #{Datadog::Core::Environment::Ext::ENV_VERSION}" do
