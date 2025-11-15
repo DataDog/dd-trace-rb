@@ -1,0 +1,7 @@
+module Datadog
+  module OpenFeature
+    def self.enabled?: () -> bool
+
+    def self.engine: () -> EvaluationEngine?
+  end
+end

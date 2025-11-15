@@ -116,6 +116,7 @@ For a list of available integrations, and their configuration options, refer to 
 | Sneakers                   | `sneakers`                 | `>= 2.12.0`                                 | `>= 2.12.0`                                 | [Link][46]       | [Link](https://github.com/jondot/sneakers)                                   |
 | Stripe                     | `stripe`                   | `>= 5.15.0`                                 | `>= 5.15.0`                                 | [Link][47]       | [Link](https://github.com/stripe/stripe-ruby)                                |
 | Sucker Punch               | `sucker_punch`             | `>= 2.0`                                    | `>= 2.0`                                    | [Link][48]       | [Link](https://github.com/brandonhilkert/sucker_punch)                       |
+| WaterDrop                  | `waterdrop`                | `>= 2.8.8.rc1`                              | `>= 2.8.8.rc1`                              | [Link][55]       | [Link](https://github.com/karafka/waterdrop) |
 
 ### Support Policy
 

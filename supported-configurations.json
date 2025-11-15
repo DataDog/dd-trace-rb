@@ -109,6 +109,9 @@
     "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE": {
       "version": ["A"]
     },
+    "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED": {
+      "version": ["A"]
+    },
     "DD_GIT_COMMIT_SHA": {
       "version": ["A"]
     },
@@ -908,6 +911,9 @@
       "version": ["A"]
     },
     "DD_TRACE_TRILOGY_SERVICE_NAME": {
+      "version": ["A"]
+    },
+    "DD_TRACE_WATERDROP_ENABLED": {
       "version": ["A"]
     },
     "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH": {

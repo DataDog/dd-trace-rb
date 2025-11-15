@@ -2,7 +2,10 @@
 
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'karafka'
+# FFI::Function background native thread
+ThreadHelpers.with_leaky_thread_creation(:rdkafka) do
+  require 'karafka'
+end
 require 'datadog'
 
 RSpec.describe Datadog::Tracing::Contrib::Karafka::Distributed::Propagation do

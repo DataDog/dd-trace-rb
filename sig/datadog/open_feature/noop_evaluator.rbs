@@ -1,0 +1,15 @@
+module Datadog
+  module OpenFeature
+    class NoopEvaluator
+      def initialize: (::String?) -> void
+
+      def get_assignment: (
+        ::String,
+        untyped,
+        ::OpenFeature::SDK::EvaluationContext::fields_t,
+        ::String
+      ) -> ResolutionDetails
+    end
+  end
+end
+

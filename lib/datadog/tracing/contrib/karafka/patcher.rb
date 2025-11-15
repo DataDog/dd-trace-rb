@@ -66,6 +66,18 @@ module Datadog
           end
         end
 
+        module AppPatch
+          ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Core::Utils::OnlyOnce.new }
+
+          def initialized!
+            ONLY_ONCE_PER_APP[self].run do
+              # Activate tracing on components related to Karafka (e.g. WaterDrop)
+              Contrib::Karafka::Framework.setup
+            end
+            super
+          end
+        end
+
         # Patcher enables patching of 'karafka' module.
         module Patcher
           include Contrib::Patcher
@@ -78,9 +90,11 @@ module Datadog
 
           def patch
             require_relative 'monitor'
+            require_relative 'framework'
 
             ::Karafka::Instrumentation::Monitor.prepend(Monitor)
             ::Karafka::Messages::Messages.prepend(MessagesPatch)
+            ::Karafka::App.singleton_class.prepend(AppPatch)
           end
         end
       end
