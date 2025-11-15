@@ -131,6 +131,8 @@ jobs:
         TEST_MYSQL_HOST: mysql
         DD_AGENT_HOST: agent
         DD_TRACE_AGENT_PORT: '9126'
+        OTLP_GRPC_PORT: '4317'
+        OTLP_HTTP_PORT: '4318'
         DATADOG_GEM_CI: 'true'
         TEST_DATADOG_INTEGRATION: '1'
         JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag

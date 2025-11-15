@@ -213,19 +213,25 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
 end
 
 appraise 'opentelemetry' do
-  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-sdk', '~> 1.2'
+  gem 'opentelemetry-metrics-sdk', '>= 0.8'
+  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.6'
 end
 
 appraise 'opentelemetry_otlp' do
   gem 'opentelemetry-api', '< 1.5' # Context is kept in `Thread.current#[]`
   gem 'opentelemetry-sdk', '~> 1.1'
   gem 'opentelemetry-exporter-otlp'
+  gem 'opentelemetry-metrics-sdk', '>= 0.8'
+  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.6'
 end
 
 appraise 'opentelemetry_otlp_1_5' do
   gem 'opentelemetry-api', '>= 1.5' # Context is kept as instance variable in `Fiber.current`
   gem 'opentelemetry-sdk', '~> 1.1'
   gem 'opentelemetry-exporter-otlp'
+  gem 'opentelemetry-metrics-sdk', '>= 0.8'
+  gem 'opentelemetry-exporter-otlp-metrics', '>= 0.6'
 end
 
 appraise 'contrib-old' do
