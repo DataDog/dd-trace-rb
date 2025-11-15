@@ -105,6 +105,7 @@ module Datadog
 
         def configure_otlp_exporter(provider, settings)
           require 'opentelemetry/exporter/otlp_metrics'
+          require_relative 'sdk/exporter'
 
           metrics_config = settings.opentelemetry.metrics
           exporter_config = settings.opentelemetry.exporter
@@ -112,10 +113,12 @@ module Datadog
           timeout = metrics_config.timeout || exporter_config.timeout
           headers = metrics_config.headers || exporter_config.headers || {}
 
-          exporter = ::OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter.new(
+          protocol = metrics_config.protocol || exporter_config.protocol
+          exporter = Datadog::OpenTelemetry::SDK::MetricsExporter.new(
             endpoint: endpoint,
             timeout: timeout / 1000.0,
-            headers: headers
+            headers: headers,
+            protocol: protocol
           )
 
           reader = ::OpenTelemetry::SDK::Metrics::Export::PeriodicMetricReader.new(
