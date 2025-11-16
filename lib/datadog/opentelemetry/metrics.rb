@@ -43,6 +43,12 @@ module Datadog
             current_provider.shutdown
           end
 
+          # OpenTelemetry SDK sets default temporality preference to cumulative,
+          # this is not compatible with the Datadog agent.
+          if ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'].nil?
+            ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'] = 'delta'
+          end
+
           resource = create_resource(settings)
           provider = ::OpenTelemetry::SDK::Metrics::MeterProvider.new(resource: resource)
           configure_metric_reader(provider, settings)
