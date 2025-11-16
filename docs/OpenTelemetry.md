@@ -5,7 +5,7 @@
 | Type          | Documentation                                        | datadog version | Gem version support |
 | ------------- | ---------------------------------------------------- | --------------- | ------------------- |
 | Tracing       | https://github.com/open-telemetry/opentelemetry-ruby | 1.9.0+          | >= 1.1.0            |
-| [Metrics SDK](https://rubygems.org/gems/opentelemetry-metrics-sdk) >= 0.8, [OTLP Metrics Exporter](https://rubygems.org/gems/opentelemetry-exporter-otlp-metrics) >= 0.6 |
+| [Metrics SDK](https://rubygems.org/gems/opentelemetry-metrics-sdk) >= 0.8, [OTLP Metrics Exporter](https://rubygems.org/gems/opentelemetry-exporter-otlp-metrics) >= 0.4 |
 
 ## Configuring OpenTelemetry Tracing
 
@@ -52,7 +52,7 @@
     ```ruby
     gem 'datadog'
     gem 'opentelemetry-metrics-sdk', '>= 0.8'
-    gem 'opentelemetry-exporter-otlp-metrics', '>= 0.6'
+    gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4'
     ```
 
 1. Install gems with `bundle install`
@@ -87,7 +87,7 @@
 
 [General OTLP settings](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/) (`OTEL_EXPORTER_OTLP_*`) serve as defaults if metrics-specific settings are not provided.
 
-**Note:** Minimum `opentelemetry-metrics-sdk` is v0.8.0 (contains critical bug fixes). Use the latest version for best support. OTLP Metrics Exporter minimum depends on the metrics SDK. If an OpenTelemetry API breaking changes affect the `datadog` gem, [open a GitHub issue](https://github.com/DataDog/dd-trace-rb/issues).
+**Note:** Minimum `opentelemetry-metrics-sdk` is v0.8.0 (contains critical bug fixes). Minimum `opentelemetry-exporter-otlp-metrics` is v0.4.0. Use the latest versions for best support. If an OpenTelemetry API breaking changes affect the `datadog` gem, [open a GitHub issue](https://github.com/DataDog/dd-trace-rb/issues).
 
 ## Limitations
 
