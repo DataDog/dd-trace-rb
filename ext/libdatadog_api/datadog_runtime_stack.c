@@ -236,9 +236,6 @@ static void ruby_runtime_stack_callback(
       continue;
     }
 
-    if (cfp->iseq && !cfp->pc) {
-      continue;
-    }
 
     if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->iseq) {
       // Handle Ruby frames
