@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
+require_relative 'transport'
 require_relative 'evaluation_engine'
 require_relative 'exposures/buffer'
 require_relative 'exposures/worker'
 require_relative 'exposures/deduplicator'
 require_relative 'exposures/reporter'
-require_relative 'transport/http'
 
 module Datadog
   module OpenFeature

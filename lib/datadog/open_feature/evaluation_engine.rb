@@ -45,7 +45,6 @@ module Datadog
       def reconfigure!(configuration)
         @logger.debug('OpenFeature: Removing configuration') if configuration.nil?
 
-        # NOTE: This will be replaced with NativeEvaluator from libdatadog
         @evaluator = NoopEvaluator.new(configuration)
       rescue => e
         message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
