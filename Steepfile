@@ -110,6 +110,7 @@ target :datadog do
   ignore 'lib/datadog/core/configuration/ext.rb'
   ignore 'lib/datadog/core/configuration/settings.rb'
   ignore 'lib/datadog/core/contrib/rails/utils.rb'
+  ignore 'lib/datadog/core/crashtracking/component.rb'
   ignore 'lib/datadog/core/encoding.rb'
   ignore 'lib/datadog/core/environment/identity.rb'
   ignore 'lib/datadog/core/environment/platform.rb'
