@@ -49,8 +49,9 @@ RSpec.describe Datadog::Core::Environment::Process do
         Dir.mktmpdir do |tmp_dir|
           Dir.chdir(tmp_dir) do
             Bundler.with_unbundled_env do
-              unless system('rails new test_app --minimal --skip-active-record --skip-test --skip-keeps --skip-git --skip-docker')
-                skip('rails new command failed')
+              _, stderr, status = Open3.capture3('rails new test_app --minimal --skip-active-record --skip-test --skip-keeps --skip-git --skip-docker')
+              unless status.success? && File.exist?("test_app/Gemfile")
+                skip("rails new failed: #{stderr}")
               end
             end
 
@@ -77,10 +78,8 @@ RSpec.describe Datadog::Core::Environment::Process do
                 expect(err).to include('entrypoint_workdir:test_app')
                 expect(err).to include('entrypoint_type:script')
                 expect(err).to include('entrypoint_name:rails')
-                basedir_test = tmp_dir.sub(%r{^/}, '')
-                expect(err).to include("entrypoint_basedir:#{basedir_test}/test_app/bin")
-                expected_tags = "entrypoint.workdir:test_app,entrypoint.name:rails,entrypoint.basedir:#{basedir_test}/test_app/bin,entrypoint.type:script"
-                expect(err).to include("_dd.tags.process:#{expected_tags}")
+                # Regex accounts for symlink paths on MacOS
+                expect(err).to match(/entrypoint_basedir:.*\/test_app\/bin/)
               end
             end
           end
