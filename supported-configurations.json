@@ -5,9 +5,8 @@
     "DD_AGENT_HOST": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "127.0.0.1"
       }
     ],
     "DD_API_KEY": [
@@ -15,7 +14,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["api_key"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_API_SECURITY_ENABLED": [
@@ -87,7 +86,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["templates.html"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON": [
@@ -95,7 +94,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["templates.json"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT": [
@@ -103,7 +102,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["templates.text"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_APPSEC_MAX_STACK_TRACES": [
@@ -156,10 +155,10 @@
     ],
     "DD_APPSEC_RULES": [
       {
+        "__comment": "The environment variable is coerced to string type, although internally it can also be a Symbol, File, StringIO, or Hash.",
         "version": "A",
-        "type": "",
-        "propertyKeys": ["appsec.ruleset"],
-        "defaultValue": "recommended"
+        "type": "string",
+        "propertyKeys": ["appsec.ruleset"]
       }
     ],
     "DD_APPSEC_SCA_ENABLED": [
@@ -167,7 +166,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["appsec.sca_enabled"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_APPSEC_STACK_TRACE_ENABLED": [
@@ -196,8 +195,9 @@
     ],
     "DD_APPSEC_WAF_TIMEOUT": [
       {
+        "__comment": "Can contain a suffix (ms, ns, m...)",
         "version": "A",
-        "type": "",
+        "type": "string",
         "propertyKeys": ["appsec.waf_timeout"],
         "defaultValue": "5000"
       }
@@ -229,10 +229,9 @@
     "DD_DISABLE_DATADOG_RAILS": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null,
-        "aliases": ["DISABLE_DATADOG_RAILS"]
+        "type": "string",
+        "aliases": ["DISABLE_DATADOG_RAILS"],
+        "defaultValue": null
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_ENABLED": [
@@ -246,9 +245,8 @@
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "false"
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS": [
@@ -256,7 +254,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["dynamic_instrumentation.redacted_identifiers"],
-        "defaultValue": "[]"
+        "defaultValue": ""
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES": [
@@ -264,7 +262,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["dynamic_instrumentation.redacted_type_names"],
-        "defaultValue": "[]"
+        "defaultValue": ""
       }
     ],
     "DD_ENV": [
@@ -272,7 +270,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["env"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
@@ -280,7 +278,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["error_tracking.handled_errors"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE": [
@@ -288,7 +286,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["error_tracking.handled_errors_include"],
-        "defaultValue": "[]"
+        "defaultValue": ""
       }
     ],
     "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED": [
@@ -310,16 +308,14 @@
     "DD_GIT_COMMIT_SHA": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
+        "type": "string",
         "defaultValue": null
       }
     ],
     "DD_GIT_REPOSITORY_URL": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
+        "type": "string",
         "defaultValue": null
       }
     ],
@@ -334,17 +330,15 @@
     "DD_INJECTION_ENABLED": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "tracer"
       }
     ],
     "DD_INJECT_FORCE": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "boolean",
+        "defaultValue": "false"
       }
     ],
     "DD_INSTRUMENTATION_INSTALL_ID": [
@@ -352,7 +346,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["telemetry.install_id"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_INSTRUMENTATION_INSTALL_TIME": [
@@ -360,7 +354,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["telemetry.install_time"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_INSTRUMENTATION_INSTALL_TYPE": [
@@ -368,15 +362,16 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["telemetry.install_type"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_INSTRUMENTATION_TELEMETRY_ENABLED": [
       {
+        "__comment": "Default is false in development mode",
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["telemetry.enabled"],
-        "defaultValue": "#<Proc:0x0000ffff8f48ded0 /app/lib/datadog/core/configuration/settings.rb:806>"
+        "defaultValue": "true"
       }
     ],
     "DD_INTEGRATION_SERVICE": [
@@ -398,9 +393,8 @@
     "DD_METRIC_AGENT_PORT": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "int",
+        "defaultValue": "8125"
       }
     ],
     "DD_PROFILING_ALLOCATION_ENABLED": [
@@ -502,10 +496,10 @@
     ],
     "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": [
       {
+        "__comment": "Default value is :auto, not settable via environment variable",
         "version": "A",
-        "type": "",
-        "propertyKeys": ["advanced.no_signals_workaround_enabled"],
-        "defaultValue": "auto"
+        "type": "boolean",
+        "propertyKeys": ["advanced.no_signals_workaround_enabled"]
       }
     ],
     "DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE": [
@@ -518,18 +512,20 @@
     ],
     "DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED": [
       {
+        "__comment": "Can be 'true', 'false', 'only' or 'both'",
         "version": "A",
-        "type": "",
+        "type": "string",
         "propertyKeys": ["advanced.preview_otel_context_enabled"],
         "defaultValue": "false"
       }
     ],
     "DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED": [
       {
+        "__comment": "Default is true on Ruby 3.2.5+ / Ruby 3.3.4+, false on older Rubies",
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.sighandler_sampling_enabled"],
-        "defaultValue": "#<Proc:0x0000ffff8f4732d8 /app/lib/datadog/core/configuration/settings.rb:573>"
+        "defaultValue": "true"
       }
     ],
     "DD_PROFILING_SKIP_MYSQL2_CHECK": [
@@ -574,10 +570,11 @@
     ],
     "DD_REMOTE_CONFIGURATION_ENABLED": [
       {
+        "__comment": "Default is false in development mode",
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["remote.enabled"],
-        "defaultValue": "#<Proc:0x0000ffff8f48b270 /app/lib/datadog/core/configuration/settings.rb:949>"
+        "defaultValue": "true"
       }
     ],
     "DD_REMOTE_CONFIG_BOOT_TIMEOUT_SECONDS": [
@@ -634,7 +631,7 @@
         "version": "B",
         "type": "string",
         "propertyKeys": ["service"],
-        "defaultValue": "rspec",
+        "defaultValue": "ruby",
         "aliases": ["OTEL_SERVICE_NAME"]
       }
     ],
@@ -643,22 +640,20 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["site"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_SPAN_SAMPLING_RULES": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
+        "type": "string",
         "defaultValue": null
       }
     ],
     "DD_SPAN_SAMPLING_RULES_FILE": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
+        "type": "string",
         "defaultValue": null
       }
     ],
@@ -667,8 +662,8 @@
         "version": "B",
         "type": "map",
         "propertyKeys": ["tags"],
-        "defaultValue": "",
-        "aliases": ["OTEL_RESOURCE_ATTRIBUTES"]
+        "aliases": ["OTEL_RESOURCE_ATTRIBUTES"],
+        "defaultValue": null
       }
     ],
     "DD_TELEMETRY_AGENTLESS_URL": [
@@ -676,7 +671,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["telemetry.agentless_url_override"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED": [
@@ -788,7 +783,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE": [
@@ -930,24 +925,21 @@
     "DD_TRACE_AGENT_PORT": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "int",
+        "defaultValue": "8126"
       }
     ],
     "DD_TRACE_AGENT_TIMEOUT_SECONDS": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "int",
+        "defaultValue": "30"
       }
     ],
     "DD_TRACE_AGENT_URL": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
+        "type": "string",
         "defaultValue": null
       }
     ],
@@ -956,7 +948,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics.enabled"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_AWS_ANALYTICS_ENABLED": [
@@ -988,15 +980,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_AWS_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "aws"
       }
     ],
     "DD_TRACE_BAGGAGE_TAG_KEYS": [
@@ -1004,7 +995,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["tracing.baggage_tag_keys"],
-        "defaultValue": "[\"user.id\", \"session.id\", \"account.id\"]"
+        "defaultValue": "user.id, session.id, account.id"
       }
     ],
     "DD_TRACE_CLIENT_IP_ENABLED": [
@@ -1020,7 +1011,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["client_ip.header_name"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_CONCURRENT_RUBY_ENABLED": [
@@ -1060,15 +1051,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_DALLI_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "memcached"
       }
     ],
     "DD_TRACE_DEBUG": [
@@ -1133,15 +1123,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_ELASTICSEARCH_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "elasticsearch"
       }
     ],
     "DD_TRACE_ENABLED": [
@@ -1182,15 +1171,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_ETHON_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "ethon"
       }
     ],
     "DD_TRACE_EXCON_ANALYTICS_ENABLED": [
@@ -1220,9 +1208,9 @@
     "DD_TRACE_EXCON_ERROR_STATUS_CODES": [
       {
         "version": "A",
-        "type": "",
+        "type": "array",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": ""
+        "defaultValue": "400-599"
       }
     ],
     "DD_TRACE_EXCON_PEER_SERVICE": [
@@ -1230,23 +1218,22 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_EXCON_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "excon"
       }
     ],
     "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "boolean",
+        "propertyKeys": ["runtime_metrics.experimental_runtime_id_enabled"],
+        "defaultValue": "false"
       }
     ],
     "DD_TRACE_FARADAY_ANALYTICS_ENABLED": [
@@ -1276,9 +1263,9 @@
     "DD_TRACE_FARADAY_ERROR_STATUS_CODES": [
       {
         "version": "A",
-        "type": "",
+        "type": "array",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": ""
+        "defaultValue": "400-599"
       }
     ],
     "DD_TRACE_FARADAY_PEER_SERVICE": [
@@ -1286,15 +1273,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_FARADAY_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "faraday"
       }
     ],
     "DD_TRACE_GRAPE_ANALYTICS_ENABLED": [
@@ -1302,7 +1288,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_GRAPE_ANALYTICS_SAMPLE_RATE": [
@@ -1324,9 +1310,9 @@
     "DD_TRACE_GRAPE_ERROR_STATUS_CODES": [
       {
         "version": "A",
-        "type": "",
+        "type": "array",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": ""
+        "defaultValue": "500-599"
       }
     ],
     "DD_TRACE_GRAPHQL_ANALYTICS_ENABLED": [
@@ -1334,7 +1320,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE": [
@@ -1358,7 +1344,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["error_extensions"],
-        "defaultValue": "[]"
+        "defaultValue": ""
       }
     ],
     "DD_TRACE_GRAPHQL_ERROR_TRACKING": [
@@ -1406,15 +1392,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_GRPC_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "grpc"
       }
     ],
     "DD_TRACE_HANAMI_ENABLED": [
@@ -1430,7 +1415,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["tracing.header_tags"],
-        "defaultValue": "[]"
+        "defaultValue": ""
       }
     ],
     "DD_TRACE_HTTPCLIENT_ANALYTICS_ENABLED": [
@@ -1460,9 +1445,9 @@
     "DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES": [
       {
         "version": "A",
-        "type": "",
+        "type": "array",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": ""
+        "defaultValue": "400-599"
       }
     ],
     "DD_TRACE_HTTPCLIENT_PEER_SERVICE": [
@@ -1470,15 +1455,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_HTTPCLIENT_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "httpclient"
       }
     ],
     "DD_TRACE_HTTPRB_ANALYTICS_ENABLED": [
@@ -1508,9 +1492,9 @@
     "DD_TRACE_HTTPRB_ERROR_STATUS_CODES": [
       {
         "version": "A",
-        "type": "",
+        "type": "string",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": ""
+        "defaultValue": "400-599"
       }
     ],
     "DD_TRACE_HTTPRB_PEER_SERVICE": [
@@ -1518,15 +1502,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_HTTPRB_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "httprb"
       }
     ],
     "DD_TRACE_HTTP_ANALYTICS_ENABLED": [
@@ -1548,9 +1531,9 @@
     "DD_TRACE_HTTP_CLIENT_ERROR_STATUSES": [
       {
         "version": "A",
-        "type": "",
+        "type": "string",
         "propertyKeys": ["http_error_statuses.client"],
-        "defaultValue": "400..499"
+        "defaultValue": "400-499"
       }
     ],
     "DD_TRACE_HTTP_ENABLED": [
@@ -1564,17 +1547,17 @@
     "DD_TRACE_HTTP_ERROR_STATUS_CODES": [
       {
         "version": "A",
-        "type": "",
+        "type": "string",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": ""
+        "defaultValue": "400-599"
       }
     ],
     "DD_TRACE_HTTP_SERVER_ERROR_STATUSES": [
       {
         "version": "A",
-        "type": "",
+        "type": "string",
         "propertyKeys": ["http_error_statuses.server"],
-        "defaultValue": "500..599"
+        "defaultValue": "500-599"
       }
     ],
     "DD_TRACE_KAFKA_ANALYTICS_ENABLED": [
@@ -1662,15 +1645,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_MONGO_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "mongodb"
       }
     ],
     "DD_TRACE_MYSQL2_ANALYTICS_ENABLED": [
@@ -1702,15 +1684,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_MYSQL2_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "mysql2"
       }
     ],
     "DD_TRACE_NATIVE_SPAN_EVENTS": [
@@ -1718,7 +1699,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.native_span_events"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_NET_HTTP_PEER_SERVICE": [
@@ -1726,15 +1707,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_NET_HTTP_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "net/http"
       }
     ],
     "DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED": [
@@ -1766,7 +1746,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_OPENSEARCH_RESOURCE_PATTERN": [
@@ -1780,9 +1760,8 @@
     "DD_TRACE_OPENSEARCH_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "opensearch"
       }
     ],
     "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": [
@@ -1798,7 +1777,7 @@
         "version": "A",
         "type": "map",
         "propertyKeys": ["contrib.peer_service_mapping"],
-        "defaultValue": "{}"
+        "defaultValue": ""
       }
     ],
     "DD_TRACE_PG_ANALYTICS_ENABLED": [
@@ -1830,15 +1809,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_PG_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "pg"
       }
     ],
     "DD_TRACE_PRESTO_ANALYTICS_ENABLED": [
@@ -1870,15 +1848,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_PRESTO_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "presto"
       }
     ],
     "DD_TRACE_PROPAGATION_EXTRACT_FIRST": [
@@ -1894,7 +1871,7 @@
         "version": "B",
         "type": "array",
         "propertyKeys": ["tracing.propagation_style"],
-        "defaultValue": "[]",
+        "defaultValue": "",
         "aliases": ["OTEL_PROPAGATORS"]
       }
     ],
@@ -1903,7 +1880,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["tracing.propagation_style_extract"],
-        "defaultValue": "[\"datadog\", \"tracecontext\", \"baggage\"]"
+        "defaultValue": "datadog, tracecontext, baggage"
       }
     ],
     "DD_TRACE_PROPAGATION_STYLE_INJECT": [
@@ -1911,7 +1888,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["tracing.propagation_style_inject"],
-        "defaultValue": "[\"datadog\", \"tracecontext\", \"baggage\"]"
+        "defaultValue": "datadog, tracecontext, baggage"
       }
     ],
     "DD_TRACE_QUE_ANALYTICS_ENABLED": [
@@ -1983,7 +1960,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_RACK_ANALYTICS_SAMPLE_RATE": [
@@ -2007,7 +1984,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_RAILS_ANALYTICS_SAMPLE_RATE": [
@@ -2087,15 +2064,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_REDIS_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "redis"
       }
     ],
     "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED": [
@@ -2183,15 +2159,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_REST_CLIENT_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "rest_client"
       }
     ],
     "DD_TRACE_RODA_ENABLED": [
@@ -2207,15 +2182,15 @@
         "version": "B",
         "type": "float",
         "propertyKeys": ["sampling.default_rate"],
-        "defaultValue": "",
-        "aliases": ["OTEL_TRACES_SAMPLER"]
+        "aliases": ["OTEL_TRACES_SAMPLER"],
+        "defaultValue": null
       }
     ],
     "DD_TRACE_SAMPLING_RULES": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
+        "type": "string",
+        "propertyKeys": ["sampling.rules"],
         "defaultValue": null
       }
     ],
@@ -2304,7 +2279,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_SINATRA_ANALYTICS_SAMPLE_RATE": [
@@ -2352,7 +2327,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["startup_logs.enabled"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_STRIPE_ANALYTICS_ENABLED": [
@@ -2440,15 +2415,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "DD_TRACE_TRILOGY_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "defaultValue": "trilogy"
       }
     ],
     "DD_TRACE_WATERDROP_ENABLED": [
@@ -2472,63 +2446,61 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["version"],
-        "defaultValue": ""
+        "defaultValue": null
       }
     ],
     "OTEL_LOG_LEVEL": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "boolean",
+        "propertyKeys": ["internal.trace_logging"],
+        "defaultValue": "false"
       }
     ],
     "OTEL_PROPAGATORS": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "array",
+        "propertyKeys": ["tracing.propagation_style"],
+        "defaultValue": ""
       }
     ],
     "OTEL_RESOURCE_ATTRIBUTES": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "map",
+        "propertyKeys": ["tags"]
       }
     ],
     "OTEL_SERVICE_NAME": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "string",
+        "propertyKeys": ["service"],
+        "defaultValue": "ruby"
       }
     ],
     "OTEL_TRACES_EXPORTER": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "boolean",
+        "propertyKeys": ["tracing.enabled"],
+        "defaultValue": "true"
       }
     ],
     "OTEL_TRACES_SAMPLER": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
+        "type": "float",
+        "propertyKeys": ["sampling.default_rate"],
         "defaultValue": null
       }
     ],
     "OTEL_TRACES_SAMPLER_ARG": [
       {
         "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "defaultValue": null
+        "type": "float",
+        "defaultValue": "1.0"
       }
     ]
   }
