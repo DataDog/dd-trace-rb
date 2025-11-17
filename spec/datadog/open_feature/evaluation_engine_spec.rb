@@ -11,30 +11,25 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   let(:configuration) do
     <<~JSON
       {
-        "data": {
-          "type": "universal-flag-configuration",
-          "id": "1",
-          "attributes": {
-            "createdAt": "2024-04-17T19:40:53.716Z",
-            "format": "SERVER",
-            "environment": { "name": "test" },
-            "flags": {
-              "test_flag": {
-                "key": "test",
-                "enabled": true,
-                "variationType": "STRING",
-                "variations": {
-                  "control": { "key": "control", "value": "hello" }
-                },
-                "allocations": [
-                  {
-                    "key": "rollout",
-                    "splits": [{ "variationKey": "control", "shards": [] }],
-                    "doLog": false
-                  }
-                ]
+        "id": "1",
+        "createdAt": "2024-04-17T19:40:53.716Z",
+        "format": "SERVER",
+        "environment": { "name": "test" },
+        "flags": {
+          "test_flag": {
+            "key": "test",
+            "enabled": true,
+            "variationType": "STRING",
+            "variations": {
+              "control": { "key": "control", "value": "hello" }
+            },
+            "allocations": [
+              {
+                "key": "rollout",
+                "splits": [{ "variationKey": "control", "shards": [] }],
+                "doLog": false
               }
-            }
+            ]
           }
         }
       }
@@ -50,15 +45,15 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         expect(result.value).to eq('fallback')
         expect(result.error_code).to eq('PROVIDER_NOT_READY')
-        expect(result.error_message).to eq('Waiting for universal flag configuration')
-        expect(result.reason).to eq('INITIALIZING')
+        expect(result.error_message).to eq('Configuration not available')
+        expect(result.reason).to eq('ERROR')
       end
     end
 
     context 'when binding evaluator returns error' do
       before do
         engine.reconfigure!(configuration)
-        allow_any_instance_of(Datadog::OpenFeature::NoopEvaluator).to receive(:get_assignment)
+        allow_any_instance_of(Datadog::OpenFeature::NativeEvaluator).to receive(:get_assignment)
           .and_return(error)
       end
 
@@ -89,7 +84,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       before do
         engine.reconfigure!(configuration)
         allow(telemetry).to receive(:report)
-        allow_any_instance_of(Datadog::OpenFeature::NoopEvaluator).to receive(:get_assignment)
+        allow_any_instance_of(Datadog::OpenFeature::NativeEvaluator).to receive(:get_assignment)
           .and_raise(error)
       end
 
@@ -152,7 +147,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       before do
         engine.reconfigure!(configuration)
 
-        allow(Datadog::OpenFeature::NoopEvaluator).to receive(:new).and_raise(error)
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_raise(error)
       end
 
       let(:error) { StandardError.new('Ooops') }
