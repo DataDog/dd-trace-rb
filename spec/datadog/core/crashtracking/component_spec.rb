@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
     let(:agent_settings) do
       instance_double(Datadog::Core::Configuration::AgentSettings)
     end
-    let(:tags) { { 'tag1' => 'value1' } }
+    let(:tags) { {'tag1' => 'value1'} }
     let(:agent_base_url) { 'agent_base_url' }
     let(:ld_library_path) { 'ld_library_path' }
     let(:path_to_crashtracking_receiver_binary) { 'path_to_crashtracking_receiver_binary' }
@@ -267,7 +267,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
           crash_tracker = build_crashtracker(
             agent_base_url: agent_base_url,
-            tags: { 'latest_settings' => 'included' },
+            tags: {'latest_settings' => 'included'},
             logger: logger
           )
           crash_tracker.start
@@ -431,7 +431,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
     described_class.new(
       agent_base_url: options[:agent_base_url] || 'http://localhost:6006',
       tags: options[:tags] ||
-        { 'tag1' => 'value1', 'tag2' => 'value2', 'language' => testing_string, 'service' => testing_string },
+        {'tag1' => 'value1', 'tag2' => 'value2', 'language' => testing_string, 'service' => testing_string},
       path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
       ld_library_path: Libdatadog.ld_library_path,
       logger: options[:logger] || Logger.new($stdout),
