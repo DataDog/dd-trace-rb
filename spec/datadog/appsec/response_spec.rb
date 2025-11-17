@@ -1,5 +1,3 @@
-require 'securerandom'
-
 require 'datadog/appsec/response'
 
 RSpec.describe Datadog::AppSec::Response do
@@ -18,7 +16,7 @@ RSpec.describe Datadog::AppSec::Response do
 
         let(:type) { 'html' }
         let(:status_code) { '100' }
-        let(:security_response_id) { SecureRandom.uuid }
+        let(:security_response_id) { '73bb7b99-52f6-43ea-998c-6cbc6b80f520' }
 
         context 'status_code' do
           subject(:status) { described_class.from_interrupt_params(interrupt_params, http_accept_header).status }
@@ -76,7 +74,7 @@ RSpec.describe Datadog::AppSec::Response do
           let(:interrupt_params) { {} }
           subject(:response) { described_class.from_interrupt_params(interrupt_params, http_accept_header) }
 
-          it 'uses default response and removes security response id placeholder from the template' do
+          it 'uses default response replaces placeholders in the template' do
             expect(response.status).to eq 403
             expect(response.headers['Content-Type']).to eq 'text/html'
 

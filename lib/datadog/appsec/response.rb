@@ -100,8 +100,6 @@ module Datadog
             Datadog.configuration.appsec.block.templates.send(content_format)
           end
 
-          # we want to return a new string here to avoid mutating the template,
-          # since it is memoized in AppSec::Assets module
           template.gsub(SECURITY_RESPONSE_ID_PLACEHOLDER, security_response_id.to_s)
         end
       end
