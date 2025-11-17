@@ -45,7 +45,9 @@ module Datadog
           return true if @sample_delay_seconds.zero?
           return false if response.status == 404
 
-          key = Zlib.crc32("#{request.request_method}#{RouteExtractor.route_pattern(request)}#{response.status}")
+          route_pattern = RouteExtractor.route_pattern(request).to_s
+
+          key = Zlib.crc32("#{request.request_method}#{route_pattern}#{response.status}")
           current_timestamp = Core::Utils::Time.now.to_i
           cached_timestamp = @cache[key] || 0
 

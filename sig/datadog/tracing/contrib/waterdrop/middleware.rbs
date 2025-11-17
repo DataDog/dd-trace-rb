@@ -1,0 +1,16 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module WaterDrop
+        module Middleware
+          # Takes a message hash and returns it (potentially modified)
+          def self.call: (::Hash[::Symbol, untyped] message) -> ::Hash[::Symbol, untyped]
+
+          private
+
+          def self.configuration: () -> Configuration::Settings
+        end
+      end
+    end
+  end
+end

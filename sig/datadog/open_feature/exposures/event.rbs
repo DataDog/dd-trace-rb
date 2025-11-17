@@ -1,0 +1,37 @@
+module Datadog
+  module OpenFeature
+    module Exposures
+      module Event
+        type t = ::Hash[::Symbol, untyped]
+
+        ALLOWED_FIELD_TYPES: ::Array[::Class]
+
+        TARGETING_KEY_FIELD: ::String
+
+        def self.cache_key: (
+          ResolutionDetails result,
+          flag_key: ::String,
+          context: ::OpenFeature::SDK::EvaluationContext
+        ) -> ::String
+
+        def self.cache_value: (
+          ResolutionDetails result,
+          flag_key: ::String,
+          context: ::OpenFeature::SDK::EvaluationContext
+        ) -> ::String
+
+        def self.build: (
+          ResolutionDetails result,
+          flag_key: ::String,
+          context: ::OpenFeature::SDK::EvaluationContext
+        ) -> t
+
+        private
+
+        def self.current_timestamp_ms: () -> ::Integer
+
+        def self.extract_attributes: (::OpenFeature::SDK::EvaluationContext) -> ::Hash[::String, untyped]
+      end
+    end
+  end
+end

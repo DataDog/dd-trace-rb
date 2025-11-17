@@ -47,6 +47,8 @@ Style:
     - "spec/datadog/kit/**/**"
     - "spec/datadog/profiling*"
     - "spec/datadog/profiling/**/*"
+    - "spec/datadog/open_feature*"
+    - "spec/datadog/open_feature/**/*"
     - "yard/**/*.rb"
 
 Layout:
