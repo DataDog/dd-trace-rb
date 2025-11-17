@@ -22,6 +22,17 @@ extern VALUE datadog_profiling_dynamic_error_class;
 #define RAISE_PROFILING_TELEMETRY_UNSAFE(fmt, ...) \
   rb_raise(datadog_profiling_dynamic_error_class, fmt, ##__VA_ARGS__)
 
+// Raises a NativeError (an instance of RuntimeError) with the formatted string as
+// its message.
+// This error is also sent for telemetry with the unformatted string:
+// this guarantees that no dynamic content is sent via telemetry, preventing potential
+// leakage of sensitive information.
+// *Native errors not raised through this function will not be reported via telemetry.*
+NORETURN(
+  void raise_for_telemetry(const char *fmt, ...)
+  __attribute__ ((format (printf, 1, 2)));
+);
+
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
 // usage of ruby helpers.
 void ruby_helpers_init(void);

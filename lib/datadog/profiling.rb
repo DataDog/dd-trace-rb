@@ -7,6 +7,8 @@ require_relative 'core/utils/only_once'
 module Datadog
   # Datadog Continuous Profiler implementation: https://docs.datadoghq.com/profiler/
   module Profiling
+    class NativeError < RuntimeError; end
+
     # Custom exception class for profiler errors with constant messages.
     # This exception class is used by the profiler's C code to signal errors with constant,
     # known-safe messages. Telemetry will include exception messages for instances of this class.

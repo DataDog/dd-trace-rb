@@ -111,6 +111,23 @@ void raise_syserr(
   }
 }
 
+void raise_for_telemetry(const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  VALUE formatted_msg = rb_vsprintf(fmt, args);
+  va_end(args);
+
+  // Pass both the static format string and the formatted message to the error class
+  VALUE exception = rb_funcall(
+    datadog_profiling_dynamic_error_class,
+    rb_intern("new"),
+    2,
+    rb_str_new_cstr(fmt),
+    formatted_msg
+  );
+  rb_exc_raise(exception);
+}
+
 static VALUE _id2ref(VALUE obj_id) {
   // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
   return rb_funcall(module_object_space, _id2ref_id, 1, obj_id);
