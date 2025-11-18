@@ -11,6 +11,7 @@ static VALUE module_object_space = Qnil;
 static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
+static ID new_id = 0;
 
 // Global reference to Datadog::Profiling::ProfilingError exception class
 // Initialized in profiling.c during extension initialization
@@ -27,6 +28,7 @@ void ruby_helpers_init(void) {
   _id2ref_id = rb_intern("_id2ref");
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");
+  new_id = rb_intern("new");
 }
 
 #define MAX_RAISE_MESSAGE_SIZE 256
@@ -111,6 +113,11 @@ void raise_syserr(
   }
 }
 
+void raise_profiling_constant_error(const char *msg) {
+  VALUE exception = rb_funcall(datadog_profiling_constant_error_class, new_id, 1, rb_str_new_cstr(msg));
+  rb_exc_raise(exception);
+}
+
 void raise_for_telemetry(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
@@ -120,7 +127,7 @@ void raise_for_telemetry(const char *fmt, ...) {
   // Pass both the static format string and the formatted message to the error class
   VALUE exception = rb_funcall(
     datadog_profiling_dynamic_error_class,
-    rb_intern("new"),
+    new_id,
     2,
     rb_str_new_cstr(fmt),
     formatted_msg

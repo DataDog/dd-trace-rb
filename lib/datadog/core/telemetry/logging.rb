@@ -75,9 +75,9 @@ module Datadog
         private
 
         def constant_exception_message(exception)
-          # Only include exception messages from ProfilingError, as those are guaranteed to contain
-          # constant strings created by Datadog code (not dynamic/PII content)
-          if defined?(Datadog::Profiling::ProfilingError) && exception.is_a?(Datadog::Profiling::ProfilingError)
+          if exception.respond_to?(:telemetry_message) && exception.telemetry_message
+            exception.telemetry_message
+          elsif defined?(Datadog::Profiling::ProfilingError) && exception.is_a?(Datadog::Profiling::ProfilingError)
             exception.message
           end
         end

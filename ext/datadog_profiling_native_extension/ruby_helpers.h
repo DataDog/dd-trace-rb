@@ -16,11 +16,13 @@ extern VALUE datadog_profiling_dynamic_error_class;
 // Macro for raising ProfilingError with compile-time verified constant string
 // The "" string concatenation trick ensures the message is a string literal at compile time
 #define RAISE_PROFILING_TELEMETRY_SAFE(msg) \
-  rb_raise(datadog_profiling_constant_error_class, "" msg)
+  raise_profiling_constant_error("" msg)
 
 // Macro for raising ProfilingInternalError with dynamic/formatted content
 #define RAISE_PROFILING_TELEMETRY_UNSAFE(fmt, ...) \
-  rb_raise(datadog_profiling_dynamic_error_class, fmt, ##__VA_ARGS__)
+  raise_for_telemetry(fmt, ##__VA_ARGS__)
+
+NORETURN(void raise_profiling_constant_error(const char *msg));
 
 // Raises a NativeError (an instance of RuntimeError) with the formatted string as
 // its message.

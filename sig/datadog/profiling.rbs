@@ -1,9 +1,15 @@
 module Datadog
   module Profiling
-    class ProfilingError < StandardError
+    class NativeError < RuntimeError
+      attr_reader telemetry_message: String?
+
+      def initialize: (*untyped args, **untyped kwargs) -> void
     end
 
-    class ProfilingInternalError < StandardError
+    class ProfilingError < NativeError
+    end
+
+    class ProfilingInternalError < NativeError
     end
 
     def self.supported?: () -> bool

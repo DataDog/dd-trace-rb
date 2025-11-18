@@ -7,18 +7,50 @@ require_relative 'core/utils/only_once'
 module Datadog
   # Datadog Continuous Profiler implementation: https://docs.datadoghq.com/profiler/
   module Profiling
-    class NativeError < RuntimeError; end
+    # Base error type for exceptions raised by the native profiler. It separates the
+    # developer-facing message from the telemetry-safe message so telemetry never carries
+    # dynamic data (PII) while developers still get the full runtime message.
+    class NativeError < RuntimeError
+      attr_reader :telemetry_message
+
+      def initialize(*args, telemetry_message: nil, **kwargs)
+        arguments = args.dup
+
+        if arguments.length >= 2
+          telemetry_message ||= arguments.shift
+          message = arguments.shift
+        else
+          message = arguments.shift
+        end
+
+        if message.nil? && arguments.empty?
+          kwargs.empty? ? super() : super(**kwargs)
+        else
+          super(message, *arguments, **kwargs)
+        end
+
+        @telemetry_message = telemetry_message
+      end
+    end
 
     # Custom exception class for profiler errors with constant messages.
     # This exception class is used by the profiler's C code to signal errors with constant,
     # known-safe messages. Telemetry will include exception messages for instances of this class.
-    class ProfilingError < StandardError; end
+    class ProfilingError < NativeError
+      def initialize(*args, **kwargs)
+        unless kwargs.key?(:telemetry_message) || args.length >= 2
+          kwargs = kwargs.dup
+          kwargs[:telemetry_message] = args.first
+        end
+
+        super
+      end
+    end
 
     # Custom exception class for profiler internal errors with dynamic content.
-    # This exception class is used for errors that include dynamic information from libdatadog
-    # or system state. Telemetry will NOT include exception messages from this class to avoid
-    # fingerprinting issues, but the full details are preserved for local debugging.
-    class ProfilingInternalError < StandardError; end
+    # Instances may carry dynamic details in their message while exposing a telemetry-safe string
+    # via #telemetry_message so that telemetry avoids leaking sensitive information.
+    class ProfilingInternalError < NativeError; end
 
     def self.supported?
       unsupported_reason.nil?
