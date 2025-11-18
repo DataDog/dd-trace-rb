@@ -5,6 +5,14 @@ require 'pp' # rubocop:disable Lint/RedundantRequireStatement
 require 'set'
 
 # Pretty print setup
+class Array
+  def pretty_print(q)
+    q.group(2, '[', ']') do # The only diff with original source code the offset that has been changed to 2 to comply to standard-rb.
+      q.seplist(self) { |v| q.pp v }
+    end
+  end
+end
+
 class ConfigPrinter < ::PP
   def self.pp(data)
     output = +''
@@ -23,12 +31,11 @@ namespace :local_config_map do
   aliases = {}
   deprecations = Set.new
   alias_to_canonical = {}
-  supported_configurations = data[:supportedConfigurations].each.with_object({}) do |(name, configs), h|
+  supported_configurations = data[:supportedConfigurations].each.with_object([]) do |(name, configs), result|
     configs.each do |config|
-      config.transform_keys!(&:to_sym)
-      config[:aliases]&.each do |alias_name|
-        aliases[name] ||= []
-        aliases[name] << alias_name
+      config["aliases"]&.each do |alias_name|
+        aliases[name] ||= Set.new
+        aliases[name].add(alias_name)
         if alias_to_canonical[alias_name] && alias_to_canonical[alias_name] != name
           raise "The alias #{alias_name} is already used for #{alias_to_canonical[alias_name]}."
         end
@@ -39,15 +46,13 @@ namespace :local_config_map do
         deprecations.add(alias_name) unless data.dig(:supportedConfigurations, alias_name)
       end
       # Add deprecated configs with no replacement provided
-      deprecations.add(name) if config[:deprecations]
-      config.delete(:aliases)
-      config.delete(:deprecations)
+      deprecations.add(name) if config["deprecations"]
     end
-    h[name] = configs
+    result << name
   end
   # Ignore comment field
-  supported_configurations = supported_configurations.sort.to_h
-  aliases = aliases.sort.to_h
+  supported_configurations = supported_configurations.sort
+  aliases = aliases.transform_values!(&:to_a).sort.to_h
   deprecations = deprecations.to_a.sort
   alias_to_canonical = alias_to_canonical.sort.to_h
 
