@@ -4,6 +4,10 @@ module Datadog
       module Process
         @serialized: ::String
 
+        def self.serialized: () -> ::String
+
+        private
+
         def self?.entrypoint_workdir: () -> ::String
 
         def self?.entrypoint_type: () -> ::String
@@ -11,8 +15,8 @@ module Datadog
         def self?.entrypoint_name: () -> ::String
 
         def self?.entrypoint_basedir: () -> ::String
+
         def self?.serialized_kv_helper: (::String key, ::String value) -> ::String
-        def self?.serialized: () -> ::String
       end
     end
   end
