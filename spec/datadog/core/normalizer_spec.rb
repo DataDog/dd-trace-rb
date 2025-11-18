@@ -42,9 +42,9 @@ RSpec.describe Datadog::Core::Normalizer do
       {in: ' regulartag ', out: 'regulartag'},
       {in: "\u017Fodd_\u017Fcase\u017F", out: "\u017Fodd_\u017Fcase\u017F"},
       {in: '™Ö™Ö™™Ö™', out: 'ö_ö_ö'},
-      {in: "a#{"\ufffd"}", out: 'a'},
-      {in: "a#{"\ufffd"}#{"\ufffd"}", out: 'a'},
-      {in: "a#{"\ufffd"}#{"\ufffd"}b", out: 'a_b'},
+      {in: "a�", out: 'a'},
+      {in: "a��", out: 'a'},
+      {in: "a��b", out: 'a_b'},
       # Tests are currently failing on the last two
       # {in: 'a' + ('🐶' * 799) + 'b', out: 'a'},
       # {in: 'A' + ('0' * 200) + ' ' + ('0' * 11), out: 'a' + ('0' * 200) + '_0'},
