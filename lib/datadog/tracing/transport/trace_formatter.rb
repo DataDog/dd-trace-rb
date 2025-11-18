@@ -61,9 +61,9 @@ module Datadog
           tag_sampling_priority!
           tag_profiling_enabled!
           tag_apm_tracing_disabled!
-          tag_process_tags!
 
           if first_span
+            tag_process_tags!
             tag_git_repository_url!
             tag_git_commit_sha!
           end

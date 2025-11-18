@@ -237,20 +237,31 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
-      shared_examples 'first span with process tags' do
-        it do
+      shared_examples 'spans with process tags' do
+        it 'the first span has process tags' do
           format!
-          expect(first_span.meta).to include('_dd.tags.process')
-          expect(first_span.meta['_dd.tags.process']).to eq(Datadog::Core::Environment::Process.serialized)
-          # TODO figure out if we need an assertion for the value, ie
-          # `"entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:usr/local/bundle/bin,entrypoint.type:script,server.type:placeholder"`
+          expect(first_span.meta).to include(Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS)
+          expect(first_span.meta[Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS]).to eq(Datadog::Core::Environment::Process.serialized)
+        end
+        it 'does not add process tags to non first spans' do
+          format!
+          trace.spans.each_with_index do |span, index|
+            if index == 0
+              expect(span.meta).to include(Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS)
+              expect(span.meta[Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS]).to eq(Datadog::Core::Environment::Process.serialized)
+            else
+              expect(span.meta).to_not include(Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS)
+            end
+          end
         end
       end
 
-      shared_examples 'first span without process tags' do
-        it do
+      shared_examples 'spans without process tags' do
+        it 'does not add process tags to any spans' do
           format!
-          expect(first_span.meta).to_not include('_dd.tags.process')
+          trace.spans.each do |span|
+            expect(span.meta).to_not include(Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS)
+          end
         end
       end
 
@@ -306,12 +317,12 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           before do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
           end
-          it_behaves_like 'first span with process tags'
+          it_behaves_like 'spans with process tags'
         end
 
         context 'without process tags enabled' do
           # default is false
-          it_behaves_like 'first span without process tags'
+          it_behaves_like 'spans without process tags'
         end
       end
 
@@ -367,12 +378,12 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           before do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
           end
-          it_behaves_like 'first span with process tags'
+          it_behaves_like 'spans with process tags'
         end
 
         context 'without process tags enabled' do
           # default is false
-          it_behaves_like 'first span without process tags'
+          it_behaves_like 'spans without process tags'
         end
       end
 
@@ -430,12 +441,12 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           before do
             allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
           end
-          it_behaves_like 'first span with process tags'
+          it_behaves_like 'spans with process tags'
         end
 
         context 'without process tags enabled' do
           # default is false
-          it_behaves_like 'first span without process tags'
+          it_behaves_like 'spans without process tags'
         end
       end
     end
