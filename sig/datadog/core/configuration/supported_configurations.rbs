@@ -2,10 +2,8 @@ module Datadog
   module Core
     module Configuration
       type env_var_name = String
-      type configs = Array[config]
-      type config = Hash[Symbol, String | Array[String | nil] | nil]
 
-      SUPPORTED_CONFIGURATIONS: Hash[env_var_name, configs]
+      SUPPORTED_CONFIGURATIONS: Array[env_var_name]
       ALIASES: Hash[env_var_name, Array[env_var_name]]
       DEPRECATIONS: Array[env_var_name]
       ALIAS_TO_CANONICAL: Hash[env_var_name, env_var_name]

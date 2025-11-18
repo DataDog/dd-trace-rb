@@ -6,14 +6,14 @@ module Datadog
 
         @source_env: env_hash
         @raise_on_unknown_env_var: bool
-        @supported_configurations: Hash[String, configs]
+        @supported_configurations: Array[String]
         @aliases: Hash[String, Array[String]]
         @deprecations: Hash[String, String]
         @alias_to_canonical: Hash[String, String]
 
         def initialize: (
           ?source_env: env_hash,
-          ?supported_configurations: Hash[String, configs],
+          ?supported_configurations: Array[String],
           ?aliases: Hash[String, Array[String]],
           ?alias_to_canonical: Hash[String, String],
           ?raise_on_unknown_env_var: bool

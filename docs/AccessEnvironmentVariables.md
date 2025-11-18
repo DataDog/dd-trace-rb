@@ -88,11 +88,11 @@ Edit the `supported-configurations.json` file and add your variable (Please keep
 
 #### Configuration Structure
 
-- **supportedConfigurations**: Maps variable names to configuration metadata. For now, we only support a single version per configuration but it is an array for future usage.
+- **supportedConfigurations**: Maps variable names to configuration metadata. For now, we only support a single version per configuration but it is an array for future usage. No runtime checks will be performed against these values (except aliases and deprecations), as they will be used to generate documentation and are only informative, but **please keep them updated!!!**
   - `version`: String indicating which implementations the tracer supports. Implementations are defined in the Configuration Registry. Versions are non-numeric to avoid confusion with library versions.
-  - `type`: Optional, one of `boolean | int | float | string | array | map`. Indicates the type of the configuration value. This will tells the parser how to parse the environment variable value.
-  - `propertyKeys`: Optional, array containing a single value, the path to access the configuration from `Datadog.configuration`. This is an array for future usage.
-  - `defaultValue`: Optional, the default value, as a string, that will be parsed like an environment variable value.
+  - `type`: Optional, one of `boolean | int | float | string | array | map`. Indicates the type of the configuration value. **Different value means different version!**
+  - `propertyKeys`: Optional, array containing a single value, the path to access the configuration from `Datadog.configuration`. *This value can differ between config versions*
+  - `defaultValue`: Optional, the default value, as a string (like if we gave the default value through environment variable). **Different value means different version!**
   - `aliases`: Optional, maps the config to an array of alias names. These environment variables should not be used in dd-trace-rb code. These aliases are by default considered deprecated. To accept non-deprecated environment variables, you must also add them as a separate configuration.
   - `deprecated`: Optional, true | false, adds a log message to deprecated environment variables.
 
@@ -155,7 +155,7 @@ end
 
 #### Local file validation
 
-The `validate_supported_configurations_local_file` CI job in charge of validating the content of the `supported-configurations.json` file against the central Configuration Registry runs on GitLab in the `shared-pipeline` stage. This job verifies that all configuration keys present in the local file are correctly registered on the central registry. When a new key is introduced it has to be registered in order to pass this job.
+The `validate_supported_configurations_local_file` CI job in charge of validating the content of the `supported-configurations.json` file against the central Configuration Registry runs on GitLab in the `shared-pipeline` stage. This job verifies that all configuration keys present in the local file are correctly registered on the central registry, with the correct type, default value, aliases... When a new key or a new version is introduced it has to be registered in order to pass this job. If the version type, default values, or deprecated state differs from what is registered on the central registry, the job will also fail.
 
 Example of a failed run output:
 
@@ -163,7 +163,12 @@ Example of a failed run output:
 Missing properties:
 {
   "DD_TRACE_GRAPHQL_ERROR_TRACKING": [
-    "A"
+    {
+      "version": "A",
+      "type": "boolean",
+      "propertyKeys": ["error_tracking"],
+      "defaultValue": "false"
+    }
   ]
 }
 The above configuration was found locally but missing from the configuration registry.
