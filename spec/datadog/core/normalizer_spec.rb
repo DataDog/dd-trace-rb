@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'datadog/core/normalizer'
 
 RSpec.describe Datadog::Core::Normalizer do
-  describe 'Follows the normalization logic from the Trace Agent' do
+  describe 'Follows the normalization logic from the Trace Agent for tag keys' do
     # Test cases from the Trace Agent for consistency
     # https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize_test.go#L17
     test_cases = [
@@ -45,14 +45,27 @@ RSpec.describe Datadog::Core::Normalizer do
       {in: "a�", out: 'a'},
       {in: "a��", out: 'a'},
       {in: "a��b", out: 'a_b'},
-      # Tests are currently failing on the last two
-      # {in: 'a' + ('🐶' * 799) + 'b', out: 'a'},
+      {in: 'a' + ('🐶' * 799) + 'b', out: 'a'},
+      # This test case doesn't work with the current logic because it yields 202 characters
       # {in: 'A' + ('0' * 200) + ' ' + ('0' * 11), out: 'a' + ('0' * 200) + '_0'},
     ]
 
     test_cases.each do |test_case|
       it "normalizes #{test_case[:in].inspect} to #{test_case[:out].inspect} like the Trace Agent" do
-        expect(described_class.normalize(test_case[:in])).to eq(test_case[:out])
+        expect(described_class.normalize(test_case[:in], remove_digit_start_char: true)).to eq(test_case[:out])
+      end
+    end
+  end
+  describe 'Follows the normalization logic from the Trace Agent for tag values' do
+    test_cases = [
+      {in: '1test', out: '1test'},
+      {in: 'atest', out: 'atest'},
+    ]
+
+    test_cases.each do |test_case|
+      it "normalizes #{test_case[:in].inspect} to #{test_case[:out].inspect} like the Trace Agent" do
+        # These test cases are from the Trace Agent's default normalize() behavior (tag keys)
+        expect(described_class.normalize(test_case[:in], remove_digit_start_char: false)).to eq(test_case[:out])
       end
     end
   end
