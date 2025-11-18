@@ -5,18 +5,6 @@ module Datadog
         @serialized: ::String
 
         def self.serialized: () -> ::String
-
-        private
-
-        def self?.entrypoint_workdir: () -> ::String
-
-        def self?.entrypoint_type: () -> ::String
-
-        def self?.entrypoint_name: () -> ::String
-
-        def self?.entrypoint_basedir: () -> ::String
-
-        def self?.serialized_kv_helper: (::String key, ::String value) -> ::String
       end
     end
   end

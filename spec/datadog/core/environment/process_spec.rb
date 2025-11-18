@@ -3,31 +3,6 @@ require 'datadog/core/environment/process'
 require 'open3'
 
 RSpec.describe Datadog::Core::Environment::Process do
-  describe '::entrypoint_workdir' do
-    subject(:entrypoint_workdir) { described_class.entrypoint_workdir }
-
-    it { is_expected.to be_a_kind_of(String) }
-  end
-
-  describe '::entrypoint_type' do
-    subject(:entrypoint_type) { described_class.entrypoint_type }
-
-    it { is_expected.to be_a_kind_of(String) }
-    it { is_expected.to eq(Datadog::Core::Environment::Ext::PROCESS_TYPE) }
-  end
-
-  describe '::entrypoint_name' do
-    subject(:entrypoint_name) { described_class.entrypoint_name }
-
-    it { is_expected.to be_a_kind_of(String) }
-  end
-
-  describe '::entrypoint_basedir' do
-    subject(:entrypoint_basedir) { described_class.entrypoint_basedir }
-
-    it { is_expected.to be_a_kind_of(String) }
-  end
-
   describe '::serialized' do
     subject(:serialized) { described_class.serialized }
 
@@ -61,10 +36,6 @@ RSpec.describe Datadog::Core::Environment::Process do
             File.write("test_app/config/initializers/process_initializer.rb", <<-RUBY)
                         Rails.application.config.after_initialize do
                             require 'datadog/core/environment/process'
-                            STDERR.puts "entrypoint_workdir:\#{Datadog::Core::Environment::Process.entrypoint_workdir}"
-                            STDERR.puts "entrypoint_type:\#{Datadog::Core::Environment::Process.entrypoint_type}"
-                            STDERR.puts "entrypoint_name:\#{Datadog::Core::Environment::Process.entrypoint_name}"
-                            STDERR.puts "entrypoint_basedir:\#{Datadog::Core::Environment::Process.entrypoint_basedir}"
                             STDERR.puts "_dd.tags.process:\#{Datadog::Core::Environment::Process.serialized}"
                             STDERR.flush
                             Thread.new { Process.kill('TERM', Process.pid) }
@@ -75,11 +46,10 @@ RSpec.describe Datadog::Core::Environment::Process do
               Dir.chdir("test_app") do
                 _, _, _ = Open3.capture3('bundle install')
                 _, err, _ = Open3.capture3('bundle exec rails s')
-                expect(err).to include('entrypoint_workdir:test_app')
-                expect(err).to include('entrypoint_type:script')
-                expect(err).to include('entrypoint_name:rails')
-                # Regex accounts for symlink paths on MacOS
-                expect(err).to match(/entrypoint_basedir:.*\/test_app\/bin/)
+                expect(err).to include('entrypoint.workdir:test_app')
+                expect(err).to include('entrypoint.type:script')
+                expect(err).to include('entrypoint.name:rails')
+                expect(err).to include('entrypoint.basedir:bin')
               end
             end
           end

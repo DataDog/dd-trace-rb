@@ -8,17 +8,17 @@ module Datadog
     module Environment
       # Retrieves process level information such that it can be attached to various payloads
       module Process
-        module_function
+        extend self
 
         # This method returns a key/value part of serialized tags in the format of k1:v1,k2:v2,k3:v3
         # @return [String] comma-separated normalized key:value pairs
         def serialized
           return @serialized if defined?(@serialized)
           tags = []
-          tags << serialized_kv_helper(Environment::Ext::TAG_ENTRYPOINT_WORKDIR, entrypoint_workdir) if entrypoint_workdir
-          tags << serialized_kv_helper(Environment::Ext::TAG_ENTRYPOINT_NAME, entrypoint_name) if entrypoint_name
-          tags << serialized_kv_helper(Environment::Ext::TAG_ENTRYPOINT_BASEDIR, entrypoint_basedir) if entrypoint_basedir
-          tags << serialized_kv_helper(Environment::Ext::TAG_ENTRYPOINT_TYPE, entrypoint_type) if entrypoint_type
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{Normalizer.normalize(entrypoint_workdir)}" if entrypoint_workdir
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_NAME}:#{Normalizer.normalize(entrypoint_name)}" if entrypoint_name
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{Normalizer.normalize(entrypoint_basedir)}" if entrypoint_basedir
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{Normalizer.normalize(entrypoint_type)}" if entrypoint_type
           @serialized = tags.join(',').freeze
         end
 
@@ -51,19 +51,7 @@ module Datadog
         # Example 2: ruby /test/myapp.js -> test
         # @return [String] the last segment of the base directory of the script
         def entrypoint_basedir
-          current_basedir = File.expand_path(File.dirname($0))
-          normalized_basedir = current_basedir.tr(File::SEPARATOR, '/')
-          normalized_basedir.delete_prefix('/')
-        end
-
-        # Normalize tag key and value using the Trace Agent's tag normalization logic
-        # @param key [String] the original key
-        # @param value [String] the original value
-        # @return [String] normalized key:value pair
-        def serialized_kv_helper(key, value)
-          key = Normalizer.normalize(key)
-          value = Normalizer.normalize(value)
-          "#{key}:#{value}"
+          File.basename(File.expand_path(File.dirname($0)))
         end
       end
     end
