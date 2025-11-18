@@ -1,28 +1,23 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdarg.h>
 #include "datadog_ruby_common.h"
 
-// Global reference to Datadog::Profiling::ProfilingError exception class
+// Global reference to Datadog::Profiling::NativeError exception class
 // This is initialized in profiling.c during extension initialization
-// Used for raising exceptions with constant error messages
-extern VALUE datadog_profiling_constant_error_class;
+extern VALUE datadog_native_error_class;
 
-// Global reference to Datadog::Profiling::ProfilingInternalError exception class
-// This is initialized in profiling.c during extension initialization
-// Used for raising exceptions with dynamic/formatted error messages
-extern VALUE datadog_profiling_dynamic_error_class;
-
-// Macro for raising ProfilingError with compile-time verified constant string
+// Macro for raising NativeError with compile-time verified constant string
 // The "" string concatenation trick ensures the message is a string literal at compile time
 #define RAISE_PROFILING_TELEMETRY_SAFE(msg) \
-  raise_profiling_constant_error("" msg)
+  raise_native_constant_error("" msg)
 
-// Macro for raising ProfilingInternalError with dynamic/formatted content
+// Macro for raising NativeError with dynamic/formatted content
 #define RAISE_PROFILING_TELEMETRY_UNSAFE(fmt, ...) \
   raise_for_telemetry(fmt, ##__VA_ARGS__)
 
-NORETURN(void raise_profiling_constant_error(const char *msg));
+NORETURN(void raise_native_constant_error(const char *msg));
 
 // Raises a NativeError (an instance of RuntimeError) with the formatted string as
 // its message.

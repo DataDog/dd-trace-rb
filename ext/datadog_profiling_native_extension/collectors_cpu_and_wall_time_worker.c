@@ -1281,7 +1281,7 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
 
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error) {
   // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
-  stop_state(state, rb_exc_new_cstr(datadog_profiling_constant_error_class, error));
+  stop_state(state, rb_exc_new_cstr(datadog_native_error_class, error));
 }
 
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg) {

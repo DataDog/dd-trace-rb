@@ -6,11 +6,8 @@ module Datadog
       def initialize: (*untyped args, **untyped kwargs) -> void
     end
 
-    class ProfilingError < NativeError
-    end
-
-    class ProfilingInternalError < NativeError
-    end
+    ProfilingError: singleton(NativeError)
+    ProfilingInternalError: singleton(NativeError)
 
     def self.supported?: () -> bool
     def self.unsupported_reason: () -> ::String?

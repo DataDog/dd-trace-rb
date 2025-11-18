@@ -770,10 +770,10 @@ static void build_heap_profile_without_gvl(stack_recorder_state *state, profile_
   // same locks are acquired by the heap recorder while holding the gvl (since we'd be operating on the
   // same locks but acquiring them in different order).
   if (!iterated) {
-    grab_gvl_and_raise(datadog_profiling_constant_error_class, "Failure during heap profile building: iteration cancelled");
+    grab_gvl_and_raise(datadog_native_error_class, "Failure during heap profile building: iteration cancelled");
   }
   else if (iteration_context.error) {
-    grab_gvl_and_raise(datadog_profiling_dynamic_error_class, "Failure during heap profile building: %s", iteration_context.error_msg);
+    grab_gvl_and_raise(datadog_native_error_class, "Failure during heap profile building: %s", iteration_context.error_msg);
   }
 }
 
@@ -835,7 +835,7 @@ static profile_slot* serializer_flip_active_and_inactive_slots(stack_recorder_st
   int previously_active_slot = state->active_slot;
 
   if (previously_active_slot != 1 && previously_active_slot != 2) {
-    grab_gvl_and_raise(datadog_profiling_dynamic_error_class, "Unexpected active_slot state %d in serializer_flip_active_and_inactive_slots", previously_active_slot);
+    grab_gvl_and_raise(datadog_native_error_class, "Unexpected active_slot state %d in serializer_flip_active_and_inactive_slots", previously_active_slot);
   }
 
   pthread_mutex_t *previously_active = (previously_active_slot == 1) ? &state->mutex_slot_one : &state->mutex_slot_two;

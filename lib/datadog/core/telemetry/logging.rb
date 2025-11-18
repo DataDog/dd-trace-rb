@@ -75,11 +75,9 @@ module Datadog
         private
 
         def constant_exception_message(exception)
-          if exception.respond_to?(:telemetry_message) && exception.telemetry_message
-            exception.telemetry_message
-          elsif defined?(Datadog::Profiling::ProfilingError) && exception.is_a?(Datadog::Profiling::ProfilingError)
-            exception.message
-          end
+          return unless exception.respond_to?(:telemetry_message)
+
+          exception.telemetry_message
         end
       end
     end

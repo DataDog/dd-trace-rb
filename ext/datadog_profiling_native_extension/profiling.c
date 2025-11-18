@@ -55,15 +55,10 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_define_singleton_method(native_extension_module, "native_working?", native_working_p, 0);
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));
 
-  // Initialize the ProfilingError exception class reference
+  // Initialize the NativeError exception class reference
   // This exception class should be defined in Ruby code (lib/datadog/profiling.rb)
-  datadog_profiling_constant_error_class = rb_const_get(profiling_module, rb_intern("ProfilingError"));
-  rb_global_variable(&datadog_profiling_constant_error_class);
-
-  // Initialize the ProfilingInternalError exception class reference
-  // This exception class should be defined in Ruby code (lib/datadog/profiling.rb)
-  datadog_profiling_dynamic_error_class = rb_const_get(profiling_module, rb_intern("ProfilingInternalError"));
-  rb_global_variable(&datadog_profiling_dynamic_error_class);
+  datadog_native_error_class = rb_const_get(profiling_module, rb_intern("NativeError"));
+  rb_global_variable(&datadog_native_error_class);
 
   ruby_helpers_init();
   collectors_cpu_and_wall_time_worker_init(profiling_module);

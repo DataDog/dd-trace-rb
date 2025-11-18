@@ -33,25 +33,6 @@ module Datadog
       end
     end
 
-    # Custom exception class for profiler errors with constant messages.
-    # This exception class is used by the profiler's C code to signal errors with constant,
-    # known-safe messages. Telemetry will include exception messages for instances of this class.
-    class ProfilingError < NativeError
-      def initialize(*args, **kwargs)
-        unless kwargs.key?(:telemetry_message) || args.length >= 2
-          kwargs = kwargs.dup
-          kwargs[:telemetry_message] = args.first
-        end
-
-        super
-      end
-    end
-
-    # Custom exception class for profiler internal errors with dynamic content.
-    # Instances may carry dynamic details in their message while exposing a telemetry-safe string
-    # via #telemetry_message so that telemetry avoids leaking sensitive information.
-    class ProfilingInternalError < NativeError; end
-
     def self.supported?
       unsupported_reason.nil?
     end
