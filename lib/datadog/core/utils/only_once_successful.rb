@@ -29,7 +29,11 @@ module Datadog
       # In https://github.com/DataDog/dd-trace-rb/pull/1398#issuecomment-797378810 we have a discussion of alternatives,
       # including an alternative implementation that is Ractor-safe once spent.
       class OnlyOnceSuccessful < OnlyOnce
-        def initialize(limit = 0)
+        def initialize(limit = nil)
+          if limit && limit <= 0
+            raise ArgumentError, "Limit must be a positive integer if provided: #{limit}"
+          end
+
           super()
 
           @limit = limit
@@ -61,17 +65,8 @@ module Datadog
           @mutex.synchronize { @ran_once && @failed }
         end
 
-        private
-
-        def check_limit!
-          if @retries >= @limit
-            @failed = true
-            @ran_once = true
-          end
-        end
-
         def limited?
-          !@limit.nil? && @limit.positive?
+          !@limit.nil?
         end
 
         def reset_ran_once_state_for_tests
@@ -79,6 +74,15 @@ module Datadog
             @ran_once = false
             @failed = false
             @retries = 0
+          end
+        end
+
+        private
+
+        def check_limit!
+          if @retries >= @limit
+            @failed = true
+            @ran_once = true
           end
         end
       end
