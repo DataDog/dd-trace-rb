@@ -96,7 +96,7 @@ module Datadog
           success = self.class._native_register_runtime_stack_callback
 
           unless success
-            error_message = 'Failed to register runtime stack callback: registration returned false (may be already registered or unsupported)'
+            error_message = 'Failed to register runtime stack callback: registration returned false'
             logger.error(error_message)
             raise StandardError, error_message
           end

@@ -52,8 +52,8 @@ append_cflags '-Wno-declaration-after-statement'
 # cause a segfault later. Let's ensure that never happens.
 append_cflags '-Werror-implicit-function-declaration'
 
-# Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-append_cflags '-Wunused-parameter'
+# Note: -Wunused-parameter is added later for Ruby 3.3+ compatibility
+# See comment near line 240 about why this flag breaks header detection on Ruby 3.3
 
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
 # the sole exception being `Init_libdatadog_api` which needs to be visible for Ruby to call it when
@@ -188,10 +188,9 @@ if CAN_USE_MJIT_HEADER
   # NOTE: This needs to come after all changes to $defs
   create_header
 
-  # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-  # This is added as late as possible because in some Rubies we support (e.g. 3.3), adding this flag before
-  # checking if internal VM headers are available causes those checks to fail because of this warning (and not
-  # because the headers are not available.)
+  # Note: -Wunused-parameter flag is intentionally added here only after MJIT header validation
+  # This is because adding this flag before checking internal VM headers causes those checks to fail
+  # on some Ruby versions (e.g. 3.3) due to warnings, not because the headers are unavailable
   append_cflags "-Wunused-parameter"
 
   create_makefile(EXTENSION_NAME)
