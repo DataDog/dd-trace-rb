@@ -30,8 +30,9 @@ static inline VALUE str_from_borrow(ddog_ffe_BorrowedStr str) {
 }
 
 static VALUE configuration_new(VALUE klass, VALUE json_str);
-static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE context);
+static VALUE configuration_get_assignment(int argc, VALUE *argv, VALUE self);
 static void configuration_free(void *ptr);
+static enum ddog_ffe_ExpectedFlagType map_flag_type(VALUE flag_type_symbol);
 
 static VALUE resolution_details_get_value(VALUE self);
 static VALUE resolution_details_get_reason(VALUE self);
@@ -46,10 +47,16 @@ void feature_flags_init(VALUE core_module) {
   // Always define the Binding module - it will reuse existing if it exists
   VALUE binding_module = rb_define_module_under(core_module, "FeatureFlags");
 
+  // Define flag type constants aligned with OpenFeature
+  rb_define_const(binding_module, "BOOLEAN", ID2SYM(rb_intern("boolean")));
+  rb_define_const(binding_module, "STRING", ID2SYM(rb_intern("string")));
+  rb_define_const(binding_module, "NUMBER", ID2SYM(rb_intern("number")));
+  rb_define_const(binding_module, "OBJECT", ID2SYM(rb_intern("object")));
+
   VALUE Configuration = rb_define_class_under(binding_module, "Configuration", rb_cObject);
   rb_undef_alloc_func(Configuration);
   rb_define_singleton_method(Configuration, "new", configuration_new, 1);
-  rb_define_method(Configuration, "get_assignment", configuration_get_assignment, 2);
+  rb_define_method(Configuration, "get_assignment", configuration_get_assignment, -1);
 
   VALUE ResolutionDetails = rb_define_class_under(binding_module, "ResolutionDetails", rb_cObject);
   rb_undef_alloc_func(ResolutionDetails);
@@ -85,6 +92,36 @@ static VALUE configuration_new(VALUE klass, VALUE json_str) {
 static void configuration_free(void *ptr) {
   ddog_ffe_Handle_Configuration config = (ddog_ffe_Handle_Configuration) ptr;
   ddog_ffe_configuration_drop(&config);
+}
+
+/**
+ * Maps Ruby flag type symbol to libdatadog FFE ExpectedFlagType enum.
+ * Defaults to STRING if the symbol is not recognized.
+ */
+static enum ddog_ffe_ExpectedFlagType map_flag_type(VALUE flag_type_symbol) {
+  if (NIL_P(flag_type_symbol)) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_STRING;
+  }
+
+  ENFORCE_TYPE(flag_type_symbol, T_SYMBOL);
+  ID flag_type_id = SYM2ID(flag_type_symbol);
+
+  if (flag_type_id == rb_intern("boolean")) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_BOOLEAN;
+  } else if (flag_type_id == rb_intern("string")) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_STRING;
+  } else if (flag_type_id == rb_intern("number")) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_NUMBER;
+  } else if (flag_type_id == rb_intern("object")) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_OBJECT;
+  } else if (flag_type_id == rb_intern("integer")) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_INTEGER;
+  } else if (flag_type_id == rb_intern("float")) {
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_FLOAT;
+  } else {
+    // Default to string for unknown types
+    return DDOG_FFE_EXPECTED_FLAG_TYPE_STRING;
+  }
 }
 
 /**
@@ -182,10 +219,15 @@ static void resolution_details_free(void *ptr) {
 }
 
 
-static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE context_hash) {
+static VALUE configuration_get_assignment(int argc, VALUE *argv, VALUE self) {
+  VALUE flag_key, context_hash, flag_type;
+
+  // Parse arguments: flag_key (required), context_hash (required), flag_type (optional)
+  rb_scan_args(argc, argv, "21", &flag_key, &context_hash, &flag_type);
+
   ENFORCE_TYPED_DATA(self, &configuration_data_type);
   ENFORCE_TYPE(flag_key, T_STRING);
-  ENFORCE_TYPE(flag_key, T_HASH);
+  ENFORCE_TYPE(context_hash, T_HASH);
 
   const ddog_ffe_Handle_Configuration config =
       (ddog_ffe_Handle_Configuration)rb_check_typeddata(
@@ -193,10 +235,13 @@ static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE cont
 
   const ddog_ffe_Handle_EvaluationContext context = evaluation_context_new(context_hash);
 
+  // Map the flag type, defaulting to STRING if not provided
+  enum ddog_ffe_ExpectedFlagType expected_type = map_flag_type(flag_type);
+
   ddog_ffe_Handle_ResolutionDetails resolution_details = ddog_ffe_get_assignment(
     config,
     RSTRING_PTR(flag_key),
-    DDOG_FFE_EXPECTED_FLAG_TYPE_STRING,  // Default to string type
+    expected_type,
     context
   );
 
