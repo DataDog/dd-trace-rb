@@ -20,6 +20,13 @@ class InstrumentationSpecTestClass
     42
   end
 
+  def long_test_method
+    # This method is used to assert on @duration, and +test_method+
+    # somehow managed to report an execution time of 0.0 in CI one time
+    # (though normally it takes about 1 microsecond).
+    Object.methods.length > 0 and 42
+  end
+
   def mutating_method(greeting)
     greeting.sub!('hello', 'bye')
   end
@@ -506,7 +513,7 @@ RSpec.describe 'Instrumentation integration' do
           {
             id: '1234',
             type: 'LOG_PROBE',
-            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'long_test_method'},
             segments: segments,
           }
         end
@@ -535,7 +542,7 @@ RSpec.describe 'Instrumentation integration' do
               expect(value).to be > 0
               expect(value).to be < 1
             end
-            expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+            expect(InstrumentationSpecTestClass.new.long_test_method).to eq(42)
             component.probe_notifier_worker.flush
           end
         end
