@@ -109,13 +109,19 @@ module Datadog
           @worker&.enabled = false
         end
 
-        def start(initial_event_is_change = false)
+        def start(initial_event_is_change = false, settings:)
           return if !@enabled
 
           initial_event = if initial_event_is_change
-            Event::SynthAppClientConfigurationChange.new(agent_settings: @agent_settings)
+            Event::SynthAppClientConfigurationChange.new(
+              agent_settings: @agent_settings,
+              settings: settings,
+            )
           else
-            Event::AppStarted.new(agent_settings: @agent_settings)
+            Event::AppStarted.new(
+              agent_settings: @agent_settings,
+              settings: settings,
+            )
           end
 
           @worker.start(initial_event)

@@ -103,7 +103,7 @@ RSpec.describe 'Telemetry integration tests' do
         include_context 'disable profiling'
 
         it 'sends app-started' do
-          component.start
+          component.start(false, settings: Datadog.configuration)
 
           component.flush
           expect(sent_payloads.length).to eq 2
@@ -132,7 +132,7 @@ RSpec.describe 'Telemetry integration tests' do
 
       context 'when asked to send configuration change event' do
         it 'sends app-client-configuration-change' do
-          component.start(true)
+          component.start(true, settings: Datadog.configuration)
 
           component.flush
           expect(sent_payloads.length).to eq 1
@@ -167,7 +167,7 @@ RSpec.describe 'Telemetry integration tests' do
         end
 
         it 'sends app-dependencies-loaded event' do
-          component.start
+          component.start(false, settings: Datadog.configuration)
 
           component.flush
           expect(sent_payloads.length).to eq 2
@@ -201,7 +201,7 @@ RSpec.describe 'Telemetry integration tests' do
     describe 'error event' do
       before do
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
-        component.start
+        component.start(false, settings: Datadog.configuration)
       end
 
       it 'sends expected payload' do
@@ -241,7 +241,7 @@ RSpec.describe 'Telemetry integration tests' do
     describe 'heartbeat event' do
       before do
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
-        component.start
+        component.start(false, settings: Datadog.configuration)
       end
 
       it 'sends expected payload' do
@@ -272,7 +272,7 @@ RSpec.describe 'Telemetry integration tests' do
         settings.telemetry.debug = true
 
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
-        component.start
+        component.start(false, settings: Datadog.configuration)
       end
 
       it 'sets debug to true in payload' do
@@ -380,7 +380,7 @@ RSpec.describe 'Telemetry integration tests' do
 
       expect(component.worker.buffer.length).to eq 1
 
-      component.start
+      component.start(false, settings: Datadog.configuration)
 
       component.worker.flush
       expect(sent_payloads.length).to eq 3
@@ -461,7 +461,7 @@ RSpec.describe 'Telemetry integration tests' do
         an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
       ).ordered.and_return(ok_response)
 
-      component.start
+      component.start(false, settings: Datadog.configuration)
 
       component.worker.flush
 
