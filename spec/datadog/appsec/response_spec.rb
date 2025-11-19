@@ -89,12 +89,14 @@ RSpec.describe Datadog::AppSec::Response do
         let(:interrupt_params) do
           {
             'location' => location,
-            'status_code' => status_code
+            'status_code' => status_code,
+            'security_response_id' => security_response_id
           }
         end
 
-        let(:location) { 'foo' }
+        let(:location) { 'example.com' }
         let(:status_code) { '303' }
+        let(:security_response_id) { '73bb7b99-52f6-43ea-998c-6cbc6b80f520' }
 
         context 'status_code' do
           subject(:status) { described_class.from_interrupt_params(interrupt_params, http_accept_header).status }
@@ -117,9 +119,23 @@ RSpec.describe Datadog::AppSec::Response do
         context 'headers' do
           subject(:headers) { described_class.from_interrupt_params(interrupt_params, http_accept_header).headers }
 
-          context 'Location' do
-            it 'uses the one from the configuration' do
-              expect(headers['Location']).to eq('foo')
+          it 'sets Location header' do
+            expect(headers['Location']).to eq("example.com")
+          end
+
+          context 'when location contains security response id placeholder' do
+            let(:location) { 'example.com?security_response_id=[security_response_id]'}
+
+            it 'sets Location header with substituted security response id placeholder' do
+              expect(headers['Location']).to eq("example.com?security_response_id=#{security_response_id}")
+            end
+
+            context 'when security_response_id is missing in action params' do
+              let(:security_response_id) { nil }
+
+              it 'sets Location header without removing security response id placeholder' do
+                expect(headers['Location']).to eq('example.com?security_response_id=[security_response_id]')
+              end
             end
           end
         end
