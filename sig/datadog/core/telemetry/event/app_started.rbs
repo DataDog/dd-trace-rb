@@ -3,9 +3,7 @@ module Datadog
     module Telemetry
       module Event
         class AppStarted < Base
-          @agent_settings: Datadog::Core::Configuration::AgentSettings
-
-          def initialize: (agent_settings: Datadog::Core::Configuration::AgentSettings) -> void
+          def initialize: (components: Datadog::Core::Configuration::Components) -> void
 
           def type: () -> "app-started"
 
@@ -13,12 +11,12 @@ module Datadog
 
           private
 
-          def products: -> Hash[Symbol, Hash[Symbol, Hash[Symbol, String | Integer] | bool | nil]]
+          def products: (components: Datadog::Core::Configuration::Components) -> Hash[Symbol, Hash[Symbol, Hash[Symbol, String | Integer] | bool | nil]]
 
           TARGET_OPTIONS: Array[String]
           def configuration: -> Array[Hash[Symbol, untyped]]
 
-          def agent_transport: () -> String
+          def agent_transport: (Core::Configuration::AgentSettings agent_settings) -> String
 
           def conf_value: (String name, untyped value, Integer seq_id, String origin) -> Hash[Symbol, untyped]
 
