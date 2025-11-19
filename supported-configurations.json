@@ -6,7 +6,7 @@
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "127.0.0.1"
+        "default": "127.0.0.1"
       }
     ],
     "DD_API_KEY": [
@@ -14,7 +14,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["api_key"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_API_SECURITY_ENABLED": [
@@ -22,7 +22,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["api_security.enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED": [
@@ -30,7 +30,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["endpoint_collection.enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_API_SECURITY_REQUEST_SAMPLE_RATE": [
@@ -38,7 +38,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["api_security.sample_rate"],
-        "defaultValue": "0.1"
+        "default": "0.1"
       }
     ],
     "DD_API_SECURITY_SAMPLE_DELAY": [
@@ -46,7 +46,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["api_security.sample_delay"],
-        "defaultValue": "30"
+        "default": "30"
       }
     ],
     "DD_APM_TRACING_ENABLED": [
@@ -54,7 +54,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
@@ -62,7 +62,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["track_user_events.mode"],
-        "defaultValue": "safe"
+        "default": "safe"
       }
     ],
     "DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE": [
@@ -70,7 +70,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["auto_user_instrumentation.mode"],
-        "defaultValue": "identification"
+        "default": "identification"
       }
     ],
     "DD_APPSEC_ENABLED": [
@@ -78,7 +78,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["appsec.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML": [
@@ -86,7 +86,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["templates.html"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON": [
@@ -94,7 +94,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["templates.json"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT": [
@@ -102,7 +102,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["templates.text"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_APPSEC_MAX_STACK_TRACES": [
@@ -110,7 +110,7 @@
         "version": "A",
         "type": "int",
         "propertyKeys": ["stack_trace.max_stack_traces"],
-        "defaultValue": "2"
+        "default": "2"
       }
     ],
     "DD_APPSEC_MAX_STACK_TRACE_DEPTH": [
@@ -118,7 +118,7 @@
         "version": "A",
         "type": "int",
         "propertyKeys": ["stack_trace.max_depth"],
-        "defaultValue": "32"
+        "default": "32"
       }
     ],
     "DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT": [
@@ -126,7 +126,7 @@
         "version": "A",
         "type": "int",
         "propertyKeys": ["stack_trace.top_percentage"],
-        "defaultValue": "75"
+        "default": "75"
       }
     ],
     "DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP": [
@@ -134,7 +134,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["appsec.obfuscator_key_regex"],
-        "defaultValue": "(?i)pass|pw(?:or)?d|secret|(?:api|private|public|access)[_-]?key|token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)|bearer|authorization|jsessionid|phpsessid|asp\\.net[_-]sessionid|sid|jwt"
+        "default": "(?i)pass|pw(?:or)?d|secret|(?:api|private|public|access)[_-]?key|token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)|bearer|authorization|jsessionid|phpsessid|asp\\.net[_-]sessionid|sid|jwt"
       }
     ],
     "DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP": [
@@ -142,7 +142,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["appsec.obfuscator_value_regex"],
-        "defaultValue": "(?i)(?:p(?:ass)?w(?:or)?d|pass(?:[_-]?phrase)?|secret(?:[_-]?key)?|(?:(?:api|private|public|access)[_-]?)key(?:[_-]?id)?|(?:(?:auth|access|id|refresh)[_-]?)?token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?|jsessionid|phpsessid|asp\\.net(?:[_-]|-)sessionid|sid|jwt)(?:\\s*=[^;]|\"\\s*:\\s*\"[^\"]+\")|bearer\\s+[a-z0-9\\._\\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\\w=-]+\\.ey[I-L][\\w=-]+(?:\\.[\\w.+\\/=-]+)?|[\\-]{5}BEGIN[a-z\\s]+PRIVATE\\sKEY[\\-]{5}[^\\-]+[\\-]{5}END[a-z\\s]+PRIVATE\\sKEY|ssh-rsa\\s*[a-z0-9\\/\\.+]{100,}"
+        "default": "(?i)(?:p(?:ass)?w(?:or)?d|pass(?:[_-]?phrase)?|secret(?:[_-]?key)?|(?:(?:api|private|public|access)[_-]?)key(?:[_-]?id)?|(?:(?:auth|access|id|refresh)[_-]?)?token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?|jsessionid|phpsessid|asp\\.net(?:[_-]|-)sessionid|sid|jwt)(?:\\s*=[^;]|\"\\s*:\\s*\"[^\"]+\")|bearer\\s+[a-z0-9\\._\\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\\w=-]+\\.ey[I-L][\\w=-]+(?:\\.[\\w.+\\/=-]+)?|[\\-]{5}BEGIN[a-z\\s]+PRIVATE\\sKEY[\\-]{5}[^\\-]+[\\-]{5}END[a-z\\s]+PRIVATE\\sKEY|ssh-rsa\\s*[a-z0-9\\/\\.+]{100,}"
       }
     ],
     "DD_APPSEC_RASP_ENABLED": [
@@ -150,7 +150,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["appsec.rasp_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_APPSEC_RULES": [
@@ -166,7 +166,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["appsec.sca_enabled"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_APPSEC_STACK_TRACE_ENABLED": [
@@ -174,7 +174,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["stack_trace.enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_APPSEC_TRACE_RATE_LIMIT": [
@@ -182,7 +182,7 @@
         "version": "A",
         "type": "int",
         "propertyKeys": ["appsec.trace_rate_limit"],
-        "defaultValue": "100"
+        "default": "100"
       }
     ],
     "DD_APPSEC_WAF_DEBUG": [
@@ -190,7 +190,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["appsec.waf_debug"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_APPSEC_WAF_TIMEOUT": [
@@ -199,7 +199,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["appsec.waf_timeout"],
-        "defaultValue": "5000"
+        "default": "5000"
       }
     ],
     "DD_CRASHTRACKING_ENABLED": [
@@ -207,7 +207,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["crashtracking.enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_DATA_STREAMS_ENABLED": [
@@ -215,7 +215,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["data_streams.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_DBM_PROPAGATION_MODE": [
@@ -223,7 +223,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["comment_propagation"],
-        "defaultValue": "disabled"
+        "default": "disabled"
       }
     ],
     "DD_DISABLE_DATADOG_RAILS": [
@@ -231,7 +231,7 @@
         "version": "A",
         "type": "string",
         "aliases": ["DISABLE_DATADOG_RAILS"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_ENABLED": [
@@ -239,14 +239,14 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["dynamic_instrumentation.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS": [
@@ -254,7 +254,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["dynamic_instrumentation.redacted_identifiers"],
-        "defaultValue": ""
+        "default": ""
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES": [
@@ -262,7 +262,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["dynamic_instrumentation.redacted_type_names"],
-        "defaultValue": ""
+        "default": ""
       }
     ],
     "DD_ENV": [
@@ -270,7 +270,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["env"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
@@ -278,7 +278,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["error_tracking.handled_errors"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE": [
@@ -286,7 +286,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["error_tracking.handled_errors_include"],
-        "defaultValue": ""
+        "default": ""
       }
     ],
     "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED": [
@@ -294,7 +294,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["open_feature.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": [
@@ -309,14 +309,14 @@
       {
         "version": "A",
         "type": "string",
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_GIT_REPOSITORY_URL": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_HEALTH_METRICS_ENABLED": [
@@ -324,21 +324,21 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["health_metrics.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_INJECTION_ENABLED": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "tracer"
+        "default": "tracer"
       }
     ],
     "DD_INJECT_FORCE": [
       {
         "version": "A",
         "type": "boolean",
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_INSTRUMENTATION_INSTALL_ID": [
@@ -346,7 +346,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["telemetry.install_id"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_INSTRUMENTATION_INSTALL_TIME": [
@@ -354,7 +354,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["telemetry.install_time"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_INSTRUMENTATION_INSTALL_TYPE": [
@@ -362,7 +362,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["telemetry.install_type"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_INSTRUMENTATION_TELEMETRY_ENABLED": [
@@ -371,7 +371,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["telemetry.enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_INTEGRATION_SERVICE": [
@@ -379,7 +379,7 @@
         "version": "A",
         "type": null,
         "propertyKeys": [null],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_LOGS_INJECTION": [
@@ -387,14 +387,14 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.log_injection"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_METRIC_AGENT_PORT": [
       {
         "version": "A",
         "type": "int",
-        "defaultValue": "8125"
+        "default": "8125"
       }
     ],
     "DD_PROFILING_ALLOCATION_ENABLED": [
@@ -402,7 +402,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["profiling.allocation_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED": [
@@ -410,7 +410,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.dir_interruption_workaround_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_PROFILING_ENABLED": [
@@ -418,7 +418,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["profiling.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_PROFILING_ENDPOINT_COLLECTION_ENABLED": [
@@ -426,7 +426,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["collection.enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": [
@@ -434,7 +434,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.experimental_heap_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE": [
@@ -442,7 +442,7 @@
         "version": "A",
         "type": "int",
         "propertyKeys": ["advanced.experimental_heap_sample_rate"],
-        "defaultValue": "1"
+        "default": "1"
       }
     ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED": [
@@ -450,7 +450,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.experimental_heap_size_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_PROFILING_GC_ENABLED": [
@@ -458,7 +458,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.gc_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_PROFILING_GVL_ENABLED": [
@@ -466,7 +466,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.gvl_enabled"],
-        "defaultValue": "true",
+        "default": "true",
         "aliases": ["DD_PROFILING_PREVIEW_GVL_ENABLED"]
       }
     ],
@@ -475,7 +475,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.heap_clean_after_gc_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_PROFILING_MAX_FRAMES": [
@@ -483,7 +483,7 @@
         "version": "A",
         "type": "int",
         "propertyKeys": ["advanced.max_frames"],
-        "defaultValue": "400"
+        "default": "400"
       }
     ],
     "DD_PROFILING_NATIVE_FILENAMES_ENABLED": [
@@ -491,7 +491,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.native_filenames_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": [
@@ -507,7 +507,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["advanced.overhead_target_percentage"],
-        "defaultValue": "2.0"
+        "default": "2.0"
       }
     ],
     "DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED": [
@@ -516,7 +516,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["advanced.preview_otel_context_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED": [
@@ -525,7 +525,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.sighandler_sampling_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_PROFILING_SKIP_MYSQL2_CHECK": [
@@ -533,7 +533,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.skip_mysql2_check"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_PROFILING_TIMELINE_ENABLED": [
@@ -541,7 +541,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["advanced.timeline_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_PROFILING_UPLOAD_PERIOD": [
@@ -549,7 +549,7 @@
         "version": "A",
         "type": "int",
         "propertyKeys": ["advanced.upload_period_seconds"],
-        "defaultValue": "60"
+        "default": "60"
       }
     ],
     "DD_PROFILING_UPLOAD_TIMEOUT": [
@@ -557,7 +557,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["upload.timeout_seconds"],
-        "defaultValue": "30.0"
+        "default": "30.0"
       }
     ],
     "DD_REDIS_COMMAND_ARGS": [
@@ -565,7 +565,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["command_args"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_REMOTE_CONFIGURATION_ENABLED": [
@@ -574,7 +574,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["remote.enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_REMOTE_CONFIG_BOOT_TIMEOUT_SECONDS": [
@@ -582,7 +582,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["remote.boot_timeout_seconds"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_REMOTE_CONFIG_POLL_INTERVAL_SECONDS": [
@@ -590,7 +590,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["remote.poll_interval_seconds"],
-        "defaultValue": "5.0"
+        "default": "5.0"
       }
     ],
     "DD_RODA_ANALYTICS_ENABLED": [
@@ -598,7 +598,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_RODA_ANALYTICS_SAMPLE_RATE": [
@@ -606,7 +606,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_RUNTIME_METRICS_ENABLED": [
@@ -614,7 +614,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["runtime_metrics.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED": [
@@ -622,7 +622,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["runtime_metrics.experimental_runtime_id_enabled"],
-        "defaultValue": "false",
+        "default": "false",
         "aliases": ["DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED"]
       }
     ],
@@ -631,7 +631,7 @@
         "version": "B",
         "type": "string",
         "propertyKeys": ["service"],
-        "defaultValue": "ruby",
+        "default": "ruby",
         "aliases": ["OTEL_SERVICE_NAME"]
       }
     ],
@@ -640,21 +640,21 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["site"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_SPAN_SAMPLING_RULES": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_SPAN_SAMPLING_RULES_FILE": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TAGS": [
@@ -663,7 +663,7 @@
         "type": "map",
         "propertyKeys": ["tags"],
         "aliases": ["OTEL_RESOURCE_ATTRIBUTES"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TELEMETRY_AGENTLESS_URL": [
@@ -671,7 +671,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["telemetry.agentless_url_override"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED": [
@@ -679,7 +679,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["telemetry.dependency_collection"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TELEMETRY_HEARTBEAT_INTERVAL": [
@@ -687,7 +687,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["telemetry.heartbeat_interval_seconds"],
-        "defaultValue": "60.0"
+        "default": "60.0"
       }
     ],
     "DD_TELEMETRY_LOG_COLLECTION_ENABLED": [
@@ -695,7 +695,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["telemetry.log_collection_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL": [
@@ -703,7 +703,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["telemetry.metrics_aggregation_interval_seconds"],
-        "defaultValue": "10.0"
+        "default": "10.0"
       }
     ],
     "DD_TELEMETRY_METRICS_ENABLED": [
@@ -711,7 +711,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["telemetry.metrics_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED": [
@@ -719,7 +719,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.trace_id_128_bit_generation_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED": [
@@ -727,7 +727,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.trace_id_128_bit_logging_enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED": [
@@ -735,7 +735,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE": [
@@ -743,7 +743,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ACTION_CABLE_ENABLED": [
@@ -751,7 +751,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ACTION_MAILER_ANALYTICS_ENABLED": [
@@ -759,7 +759,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE": [
@@ -767,7 +767,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ACTION_MAILER_ENABLED": [
@@ -775,7 +775,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ACTION_PACK_ANALYTICS_ENABLED": [
@@ -783,7 +783,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE": [
@@ -791,7 +791,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ACTION_PACK_ENABLED": [
@@ -799,7 +799,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED": [
@@ -807,7 +807,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE": [
@@ -815,7 +815,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ACTION_VIEW_ENABLED": [
@@ -823,7 +823,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ACTIVE_JOB_ANALYTICS_ENABLED": [
@@ -831,7 +831,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_ACTIVE_JOB_ANALYTICS_SAMPLE_RATE": [
@@ -839,7 +839,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ACTIVE_JOB_ENABLED": [
@@ -847,7 +847,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_ENABLED": [
@@ -855,7 +855,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_SAMPLE_RATE": [
@@ -863,7 +863,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ENABLED": [
@@ -871,7 +871,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ACTIVE_RECORD_ANALYTICS_ENABLED": [
@@ -879,7 +879,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_ACTIVE_RECORD_ANALYTICS_SAMPLE_RATE": [
@@ -887,7 +887,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ACTIVE_RECORD_ENABLED": [
@@ -895,7 +895,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED": [
@@ -903,7 +903,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_SAMPLE_RATE": [
@@ -911,7 +911,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ACTIVE_SUPPORT_ENABLED": [
@@ -919,28 +919,28 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_AGENT_PORT": [
       {
         "version": "A",
         "type": "int",
-        "defaultValue": "8126"
+        "default": "8126"
       }
     ],
     "DD_TRACE_AGENT_TIMEOUT_SECONDS": [
       {
         "version": "A",
         "type": "int",
-        "defaultValue": "30"
+        "default": "30"
       }
     ],
     "DD_TRACE_AGENT_URL": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_ANALYTICS_ENABLED": [
@@ -948,7 +948,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics.enabled"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_AWS_ANALYTICS_ENABLED": [
@@ -956,7 +956,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_AWS_ANALYTICS_SAMPLE_RATE": [
@@ -964,7 +964,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_AWS_ENABLED": [
@@ -972,7 +972,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_AWS_PEER_SERVICE": [
@@ -980,14 +980,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_AWS_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "aws"
+        "default": "aws"
       }
     ],
     "DD_TRACE_BAGGAGE_TAG_KEYS": [
@@ -995,7 +995,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["tracing.baggage_tag_keys"],
-        "defaultValue": "user.id, session.id, account.id"
+        "default": "user.id, session.id, account.id"
       }
     ],
     "DD_TRACE_CLIENT_IP_ENABLED": [
@@ -1003,7 +1003,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["client_ip.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_CLIENT_IP_HEADER": [
@@ -1011,7 +1011,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["client_ip.header_name"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_CONCURRENT_RUBY_ENABLED": [
@@ -1019,7 +1019,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_DALLI_ANALYTICS_ENABLED": [
@@ -1027,7 +1027,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_DALLI_ANALYTICS_SAMPLE_RATE": [
@@ -1035,7 +1035,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_DALLI_ENABLED": [
@@ -1043,7 +1043,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_DALLI_PEER_SERVICE": [
@@ -1051,14 +1051,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_DALLI_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "memcached"
+        "default": "memcached"
       }
     ],
     "DD_TRACE_DEBUG": [
@@ -1066,7 +1066,7 @@
         "version": "B",
         "type": "boolean",
         "propertyKeys": ["internal.trace_logging"],
-        "defaultValue": "false",
+        "default": "false",
         "aliases": ["OTEL_LOG_LEVEL"]
       }
     ],
@@ -1075,7 +1075,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_DELAYED_JOB_ANALYTICS_SAMPLE_RATE": [
@@ -1083,7 +1083,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_DELAYED_JOB_ENABLED": [
@@ -1091,7 +1091,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ELASTICSEARCH_ANALYTICS_ENABLED": [
@@ -1099,7 +1099,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_ELASTICSEARCH_ANALYTICS_SAMPLE_RATE": [
@@ -1107,7 +1107,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ELASTICSEARCH_ENABLED": [
@@ -1115,7 +1115,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ELASTICSEARCH_PEER_SERVICE": [
@@ -1123,14 +1123,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_ELASTICSEARCH_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "elasticsearch"
+        "default": "elasticsearch"
       }
     ],
     "DD_TRACE_ENABLED": [
@@ -1138,7 +1138,7 @@
         "version": "B",
         "type": "boolean",
         "propertyKeys": ["tracing.enabled"],
-        "defaultValue": "true",
+        "default": "true",
         "aliases": ["OTEL_TRACES_EXPORTER"]
       }
     ],
@@ -1147,7 +1147,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_ETHON_ANALYTICS_SAMPLE_RATE": [
@@ -1155,7 +1155,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_ETHON_ENABLED": [
@@ -1163,7 +1163,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_ETHON_PEER_SERVICE": [
@@ -1171,14 +1171,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_ETHON_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "ethon"
+        "default": "ethon"
       }
     ],
     "DD_TRACE_EXCON_ANALYTICS_ENABLED": [
@@ -1186,7 +1186,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_EXCON_ANALYTICS_SAMPLE_RATE": [
@@ -1194,7 +1194,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_EXCON_ENABLED": [
@@ -1202,7 +1202,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_EXCON_ERROR_STATUS_CODES": [
@@ -1210,7 +1210,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": "400-599"
+        "default": "400-599"
       }
     ],
     "DD_TRACE_EXCON_PEER_SERVICE": [
@@ -1218,14 +1218,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_EXCON_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "excon"
+        "default": "excon"
       }
     ],
     "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED": [
@@ -1233,7 +1233,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["runtime_metrics.experimental_runtime_id_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_FARADAY_ANALYTICS_ENABLED": [
@@ -1241,7 +1241,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_FARADAY_ANALYTICS_SAMPLE_RATE": [
@@ -1249,7 +1249,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_FARADAY_ENABLED": [
@@ -1257,7 +1257,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_FARADAY_ERROR_STATUS_CODES": [
@@ -1265,7 +1265,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": "400-599"
+        "default": "400-599"
       }
     ],
     "DD_TRACE_FARADAY_PEER_SERVICE": [
@@ -1273,14 +1273,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_FARADAY_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "faraday"
+        "default": "faraday"
       }
     ],
     "DD_TRACE_GRAPE_ANALYTICS_ENABLED": [
@@ -1288,7 +1288,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_GRAPE_ANALYTICS_SAMPLE_RATE": [
@@ -1296,7 +1296,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_GRAPE_ENABLED": [
@@ -1304,7 +1304,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_GRAPE_ERROR_STATUS_CODES": [
@@ -1312,7 +1312,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": "500-599"
+        "default": "500-599"
       }
     ],
     "DD_TRACE_GRAPHQL_ANALYTICS_ENABLED": [
@@ -1320,7 +1320,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE": [
@@ -1328,7 +1328,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_GRAPHQL_ENABLED": [
@@ -1336,7 +1336,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_GRAPHQL_ERROR_EXTENSIONS": [
@@ -1344,7 +1344,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["error_extensions"],
-        "defaultValue": ""
+        "default": ""
       }
     ],
     "DD_TRACE_GRAPHQL_ERROR_TRACKING": [
@@ -1352,7 +1352,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["error_tracking"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER": [
@@ -1360,7 +1360,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["with_unified_tracer"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_GRPC_ANALYTICS_ENABLED": [
@@ -1368,7 +1368,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE": [
@@ -1376,7 +1376,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_GRPC_ENABLED": [
@@ -1384,7 +1384,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_GRPC_PEER_SERVICE": [
@@ -1392,14 +1392,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_GRPC_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "grpc"
+        "default": "grpc"
       }
     ],
     "DD_TRACE_HANAMI_ENABLED": [
@@ -1407,7 +1407,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_HEADER_TAGS": [
@@ -1415,7 +1415,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["tracing.header_tags"],
-        "defaultValue": ""
+        "default": ""
       }
     ],
     "DD_TRACE_HTTPCLIENT_ANALYTICS_ENABLED": [
@@ -1423,7 +1423,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_HTTPCLIENT_ANALYTICS_SAMPLE_RATE": [
@@ -1431,7 +1431,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_HTTPCLIENT_ENABLED": [
@@ -1439,7 +1439,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES": [
@@ -1447,7 +1447,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": "400-599"
+        "default": "400-599"
       }
     ],
     "DD_TRACE_HTTPCLIENT_PEER_SERVICE": [
@@ -1455,14 +1455,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_HTTPCLIENT_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "httpclient"
+        "default": "httpclient"
       }
     ],
     "DD_TRACE_HTTPRB_ANALYTICS_ENABLED": [
@@ -1470,7 +1470,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_HTTPRB_ANALYTICS_SAMPLE_RATE": [
@@ -1478,7 +1478,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_HTTPRB_ENABLED": [
@@ -1486,7 +1486,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_HTTPRB_ERROR_STATUS_CODES": [
@@ -1494,7 +1494,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": "400-599"
+        "default": "400-599"
       }
     ],
     "DD_TRACE_HTTPRB_PEER_SERVICE": [
@@ -1502,14 +1502,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_HTTPRB_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "httprb"
+        "default": "httprb"
       }
     ],
     "DD_TRACE_HTTP_ANALYTICS_ENABLED": [
@@ -1517,7 +1517,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE": [
@@ -1525,7 +1525,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_HTTP_CLIENT_ERROR_STATUSES": [
@@ -1533,7 +1533,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["http_error_statuses.client"],
-        "defaultValue": "400-499"
+        "default": "400-499"
       }
     ],
     "DD_TRACE_HTTP_ENABLED": [
@@ -1541,7 +1541,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_HTTP_ERROR_STATUS_CODES": [
@@ -1549,7 +1549,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["error_status_codes"],
-        "defaultValue": "400-599"
+        "default": "400-599"
       }
     ],
     "DD_TRACE_HTTP_SERVER_ERROR_STATUSES": [
@@ -1557,7 +1557,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["http_error_statuses.server"],
-        "defaultValue": "500-599"
+        "default": "500-599"
       }
     ],
     "DD_TRACE_KAFKA_ANALYTICS_ENABLED": [
@@ -1565,7 +1565,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_KAFKA_ANALYTICS_SAMPLE_RATE": [
@@ -1573,7 +1573,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_KAFKA_ENABLED": [
@@ -1581,7 +1581,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_KARAFKA_ENABLED": [
@@ -1589,7 +1589,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_LOGRAGE_ENABLED": [
@@ -1597,7 +1597,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_MEMCACHED_COMMAND_ENABLED": [
@@ -1605,7 +1605,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["command_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_MONGO_ANALYTICS_ENABLED": [
@@ -1613,7 +1613,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_MONGO_ANALYTICS_SAMPLE_RATE": [
@@ -1621,7 +1621,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_MONGO_ENABLED": [
@@ -1629,7 +1629,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_MONGO_JSON_COMMAND": [
@@ -1637,7 +1637,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["json_command"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_MONGO_PEER_SERVICE": [
@@ -1645,14 +1645,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_MONGO_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "mongodb"
+        "default": "mongodb"
       }
     ],
     "DD_TRACE_MYSQL2_ANALYTICS_ENABLED": [
@@ -1660,7 +1660,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_MYSQL2_ANALYTICS_SAMPLE_RATE": [
@@ -1668,7 +1668,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_MYSQL2_ENABLED": [
@@ -1676,7 +1676,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_MYSQL2_PEER_SERVICE": [
@@ -1684,14 +1684,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_MYSQL2_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "mysql2"
+        "default": "mysql2"
       }
     ],
     "DD_TRACE_NATIVE_SPAN_EVENTS": [
@@ -1699,7 +1699,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.native_span_events"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_NET_HTTP_PEER_SERVICE": [
@@ -1707,14 +1707,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_NET_HTTP_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "net/http"
+        "default": "net/http"
       }
     ],
     "DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED": [
@@ -1722,7 +1722,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE": [
@@ -1730,7 +1730,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_OPENSEARCH_ENABLED": [
@@ -1738,7 +1738,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_OPENSEARCH_PEER_SERVICE": [
@@ -1746,7 +1746,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_OPENSEARCH_RESOURCE_PATTERN": [
@@ -1754,14 +1754,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["resource_pattern"],
-        "defaultValue": "absolute"
+        "default": "absolute"
       }
     ],
     "DD_TRACE_OPENSEARCH_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "opensearch"
+        "default": "opensearch"
       }
     ],
     "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": [
@@ -1769,7 +1769,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["contrib.peer_service_defaults"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_PEER_SERVICE_MAPPING": [
@@ -1777,7 +1777,7 @@
         "version": "A",
         "type": "map",
         "propertyKeys": ["contrib.peer_service_mapping"],
-        "defaultValue": ""
+        "default": ""
       }
     ],
     "DD_TRACE_PG_ANALYTICS_ENABLED": [
@@ -1785,7 +1785,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_PG_ANALYTICS_SAMPLE_RATE": [
@@ -1793,7 +1793,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_PG_ENABLED": [
@@ -1801,7 +1801,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_PG_PEER_SERVICE": [
@@ -1809,14 +1809,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_PG_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "pg"
+        "default": "pg"
       }
     ],
     "DD_TRACE_PRESTO_ANALYTICS_ENABLED": [
@@ -1824,7 +1824,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_PRESTO_ANALYTICS_SAMPLE_RATE": [
@@ -1832,7 +1832,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_PRESTO_ENABLED": [
@@ -1840,7 +1840,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_PRESTO_PEER_SERVICE": [
@@ -1848,14 +1848,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_PRESTO_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "presto"
+        "default": "presto"
       }
     ],
     "DD_TRACE_PROPAGATION_EXTRACT_FIRST": [
@@ -1863,7 +1863,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.propagation_extract_first"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_PROPAGATION_STYLE": [
@@ -1871,7 +1871,7 @@
         "version": "B",
         "type": "array",
         "propertyKeys": ["tracing.propagation_style"],
-        "defaultValue": "",
+        "default": "",
         "aliases": ["OTEL_PROPAGATORS"]
       }
     ],
@@ -1880,7 +1880,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["tracing.propagation_style_extract"],
-        "defaultValue": "datadog, tracecontext, baggage"
+        "default": "datadog, tracecontext, baggage"
       }
     ],
     "DD_TRACE_PROPAGATION_STYLE_INJECT": [
@@ -1888,7 +1888,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["tracing.propagation_style_inject"],
-        "defaultValue": "datadog, tracecontext, baggage"
+        "default": "datadog, tracecontext, baggage"
       }
     ],
     "DD_TRACE_QUE_ANALYTICS_ENABLED": [
@@ -1896,7 +1896,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE": [
@@ -1904,7 +1904,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_QUE_ENABLED": [
@@ -1912,7 +1912,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_QUE_TAG_ARGS_ENABLED": [
@@ -1920,7 +1920,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tag_args"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_QUE_TAG_DATA_ENABLED": [
@@ -1928,7 +1928,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tag_data"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_RACECAR_ANALYTICS_ENABLED": [
@@ -1936,7 +1936,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_RACECAR_ANALYTICS_SAMPLE_RATE": [
@@ -1944,7 +1944,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_RACECAR_ENABLED": [
@@ -1952,7 +1952,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_RACK_ANALYTICS_ENABLED": [
@@ -1960,7 +1960,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_RACK_ANALYTICS_SAMPLE_RATE": [
@@ -1968,7 +1968,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_RACK_ENABLED": [
@@ -1976,7 +1976,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_RAILS_ANALYTICS_ENABLED": [
@@ -1984,7 +1984,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_RAILS_ANALYTICS_SAMPLE_RATE": [
@@ -1992,7 +1992,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_RAILS_ENABLED": [
@@ -2000,7 +2000,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_RAKE_ANALYTICS_ENABLED": [
@@ -2008,7 +2008,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_RAKE_ANALYTICS_SAMPLE_RATE": [
@@ -2016,7 +2016,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_RAKE_ENABLED": [
@@ -2024,7 +2024,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_RATE_LIMIT": [
@@ -2032,7 +2032,7 @@
         "version": "A",
         "type": "int",
         "propertyKeys": ["sampling.rate_limit"],
-        "defaultValue": "100"
+        "default": "100"
       }
     ],
     "DD_TRACE_REDIS_ANALYTICS_ENABLED": [
@@ -2040,7 +2040,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_REDIS_ANALYTICS_SAMPLE_RATE": [
@@ -2048,7 +2048,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_REDIS_ENABLED": [
@@ -2056,7 +2056,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_REDIS_PEER_SERVICE": [
@@ -2064,14 +2064,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_REDIS_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "redis"
+        "default": "redis"
       }
     ],
     "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED": [
@@ -2079,7 +2079,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["global_default_service_name.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_REPORT_HOSTNAME": [
@@ -2087,7 +2087,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.report_hostname"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT": [
@@ -2095,7 +2095,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["resource_renaming.always_simplified_endpoint"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_RESOURCE_RENAMING_ENABLED": [
@@ -2103,7 +2103,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["resource_renaming.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_RESQUE_ANALYTICS_ENABLED": [
@@ -2111,7 +2111,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_RESQUE_ANALYTICS_SAMPLE_RATE": [
@@ -2119,7 +2119,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_RESQUE_ENABLED": [
@@ -2127,7 +2127,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_REST_CLIENT_ANALYTICS_ENABLED": [
@@ -2135,7 +2135,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_REST_CLIENT_ANALYTICS_SAMPLE_RATE": [
@@ -2143,7 +2143,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_REST_CLIENT_ENABLED": [
@@ -2151,7 +2151,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_REST_CLIENT_PEER_SERVICE": [
@@ -2159,14 +2159,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_REST_CLIENT_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "rest_client"
+        "default": "rest_client"
       }
     ],
     "DD_TRACE_RODA_ENABLED": [
@@ -2174,7 +2174,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_SAMPLE_RATE": [
@@ -2183,7 +2183,7 @@
         "type": "float",
         "propertyKeys": ["sampling.default_rate"],
         "aliases": ["OTEL_TRACES_SAMPLER"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_SAMPLING_RULES": [
@@ -2191,7 +2191,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["sampling.rules"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_SEMANTIC_LOGGER_ENABLED": [
@@ -2199,7 +2199,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_SEQUEL_ANALYTICS_ENABLED": [
@@ -2207,7 +2207,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_SEQUEL_ANALYTICS_SAMPLE_RATE": [
@@ -2215,7 +2215,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_SEQUEL_ENABLED": [
@@ -2223,7 +2223,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_SHORYUKEN_ANALYTICS_ENABLED": [
@@ -2231,7 +2231,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_SHORYUKEN_ANALYTICS_SAMPLE_RATE": [
@@ -2239,7 +2239,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_SHORYUKEN_ENABLED": [
@@ -2247,7 +2247,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED": [
@@ -2255,7 +2255,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE": [
@@ -2263,7 +2263,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_SIDEKIQ_ENABLED": [
@@ -2271,7 +2271,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_SINATRA_ANALYTICS_ENABLED": [
@@ -2279,7 +2279,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_SINATRA_ANALYTICS_SAMPLE_RATE": [
@@ -2287,7 +2287,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_SINATRA_ENABLED": [
@@ -2295,7 +2295,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_SNEAKERS_ANALYTICS_ENABLED": [
@@ -2303,7 +2303,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_SNEAKERS_ANALYTICS_SAMPLE_RATE": [
@@ -2311,7 +2311,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_SNEAKERS_ENABLED": [
@@ -2319,7 +2319,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_STARTUP_LOGS": [
@@ -2327,7 +2327,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["startup_logs.enabled"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_STRIPE_ANALYTICS_ENABLED": [
@@ -2335,7 +2335,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_STRIPE_ANALYTICS_SAMPLE_RATE": [
@@ -2343,7 +2343,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_STRIPE_ENABLED": [
@@ -2351,7 +2351,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_SUCKER_PUNCH_ANALYTICS_ENABLED": [
@@ -2359,7 +2359,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE": [
@@ -2367,7 +2367,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_SUCKER_PUNCH_ENABLED": [
@@ -2375,7 +2375,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_TEST_MODE_ENABLED": [
@@ -2383,7 +2383,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["test_mode.enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_TRILOGY_ANALYTICS_ENABLED": [
@@ -2391,7 +2391,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["analytics_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_TRACE_TRILOGY_ANALYTICS_SAMPLE_RATE": [
@@ -2399,7 +2399,7 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["analytics_sample_rate"],
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ],
     "DD_TRACE_TRILOGY_ENABLED": [
@@ -2407,7 +2407,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_TRILOGY_PEER_SERVICE": [
@@ -2415,14 +2415,14 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["peer_service"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "DD_TRACE_TRILOGY_SERVICE_NAME": [
       {
         "version": "A",
         "type": "string",
-        "defaultValue": "trilogy"
+        "default": "trilogy"
       }
     ],
     "DD_TRACE_WATERDROP_ENABLED": [
@@ -2430,7 +2430,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH": [
@@ -2438,7 +2438,7 @@
         "version": "A",
         "type": "int",
         "propertyKeys": ["tracing.x_datadog_tags_max_length"],
-        "defaultValue": "512"
+        "default": "512"
       }
     ],
     "DD_VERSION": [
@@ -2446,7 +2446,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["version"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "OTEL_LOG_LEVEL": [
@@ -2454,7 +2454,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["internal.trace_logging"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "OTEL_PROPAGATORS": [
@@ -2462,7 +2462,7 @@
         "version": "A",
         "type": "array",
         "propertyKeys": ["tracing.propagation_style"],
-        "defaultValue": ""
+        "default": ""
       }
     ],
     "OTEL_RESOURCE_ATTRIBUTES": [
@@ -2477,7 +2477,7 @@
         "version": "A",
         "type": "string",
         "propertyKeys": ["service"],
-        "defaultValue": "ruby"
+        "default": "ruby"
       }
     ],
     "OTEL_TRACES_EXPORTER": [
@@ -2485,7 +2485,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["tracing.enabled"],
-        "defaultValue": "true"
+        "default": "true"
       }
     ],
     "OTEL_TRACES_SAMPLER": [
@@ -2493,14 +2493,14 @@
         "version": "A",
         "type": "float",
         "propertyKeys": ["sampling.default_rate"],
-        "defaultValue": null
+        "default": null
       }
     ],
     "OTEL_TRACES_SAMPLER_ARG": [
       {
         "version": "A",
         "type": "float",
-        "defaultValue": "1.0"
+        "default": "1.0"
       }
     ]
   }
