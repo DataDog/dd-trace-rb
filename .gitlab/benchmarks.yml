@@ -15,7 +15,9 @@ variables:
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
       when: always
+      interruptible: false
     - when: manual
+      interruptible: true
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
