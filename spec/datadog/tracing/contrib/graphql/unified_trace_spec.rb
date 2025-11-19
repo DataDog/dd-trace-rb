@@ -1,9 +1,16 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/graphql/unified_trace'
+require 'graphql'
 
-RSpec.describe Datadog::Tracing::Contrib::GraphQL::UnifiedTrace do
+RSpec.describe "Datadog::Tracing::Contrib::GraphQL::UnifiedTrace" do
+  before do
+    skip 'UnifiedTrace is only supported in GraphQL 2.0.19 and above' if Gem::Version.new(::GraphQL::VERSION) < Gem::Version.new('2.0.19')
+    require 'datadog/tracing/contrib/graphql/unified_trace'
+  end
+
+  let(:described_class) { Datadog::Tracing::Contrib::GraphQL::UnifiedTrace }
+
   describe '.serialize_error_locations' do
     subject(:result) { described_class.serialize_error_locations(locations) }
 
