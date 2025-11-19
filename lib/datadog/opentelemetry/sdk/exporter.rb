@@ -11,7 +11,7 @@ module Datadog
         METRIC_EXPORT_FAILURES = 'otel.metrics_export_failures'
 
         def initialize(endpoint:, timeout:, headers:, protocol:)
-          super
+          super(endpoint: endpoint, timeout: timeout, headers: headers)
           @telemetry_tags = {'protocol' => protocol, 'encoding' => 'protobuf'}
         end
 

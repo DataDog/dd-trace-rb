@@ -9,10 +9,10 @@ require 'datadog/core/configuration/settings'
 require 'net/http'
 require 'json'
 
+DEFAULT_OTLP_HTTP_PORT = 4318
+
 RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   include NetworkHelpers
-
-  DEFAULT_OTLP_HTTP_PORT = 4318
 
   before do
     Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
@@ -41,23 +41,23 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
 
   def get_testagent_metrics(max_retries: 5, wait_time: 0.2)
     uri = URI("http://#{agent_host}:#{DEFAULT_OTLP_HTTP_PORT}/test/session/metrics")
-    
+
     max_retries.times do
       response = Net::HTTP.get_response(uri)
       next unless response.code == '200'
-      
+
       parsed = JSON.parse(response.body, symbolize_names: false)
       return parsed if parsed.is_a?(Array) && !parsed.empty?
-      
+
       if parsed.is_a?(Hash)
         metrics_array = parsed['metrics']
         return metrics_array if metrics_array.is_a?(Array) && !metrics_array.empty?
         return [parsed]
       end
-      
+
       sleep(wait_time)
     end
-    
+
     []
   rescue
     []
@@ -96,7 +96,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
 
   def flush_and_wait(provider)
     return unless provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
-    
+
     reader = provider.metric_readers.first
     reader.force_flush if reader&.respond_to?(:force_flush)
     provider.force_flush
@@ -118,7 +118,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       provider = ::OpenTelemetry.meter_provider
       provider.meter('app').create_histogram('duration').record(100)
       flush_and_wait(provider)
-      
+
       metric = find_metric_in_json(get_testagent_metrics, 'duration')
       expect(metric['histogram']['data_points'].first['sum']).to eq(100.0)
     end
@@ -127,7 +127,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       setup_metrics('OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE' => 'cumulative')
       provider = ::OpenTelemetry.meter_provider
       gauge = provider.meter('app').create_gauge('temperature')
-      
+
       gauge.record(72)
       flush_and_wait(provider)
       gauge.record(72)
@@ -143,7 +143,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       provider = ::OpenTelemetry.meter_provider
       provider.meter('app').create_up_down_counter('queue').add(10)
       flush_and_wait(provider)
-      
+
       metric = find_metric_in_json(get_testagent_metrics, 'queue')
       expect(metric['sum']['data_points'].first['as_int'].to_i).to eq(10)
     end
@@ -156,15 +156,15 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       meter.create_counter('requests.monkey').add(10)
       meter.create_gauge('memory').record(100)
       flush_and_wait(provider)
-      
+
       metrics = get_testagent_metrics
-      
+
       size_metric = find_metric_in_json(metrics, 'size')
       expect(size_metric['histogram']['data_points'].first['sum']).to eq(100.0)
 
       requests_metric = find_metric_in_json(metrics, 'requests.monkey')
       expect(requests_metric['sum']['data_points'].first['as_int'].to_i).to eq(10)
-      
+
       memory_metric = find_metric_in_json(metrics, 'memory')
       if memory_metric
         gauge_value = memory_metric['gauge']['data_points'].first['as_int']&.to_i
@@ -181,7 +181,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
         'DD_ENV' => 'production',
         'DD_TRACE_REPORT_HOSTNAME' => 'true',
       )
-      
+
       provider = ::OpenTelemetry.meter_provider
       attributes = provider.instance_variable_get(:@resource).attribute_enumerator.to_h
       expect(attributes['service.name']).to eq('custom-service')
@@ -195,7 +195,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
         c.service = 'test-service'
         c.version = '1.0.0'
         c.env = 'test'
-        c.tags = { 'team' => 'backend', 'region' => 'us-east-1', 'host.name' => 'myhost' }
+        c.tags = {'team' => 'backend', 'region' => 'us-east-1', 'host.name' => 'myhost'}
         c.tracing.report_hostname = true
       end
 
@@ -219,7 +219,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       provider = ::OpenTelemetry.meter_provider
       reader = provider.metric_readers.first
       exporter = reader.instance_variable_get(:@exporter)
-      
+
       expect(exporter.instance_variable_get(:@uri).to_s).to eq("http://#{agent_host}:4318/v1/metrics")
       expect(exporter.instance_variable_get(:@timeout)).to eq(10.0)
       expect(reader.instance_variable_get(:@export_interval)).to eq(10.0)
@@ -244,7 +244,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       provider = ::OpenTelemetry.meter_provider
       reader = provider.metric_readers.first
       exporter = reader.instance_variable_get(:@exporter)
-      
+
       expect(exporter.instance_variable_get(:@uri).to_s).to eq('http://metrics:4318/v1/metrics')
       expect(exporter.instance_variable_get(:@timeout)).to eq(5.0)
       expect(reader.instance_variable_get(:@export_interval)).to eq(4.0)
@@ -262,7 +262,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       provider = ::OpenTelemetry.meter_provider
       reader = provider.metric_readers.first
       exporter = reader.instance_variable_get(:@exporter)
-      
+
       expect(exporter.instance_variable_get(:@uri).to_s).to eq('http://general:4317/v1/metrics')
       expect(exporter.instance_variable_get(:@timeout)).to eq(8.0)
       expect(exporter.instance_variable_get(:@headers)['general']).to eq('value')
@@ -273,7 +273,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       provider = ::OpenTelemetry.meter_provider
       exporter = provider.metric_readers.first.instance_variable_get(:@exporter)
       expect(exporter).to be_a(::OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter)
-      
+
       provider.meter('app').create_counter('test').add(1)
       flush_and_wait(provider)
       metric = find_metric_in_json(get_testagent_metrics, 'test')
@@ -302,13 +302,13 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       setup_metrics
       provider = ::OpenTelemetry.meter_provider
       counter = provider.meter('app').create_counter('api')
-      counter.add(10, attributes: { 'method' => 'GET' })
-      counter.add(5, attributes: { 'method' => 'POST' })
+      counter.add(10, attributes: {'method' => 'GET'})
+      counter.add(5, attributes: {'method' => 'POST'})
       flush_and_wait(provider)
-      
+
       metric = find_metric_in_json(get_testagent_metrics, 'api')
       data_points = metric['sum']['data_points']
-      
+
       get_point = data_points.find { |dp| find_attribute_by_key(dp['attributes'], 'method') == 'GET' }
       post_point = data_points.find { |dp| find_attribute_by_key(dp['attributes'], 'method') == 'POST' }
       expect(get_point['as_int'].to_i).to eq(10)
