@@ -28,10 +28,10 @@ module Datadog
         transformed_value.strip!
         return "" if transformed_value.empty?
 
-        return transformed_value if transformed_value.bytesize <= MAX_CHARACTER_LENGTH &&
+        return transformed_value if transformed_value.bytesize <= MAX_BYTE_SIZE &&
           transformed_value.match?(VALID_ASCII_TAG)
 
-        if transformed_value.ascii_only? && transformed_value.length <= MAX_CHARACTER_LENGTH
+        if transformed_value.ascii_only? && transformed_value.length <= MAX_BYTE_SIZE
           normalized_value = transformed_value
         else
           byte_position = 0
@@ -40,8 +40,8 @@ module Datadog
 
           transformed_value.each_char do |char|
             byte_width = char.bytesize
-            break if byte_position + byte_width > MAX_BYTE_LENGTH
-            break if character_count >= MAX_CHARACTER_LENGTH
+            break if byte_position + byte_width > MAX_BYTE_SIZE
+            break if character_count >= MAX_BYTE_SIZE
 
             normalized_value << char
             byte_position += byte_width
