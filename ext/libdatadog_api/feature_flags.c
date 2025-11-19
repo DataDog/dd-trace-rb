@@ -88,6 +88,75 @@ static void configuration_free(void *ptr) {
 }
 
 /**
+ * Context builder structure for hash iteration callback
+ */
+struct hash_iteration_context {
+  ddog_ffe_AttributePair *attrs;
+  VALUE *key_refs;
+  VALUE *string_value_refs;
+  long attr_count;
+  long max_attr_count;
+  const char *targeting_key;
+  VALUE targeting_key_value;
+};
+
+/**
+ * Hash iteration callback for building attribute pairs
+ */
+static int build_attributes_callback(VALUE key, VALUE value, VALUE context_ptr) {
+  struct hash_iteration_context *ctx = (struct hash_iteration_context *)context_ptr;
+
+  Check_Type(key, T_STRING);
+
+  const char *name = RSTRING_PTR(key);
+  if (strcmp(name, "targeting_key") == 0 && TYPE(value) == T_STRING) {
+    ctx->targeting_key_value = value; // Keep reference for GC safety
+    ctx->targeting_key = RSTRING_PTR(ctx->targeting_key_value);
+    return ST_CONTINUE;
+  }
+
+  // Prevent buffer overflow
+  if (ctx->attr_count >= ctx->max_attr_count) {
+    return ST_CONTINUE;
+  }
+
+  // Store key reference for GC safety
+  ctx->key_refs[ctx->attr_count] = key;
+  ctx->attrs[ctx->attr_count].name = RSTRING_PTR(key);
+
+  // Set the value based on its Ruby type
+  switch (TYPE(value)) {
+    case T_STRING:
+      ctx->string_value_refs[ctx->attr_count] = value; // Keep reference for GC safety
+      ctx->attrs[ctx->attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
+      ctx->attrs[ctx->attr_count].value.string = RSTRING_PTR(value);
+      break;
+    case T_FIXNUM:
+    case T_FLOAT:
+      ctx->attrs[ctx->attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_NUMBER;
+      ctx->attrs[ctx->attr_count].value.number = NUM2DBL(value);
+      break;
+    case T_TRUE:
+      ctx->attrs[ctx->attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
+      ctx->attrs[ctx->attr_count].value.boolean = true;
+      break;
+    case T_FALSE:
+      ctx->attrs[ctx->attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
+      ctx->attrs[ctx->attr_count].value.boolean = false;
+      break;
+    default:
+      // Default to string representation
+      ctx->string_value_refs[ctx->attr_count] = rb_funcall(value, rb_intern("to_s"), 0);
+      ctx->attrs[ctx->attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
+      ctx->attrs[ctx->attr_count].value.string = RSTRING_PTR(ctx->string_value_refs[ctx->attr_count]);
+      break;
+  }
+
+  ctx->attr_count++;
+  return ST_CONTINUE;
+}
+
+/**
  * Allocates new context from Ruby Hash.
  *
  * # Ownership
@@ -97,11 +166,6 @@ static void configuration_free(void *ptr) {
 static ddog_ffe_Handle_EvaluationContext evaluation_context_new(VALUE hash) {
   ENFORCE_TYPE(hash, T_HASH);
 
-  // We're sorting out unified hash object into targeting_key and
-  // other attributes.
-  const char *targeting_key = NULL;
-  VALUE targeting_key_value = Qnil; // Keep reference for GC safety
-
   const long max_attr_count = RHASH_SIZE(hash);
   ddog_ffe_AttributePair *const attrs =
       ruby_xcalloc(max_attr_count, sizeof(struct ddog_ffe_AttributePair));
@@ -110,62 +174,24 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_new(VALUE hash) {
   VALUE *key_refs = ruby_xcalloc(max_attr_count, sizeof(VALUE));
   VALUE *string_value_refs = ruby_xcalloc(max_attr_count, sizeof(VALUE));
 
-  // Convert hash to attribute pairs
-  const VALUE keys = rb_funcall(hash, rb_intern("keys"), 0);
-  // Number of currently filled attributes.
-  long attr_count = 0;
-  for (long i = 0; i < max_attr_count; i++) {
-    const VALUE key = rb_ary_entry(keys, i);
-    const VALUE value = rb_hash_aref(hash, key);
+  // Initialize context for hash iteration
+  struct hash_iteration_context ctx = {
+    .attrs = attrs,
+    .key_refs = key_refs,
+    .string_value_refs = string_value_refs,
+    .attr_count = 0,
+    .max_attr_count = max_attr_count,
+    .targeting_key = NULL,
+    .targeting_key_value = Qnil
+  };
 
-    Check_Type(key, T_STRING);
-
-    const char *name = RSTRING_PTR(key);
-    if (strcmp(name, "targeting_key") == 0 && TYPE(value) == T_STRING) {
-      targeting_key_value = value; // Keep reference for GC safety
-      targeting_key = RSTRING_PTR(targeting_key_value);
-      continue;
-    }
-
-    // Store key reference for GC safety
-    key_refs[attr_count] = key;
-    attrs[attr_count].name = RSTRING_PTR(key);
-
-    // Set the value based on its Ruby type
-    switch (TYPE(value)) {
-      case T_STRING:
-        string_value_refs[attr_count] = value; // Keep reference for GC safety
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
-        attrs[attr_count].value.string = RSTRING_PTR(value);
-        break;
-      case T_FIXNUM:
-      case T_FLOAT:
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_NUMBER;
-        attrs[attr_count].value.number = NUM2DBL(value);
-        break;
-      case T_TRUE:
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
-        attrs[attr_count].value.boolean = true;
-        break;
-      case T_FALSE:
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
-        attrs[attr_count].value.boolean = false;
-        break;
-      default:
-        // Default to string representation
-        string_value_refs[attr_count] = rb_funcall(value, rb_intern("to_s"), 0);
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
-        attrs[attr_count].value.string = RSTRING_PTR(string_value_refs[attr_count]);
-        break;
-    }
-
-    attr_count += 1;
-  }
+  // Iterate through hash using efficient rb_hash_foreach
+  rb_hash_foreach(hash, build_attributes_callback, (VALUE)&ctx);
 
   const ddog_ffe_Handle_EvaluationContext context = ddog_ffe_evaluation_context_new(
-    targeting_key,
+    ctx.targeting_key,
     attrs,
-    attr_count
+    ctx.attr_count
   );
 
   // Clean up temporary arrays (strings are safe to release now that context is created)
@@ -175,8 +201,7 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_new(VALUE hash) {
 
   // Ensure GC safety for all referenced strings during the FFI call
   RB_GC_GUARD(hash);
-  RB_GC_GUARD(keys);
-  RB_GC_GUARD(targeting_key_value);
+  RB_GC_GUARD(ctx.targeting_key_value);
 
   return context;
 }
