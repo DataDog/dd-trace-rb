@@ -34,19 +34,7 @@ module Datadog
         if transformed_value.ascii_only? && transformed_value.length <= MAX_BYTE_SIZE
           normalized_value = transformed_value
         else
-          byte_position = 0
-          character_count = 0
-          normalized_value = String.new(encoding: 'UTF-8')
-
-          transformed_value.each_char do |char|
-            byte_width = char.bytesize
-            break if byte_position + byte_width > MAX_BYTE_SIZE
-            break if character_count >= MAX_BYTE_SIZE
-
-            normalized_value << char
-            byte_position += byte_width
-            character_count += 1
-          end
+          normalized_value = transformed_value.byteslice(0, MAX_BYTE_SIZE).scrub("")
         end
 
         normalized_value.downcase!
