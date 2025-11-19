@@ -54,7 +54,7 @@ module SidekiqServerExpectations
       # NB: This is needed because we want to patch within a forked process.
       Datadog::Tracing::Contrib::Sidekiq::Patcher
         .instance_variable_get(:@patch_only_once)
-        &.send(:reset_ran_once_state_for_tests)
+        &.reset
 
       require 'sidekiq/cli'
 
@@ -94,7 +94,7 @@ module SidekiqServerExpectations
       # NB: This is needed because we want to patch within a forked process.
       Datadog::Tracing::Contrib::Sidekiq::Patcher
         .instance_variable_get(:@patch_only_once)
-        &.send(:reset_ran_once_state_for_tests)
+        &.reset
 
       require 'sidekiq/cli'
 

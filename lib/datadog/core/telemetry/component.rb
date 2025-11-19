@@ -14,14 +14,18 @@ require_relative '../utils/forking'
 module Datadog
   module Core
     module Telemetry
-      # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
-      # Note: Telemetry does not spawn its worker thread in fork processes, thus no telemetry is sent in forked processes.
+      # Telemetry entry point, coordinates sending telemetry events at
+      # various points in application lifecycle.
       #
       # @api private
       class Component
         ENDPOINT_COLLECTION_MESSAGE_LIMIT = 300
 
         attr_reader :enabled, :logger, :transport, :worker
+
+        # Alias for consistency with other components.
+        # TODO Remove +enabled+ method
+        alias_method :enabled?, :enabled
 
         include Core::Utils::Forking
         include Telemetry::Logging
@@ -104,13 +108,17 @@ module Datadog
           @agent_settings = agent_settings
         end
 
+        attr_reader :settings
+        attr_reader :agent_settings
+        attr_reader :logger
+
         def disable!
           @enabled = false
           @worker&.enabled = false
         end
 
         def start(initial_event_is_change = false, components:)
-          return if !@enabled
+          return unless enabled?
 
           initial_event = if initial_event_is_change
             Event::SynthAppClientConfigurationChange.new(
@@ -136,19 +144,19 @@ module Datadog
         end
 
         def emit_closing!
-          return if !@enabled || forked?
+          return unless enabled?
 
           @worker.enqueue(Event::AppClosing.new)
         end
 
         def integrations_change!
-          return if !@enabled || forked?
+          return unless enabled?
 
           @worker.enqueue(Event::AppIntegrationsChange.new)
         end
 
         def log!(event)
-          return if !@enabled || forked? || !@log_collection_enabled
+          return unless enabled? && @log_collection_enabled
 
           @worker.enqueue(event)
         end
@@ -159,21 +167,21 @@ module Datadog
         #
         # @api private
         def flush
-          return if !@enabled || forked?
+          return unless enabled?
 
           @worker.flush
         end
 
         # Report configuration changes caused by Remote Configuration.
         def client_configuration_change!(changes)
-          return if !@enabled || forked?
+          return unless enabled?
 
           @worker.enqueue(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
         end
 
         # Report application endpoints
         def app_endpoints_loaded(endpoints, page_size: ENDPOINT_COLLECTION_MESSAGE_LIMIT)
-          return if !@enabled || forked?
+          return unless enabled?
 
           endpoints.each_slice(page_size).with_index do |endpoints_slice, i|
             @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints_slice, is_first: i.zero?))

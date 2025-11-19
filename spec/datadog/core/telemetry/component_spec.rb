@@ -365,7 +365,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
             event = instance_double(Datadog::Core::Telemetry::Event::Log)
             telemetry.log!(event)
 
-            expect(worker).not_to have_received(:enqueue)
+            expect(worker).to have_received(:enqueue).with(event)
           end
         end
       end
