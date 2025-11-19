@@ -330,7 +330,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         it do
           expect {
             sample_and_decode(background_thread, :labels, is_gvl_waiting_state: true)
-          }.to raise_error(Datadog::Profiling::NativeError, /BUG: .* is_gvl_waiting/)
+          }.to raise_error(Datadog::Profiling::NativeError) do |error|
+            expect(error.message).to match(/BUG: .* is_gvl_waiting/)
+            expect(error.telemetry_message).to eq('BUG: Unexpected combination of cpu-time with is_gvl_waiting')
+          end
         end
       end
 
@@ -366,7 +369,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           let(:metric_values) { {"cpu-samples" => 1} }
 
           it "raises an exception" do
-            expect { gathered_stack }.to raise_error(Datadog::Profiling::NativeError, /BUG: Unexpected missing state_label/)
+            expect { gathered_stack }.to raise_error(Datadog::Profiling::NativeError) do |error|
+              expect(error.message).to match(/BUG: Unexpected missing state_label/)
+              expect(error.telemetry_message).to eq('BUG: Unexpected missing state_label')
+            end
           end
         end
 

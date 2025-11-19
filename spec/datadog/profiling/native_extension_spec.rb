@@ -31,7 +31,11 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     context "when called without releasing the gvl" do
       it "raises a NativeError" do
         expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "this is a test", nil, false) }
-          .to raise_exception(Datadog::Profiling::NativeError, /called by thread holding the global VM lock/)
+          .to raise_exception(Datadog::Profiling::NativeError) do |error|
+            expect(error.message).to match(/called by thread holding the global VM lock/)
+            # Note: This uses rb_raise directly, not raise_for_telemetry, so telemetry_message may not be set
+            expect(error.telemetry_message).to be_nil
+          end
       end
     end
   end
@@ -61,7 +65,11 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       it "raises a NativeError" do
         expect do
           described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "this is a test", nil, false)
-        end.to raise_exception(Datadog::Profiling::NativeError, /called by thread holding the global VM lock/)
+        end.to raise_exception(Datadog::Profiling::NativeError) do |error|
+          expect(error.message).to match(/called by thread holding the global VM lock/)
+          # Note: This uses rb_raise directly, not raise_for_telemetry, so telemetry_message may not be set
+          expect(error.telemetry_message).to be_nil
+        end
       end
     end
   end

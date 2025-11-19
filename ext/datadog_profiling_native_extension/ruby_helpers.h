@@ -6,18 +6,8 @@
 
 // Global reference to Datadog::Profiling::NativeError exception class
 // This is initialized in profiling.c during extension initialization
-extern VALUE datadog_native_error_class;
-
-// Macro for raising NativeError with compile-time verified constant string
-// The "" string concatenation trick ensures the message is a string literal at compile time
-#define RAISE_PROFILING_TELEMETRY_SAFE(msg) \
-  raise_native_constant_error("" msg)
-
-// Macro for raising NativeError with dynamic/formatted content
-#define RAISE_PROFILING_TELEMETRY_UNSAFE(fmt, ...) \
-  raise_for_telemetry(fmt, ##__VA_ARGS__)
-
-NORETURN(void raise_native_constant_error(const char *msg));
+// TODO: Can this class be defined in Ruby? Will it work outside of GIL?
+extern VALUE eNativeError;
 
 // Raises a NativeError (an instance of RuntimeError) with the formatted string as
 // its message.
@@ -25,9 +15,21 @@ NORETURN(void raise_native_constant_error(const char *msg));
 // this guarantees that no dynamic content is sent via telemetry, preventing potential
 // leakage of sensitive information.
 // *Native errors not raised through this function will not be reported via telemetry.*
+#define raise_for_telemetry(fmt, ...) \
+  _raise_for_telemetry(eNativeError, "" fmt, ##__VA_ARGS__) // Concat to ensure fmt is a string literal at compile time
+
+// Raises an exception of the specified class with the formatted string as its message.
+// This is similar to raise_for_telemetry, but allows specifying a custom exception class
+// instead of using the default eNativeError.
+// The error is also sent for telemetry with the unformatted string to prevent potential
+// leakage of sensitive information.
+// Use this when you need to raise specific exception types like ArgumentError, RuntimeError, etc.
+#define raise_for_telemetry_ex(exception_class, fmt, ...) \
+  _raise_for_telemetry(exception_class, "" fmt, ##__VA_ARGS__)
+
 NORETURN(
-  void raise_for_telemetry(const char *fmt, ...)
-  __attribute__ ((format (printf, 1, 2)));
+  void _raise_for_telemetry(VALUE exception_class, const char *fmt, ...)
+  __attribute__ ((format (printf, 2, 3)));
 );
 
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual

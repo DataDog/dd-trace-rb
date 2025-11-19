@@ -13,8 +13,8 @@ static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 static ID new_id = 0;
 // Global reference to Datadog::Profiling::NativeError exception class
-// Initialized in profiling.c during extension initialization
-VALUE datadog_native_error_class = Qnil;
+// TODO: Can this class be defined in Ruby? Will it work outside of GIL?
+VALUE eNativeError = Qnil;
 
 void ruby_helpers_init(void) {
   rb_global_variable(&module_object_space);
@@ -39,6 +39,7 @@ static void *trigger_raise(void *raise_arguments) {
 }
 
 void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
+  // TODO: Can we ommit the exception_class? Or maybe create a runtime_error wrapper?
   raise_args args;
 
   args.exception_class = exception_class;
@@ -48,8 +49,9 @@ void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
   vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
 
   if (is_current_thread_holding_the_gvl()) {
+    // TODO: Check this error
     rb_raise(
-      datadog_native_error_class,
+      eNativeError,
       "grab_gvl_and_raise called by thread holding the global VM lock. exception_message: '%s'",
       args.exception_message
     );
@@ -80,8 +82,9 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
   vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
 
   if (is_current_thread_holding_the_gvl()) {
+    // TODO: Check this error
     rb_raise(
-      datadog_native_error_class,
+      eNativeError,
       "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%s'",
       syserr_errno,
       args.exception_message
@@ -108,19 +111,7 @@ void raise_syserr(
   }
 }
 
-void raise_native_constant_error(const char *msg) {
-  VALUE telemetry_message = rb_str_new_cstr(msg);
-  VALUE exception = rb_funcall(
-    datadog_native_error_class,
-    new_id,
-    2,
-    telemetry_message,
-    telemetry_message
-  );
-  rb_exc_raise(exception);
-}
-
-void raise_for_telemetry(const char *fmt, ...) {
+void _raise_for_telemetry(VALUE exception_class, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   VALUE formatted_msg = rb_vsprintf(fmt, args);
@@ -128,7 +119,7 @@ void raise_for_telemetry(const char *fmt, ...) {
 
   // Pass both the static format string and the formatted message to the error class
   VALUE exception = rb_funcall(
-    datadog_native_error_class,
+    exception_class,
     new_id,
     2,
     rb_str_new_cstr(fmt),

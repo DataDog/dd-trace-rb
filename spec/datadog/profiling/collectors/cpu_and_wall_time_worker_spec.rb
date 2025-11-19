@@ -114,6 +114,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       exception = try_wait_until(backoff: 0.01) { another_instance.send(:failure_exception) }
 
       expect(exception.message).to include "another instance"
+      expect(exception.telemetry_message).to eq("Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread")
 
       another_instance.stop
     end
@@ -200,6 +201,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         exception = try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
 
         expect(exception.message).to include "pre-existing SIGPROF"
+        expect(exception.telemetry_message).to eq("Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler")
       end
 
       it "leaves the existing signal handler in place" do

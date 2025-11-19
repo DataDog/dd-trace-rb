@@ -67,7 +67,7 @@ ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_
 
   ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(string_storage, string);
   if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
-    RAISE_PROFILING_TELEMETRY_UNSAFE("Failed to intern string: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
+    raise_for_telemetry("Failed to intern string: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
   }
   return intern_result.ok;
 }
@@ -80,6 +80,6 @@ void intern_all_or_raise(
 ) {
   ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_intern_all(string_storage, strings, output_ids, output_ids_size);
   if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    RAISE_PROFILING_TELEMETRY_UNSAFE("Failed to intern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+    raise_for_telemetry("Failed to intern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
 }

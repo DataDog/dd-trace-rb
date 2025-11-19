@@ -1582,7 +1582,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     context "when called before on_gc_start/on_gc_finish" do
       it do
-        expect { sample_after_gc(allow_exception: true) }.to raise_error(Datadog::Profiling::NativeError, /Unexpected call to sample_after_gc/)
+        expect { sample_after_gc(allow_exception: true) }.to raise_error(Datadog::Profiling::NativeError) do |error|
+          expect(error.message).to match(/Unexpected call to sample_after_gc/)
+          expect(error.telemetry_message).to eq('BUG: Unexpected call to sample_after_gc without valid GC information available')
+        end
       end
     end
 
@@ -1601,7 +1604,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           sample_after_gc
 
           expect { sample_after_gc(allow_exception: true) }
-            .to raise_error(Datadog::Profiling::NativeError, /Unexpected call to sample_after_gc/)
+            .to raise_error(Datadog::Profiling::NativeError) do |error|
+              expect(error.message).to match(/Unexpected call to sample_after_gc/)
+              expect(error.telemetry_message).to eq('BUG: Unexpected call to sample_after_gc without valid GC information available')
+            end
         end
       end
 
@@ -1967,6 +1973,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#sample_after_gvl_running" do
     before { skip_if_gvl_profiling_not_supported(self) }
+
+    context "when timeline is disabled" do
+      let(:timeline_enabled) { false }
+
+      it "raises a telemetry-instrumented error" do
+        expect { sample_after_gvl_running(t1) }.to raise_error(Datadog::Profiling::NativeError) do |error|
+          expect(error.message).to include("GVL profiling requires timeline to be enabled")
+          expect(error.telemetry_message).to eq("GVL profiling requires timeline to be enabled")
+        end
+      end
+    end
 
     let(:timeline_enabled) { true }
 
