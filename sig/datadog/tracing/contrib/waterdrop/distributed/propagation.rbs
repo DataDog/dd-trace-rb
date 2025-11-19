@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module WaterDrop
+        module Distributed
+          class Propagation < Tracing::Distributed::Propagation
+            # Initializes with required keyword arguments for propagation configuration
+            def initialize: (
+              propagation_style_inject: ::Array[::String],
+              propagation_style_extract: ::Array[::String],
+              propagation_extract_first: bool
+            ) -> void
+          end
+        end
+      end
+    end
+  end
+end

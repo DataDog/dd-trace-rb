@@ -9,12 +9,14 @@ RSpec.describe Datadog::AppSec::Response do
         let(:interrupt_params) do
           {
             'type' => type,
-            'status_code' => status_code
+            'status_code' => status_code,
+            'security_response_id' => security_response_id
           }
         end
 
         let(:type) { 'html' }
         let(:status_code) { '100' }
+        let(:security_response_id) { '73bb7b99-52f6-43ea-998c-6cbc6b80f520' }
 
         context 'status_code' do
           subject(:status) { described_class.from_interrupt_params(interrupt_params, http_accept_header).status }
@@ -31,13 +33,25 @@ RSpec.describe Datadog::AppSec::Response do
         context 'body' do
           subject(:body) { described_class.from_interrupt_params(interrupt_params, http_accept_header).body }
 
-          it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :html)] }
+          it 'includes security response ID in the response body' do
+            expect(body).to match_array([include(security_response_id)])
+          end
 
           context 'type is auto it uses the HTTP_ACCEPT to decide the result' do
             let(:type) { 'auto' }
             let(:http_accept_header) { 'application/json' }
 
-            it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :json)] }
+            it 'includes security response ID in the response body' do
+              expect(body).to match_array([include(security_response_id)])
+            end
+
+            it 'returns the response body with correct content type' do
+              expect(body).to eq([
+                Datadog::AppSec::Assets
+                  .blocked(format: :json)
+                  .gsub(Datadog::AppSec::Response::SECURITY_RESPONSE_ID_PLACEHOLDER, security_response_id)
+              ])
+            end
           end
         end
 
@@ -60,10 +74,13 @@ RSpec.describe Datadog::AppSec::Response do
           let(:interrupt_params) { {} }
           subject(:response) { described_class.from_interrupt_params(interrupt_params, http_accept_header) }
 
-          it 'uses default response' do
+          it 'uses default response replaces placeholders in the template' do
             expect(response.status).to eq 403
-            expect(response.body).to eq [Datadog::AppSec::Assets.blocked(format: :html)]
             expect(response.headers['Content-Type']).to eq 'text/html'
+          end
+
+          it 'does not render security response ID placeholders' do
+            expect(response.body).not_to match_array([include(Datadog::AppSec::Response::SECURITY_RESPONSE_ID_PLACEHOLDER)])
           end
         end
       end
@@ -72,12 +89,14 @@ RSpec.describe Datadog::AppSec::Response do
         let(:interrupt_params) do
           {
             'location' => location,
-            'status_code' => status_code
+            'status_code' => status_code,
+            'security_response_id' => security_response_id
           }
         end
 
-        let(:location) { 'foo' }
+        let(:location) { 'example.com' }
         let(:status_code) { '303' }
+        let(:security_response_id) { '73bb7b99-52f6-43ea-998c-6cbc6b80f520' }
 
         context 'status_code' do
           subject(:status) { described_class.from_interrupt_params(interrupt_params, http_accept_header).status }
@@ -100,9 +119,23 @@ RSpec.describe Datadog::AppSec::Response do
         context 'headers' do
           subject(:headers) { described_class.from_interrupt_params(interrupt_params, http_accept_header).headers }
 
-          context 'Location' do
-            it 'uses the one from the configuration' do
-              expect(headers['Location']).to eq('foo')
+          it 'sets Location header' do
+            expect(headers['Location']).to eq("example.com")
+          end
+
+          context 'when location contains security response id placeholder' do
+            let(:location) { 'example.com?security_response_id=[security_response_id]' }
+
+            it 'sets Location header with substituted security response id placeholder' do
+              expect(headers['Location']).to eq("example.com?security_response_id=#{security_response_id}")
+            end
+
+            context 'when security_response_id is missing in action params' do
+              let(:security_response_id) { nil }
+
+              it 'sets Location header without removing security response id placeholder' do
+                expect(headers['Location']).to eq('example.com?security_response_id=[security_response_id]')
+              end
             end
           end
         end
@@ -116,7 +149,14 @@ RSpec.describe Datadog::AppSec::Response do
     end
 
     describe '.body' do
-      subject(:body) { described_class.from_interrupt_params({}, http_accept_header).body }
+      let(:security_response_id) { SecureRandom.uuid }
+
+      subject(:body) do
+        described_class.from_interrupt_params(
+          {'security_response_id' => security_response_id},
+          http_accept_header
+        ).body
+      end
 
       shared_examples_for 'with custom response body' do |type|
         before do
@@ -135,13 +175,25 @@ RSpec.describe Datadog::AppSec::Response do
       context 'with unsupported Accept headers' do
         let(:http_accept_header) { 'application/xml' }
 
-        it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :json)] }
+        it 'returns default json template with security response ID' do
+          expect(body).to eq([
+            Datadog::AppSec::Assets
+              .blocked(format: :json)
+              .gsub(Datadog::AppSec::Response::SECURITY_RESPONSE_ID_PLACEHOLDER, security_response_id)
+          ])
+        end
       end
 
       context('with Accept: text/html') do
         let(:http_accept_header) { 'text/html' }
 
-        it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :html)] }
+        it 'returns default html template with security response ID' do
+          expect(body).to eq([
+            Datadog::AppSec::Assets
+              .blocked(format: :html)
+              .gsub(Datadog::AppSec::Response::SECURITY_RESPONSE_ID_PLACEHOLDER, security_response_id)
+          ])
+        end
 
         it_behaves_like 'with custom response body', :html
       end
@@ -149,7 +201,13 @@ RSpec.describe Datadog::AppSec::Response do
       context('with Accept: application/json') do
         let(:http_accept_header) { 'application/json' }
 
-        it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :json)] }
+        it 'returns default json template with security response ID' do
+          expect(body).to eq([
+            Datadog::AppSec::Assets
+              .blocked(format: :json)
+              .gsub(Datadog::AppSec::Response::SECURITY_RESPONSE_ID_PLACEHOLDER, security_response_id)
+          ])
+        end
 
         it_behaves_like 'with custom response body', :json
       end
@@ -157,7 +215,13 @@ RSpec.describe Datadog::AppSec::Response do
       context('with Accept: text/plain') do
         let(:http_accept_header) { 'text/plain' }
 
-        it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :text)] }
+        it 'returns default text template with security response ID' do
+          expect(body).to eq([
+            Datadog::AppSec::Assets
+              .blocked(format: :text)
+              .gsub(Datadog::AppSec::Response::SECURITY_RESPONSE_ID_PLACEHOLDER, security_response_id)
+          ])
+        end
 
         it_behaves_like 'with custom response body', :text
       end

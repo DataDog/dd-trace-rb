@@ -1,0 +1,25 @@
+module Datadog
+  module OpenFeature
+    module Exposures
+      class Reporter
+        @worker: Worker
+
+        @logger: Core::Logger
+
+        @telemetry: Core::Telemetry::Component
+
+        @deduplicator: Deduplicator
+
+        def initialize: (Worker worker, telemetry: Core::Telemetry::Component, logger: Core::Logger) -> void
+
+        def report: (
+          ResolutionDetails result,
+          flag_key: ::String,
+          context: ::OpenFeature::SDK::EvaluationContext?
+        ) -> bool
+      end
+    end
+  end
+end
+
+

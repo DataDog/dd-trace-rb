@@ -1,0 +1,16 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module WaterDrop
+        module Patcher
+          include Contrib::Patcher
+
+          # Returns Integration.version which can be nil
+          def self?.target_version: () -> ::Gem::Version?
+
+          def self?.patch: () -> void
+        end
+      end
+    end
+  end
+end
