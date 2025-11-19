@@ -24,7 +24,7 @@ current_path = Pathname.new(FileUtils.pwd)
 
 tmp_path = current_path.join('tmp', ENV["ARCH"])
 
-versioned_path = tmp_path.join(ruby_api_version)
+versioned_path = tmp_path.join(Gem.ruby_engine, RbConfig::CONFIG['ruby_version'])
 
 FileUtils.mkdir_p(versioned_path, verbose: true)
 
