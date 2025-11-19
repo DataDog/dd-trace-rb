@@ -8,13 +8,14 @@ module Datadog
       module Event
         # Telemetry class for the 'app-started' event
         class AppStarted < Base
-          def initialize(agent_settings:, settings:)
-            @agent_settings = agent_settings
+          def initialize(components:)
+            @agent_settings = components.agent_settings
 
             # To not hold a reference to the component tree, generate
             # the event payload here in the constructor.
-            @configuration = configuration(settings)
-            @install_signature = install_signature(settings)
+            @configuration = configuration(components.settings)
+            @install_signature = install_signature(components.settings)
+            @products = products(components)
           end
 
           def type
@@ -23,7 +24,7 @@ module Datadog
 
           def payload
             {
-              products: products,
+              products: @products,
               configuration: @configuration,
               install_signature: @install_signature,
               # DEV: Not implemented yet
@@ -33,17 +34,18 @@ module Datadog
 
           private
 
-          def products
+          def products(components)
             # @type var products: Hash[Symbol, Hash[Symbol, Hash[Symbol, String | Integer] | bool | nil]]
             products = {
               appsec: {
-                enabled: Datadog::AppSec.enabled?,
+                # TODO take appsec status out of component tree?
+                enabled: components.settings.appsec.enabled,
               },
               profiler: {
-                enabled: Datadog::Profiling.enabled?,
+                enabled: !!components.profiler&.enabled?,
               },
               dynamic_instrumentation: {
-                enabled: defined?(Datadog::DI) && Datadog::DI.respond_to?(:enabled?) && Datadog::DI.enabled?,
+                enabled: !!components.dynamic_instrumentation,
               }
             }
 

@@ -41,8 +41,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
   let(:initial_event) do
     Datadog::Core::Telemetry::Event::AppStarted.new(
-      agent_settings: agent_settings,
-      settings: Datadog.configuration)
+      components: Datadog.send(:components))
   end
 
   before do
