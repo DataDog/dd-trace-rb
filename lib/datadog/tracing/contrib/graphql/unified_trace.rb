@@ -288,7 +288,8 @@ module Datadog
                   @type_key => parsed_error.type,
                   @stacktrace_key => parsed_error.backtrace,
                   @message_key => graphql_error['message'],
-                  @locations_key => self.class.serialize_error_locations(graphql_error['locations']),
+                  @locations_key =>
+                    Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.serialize_error_locations(graphql_error['locations']),
                   @path_key => graphql_error['path'],
                 )
               )
