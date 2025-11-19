@@ -203,7 +203,7 @@ static void resolution_details_free(void *ptr) {
 static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE context_hash) {
   ENFORCE_TYPED_DATA(self, &configuration_data_type);
   ENFORCE_TYPE(flag_key, T_STRING);
-  ENFORCE_TYPE(flag_key, T_HASH);
+  ENFORCE_TYPE(context_hash, T_HASH);
 
   const ddog_ffe_Handle_Configuration config =
       (ddog_ffe_Handle_Configuration)rb_check_typeddata(
