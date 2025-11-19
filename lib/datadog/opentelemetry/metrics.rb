@@ -10,10 +10,10 @@ module Datadog
       def initialize!(settings, agent_settings, logger)
         @logger = logger
         @settings = settings
+        # agent_settings.hostname is resolved by AgentSettingsResolver which handles DD_AGENT_HOST
+        # For HTTP adapter, hostname should always be set; fall back to default if nil/empty
         @agent_host = if agent_settings&.hostname && !agent_settings.hostname.empty?
           agent_settings.hostname
-        elsif (host = @settings.agent.host) && !host.empty?
-          host
         else
           Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
         end
