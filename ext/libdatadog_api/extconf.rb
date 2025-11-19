@@ -164,7 +164,6 @@ $defs << "-DNO_THREAD_INVOKE_ARG" if RUBY_VERSION < "2.6"
 # When requiring, we need to use the exact same string, including the version and the platform.
 EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
-# Setup Ruby VM private headers access
 CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?("2.6", "2.7", "3.0.", "3.1.", "3.2.")
 
 if CAN_USE_MJIT_HEADER
@@ -178,22 +177,26 @@ if CAN_USE_MJIT_HEADER
   # Finally, the `COMMON_HEADERS` conflict with the MJIT header so we need to temporarily disable them for this check.
   original_common_headers = MakeMakefile::COMMON_HEADERS
   MakeMakefile::COMMON_HEADERS = "".freeze
-  unless have_macro("RUBY_MJIT_H", mjit_header_file_name)
-    skip_building_extension!('MJIT header compilation failed - required for crashtracker stack walking')
+  if have_macro("RUBY_MJIT_H", mjit_header_file_name)
+    MakeMakefile::COMMON_HEADERS = original_common_headers
+
+    $defs << "-DRUBY_MJIT_HEADER='\"#{mjit_header_file_name}\"'"
+
+    # NOTE: This needs to come after all changes to $defs
+    create_header
+
+    # Note: -Wunused-parameter flag is intentionally added here only after MJIT header validation
+    # This is because adding this flag before checking internal VM headers causes those checks to fail
+    # on some Ruby versions (e.g. 3.3) due to warnings, not because the headers are unavailable
+    append_cflags "-Wunused-parameter"
+
+    create_makefile(EXTENSION_NAME)
+  else
+    # MJIT header compilation failed, but this is not fatal - we have fallback code
+    $stderr.puts "MJIT header compilation failed, falling back to datadog-ruby_core_source"
+    MakeMakefile::COMMON_HEADERS = original_common_headers
+    # Continue to datadog-ruby_core_source path below
   end
-  MakeMakefile::COMMON_HEADERS = original_common_headers
-
-  $defs << "-DRUBY_MJIT_HEADER='\"#{mjit_header_file_name}\"'"
-
-  # NOTE: This needs to come after all changes to $defs
-  create_header
-
-  # Note: -Wunused-parameter flag is intentionally added here only after MJIT header validation
-  # This is because adding this flag before checking internal VM headers causes those checks to fail
-  # on some Ruby versions (e.g. 3.3) due to warnings, not because the headers are unavailable
-  append_cflags "-Wunused-parameter"
-
-  create_makefile(EXTENSION_NAME)
 else
   # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
   # the datadog-ruby_core_source gem to get access to private VM headers.
