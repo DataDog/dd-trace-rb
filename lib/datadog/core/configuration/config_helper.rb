@@ -57,7 +57,7 @@ module Datadog
           # Until we've correctly implemented support for datadog-ci-rb, we disable config inversion if ci is enabled.
           if !defined?(::Datadog::CI) &&
               (name.start_with?('DD_', 'OTEL_') || @alias_to_canonical[name]) &&
-              !@supported_configurations[name]
+              !@supported_configurations.include?(name)
             if defined?(@raise_on_unknown_env_var) && @raise_on_unknown_env_var # Only enabled for tests!
               if @alias_to_canonical[name]
                 raise "Please use #{@alias_to_canonical[name]} instead of #{name}. See docs/AccessEnvironmentVariables.md for details."

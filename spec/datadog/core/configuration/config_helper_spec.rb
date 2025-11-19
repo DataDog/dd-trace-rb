@@ -7,7 +7,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     subject do
       described_class.new(
         source_env: {'DD_SUPPORTED_ENV_VAR' => 'true'},
-        supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}}
+        supported_configurations: ['DD_SUPPORTED_ENV_VAR']
       )
     end
 
@@ -18,7 +18,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
   describe '#fetch' do
     subject do
-      described_class.new(source_env: source_env, supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}})
+      described_class.new(source_env: source_env, supported_configurations: ['DD_SUPPORTED_ENV_VAR'])
     end
 
     context 'with env var set' do
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
 
   describe '#key?' do
     subject do
-      described_class.new(source_env: source_env, supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}})
+      described_class.new(source_env: source_env, supported_configurations: ['DD_SUPPORTED_ENV_VAR'])
     end
 
     context 'with env var not set' do
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when using default source_env' do
       subject do
         described_class.new(
-          supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}}
+          supported_configurations: ['DD_SUPPORTED_ENV_VAR']
         )
       end
 
@@ -90,12 +90,12 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when using default supported_configurations' do
       subject do
         described_class.new(
-          source_env: Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.transform_values { 'true' }
+          source_env: Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.map { |env_var_name| [env_var_name, 'true'] }.to_h
         )
       end
 
       it 'returns the environment variable value' do
-        Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.each do |env_var_name, _|
+        Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.each do |env_var_name|
           expect(subject.get_environment_variable(env_var_name)).to eq('true')
         end
       end
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {'DD_SUPPORTED_ENV_VAR' => 'true'},
-          supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}}
+          supported_configurations: ['DD_SUPPORTED_ENV_VAR']
         )
       end
 
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {},
-          supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}}
+          supported_configurations: ['DD_SUPPORTED_ENV_VAR']
         )
       end
 
@@ -150,7 +150,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {'OTEL_SUPPORTED_ENV_VAR' => 'my-service'},
-          supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}},
+          supported_configurations: ['DD_SUPPORTED_ENV_VAR'],
           aliases: {'DD_SUPPORTED_ENV_VAR' => ['OTEL_SUPPORTED_ENV_VAR']}
         )
       end
@@ -163,7 +163,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         subject do
           described_class.new(
             source_env: {'DD_SUPPORTED_ENV_VAR' => 'main-service', 'OTEL_SUPPORTED_ENV_VAR' => 'alias-service'},
-            supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}},
+            supported_configurations: ['DD_SUPPORTED_ENV_VAR'],
             aliases: {'DD_SUPPORTED_ENV_VAR' => ['OTEL_SUPPORTED_ENV_VAR']}
           )
         end
@@ -182,7 +182,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {'DD_UNSUPPORTED_VAR' => 'value'},
-          supported_configurations: {}
+          supported_configurations: []
         )
       end
 
@@ -197,7 +197,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         subject do
           described_class.new(
             source_env: {'DD_UNSUPPORTED_VAR' => 'value'},
-            supported_configurations: {}
+            supported_configurations: []
           )
         end
 
@@ -210,7 +210,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         subject do
           described_class.new(
             source_env: {'DD_UNSUPPORTED_VAR' => 'value'},
-            supported_configurations: {},
+            supported_configurations: [],
             raise_on_unknown_env_var: true
           )
         end
@@ -226,7 +226,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         subject do
           described_class.new(
             source_env: {'SUPPORTED_ENV_VAR' => 'true'},
-            supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}},
+            supported_configurations: ['DD_SUPPORTED_ENV_VAR'],
             aliases: {'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR']},
             alias_to_canonical: {'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR'},
           )
@@ -241,7 +241,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         subject do
           described_class.new(
             source_env: {'SUPPORTED_ENV_VAR' => 'true'},
-            supported_configurations: {'DD_SUPPORTED_ENV_VAR' => {version: ['A']}},
+            supported_configurations: ['DD_SUPPORTED_ENV_VAR'],
             aliases: {'DD_SUPPORTED_ENV_VAR' => ['SUPPORTED_ENV_VAR']},
             alias_to_canonical: {'SUPPORTED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR'},
             raise_on_unknown_env_var: true
@@ -258,7 +258,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {'SOME_OTHER_VAR' => 'value'},
-          supported_configurations: {},
+          supported_configurations: [],
         )
       end
 
