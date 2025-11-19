@@ -294,17 +294,17 @@ static VALUE resolution_details_get_reason(VALUE self) {
 
   switch (reason) {
     case DDOG_FFE_REASON_STATIC:
-      return ID2SYM(rb_intern("static"));
+      return rb_str_new_cstr("STATIC");
     case DDOG_FFE_REASON_DEFAULT:
-      return ID2SYM(rb_intern("default"));
+      return rb_str_new_cstr("DEFAULT");
     case DDOG_FFE_REASON_TARGETING_MATCH:
-      return ID2SYM(rb_intern("targeting_match"));
+      return rb_str_new_cstr("TARGETING_MATCH");
     case DDOG_FFE_REASON_SPLIT:
-      return ID2SYM(rb_intern("split"));
+      return rb_str_new_cstr("SPLIT");
     case DDOG_FFE_REASON_DISABLED:
-      return ID2SYM(rb_intern("disabled"));
+      return rb_str_new_cstr("DISABLED");
     case DDOG_FFE_REASON_ERROR:
-      return ID2SYM(rb_intern("error"));
+      return rb_str_new_cstr("ERROR");
     default:
       return Qnil;
   }
@@ -324,20 +324,20 @@ static VALUE resolution_details_get_error_code(VALUE self) {
     case DDOG_FFE_ERROR_CODE_OK:
       return Qnil;
     case DDOG_FFE_ERROR_CODE_TYPE_MISMATCH:
-      return ID2SYM(rb_intern("type_mismatch"));
+      return rb_str_new_cstr("TYPE_MISMATCH");
     case DDOG_FFE_ERROR_CODE_PARSE_ERROR:
-      return ID2SYM(rb_intern("parse_error"));
+      return rb_str_new_cstr("PARSE_ERROR");
     case DDOG_FFE_ERROR_CODE_FLAG_NOT_FOUND:
-      return ID2SYM(rb_intern("flag_not_found"));
+      return rb_str_new_cstr("FLAG_NOT_FOUND");
     case DDOG_FFE_ERROR_CODE_TARGETING_KEY_MISSING:
-      return ID2SYM(rb_intern("targeting_key_missing"));
+      return rb_str_new_cstr("TARGETING_KEY_MISSING");
     case DDOG_FFE_ERROR_CODE_INVALID_CONTEXT:
-      return ID2SYM(rb_intern("invalid_context"));
+      return rb_str_new_cstr("INVALID_CONTEXT");
     case DDOG_FFE_ERROR_CODE_PROVIDER_NOT_READY:
-      return ID2SYM(rb_intern("provider_not_ready"));
+      return rb_str_new_cstr("PROVIDER_NOT_READY");
     case DDOG_FFE_ERROR_CODE_GENERAL:
     default:
-      return ID2SYM(rb_intern("general"));
+      return rb_str_new_cstr("GENERAL");
   }
 }
 
