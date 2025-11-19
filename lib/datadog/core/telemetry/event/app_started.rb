@@ -9,11 +9,9 @@ module Datadog
         # Telemetry class for the 'app-started' event
         class AppStarted < Base
           def initialize(components:)
-            @agent_settings = components.agent_settings
-
             # To not hold a reference to the component tree, generate
             # the event payload here in the constructor.
-            @configuration = configuration(components.settings)
+            @configuration = configuration(components.settings, components.agent_settings)
             @install_signature = install_signature(components.settings)
             @products = products(components)
           end
@@ -80,7 +78,7 @@ module Datadog
 
           # standard:disable Metrics/AbcSize
           # standard:disable Metrics/MethodLength
-          def configuration(settings)
+          def configuration(settings, agent_settings)
             seq_id = Event.configuration_sequence.next
 
             # tracing.writer_options.buffer_size and tracing.writer_options.flush_interval have the same origin.
@@ -106,7 +104,7 @@ module Datadog
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              conf_value('DD_AGENT_TRANSPORT', agent_transport, seq_id, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
+              conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings), seq_id, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
 
               # writer_options is defined as an option that has a Hash value.
               conf_value(
@@ -224,8 +222,8 @@ module Datadog
           # standard:enable Metrics/AbcSize
           # standard:enable Metrics/MethodLength
 
-          def agent_transport
-            adapter = @agent_settings.adapter
+          def agent_transport(agent_settings)
+            adapter = agent_settings.adapter
             if adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
               'UDS'
             else
