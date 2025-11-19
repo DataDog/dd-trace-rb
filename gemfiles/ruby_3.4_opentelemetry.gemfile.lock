@@ -34,7 +34,6 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
     ffi (1.17.2-aarch64-linux-gnu)
-    ffi (1.17.2-arm64-darwin)
     ffi (1.17.2-x86_64-linux-gnu)
     google-protobuf (3.25.3)
     google-protobuf (3.25.3-arm64-darwin)
@@ -162,7 +161,7 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   mutex_m
-  opentelemetry-exporter-otlp-metrics (>= 0.6)
+  opentelemetry-exporter-otlp-metrics (>= 0.4)
   opentelemetry-metrics-sdk (>= 0.8)
   opentelemetry-sdk (~> 1.1)
   os (~> 1.1)

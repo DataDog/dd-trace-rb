@@ -143,7 +143,7 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   mutex_m
-  opentelemetry-exporter-otlp-metrics (>= 0.6)
+  opentelemetry-exporter-otlp-metrics (>= 0.4)
   opentelemetry-metrics-sdk (>= 0.8)
   opentelemetry-sdk (~> 1.1)
   os (~> 1.1)
