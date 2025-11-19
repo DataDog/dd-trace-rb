@@ -4,8 +4,6 @@
 #include <datadog/common.h>
 
 #include "datadog_ruby_common.h"
-#include "ruby/internal/intern/string.h"
-#include "ruby/internal/value_type.h"
 
 #include <stdint.h>
 #include <string.h>
