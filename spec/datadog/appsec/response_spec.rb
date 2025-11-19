@@ -124,7 +124,7 @@ RSpec.describe Datadog::AppSec::Response do
           end
 
           context 'when location contains security response id placeholder' do
-            let(:location) { 'example.com?security_response_id=[security_response_id]'}
+            let(:location) { 'example.com?security_response_id=[security_response_id]' }
 
             it 'sets Location header with substituted security response id placeholder' do
               expect(headers['Location']).to eq("example.com?security_response_id=#{security_response_id}")
