@@ -266,6 +266,7 @@ static VALUE resolution_details_get_value(VALUE self) {
 
   switch (value.tag) {
     case DDOG_FFE_VARIANT_VALUE_NONE:
+      // No value was produced by the evaluation (e.g., flag disabled, error occurred)
       return Qnil;
     case DDOG_FFE_VARIANT_VALUE_STRING:
       return rb_str_new((const char*)value.string.ptr, value.string.len);
@@ -278,6 +279,7 @@ static VALUE resolution_details_get_value(VALUE self) {
     case DDOG_FFE_VARIANT_VALUE_OBJECT:
       return rb_str_new((const char*)value.object.ptr, value.object.len);
     default:
+      // Unrecognized variant value type from libdatadog FFE
       return Qnil;
   }
 }
@@ -286,6 +288,7 @@ static VALUE resolution_details_get_reason(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
 
   if (!resolution_details) {
+    // Invalid or null ResolutionDetails handle
     return Qnil;
   }
 
@@ -306,6 +309,7 @@ static VALUE resolution_details_get_reason(VALUE self) {
     case DDOG_FFE_REASON_ERROR:
       return rb_str_new_cstr("ERROR");
     default:
+      // Unrecognized reason value from libdatadog FFE
       return Qnil;
   }
 }
@@ -314,6 +318,7 @@ static VALUE resolution_details_get_error_code(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
 
   if (!resolution_details) {
+    // Invalid or null ResolutionDetails handle
     return Qnil;
   }
 
@@ -322,6 +327,7 @@ static VALUE resolution_details_get_error_code(VALUE self) {
 
   switch (error_code) {
     case DDOG_FFE_ERROR_CODE_OK:
+      // No error occurred - return Qnil to indicate success
       return Qnil;
     case DDOG_FFE_ERROR_CODE_TYPE_MISMATCH:
       return rb_str_new_cstr("TYPE_MISMATCH");
@@ -352,6 +358,7 @@ static VALUE resolution_details_get_error_message(VALUE self) {
   struct ddog_ffe_BorrowedStr error_message = ddog_ffe_assignment_get_error_message(resolution_details);
 
   if (error_message.ptr == NULL || error_message.len == 0) {
+    // No error message available (either no error or empty message)
     return Qnil;
   }
 
