@@ -19,6 +19,10 @@ variables:
 default:
   tags: ["runner:main", "size:large"]
 
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+
 .build-image-base:
   stage: manual-images
   rules:
