@@ -1,0 +1,11 @@
+module Datadog
+  module OpenTelemetry
+    module Configuration
+      module Settings
+        def self.extended: (::Class | ::Module base) -> void
+
+        def self.add_settings!: (untyped base) -> void
+      end
+    end
+  end
+end
