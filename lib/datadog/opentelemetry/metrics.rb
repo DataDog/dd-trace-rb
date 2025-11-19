@@ -10,7 +10,13 @@ module Datadog
       def initialize!(settings, agent_settings, logger)
         @logger = logger
         @settings = settings
-        @agent_host = agent_settings&.hostname || Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
+        @agent_host = if agent_settings&.hostname && !agent_settings.hostname.empty?
+          agent_settings.hostname
+        elsif (host = @settings.agent.host) && !host.empty?
+          host
+        else
+          Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
+        end
         begin
           require 'opentelemetry/sdk'
         rescue LoadError
