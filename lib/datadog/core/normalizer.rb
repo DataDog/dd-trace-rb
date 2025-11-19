@@ -8,8 +8,8 @@ module Datadog
       INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}
       LEADING_INVALID_CHARS_NO_DIGITS = %r{\A[^\p{L}:]++}
       LEADING_INVALID_CHARS_WITH_DIGITS = %r{\A[^\p{L}0-9:./\-]++}
-      MAX_CHARACTER_LENGTH = 200
-      MAX_BYTE_LENGTH = MAX_CHARACTER_LENGTH * 2
+      MAX_BYTE_SIZE = 200
+      MAX_BYTE_SIZE_BUFFER = MAX_BYTE_SIZE * 2
       TRAILING_UNDERSCORES = %r{_++\z}
       VALID_ASCII_TAG = %r{\A[a-z:][a-z0-9:./-]*\z}
 
