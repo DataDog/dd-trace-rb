@@ -65,6 +65,15 @@ module Datadog
           @mutex.synchronize { @ran_once && @failed }
         end
 
+        private
+
+        def check_limit!
+          if @retries >= @limit
+            @failed = true
+            @ran_once = true
+          end
+        end
+
         def limited?
           !@limit.nil?
         end
@@ -74,15 +83,6 @@ module Datadog
             @ran_once = false
             @failed = false
             @retries = 0
-          end
-        end
-
-        private
-
-        def check_limit!
-          if @retries >= @limit
-            @failed = true
-            @ran_once = true
           end
         end
       end
