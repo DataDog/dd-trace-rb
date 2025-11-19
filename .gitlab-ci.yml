@@ -5,7 +5,6 @@ stages:
   - vaccine
   - macrobenchmarks
   - microbenchmarks
-  - benchmarks
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
