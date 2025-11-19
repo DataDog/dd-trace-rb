@@ -31,10 +31,10 @@ module Datadog
         return transformed_value if transformed_value.bytesize <= MAX_BYTE_SIZE &&
           transformed_value.match?(VALID_ASCII_TAG)
 
-        if transformed_value.ascii_only? && transformed_value.length <= MAX_BYTE_SIZE
-          normalized_value = transformed_value
+        normalized_value = if transformed_value.ascii_only? && transformed_value.length <= MAX_BYTE_SIZE
+          transformed_value
         else
-          normalized_value = transformed_value.byteslice(0, MAX_BYTE_SIZE).scrub("")
+          transformed_value.byteslice(0, MAX_BYTE_SIZE).scrub("")
         end
 
         normalized_value.downcase!
