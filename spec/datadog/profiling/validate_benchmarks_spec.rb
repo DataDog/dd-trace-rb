@@ -1,7 +1,10 @@
 require "datadog/profiling/spec_helper"
 
 RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
-  before { skip_if_profiling_not_supported(self) }
+  before do
+    skip "Profiling benchmark validation relies on Linux-specific tooling" if PlatformHelpers.mac?
+    skip_if_profiling_not_supported(self)
+  end
 
   around do |example|
     ClimateControl.modify("VALIDATE_BENCHMARK" => "true") do

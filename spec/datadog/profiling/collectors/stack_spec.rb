@@ -242,7 +242,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
 
-      context "when native filenames are enabled" do
+      context "when native filenames are enabled", if: PlatformHelpers.linux? do
         let(:native_filenames_enabled) { true }
 
         before do
@@ -292,7 +292,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
 
-      context "when native filenames are enabled" do
+      context "when native filenames are enabled", if: PlatformHelpers.linux? do
         let(:native_filenames_enabled) { true }
 
         before do
@@ -831,6 +831,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   describe "_native_filenames_available?" do
+    before do
+      skip "Native filename helpers are not available on macOS" if PlatformHelpers.mac?
+    end
+
     context "on linux", if: PlatformHelpers.linux? do
       it "returns true" do
         expect(described_class._native_filenames_available?).to be true
@@ -845,6 +849,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   describe "_native_ruby_native_filename" do
+    before do
+      skip "Native filename helpers are not available on macOS" if PlatformHelpers.mac?
+    end
+
     context "on linux", if: PlatformHelpers.linux? do
       it "returns the correct filename" do
         expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(include("libruby.so"))

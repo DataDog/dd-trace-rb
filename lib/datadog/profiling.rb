@@ -10,7 +10,7 @@ module Datadog
     # Base error type for exceptions raised by the native profiler. It separates the
     # developer-facing message from the telemetry-safe message so telemetry never carries
     # dynamic data (PII) while developers still get the full runtime message.
-    class NativeError < RuntimeError
+    module NativeError
       attr_reader :telemetry_message
 
       def initialize(*args, telemetry_message: nil, **kwargs)
@@ -31,6 +31,18 @@ module Datadog
 
         @telemetry_message = telemetry_message
       end
+    end
+
+    class NativeRuntimeError < RuntimeError
+      prepend NativeError
+    end
+
+    class NativeArgumentError < ArgumentError
+      prepend NativeError
+    end
+
+    class NativeTypeError < TypeError
+      prepend NativeError
     end
 
     def self.supported?
