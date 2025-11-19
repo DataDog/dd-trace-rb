@@ -24,16 +24,16 @@ RSpec.describe Datadog::Core::Environment::Process do
         Dir.mktmpdir do |tmp_dir|
           Dir.chdir(tmp_dir) do
             Bundler.with_unbundled_env do
-              _, stderr, status = Open3.capture3('rails new test_app --minimal --skip-active-record --skip-test --skip-keeps --skip-git --skip-docker')
-              unless status.success? && File.exist?("test_app/Gemfile")
+              _, stderr, status = Open3.capture3('rails new test@_app --minimal --skip-active-record --skip-test --skip-keeps --skip-git --skip-docker')
+              unless status.success? && File.exist?("test@_app/Gemfile")
                 skip("rails new failed: #{stderr}")
               end
             end
 
-            File.open("test_app/Gemfile", 'a') do |file|
+            File.open("test@_app/Gemfile", 'a') do |file|
               file.puts "gem 'datadog', path: '#{project_root_directory}', require: false"
             end
-            File.write("test_app/config/initializers/process_initializer.rb", <<-RUBY)
+            File.write("test@_app/config/initializers/process_initializer.rb", <<-RUBY)
                         Rails.application.config.after_initialize do
                             require 'datadog/core/environment/process'
                             STDERR.puts "_dd.tags.process:\#{Datadog::Core::Environment::Process.serialized}"
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Core::Environment::Process do
             RUBY
 
             Bundler.with_unbundled_env do
-              Dir.chdir("test_app") do
+              Dir.chdir("test@_app") do
                 _, _, _ = Open3.capture3('bundle install')
                 _, err, _ = Open3.capture3('bundle exec rails s')
                 expect(err).to include('entrypoint.workdir:test_app')
