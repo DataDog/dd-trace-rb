@@ -18,7 +18,7 @@ module Datadog
       end
 
       def enabled?
-        !!scheduler.running?
+        scheduler.running?
       end
 
       def start
