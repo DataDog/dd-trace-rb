@@ -100,10 +100,15 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_new(VALUE hash) {
   // We're sorting out unified hash object into targeting_key and
   // other attributes.
   const char *targeting_key = NULL;
+  VALUE targeting_key_value = Qnil; // Keep reference for GC safety
 
   const long max_attr_count = RHASH_SIZE(hash);
   ddog_ffe_AttributePair *const attrs =
       ruby_xcalloc(max_attr_count, sizeof(struct ddog_ffe_AttributePair));
+
+  // Arrays to hold VALUE references for GC safety
+  VALUE *key_refs = ruby_xcalloc(max_attr_count, sizeof(VALUE));
+  VALUE *string_value_refs = ruby_xcalloc(max_attr_count, sizeof(VALUE));
 
   // Convert hash to attribute pairs
   const VALUE keys = rb_funcall(hash, rb_intern("keys"), 0);
@@ -117,15 +122,19 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_new(VALUE hash) {
 
     const char *name = RSTRING_PTR(key);
     if (strcmp(name, "targeting_key") == 0 && TYPE(value) == T_STRING) {
-      targeting_key = RSTRING_PTR(value);
+      targeting_key_value = value; // Keep reference for GC safety
+      targeting_key = RSTRING_PTR(targeting_key_value);
       continue;
     }
 
+    // Store key reference for GC safety
+    key_refs[attr_count] = key;
     attrs[attr_count].name = RSTRING_PTR(key);
 
     // Set the value based on its Ruby type
     switch (TYPE(value)) {
       case T_STRING:
+        string_value_refs[attr_count] = value; // Keep reference for GC safety
         attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
         attrs[attr_count].value.string = RSTRING_PTR(value);
         break;
@@ -144,8 +153,9 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_new(VALUE hash) {
         break;
       default:
         // Default to string representation
+        string_value_refs[attr_count] = rb_funcall(value, rb_intern("to_s"), 0);
         attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
-        attrs[attr_count].value.string = RSTRING_PTR(rb_funcall(value, rb_intern("to_s"), 0));
+        attrs[attr_count].value.string = RSTRING_PTR(string_value_refs[attr_count]);
         break;
     }
 
@@ -155,10 +165,18 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_new(VALUE hash) {
   const ddog_ffe_Handle_EvaluationContext context = ddog_ffe_evaluation_context_new(
     targeting_key,
     attrs,
-    max_attr_count
+    attr_count
   );
 
+  // Clean up temporary arrays (strings are safe to release now that context is created)
   ruby_xfree(attrs);
+  ruby_xfree(key_refs);
+  ruby_xfree(string_value_refs);
+
+  // Ensure GC safety for all referenced strings during the FFI call
+  RB_GC_GUARD(hash);
+  RB_GC_GUARD(keys);
+  RB_GC_GUARD(targeting_key_value);
 
   return context;
 }
