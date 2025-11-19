@@ -37,6 +37,7 @@ static VALUE resolution_details_get_value(VALUE self);
 static VALUE resolution_details_get_reason(VALUE self);
 static VALUE resolution_details_get_error_code(VALUE self);
 static VALUE resolution_details_get_error_message(VALUE self);
+static VALUE resolution_details_is_error(VALUE self);
 static VALUE resolution_details_get_variant(VALUE self);
 static VALUE resolution_details_get_allocation_key(VALUE self);
 static VALUE resolution_details_get_do_log(VALUE self);
@@ -57,6 +58,7 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(ResolutionDetails, "reason", resolution_details_get_reason, 0);
   rb_define_method(ResolutionDetails, "error_code", resolution_details_get_error_code, 0);
   rb_define_method(ResolutionDetails, "error_message", resolution_details_get_error_message, 0);
+  rb_define_method(ResolutionDetails, "error?", resolution_details_is_error, 0);
   rb_define_method(ResolutionDetails, "variant", resolution_details_get_variant, 0);
   rb_define_method(ResolutionDetails, "allocation_key", resolution_details_get_allocation_key, 0);
   rb_define_method(ResolutionDetails, "log?", resolution_details_get_do_log, 0);
@@ -354,6 +356,20 @@ static VALUE resolution_details_get_error_message(VALUE self) {
   }
 
   return rb_str_new((const char*)error_message.ptr, error_message.len);
+}
+
+static VALUE resolution_details_is_error(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+
+  if (!resolution_details) {
+    return Qfalse;
+  }
+
+  // Use the existing FFI function to get the error code
+  enum ddog_ffe_ErrorCode error_code = ddog_ffe_assignment_get_error_code(resolution_details);
+
+  // Return true if there's an error (any error code other than OK)
+  return (error_code != DDOG_FFE_ERROR_CODE_OK) ? Qtrue : Qfalse;
 }
 
 static VALUE resolution_details_get_variant(VALUE self) {
