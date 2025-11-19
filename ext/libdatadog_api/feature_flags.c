@@ -113,6 +113,16 @@ void feature_flags_init(VALUE core_module) {
   id_float = rb_intern_const("float");
 }
 
+/*
+ * call-seq:
+ *   Configuration.new(json_str) -> Configuration
+ *
+ * Creates a new Configuration from a JSON string.
+ *
+ * @param json_str [String] The JSON configuration string
+ * @return [Configuration] The configuration instance
+ * @raise [Datadog::Core::FeatureFlags::Error] If the JSON is invalid
+ */
 static VALUE configuration_new(VALUE klass, VALUE json_str) {
   struct ddog_ffe_Result_HandleConfiguration result = ddog_ffe_configuration_new(borrow_str(json_str));
   if (result.tag == DDOG_FFE_RESULT_HANDLE_CONFIGURATION_ERR_HANDLE_CONFIGURATION) {
@@ -225,6 +235,17 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_from_hash(VALUE hash
   return context;
 }
 
+/*
+ * call-seq:
+ *   configuration.get_assignment(flag_key, expected_type, context) -> ResolutionDetails
+ *
+ * Get assignment for a feature flag.
+ *
+ * @param flag_key [String] The key of the feature flag
+ * @param expected_type [Symbol] Expected type (:boolean, :string, :number, :object, :any, :integer, :float)
+ * @param context [Hash] Evaluation context with targeting_key and other attributes
+ * @return [ResolutionDetails] The resolution details
+ */
 static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE expected_type, VALUE context_hash) {
   ENFORCE_TYPED_DATA(self, &configuration_data_type);
   ENFORCE_TYPE(flag_key, T_STRING);
@@ -250,6 +271,14 @@ static void resolution_details_free(void *ptr) {
   ddog_ffe_assignment_drop(&resolution_details);
 }
 
+/*
+ * call-seq:
+ *   resolution_details.value() -> Object
+ *
+ * Get the resolved value.
+ *
+ * The value can be any type depending on the feature flag (String, Integer, Float, Boolean, or nil).
+ */
 static VALUE resolution_details_get_value(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
 
@@ -272,6 +301,14 @@ static VALUE resolution_details_get_value(VALUE self) {
   }
 }
 
+/*
+ * call-seq:
+ *   resolution_details.variant() -> String or nil
+ *
+ * Get the variant identifier.
+ *
+ * @return [String, nil] The variant identifier or nil
+ */
 static VALUE resolution_details_get_variant(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
@@ -279,6 +316,14 @@ static VALUE resolution_details_get_variant(VALUE self) {
   return str_from_borrow(variant);
 }
 
+/*
+ * call-seq:
+ *   resolution_details.allocation_key() -> String or nil
+ *
+ * Get the allocation key.
+ *
+ * @return [String, nil] The allocation key or nil
+ */
 static VALUE resolution_details_get_allocation_key(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
@@ -286,6 +331,14 @@ static VALUE resolution_details_get_allocation_key(VALUE self) {
   return str_from_borrow(allocation_key);
 }
 
+/*
+ * call-seq:
+ *   resolution_details.reason() -> String
+ *
+ * Get the reason for the resolution.
+ *
+ * @return [String] One of: "STATIC", "DEFAULT", "TARGETING_MATCH", "SPLIT", "DISABLED", "ERROR", "UNKNOWN"
+ */
 static VALUE resolution_details_get_reason(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
@@ -310,6 +363,14 @@ static VALUE resolution_details_get_reason(VALUE self) {
   }
 }
 
+/*
+ * call-seq:
+ *   resolution_details.error?() -> Boolean
+ *
+ * Check if the resolution resulted in an error.
+ *
+ * @return [Boolean] True if there was an error
+ */
 static VALUE resolution_details_is_error(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
@@ -317,6 +378,14 @@ static VALUE resolution_details_is_error(VALUE self) {
   return reason == DDOG_FFE_REASON_ERROR ? Qtrue : Qfalse;
 }
 
+/*
+ * call-seq:
+ *   resolution_details.error_code() -> String or nil
+ *
+ * Get the error code if there was an error.
+ *
+ * @return [String, nil] Error code or nil if no error
+ */
 static VALUE resolution_details_get_error_code(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
@@ -344,6 +413,14 @@ static VALUE resolution_details_get_error_code(VALUE self) {
   }
 }
 
+/*
+ * call-seq:
+ *   resolution_details.error_message() -> String or nil
+ *
+ * Get the error message if there was an error.
+ *
+ * @return [String, nil] Error message or nil
+ */
 static VALUE resolution_details_get_error_message(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
@@ -351,12 +428,28 @@ static VALUE resolution_details_get_error_message(VALUE self) {
   return str_from_borrow(error_message);
 }
 
+/*
+ * call-seq:
+ *   resolution_details.log?() -> Boolean
+ *
+ * Check if this resolution should be logged.
+ *
+ * @return [Boolean] True if should be logged
+ */
 static VALUE resolution_details_get_do_log(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
   return ddog_ffe_assignment_get_do_log(resolution_details) ? Qtrue : Qfalse;
 }
 
+/*
+ * call-seq:
+ *   resolution_details.flag_metadata() -> Hash
+ *
+ * Get the flag metadata.
+ *
+ * @return [Hash{String => String}] The flag metadata as a hash
+ */
 static VALUE resolution_details_get_flag_metadata(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
