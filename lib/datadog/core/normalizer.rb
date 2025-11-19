@@ -28,7 +28,7 @@ module Datadog
         transformed_value.strip!
         return "" if transformed_value.empty?
 
-        return transformed_value if transformed_value.size <= MAX_CHARACTER_LENGTH &&
+        return transformed_value if transformed_value.bytesize <= MAX_CHARACTER_LENGTH &&
           transformed_value.match?(VALID_ASCII_TAG)
 
         if transformed_value.ascii_only? && transformed_value.length <= MAX_CHARACTER_LENGTH
