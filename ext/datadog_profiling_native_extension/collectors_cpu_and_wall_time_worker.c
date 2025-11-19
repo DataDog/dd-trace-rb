@@ -225,7 +225,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
 static void disable_tracepoints(cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
-static void cpu_and_wall_time_worker_state *state, const char *error);
+static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
