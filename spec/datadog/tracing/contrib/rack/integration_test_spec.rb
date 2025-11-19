@@ -153,7 +153,7 @@ RSpec.describe 'Rack integration tests' do
         let(:remote_boot_timeout) { 1.0 }
         let(:route) { '/success/' }
 
-        let(:component) { Datadog::Core::Remote.active_remote }
+        let(:component) { Datadog.send(:components).remote }
         let(:worker) { component.instance_eval { @worker } }
         let(:client) { double('Client') }
         let(:transport_v7) { double('Transport') }
