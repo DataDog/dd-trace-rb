@@ -44,7 +44,7 @@ module Datadog
             service_name: settings.service || '',
             service_env: settings.env || '',
             service_version: settings.version || '',
-            # TODO: Implement process tags and container id
+            # TODO: Implement process tags and container id and determine how it changes with this PR
             process_tags: '',
             container_id: ''
           }
