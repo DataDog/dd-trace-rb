@@ -50,10 +50,15 @@ module Datadog
 
         def redirect_response(interrupt_params)
           status_code = interrupt_params['status_code'].to_i
+          location = interrupt_params.fetch('location')
+
+          if (security_response_id = interrupt_params.fetch('security_response_id'))
+            location.gsub!(SECURITY_RESPONSE_ID_PLACEHOLDER, security_response_id)
+          end
 
           Response.new(
             status: ((status_code >= 300 && status_code < 400) ? status_code : 303),
-            headers: {'Location' => interrupt_params.fetch('location')},
+            headers: {'Location' => location},
             body: [],
           )
         end
