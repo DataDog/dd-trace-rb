@@ -27,7 +27,7 @@ jobs:
       changes: ${{ steps.changes.outputs.src }}
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
       - name: Changes
@@ -58,14 +58,14 @@ jobs:
       forced_tests: ${{ steps.compute_forced_tests.outputs.forced_tests }}
     steps:
       - name: Checkout DataDog/dd-trace-rb
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           repository: DataDog/dd-trace-rb
           fetch-depth: 2
           persist-credentials: false
           path: packaged/dd-trace-rb
       - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: dd-trace-rb  # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
           path: packaged
