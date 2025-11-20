@@ -512,7 +512,7 @@ RSpec.describe 'Telemetry integration tests' do
       )
     end
 
-    context 'when profiling is enabled' do
+    context 'when profiling is fully enabled' do
       before do
         Datadog.configure do |c|
           c.agent.port = http_server_port
@@ -532,6 +532,40 @@ RSpec.describe 'Telemetry integration tests' do
         )
         expect(payload.fetch(:payload).dig('payload', 'products')).to include(
           'profiler' => {'enabled' => true},
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when profiling is requested to be enabled but fails prerequisites' do
+      before do
+        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return('fake not supported reason')
+
+        Datadog.configure do |c|
+          c.agent.port = http_server_port
+          c.telemetry.enabled = true
+
+          c.profiling.enabled = true
+        end
+      end
+
+      it 'reports profiling as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0]
+        expect(payload.fetch(:payload)).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.fetch(:payload).dig('payload', 'products')).to include(
+          'profiler' => {
+            'enabled' => false,
+            'error' => {
+              'code' => 1,
+              'message' => 'fake not supported reason',
+            },
+          },
         )
 
         assert_remaining_events
