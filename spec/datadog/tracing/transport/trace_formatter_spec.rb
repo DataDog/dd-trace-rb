@@ -243,6 +243,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           expect(first_span.meta).to include(Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS)
           expect(first_span.meta[Datadog::Core::Environment::Ext::TAG_PROCESS_TAGS]).to eq(Datadog::Core::Environment::Process.serialized)
         end
+        
         it 'does not add process tags to non first spans' do
           format!
           trace.spans.each_with_index do |span, index|
