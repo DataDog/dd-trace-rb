@@ -12,16 +12,16 @@ extern VALUE eNativeArgumentError;
 extern VALUE eNativeTypeError;
 
 // Raises an exception of the specified class with the formatted string as its message.
-// The error is also sent for telemetry with the unformatted string:
-// this guarantees that no dynamic content is sent via telemetry, preventing potential
-// leakage of sensitive information.
-// *Native errors not raised through this function will not be reported via telemetry.*
-// Use this when you need to raise specific exception types like NativeRuntimeError, NativeArgumentError, NativeTypeError, etc.
-#define raise_error(exception_class, fmt, ...) \
-  _raise_error(exception_class, "" fmt, ##__VA_ARGS__)
+// This macro ensures that the literay string is sent for telemetry, while the formatted
+// message is the default `Exception#message`.
+// *Ruby exceptions not raised through this function will not be reported via telemetry.*
+// Only the following error classes are supported, as they require an extra field for
+// the telemetry-safe string: NativeRuntimeError, NativeArgumentError, NativeTypeError.
+#define raise_error(native_exception_class, fmt, ...) \
+  _raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
 
 NORETURN(
-  void _raise_error(VALUE exception_class, const char *fmt, ...)
+  void _raise_error(VALUE native_exception_class, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
 

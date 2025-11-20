@@ -29,12 +29,12 @@ void ruby_helpers_init(void) {
 }
 
 // Use `raise_error` the macro instead, as it provides additional argument checks.
-void _raise_error(VALUE exception_class, const char *fmt, ...) {
+void _raise_error(VALUE native_exception_class, const char *fmt, ...) {
   #ifdef DD_DEBUG
-    if (exception_class != eNativeRuntimeError &&
-        exception_class != eNativeArgumentError &&
-        exception_class != eNativeTypeError) {
-      rb_bug("[ddtrace] BUG: _raise_error called with an exception_class that might not support two messages. "
+    if (native_exception_class != eNativeRuntimeError &&
+        native_exception_class != eNativeArgumentError &&
+        native_exception_class != eNativeTypeError) {
+      rb_bug("[ddtrace] BUG: _raise_error called with a native_exception_class that might not support two messages. "
              "Must be one of eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError");
     }
   #endif
@@ -46,7 +46,7 @@ void _raise_error(VALUE exception_class, const char *fmt, ...) {
 
   // Pass both the static format string and the formatted message to the error class
   VALUE exception = rb_funcall(
-    exception_class,
+    native_exception_class,
     new_id,
     2,
     rb_str_new_cstr(fmt), // static string
