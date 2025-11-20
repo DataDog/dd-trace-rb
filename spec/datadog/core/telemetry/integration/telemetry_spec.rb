@@ -507,6 +507,14 @@ RSpec.describe 'Telemetry integration tests' do
 
     let(:component) { Datadog.send(:components).telemetry }
 
+    # Helper function to not copy/paste all of these settings for each
+    # test case, and also to not call Datadog.configure twice for each test.
+    def common_configuration(c)
+      c.agent.port = http_server_port
+      c.telemetry.enabled = true
+      c.telemetry.metrics_aggregation_interval_seconds = 1
+    end
+
     def assert_remaining_events
       # For sanity checking verify that the remaining events are as we
       # expect them to be.
@@ -527,9 +535,7 @@ RSpec.describe 'Telemetry integration tests' do
     context 'when profiling is fully enabled' do
       before do
         Datadog.configure do |c|
-          c.agent.port = http_server_port
-          c.telemetry.enabled = true
-          c.telemetry.metrics_aggregation_interval_seconds = 1
+          common_configuration(c)
 
           c.profiling.enabled = true
         end
@@ -556,9 +562,7 @@ RSpec.describe 'Telemetry integration tests' do
         expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return('fake not supported reason')
 
         Datadog.configure do |c|
-          c.agent.port = http_server_port
-          c.telemetry.enabled = true
-          c.telemetry.metrics_aggregation_interval_seconds = 1
+          common_configuration(c)
 
           c.profiling.enabled = true
         end
