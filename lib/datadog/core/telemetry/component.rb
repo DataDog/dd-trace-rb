@@ -21,7 +21,12 @@ module Datadog
       class Component
         ENDPOINT_COLLECTION_MESSAGE_LIMIT = 300
 
-        attr_reader :enabled, :logger, :transport, :worker
+        attr_reader :enabled
+        attr_reader :logger
+        attr_reader :transport
+        attr_reader :worker
+        attr_reader :settings
+        attr_reader :agent_settings
 
         # Alias for consistency with other components.
         # TODO Remove +enabled+ method
@@ -107,10 +112,6 @@ module Datadog
 
           @agent_settings = agent_settings
         end
-
-        attr_reader :settings
-        attr_reader :agent_settings
-        attr_reader :logger
 
         def disable!
           @enabled = false
