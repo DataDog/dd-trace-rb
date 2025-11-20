@@ -40,7 +40,7 @@ module Datadog
                 enabled: components.settings.appsec.enabled,
               },
               profiler: {
-                enabled: !!components.profiler&.enabled?,
+                enabled: !!components.profiler,
               },
               dynamic_instrumentation: {
                 enabled: !!components.dynamic_instrumentation,
