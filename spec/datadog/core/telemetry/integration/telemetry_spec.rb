@@ -709,6 +709,69 @@ RSpec.describe 'Telemetry integration tests' do
         assert_remaining_events
       end
     end
+
+    context 'when appsec is fully enabled' do
+      before do
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.appsec.enabled = true
+        end
+      end
+
+      it 'reports appsec as being enabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'appsec.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'appsec' => {'enabled' => true},
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when appsec is requested to be enabled but fails initialization' do
+      before do
+        # AppSec has very modest prerequisites, it's easier to fail
+        # its initialization than to make the prerequisites not fulfilled.
+        expect(Datadog::AppSec::SecurityEngine::Engine).to receive(:new).and_raise("fake exception")
+
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.appsec.enabled = true
+        end
+      end
+
+      it 'reports appsec as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'appsec.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'appsec' => {
+            'enabled' => false,
+            # AppSec currently does not provide the reason why it's not enabled.
+          },
+        )
+
+        assert_remaining_events
+      end
+    end
   end
 
   context 'when process forks' do
