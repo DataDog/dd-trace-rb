@@ -22,7 +22,6 @@ static VALUE resolution_details_get_flag_type(VALUE self);
 static VALUE resolution_details_get_variant(VALUE self);
 static VALUE resolution_details_get_allocation_key(VALUE self);
 static VALUE resolution_details_get_reason(VALUE self);
-static VALUE resolution_details_is_error(VALUE self);
 static VALUE resolution_details_get_error_code(VALUE self);
 static VALUE resolution_details_get_error_message(VALUE self);
 static VALUE resolution_details_get_do_log(VALUE self);
@@ -100,7 +99,6 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(resolution_details_class, "variant", resolution_details_get_variant, 0);
   rb_define_method(resolution_details_class, "allocation_key", resolution_details_get_allocation_key, 0);
   rb_define_method(resolution_details_class, "reason", resolution_details_get_reason, 0);
-  rb_define_method(resolution_details_class, "error?", resolution_details_is_error, 0);
   rb_define_method(resolution_details_class, "error_code", resolution_details_get_error_code, 0);
   rb_define_method(resolution_details_class, "error_message", resolution_details_get_error_message, 0);
   rb_define_method(resolution_details_class, "log?", resolution_details_get_do_log, 0);
@@ -447,21 +445,6 @@ static VALUE resolution_details_get_reason(VALUE self) {
     default:
       return rb_str_new_lit("UNKNOWN");
   }
-}
-
-/*
- * call-seq:
- *   resolution_details.error?() -> Boolean
- *
- * Check if the resolution resulted in an error.
- *
- * @return [Boolean] True if there was an error
- */
-static VALUE resolution_details_is_error(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails resolution_details =
-    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
-  enum ddog_ffe_Reason reason = ddog_ffe_assignment_get_reason(resolution_details);
-  return reason == DDOG_FFE_REASON_ERROR ? Qtrue : Qfalse;
 }
 
 /*

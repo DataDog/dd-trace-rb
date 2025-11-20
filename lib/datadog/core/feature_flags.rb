@@ -37,6 +37,13 @@ module Datadog
         end
 
         attr_writer :value
+
+        # Check if the resolution resulted in an error
+        #
+        # @return [Boolean] True if there was an error
+        def error?
+          reason == 'ERROR'
+        end
       end
     end
   end
