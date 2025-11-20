@@ -36,7 +36,7 @@ module Datadog
 
         def replace!: (Object) -> Object?
 
-	def clear: -> void
+        def clear: -> void
       end
     end
   end
