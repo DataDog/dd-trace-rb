@@ -7,6 +7,8 @@ module Datadog
   module Core
     module Environment
       # Retrieves process level information such that it can be attached to various payloads
+      #
+      # @api private
       module Process
         extend self
 
