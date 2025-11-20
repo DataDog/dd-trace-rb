@@ -6,18 +6,20 @@ require_relative 'resolution_details'
 
 module Datadog
   module OpenFeature
-    # Evaluation using native extension
+    # This class is an interface of evaluation logic using native extension
     class NativeEvaluator
       def initialize(configuration)
-        @configuration = Datadog::Core::FeatureFlags::Configuration.new(configuration)
+        @configuration = Core::FeatureFlags::Configuration.new(configuration)
       end
 
       def get_assignment(flag_key, default_value, context, expected_type)
-        native_details = @configuration.get_assignment(flag_key, expected_type, context)
+        result = @configuration.get_assignment(flag_key, expected_type, context)
 
-        native_details.value = default_value if native_details.variant.nil?
-
-        native_details
+        # NOTE: This is a special case when we need to fallback to the default
+        #       value, even tho the evaluation itself doesn't produce an error
+        #       resolution details
+        result.value = default_value if result.variant.nil?
+        result
       end
     end
   end
