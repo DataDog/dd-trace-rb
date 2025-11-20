@@ -8,8 +8,12 @@ module Datadog
       module Event
         # Telemetry class for the 'app-started' event
         class AppStarted < Base
-          def initialize(agent_settings:)
-            @agent_settings = agent_settings
+          def initialize(components:)
+            # To not hold a reference to the component tree, generate
+            # the event payload here in the constructor.
+            @configuration = configuration(components.settings, components.agent_settings)
+            @install_signature = install_signature(components.settings)
+            @products = products(components)
           end
 
           def type
@@ -18,9 +22,9 @@ module Datadog
 
           def payload
             {
-              products: products,
-              configuration: configuration,
-              install_signature: install_signature,
+              products: @products,
+              configuration: @configuration,
+              install_signature: @install_signature,
               # DEV: Not implemented yet
               # error: error, # Start-up errors
             }
@@ -28,17 +32,18 @@ module Datadog
 
           private
 
-          def products
+          def products(components)
             # @type var products: Hash[Symbol, Hash[Symbol, Hash[Symbol, String | Integer] | bool | nil]]
             products = {
               appsec: {
-                enabled: Datadog::AppSec.enabled?,
+                # TODO take appsec status out of component tree?
+                enabled: components.settings.appsec.enabled,
               },
               profiler: {
-                enabled: Datadog::Profiling.enabled?,
+                enabled: !!components.profiler&.enabled?,
               },
               dynamic_instrumentation: {
-                enabled: defined?(Datadog::DI) && Datadog::DI.respond_to?(:enabled?) && Datadog::DI.enabled?,
+                enabled: !!components.dynamic_instrumentation,
               }
             }
 
@@ -73,12 +78,11 @@ module Datadog
 
           # standard:disable Metrics/AbcSize
           # standard:disable Metrics/MethodLength
-          def configuration
-            config = Datadog.configuration
+          def configuration(settings, agent_settings)
             seq_id = Event.configuration_sequence.next
 
             # tracing.writer_options.buffer_size and tracing.writer_options.flush_interval have the same origin.
-            writer_option_origin = get_telemetry_origin(config, 'tracing.writer_options')
+            writer_option_origin = get_telemetry_origin(settings, 'tracing.writer_options')
 
             list = [
               # Only set using env var as of June 2025
@@ -100,59 +104,59 @@ module Datadog
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              conf_value('DD_AGENT_TRANSPORT', agent_transport, seq_id, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
+              conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings), seq_id, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
 
               # writer_options is defined as an option that has a Hash value.
               conf_value(
                 'tracing.writer_options.buffer_size',
-                to_value(config.tracing.writer_options[:buffer_size]),
+                to_value(settings.tracing.writer_options[:buffer_size]),
                 seq_id,
                 writer_option_origin
               ),
               conf_value(
                 'tracing.writer_options.flush_interval',
-                to_value(config.tracing.writer_options[:flush_interval]),
+                to_value(settings.tracing.writer_options[:flush_interval]),
                 seq_id,
                 writer_option_origin
               ),
 
-              conf_value('DD_AGENT_HOST', config.agent.host, seq_id, get_telemetry_origin(config, 'agent.host')),
+              conf_value('DD_AGENT_HOST', settings.agent.host, seq_id, get_telemetry_origin(settings, 'agent.host')),
               conf_value(
                 'DD_TRACE_SAMPLE_RATE',
-                to_value(config.tracing.sampling.default_rate),
+                to_value(settings.tracing.sampling.default_rate),
                 seq_id,
-                get_telemetry_origin(config, 'tracing.sampling.default_rate')
+                get_telemetry_origin(settings, 'tracing.sampling.default_rate')
               ),
               conf_value(
                 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED',
-                config.tracing.contrib.global_default_service_name.enabled,
+                settings.tracing.contrib.global_default_service_name.enabled,
                 seq_id,
-                get_telemetry_origin(config, 'tracing.contrib.global_default_service_name.enabled')
+                get_telemetry_origin(settings, 'tracing.contrib.global_default_service_name.enabled')
               ),
               conf_value(
                 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED',
-                config.tracing.contrib.peer_service_defaults,
+                settings.tracing.contrib.peer_service_defaults,
                 seq_id,
-                get_telemetry_origin(config, 'tracing.contrib.peer_service_defaults')
+                get_telemetry_origin(settings, 'tracing.contrib.peer_service_defaults')
               ),
               conf_value(
                 'DD_TRACE_DEBUG',
-                config.diagnostics.debug,
+                settings.diagnostics.debug,
                 seq_id,
-                get_telemetry_origin(config, 'diagnostics.debug')
+                get_telemetry_origin(settings, 'diagnostics.debug')
               )
             ]
 
             peer_service_mapping_str = ''
-            unless config.tracing.contrib.peer_service_mapping.empty?
-              peer_service_mapping = config.tracing.contrib.peer_service_mapping
+            unless settings.tracing.contrib.peer_service_mapping.empty?
+              peer_service_mapping = settings.tracing.contrib.peer_service_mapping
               peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
             end
             list << conf_value(
               'DD_TRACE_PEER_SERVICE_MAPPING',
               peer_service_mapping_str,
               seq_id,
-              get_telemetry_origin(config, 'tracing.contrib.peer_service_mapping')
+              get_telemetry_origin(settings, 'tracing.contrib.peer_service_mapping')
             )
 
             # Whitelist of configuration options to send in additional payload object
@@ -160,9 +164,9 @@ module Datadog
               split_option = option_path.split('.')
               list << conf_value(
                 option_path,
-                to_value(config.dig(*split_option)),
+                to_value(settings.dig(*split_option)),
                 seq_id,
-                get_telemetry_origin(config, option_path)
+                get_telemetry_origin(settings, option_path)
               )
             end
 
@@ -181,34 +185,34 @@ module Datadog
             )
 
             # Add some more custom additional payload values here
-            if config.logger.instance
+            if settings.logger.instance
               list << conf_value(
                 'logger.instance',
-                config.logger.instance.class.to_s,
+                settings.logger.instance.class.to_s,
                 seq_id,
-                get_telemetry_origin(config, 'logger.instance')
+                get_telemetry_origin(settings, 'logger.instance')
               )
             end
-            if config.respond_to?('appsec')
+            if settings.respond_to?('appsec')
               list << conf_value(
                 'appsec.enabled',
-                config.dig('appsec', 'enabled'),
+                settings.dig('appsec', 'enabled'),
                 seq_id,
-                get_telemetry_origin(config, 'appsec.enabled')
+                get_telemetry_origin(settings, 'appsec.enabled')
               )
               list << conf_value(
                 'appsec.sca_enabled',
-                config.dig('appsec', 'sca_enabled'),
+                settings.dig('appsec', 'sca_enabled'),
                 seq_id,
-                get_telemetry_origin(config, 'appsec.sca_enabled')
+                get_telemetry_origin(settings, 'appsec.sca_enabled')
               )
             end
-            if config.respond_to?('ci')
+            if settings.respond_to?('ci')
               list << conf_value(
                 'ci.enabled',
-                config.dig('ci', 'enabled'),
+                settings.dig('ci', 'enabled'),
                 seq_id,
-                get_telemetry_origin(config, 'ci.enabled')
+                get_telemetry_origin(settings, 'ci.enabled')
               )
             end
 
@@ -218,8 +222,8 @@ module Datadog
           # standard:enable Metrics/AbcSize
           # standard:enable Metrics/MethodLength
 
-          def agent_transport
-            adapter = @agent_settings.adapter
+          def agent_transport(agent_settings)
+            adapter = agent_settings.adapter
             if adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
               'UDS'
             else
@@ -260,23 +264,22 @@ module Datadog
             end
           end
 
-          def install_signature
-            config = Datadog.configuration
+          def install_signature(settings)
             {
-              install_id: config.dig('telemetry', 'install_id'),
-              install_type: config.dig('telemetry', 'install_type'),
-              install_time: config.dig('telemetry', 'install_time'),
+              install_id: settings.dig('telemetry', 'install_id'),
+              install_type: settings.dig('telemetry', 'install_type'),
+              install_time: settings.dig('telemetry', 'install_time'),
             }
           end
 
-          def get_telemetry_origin(config, config_path)
+          def get_telemetry_origin(settings, config_path)
             split_option = config_path.split('.')
             option_name = split_option.pop
             return 'unknown' if option_name.nil?
 
             # @type var parent_setting: Core::Configuration::Options
             # @type var option: Core::Configuration::Option
-            parent_setting = config.dig(*split_option)
+            parent_setting = settings.dig(*split_option)
             option = parent_setting.send(:resolve_option, option_name.to_sym)
             option.precedence_set&.origin || 'unknown'
           end

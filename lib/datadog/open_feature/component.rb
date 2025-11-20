@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
+require_relative 'transport'
 require_relative 'evaluation_engine'
 require_relative 'exposures/buffer'
 require_relative 'exposures/worker'
 require_relative 'exposures/deduplicator'
 require_relative 'exposures/reporter'
-require_relative 'transport/http'
 
 module Datadog
   module OpenFeature
@@ -18,9 +18,26 @@ module Datadog
 
         unless settings.respond_to?(:remote) && settings.remote.enabled
           message = 'OpenFeature could not be enabled as Remote Configuration is currently disabled. ' \
-            'To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config'
-          logger.warn(message)
+            'To enable Remote Configuration, see https://docs.datadoghq.com/remote_configuration/.'
 
+          logger.warn(message)
+          return
+        end
+
+        if RUBY_ENGINE != 'ruby'
+          message = 'OpenFeature could not be enabled as MRI is required, ' \
+            "but running on #{RUBY_ENGINE.inspect}"
+
+          logger.warn(message)
+          return
+        end
+
+        if (libdatadog_api_failure = Core::LIBDATADOG_API_FAILURE)
+          message = 'OpenFeature could not be enabled as `libdatadog` is not loaded: ' \
+            "#{libdatadog_api_failure.inspect}. For help solving this issue, " \
+            'please contact Datadog support at https://docs.datadoghq.com/help/.'
+
+          logger.warn(message)
           return
         end
 
