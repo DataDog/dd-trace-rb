@@ -469,6 +469,8 @@ RSpec.describe 'Telemetry integration tests' do
   end
 
   context 'when process forks' do
+    skip_unless_fork_supported
+
     # The mode is irrelevant but we need settings from the context.
     include_context 'agent mode'
 
