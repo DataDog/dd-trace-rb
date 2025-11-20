@@ -17,6 +17,8 @@ RSpec.describe Datadog::Core::Environment::Process do
   end
 
   describe 'Scenario: Real applications' do
+    skip_unless_integration_testing_enabled
+    
     context 'when running a real Rails application' do
       it 'detects Rails process information correctly' do
         project_root_directory = Dir.pwd
