@@ -17,7 +17,8 @@ static VALUE configuration_get_assignment(
   VALUE self, VALUE flag_key, VALUE expected_type, VALUE context);
 
 static void resolution_details_free(void *ptr);
-static VALUE resolution_details_get_value(VALUE self);
+static VALUE resolution_details_get_raw_value(VALUE self);
+static VALUE resolution_details_get_flag_type(VALUE self);
 static VALUE resolution_details_get_variant(VALUE self);
 static VALUE resolution_details_get_allocation_key(VALUE self);
 static VALUE resolution_details_get_reason(VALUE self);
@@ -93,7 +94,8 @@ void feature_flags_init(VALUE core_module) {
 
   resolution_details_class = rb_define_class_under(feature_flags_module, "ResolutionDetails", rb_cObject);
   rb_undef_alloc_func(resolution_details_class);
-  rb_define_method(resolution_details_class, "value", resolution_details_get_value, 0);
+  rb_define_method(resolution_details_class, "raw_value", resolution_details_get_raw_value, 0);
+  rb_define_method(resolution_details_class, "flag_type", resolution_details_get_flag_type, 0);
   rb_define_method(resolution_details_class, "variant", resolution_details_get_variant, 0);
   rb_define_method(resolution_details_class, "allocation_key", resolution_details_get_allocation_key, 0);
   rb_define_method(resolution_details_class, "reason", resolution_details_get_reason, 0);
@@ -299,13 +301,14 @@ static void resolution_details_free(void *ptr) {
 
 /*
  * call-seq:
- *   resolution_details.value() -> Object
+ *   resolution_details.raw_value() -> Object
  *
- * Get the resolved value.
+ * Get the raw resolved value from libdatadog.
  *
  * The value can be any type depending on the feature flag (String, Integer, Float, Boolean, or nil).
+ * For object types, returns the raw JSON string without parsing.
  */
-static VALUE resolution_details_get_value(VALUE self) {
+static VALUE resolution_details_get_raw_value(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
 
   struct ddog_ffe_VariantValue value = ddog_ffe_assignment_get_value(resolution_details);
@@ -321,6 +324,36 @@ static VALUE resolution_details_get_value(VALUE self) {
       return value.boolean ? Qtrue : Qfalse;
     case DDOG_FFE_VARIANT_VALUE_OBJECT:
       return str_from_borrow(value.string);
+    case DDOG_FFE_VARIANT_VALUE_NONE:
+    default:
+      return Qnil;
+  }
+}
+
+/*
+ * call-seq:
+ *   resolution_details.flag_type() -> Symbol or nil
+ *
+ * Get the type of the flag value.
+ *
+ * @return [Symbol, nil] One of: :string, :integer, :float, :boolean, :object, nil
+ */
+static VALUE resolution_details_get_flag_type(VALUE self) {
+  ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+
+  struct ddog_ffe_VariantValue value = ddog_ffe_assignment_get_value(resolution_details);
+
+  switch (value.tag) {
+    case DDOG_FFE_VARIANT_VALUE_STRING:
+      return ID2SYM(id_string);
+    case DDOG_FFE_VARIANT_VALUE_INTEGER:
+      return ID2SYM(id_integer);
+    case DDOG_FFE_VARIANT_VALUE_FLOAT:
+      return ID2SYM(id_float);
+    case DDOG_FFE_VARIANT_VALUE_BOOLEAN:
+      return ID2SYM(id_boolean);
+    case DDOG_FFE_VARIANT_VALUE_OBJECT:
+      return ID2SYM(id_object);
     case DDOG_FFE_VARIANT_VALUE_NONE:
     default:
       return Qnil;

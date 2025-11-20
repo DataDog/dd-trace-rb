@@ -11,7 +11,13 @@ module Datadog
       end
 
       class ResolutionDetails
+        def raw_value: () -> untyped
+
+        def flag_type: () -> Symbol?
+
         def value: () -> untyped
+
+        def value=: (untyped) -> untyped
 
         def variant: () -> String?
 
