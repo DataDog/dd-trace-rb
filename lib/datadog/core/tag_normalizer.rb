@@ -2,6 +2,7 @@
 
 module Datadog
   module Core
+    # @api private
     module TagNormalizer
       # Normalization logic used for tag keys and values that the Trace Agent has for traces
       # Useful for ensuring that tag keys and values are normalized consistently

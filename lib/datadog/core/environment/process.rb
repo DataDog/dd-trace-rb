@@ -10,11 +10,9 @@ module Datadog
       #
       # @api private
       module Process
-        extend self
-
         # This method returns a key/value part of serialized tags in the format of k1:v1,k2:v2,k3:v3
         # @return [String] comma-separated normalized key:value pairs
-        def serialized
+        def self.serialized
           return @serialized if defined?(@serialized)
           tags = []
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{TagNormalizer.normalize(entrypoint_workdir, remove_digit_start_char: false)}" if entrypoint_workdir
@@ -24,19 +22,17 @@ module Datadog
           @serialized = tags.join(',').freeze
         end
 
-        private
-
         # Returns the last segment of the working directory of the process
         # Example: /app/myapp -> myapp
         # @return [String] the last segment of the working directory
-        def entrypoint_workdir
+        def self.entrypoint_workdir
           File.basename(Dir.pwd)
         end
 
         # Returns the entrypoint type of the process
         # In Ruby, the entrypoint type is always 'script'
         # @return [String] the type of the process, which is fixed in Ruby
-        def entrypoint_type
+        def self.entrypoint_type
           Environment::Ext::PROCESS_TYPE
         end
 
@@ -44,7 +40,7 @@ module Datadog
         # Example 1: /bin/mybin -> mybin
         # Example 2: ruby /test/myapp.rb -> myapp
         # @return [String] the last segment of base directory of the script
-        def entrypoint_name
+        def self.entrypoint_name
           File.basename($0)
         end
 
@@ -52,9 +48,11 @@ module Datadog
         # Example 1: /bin/mybin -> bin
         # Example 2: ruby /test/myapp.js -> test
         # @return [String] the last segment of the base directory of the script
-        def entrypoint_basedir
+        def self.entrypoint_basedir
           File.basename(File.expand_path(File.dirname($0)))
         end
+
+        private_class_method :entrypoint_workdir, :entrypoint_type, :entrypoint_name, :entrypoint_basedir
       end
     end
   end
