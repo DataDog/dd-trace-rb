@@ -163,6 +163,7 @@ static ddog_ffe_ExpectedFlagType expected_type_from_value(VALUE expected_type) {
 
 // Structure to hold state during hash iteration for building evaluation context
 struct evaluation_context_builder {
+  VALUE hash;
   const char *targeting_key;
   ddog_ffe_AttributePair *attrs;
   long attr_count;
@@ -228,6 +229,25 @@ static int evaluation_context_foreach_callback(VALUE key, VALUE value, VALUE arg
   return ST_CONTINUE;
 }
 
+
+static VALUE protected_context_build(VALUE p) {
+  struct evaluation_context_builder *builder = (struct evaluation_context_builder *)p;
+
+  rb_hash_foreach(builder->hash, evaluation_context_foreach_callback, p);
+
+  return (VALUE)ddog_ffe_evaluation_context_new(
+    builder->targeting_key,
+    builder->attrs,
+    builder->attr_count
+  );
+}
+
+static VALUE protected_context_cleanup(VALUE p) {
+  struct evaluation_context_builder *builder = (struct evaluation_context_builder *)p;
+  ruby_xfree(builder->attrs);
+  return Qnil;
+}
+
 // The hash should contain attributes for feature flag evaluation. The
 // special key "targeting_key" (if present) is extracted separately as
 // it has special meaning in the libdatadog API. All other key-value
@@ -242,23 +262,15 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_from_hash(VALUE hash
 
   // Initialize builder with pre-allocated attribute array
   struct evaluation_context_builder builder = {
+    .hash = hash,
     .targeting_key = NULL,
     .attrs = ruby_xcalloc(RHASH_SIZE(hash), sizeof(ddog_ffe_AttributePair)),
     .attr_count = 0,
     .attr_capacity = RHASH_SIZE(hash)
   };
 
-  rb_hash_foreach(hash, evaluation_context_foreach_callback, (VALUE)&builder);
-
-  const ddog_ffe_Handle_EvaluationContext context = ddog_ffe_evaluation_context_new(
-    builder.targeting_key,
-    builder.attrs,
-    builder.attr_count
-  );
-
-  ruby_xfree(builder.attrs);
-
-  return context;
+  return (ddog_ffe_Handle_EvaluationContext)rb_ensure(
+    protected_context_build, (VALUE)&builder, protected_context_cleanup, (VALUE)&builder);
 }
 
 /*
