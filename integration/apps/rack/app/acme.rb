@@ -13,15 +13,15 @@ module Acme
 
     def router
       Router.new(
-        '/' => { controller: controllers[:health], action: :check },
-        '/health' => { controller: controllers[:health], action: :check },
-        '/health/detailed' => { controller: controllers[:health], action: :detailed_check },
-        '/basic/fibonacci' => { controller: controllers[:basic], action: :fibonacci },
-        '/basic/default' => { controller: controllers[:basic], action: :default },
-        '/background_jobs/read_resque' => { controller: controllers[:background_jobs], action: :read_resque },
-        '/background_jobs/write_resque' => { controller: controllers[:background_jobs], action: :write_resque },
-        '/background_jobs/read_sidekiq' => { controller: controllers[:background_jobs], action: :read_sidekiq },
-        '/background_jobs/write_sidekiq' => { controller: controllers[:background_jobs], action: :write_sidekiq },
+        '/' => {controller: controllers[:health], action: :check},
+        '/health' => {controller: controllers[:health], action: :check},
+        '/health/detailed' => {controller: controllers[:health], action: :detailed_check},
+        '/basic/fibonacci' => {controller: controllers[:basic], action: :fibonacci},
+        '/basic/default' => {controller: controllers[:basic], action: :default},
+        '/background_jobs/read_resque' => {controller: controllers[:background_jobs], action: :read_resque},
+        '/background_jobs/write_resque' => {controller: controllers[:background_jobs], action: :write_resque},
+        '/background_jobs/read_sidekiq' => {controller: controllers[:background_jobs], action: :read_sidekiq},
+        '/background_jobs/write_sidekiq' => {controller: controllers[:background_jobs], action: :write_sidekiq},
       )
     end
 
@@ -42,23 +42,21 @@ module Acme
     end
 
     def route!(request)
-      begin
-        if route = routes[request.path]
-          route[:controller].send(route[:action], request)
-        else
-          not_found(request)
-        end
-      rescue StandardError => e
-        application_error(request, e)
+      if route = routes[request.path]
+        route[:controller].send(route[:action], request)
+      else
+        not_found(request)
       end
+    rescue => e
+      application_error(request, e)
     end
 
     def not_found(request)
-      [404, { 'content-type' => 'text/plain' }, ["404 Not Found: #{request.path}"]]
+      [404, {'content-type' => 'text/plain'}, ["404 Not Found: #{request.path}"]]
     end
 
     def application_error(request, error)
-      [500, { 'content-type' => 'text/plain' }, ["500 Application Error: #{error.class.name} #{error.message} Location: #{error.backtrace.first(3)}"]]
+      [500, {'content-type' => 'text/plain'}, ["500 Application Error: #{error.class.name} #{error.message} Location: #{error.backtrace.first(3)}"]]
     end
   end
 
@@ -67,17 +65,17 @@ module Acme
       def fibonacci(request)
         n = rand(25..35)
         result = fib(n)
-        [200, { 'content-type' => 'text/plain' }, ["Basic: Fibonacci(#{n}): #{result}"]]
+        [200, {'content-type' => 'text/plain'}, ["Basic: Fibonacci(#{n}): #{result}"]]
       end
 
       def default(request)
-        [200, { 'content-type' => 'text/plain' }, ["Basic: Default", "\nWebserver process: #{$PROGRAM_NAME}"]]
+        [200, {'content-type' => 'text/plain'}, ["Basic: Default", "\nWebserver process: #{$PROGRAM_NAME}"]]
       end
 
       private
 
       def fib(n)
-        n <= 1 ? n : fib(n-1) + fib(n-2)
+        (n <= 1) ? n : fib(n - 1) + fib(n - 2)
       end
     end
 
@@ -87,7 +85,7 @@ module Acme
       end
 
       def detailed_check(request)
-        [200, { 'content-type' => 'application/json'}, [JSON.pretty_generate(
+        [200, {'content-type' => 'application/json'}, [JSON.pretty_generate(
           webserver_process: $PROGRAM_NAME,
           profiler_available: Datadog::Profiling.start_if_enabled,
           profiler_threads: Thread.list.map(&:name).select { |it| it && it.include?('Profiling') },
@@ -97,7 +95,7 @@ module Acme
 
     class BackgroundJobs
       def read_sidekiq(request)
-        [200, { 'content-type' => 'application/json' }, [SidekiqBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
+        [200, {'content-type' => 'application/json'}, [SidekiqBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
       end
 
       def write_sidekiq(request)
@@ -107,7 +105,7 @@ module Acme
       end
 
       def read_resque(request)
-        [200, { 'content-type' => 'application/json' }, [ResqueBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
+        [200, {'content-type' => 'application/json'}, [ResqueBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
       end
 
       def write_resque(request)
