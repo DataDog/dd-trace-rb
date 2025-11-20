@@ -235,16 +235,6 @@ static VALUE protected_context_build(VALUE p) {
 
   rb_hash_foreach(builder->hash, evaluation_context_foreach_callback, p);
 
-  return (VALUE)ddog_ffe_evaluation_context_new(
-    builder->targeting_key,
-    builder->attrs,
-    builder->attr_count
-  );
-}
-
-static VALUE protected_context_cleanup(VALUE p) {
-  struct evaluation_context_builder *builder = (struct evaluation_context_builder *)p;
-  ruby_xfree(builder->attrs);
   return Qnil;
 }
 
@@ -269,8 +259,24 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_from_hash(VALUE hash
     .attr_capacity = RHASH_SIZE(hash)
   };
 
-  return (ddog_ffe_Handle_EvaluationContext)rb_ensure(
-    protected_context_build, (VALUE)&builder, protected_context_cleanup, (VALUE)&builder);
+  int state = 0;
+  rb_protect(protected_context_build, (VALUE)&builder, &state);
+
+  // If an exception occurred, clean up and re-raise
+  if (state != 0) {
+    ruby_xfree(builder.attrs);
+    rb_jump_tag(state);
+  }
+
+  ddog_ffe_Handle_EvaluationContext context = ddog_ffe_evaluation_context_new(
+    builder.targeting_key,
+    builder.attrs,
+    builder.attr_count
+  );
+
+  ruby_xfree(builder.attrs);
+
+  return context;
 }
 
 /*
