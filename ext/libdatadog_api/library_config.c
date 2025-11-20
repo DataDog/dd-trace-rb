@@ -106,7 +106,6 @@ static VALUE _native_configurator_get(VALUE self) {
   // so the allocated memory will still be freed
   ddog_LibraryConfigLoggedResult *configurator_logged_result = ruby_xcalloc(1, sizeof(ddog_LibraryConfigLoggedResult));
   *configurator_logged_result = ddog_library_configurator_get(configurator);
-  VALUE config_logged_result_rb = TypedData_Wrap_Struct(config_logged_result_class, &config_logged_result_typed_data, configurator_logged_result);
 
   if (configurator_logged_result->tag == DDOG_LIBRARY_CONFIG_LOGGED_RESULT_ERR) {
     ddog_Error err = configurator_logged_result->err;
@@ -116,9 +115,10 @@ static VALUE _native_configurator_get(VALUE self) {
     } else {
       log_warning_without_config(message);
     }
-    RB_GC_GUARD(config_logged_result_rb);
     return rb_hash_new();
   }
+
+  VALUE config_logged_result_rb = TypedData_Wrap_Struct(config_logged_result_class, &config_logged_result_typed_data, configurator_logged_result);
 
   VALUE logs = Qnil;
   if (configurator_logged_result->ok.logs.length > 0) {
