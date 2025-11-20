@@ -1,6 +1,6 @@
 module Datadog
   module Core
-    module Normalizer
+    module TagNormalizer
       INVALID_TAG_CHARACTERS: ::Regexp
       LEADING_INVALID_CHARS_NO_DIGITS: ::Regexp
       LEADING_INVALID_CHARS_WITH_DIGITS: ::Regexp
@@ -12,3 +12,4 @@ module Datadog
     end
   end
 end
+

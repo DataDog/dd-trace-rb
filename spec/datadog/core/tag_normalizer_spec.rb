@@ -1,7 +1,7 @@
 require 'spec_helper'
-require 'datadog/core/normalizer'
+require 'datadog/core/tag_normalizer'
 
-RSpec.describe Datadog::Core::Normalizer do
+RSpec.describe Datadog::Core::TagNormalizer do
   describe 'Follows the normalization logic from the Trace Agent for tag keys' do
     # Test cases from the Trace Agent for consistency
     # https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize_test.go#L17
