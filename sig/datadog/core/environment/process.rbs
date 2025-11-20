@@ -4,17 +4,17 @@ module Datadog
       module Process
         @serialized: ::String
 
-        def serialized: () -> ::String
+        def self.serialized: () -> ::String
 
         private
 
-        def entrypoint_workdir: () -> ::String
+        def self.entrypoint_workdir: () -> ::String
 
-        def entrypoint_type: () -> ::String
+        def self.entrypoint_type: () -> ::String
 
-        def entrypoint_name: () -> ::String
+        def self.entrypoint_name: () -> ::String
 
-        def entrypoint_basedir: () -> ::String
+        def self.entrypoint_basedir: () -> ::String
       end
     end
   end
