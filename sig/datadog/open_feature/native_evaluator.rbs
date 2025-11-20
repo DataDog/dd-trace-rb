@@ -1,18 +1,11 @@
 module Datadog
   module OpenFeature
     class NativeEvaluator
-      @libdatadog_api_failure: String?
-      @configuration: Core::FeatureFlags::Configuration?
+      @configuration: Core::FeatureFlags::Configuration
 
-      def initialize: (String? configuration) -> void
+      def initialize: (String configuration) -> void
 
       def get_assignment: (String flag_key, untyped default_value, Hash[String, untyped] context, String expected_type) -> ResolutionDetails
-
-      private
-
-      def build_fatal_error: (untyped default_value) -> ResolutionDetails
-
-      def build_not_ready_error: (untyped default_value) -> ResolutionDetails
     end
   end
 end

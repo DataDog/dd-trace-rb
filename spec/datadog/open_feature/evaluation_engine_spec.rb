@@ -45,7 +45,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         expect(result.value).to eq('fallback')
         expect(result.error_code).to eq('PROVIDER_NOT_READY')
-        expect(result.error_message).to eq('Configuration not available')
+        expect(result.error_message).to eq('Waiting for flags configuration')
         expect(result.reason).to eq('ERROR')
       end
     end

@@ -10,19 +10,11 @@ module Datadog
     # Evaluation using native extension
     class NativeEvaluator
       def initialize(configuration)
-        @libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE
-        if configuration && !@libdatadog_api_failure
-          @configuration = Datadog::Core::FeatureFlags::Configuration.new(configuration)
-        end
+        @configuration = Datadog::Core::FeatureFlags::Configuration.new(configuration)
       end
 
       def get_assignment(flag_key, default_value, context, expected_type)
-        return build_fatal_error(default_value) if @libdatadog_api_failure
-
-        configuration = @configuration
-        return build_not_ready_error(default_value) if configuration.nil?
-
-        native_details = configuration.get_assignment(flag_key, expected_type.to_sym, context)
+        native_details = @configuration.get_assignment(flag_key, expected_type.to_sym, context)
 
         variant = native_details.variant
         value = native_details.value
@@ -50,24 +42,6 @@ module Datadog
           value: default_value,
           error_code: 'PARSE_ERROR',
           error_message: "Failed to parse JSON value: #{e.message}"
-        )
-      end
-
-      private
-
-      def build_fatal_error(default_value)
-        ResolutionDetails.build_error(
-          value: default_value,
-          error_code: Ext::PROVIDER_FATAL,
-          error_message: "libdatadog is not available: #{@libdatadog_api_failure}"
-        )
-      end
-
-      def build_not_ready_error(default_value)
-        ResolutionDetails.build_error(
-          value: default_value,
-          error_code: Ext::PROVIDER_NOT_READY,
-          error_message: 'Configuration not available'
         )
       end
     end
