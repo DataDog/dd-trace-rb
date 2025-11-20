@@ -86,6 +86,7 @@ void feature_flags_init(VALUE core_module) {
   VALUE feature_flags_module = rb_define_module_under(core_module, "FeatureFlags");
 
   feature_flags_error_class = rb_define_class_under(feature_flags_module, "Error", rb_eStandardError);
+  rb_gc_register_address(&feature_flags_error_class);
 
   VALUE configuration_class = rb_define_class_under(feature_flags_module, "Configuration", rb_cObject);
   rb_undef_alloc_func(configuration_class);
@@ -93,6 +94,7 @@ void feature_flags_init(VALUE core_module) {
   rb_define_method(configuration_class, "get_assignment", configuration_get_assignment, 3);
 
   resolution_details_class = rb_define_class_under(feature_flags_module, "ResolutionDetails", rb_cObject);
+  rb_gc_register_address(&resolution_details_class);
   rb_undef_alloc_func(resolution_details_class);
   rb_define_method(resolution_details_class, "raw_value", resolution_details_get_raw_value, 0);
   rb_define_method(resolution_details_class, "flag_type", resolution_details_get_flag_type, 0);
