@@ -7,28 +7,14 @@ module Datadog
     module Metrics
       module_function
 
-      def initialize!(settings, agent_settings, logger)
-        @logger = logger
-        @settings = settings
-        # agent_settings.hostname is resolved by AgentSettingsResolver which handles DD_AGENT_HOST
-        # For HTTP adapter, hostname should always be set; fall back to default if nil/empty
+      def initialize!(components)
+        @logger = components.logger
+        @settings = components.settings
+        agent_settings = components.instance_variable_get(:@agent_settings)
         @agent_host = if agent_settings&.hostname && !agent_settings.hostname.empty?
           agent_settings.hostname
         else
           Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
-        end
-        begin
-          require 'opentelemetry/sdk'
-        rescue LoadError => exc
-          @logger.warn("OpenTelemetry metrics enabled but failed to load opentelemetry-sdk: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
-          return false
-        end
-
-        begin
-          require 'opentelemetry-metrics-sdk'
-        rescue LoadError => exc
-          @logger.warn("OpenTelemetry metrics enabled but failed to load opentelemetry-metrics-sdk: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
-          return false
         end
 
         configure_metrics_sdk
@@ -37,24 +23,16 @@ module Datadog
         @logger.error("Failed to initialize OpenTelemetry metrics: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
         false
       end
-
+      
       private
 
       module_function
 
       def configure_metrics_sdk
-        # Require configurator which handles its own prepend
-        require_relative 'sdk/configurator'
-
         current_provider = ::OpenTelemetry.meter_provider
-        if current_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
-          current_provider.shutdown
-        end
+        current_provider.shutdown if current_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
 
-        # OpenTelemetry SDK sets default temporality preference to cumulative,
-        # this is not compatible with the Datadog agent.
         if DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'].nil?
-          # OpenTelemetry SDK reads from ENV directly, so we must write to ENV
           ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'] = 'delta' # rubocop:disable CustomCops/EnvUsageCop
         end
 

@@ -21,7 +21,6 @@ require_relative '../crashtracking/component'
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
 require_relative '../../data_streams/processor'
-require_relative '../../opentelemetry/metrics'
 
 module Datadog
   module Core
@@ -92,15 +91,6 @@ module Datadog
             logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e}")
             nil
           end
-
-          def build_opentelemetry_metrics(settings, agent_settings, logger)
-            return unless settings.opentelemetry.metrics.enabled
-
-            Datadog::OpenTelemetry::Metrics.initialize!(settings, agent_settings, logger)
-          rescue => e
-            logger.warn("Failed to initialize OpenTelemetry metrics: #{e.class}: #{e}")
-            nil
-          end
         end
 
         attr_reader \
@@ -158,8 +148,6 @@ module Datadog
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
-
-          self.class.build_opentelemetry_metrics(settings, agent_settings, @logger)
 
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
