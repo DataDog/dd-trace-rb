@@ -246,11 +246,15 @@ module Datadog
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          # enqueue closing event before stopping telemetry so it will be sent out on shutdown
+          Core::ProcessDiscovery.shutdown!
+
+          # Shut down telemetry last so that all other components may
+          # report shutdown errors.
+          #
+          # Enqueue closing event before stopping telemetry so it will be
+          # sent out on shutdown.
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
-
-          Core::ProcessDiscovery.shutdown!
         end
 
         # Returns the current state of various components.
