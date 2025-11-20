@@ -19,23 +19,22 @@ module Datadog
         end
         begin
           require 'opentelemetry/sdk'
-        rescue LoadError
-          @logger.warn('OpenTelemetry metrics enabled but opentelemetry-sdk gem is missing. Add "gem \'opentelemetry-sdk\'" to your Gemfile.')
+        rescue LoadError => exc
+          @logger.warn("OpenTelemetry metrics enabled but failed to load opentelemetry-sdk: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
           return false
         end
 
         begin
           require 'opentelemetry-metrics-sdk'
-        rescue LoadError
-          @logger.warn('OpenTelemetry metrics enabled but opentelemetry-metrics-sdk gem is missing. Add "gem \'opentelemetry-metrics-sdk\'" to your Gemfile.')
+        rescue LoadError => exc
+          @logger.warn("OpenTelemetry metrics enabled but failed to load opentelemetry-metrics-sdk: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
           return false
         end
 
         configure_metrics_sdk
         true
-      rescue => e
-        @logger.error("Failed to initialize OpenTelemetry metrics: #{e.message}")
-        @logger.debug(e.backtrace.join("\n")) if @settings.diagnostics.debug
+      rescue => exc
+        @logger.error("Failed to initialize OpenTelemetry metrics: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
         false
       end
 

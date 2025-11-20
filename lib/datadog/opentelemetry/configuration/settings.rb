@@ -26,7 +26,6 @@ module Datadog
                   o.type :int
                   o.env 'OTEL_EXPORTER_OTLP_TIMEOUT'
                   o.default 10_000
-                  o.env_parser { |value| value&.to_i }
                 end
 
                 option :headers do |o|
@@ -36,8 +35,8 @@ module Datadog
                   o.env_parser do |value|
                     return {} unless value && !value.empty?
                     JSON.parse(value)
-                  rescue JSON::ParserError
-                    Datadog.logger.warn("Failed to parse OTEL_EXPORTER_OTLP_HEADERS: #{value}")
+                  rescue JSON::ParserError  => exc
+                    Datadog.logger.warn("Failed to parse OTEL_EXPORTER_OTLP_HEADERS: #{exc.class}: #{exc}: #{value}")
                     {}
                   end
                 end
@@ -95,8 +94,8 @@ module Datadog
                   o.env_parser do |value|
                     return {} unless value && !value.empty?
                     JSON.parse(value)
-                  rescue JSON::ParserError
-                    Datadog.logger.warn("Failed to parse OTEL_EXPORTER_OTLP_METRICS_HEADERS: #{value}")
+                  rescue JSON::ParserError => exc
+                    Datadog.logger.warn("Failed to parse OTEL_EXPORTER_OTLP_METRICS_HEADERS: #{exc.class}: #{exc}: #{value}")
                     {}
                   end
                 end

@@ -5,7 +5,8 @@
 | Type          | Documentation                                        | datadog version | Gem version support |
 | ------------- | ---------------------------------------------------- | --------------- | ------------------- |
 | Tracing       | https://github.com/open-telemetry/opentelemetry-ruby | 1.9.0+          | >= 1.1.0            |
-| [Metrics SDK](https://rubygems.org/gems/opentelemetry-metrics-sdk) >= 0.8, [OTLP Metrics Exporter](https://rubygems.org/gems/opentelemetry-exporter-otlp-metrics) >= 0.4 |
+| Metrics SDK   | https://rubygems.org/gems/opentelemetry-metrics-sdk  | 2.25.0+         |  >= 0.8             |
+| OTLP Metrics Exporter | https://rubygems.org/gems/opentelemetry-exporter-otlp-metrics  | 2.25.0+         |  >= 0.4            |
 
 ## Configuring OpenTelemetry Tracing
 
@@ -51,8 +52,8 @@
 
     ```ruby
     gem 'datadog'
-    gem 'opentelemetry-metrics-sdk', '>= 0.8'
-    gem 'opentelemetry-exporter-otlp-metrics', '>= 0.4'
+    gem 'opentelemetry-metrics-sdk', '~> 0.8'
+    gem 'opentelemetry-exporter-otlp-metrics', '~> 0.4'
     ```
 
 1. Install gems with `bundle install`
