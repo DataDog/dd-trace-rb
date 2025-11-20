@@ -3,13 +3,16 @@
 module Datadog
   module Core
     module Normalizer
+      # Normalization logic used for tag keys and values that the Trace Agent has for traces
+      # Useful for ensuring that tag keys and values are normalized consistently
+      # An use case for now is Process Tags which need to be sent across various intakes (profiling, tracing, etc.) consistently
+
       module_function
 
       INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}
       LEADING_INVALID_CHARS_NO_DIGITS = %r{\A[^\p{L}:]++}
       LEADING_INVALID_CHARS_WITH_DIGITS = %r{\A[^\p{L}0-9:./\-]++}
-      MAX_BYTE_SIZE = 200
-      MAX_BYTE_SIZE_BUFFER = MAX_BYTE_SIZE * 2
+      MAX_BYTE_SIZE = 200 # Represents the max tag length
       TRAILING_UNDERSCORES = %r{_++\z}
       VALID_ASCII_TAG = %r{\A[a-z:][a-z0-9:./-]*\z}
 
@@ -23,6 +26,9 @@ module Datadog
       # - Consecutive underscores are merged into a single underscore
       # - Maximum length is 200 characters
       # If it's a tag value, allow it to start with a digit
+      # @param original_value [String] The original string
+      # @param remove_digit_start_char [Boolean] - whether to remove the leading digit (currently only used for tag values)
+      # @return [String] The normalized string
       def self.normalize(original_value, remove_digit_start_char: false)
         transformed_value = original_value.to_s.encode('UTF-8', invalid: :replace, undef: :replace)
         transformed_value.strip!

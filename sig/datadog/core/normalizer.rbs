@@ -6,7 +6,6 @@ module Datadog
       LEADING_INVALID_CHARS_WITH_DIGITS: ::Regexp
       TRAILING_UNDERSCORES: ::Regexp
       MAX_BYTE_SIZE: ::Integer
-      MAX_BYTE_SIZE_BUFFER: ::Integer
       VALID_ASCII_TAG: ::Regexp
 
       def self.normalize: (untyped original_value, ?remove_digit_start_char: bool) -> ::String

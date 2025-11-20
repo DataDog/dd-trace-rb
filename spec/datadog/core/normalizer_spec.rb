@@ -56,7 +56,7 @@ RSpec.describe Datadog::Core::Normalizer do
       end
     end
   end
-  
+
   describe 'Follows the normalization logic from the Trace Agent for tag values' do
     test_cases = [
       {in: '1test', out: '1test'},
