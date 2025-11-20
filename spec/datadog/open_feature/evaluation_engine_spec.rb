@@ -4,10 +4,13 @@ require 'spec_helper'
 require 'datadog/open_feature/evaluation_engine'
 
 RSpec.describe Datadog::OpenFeature::EvaluationEngine do
+  before { allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_return(evaluator) }
+
   let(:engine) { described_class.new(reporter, telemetry: telemetry, logger: logger) }
   let(:reporter) { instance_double(Datadog::OpenFeature::Exposures::Reporter) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
   let(:configuration) do
     <<~JSON
       {
@@ -52,9 +55,8 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding evaluator returns error' do
       before do
+        allow(evaluator).to receive(:get_assignment).and_return(error)
         engine.reconfigure!(configuration)
-        allow_any_instance_of(Datadog::OpenFeature::NativeEvaluator).to receive(:get_assignment)
-          .and_return(error)
       end
 
       let(:error) do
@@ -82,10 +84,10 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
     context 'when binding evaluator raises error' do
       before do
-        engine.reconfigure!(configuration)
         allow(telemetry).to receive(:report)
-        allow_any_instance_of(Datadog::OpenFeature::NativeEvaluator).to receive(:get_assignment)
-          .and_raise(error)
+        allow(evaluator).to receive(:get_assignment).and_raise(error)
+
+        engine.reconfigure!(configuration)
       end
 
       let(:error) { RuntimeError.new("Crash") }
@@ -115,10 +117,27 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       end
     end
 
-    xcontext 'when binding evaluator returns resolution details' do
-      before { engine.reconfigure!(configuration) }
+    context 'when binding evaluator returns resolution details' do
+      before do
+        allow(evaluator).to receive(:get_assignment).and_return(details)
 
-      let(:evaluation_context) { instance_double('OpenFeature::SDK::EvaluationContext') }
+        engine.reconfigure!(configuration)
+      end
+
+      let(:evaluation_context) { instance_double('OpenFeature::SDK::EvaluationContext', fields: {'targeting_key' => 'joe'}) }
+      let(:details) do
+        Datadog::OpenFeature::ResolutionDetails.new(
+          value: 'hello',
+          variant: 'blue',
+          error_code: nil,
+          error_message: nil,
+          reason: 'MATCH',
+          flag_metadata: {},
+          extra_logging: {},
+          error?: true,
+          log?: false
+        )
+      end
       let(:result) do
         engine.fetch_value(
           flag_key: 'test', default_value: 'bye!', expected_type: :string, evaluation_context: evaluation_context
@@ -144,11 +163,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     end
 
     context 'when binding initialization fails with exception' do
-      before do
-        engine.reconfigure!(configuration)
-
-        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_raise(error)
-      end
+      before { allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new).and_raise(error) }
 
       let(:error) { StandardError.new('Ooops') }
 
@@ -158,58 +173,6 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
           .with(error, description: match(/OpenFeature: Failed to reconfigure/))
 
         expect { engine.reconfigure!('{}') }.to raise_error(described_class::ReconfigurationError, 'Ooops')
-      end
-
-      xit 'persists previouly configured evaluator' do
-        allow(logger).to receive(:error)
-        allow(telemetry).to receive(:report)
-        allow(reporter).to receive(:report)
-
-        expect { engine.reconfigure!('{}') }.to raise_error(described_class::ReconfigurationError, 'Ooops')
-        expect(engine.fetch_value(flag_key: 'test', default_value: 'bye!', expected_type: :string).value).to eq('hello')
-      end
-    end
-
-    context 'when binding initialization succeeds' do
-      before { engine.reconfigure!(configuration) }
-
-      let(:new_configuration) do
-        <<~JSON
-          {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "createdAt": "2024-04-17T19:40:53.716Z",
-                "format": "SERVER",
-                "environment": { "name": "test" },
-                "flags": {
-                  "test_flag": {
-                    "key": "test",
-                    "enabled": true,
-                    "variationType": "STRING",
-                    "variations": {
-                      "control": { "key": "control", "value": "goodbye" }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        JSON
-      end
-
-      xit 'reconfigures binding evaluator with new flags configuration' do
-        expect { engine.reconfigure!(new_configuration) }.to change {
-          engine.fetch_value(flag_key: 'test', default_value: 'bye!', expected_type: :string).value
-        }.from('hello').to('goodbye')
       end
     end
   end
