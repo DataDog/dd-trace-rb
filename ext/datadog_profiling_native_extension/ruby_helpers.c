@@ -28,6 +28,33 @@ void ruby_helpers_init(void) {
   new_id = rb_intern("new");
 }
 
+// Use `raise_error` the macro instead, as it provides additional argument checks.
+void _raise_error(VALUE exception_class, const char *fmt, ...) {
+  #ifdef DD_DEBUG
+    if (exception_class != eNativeRuntimeError &&
+        exception_class != eNativeArgumentError &&
+        exception_class != eNativeTypeError) {
+      rb_bug("[ddtrace] BUG: _raise_error called with an exception_class that might not support two messages. "
+             "Must be one of eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError");
+    }
+  #endif
+
+  va_list args;
+  va_start(args, fmt);
+  VALUE formatted_msg = rb_vsprintf(fmt, args);
+  va_end(args);
+
+  // Pass both the static format string and the formatted message to the error class
+  VALUE exception = rb_funcall(
+    exception_class,
+    new_id,
+    2,
+    rb_str_new_cstr(fmt), // static string
+    formatted_msg
+  );
+  rb_exc_raise(exception);
+}
+
 #define MAX_RAISE_MESSAGE_SIZE 256
 
 typedef struct {
@@ -111,32 +138,6 @@ void raise_syserr(
   } else {
     grab_gvl_and_raise_syserr(syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
   }
-}
-
-void _raise_error(VALUE exception_class, const char *fmt, ...) {
-  #ifdef DD_DEBUG
-    if (exception_class != eNativeRuntimeError &&
-        exception_class != eNativeArgumentError &&
-        exception_class != eNativeTypeError) {
-      rb_bug("[ddtrace] BUG: _raise_error called with an exception_class that might not support two messages. "
-             "Must be one of eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError");
-    }
-  #endif
-
-  va_list args;
-  va_start(args, fmt);
-  VALUE formatted_msg = rb_vsprintf(fmt, args);
-  va_end(args);
-
-  // Pass both the static format string and the formatted message to the error class
-  VALUE exception = rb_funcall(
-    exception_class,
-    new_id,
-    2,
-    rb_str_new_cstr(fmt),
-    formatted_msg
-  );
-  rb_exc_raise(exception);
 }
 
 static VALUE _id2ref(VALUE obj_id) {

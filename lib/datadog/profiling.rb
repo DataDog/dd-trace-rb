@@ -7,44 +7,6 @@ require_relative 'core/utils/only_once'
 module Datadog
   # Datadog Continuous Profiler implementation: https://docs.datadoghq.com/profiler/
   module Profiling
-    # Base error type for exceptions raised by the native profiler. It separates the
-    # developer-facing message from the telemetry-safe message so telemetry never carries
-    # dynamic data (PII) while developers still get the full runtime message.
-    module NativeError
-      attr_reader :telemetry_message
-
-      def initialize(*args, telemetry_message: nil, **kwargs)
-        arguments = args.dup
-
-        if arguments.length >= 2
-          telemetry_message ||= arguments.shift
-          message = arguments.shift
-        else
-          message = arguments.shift
-        end
-
-        if message.nil? && arguments.empty?
-          kwargs.empty? ? super() : super(**kwargs)
-        else
-          super(message, *arguments, **kwargs)
-        end
-
-        @telemetry_message = telemetry_message
-      end
-    end
-
-    class NativeRuntimeError < RuntimeError
-      prepend NativeError
-    end
-
-    class NativeArgumentError < ArgumentError
-      prepend NativeError
-    end
-
-    class NativeTypeError < TypeError
-      prepend NativeError
-    end
-
     def self.supported?
       unsupported_reason.nil?
     end
@@ -113,6 +75,30 @@ module Datadog
       else
         raise 'Profiler not enabled or available'
       end
+    end
+
+    # Base error type for exceptions raised by our native extensions.
+    # These errors have both the original error message and a telemetry-safe message.
+    # The telemetry-safe message is statically defined and does not possess dynamic data.
+    module NativeError
+      attr_reader :telemetry_message
+
+      def initialize(message, telemetry_message)
+        super(message)
+        @telemetry_message = telemetry_message
+      end
+    end
+
+    class NativeRuntimeError < RuntimeError
+      prepend NativeError
+    end
+
+    class NativeArgumentError < ArgumentError
+      prepend NativeError
+    end
+
+    class NativeTypeError < TypeError
+      prepend NativeError
     end
 
     private_class_method def self.replace_noop_allocation_count
