@@ -71,7 +71,7 @@ static void install_sigprof_signal_handler_internal(
       );
     }
 
-    raise_for_telemetry("Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler", handler_pretty_name);
+    raise_error(eNativeRuntimeError, "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler", handler_pretty_name);
   }
 }
 

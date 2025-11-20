@@ -4,31 +4,24 @@
 #include <stdarg.h>
 #include "datadog_ruby_common.h"
 
-// Global reference to Datadog::Profiling::NativeError exception class
-// This is initialized in profiling.c during extension initialization
-// TODO: Can this class be defined in Ruby? Will it work outside of GIL?
-extern VALUE eNativeError;
+// Global references to Datadog::Profiling exception classes
+// These are initialized in profiling.c during extension initialization
+// TODO: Can these classes be defined in Ruby? Will it work outside of GIL?
+extern VALUE eNativeRuntimeError;
+extern VALUE eNativeArgumentError;
+extern VALUE eNativeTypeError;
 
-// Raises a NativeError (an instance of RuntimeError) with the formatted string as
-// its message.
-// This error is also sent for telemetry with the unformatted string:
+// Raises an exception of the specified class with the formatted string as its message.
+// The error is also sent for telemetry with the unformatted string:
 // this guarantees that no dynamic content is sent via telemetry, preventing potential
 // leakage of sensitive information.
 // *Native errors not raised through this function will not be reported via telemetry.*
-#define raise_for_telemetry(fmt, ...) \
-  _raise_for_telemetry(eNativeError, "" fmt, ##__VA_ARGS__) // Concat to ensure fmt is a string literal at compile time
-
-// Raises an exception of the specified class with the formatted string as its message.
-// This is similar to raise_for_telemetry, but allows specifying a custom exception class
-// instead of using the default eNativeError.
-// The error is also sent for telemetry with the unformatted string to prevent potential
-// leakage of sensitive information.
-// Use this when you need to raise specific exception types like ArgumentError, RuntimeError, etc.
-#define raise_for_telemetry_ex(exception_class, fmt, ...) \
-  _raise_for_telemetry(exception_class, "" fmt, ##__VA_ARGS__)
+// Use this when you need to raise specific exception types like NativeRuntimeError, NativeArgumentError, NativeTypeError, etc.
+#define raise_error(exception_class, fmt, ...) \
+  _raise_error(exception_class, "" fmt, ##__VA_ARGS__)
 
 NORETURN(
-  void _raise_for_telemetry(VALUE exception_class, const char *fmt, ...)
+  void _raise_error(VALUE exception_class, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
 

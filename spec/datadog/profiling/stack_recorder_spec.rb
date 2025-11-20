@@ -679,7 +679,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect do
               Datadog::Profiling::Collectors::Stack::Testing
                 ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
-            end.to raise_error(Datadog::Profiling::NativeError) do |error|
+            end.to raise_error(Datadog::Profiling::NativeRuntimeError) do |error|
               expect(error.message).to include("Ended a heap recording")
               expect(error.telemetry_message).to eq("Ended a heap recording that was not started")
             end
@@ -888,7 +888,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       expect do
         described_class::Testing._native_track_object(telemetry_stack_recorder, Object.new, 1, "Object")
-      end.to raise_error(Datadog::Profiling::NativeError) do |error|
+      end.to raise_error(Datadog::Profiling::NativeRuntimeError) do |error|
         expect(error.message).to include("Detected consecutive heap allocation recording starts without end")
         expect(error.telemetry_message).to eq("Detected consecutive heap allocation recording starts without end.")
       end
@@ -897,7 +897,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     it "raises telemetry when finishing without preparing" do
       expect do
         described_class::Testing._native_end_fake_slow_heap_serialization(telemetry_stack_recorder)
-      end.to raise_error(Datadog::Profiling::NativeError) do |error|
+      end.to raise_error(Datadog::Profiling::NativeRuntimeError) do |error|
         expect(error.message).to include("Heap recorder iteration finished without having been prepared")
         expect(error.telemetry_message).to eq("Heap recorder iteration finished without having been prepared.")
       end
@@ -908,7 +908,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       expect do
         described_class::Testing._native_start_fake_slow_heap_serialization(telemetry_stack_recorder)
-      end.to raise_error(Datadog::Profiling::NativeError) do |error|
+      end.to raise_error(Datadog::Profiling::NativeRuntimeError) do |error|
         expect(error.message).to include("New heap recorder iteration prepared without the previous one having been finished")
         expect(error.telemetry_message).to eq("New heap recorder iteration prepared without the previous one having been finished.")
       end
@@ -935,7 +935,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       before { expect(described_class).to receive(:_native_serialize).and_return([:error, "test error message"]) }
 
       it {
-        expect { serialize! }.to raise_error(Datadog::Profiling::NativeError) do |error|
+        expect { serialize! }.to raise_error(Datadog::Profiling::NativeRuntimeError) do |error|
           expect(error.message).to include('test error message')
           expect(error.telemetry_message).to eq('Failed to serialize profiling data')
         end

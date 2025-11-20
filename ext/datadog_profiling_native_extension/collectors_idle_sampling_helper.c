@@ -153,7 +153,7 @@ static void *run_idle_sampling_loop(void *state_ptr) {
     // Process pending action
     if (next_action == ACTION_RUN) {
       if (run_action_function == NULL) {
-        grab_gvl_and_raise(eNativeError, "Unexpected NULL run_action_function in run_idle_sampling_loop");
+        grab_gvl_and_raise(eNativeRuntimeError, "Unexpected NULL run_action_function in run_idle_sampling_loop");
       }
 
       run_action_function();
