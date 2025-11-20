@@ -471,6 +471,16 @@ RSpec.describe 'Telemetry integration tests' do
   end
 
   describe 'app-started event' do
+    # The test cases here are more like unit tests in that they really want
+    # to assert the contents of generated events.
+    # However, the event creation logic is rather cumbersome, and there is
+    # no single point to spy on. AppStarted constructor is perhaps the best
+    # candidate, but this would assert on what is created rather than what is
+    # actually sent over the wire, which still wouldn't be a straightforward
+    # mapping from what we want to test (which are actual payloads).
+    # Therefore, these tests go through a local web server and assert on the
+    # submitted payloads.
+
     context 'when profiling is enabled' do
       http_server do |http_server|
         http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
