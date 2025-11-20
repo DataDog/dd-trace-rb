@@ -175,14 +175,13 @@ module Datadog
             end
           end
 
-          if settings.remote.enabled && old_state&.remote_started?
+          if remote && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
             # through the installed Rack middleware which started the remote).
             # If the new configuration also has remote enabled, start the
             # new remote right away.
-            # remote should always be not nil here but steep doesn't know this.
-            remote&.start
+            remote.start
           end
 
           # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
