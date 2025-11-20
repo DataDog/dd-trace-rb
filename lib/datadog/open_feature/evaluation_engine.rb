@@ -3,6 +3,7 @@
 require_relative 'ext'
 require_relative 'noop_evaluator'
 require_relative 'resolution_details'
+require_relative 'binding/internal_evaluator'
 
 module Datadog
   module OpenFeature
@@ -45,7 +46,7 @@ module Datadog
       def reconfigure!(configuration)
         @logger.debug('OpenFeature: Removing configuration') if configuration.nil?
 
-        @evaluator = NoopEvaluator.new(configuration)
+        @evaluator = configuration.nil? ? NoopEvaluator.new(nil) : Binding::InternalEvaluator.new(configuration)
       rescue => e
         message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 

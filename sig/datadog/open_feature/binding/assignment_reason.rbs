@@ -1,0 +1,14 @@
+module Datadog
+  module OpenFeature
+    module Binding
+      module AssignmentReason
+        TARGETING_MATCH: ::String
+        SPLIT: ::String
+        STATIC: ::String
+        DEFAULT: ::String
+        DISABLED: ::String
+        ERROR: ::String
+      end
+    end
+  end
+end

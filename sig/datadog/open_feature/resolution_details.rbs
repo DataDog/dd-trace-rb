@@ -34,6 +34,19 @@ module Datadog
         ?error?: bool?
       ) -> instance
 
+      def self.build_success: (
+        value: untyped,
+        variant: ::String,
+        allocation_key: ::String,
+        do_log: bool,
+        reason: ::String
+      ) -> instance
+
+      def self.build_default: (
+        value: untyped,
+        reason: ::String
+      ) -> instance
+
       def self.build_error: (
         value: untyped,
         error_code: ::String,

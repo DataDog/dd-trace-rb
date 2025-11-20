@@ -1,0 +1,13 @@
+module Datadog
+  module OpenFeature
+    module Binding
+      module VariationType
+        STRING: ::String
+        INTEGER: ::String
+        NUMERIC: ::String
+        BOOLEAN: ::String
+        JSON: ::String
+      end
+    end
+  end
+end

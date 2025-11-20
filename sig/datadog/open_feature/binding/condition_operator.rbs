@@ -1,0 +1,17 @@
+module Datadog
+  module OpenFeature
+    module Binding
+      module ConditionOperator
+        MATCHES: ::String
+        NOT_MATCHES: ::String
+        GTE: ::String
+        GT: ::String
+        LTE: ::String
+        LT: ::String
+        ONE_OF: ::String
+        NOT_ONE_OF: ::String
+        IS_NULL: ::String
+      end
+    end
+  end
+end

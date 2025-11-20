@@ -1,0 +1,50 @@
+[
+  {
+    "flag": "falsy-value-assignments",
+    "variationType": "INTEGER",
+    "defaultValue": 999,
+    "targetingKey": "zero_user",
+    "attributes": {
+      "plan_tier": "free"
+    },
+    "result": {
+      "value": 0,
+      "variant": "zero-limit",
+      "flagMetadata": {
+        "allocationKey": "free-tier-limit",
+        "variationType": "number",
+        "doLog": true
+      }
+    }
+  },
+  {
+    "flag": "falsy-value-assignments",
+    "variationType": "INTEGER",
+    "defaultValue": 999,
+    "targetingKey": "premium_user",
+    "attributes": {
+      "plan_tier": "premium"
+    },
+    "result": {
+      "value": 100,
+      "variant": "premium-limit",
+      "flagMetadata": {
+        "allocationKey": "premium-tier-limit",
+        "variationType": "number",
+        "doLog": true
+      }
+    }
+  },
+  {
+    "flag": "falsy-value-assignments",
+    "variationType": "INTEGER",
+    "defaultValue": 999,
+    "targetingKey": "unknown_user",
+    "attributes": {
+      "plan_tier": "trial"
+    },
+    "result": {
+      "value": 999
+    }
+  }
+]

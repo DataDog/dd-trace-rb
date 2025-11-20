@@ -1,0 +1,17 @@
+# frozen_string_literal: true
+
+module Datadog
+  module OpenFeature
+    module Binding
+      module ErrorCodes
+        TYPE_MISMATCH_ERROR = 'TYPE_MISMATCH'
+        CONFIGURATION_PARSE_ERROR = 'CONFIGURATION_PARSE_ERROR'
+        CONFIGURATION_MISSING = 'CONFIGURATION_MISSING'
+        FLAG_UNRECOGNIZED_OR_DISABLED = 'FLAG_UNRECOGNIZED_OR_DISABLED'
+        FLAG_DISABLED = 'FLAG_DISABLED'
+        DEFAULT_ALLOCATION_NULL = 'DEFAULT_ALLOCATION_NULL'
+        INTERNAL_ERROR = 'INTERNAL'
+      end
+    end
+  end
+end
