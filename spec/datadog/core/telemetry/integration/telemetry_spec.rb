@@ -470,6 +470,61 @@ RSpec.describe 'Telemetry integration tests' do
     end
   end
 
+  describe 'app-started event' do
+    context 'when profiling is enabled' do
+      http_server do |http_server|
+        http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
+      end
+
+      before do
+        Datadog.configure do |c|
+          c.agent.port = http_server_port
+          c.telemetry.enabled = true
+
+          c.profiling.enabled = true
+        end
+      end
+
+      after do
+        Datadog.configuration.reset!
+      end
+
+      let(:settings) do
+        Datadog.configuration
+      end
+
+      let(:component) { Datadog.send(:components).telemetry }
+
+      it 'reports profiling as being enabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0]
+        expect(payload.fetch(:payload)).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.fetch(:payload).dig('payload', 'products')).to include(
+          'profiler' => {'enabled' => true},
+        )
+
+        # For sanity checking verify that the remaining events are as we
+        # expect them to be.
+        payload = sent_payloads[1]
+        expect(payload.fetch(:payload)).to include(
+          'request_type' => 'app-dependencies-loaded',
+        )
+
+        payload = sent_payloads[2]
+        expect(payload.fetch(:payload)).to include(
+          'request_type' => 'message-batch',
+        )
+        expect(payload.fetch(:payload).fetch('payload').first).to include(
+          'request_type' => 'app-integrations-change',
+        )
+      end
+    end
+  end
+
   context 'when process forks' do
     skip_unless_fork_supported
 
