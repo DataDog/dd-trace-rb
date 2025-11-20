@@ -5,35 +5,41 @@ module Datadog
       end
 
       class Configuration
-        def self.new: (String json_str) -> Configuration
+        def self.new: (::String json_str) -> self
 
-        def get_assignment: (String flag_key, Symbol expected_type, Hash[String, untyped] context) -> ResolutionDetails
+        def get_assignment: (
+          ::String flag_key,
+          ::Symbol expected_type,
+          ::Hash[::String, untyped] context
+        ) -> ResolutionDetails
       end
 
       class ResolutionDetails
-        def raw_value: () -> untyped
+        type metadata_t = ::Hash[::String, ::String]
 
-        def flag_type: () -> Symbol?
+        def flag_type: () -> ::Symbol?
+
+        def raw_value: () -> untyped
 
         def value: () -> untyped
 
         def value=: (untyped) -> untyped
 
-        def variant: () -> String?
+        def variant: () -> ::String?
 
-        def allocation_key: () -> String?
+        def allocation_key: () -> ::String?
 
-        def reason: () -> String
+        def reason: () -> ::String
+
+        def error_code: () -> ::String?
+
+        def error_message: () -> ::String?
 
         def error?: () -> bool
 
-        def error_code: () -> String?
-
-        def error_message: () -> String?
-
         def log?: () -> bool
 
-        def flag_metadata: () -> Hash[String, String]
+        def flag_metadata: () -> metadata_t
       end
     end
   end

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require_relative 'ext'
-require_relative 'native_evaluator'
 require_relative 'noop_evaluator'
+require_relative 'native_evaluator'
 require_relative 'resolution_details'
 
 module Datadog
@@ -29,7 +29,7 @@ module Datadog
           )
         end
 
-        context = evaluation_context&.fields || {}
+        context = evaluation_context&.fields.to_h
         result = @evaluator.get_assignment(flag_key, default_value, context, expected_type)
 
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
@@ -44,13 +44,13 @@ module Datadog
       end
 
       def reconfigure!(configuration)
-        @logger.debug('OpenFeature: Removing configuration') if configuration.nil?
+        if configuration.nil?
+          @logger.debug('OpenFeature: Removing configuration')
 
-        @evaluator = if configuration.nil?
-          NoopEvaluator.new(configuration)
-        else
-          NativeEvaluator.new(configuration)
+          return @evaluator = NoopEvaluator.new(configuration)
         end
+
+        @evaluator = NativeEvaluator.new(configuration)
       rescue => e
         message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
