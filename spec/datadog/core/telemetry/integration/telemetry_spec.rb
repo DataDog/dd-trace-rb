@@ -470,7 +470,7 @@ RSpec.describe 'Telemetry integration tests' do
     end
   end
 
-  describe 'app-started event' do
+  describe 'app-started event payloads when components are enabled' do
     # The test cases here are more like unit tests in that they really want
     # to assert the contents of generated events.
     # However, the event creation logic is rather cumbersome, and there is
@@ -481,11 +481,38 @@ RSpec.describe 'Telemetry integration tests' do
     # Therefore, these tests go through a local web server and assert on the
     # submitted payloads.
 
-    context 'when profiling is enabled' do
-      http_server do |http_server|
-        http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
-      end
+    http_server do |http_server|
+      http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
+    end
 
+    after do
+      Datadog.configuration.reset!
+    end
+
+    let(:settings) do
+      Datadog.configuration
+    end
+
+    let(:component) { Datadog.send(:components).telemetry }
+
+    def assert_remaining_events
+      # For sanity checking verify that the remaining events are as we
+      # expect them to be.
+      payload = sent_payloads[1]
+      expect(payload.fetch(:payload)).to include(
+        'request_type' => 'app-dependencies-loaded',
+      )
+
+      payload = sent_payloads[2]
+      expect(payload.fetch(:payload)).to include(
+        'request_type' => 'message-batch',
+      )
+      expect(payload.fetch(:payload).fetch('payload').first).to include(
+        'request_type' => 'app-integrations-change',
+      )
+    end
+
+    context 'when profiling is enabled' do
       before do
         Datadog.configure do |c|
           c.agent.port = http_server_port
@@ -494,16 +521,6 @@ RSpec.describe 'Telemetry integration tests' do
           c.profiling.enabled = true
         end
       end
-
-      after do
-        Datadog.configuration.reset!
-      end
-
-      let(:settings) do
-        Datadog.configuration
-      end
-
-      let(:component) { Datadog.send(:components).telemetry }
 
       it 'reports profiling as being enabled' do
         component.flush
@@ -517,20 +534,7 @@ RSpec.describe 'Telemetry integration tests' do
           'profiler' => {'enabled' => true},
         )
 
-        # For sanity checking verify that the remaining events are as we
-        # expect them to be.
-        payload = sent_payloads[1]
-        expect(payload.fetch(:payload)).to include(
-          'request_type' => 'app-dependencies-loaded',
-        )
-
-        payload = sent_payloads[2]
-        expect(payload.fetch(:payload)).to include(
-          'request_type' => 'message-batch',
-        )
-        expect(payload.fetch(:payload).fetch('payload').first).to include(
-          'request_type' => 'app-integrations-change',
-        )
+        assert_remaining_events
       end
     end
   end
