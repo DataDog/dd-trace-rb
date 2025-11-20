@@ -198,38 +198,35 @@ static int evaluation_context_foreach_callback(VALUE key, VALUE value, VALUE arg
   }
 
   ddog_ffe_AttributePair *attr = &builder->attrs[builder->attr_count];
-  builder->attr_count += 1;
 
-  attr->name = name;
   switch (TYPE(value)) {
     case T_STRING:
+      attr->name = name;
       attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
       attr->value.string = RSTRING_PTR(value);
       break;
     case T_FIXNUM:
     case T_FLOAT:
+      attr->name = name;
       attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_NUMBER;
       attr->value.number = NUM2DBL(value);
       break;
     case T_TRUE:
+      attr->name = name;
       attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
       attr->value.boolean = true;
       break;
     case T_FALSE:
+      attr->name = name;
       attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
       attr->value.boolean = false;
       break;
     default:
-      // Default to string representation
-      attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
-      // SAFETY: RSTRING_PTR returns pointer to the Ruby heap, which
-      // lives long enough for ddog_ffe_evaluation_context_new to copy the underlying
-      // string. It will not get garbage collected until we exit C
-      // extension or release GVL.
-      attr->value.string = RSTRING_PTR(rb_funcall(value, rb_intern("to_s"), 0));
-      break;
+      // Skip unsupported attribute types.
+      return ST_CONTINUE;
   }
 
+  builder->attr_count += 1;
   return ST_CONTINUE;
 }
 
