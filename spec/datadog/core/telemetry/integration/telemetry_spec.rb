@@ -646,6 +646,69 @@ RSpec.describe 'Telemetry integration tests' do
         assert_remaining_events
       end
     end
+
+    context 'when dynamic instrumentation is fully enabled' do
+      before do
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.dynamic_instrumentation.enabled = true
+          c.dynamic_instrumentation.internal.development = true
+          c.remote.enabled = true
+        end
+      end
+
+      it 'reports dynamic instrumentation as being enabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'dynamic_instrumentation.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'dynamic_instrumentation' => {'enabled' => true},
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when dynamic instrumentation is requested to be enabled but fails prerequisites' do
+      before do
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.dynamic_instrumentation.enabled = true
+          # Disable remote config which is a prerequisite for DI
+          c.remote.enabled = false
+        end
+      end
+
+      it 'reports dynamic instrumentation as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'dynamic_instrumentation.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'dynamic_instrumentation' => {
+            'enabled' => false,
+            # DI currently does not provide the reason why it's not enabled.
+          },
+        )
+
+        assert_remaining_events
+      end
+    end
   end
 
   context 'when process forks' do
