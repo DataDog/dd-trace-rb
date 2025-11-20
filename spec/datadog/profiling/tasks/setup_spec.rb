@@ -10,7 +10,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     subject(:run) { task.run }
 
     before do
-      described_class::ACTIVATE_EXTENSIONS_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+      described_class::ACTIVATE_EXTENSIONS_ONLY_ONCE.reset
     end
 
     it "actives the forking extension before setting up the at_fork hooks" do

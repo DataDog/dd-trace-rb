@@ -11,6 +11,12 @@ module Datadog
           def initialize(components:)
             # To not hold a reference to the component tree, generate
             # the event payload here in the constructor.
+            #
+            # Important: do not store data that contains (or is derived from)
+            # the runtime_id oor sequence numbers.
+            # This event is reused when a process forks, but in the
+            # child process the runtime_id would be different and sequence
+            # number would obviously also be different.
             @configuration = configuration(components.settings, components.agent_settings)
             @install_signature = install_signature(components.settings)
             @products = products(components)
@@ -30,17 +36,25 @@ module Datadog
             }
           end
 
+          # Whether the event is actually the app-started event.
+          # For the app-started event we follow up by sending
+          # app-dependencies-loaded, if the event is
+          # app-client-configuration-change we don't send
+          # app-dependencies-loaded.
+          def app_started?
+            true
+          end
+
           private
 
           def products(components)
             # @type var products: Hash[Symbol, Hash[Symbol, Hash[Symbol, String | Integer] | bool | nil]]
             products = {
               appsec: {
-                # TODO take appsec status out of component tree?
-                enabled: components.settings.appsec.enabled,
+                enabled: !!components.appsec,
               },
               profiler: {
-                enabled: !!components.profiler&.enabled?,
+                enabled: !!components.profiler,
               },
               dynamic_instrumentation: {
                 enabled: !!components.dynamic_instrumentation,
