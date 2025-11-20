@@ -73,8 +73,9 @@ module CoreHelpers
 
     def skip_unless_fork_supported
       unless Process.respond_to?(:fork)
-      before(:all) do
-        skip 'Fork is not supported on current platform'
+        before(:all) do
+          skip 'Fork is not supported on current platform'
+        end
       end
     end
 
