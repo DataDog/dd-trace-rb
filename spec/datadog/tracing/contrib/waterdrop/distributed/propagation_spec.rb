@@ -1,11 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/contrib/support/spec_helper'
-
-# FFI::Function background native thread
-ThreadHelpers.with_leaky_thread_creation(:rdkafka) do
-  require 'waterdrop'
-end
+require 'waterdrop'
 require 'datadog'
 
 RSpec.describe Datadog::Tracing::Contrib::WaterDrop::Distributed::Propagation do

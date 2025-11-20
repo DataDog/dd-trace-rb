@@ -17,6 +17,8 @@ RSpec.describe Datadog::Core::Environment::Process do
   end
 
   describe 'Scenario: Real applications' do
+    skip_unless_integration_testing_enabled
+
     context 'when running a real Rails application' do
       it 'detects Rails process information correctly' do
         project_root_directory = Dir.pwd
@@ -24,10 +26,8 @@ RSpec.describe Datadog::Core::Environment::Process do
         Dir.mktmpdir do |tmp_dir|
           Dir.chdir(tmp_dir) do
             Bundler.with_unbundled_env do
-              _, stderr, status = Open3.capture3('rails new test@_app --minimal --skip-active-record --skip-test --skip-keeps --skip-git --skip-docker')
-              unless status.success? && File.exist?("test@_app/Gemfile")
-                skip("rails new failed: #{stderr}")
-              end
+              _, _, _ = Open3.capture3('rails new test@_app --minimal --skip-active-record --skip-test --skip-keeps --skip-git --skip-docker')
+              expect(File.exist?("test@_app/Gemfile")).to be true
             end
 
             File.open("test@_app/Gemfile", 'a') do |file|

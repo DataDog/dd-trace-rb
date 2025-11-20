@@ -4,7 +4,7 @@ require 'datadog/core/telemetry/event/app_started'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
   let(:id) { double('seq_id') }
-  subject(:event) { described_class.new(agent_settings: agent_settings) }
+  subject(:event) { described_class.new(components: Datadog.send(:components)) }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(Datadog.configuration) }
 
   let(:logger) do

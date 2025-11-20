@@ -9,14 +9,12 @@ require 'datadog/tracing/contrib/ethon/shared_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/support/http'
 
-require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
-
 RSpec.describe 'Ethon integration tests' do
   skip_unless_integration_testing_enabled
 
   context 'with Easy HTTP request' do
     subject(:request) do
-      easy = EthonSupport.ethon_easy_new
+      easy = Ethon::Easy.new
       easy.http_request(url, 'GET', params: query, timeout_ms: timeout * 1000)
       easy.perform
       # Use Typhoeus response wrapper to simplify tests
@@ -67,7 +65,7 @@ RSpec.describe 'Ethon integration tests' do
 
   context 'with simple Easy & headers override' do
     subject(:request) do
-      easy = EthonSupport.ethon_easy_new(url: url)
+      easy = Ethon::Easy.new(url: url)
       easy.customrequest = 'GET'
       easy.set_attributes(timeout_ms: timeout * 1000)
       easy.headers = request_headers
@@ -104,7 +102,7 @@ RSpec.describe 'Ethon integration tests' do
   context 'with single Multi request' do
     subject(:request) do
       multi = Ethon::Multi.new
-      easy = EthonSupport.ethon_easy_new
+      easy = Ethon::Easy.new
       easy.http_request(url, 'GET', params: query, timeout_ms: timeout * 1000)
       multi.add(easy)
       multi.perform

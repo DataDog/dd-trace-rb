@@ -24,11 +24,17 @@ module Datadog
 
         public
 
+        attr_reader settings: untyped
+
+        attr_reader agent_settings: untyped
+
         attr_reader health_metrics: untyped
 
         attr_reader logger: untyped
 
         attr_reader profiler: untyped
+
+        attr_reader dynamic_instrumentation: untyped
 
         attr_reader runtime_metrics: untyped
 
