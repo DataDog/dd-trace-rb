@@ -5,6 +5,8 @@ require 'spec_helper'
 require 'datadog/core/telemetry/component'
 
 RSpec.describe 'Telemetry integration tests' do
+  skip_unless_integration_testing_enabled
+
   # Although the tests override the environment variables, if any,
   # with programmatic configuration, that may produce warnings from the
   # configuration code. Remove environment variables to suppress the warnings.
