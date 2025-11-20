@@ -19,6 +19,17 @@ module Datadog
                 WaterDrop.inject(trace_op.to_digest, message[:headers] ||= {})
               end
 
+              if Datadog::DataStreams.enabled?
+                Datadog::DataStreams.set_produce_checkpoint(
+                  type: 'kafka',
+                  destination: message[:topic],
+                  auto_instrumentation: true
+                ) do |key, value|
+                  message[:headers] ||= {}
+                  message[:headers][key] = value
+                end
+              end
+
               message
             end
 

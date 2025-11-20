@@ -62,8 +62,7 @@ module Datadog
 
     def self.enabled?
       profiler = Datadog.send(:components).profiler
-      # Use .send(...) to avoid exposing the attr_reader as an API to the outside
-      !!profiler&.send(:scheduler)&.running?
+      !!profiler&.enabled?
     end
 
     def self.wait_until_running(timeout_seconds: 5)

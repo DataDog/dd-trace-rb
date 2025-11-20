@@ -1,11 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/contrib/support/spec_helper'
-
-# FFI::Function background native thread
-ThreadHelpers.with_leaky_thread_creation(:rdkafka) do
-  require 'waterdrop'
-end
+require 'waterdrop'
 require 'datadog'
 
 RSpec.describe 'Waterdrop patcher' do
@@ -70,6 +66,20 @@ RSpec.describe 'Waterdrop patcher' do
             Datadog::Tracing::Contrib::WaterDrop::Middleware
           ]
         )
+      end
+    end
+
+    context 'when DataStreams is enabled' do
+      before do
+        allow(Datadog::DataStreams).to receive(:enabled?).and_return(true)
+      end
+
+      it 'patches without errors' do
+        expect do
+          WaterDrop::Producer.new do |config|
+            config.client_class = WaterDrop::Clients::Buffered
+          end
+        end.not_to raise_error
       end
     end
   end
