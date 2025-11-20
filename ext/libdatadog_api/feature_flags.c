@@ -260,7 +260,7 @@ static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE expe
 
   const ddog_ffe_Handle_Configuration config = (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
   const ddog_ffe_ExpectedFlagType expected_ty = expected_type_from_value(expected_type);
-  const ddog_ffe_Handle_EvaluationContext context = evaluation_context_from_hash(context_hash);
+  ddog_ffe_Handle_EvaluationContext context = evaluation_context_from_hash(context_hash);
 
   ddog_ffe_Handle_ResolutionDetails resolution_details = ddog_ffe_get_assignment(
     config,
@@ -268,6 +268,8 @@ static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE expe
     expected_ty,
     context
   );
+
+  ddog_ffe_evaluation_context_drop(&context);
 
   return TypedData_Wrap_Struct(resolution_details_class, &resolution_details_typed_data, resolution_details);
 }
