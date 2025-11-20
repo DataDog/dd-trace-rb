@@ -41,16 +41,18 @@ RSpec.describe Datadog::OpenFeature do
     end
 
     context 'when component and remote configuration are available' do
-      around do |example|
+      before do
+        # NOTE: To avoid the use of doubles or partial doubles outside of the per-test lifecycle
+        #       we have to split around hook into before/after.
+        stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', nil)
+
         Datadog.configure do |c|
           c.remote.enabled = true
           c.open_feature.enabled = true
         end
-
-        example.run
-      ensure
-        Datadog.configuration.reset!
       end
+
+      after { Datadog.configuration.reset! }
 
       it { expect(described_class.engine).to be_a(Datadog::OpenFeature::EvaluationEngine) }
     end
