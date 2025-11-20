@@ -37,7 +37,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
   end
 
   describe '#fetch_value' do
-    let(:result) { engine.fetch_value(flag_key: 'test', default_value: 'fallback', expected_type: 'string') }
+    let(:result) { engine.fetch_value(flag_key: 'test', default_value: 'fallback', expected_type: :string) }
 
     context 'when binding evaluator is not ready' do
       it 'returns evaluation error and reports exposure' do
@@ -103,14 +103,14 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
     context 'when expected type not in the allowed list' do
       before { engine.reconfigure!(configuration) }
 
-      let(:result) { engine.fetch_value(flag_key: 'test', default_value: 'x', expected_type: 'whatever') }
+      let(:result) { engine.fetch_value(flag_key: 'test', default_value: 'x', expected_type: :whatever) }
 
       it 'returns evaluation error and does not report exposure' do
         expect(reporter).not_to receive(:report)
 
         expect(result.value).to eq('x')
         expect(result.error_code).to eq('UNKNOWN_TYPE')
-        expect(result.error_message).to start_with('unknown type "whatever", allowed types')
+        expect(result.error_message).to start_with('unknown type :whatever, allowed types')
         expect(result.reason).to eq('ERROR')
       end
     end
@@ -121,7 +121,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
       let(:evaluation_context) { instance_double('OpenFeature::SDK::EvaluationContext') }
       let(:result) do
         engine.fetch_value(
-          flag_key: 'test', default_value: 'bye!', expected_type: 'string', evaluation_context: evaluation_context
+          flag_key: 'test', default_value: 'bye!', expected_type: :string, evaluation_context: evaluation_context
         )
       end
 
@@ -166,7 +166,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         allow(reporter).to receive(:report)
 
         expect { engine.reconfigure!('{}') }.to raise_error(described_class::ReconfigurationError, 'Ooops')
-        expect(engine.fetch_value(flag_key: 'test', default_value: 'bye!', expected_type: 'string').value).to eq('hello')
+        expect(engine.fetch_value(flag_key: 'test', default_value: 'bye!', expected_type: :string).value).to eq('hello')
       end
     end
 
@@ -208,7 +208,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
       xit 'reconfigures binding evaluator with new flags configuration' do
         expect { engine.reconfigure!(new_configuration) }.to change {
-          engine.fetch_value(flag_key: 'test', default_value: 'bye!', expected_type: 'string').value
+          engine.fetch_value(flag_key: 'test', default_value: 'bye!', expected_type: :string).value
         }.from('hello').to('goodbye')
       end
     end

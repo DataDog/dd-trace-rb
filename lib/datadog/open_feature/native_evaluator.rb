@@ -14,11 +14,11 @@ module Datadog
       end
 
       def get_assignment(flag_key, default_value, context, expected_type)
-        native_details = @configuration.get_assignment(flag_key, expected_type.to_sym, context)
+        native_details = @configuration.get_assignment(flag_key, expected_type, context)
 
         variant = native_details.variant
         value = native_details.value
-        if expected_type == 'object' && value.is_a?(String)
+        if expected_type == :object && value.is_a?(String)
           # JSON flags return value as string. We need to parse it.
           value = JSON.parse(value)
         elsif variant.nil?

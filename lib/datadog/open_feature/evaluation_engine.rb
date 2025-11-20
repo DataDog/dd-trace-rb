@@ -11,7 +11,7 @@ module Datadog
     class EvaluationEngine
       ReconfigurationError = Class.new(StandardError)
 
-      ALLOWED_TYPES = %w[boolean string number float integer object].freeze
+      ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
       def initialize(reporter, telemetry:, logger:)
         @reporter = reporter

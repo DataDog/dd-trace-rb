@@ -68,27 +68,27 @@ module Datadog
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'boolean', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :boolean, evaluation_context: evaluation_context)
       end
 
       def fetch_string_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'string', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :string, evaluation_context: evaluation_context)
       end
 
       def fetch_number_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'number', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :number, evaluation_context: evaluation_context)
       end
 
       def fetch_integer_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'integer', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :integer, evaluation_context: evaluation_context)
       end
 
       def fetch_float_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'float', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :float, evaluation_context: evaluation_context)
       end
 
       def fetch_object_value(flag_key:, default_value:, evaluation_context: nil)
-        evaluate(flag_key, default_value: default_value, expected_type: 'object', evaluation_context: evaluation_context)
+        evaluate(flag_key, default_value: default_value, expected_type: :object, evaluation_context: evaluation_context)
       end
 
       private

@@ -5,7 +5,7 @@ module Datadog
 
       def initialize: (String configuration) -> void
 
-      def get_assignment: (String flag_key, untyped default_value, Hash[String, untyped] context, String expected_type) -> ResolutionDetails
+      def get_assignment: (String flag_key, untyped default_value, Hash[String, untyped] context, Symbol expected_type) -> ResolutionDetails
     end
   end
 end
