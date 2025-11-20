@@ -65,14 +65,12 @@ module Datadog
                   o.type :int
                   o.env 'OTEL_METRIC_EXPORT_INTERVAL'
                   o.default 10_000
-                  o.env_parser { |value| value&.to_i }
                 end
 
                 option :export_timeout do |o|
                   o.type :int
                   o.env 'OTEL_METRIC_EXPORT_TIMEOUT'
                   o.default 7_500
-                  o.env_parser { |value| value&.to_i }
                 end
 
                 option :temporality_preference do |o|
@@ -104,7 +102,6 @@ module Datadog
                   o.type :int, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT'
                   o.default nil
-                  o.env_parser { |value| value&.to_i }
                 end
 
                 option :protocol do |o|
