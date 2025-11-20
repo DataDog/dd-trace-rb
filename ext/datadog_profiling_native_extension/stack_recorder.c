@@ -658,7 +658,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   sampler_unlock_active_profile(active_slot);
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    raise_error(eNativeArgumentError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 }
 
@@ -682,7 +682,7 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
   sampler_unlock_active_profile(active_slot);
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to record endpoint: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    raise_error(eNativeArgumentError, "Failed to record endpoint: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 }
 
@@ -1097,7 +1097,7 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   );
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    raise_error(eNativeArgumentError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 
   ddog_Timespec finish_timestamp = system_epoch_now_timespec();
@@ -1127,13 +1127,13 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   );
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    raise_error(eNativeArgumentError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 
   serialize_result = ddog_prof_Profile_serialize(&profile.ok, &start_timestamp, &finish_timestamp);
 
   if (serialize_result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
+    raise_error(eNativeArgumentError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
   }
 
   VALUE encoded_pprof_2 = from_ddog_prof_EncodedProfile(serialize_result.ok);

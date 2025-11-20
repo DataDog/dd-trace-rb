@@ -51,7 +51,7 @@ void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_
 
 void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns) {
   if (target_overhead <= 0 || target_overhead > 100) {
-    rb_raise(rb_eArgError, "Target overhead must be a double between ]0,100] was %f", target_overhead);
+    raise_error(eNativeArgumentError, "Target overhead must be a double between ]0,100] was %f", target_overhead);
   }
   sampler->target_overhead = target_overhead;
   return discrete_dynamic_sampler_reset(sampler, now_ns);

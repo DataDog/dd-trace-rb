@@ -72,7 +72,7 @@ uint8_t gc_profiling_set_metadata(ddog_prof_Label *labels, int labels_length) {
     1;  // gc type
 
   if (max_label_count > labels_length) {
-    rb_raise(rb_eArgError, "BUG: gc_profiling_set_metadata invalid labels_length (%d) < max_label_count (%d)", labels_length, max_label_count);
+    raise_error(eNativeArgumentError, "BUG: gc_profiling_set_metadata invalid labels_length (%d) < max_label_count (%d)", labels_length, max_label_count);
   }
 
   uint8_t label_pos = 0;

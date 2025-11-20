@@ -818,7 +818,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
         NULL
       );
     #else
-      rb_raise(rb_eArgError, "GVL profiling is not supported in this Ruby version");
+      raise_error(eNativeArgumentError, "GVL profiling is not supported in this Ruby version");
     #endif
   }
 
@@ -1090,7 +1090,7 @@ static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state) {
 static void sleep_for(uint64_t time_ns) {
   // As a simplification, we currently only support setting .tv_nsec
   if (time_ns >= SECONDS_AS_NS(1)) {
-    grab_gvl_and_raise(rb_eArgError, "sleep_for can only sleep for less than 1 second, time_ns: %"PRIu64, time_ns);
+    grab_gvl_and_raise(eNativeArgumentError, "sleep_for can only sleep for less than 1 second, time_ns: %"PRIu64, time_ns);
   }
 
   struct timespec time_to_sleep = {.tv_nsec = time_ns};

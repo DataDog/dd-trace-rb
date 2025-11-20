@@ -28,31 +28,35 @@ void ruby_helpers_init(void) {
   new_id = rb_intern("new");
 }
 
-// Use `raise_error` the macro instead, as it provides additional argument checks.
-void _raise_error(VALUE native_exception_class, const char *fmt, ...) {
+// Raises a NativeError exception with seperate telemetry-safe and detailed messages.
+void _raise_native_error(VALUE native_exception_class, const char *detailed_message, VALUE static_message) {
   #ifdef DD_DEBUG
     if (native_exception_class != eNativeRuntimeError &&
         native_exception_class != eNativeArgumentError &&
         native_exception_class != eNativeTypeError) {
-      rb_bug("[ddtrace] BUG: _raise_error called with a native_exception_class that might not support two messages. "
-             "Must be one of eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError");
+        rb_raise(rb_eRuntimeError, "[ddtrace] BUG: _raise_native_error called with an exception that might not support two error messages. "
+            "Must be one of eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError, was: %s", rb_class2name(native_exception_class));
     }
   #endif
 
+  VALUE exception = rb_funcall(
+    native_exception_class,
+    new_id,
+    2,
+    rb_str_new_cstr(detailed_message),
+    static_message
+  );
+  rb_exc_raise(exception);
+}
+
+// Use `raise_error` the macro instead, as it provides additional argument checks.
+void _raise_error(VALUE native_exception_class, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   VALUE formatted_msg = rb_vsprintf(fmt, args);
   va_end(args);
 
-  // Pass both the static format string and the formatted message to the error class
-  VALUE exception = rb_funcall(
-    native_exception_class,
-    new_id,
-    2,
-    rb_str_new_cstr(fmt), // static string
-    formatted_msg
-  );
-  rb_exc_raise(exception);
+  _raise_native_error(native_exception_class, fmt, formatted_msg);
 }
 
 #define MAX_RAISE_MESSAGE_SIZE 256
@@ -60,29 +64,43 @@ void _raise_error(VALUE native_exception_class, const char *fmt, ...) {
 typedef struct {
   VALUE exception_class;
   char exception_message[MAX_RAISE_MESSAGE_SIZE];
+  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
 } raise_args;
 
 static void *trigger_raise(void *raise_arguments) {
   raise_args *args = (raise_args *) raise_arguments;
-  rb_raise(args->exception_class, "%s", args->exception_message);
+
+  _raise_native_error(
+    args->exception_class,
+    args->exception_message,
+    rb_str_new_cstr(args->telemetry_message)
+  );
 }
 
-void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
-  // TODO: Can we ommit the exception_class? Or maybe create a runtime_error wrapper?
+void _grab_gvl_and_raise(VALUE native_exception_class, const char *format_string, ...) {
   raise_args args;
 
-  args.exception_class = exception_class;
+  args.exception_class = native_exception_class;
 
   va_list format_string_arguments;
   va_start(format_string_arguments, format_string);
   vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
+  snprintf(args.telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", format_string);
 
   if (is_current_thread_holding_the_gvl()) {
-    // TODO: Check this error
-    rb_raise(
+    char exception_message[MAX_RAISE_MESSAGE_SIZE];
+    snprintf(
+      exception_message,
+      MAX_RAISE_MESSAGE_SIZE,
+      "grab_gvl_and_raise called by thread holding the global VM lock: %s (%s)",
+      args.exception_message,
+      rb_class2name(native_exception_class)
+    );
+
+    _raise_native_error(
       eNativeRuntimeError,
-      "grab_gvl_and_raise called by thread holding the global VM lock. exception_message: '%s'",
-      args.exception_message
+      exception_message,
+      rb_str_new_cstr(args.telemetry_message)
     );
   }
 
@@ -98,6 +116,8 @@ typedef struct {
 
 static void *trigger_syserr_raise(void *syserr_raise_arguments) {
   syserr_raise_args *args = (syserr_raise_args *) syserr_raise_arguments;
+  // Because each errno has a unique exception class, we do not need
+  // to report a custom telemetry message. The exception class is always reported.
   rb_syserr_fail(args->syserr_errno, args->exception_message);
 }
 
@@ -111,12 +131,28 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
   vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
 
   if (is_current_thread_holding_the_gvl()) {
-    // TODO: Check this error
-    rb_raise(
+    // Errno exceptions have unique classes for each errno value.
+    // Because we are raising a RuntimeError instead, in order to preserve
+    // the same information as the original errno exception, we include
+    // the errno value in the message and telemetry message.
+
+    // Add errno, but not the formatted message to the telemetry message.
+    char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
+    snprintf(
+      telemetry_message,
+      MAX_RAISE_MESSAGE_SIZE,
+      "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%%s'",
+      syserr_errno
+    );
+
+    // Then add the original exception message, to create the complete new message.
+    char exception_message[MAX_RAISE_MESSAGE_SIZE];
+    snprintf(exception_message, MAX_RAISE_MESSAGE_SIZE, telemetry_message, args.exception_message);
+
+    _raise_native_error(
       eNativeRuntimeError,
-      "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%s'",
-      syserr_errno,
-      args.exception_message
+      exception_message,
+      rb_str_new_cstr(telemetry_message)
     );
   }
 

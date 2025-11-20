@@ -4,27 +4,6 @@
 #include <stdarg.h>
 #include "datadog_ruby_common.h"
 
-// Global references to Datadog::Profiling exception classes
-// These are initialized in profiling.c during extension initialization
-// TODO: Can these classes be defined in Ruby? Will it work outside of GIL?
-extern VALUE eNativeRuntimeError;
-extern VALUE eNativeArgumentError;
-extern VALUE eNativeTypeError;
-
-// Raises an exception of the specified class with the formatted string as its message.
-// This macro ensures that the literay string is sent for telemetry, while the formatted
-// message is the default `Exception#message`.
-// *Ruby exceptions not raised through this function will not be reported via telemetry.*
-// Only the following error classes are supported, as they require an extra field for
-// the telemetry-safe string: NativeRuntimeError, NativeArgumentError, NativeTypeError.
-#define raise_error(native_exception_class, fmt, ...) \
-  _raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
-
-NORETURN(
-  void _raise_error(VALUE native_exception_class, const char *fmt, ...)
-  __attribute__ ((format (printf, 2, 3)));
-);
-
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
 // usage of ruby helpers.
 void ruby_helpers_init(void);
@@ -61,8 +40,30 @@ static inline int check_if_pending_exception(void) {
 
 #define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
 
+// Global references to Datadog::Profiling exception classes.
+extern VALUE eNativeRuntimeError;
+extern VALUE eNativeArgumentError;
+extern VALUE eNativeTypeError;
+
+// Raises an exception of the specified class with the formatted string as its message.
+// This macro ensures that the literay string is sent for telemetry, while the formatted
+// message is the default `Exception#message`.
+// *Ruby exceptions not raised through this function will not be reported via telemetry.*
+// Only the following error classes are supported, as they require an extra field for
+// the telemetry-safe string: NativeRuntimeError, NativeArgumentError, NativeTypeError.
+#define raise_error(native_exception_class, fmt, ...) \
+  _raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
+
 NORETURN(
-  void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...)
+  void _raise_error(VALUE native_exception_class, const char *fmt, ...)
+  __attribute__ ((format (printf, 2, 3)));
+);
+
+#define grab_gvl_and_raise(native_exception_class, fmt, ...) \
+  _grab_gvl_and_raise(native_exception_class, "" fmt, ##__VA_ARGS__)
+
+NORETURN(
+  void _grab_gvl_and_raise(VALUE native_exception_class, const char *format_string, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
 NORETURN(

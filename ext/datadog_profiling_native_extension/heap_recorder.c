@@ -259,7 +259,7 @@ void heap_recorder_set_sample_rate(heap_recorder *heap_recorder, int sample_rate
   }
 
   if (sample_rate <= 0) {
-    rb_raise(rb_eArgError, "Heap sample rate must be a positive integer value but was %d", sample_rate);
+    raise_error(eNativeArgumentError, "Heap sample rate must be a positive integer value but was %d", sample_rate);
   }
 
   heap_recorder->sample_rate = sample_rate;
@@ -581,7 +581,7 @@ typedef struct {
 
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
-    rb_raise(rb_eArgError, "heap_recorder is NULL");
+    raise_error(eNativeArgumentError, "heap_recorder is NULL");
   }
 
   VALUE debug_str = rb_str_new2("object records:\n");
@@ -962,7 +962,7 @@ static inline double ewma_stat(double previous, double current) {
 
 VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VALUE obj_id) {
   if (heap_recorder == NULL) {
-    rb_raise(rb_eArgError, "heap_recorder is NULL");
+    raise_error(eNativeArgumentError, "heap_recorder is NULL");
   }
 
   // Check if object records contains an object with this object_id
@@ -971,15 +971,15 @@ VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VA
 
 void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
-    rb_raise(rb_eArgError, "heap_recorder is NULL");
+    raise_error(eNativeArgumentError, "heap_recorder is NULL");
   }
 
   heap_recorder->last_update_ns = 0;
 }
 
 void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all) {
-  if (heap_recorder == NULL) rb_raise(rb_eArgError, "heap profiling must be enabled");
-  if (times > REUSABLE_FRAME_DETAILS_SIZE) rb_raise(rb_eArgError, "times cannot be > than REUSABLE_FRAME_DETAILS_SIZE");
+  if (heap_recorder == NULL) raise_error(eNativeArgumentError, "heap profiling must be enabled");
+  if (times > REUSABLE_FRAME_DETAILS_SIZE) raise_error(eNativeArgumentError, "times cannot be > than REUSABLE_FRAME_DETAILS_SIZE");
 
   if (use_all) {
     ddog_CharSlice *strings = heap_recorder->reusable_char_slices;

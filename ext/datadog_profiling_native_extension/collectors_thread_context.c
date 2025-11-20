@@ -519,7 +519,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   } else if (otel_context_enabled == ID2SYM(rb_intern("both"))) {
     state->otel_context_enabled = OTEL_CONTEXT_ENABLED_BOTH;
   } else {
-    rb_raise(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
+    raise_error(eNativeArgumentError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
   }
 
   global_waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
@@ -540,7 +540,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE profiler_overhead_stack_thread, VALUE allow_exception) {
   ENFORCE_BOOLEAN(allow_exception);
 
-  if (!is_thread_alive(profiler_overhead_stack_thread)) rb_raise(rb_eArgError, "Unexpected: profiler_overhead_stack_thread is not alive");
+  if (!is_thread_alive(profiler_overhead_stack_thread)) raise_error(eNativeArgumentError, "Unexpected: profiler_overhead_stack_thread is not alive");
 
   if (allow_exception == Qfalse) debug_enter_unsafe_context();
 
@@ -2155,7 +2155,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
     per_thread_context *thread_context = get_context_for(thread, state);
-    if (thread_context == NULL) rb_raise(rb_eArgError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
+    if (thread_context == NULL) raise_error(eNativeArgumentError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
 
     thread_context->cpu_time_at_previous_sample_ns += NUM2LONG(delta_ns);
 

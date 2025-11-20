@@ -85,7 +85,7 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
 
     return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
   } else {
-    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
+    raise_error(eNativeArgumentError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
   }
 }
 

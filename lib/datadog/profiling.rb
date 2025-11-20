@@ -83,7 +83,7 @@ module Datadog
     module NativeError
       attr_reader :telemetry_message
 
-      def initialize(message, telemetry_message)
+      def initialize(message, telemetry_message = nil)
         super(message)
         @telemetry_message = telemetry_message
       end
@@ -98,6 +98,10 @@ module Datadog
     end
 
     class NativeTypeError < TypeError
+      prepend NativeError
+    end
+
+    class NativeSystemCallError < SystemCallError
       prepend NativeError
     end
 

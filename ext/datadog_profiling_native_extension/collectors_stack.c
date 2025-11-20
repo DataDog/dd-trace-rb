@@ -601,8 +601,8 @@ bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
 }
 
 uint16_t sampling_buffer_check_max_frames(int max_frames) {
-  if (max_frames < 5) rb_raise(rb_eArgError, "Invalid max_frames: value must be >= 5");
-  if (max_frames > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
+  if (max_frames < 5) raise_error(eNativeArgumentError, "Invalid max_frames: value must be >= 5");
+  if (max_frames > MAX_FRAMES_LIMIT) raise_error(eNativeArgumentError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
   return max_frames;
 }
 
@@ -619,7 +619,7 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, dd
 
 void sampling_buffer_free(sampling_buffer *buffer) {
   if (buffer->max_frames == 0 || buffer->locations == NULL || buffer->stack_buffer == NULL) {
-    rb_raise(rb_eArgError, "sampling_buffer_free called with invalid buffer");
+    raise_error(eNativeArgumentError, "sampling_buffer_free called with invalid buffer");
   }
 
   ruby_xfree(buffer->stack_buffer);

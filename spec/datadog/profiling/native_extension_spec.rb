@@ -12,30 +12,33 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
   describe "grab_gvl_and_raise" do
     it "raises the requested exception with the passed in message" do
-      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "this is a test", nil, true) }
-        .to raise_exception(ZeroDivisionError, "this is a test")
+      expect { described_class::Testing._native_grab_gvl_and_raise(Datadog::Profiling::NativeRuntimeError, "this is a test", nil, true) }
+        .to raise_native_exception(Datadog::Profiling::NativeRuntimeError, "this is a test", "%s")
     end
 
     it "accepts printf-style string formatting" do
-      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "divided zero by ", 42, true) }
-        .to raise_exception(ZeroDivisionError, "divided zero by 42")
+      expect { described_class::Testing._native_grab_gvl_and_raise(Datadog::Profiling::NativeRuntimeError, "divided zero by ", 42, true) }
+        .to raise_native_exception(Datadog::Profiling::NativeRuntimeError, "divided zero by 42", "%s%d")
     end
 
     it "limits the exception message to 255 characters" do
       big_message = "a" * 500
 
-      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, big_message, nil, true) }
-        .to raise_exception(ZeroDivisionError, /a{255}\z/)
+      expect { described_class::Testing._native_grab_gvl_and_raise(Datadog::Profiling::NativeRuntimeError, big_message, nil, true) }
+        .to raise_native_exception(Datadog::Profiling::NativeRuntimeError, /a{255}\z/, "%s")
     end
 
     context "when called without releasing the gvl" do
       it "raises a NativeError" do
-        expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "this is a test", nil, false) }
-          .to raise_exception(Datadog::Profiling::NativeRuntimeError) do |error|
-            expect(error.message).to match(/called by thread holding the global VM lock/)
-            # Note: This uses rb_raise directly, not raise_for_telemetry, so telemetry_message may not be set
-            expect(error.telemetry_message).to be_nil
-          end
+        expect do
+          described_class::Testing._native_grab_gvl_and_raise(Datadog::Profiling::NativeRuntimeError, "this is a test", nil, false)
+        end.to raise_native_exception(
+          Datadog::Profiling::NativeRuntimeError,
+          match(/called by thread holding the global VM lock/),
+          "%s"
+        ) do |error|
+          expect(error.message).to match(/this is a test/)
+        end
       end
     end
 
@@ -45,7 +48,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
 
       it "raises a NativeRuntimeError" do
-        expect { raise_native_runtime_error }.to raise_exception(Datadog::Profiling::NativeRuntimeError, "runtime error test")
+        expect { raise_native_runtime_error }.to raise_native_exception(Datadog::Profiling::NativeRuntimeError, "runtime error test", "%s")
       end
 
       it "is an instance of RuntimeError" do
@@ -59,7 +62,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
 
       it "raises a NativeArgumentError" do
-        expect { raise_native_argument_error }.to raise_exception(Datadog::Profiling::NativeArgumentError, "argument error test")
+        expect { raise_native_argument_error }.to raise_native_exception(Datadog::Profiling::NativeArgumentError, "argument error test", "%s")
       end
 
       it "is an instance of ArgumentError" do
@@ -73,7 +76,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
 
       it "raises a NativeTypeError" do
-        expect { raise_native_type_error }.to raise_exception(Datadog::Profiling::NativeTypeError, "type error test")
+        expect { raise_native_type_error }.to raise_native_exception(Datadog::Profiling::NativeTypeError, "type error test", "%s")
       end
 
       it "is an instance of TypeError" do
@@ -104,13 +107,16 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "when called without releasing the gvl" do
-      it "raises a NativeError" do
+      it "raises a NativeError, preserving the Errno exception type" do
         expect do
           described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "this is a test", nil, false)
-        end.to raise_exception(Datadog::Profiling::NativeRuntimeError) do |error|
-          expect(error.message).to match(/called by thread holding the global VM lock/)
-          # Note: This uses rb_raise directly, not raise_for_telemetry, so telemetry_message may not be set
-          expect(error.telemetry_message).to be_nil
+        end.to raise_native_exception(
+          Datadog::Profiling::NativeRuntimeError,
+          match(/called by thread holding the global VM lock/).and(match(/errno: 4/)),
+          match(/called by thread holding the global VM lock/).and(match(/errno: 4/))
+        ) do |error|
+          expect(error.message).to match(/this is a test/)
+          expect(error.telemetry_message).to_not match(/this is a test/)
         end
       end
     end
