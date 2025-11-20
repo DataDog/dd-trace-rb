@@ -1,9 +1,14 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'opentelemetry/sdk'
-require 'opentelemetry-metrics-sdk'
-require 'opentelemetry/exporter/otlp_metrics'
+
+# OpenTelemetry metrics SDK requires Ruby >= 3.1
+if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1')
+  require 'opentelemetry/sdk'
+  require 'opentelemetry-metrics-sdk'
+  require 'opentelemetry/exporter/otlp_metrics'
+end
+
 require 'datadog/opentelemetry'
 require 'datadog/core/configuration/settings'
 require 'net/http'
@@ -88,6 +93,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       'DD_TRACE_AGENT_PORT' => agent_port,
     }.merge(env_overrides)) do
       # Reset Datadog to ensure components are reinitialized with the new environment variables
+      # (before block resets, but that's before ClimateControl.modify sets env vars)
       Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
       Datadog.configure do |c|
         config_block&.call(c)

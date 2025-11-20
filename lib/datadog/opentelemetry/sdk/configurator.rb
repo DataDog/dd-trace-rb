@@ -30,10 +30,20 @@ module Datadog
           [SpanProcessor.new]
         end
 
-        # Prevents default SDK metrics initialization when Datadog metrics are enabled.
-        # Metrics are initialized from Components instead.
+        # Prevents default SDK metrics initialization when Datadog has already configured metrics.
+        # Checks for Datadog's MetricsExporter to distinguish from SDK's default configuration.
         def metrics_configuration_hook
-          return if Datadog.configuration.opentelemetry.metrics.enabled && defined?(Datadog::OpenTelemetry::Metrics)
+          current_provider = ::OpenTelemetry.meter_provider
+          # Skip SDK default initialization if Datadog has already configured a MeterProvider
+          if current_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+            # Check if any reader uses Datadog's MetricsExporter
+            datadog_exporter_exists = current_provider.metric_readers.any? do |reader|
+              reader.instance_variable_get(:@exporter).is_a?(Datadog::OpenTelemetry::SDK::MetricsExporter)
+            rescue
+              false
+            end
+            return if datadog_exporter_exists
+          end
           super
         end
         ::OpenTelemetry::SDK::Configurator.prepend(self)
