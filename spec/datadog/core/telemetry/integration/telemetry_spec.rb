@@ -480,6 +480,18 @@ RSpec.describe 'Telemetry integration tests' do
     # mapping from what we want to test (which are actual payloads).
     # Therefore, these tests go through a local web server and assert on the
     # submitted payloads.
+    #
+    # These tests are also subject to a race of sorts between when the
+    # telemetry worker performs its first iteration and when the
+    # app integrations change event is submitted to the queue.
+    # Since the tests flush the queue, if the integration change event is
+    # submitted after the initial worker iteration, each test will wait for
+    # 10 seconds for the second iteration to send out that event.
+    # To work around this we reduce metrics_aggregation_interval_seconds to
+    # 1 (second).
+    # Note that this is (sort of) not an issue in production: all of the
+    # events will be sent, but telemetry does not guarantee when any particular
+    # event will be sent - it could be delayed until the next worker iteration.
 
     http_server do |http_server|
       http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
@@ -517,6 +529,7 @@ RSpec.describe 'Telemetry integration tests' do
         Datadog.configure do |c|
           c.agent.port = http_server_port
           c.telemetry.enabled = true
+          c.telemetry.metrics_aggregation_interval_seconds = 1
 
           c.profiling.enabled = true
         end
@@ -545,6 +558,7 @@ RSpec.describe 'Telemetry integration tests' do
         Datadog.configure do |c|
           c.agent.port = http_server_port
           c.telemetry.enabled = true
+          c.telemetry.metrics_aggregation_interval_seconds = 1
 
           c.profiling.enabled = true
         end
