@@ -82,7 +82,6 @@ static inline VALUE str_from_borrow(ddog_ffe_BorrowedStr str) {
 }
 
 void feature_flags_init(VALUE core_module) {
-  // Always define the FeatureFlags module - it will reuse existing one if it exists.
   VALUE feature_flags_module = rb_define_module_under(core_module, "FeatureFlags");
 
   feature_flags_error_class = rb_define_class_under(feature_flags_module, "Error", rb_eStandardError);
@@ -179,14 +178,19 @@ static int evaluation_context_foreach_callback(VALUE key, VALUE value, VALUE arg
   ENFORCE_TYPE(key, T_STRING);
   const char *name = RSTRING_PTR(key);
 
-  // Extract targeting_key separately if present
+  // Extract targeting_key separately if present.
+  //
+  // If targeting_key has wrong type, we will skip it and attempt
+  // evaluation without it. If targeting_key turns out to be required,
+  // the error will be reported by
+  // ddog_ffe_configuration_get_assignment function.
   if (strcmp(name, "targeting_key") == 0 && TYPE(value) == T_STRING) {
     builder->targeting_key = RSTRING_PTR(value);
     return ST_CONTINUE;
   }
 
   // Skip nil values
-  if (TYPE(value) == T_NIL) {
+  if (value == Qnil) {
     return ST_CONTINUE;
   }
 
@@ -298,7 +302,8 @@ static VALUE configuration_get_assignment(VALUE self, VALUE flag_key, VALUE expe
   ENFORCE_TYPE(expected_type, T_SYMBOL);
   ENFORCE_TYPE(context_hash, T_HASH);
 
-  const ddog_ffe_Handle_Configuration config = (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
+  const ddog_ffe_Handle_Configuration config =
+    (ddog_ffe_Handle_Configuration)rb_check_typeddata(self, &configuration_data_type);
   const ddog_ffe_ExpectedFlagType expected_ty = expected_type_from_value(expected_type);
   ddog_ffe_Handle_EvaluationContext context = evaluation_context_from_hash(context_hash);
 
@@ -329,7 +334,8 @@ static void resolution_details_free(void *ptr) {
  * For object types, returns the raw JSON string without parsing.
  */
 static VALUE resolution_details_get_raw_value(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
 
   struct ddog_ffe_VariantValue value = ddog_ffe_assignment_get_value(resolution_details);
 
@@ -359,7 +365,8 @@ static VALUE resolution_details_get_raw_value(VALUE self) {
  * @return [Symbol, nil] One of: :string, :integer, :float, :boolean, :object, nil
  */
 static VALUE resolution_details_get_flag_type(VALUE self) {
-  ddog_ffe_Handle_ResolutionDetails resolution_details = (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
+  ddog_ffe_Handle_ResolutionDetails resolution_details =
+    (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
 
   struct ddog_ffe_VariantValue value = ddog_ffe_assignment_get_value(resolution_details);
 
