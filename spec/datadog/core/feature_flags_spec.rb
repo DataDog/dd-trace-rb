@@ -80,7 +80,7 @@ RSpec.describe 'Datadog::Core::FeatureFlags' do
 
         it 'evaluates flag successfully and returns all expected fields' do
           expect(result).to be_a(Datadog::Core::FeatureFlags::ResolutionDetails)
-          expect(result.value).to eq('{"feature":"enabled","color":"blue","count":42}')
+          expect(result.value).to eq({"feature" => "enabled", "color" => "blue", "count" => 42})
           expect(result.variant).to eq('treatment')
           expect(result.allocation_key).to eq('test-allocation')
           expect(result.reason).to eq('TARGETING_MATCH')
