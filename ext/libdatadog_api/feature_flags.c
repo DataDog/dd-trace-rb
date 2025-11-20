@@ -190,28 +190,34 @@ static ddog_ffe_Handle_EvaluationContext evaluation_context_from_hash(VALUE hash
       continue;
     }
 
-    attrs[attr_count].name = name;
-
     switch (TYPE(value)) {
+      case T_NIL:
+        // Skip nil values
+        continue;
       case T_STRING:
+        attrs[attr_count].name = name;
         attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
         attrs[attr_count].value.string = RSTRING_PTR(value);
         break;
       case T_FIXNUM:
       case T_FLOAT:
+        attrs[attr_count].name = name;
         attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_NUMBER;
         attrs[attr_count].value.number = NUM2DBL(value);
         break;
       case T_TRUE:
+        attrs[attr_count].name = name;
         attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
         attrs[attr_count].value.boolean = true;
         break;
       case T_FALSE:
+        attrs[attr_count].name = name;
         attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
         attrs[attr_count].value.boolean = false;
         break;
       default:
         // Default to string representation
+        attrs[attr_count].name = name;
         attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
         // SAFETY: RSTRING_PTR returns pointer to the Ruby heap, which
         // lives long enough for ddog_ffe_evaluation_context_new to copy the underlying
