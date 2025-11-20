@@ -119,13 +119,28 @@ RSpec.describe Datadog::Core::FeatureFlags do
       end
 
       context 'when expected type is unknown' do
-        let(:context) do
-          {'targeting_key' => 'test-user', 'email' => 'user@example.com'}
+        let(:result) do
+          configuration.get_assignment(
+            'test-flag', :unknown_type, {'targeting_key' => 'test-user', 'email' => 'user@example.com'}
+          )
         end
 
         it 'raises error for unknown type' do
-          expect { configuration.get_assignment('test-flag', :unknown_type, context) }
-            .to raise_error(described_class::Error, /Unexpected flag type/)
+          expect { result }.to raise_error(described_class::Error, /Unexpected flag type/)
+        end
+      end
+
+      context 'when value lazy evaluation fails' do
+        before { allow(JSON).to receive(:parse).and_raise(JSON::ParserError, 'Ooops') }
+
+        let(:result) do
+          configuration.get_assignment(
+            'test-flag', :object, {'targeting_key' => 'test-user', 'email' => 'user@example.com'}
+          )
+        end
+
+        it 'raises error for JSON parsing error' do
+          expect { result.value }.to raise_error(described_class::Error, /Failed to parse JSON value/)
         end
       end
     end

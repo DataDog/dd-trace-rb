@@ -94,5 +94,26 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(result.error_message).to match(/OpenFeature component must be configured/)
       end
     end
+
+    context 'when value is a JSON string' do
+      before do
+        allow(engine).to receive(:fetch_value).and_return(details)
+        allow(details).to receive(:value).and_raise(Datadog::Core::FeatureFlags::Error, 'Ooops')
+      end
+
+      let(:details) do
+        Datadog::OpenFeature::ResolutionDetails.new(
+          value: '{}', reason: 'MATCH', variant: 'blue', flag_metadata: {},
+          allocation_key: 'joe', extra_logging: {}, log?: true, error?: false
+        )
+      end
+
+      it 'returns error and fallback to the default value' do
+        result = provider.fetch_object_value(flag_key: 'flag', default_value: {'default' => true})
+
+        expect(result.value).to eq('default' => true)
+        expect(result.reason).to eq('ERROR')
+      end
+    end
   end
 end

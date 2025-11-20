@@ -7,6 +7,10 @@ module Datadog
     # Feature flags evaluation using libdatadog
     # The classes in this module are defined as C extensions in ext/libdatadog_api/feature_flags.c
     module FeatureFlags
+      # A top-level error raised by the extension
+      class Error < StandardError # rubocop:disable Lint/EmptyClass
+      end
+
       # Configuration for feature flags evaluation
       # This class is defined in the C extension
       class Configuration # rubocop:disable Lint/EmptyClass
@@ -24,11 +28,11 @@ module Datadog
         def value
           return @value if defined?(@value)
 
-          # NOTE: Raw value method call doesn't support memoization now
+          # NOTE: Raw value method call doesn't support memoization right now
           value = raw_value
 
           # NOTE: Lazy parsing of the JSON is a temporary solution and will be
-          #       moved into C binding
+          #       moved into C extension
           @value = json?(value) ? JSON.parse(value) : value
         rescue JSON::ParserError => e
           raise Error, "Failed to parse JSON value: #{e.message}"

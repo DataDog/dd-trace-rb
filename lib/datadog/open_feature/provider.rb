@@ -106,7 +106,7 @@ module Datadog
 
         if result.error?
           return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
-            value: result.value,
+            value: default_value,
             error_code: result.error_code,
             error_message: result.error_message,
             reason: result.reason
@@ -118,6 +118,13 @@ module Datadog
           variant: result.variant,
           reason: result.reason,
           flag_metadata: result.flag_metadata
+        )
+      rescue => e
+        ::OpenFeature::SDK::Provider::ResolutionDetails.new(
+          value: default_value,
+          error_code: Ext::PROVIDER_FATAL,
+          error_message: e.message,
+          reason: Ext::ERROR
         )
       end
 
