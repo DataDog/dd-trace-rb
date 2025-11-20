@@ -545,11 +545,14 @@ RSpec.describe 'Telemetry integration tests' do
         component.flush
         expect(sent_payloads.length).to eq 3
 
-        payload = sent_payloads[0]
-        expect(payload.fetch(:payload)).to include(
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
           'request_type' => 'app-started',
         )
-        expect(payload.fetch(:payload).dig('payload', 'products')).to include(
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'profiling.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
           'profiler' => {'enabled' => true},
         )
 
@@ -572,11 +575,14 @@ RSpec.describe 'Telemetry integration tests' do
         component.flush
         expect(sent_payloads.length).to eq 3
 
-        payload = sent_payloads[0]
-        expect(payload.fetch(:payload)).to include(
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
           'request_type' => 'app-started',
         )
-        expect(payload.fetch(:payload).dig('payload', 'products')).to include(
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'profiling.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
           'profiler' => {
             'enabled' => false,
             'error' => {
