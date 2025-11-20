@@ -513,7 +513,7 @@ RSpec.describe 'Instrumentation integration' do
           {
             id: '1234',
             type: 'LOG_PROBE',
-            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'long_test_method'},
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
             segments: segments,
           }
         end
@@ -525,6 +525,15 @@ RSpec.describe 'Instrumentation integration' do
               {json: {ref: '@duration'}, dsl: '@duration'},
               {str: ' ms'},
             ]
+          end
+
+          let(:probe_spec) do
+            {
+              id: '1234',
+              type: 'LOG_PROBE',
+              where: {typeName: 'InstrumentationSpecTestClass', methodName: 'long_test_method'},
+              segments: segments,
+            }
           end
 
           it 'substitutes the expected value' do
