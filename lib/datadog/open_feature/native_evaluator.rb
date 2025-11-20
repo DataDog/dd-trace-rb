@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../core/feature_flags'
-require_relative 'ext'
-require_relative 'resolution_details'
 
 module Datadog
   module OpenFeature

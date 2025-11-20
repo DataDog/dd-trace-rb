@@ -40,6 +40,10 @@ module Datadog
         def log?: () -> bool
 
         def flag_metadata: () -> metadata_t
+
+        private
+
+        def json?: (untyped) -> bool
       end
     end
   end

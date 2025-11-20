@@ -15,6 +15,8 @@ module Datadog
       # Resolution details for a feature flag evaluation
       # Base class is defined in the C extension, with Ruby methods added here
       class ResolutionDetails
+        attr_writer :value
+
         # Get the resolved value, with JSON parsing for object types
         #
         # @return [Object] The resolved value (parsed from JSON if object type)
@@ -22,27 +24,27 @@ module Datadog
         def value
           return @value if defined?(@value)
 
-          val = raw_value
+          # NOTE: Raw value method call doesn't support memoization now
+          value = raw_value
 
-          # Parse JSON for object types
-          if flag_type == :object && val.is_a?(String)
-            begin
-              val = JSON.parse(val)
-            rescue JSON::ParserError => e
-              raise Error, "Failed to parse JSON value: #{e.message}"
-            end
-          end
-
-          @value = val
+          # NOTE: Lazy parsing of the JSON is a temporary solution and will be
+          #       moved into C binding
+          @value = json?(value) ? JSON.parse(value) : value
+        rescue JSON::ParserError => e
+          raise Error, "Failed to parse JSON value: #{e.message}"
         end
-
-        attr_writer :value
 
         # Check if the resolution resulted in an error
         #
         # @return [Boolean] True if there was an error
         def error?
           reason == 'ERROR'
+        end
+
+        private
+
+        def json?(value)
+          flag_type == :object && value.is_a?(String)
         end
       end
     end
