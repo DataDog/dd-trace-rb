@@ -159,6 +159,73 @@ static ddog_ffe_ExpectedFlagType expected_type_from_value(VALUE expected_type) {
   }
 }
 
+// Structure to hold state during hash iteration for building evaluation context
+struct evaluation_context_builder {
+  const char *targeting_key;
+  ddog_ffe_AttributePair *attrs;
+  long attr_count;
+  long attr_capacity;
+};
+
+// Callback function for rb_hash_foreach to process each key-value pair
+static int evaluation_context_foreach_callback(VALUE key, VALUE value, VALUE arg) {
+  struct evaluation_context_builder *builder = (struct evaluation_context_builder *)arg;
+
+  ENFORCE_TYPE(key, T_STRING);
+  const char *name = RSTRING_PTR(key);
+
+  // Extract targeting_key separately if present
+  if (strcmp(name, "targeting_key") == 0 && TYPE(value) == T_STRING) {
+    builder->targeting_key = RSTRING_PTR(value);
+    return ST_CONTINUE;
+  }
+
+  // Skip nil values
+  if (TYPE(value) == T_NIL) {
+    return ST_CONTINUE;
+  }
+
+  // Ensure we don't exceed capacity (should not happen if capacity = hash size)
+  if (builder->attr_count >= builder->attr_capacity) {
+    return ST_STOP;
+  }
+
+  ddog_ffe_AttributePair *attr = &builder->attrs[builder->attr_count];
+  builder->attr_count += 1;
+
+  attr->name = name;
+  switch (TYPE(value)) {
+    case T_STRING:
+      attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
+      attr->value.string = RSTRING_PTR(value);
+      break;
+    case T_FIXNUM:
+    case T_FLOAT:
+      attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_NUMBER;
+      attr->value.number = NUM2DBL(value);
+      break;
+    case T_TRUE:
+      attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
+      attr->value.boolean = true;
+      break;
+    case T_FALSE:
+      attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
+      attr->value.boolean = false;
+      break;
+    default:
+      // Default to string representation
+      attr->value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
+      // SAFETY: RSTRING_PTR returns pointer to the Ruby heap, which
+      // lives long enough for ddog_ffe_evaluation_context_new to copy the underlying
+      // string. It will not get garbage collected until we exit C
+      // extension or release GVL.
+      attr->value.string = RSTRING_PTR(rb_funcall(value, rb_intern("to_s"), 0));
+      break;
+  }
+
+  return ST_CONTINUE;
+}
+
 // The hash should contain attributes for feature flag evaluation. The
 // special key "targeting_key" (if present) is extracted separately as
 // it has special meaning in the libdatadog API. All other key-value
@@ -171,72 +238,23 @@ static ddog_ffe_ExpectedFlagType expected_type_from_value(VALUE expected_type) {
 static ddog_ffe_Handle_EvaluationContext evaluation_context_from_hash(VALUE hash) {
   ENFORCE_TYPE(hash, T_HASH);
 
-  const char *targeting_key = NULL;
-  const long max_attr_count = RHASH_SIZE(hash);
-  ddog_ffe_AttributePair *const attrs = ruby_xcalloc(max_attr_count, sizeof(struct ddog_ffe_AttributePair));
+  // Initialize builder with pre-allocated attribute array
+  struct evaluation_context_builder builder = {
+    .targeting_key = NULL,
+    .attrs = ruby_xcalloc(RHASH_SIZE(hash), sizeof(ddog_ffe_AttributePair)),
+    .attr_count = 0,
+    .attr_capacity = RHASH_SIZE(hash)
+  };
 
-  const VALUE keys = rb_funcall(hash, rb_intern_const("keys"), 0);
-  // Number of currently filled attributes.
-  long attr_count = 0;
-
-  for (long i = 0; i < max_attr_count; i++) {
-    const VALUE key = rb_ary_entry(keys, i);
-    ENFORCE_TYPE(key, T_STRING);
-    const VALUE value = rb_hash_aref(hash, key);
-    const char *name = RSTRING_PTR(key);
-
-    if (strcmp(name, "targeting_key") == 0 && TYPE(value) == T_STRING) {
-      targeting_key = RSTRING_PTR(value);
-      continue;
-    }
-
-    switch (TYPE(value)) {
-      case T_NIL:
-        // Skip nil values
-        continue;
-      case T_STRING:
-        attrs[attr_count].name = name;
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
-        attrs[attr_count].value.string = RSTRING_PTR(value);
-        break;
-      case T_FIXNUM:
-      case T_FLOAT:
-        attrs[attr_count].name = name;
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_NUMBER;
-        attrs[attr_count].value.number = NUM2DBL(value);
-        break;
-      case T_TRUE:
-        attrs[attr_count].name = name;
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
-        attrs[attr_count].value.boolean = true;
-        break;
-      case T_FALSE:
-        attrs[attr_count].name = name;
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_BOOLEAN;
-        attrs[attr_count].value.boolean = false;
-        break;
-      default:
-        // Default to string representation
-        attrs[attr_count].name = name;
-        attrs[attr_count].value.tag = DDOG_FFE_ATTRIBUTE_VALUE_STRING;
-        // SAFETY: RSTRING_PTR returns pointer to the Ruby heap, which
-        // lives long enough for ddog_ffe_evaluation_context_new to copy the underlying
-        // string. It will not get garbage collected until we exit C
-        // extension or release GVL.
-        attrs[attr_count].value.string = RSTRING_PTR(rb_funcall(value, rb_intern("to_s"), 0));
-        break;
-    }
-
-    attr_count += 1;
-  }
+  rb_hash_foreach(hash, evaluation_context_foreach_callback, (VALUE)&builder);
 
   const ddog_ffe_Handle_EvaluationContext context = ddog_ffe_evaluation_context_new(
-    targeting_key,
-    attrs,
-    attr_count
+    builder.targeting_key,
+    builder.attrs,
+    builder.attr_count
   );
 
-  ruby_xfree(attrs);
+  ruby_xfree(builder.attrs);
 
   return context;
 }
