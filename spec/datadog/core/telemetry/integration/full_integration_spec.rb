@@ -5,6 +5,8 @@ require 'spec_helper'
 require 'datadog/core/telemetry/component'
 
 RSpec.describe 'Telemetry full integration tests' do
+  skip_unless_integration_testing_enabled
+
   context 'when Datadog.configure is used' do
     let(:worker1) do
       double(Datadog::Core::Telemetry::Worker)

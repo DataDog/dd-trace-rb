@@ -157,7 +157,7 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
 
   describe '#log_result' do
     before do
-      described_class.const_get(:LOG_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+      described_class.const_get(:LOG_ONLY_ONCE).reset
     end
 
     it 'calls logger.debug' do

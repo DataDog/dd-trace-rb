@@ -31,9 +31,7 @@ module Datadog
           @mutex.synchronize { @ran_once }
         end
 
-        private
-
-        def reset_ran_once_state_for_tests
+        def reset
           @mutex.synchronize { @ran_once = false }
         end
       end

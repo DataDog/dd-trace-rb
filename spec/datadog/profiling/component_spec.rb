@@ -212,7 +212,7 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
             stub_const("RUBY_VERSION", testing_version)
 
-            described_class.const_get(:ALLOCATION_WITH_RACTORS_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+            described_class.const_get(:ALLOCATION_WITH_RACTORS_ONLY_ONCE).reset
           end
 
           context "on Ruby 2.x" do
@@ -354,7 +354,7 @@ RSpec.describe Datadog::Profiling::Component do
             before do
               settings.profiling.allocation_enabled = true
 
-              described_class.const_get(:ALLOCATION_WITH_RACTORS_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+              described_class.const_get(:ALLOCATION_WITH_RACTORS_ONLY_ONCE).reset
             end
 
             it "initializes StackRecorder with heap sampling support and warns" do
