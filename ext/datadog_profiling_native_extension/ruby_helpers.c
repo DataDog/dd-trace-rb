@@ -114,6 +114,15 @@ void raise_syserr(
 }
 
 void _raise_error(VALUE exception_class, const char *fmt, ...) {
+  #ifdef DD_DEBUG
+    if (exception_class != eNativeRuntimeError &&
+        exception_class != eNativeArgumentError &&
+        exception_class != eNativeTypeError) {
+      rb_bug("[ddtrace] BUG: _raise_error called with an exception_class that might not support two messages. "
+             "Must be one of eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError");
+    }
+  #endif
+
   va_list args;
   va_start(args, fmt);
   VALUE formatted_msg = rb_vsprintf(fmt, args);
