@@ -95,16 +95,13 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       # Reset Datadog to ensure components are reinitialized with the new environment variables
       # (before block resets, but that's before ClimateControl.modify sets env vars)
       Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
-      
       # Ensure configurator prepend happens before OpenTelemetry::SDK.configure
       # This ensures the metrics_configuration_hook is in place
       require 'datadog/opentelemetry/sdk/configurator' if defined?(OpenTelemetry::SDK)
-      
       # Initialize Datadog components (this will set up metrics if enabled)
       Datadog.configure do |c|
         config_block&.call(c)
       end
-      
       # Now call OpenTelemetry::SDK.configure - the hook will preserve Datadog's MeterProvider
       OpenTelemetry::SDK.configure
     end
@@ -302,10 +299,8 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
         provider = ::OpenTelemetry.meter_provider
         provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
         ::OpenTelemetry.meter_provider = ::OpenTelemetry::Internal::ProxyMeterProvider.new
-        
         # Ensure configurator prepend happens before OpenTelemetry::SDK.configure
         require 'datadog/opentelemetry/sdk/configurator' if defined?(OpenTelemetry::SDK)
-        
         Datadog.configure { |c| }
         OpenTelemetry::SDK.configure
       end
