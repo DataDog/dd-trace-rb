@@ -4,7 +4,6 @@ module Datadog
       INVALID_TAG_CHARACTERS: ::Regexp
       LEADING_INVALID_CHARS_NO_DIGITS: ::Regexp
       LEADING_INVALID_CHARS_WITH_DIGITS: ::Regexp
-      TRAILING_UNDERSCORES: ::Regexp
       MAX_BYTE_SIZE: ::Integer
       VALID_ASCII_TAG: ::Regexp
 
