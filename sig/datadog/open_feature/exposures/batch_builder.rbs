@@ -1,0 +1,20 @@
+module Datadog
+  module OpenFeature
+    module Exposures
+      class BatchBuilder
+        type payload_t = ::Hash[::Symbol, untyped]
+
+        @context: ::Hash[::Symbol, ::String]
+
+        def initialize: (Core::Configuration::Settings settings) -> void
+
+        def payload_for: (::Array[Event::t] events) -> payload_t
+
+        private
+
+        def build_context: (Core::Configuration::Settings settings) -> ::Hash[::Symbol, ::String]
+      end
+    end
+  end
+end
+

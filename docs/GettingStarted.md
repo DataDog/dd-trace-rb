@@ -1159,10 +1159,32 @@ end
 ```
 `options` are the following keyword arguments:
 
-| Key                   | Env Var                  | Type   | Description                                         | Default |
-| --------------------- | ------------------------ | ------ | --------------------------------------------------- | ------- |
-| `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.        | `true`  |
-| `distributed_tracing` |                          | `Bool` | Enables [distributed tracing](#distributed-tracing). | `false` |
+| Key                   | Env Var                    | Type   | Description                                                                                                                                                                  | Default |
+| --------------------- | -------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.                                                                                                                       | `true`  |
+| `distributed_tracing` |                            | `Bool` | Enables [distributed tracing](#distributed-tracing) (when iterating through the kafka messages, each of the messages' traces will be resumed for the duration of the block). | `false` |
+
+### WaterDrop
+
+The WaterDrop integration provides tracing of the `waterdrop` gem (a dependency of `karafka`, but also can be used standalone).
+
+This integration activates automatically with the Karafka framework. If your application doesn’t use Karafka (for example, if it only produces messages consumed by another app), enable it manually with `Datadog.configure`:
+
+```ruby
+require 'waterdrop'
+require 'datadog'
+
+Datadog.configure do |c|
+  c.tracing.instrument :waterdrop, **options
+end
+
+```
+`options` are the following keyword arguments:
+
+| Key                   | Env Var                      | Type   | Description                                                                                                          | Default |
+| --------------------- | ---------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- | ------- |
+| `enabled`             | `DD_TRACE_WATERDROP_ENABLED` | `Bool` | Specifies whether the integration should create spans.                                                               | `true`  |
+| `distributed_tracing` |                              | `Bool` | Enables [distributed tracing](#distributed-tracing) (the trace context will be injected onto the produced messages). | `false` |
 
 ### MongoDB
 

@@ -61,9 +61,9 @@ module Datadog
           tag_sampling_priority!
           tag_profiling_enabled!
           tag_apm_tracing_disabled!
-          tag_process_tags!
 
           if first_span
+            tag_process_tags!
             tag_git_repository_url!
             tag_git_commit_sha!
           end
@@ -219,8 +219,11 @@ module Datadog
 
         def tag_process_tags!
           return unless Datadog.configuration.experimental_propagate_process_tags_enabled
-          process_tags = Core::Environment::Process.serialized
-          first_span.set_tag(Core::Environment::Ext::TAG_PROCESS_TAGS, process_tags)
+
+          first_span.set_tag(
+            Core::Environment::Ext::TAG_PROCESS_TAGS,
+            Core::Environment::Process.serialized
+          )
         end
 
         private

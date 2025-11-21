@@ -1003,7 +1003,7 @@ module Datadog
           end
         end
 
-        # Enable experimental process tags propagation.
+        # Enable experimental process tags propagation such that payloads like spans contain the process tag.
         #
         # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `false`
         # @return [Boolean]

@@ -1,0 +1,42 @@
+module OpenFeature
+  module SDK
+    class EvaluationContext
+      type fields_t = ::Hash[::String, untyped]
+
+      def targeting_key: () -> ::String?
+
+      def fields: () -> fields_t
+    end
+
+    module Provider
+      class ProviderMetadata
+        def initialize: (name: ::String) -> void
+      end
+
+      class ResolutionDetails < ::Struct[untyped]
+        type value_t = bool | ::String | ::Numeric | ::Integer | ::Float | ::Array[untyped] | ::Hash[untyped, untyped]
+
+        def self.new: (
+          ?value: value_t?,
+          ?variant: untyped?,
+          ?flag_metadata: ::Hash[untyped, untyped]?,
+          ?error_code: ErrorCode::t?,
+          ?error_message: ::String?,
+          ?reason: Reason::t?
+        ) -> instance
+      end
+
+      module ErrorCode
+        type t = ::String
+
+        PROVIDER_FATAL: t
+      end
+
+      module Reason
+        type t = ::String
+
+        ERROR: t
+      end
+    end
+  end
+end

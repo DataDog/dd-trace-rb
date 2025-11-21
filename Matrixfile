@@ -14,6 +14,9 @@
   'core_with_libdatadog_api' => {
     '' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ❌ jruby',
   },
+  'core_with_rails' => {
+    'rails8' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ❌ jruby',
+  },
   'error_tracking' => {
     '' => '❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ❌ jruby',
   },
@@ -126,6 +129,11 @@
     'karafka-latest' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ✅ jruby',
     # karafka 2.0.41 contains broken dependency of karafka-core 2.2.4, which depends on Ruby (>= 2.6.0)
     'karafka-min'    => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ✅ jruby',
+  },
+  'waterdrop' => {
+    # WaterDrop 2.8.8+ requires Ruby >= 3.1.0
+    'waterdrop-latest' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ✅ jruby',
+    'waterdrop-min'    => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ✅ jruby'
   },
   'lograge' => {
     'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ✅ jruby'
@@ -350,6 +358,10 @@
   'di:rails' => {
     'rails61-mysql2' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ❌ 3.5 / ❌ jruby',
     'rails8-mysql2'  => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ❌ jruby',
+  },
+  'open_feature' => {
+    'openfeature-latest' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ❌ jruby',
+    'openfeature-min'    => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ❌ jruby',
   },
 }.each_with_object({}) do |(tasks, spec_metadata), hash|
   # Explode arrays of task names into individual tasks

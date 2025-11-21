@@ -99,7 +99,7 @@ module Datadog
 
           def add_query_error_events: (SpanOperation span, Array[GraphQL::Error] errors) -> void
 
-          def serialize_error_locations: (Array[Hash[String, Integer]] locations) -> Array[String]
+          def self.serialize_error_locations: (::Array[::Hash[::String, ::Integer]]? locations) -> ::Array[::String]
         end
       end
     end

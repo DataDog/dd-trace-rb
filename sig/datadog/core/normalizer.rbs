@@ -1,8 +1,0 @@
-module Datadog
-  module Core
-    module Normalizer
-      INVALID_TAG_CHARACTERS: ::Regexp
-      def self.normalize: (untyped original_value) -> ("" | untyped)
-    end
-  end
-end

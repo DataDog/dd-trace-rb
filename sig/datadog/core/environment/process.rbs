@@ -2,17 +2,19 @@ module Datadog
   module Core
     module Environment
       module Process
-        @serialized: untyped
+        @serialized: ::String
 
-        def self?.entrypoint_workdir: () -> untyped
+        def self.serialized: () -> ::String
 
-        def self?.entrypoint_type: () -> untyped
+        private
 
-        def self?.entrypoint_name: () -> untyped
+        def self.entrypoint_workdir: () -> ::String
 
-        def self?.entrypoint_basedir: () -> untyped
-        def self?.serialized_kv_helper: (untyped key, untyped value) -> ::String
-        def self?.serialized: () -> untyped
+        def self.entrypoint_type: () -> ::String
+
+        def self.entrypoint_name: () -> ::String
+
+        def self.entrypoint_basedir: () -> ::String
       end
     end
   end
