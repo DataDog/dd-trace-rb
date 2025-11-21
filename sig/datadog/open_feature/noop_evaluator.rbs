@@ -7,7 +7,7 @@ module Datadog
         ::String,
         untyped,
         ::OpenFeature::SDK::EvaluationContext::fields_t,
-        ::String
+        ::Symbol
       ) -> ResolutionDetails
     end
   end

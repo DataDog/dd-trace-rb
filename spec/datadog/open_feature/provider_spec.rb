@@ -29,49 +29,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(result.error_message).to match(/OpenFeature component must be configured/)
       end
     end
-
-    xcontext 'when engine is configured' do
-      before do
-        engine.configuration = configuration
-        engine.reconfigure!
-      end
-
-      let(:result) { provider.fetch_boolean_value(flag_key: 'flag', default_value: false) }
-      let(:configuration) do
-        <<~JSON
-          {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "boolean_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "BOOLEAN",
-                    "variations": {
-                      "control": { "key": "control", "value": true }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        JSON
-      end
-
-      it 'returns flag result details' do
-        expect(result.value).to be(true)
-        expect(result.reason).to eq('TARGETING_MATCH')
-      end
-    end
   end
 
   describe '#fetch_string_value' do
@@ -83,51 +40,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         expect(result.value).to eq('default')
         expect(result.error_message).to match(/OpenFeature component must be configured/)
-      end
-    end
-
-    xcontext 'when engine is configured' do
-      before do
-        engine.configuration = configuration
-        engine.reconfigure!
-
-        provider.init
-      end
-
-      let(:result) { provider.fetch_string_value(flag_key: 'flag', default_value: 'default') }
-      let(:configuration) do
-        <<~JSON
-          {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "string_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "STRING",
-                    "variations": {
-                      "control": { "key": "control", "value": "hello" }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        JSON
-      end
-
-      it 'returns flag result details' do
-        expect(result.value).to eq('hello')
-        expect(result.reason).to eq('TARGETING_MATCH')
       end
     end
   end
@@ -143,51 +55,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(result.error_message).to match(/OpenFeature component must be configured/)
       end
     end
-
-    xcontext 'when engine is configured' do
-      before do
-        engine.configuration = configuration
-        engine.reconfigure!
-
-        provider.init
-      end
-
-      let(:result) { provider.fetch_number_value(flag_key: 'flag', default_value: 0) }
-      let(:configuration) do
-        <<~JSON
-          {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "number_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "NUMBER",
-                    "variations": {
-                      "control": { "key": "control", "value": 1000 }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        JSON
-      end
-
-      it 'returns flag result details' do
-        expect(result.value).to eq(9000)
-        expect(result.reason).to eq('TARGETING_MATCH')
-      end
-    end
   end
 
   describe '#fetch_integer_value' do
@@ -201,51 +68,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(result.error_message).to match(/OpenFeature component must be configured/)
       end
     end
-
-    xcontext 'when engine is configured' do
-      before do
-        engine.configuration = configuration
-        engine.reconfigure!
-
-        provider.init
-      end
-
-      let(:result) { provider.fetch_integer_value(flag_key: 'flag', default_value: 1) }
-      let(:configuration) do
-        <<~JSON
-          {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "integer_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "INTEGER",
-                    "variations": {
-                      "control": { "key": "control", "value": 21 }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        JSON
-      end
-
-      it 'returns flag result details' do
-        expect(result.value).to eq(42)
-        expect(result.reason).to eq('TARGETING_MATCH')
-      end
-    end
   end
 
   describe '#fetch_float_value' do
@@ -257,51 +79,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         expect(result.value).to eq(0.0)
         expect(result.error_message).to match(/OpenFeature component must be configured/)
-      end
-    end
-
-    xcontext 'when engine is configured' do
-      before do
-        engine.configuration = configuration
-        engine.reconfigure!
-
-        provider.init
-      end
-
-      let(:result) { provider.fetch_float_value(flag_key: 'flag', default_value: 0.0) }
-      let(:configuration) do
-        <<~JSON
-          {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "float_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "FLOAT",
-                    "variations": {
-                      "control": { "key": "control", "value": 12.5 }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        JSON
-      end
-
-      it 'returns flag result details' do
-        expect(result.value).to eq(36.6)
-        expect(result.reason).to eq('TARGETING_MATCH')
       end
     end
   end
@@ -318,48 +95,24 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    xcontext 'when engine is configured' do
+    context 'when value is a JSON string' do
       before do
-        engine.configuration = configuration
-        engine.reconfigure!
-
-        provider.init
+        allow(engine).to receive(:fetch_value).and_return(details)
+        allow(details).to receive(:value).and_raise(Datadog::Core::FeatureFlags::Error, 'Ooops')
       end
 
-      let(:result) { provider.fetch_object_value(flag_key: 'flag', default_value: {'default' => true}) }
-      let(:configuration) do
-        <<~JSON
-          {
-            "data": {
-              "type": "universal-flag-configuration",
-              "id": "1",
-              "attributes": {
-                "flags": {
-                  "object_flag": {
-                    "key": "flag",
-                    "enabled": true,
-                    "variationType": "OBJECT",
-                    "variations": {
-                      "control": { "key": "control", "value": { "key": "value" } }
-                    },
-                    "allocations": [
-                      {
-                        "key": "rollout",
-                        "splits": [{ "variationKey": "control", "shards": [] }],
-                        "doLog": false
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        JSON
+      let(:details) do
+        Datadog::OpenFeature::ResolutionDetails.new(
+          value: '{}', reason: 'MATCH', variant: 'blue', flag_metadata: {},
+          allocation_key: 'joe', extra_logging: {}, log?: true, error?: false
+        )
       end
 
-      it 'returns flag result details' do
-        expect(result.value).to eq([1, 2, 3])
-        expect(result.reason).to eq('TARGETING_MATCH')
+      it 'returns error and fallback to the default value' do
+        result = provider.fetch_object_value(flag_key: 'flag', default_value: {'default' => true})
+
+        expect(result.value).to eq('default' => true)
+        expect(result.reason).to eq('ERROR')
       end
     end
   end

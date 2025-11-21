@@ -17,8 +17,8 @@ module Datadog
           log?: false,
           error?: true,
           error_code: Ext::PROVIDER_NOT_READY,
-          error_message: 'Waiting for universal flag configuration',
-          reason: Ext::INITIALIZING
+          error_message: 'Waiting for flags configuration',
+          reason: Ext::ERROR
         )
       end
     end

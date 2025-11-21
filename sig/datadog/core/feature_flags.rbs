@@ -1,0 +1,50 @@
+module Datadog
+  module Core
+    module FeatureFlags
+      class Error < StandardError
+      end
+
+      class Configuration
+        def self.new: (::String json_str) -> self
+
+        def get_assignment: (
+          ::String flag_key,
+          ::Symbol expected_type,
+          ::Hash[::String, untyped] context
+        ) -> ResolutionDetails
+      end
+
+      class ResolutionDetails
+        type metadata_t = ::Hash[::String, ::String]
+
+        def flag_type: () -> ::Symbol?
+
+        def raw_value: () -> untyped
+
+        def value: () -> untyped
+
+        def value=: (untyped) -> untyped
+
+        def variant: () -> ::String?
+
+        def allocation_key: () -> ::String?
+
+        def reason: () -> ::String
+
+        def error_code: () -> ::String?
+
+        def error_message: () -> ::String?
+
+        def error?: () -> bool
+
+        def log?: () -> bool
+
+        def flag_metadata: () -> metadata_t
+
+        private
+
+        def json?: (untyped) -> bool
+      end
+    end
+  end
+end

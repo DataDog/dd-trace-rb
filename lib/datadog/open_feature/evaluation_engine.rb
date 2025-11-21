@@ -2,6 +2,7 @@
 
 require_relative 'ext'
 require_relative 'noop_evaluator'
+require_relative 'native_evaluator'
 require_relative 'resolution_details'
 
 module Datadog
@@ -10,7 +11,7 @@ module Datadog
     class EvaluationEngine
       ReconfigurationError = Class.new(StandardError)
 
-      ALLOWED_TYPES = %w[boolean string number float integer object].freeze
+      ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 
       def initialize(reporter, telemetry:, logger:)
         @reporter = reporter
@@ -28,7 +29,7 @@ module Datadog
           )
         end
 
-        context = evaluation_context&.fields || {}
+        context = evaluation_context&.fields.to_h
         result = @evaluator.get_assignment(flag_key, default_value, context, expected_type)
 
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
@@ -43,9 +44,13 @@ module Datadog
       end
 
       def reconfigure!(configuration)
-        @logger.debug('OpenFeature: Removing configuration') if configuration.nil?
+        if configuration.nil?
+          @logger.debug('OpenFeature: Removing configuration')
 
-        @evaluator = NoopEvaluator.new(configuration)
+          return @evaluator = NoopEvaluator.new(configuration)
+        end
+
+        @evaluator = NativeEvaluator.new(configuration)
       rescue => e
         message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
