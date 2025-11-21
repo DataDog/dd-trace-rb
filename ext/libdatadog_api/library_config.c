@@ -115,7 +115,6 @@ static VALUE _native_configurator_get(VALUE self) {
 
   // Wrapping config_logged_result into a Ruby object enables the Ruby GC to manage its memory
   // We need to allocate memory for config_logged_result because once it is out of scope, it will be freed (at the end of this function)
-  // So we cannot reference it with &config_logged_result
   // We are doing this in case one of the ruby API raises an exception before the end of this function,
   // so the allocated memory will still be freed
   ddog_LibraryConfigLoggedResult *configurator_logged_result = ruby_xcalloc(1, sizeof(ddog_LibraryConfigLoggedResult));
