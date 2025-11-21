@@ -52,18 +52,12 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   def get_testagent_metrics
     uri = URI("http://#{agent_host}:#{default_otlp_http_port}/test/session/metrics")
 
-    try_wait_until(seconds: 10) do
+    try_wait_until(seconds: 2) do
       response = Net::HTTP.get_response(uri)
       next unless response.code == '200'
 
       parsed = JSON.parse(response.body, symbolize_names: false)
       next parsed if parsed.is_a?(Array) && !parsed.empty?
-
-      if parsed.is_a?(Hash)
-        metrics_array = parsed['metrics']
-        next metrics_array if metrics_array.is_a?(Array) && !metrics_array.empty?
-        next [parsed]
-      end
     end
   end
 
