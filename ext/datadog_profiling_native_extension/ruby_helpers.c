@@ -88,20 +88,20 @@ void _grab_gvl_and_raise(VALUE native_exception_class, const char *format_string
   snprintf(args.telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", format_string);
 
   if (is_current_thread_holding_the_gvl()) {
-    char exception_message[MAX_RAISE_MESSAGE_SIZE];
+    // Render telemetry message without formatted arguments, only the exception class.
+    char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
     snprintf(
-      exception_message,
+      telemetry_message,
       MAX_RAISE_MESSAGE_SIZE,
-      "grab_gvl_and_raise called by thread holding the global VM lock: %s (%s)",
-      args.exception_message,
+      "grab_gvl_and_raise called by thread holding the global VM lock: %%s (%s)",
       rb_class2name(native_exception_class)
     );
 
-    _raise_native_error(
-      eNativeRuntimeError,
-      exception_message,
-      rb_str_new_cstr(args.telemetry_message)
-    );
+    // Render the full exception message.
+    char exception_message[MAX_RAISE_MESSAGE_SIZE];
+    snprintf(exception_message, MAX_RAISE_MESSAGE_SIZE, telemetry_message, args.exception_message);
+
+    _raise_native_error(eNativeRuntimeError, exception_message, rb_str_new_cstr(telemetry_message));
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);

@@ -117,7 +117,7 @@ RSpec.configure do |config|
   config.include ProfileHelpers
 end
 
-RSpec::Matchers.define :raise_native_exception do |expected_class, expected_message = nil, expected_telemetry_message = nil, &block|
+RSpec::Matchers.define :raise_native_error do |expected_class, expected_message = nil, expected_telemetry_message = nil, &block|
   unless expected_class.is_a?(Class) && expected_class <= Datadog::Profiling::NativeError
     raise ArgumentError, "expected_class must be a subclass of Datadog::Profiling::NativeError"
   end
