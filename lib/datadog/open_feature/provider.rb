@@ -122,7 +122,7 @@ module Datadog
       rescue => e
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: default_value,
-          error_code: Ext::PROVIDER_FATAL,
+          error_code: Ext::GENERAL,
           error_message: e.message,
           reason: Ext::ERROR
         )

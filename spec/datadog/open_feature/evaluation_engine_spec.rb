@@ -96,7 +96,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(reporter).not_to receive(:report)
 
         expect(result.value).to eq('fallback')
-        expect(result.error_code).to eq('PROVIDER_FATAL')
+        expect(result.error_code).to eq('GENERAL')
         expect(result.error_message).to eq('Crash')
         expect(result.reason).to eq('ERROR')
       end
