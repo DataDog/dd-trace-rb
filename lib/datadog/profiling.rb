@@ -101,10 +101,6 @@ module Datadog
       prepend NativeError
     end
 
-    class NativeSystemCallError < SystemCallError
-      prepend NativeError
-    end
-
     private_class_method def self.replace_noop_allocation_count
       class << self
         remove_method :allocation_count

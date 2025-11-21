@@ -49,17 +49,18 @@ void _raise_native_error(VALUE native_exception_class, const char *detailed_mess
   rb_exc_raise(exception);
 }
 
+#define MAX_RAISE_MESSAGE_SIZE 256
+
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void _raise_error(VALUE native_exception_class, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  VALUE formatted_msg = rb_vsprintf(fmt, args);
+  char formatted_msg[MAX_RAISE_MESSAGE_SIZE];
+  vsnprintf(formatted_msg, MAX_RAISE_MESSAGE_SIZE, fmt, args);
   va_end(args);
 
-  _raise_native_error(native_exception_class, fmt, formatted_msg);
+  _raise_native_error(native_exception_class, formatted_msg, rb_str_new_cstr(fmt));
 }
-
-#define MAX_RAISE_MESSAGE_SIZE 256
 
 typedef struct {
   VALUE exception_class;

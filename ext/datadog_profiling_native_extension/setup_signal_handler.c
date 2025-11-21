@@ -38,7 +38,7 @@ static void install_sigprof_signal_handler_internal(
   sigemptyset(&signal_handler_config.sa_mask);
 
   if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
-    rb_exc_raise(rb_syserr_new_str(errno, rb_sprintf("Could not install profiling signal handler (%s)", handler_pretty_name)));
+    raise_syserr(errno, true, "Could not install profiling signal handler", __FILE__, __LINE__, handler_pretty_name);
   }
 
   // Because signal handler functions are global, let's check if we're not stepping on someone else's toes.

@@ -16,7 +16,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
         .to raise_native_error(Datadog::Profiling::NativeRuntimeError, "this is a test", "this is a test")
     end
 
-    it "accepts printf-style string formatting" do
+    it "on printf-style, only report the fixed string for telemetry" do
       expect { described_class::Testing._native_grab_gvl_and_raise(Datadog::Profiling::NativeRuntimeError, "divided zero by %d", 42, true) }
         .to raise_native_error(Datadog::Profiling::NativeRuntimeError, "divided zero by 42", "divided zero by %d")
     end
