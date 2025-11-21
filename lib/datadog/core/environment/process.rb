@@ -15,10 +15,10 @@ module Datadog
         def self.serialized
           return @serialized if defined?(@serialized)
           tags = []
-          tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{TagNormalizer.normalize(entrypoint_workdir, remove_digit_start_char: false)}" if entrypoint_workdir
-          tags << "#{Environment::Ext::TAG_ENTRYPOINT_NAME}:#{TagNormalizer.normalize(entrypoint_name, remove_digit_start_char: false)}" if entrypoint_name
-          tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{TagNormalizer.normalize(entrypoint_basedir, remove_digit_start_char: false)}" if entrypoint_basedir
-          tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}" if entrypoint_type
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{TagNormalizer.normalize(entrypoint_workdir, remove_digit_start_char: false)}"
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_NAME}:#{TagNormalizer.normalize(entrypoint_name, remove_digit_start_char: false)}"
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{TagNormalizer.normalize(entrypoint_basedir, remove_digit_start_char: false)}"
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
           @serialized = tags.join(',').freeze
         end
 
