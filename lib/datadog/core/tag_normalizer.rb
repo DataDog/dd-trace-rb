@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'utils'
+
 module Datadog
   module Core
     # @api private
@@ -14,7 +16,6 @@ module Datadog
       LEADING_INVALID_CHARS_NO_DIGITS = %r{\A[^\p{L}:]++}
       LEADING_INVALID_CHARS_WITH_DIGITS = %r{\A[^\p{L}0-9:./\-]++}
       MAX_BYTE_SIZE = 200 # Represents the max tag length
-      TRAILING_UNDERSCORES = %r{_++\z}
       VALID_ASCII_TAG = %r{\A[a-z:][a-z0-9:./-]*\z}
 
       # Based on https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize.go#L131
@@ -39,8 +40,8 @@ module Datadog
           transformed_value.match?(VALID_ASCII_TAG)
 
         normalized_value = transformed_value
-        
-        if normalized_value.ascii_only? && normalized_value.length <= MAX_BYTE_SIZE
+
+        if normalized_value.bytesize > MAX_BYTE_SIZE
           normalized_value = normalized_value.byteslice(0, MAX_BYTE_SIZE)
           normalized_value.scrub!("")
         end
@@ -53,7 +54,7 @@ module Datadog
         normalized_value.sub!(leading_invalid_regex, "")
 
         normalized_value.squeeze!('_') if normalized_value.include?('__')
-        normalized_value.sub!(TRAILING_UNDERSCORES, "")
+        normalized_value.delete_suffix!('_')
 
         normalized_value
       end
