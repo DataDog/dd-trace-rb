@@ -31,7 +31,7 @@ module Datadog
       # @param remove_digit_start_char [Boolean] - whether to remove the leading digit (currently only used for tag values)
       # @return [String] The normalized string
       def self.normalize(original_value, remove_digit_start_char: false)
-        transformed_value = original_value.to_s.encode('UTF-8', invalid: :replace, undef: :replace)
+        transformed_value = Utils.utf8_encode(original_value, replace_invalid: true)
         transformed_value.strip!
         return "" if transformed_value.empty?
 
