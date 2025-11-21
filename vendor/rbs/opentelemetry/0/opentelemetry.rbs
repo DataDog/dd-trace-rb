@@ -32,7 +32,7 @@ module OpenTelemetry
     module OTLP
       module Metrics
         class MetricsExporter
-          def initialize: (::String endpoint, ::Float timeout, ::Hash[untyped, untyped] headers) -> void
+          def initialize: (endpoint: ::String, timeout: ::Float, headers: ::Hash[untyped, untyped]) -> void
         end
       end
     end

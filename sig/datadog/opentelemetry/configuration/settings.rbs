@@ -6,6 +6,8 @@ module Datadog
 
         def self.add_settings!: (untyped base) -> void
 
+        def self.json_parser: (::String env_var_name) -> untyped
+
         # DSL methods dynamically added via class_eval
         def self.settings: (untyped name) ?{ (untyped) -> void } -> untyped
 

@@ -14,11 +14,11 @@ module Datadog
 
         def self.json_parser(env_var_name)
           proc do |value|
-            return {} if value.nil? || value.empty?
+            next {} if value.nil? || value.empty?
             parsed = JSON.parse(value)
             unless parsed.is_a?(Hash)
               Datadog.logger.warn("#{env_var_name} must be a JSON object (hash), got: #{parsed.class}")
-              return {}
+              next {}
             end
             parsed
           rescue JSON::ParserError => exc
