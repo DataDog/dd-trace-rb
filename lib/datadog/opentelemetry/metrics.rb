@@ -10,7 +10,7 @@ module Datadog
       def initialize!(components)
         @logger = components.logger
         @settings = components.settings
-        agent_settings = components.instance_variable_get(:@agent_settings)
+        agent_settings = components.agent_settings
         @agent_host = if agent_settings&.hostname && !agent_settings.hostname.empty?
           agent_settings.hostname
         else

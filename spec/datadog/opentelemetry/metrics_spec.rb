@@ -90,7 +90,6 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
     ClimateControl.modify({
       'DD_METRICS_OTEL_ENABLED' => 'true',
       'DD_AGENT_HOST' => agent_host,
-      'DD_TRACE_AGENT_PORT' => agent_port,
     }.merge(env_overrides)) do
       # Reset Datadog to ensure components are reinitialized with the new environment variables
       Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)

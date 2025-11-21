@@ -22,6 +22,12 @@ module NetworkHelpers
   #
   # @return [String] agent host
   def agent_host
+    if Datadog.respond_to?(:components, true)
+      components = Datadog.send(:components)
+      if components&.agent_settings&.hostname && !components.agent_settings.hostname.empty?
+        return components.agent_settings.hostname
+      end
+    end
     ENV['DD_AGENT_HOST'] || ENV['DD_TRACE_AGENT_HOST'] || '127.0.0.1'
   end
 
