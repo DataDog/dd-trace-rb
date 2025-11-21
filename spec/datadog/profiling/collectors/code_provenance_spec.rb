@@ -23,7 +23,6 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
       platform_fragment = RUBY_PLATFORM
       hyphenated_platform_fragment = platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
-
       expect(generate_result).to include(
         {
           kind: "standard library",
@@ -56,7 +55,6 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
     it "includes the native extension directory for gems with native extensions" do
       refresh
-
       platform_fragment = RUBY_PLATFORM
       hyphenated_platform_fragment = platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
 

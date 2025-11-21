@@ -44,7 +44,6 @@ static inline int check_if_pending_exception(void) {
 extern VALUE eNativeRuntimeError;
 extern VALUE eNativeArgumentError;
 extern VALUE eNativeTypeError;
-
 // Raises an exception of the specified class with the formatted string as its message.
 // This macro ensures that the literay string is sent for telemetry, while the formatted
 // message is the default `Exception#message`.
@@ -53,7 +52,6 @@ extern VALUE eNativeTypeError;
 // the telemetry-safe string: NativeRuntimeError, NativeArgumentError, NativeTypeError.
 #define raise_error(native_exception_class, fmt, ...) \
   _raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
-
 NORETURN(
   void _raise_error(VALUE native_exception_class, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));

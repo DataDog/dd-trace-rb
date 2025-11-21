@@ -54,7 +54,6 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
 
   rb_define_singleton_method(native_extension_module, "native_working?", native_working_p, 0);
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));
-
   // Exception classes defined in Ruby, in the `Datadog::Profiling` namespace
   eNativeRuntimeError = rb_const_get(profiling_module, rb_intern("NativeRuntimeError"));
   rb_global_variable(&eNativeRuntimeError);

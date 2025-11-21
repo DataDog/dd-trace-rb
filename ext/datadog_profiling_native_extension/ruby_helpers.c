@@ -12,7 +12,6 @@ static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 static ID new_id = 0;
-
 // Global references to Datadog::Profiling exception classes defined in Ruby.
 VALUE eNativeRuntimeError = Qnil;
 VALUE eNativeArgumentError = Qnil;
@@ -27,7 +26,6 @@ void ruby_helpers_init(void) {
   to_s_id = rb_intern("to_s");
   new_id = rb_intern("new");
 }
-
 // Raises a NativeError exception with seperate telemetry-safe and detailed messages.
 void _raise_native_error(VALUE native_exception_class, const char *detailed_message, VALUE static_message) {
   #ifdef DD_DEBUG
@@ -38,7 +36,6 @@ void _raise_native_error(VALUE native_exception_class, const char *detailed_mess
             "Must be one of eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError, was: %s", rb_class2name(native_exception_class));
     }
   #endif
-
   VALUE exception = rb_funcall(
     native_exception_class,
     new_id,
@@ -50,7 +47,6 @@ void _raise_native_error(VALUE native_exception_class, const char *detailed_mess
 }
 
 #define MAX_RAISE_MESSAGE_SIZE 256
-
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void _raise_error(VALUE native_exception_class, const char *fmt, ...) {
   va_list args;
@@ -58,7 +54,6 @@ void _raise_error(VALUE native_exception_class, const char *fmt, ...) {
   char formatted_msg[MAX_RAISE_MESSAGE_SIZE];
   vsnprintf(formatted_msg, MAX_RAISE_MESSAGE_SIZE, fmt, args);
   va_end(args);
-
   _raise_native_error(native_exception_class, formatted_msg, rb_str_new_cstr(fmt));
 }
 
@@ -97,11 +92,9 @@ void _grab_gvl_and_raise(VALUE native_exception_class, const char *format_string
       "grab_gvl_and_raise called by thread holding the global VM lock: %%s (%s)",
       rb_class2name(native_exception_class)
     );
-
     // Render the full exception message.
     char exception_message[MAX_RAISE_MESSAGE_SIZE];
     snprintf(exception_message, MAX_RAISE_MESSAGE_SIZE, telemetry_message, args.exception_message);
-
     _raise_native_error(eNativeRuntimeError, exception_message, rb_str_new_cstr(telemetry_message));
   }
 

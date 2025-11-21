@@ -71,13 +71,10 @@ module Datadog
 
           log!(event)
         end
-
         private
-
         # A constant string representing the exception
         def message_for_telemety(exception)
           return unless exception.respond_to?(:telemetry_message)
-
           exception.telemetry_message
         end
       end

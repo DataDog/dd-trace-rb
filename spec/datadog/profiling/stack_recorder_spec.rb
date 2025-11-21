@@ -863,10 +863,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
   end
-
   describe "heap recorder telemetry" do
     before { skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7" }
-
     let(:telemetry_stack_recorder) do
       described_class.for_testing(
         cpu_time_enabled: cpu_time_enabled,
@@ -878,14 +876,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
       )
     end
-
     after do
       telemetry_stack_recorder.reset_after_fork
     end
-
     it "raises telemetry when heap tracking starts consecutively" do
       described_class::Testing._native_track_object(telemetry_stack_recorder, Object.new, 1, "Object")
-
       expect do
         described_class::Testing._native_track_object(telemetry_stack_recorder, Object.new, 1, "Object")
       end.to raise_error(Datadog::Profiling::NativeRuntimeError) do |error|
@@ -893,7 +888,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(error.telemetry_message).to eq("Detected consecutive heap allocation recording starts without end.")
       end
     end
-
     it "raises telemetry when finishing without preparing" do
       expect do
         described_class::Testing._native_end_fake_slow_heap_serialization(telemetry_stack_recorder)
@@ -902,10 +896,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(error.telemetry_message).to eq("Heap recorder iteration finished without having been prepared.")
       end
     end
-
     it "raises telemetry when preparing twice in a row" do
       described_class::Testing._native_start_fake_slow_heap_serialization(telemetry_stack_recorder)
-
       expect do
         described_class::Testing._native_start_fake_slow_heap_serialization(telemetry_stack_recorder)
       end.to raise_error(Datadog::Profiling::NativeRuntimeError) do |error|
