@@ -157,7 +157,7 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   opentelemetry-exporter-otlp-metrics (>= 0.4)
   opentelemetry-metrics-sdk (>= 0.8)
-  opentelemetry-sdk (~> 1.2)
+  opentelemetry-sdk (~> 1.1)
   os (~> 1.1)
   pry
   rake (>= 10.5)
