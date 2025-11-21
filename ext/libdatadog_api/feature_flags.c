@@ -526,9 +526,13 @@ static VALUE resolution_details_get_flag_metadata(VALUE self) {
 
   VALUE hash = rb_hash_new();
 
-  // TODO: datadog-ffe-ffi-1.0.1 has a memory corruption bug when
-  // returning flag metadata. Therefore, this section is currently
-  // commented out.
+  // TODO(FFL-1450): datadog-ffe-ffi-1.0.1 has a memory corruption bug
+  // when returning flag metadata. Therefore, this section is
+  // currently commented out. We'll uncommented it when the bug is
+  // fixed in libdatadog.
+  //
+  // This is not a blocker as flag_metadata should be empty for now
+  // until we decide to add more fields to it.
   //
   // struct ddog_ffe_ArrayMap_BorrowedStr metadata =
   //   ddog_ffe_assignnment_get_flag_metadata(resolution_details);
