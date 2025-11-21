@@ -35,11 +35,7 @@ module Datadog
       end
 
       def self.create_resource
-        resource_attributes = {
-          'service.name' => @settings.service || '',
-          'deployment.environment' => @settings.env || '',
-          'service.version' => @settings.version || '',
-        }
+        resource_attributes = {}
         resource_attributes['host.name'] = Datadog::Core::Environment::Socket.hostname if @settings.tracing.report_hostname
 
         @settings.tags&.each do |key, value|
@@ -51,6 +47,10 @@ module Datadog
           end
           resource_attributes[otel_key] = value
         end
+
+        resource_attributes['service.name'] = @settings.service_without_fallback || resource_attributes['service.name'] || ''
+        resource_attributes['deployment.environment'] = @settings.env if @settings.env
+        resource_attributes['service.version'] = @settings.version if @settings.version
 
         ::OpenTelemetry::SDK::Resources::Resource.create(resource_attributes)
       end

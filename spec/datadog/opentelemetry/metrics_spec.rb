@@ -210,6 +210,16 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       expect(attributes['team']).to eq('backend')
       expect(attributes['region']).to eq('us-east-1')
     end
+
+    it 'defaults service.name to empty string when neither DD_SERVICE nor service tag is set' do
+      # Don't set DD_SERVICE or DD_TAGS with service
+      setup_metrics
+
+      provider = ::OpenTelemetry.meter_provider
+      attributes = provider.instance_variable_get(:@resource).attribute_enumerator.to_h
+      # service_without_fallback returns nil when service equals fallback, so service.name should be empty string
+      expect(attributes['service.name']).to eq('')
+    end
   end
 
   describe 'Configuration' do
