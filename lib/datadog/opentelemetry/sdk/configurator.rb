@@ -31,10 +31,8 @@ module Datadog
         end
 
         def metrics_configuration_hook
-          return super unless Datadog.respond_to?(:components, true)
-
           components = Datadog.send(:components)
-          return super unless components&.settings&.opentelemetry&.metrics&.enabled
+          return super unless components.settings.opentelemetry.metrics.enabled
 
           begin
             require 'opentelemetry-metrics-sdk'

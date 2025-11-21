@@ -68,10 +68,6 @@
     require 'opentelemetry/exporter/otlp_metrics'
     require 'datadog/opentelemetry'
 
-    Datadog.configure do |c|
-      # Configure Datadog settings if needed
-    end
-
     # Initialize OpenTelemetry SDK (required for metrics)
     OpenTelemetry::SDK.configure
     ```
@@ -88,7 +84,8 @@
 
 [General OTLP settings](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/) (`OTEL_EXPORTER_OTLP_*`) serve as defaults if metrics-specific settings are not provided.
 
-**Note:** Minimum `opentelemetry-metrics-sdk` is v0.8.0 (contains critical bug fixes). Minimum `opentelemetry-exporter-otlp-metrics` is v0.4.0. Use the latest versions for best support. If an OpenTelemetry API breaking changes affect the `datadog` gem, [open a GitHub issue](https://github.com/DataDog/dd-trace-rb/issues).
+**Note:** Minimum `opentelemetry-metrics-sdk` is v0.8.0 (contains critical bug fixes). Minimum `opentelemetry-exporter-otlp-metrics` is v0.4.0. Use the latest versions for best support. If you spot any issue with the OpenTelemetry API affecting the `datadog` gem, [please do open a GitHub issue](https://github.com/DataDog/dd-trace-rb/issues).
+
 
 ## Limitations
 

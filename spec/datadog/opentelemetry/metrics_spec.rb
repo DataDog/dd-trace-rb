@@ -14,58 +14,57 @@ require 'datadog/core/configuration/settings'
 require 'net/http'
 require 'json'
 
-DEFAULT_OTLP_HTTP_PORT = 4318
-
 RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
-  include NetworkHelpers
+  let(:default_otlp_http_port) { 4318 }
 
   before do
-    Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
+    clear_testagent_metrics
+    Datadog.send(:reset!)
     provider = ::OpenTelemetry.meter_provider
     provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
     ::OpenTelemetry.meter_provider = ::OpenTelemetry::Internal::ProxyMeterProvider.new
     allow(Datadog.logger).to receive(:warn)
     allow(Datadog.logger).to receive(:error)
     allow(Datadog.logger).to receive(:debug)
-    clear_testagent_metrics
   end
 
   after do
     provider = ::OpenTelemetry.meter_provider
     # Ensures background threads collecting metrics are shutdown.
     provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
-    clear_testagent_metrics
+  end
+
+  def agent_host
+    Datadog.send(:components).agent_settings.hostname
+  end
+
+  def agent_port
+    Datadog.send(:components).agent_settings.port
   end
 
   def clear_testagent_metrics
-    uri = URI("http://#{agent_host}:#{DEFAULT_OTLP_HTTP_PORT}/test/session/clear")
+    uri = URI("http://#{agent_host}:#{default_otlp_http_port}/test/session/clear")
     Net::HTTP.post_form(uri, {})
   rescue => e
-    puts "Error clearing testagent metrics: #{e.message}"
+    raise "Error clearing testagent metrics: #{e.message}"
   end
 
-  def get_testagent_metrics(max_retries: 5, wait_time: 0.2)
-    uri = URI("http://#{agent_host}:#{DEFAULT_OTLP_HTTP_PORT}/test/session/metrics")
+  def get_testagent_metrics
+    uri = URI("http://#{agent_host}:#{default_otlp_http_port}/test/session/metrics")
 
-    max_retries.times do
+    try_wait_until(seconds: 10) do
       response = Net::HTTP.get_response(uri)
       next unless response.code == '200'
 
       parsed = JSON.parse(response.body, symbolize_names: false)
-      return parsed if parsed.is_a?(Array) && !parsed.empty?
+      next parsed if parsed.is_a?(Array) && !parsed.empty?
 
       if parsed.is_a?(Hash)
         metrics_array = parsed['metrics']
-        return metrics_array if metrics_array.is_a?(Array) && !metrics_array.empty?
-        return [parsed]
+        next metrics_array if metrics_array.is_a?(Array) && !metrics_array.empty?
+        next [parsed]
       end
-
-      sleep(wait_time)
     end
-
-    []
-  rescue
-    []
   end
 
   def find_metric_in_json(payloads, name)
@@ -92,7 +91,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       'DD_AGENT_HOST' => agent_host,
     }.merge(env_overrides)) do
       # Reset Datadog to ensure components are reinitialized with the new environment variables
-      Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
+      Datadog.send(:reset!)
       # Set programmatic configurations from tests
       Datadog.configure do |c|
         config_block&.call(c)
@@ -137,11 +136,12 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       gauge = provider.meter('app').create_gauge('temperature')
 
       gauge.record(72)
-      flush_and_wait(provider)
       gauge.record(72)
       flush_and_wait(provider)
 
-      metric = find_metric_in_json(get_testagent_metrics, 'temperature')
+      metrics = get_testagent_metrics
+      metric = find_metric_in_json(metrics, 'temperature')
+      expect(metric['gauge']['data_points'].length).to eq(1)
       value = metric['gauge']['data_points'].first['as_int']&.to_i
       expect(value).to eq(72)
     end
@@ -174,10 +174,10 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       expect(requests_metric['sum']['data_points'].first['as_int'].to_i).to eq(10)
 
       memory_metric = find_metric_in_json(metrics, 'memory')
-      if memory_metric
-        gauge_value = memory_metric['gauge']['data_points'].first['as_int']&.to_i
-        expect(gauge_value).to eq(100) if gauge_value && gauge_value != 0
-      end
+      expect(memory_metric['gauge']['data_points'].length).to eq(1)
+
+      gauge_value = memory_metric['gauge']['data_points'].first['as_int']&.to_i
+      expect(gauge_value).to eq(100)
     end
   end
 
@@ -289,20 +289,10 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
     end
 
     it 'does not initialize when DD_METRICS_OTEL_ENABLED is false' do
-      ClimateControl.modify('DD_METRICS_OTEL_ENABLED' => 'false', 'DD_SERVICE' => 'dd-service') do
-        Datadog.send(:reset!) if Datadog.respond_to?(:reset!, true)
-        provider = ::OpenTelemetry.meter_provider
-        provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
-        ::OpenTelemetry.meter_provider = ::OpenTelemetry::Internal::ProxyMeterProvider.new
-        # Ensure configurator prepend happens before OpenTelemetry::SDK.configure
-        require 'datadog/opentelemetry/sdk/configurator' if defined?(OpenTelemetry::SDK)
-        Datadog.configure { |c| }
-        OpenTelemetry::SDK.configure
-      end
+      setup_metrics('DD_METRICS_OTEL_ENABLED' => 'false', 'DD_SERVICE' => 'dd-service')
       provider = ::OpenTelemetry.meter_provider
       resource = provider.instance_variable_get(:@resource)
       attributes = resource.attribute_enumerator.to_h
-      # meter provider should not be configured to use Datadog configurations.
       expect(attributes['service.name']).not_to eq('dd-service')
     end
   end

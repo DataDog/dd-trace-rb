@@ -22,20 +22,20 @@ module NetworkHelpers
   #
   # @return [String] agent host
   def agent_host
-    ENV['DD_AGENT_HOST'] || ENV['DD_TRACE_AGENT_HOST'] || '127.0.0.1'
+    ENV['DD_AGENT_HOST']
   end
 
   # Returns the trace agent port to use
   #
   # @return [Integer] agent port
   def agent_port
-    ENV['DD_AGENT_PORT'] || ENV['DD_TRACE_AGENT_PORT'] || "9126"
+    ENV['DD_TRACE_AGENT_PORT']
   end
 
   # Returns the agent url to use for testing
   #
   # @return [String] agent url
   def agent_url
-    ENV['DD_TRACE_AGENT_URL'] || "http://#{agent_host}:#{agent_port}"
+    "http://#{agent_host}:#{agent_port}"
   end
 end

@@ -5,17 +5,11 @@ require_relative '../core/configuration/ext'
 module Datadog
   module OpenTelemetry
     module Metrics
-      module_function
-
-      def initialize!(components)
+      def self.initialize!(components)
         @logger = components.logger
         @settings = components.settings
-        agent_settings = components.agent_settings
-        @agent_host = if agent_settings&.hostname && !agent_settings.hostname.empty?
-          agent_settings.hostname
-        else
-          Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
-        end
+        @agent_host = components.agent_settings.hostname
+        @agent_ssl = components.agent_settings.ssl
 
         configure_metrics_sdk
         true
@@ -24,14 +18,12 @@ module Datadog
         false
       end
 
-      private
+      def self.configure_metrics_sdk
+        provider = ::OpenTelemetry.meter_provider
+        provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
 
-      module_function
-
-      def configure_metrics_sdk
-        current_provider = ::OpenTelemetry.meter_provider
-        current_provider.shutdown if current_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
-
+        # The OpenTelemetry SDK defaults to cumulative temporality, but Datadog prefers delta temporality.
+        # Here is an example of how this config is applied: https://github.com/open-telemetry/opentelemetry-ruby/blob/1933d4c18e5f5e45c53fa9e902e58aa91e85cc38/metrics_sdk/lib/opentelemetry/sdk/metrics/aggregation/sum.rb#L14
         if DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'].nil?
           ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'] = 'delta' # rubocop:disable CustomCops/EnvUsageCop
         end
@@ -42,9 +34,9 @@ module Datadog
         ::OpenTelemetry.meter_provider = provider
       end
 
-      def create_resource
+      def self.create_resource
         resource_attributes = {
-          'service.name' => @settings.service || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME,
+          'service.name' => @settings.service || '',
           'deployment.environment' => @settings.env || '',
           'service.version' => @settings.version || '',
         }
@@ -63,7 +55,7 @@ module Datadog
         ::OpenTelemetry::SDK::Resources::Resource.create(resource_attributes)
       end
 
-      def configure_metric_reader(provider)
+      def self.configure_metric_reader(provider)
         exporter_name = @settings.opentelemetry.metrics.exporter
         return if exporter_name == 'none'
 
@@ -72,17 +64,18 @@ module Datadog
         @logger.warn("Failed to configure OTLP metrics exporter: #{e.message}")
       end
 
-      def resolve_metrics_endpoint
+      def self.resolve_metrics_endpoint
         metrics_config = @settings.opentelemetry.metrics
         exporter_config = @settings.opentelemetry.exporter
 
         return metrics_config.endpoint.to_s if metrics_config.endpoint
+        scheme = @agent_ssl ? 'https' : 'http'
 
         if metrics_config.protocol
           protocol = metrics_config.protocol
           port = (protocol == 'http/protobuf') ? 4318 : 4317
           path = (protocol == 'http/protobuf') ? '/v1/metrics' : ''
-          return "http://#{@agent_host}:#{port}#{path}"
+          return "#{scheme}://#{@agent_host}:#{port}#{path}"
         end
 
         return exporter_config.endpoint.to_s if exporter_config.endpoint
@@ -90,16 +83,16 @@ module Datadog
         protocol = exporter_config.protocol || 'http/protobuf'
         port = (protocol == 'http/protobuf') ? 4318 : 4317
         path = (protocol == 'http/protobuf') ? '/v1/metrics' : ''
-        "http://#{@agent_host}:#{port}#{path}"
+        "#{scheme}://#{@agent_host}:#{port}#{path}"
       end
 
-      def configure_otlp_exporter(provider)
+      def self.configure_otlp_exporter(provider)
         require 'opentelemetry/exporter/otlp_metrics'
-        require_relative 'sdk/exporter'
+        require_relative 'sdk/metrics_exporter'
 
         metrics_config = @settings.opentelemetry.metrics
         exporter_config = @settings.opentelemetry.exporter
-        timeout = metrics_config.timeout || exporter_config.timeout
+        timeout = metrics_config.timeout_millis || exporter_config.timeout_millis
         headers = metrics_config.headers || exporter_config.headers || {}
 
         protocol = metrics_config.protocol || exporter_config.protocol
@@ -112,13 +105,15 @@ module Datadog
 
         reader = ::OpenTelemetry::SDK::Metrics::Export::PeriodicMetricReader.new(
           exporter: exporter,
-          export_interval_millis: metrics_config.export_interval,
-          export_timeout_millis: metrics_config.export_timeout
+          export_interval_millis: metrics_config.export_interval_millis,
+          export_timeout_millis: metrics_config.export_timeout_millis
         )
         provider.add_metric_reader(reader)
       rescue LoadError => e
         @logger.warn("Could not load OTLP metrics exporter: #{e.message}")
       end
+
+      private_class_method :configure_metrics_sdk, :create_resource, :configure_metric_reader, :resolve_metrics_endpoint, :configure_otlp_exporter
     end
   end
 end

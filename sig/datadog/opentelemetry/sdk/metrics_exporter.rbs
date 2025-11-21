@@ -1,0 +1,26 @@
+module Datadog
+  module OpenTelemetry
+    module SDK
+      # Inherits from ::OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter
+      # but parent class type is not available in RBS
+      class MetricsExporter
+        @telemetry_tags: ::Hash[::String, ::String]
+
+        METRIC_EXPORT_ATTEMPTS: "otel.metrics_export_attempts"
+
+        METRIC_EXPORT_SUCCESSES: "otel.metrics_export_successes"
+
+        METRIC_EXPORT_FAILURES: "otel.metrics_export_failures"
+
+        def initialize: (endpoint: ::String, timeout: ::Float, headers: ::Hash[untyped, untyped], protocol: ::String) -> untyped
+
+        def export: (untyped metrics, ?timeout: ::Float?) -> Integer
+
+        private
+
+        def telemetry: () -> Core::Telemetry::Component?
+      end
+    end
+  end
+end
+
