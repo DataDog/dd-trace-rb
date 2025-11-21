@@ -5,7 +5,7 @@ module Datadog
       @settings: Core::Configuration::Settings
       @agent_host: ::String
 
-      def self?.initialize!: (Core::Configuration::Settings settings, Core::Configuration::AgentSettings? agent_settings, Core::Logger logger) -> bool
+      def self?.initialize!: (Core::Configuration::Components components) -> bool
 
       private
 

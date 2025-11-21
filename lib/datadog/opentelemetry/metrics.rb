@@ -23,7 +23,7 @@ module Datadog
         @logger.error("Failed to initialize OpenTelemetry metrics: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
         false
       end
-      
+
       private
 
       module_function
@@ -76,7 +76,7 @@ module Datadog
         metrics_config = @settings.opentelemetry.metrics
         exporter_config = @settings.opentelemetry.exporter
 
-        return metrics_config.endpoint if metrics_config.endpoint
+        return metrics_config.endpoint.to_s if metrics_config.endpoint
 
         if metrics_config.protocol
           protocol = metrics_config.protocol
@@ -85,7 +85,7 @@ module Datadog
           return "http://#{@agent_host}:#{port}#{path}"
         end
 
-        return exporter_config.endpoint if exporter_config.endpoint
+        return exporter_config.endpoint.to_s if exporter_config.endpoint
 
         protocol = exporter_config.protocol || 'http/protobuf'
         port = (protocol == 'http/protobuf') ? 4318 : 4317

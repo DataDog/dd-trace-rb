@@ -35,7 +35,7 @@ module Datadog
                   o.env_parser do |value|
                     return {} unless value && !value.empty?
                     JSON.parse(value)
-                  rescue JSON::ParserError  => exc
+                  rescue JSON::ParserError => exc
                     Datadog.logger.warn("Failed to parse OTEL_EXPORTER_OTLP_HEADERS: #{exc.class}: #{exc}: #{value}")
                     {}
                   end

@@ -44,7 +44,7 @@ module Datadog
           end
 
           success = Datadog::OpenTelemetry::Metrics.initialize!(components)
-          return super unless success
+          super unless success
         end
 
         # Prepend to ConfiguratorPatch (not Configurator) so our hook runs first.
