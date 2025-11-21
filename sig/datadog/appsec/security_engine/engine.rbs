@@ -8,7 +8,7 @@ module Datadog
 
         @ruleset_version: ::String
 
-        @reconfigured_ruleset_version: ::String?
+        @reconfigured_ruleset_version: ::String
 
         DEFAULT_RULES_CONFIG_PATH: ::String
         TELEMETRY_ACTIONS: ::Array[::String]
