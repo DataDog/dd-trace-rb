@@ -30,7 +30,31 @@ module Datadog
           [SpanProcessor.new]
         end
 
-        ::OpenTelemetry::SDK::Configurator.prepend(self)
+        def metrics_configuration_hook
+          components = Datadog.send(:components)
+          return super unless components.settings.opentelemetry.metrics.enabled
+
+          begin
+            require 'opentelemetry-metrics-sdk'
+          rescue LoadError => exc
+            components.logger.warn("Failed to load OpenTelemetry metrics gems: #{exc.class}: #{exc}")
+            return super
+          end
+
+          success = Datadog::OpenTelemetry::Metrics.initialize!(components)
+          super unless success
+        end
+
+        # Prepend to ConfiguratorPatch (not Configurator) so our hook runs first.
+        begin
+          require 'opentelemetry-metrics-sdk' if defined?(OpenTelemetry::SDK) && !defined?(OpenTelemetry::SDK::Metrics::ConfiguratorPatch)
+        rescue LoadError
+        end
+
+        if defined?(::OpenTelemetry::SDK::Metrics::ConfiguratorPatch)
+          ::OpenTelemetry::SDK::Metrics::ConfiguratorPatch.prepend(self) unless ::OpenTelemetry::SDK::Metrics::ConfiguratorPatch.ancestors.include?(self)
+        end
+        ::OpenTelemetry::SDK::Configurator.prepend(self) unless ::OpenTelemetry::SDK::Configurator.ancestors.include?(self)
       end
     end
   end

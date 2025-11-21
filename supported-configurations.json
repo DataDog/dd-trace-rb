@@ -148,6 +148,9 @@
     "DD_METRIC_AGENT_PORT": {
       "version": ["A"]
     },
+    "DD_METRICS_OTEL_ENABLED": {
+      "version": ["A"]
+    },
     "DD_PROFILING_ALLOCATION_ENABLED": {
       "version": ["A"]
     },
@@ -917,6 +920,42 @@
       "version": ["A"]
     },
     "DD_VERSION": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_ENDPOINT": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_HEADERS": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_HEADERS": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_PROTOCOL": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_TIMEOUT": {
+      "version": ["A"]
+    },
+    "OTEL_METRIC_EXPORT_INTERVAL": {
+      "version": ["A"]
+    },
+    "OTEL_METRIC_EXPORT_TIMEOUT": {
+      "version": ["A"]
+    },
+    "OTEL_METRICS_EXPORTER": {
       "version": ["A"]
     },
     "OTEL_TRACES_SAMPLER_ARG": {

@@ -22,6 +22,8 @@ require_relative 'opentelemetry/api/baggage'
 require_relative 'opentelemetry/sdk/configurator' if defined?(OpenTelemetry::SDK)
 require_relative 'opentelemetry/sdk/trace/span' if defined?(OpenTelemetry::SDK)
 
+require_relative 'opentelemetry/metrics' if defined?(OpenTelemetry::SDK::Metrics)
+
 module Datadog
   # Datadog OpenTelemetry integration.
   module OpenTelemetry
@@ -47,6 +49,7 @@ end
 # Currently, this closely translates to Datadog's partial flushing.
 #
 # @see OpenTelemetry::SDK::Trace::SpanProcessor#on_finish
+
 Datadog.configure do |c|
   c.tracing.partial_flush.enabled = true
 end
