@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
 require_relative '../../core/configuration/ext'
 
 module Datadog
@@ -12,18 +11,30 @@ module Datadog
           add_settings!(base)
         end
 
-        def self.json_parser(env_var_name)
+        def self.headers_parser(env_var_name)
           proc do |value|
-            next {} if value.nil? || value.empty?
-            parsed = JSON.parse(value)
-            unless parsed.is_a?(Hash)
-              Datadog.logger.warn("#{env_var_name} must be a JSON object (hash), got: #{parsed.class}")
-              next {}
+            return {} if value.nil? || value.empty?
+
+            headers = {}
+            header_items = value.split(',')
+            header_items.each do |key_value|
+              key, header_value = key_value.split('=', 2)
+              # If header is malformed, return an empty hash
+              if key.nil? || header_value.nil?
+                Datadog.logger.warn("#{env_var_name} has malformed header: #{key_value.inspect}")
+                return {}
+              end
+
+              key = key.strip
+              header_value = header_value.strip
+              if key.empty? || header_value.empty?
+                Datadog.logger.warn("#{env_var_name} has empty key or value in: #{key_value.inspect}")
+                return {}
+              end
+
+              headers[key] = header_value
             end
-            parsed
-          rescue JSON::ParserError => exc
-            Datadog.logger.warn("Failed to parse #{env_var_name}: #{exc.class}: #{exc}: #{value}")
-            {}
+            headers
           end
         end
 
@@ -47,7 +58,7 @@ module Datadog
                   o.type :hash
                   o.env 'OTEL_EXPORTER_OTLP_HEADERS'
                   o.default { {} }
-                  o.env_parser(&Settings.json_parser('OTEL_EXPORTER_OTLP_HEADERS'))
+                  o.env_parser(&Settings.headers_parser('OTEL_EXPORTER_OTLP_HEADERS'))
                 end
 
                 option :endpoint do |o|
@@ -101,7 +112,7 @@ module Datadog
                   o.type :hash, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_HEADERS'
                   o.default nil
-                  o.env_parser(&Settings.json_parser('OTEL_EXPORTER_OTLP_METRICS_HEADERS'))
+                  o.env_parser(&Settings.headers_parser('OTEL_EXPORTER_OTLP_METRICS_HEADERS'))
                 end
 
                 option :timeout_millis do |o|

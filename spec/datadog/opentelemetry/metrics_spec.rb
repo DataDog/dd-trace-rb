@@ -234,13 +234,13 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
         'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT' => 'http://metrics:4318/v1/metrics',
         'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL' => 'http/protobuf',
         'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT' => '5000',
-        'OTEL_EXPORTER_OTLP_METRICS_HEADERS' => '{"metrics":"value"}',
+        'OTEL_EXPORTER_OTLP_METRICS_HEADERS' => 'metrics=value',
         'OTEL_METRIC_EXPORT_INTERVAL' => '4000',
         'OTEL_METRIC_EXPORT_TIMEOUT' => '3000',
         'OTEL_EXPORTER_OTLP_ENDPOINT' => 'http://general:4317',
         'OTEL_EXPORTER_OTLP_PROTOCOL' => 'grpc',
         'OTEL_EXPORTER_OTLP_TIMEOUT' => '2000',
-        'OTEL_EXPORTER_OTLP_HEADERS' => '{"general":"value"}'
+        'OTEL_EXPORTER_OTLP_HEADERS' => 'general=value'
       )
 
       provider = ::OpenTelemetry.meter_provider
@@ -259,7 +259,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
         'OTEL_EXPORTER_OTLP_ENDPOINT' => 'http://general:4317',
         'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf',
         'OTEL_EXPORTER_OTLP_TIMEOUT' => '8000',
-        'OTEL_EXPORTER_OTLP_HEADERS' => '{"general":"value"}'
+        'OTEL_EXPORTER_OTLP_HEADERS' => 'general=value'
       )
       provider = ::OpenTelemetry.meter_provider
       reader = provider.metric_readers.first
@@ -268,6 +268,19 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       expect(exporter.instance_variable_get(:@uri).to_s).to eq('http://general:4317/v1/metrics')
       expect(exporter.instance_variable_get(:@timeout)).to eq(8.0)
       expect(exporter.instance_variable_get(:@headers)['general']).to eq('value')
+    end
+
+    it 'parses multiple headers correctly' do
+      setup_metrics(
+        'OTEL_EXPORTER_OTLP_HEADERS' => 'api-key=secret123,other-config-value=test-value'
+      )
+      provider = ::OpenTelemetry.meter_provider
+      reader = provider.metric_readers.first
+      exporter = reader.instance_variable_get(:@exporter)
+
+      headers = exporter.instance_variable_get(:@headers)
+      expect(headers['api-key']).to eq('secret123')
+      expect(headers['other-config-value']).to eq('test-value')
     end
 
     it 'uses OTLP exporter when configured' do
