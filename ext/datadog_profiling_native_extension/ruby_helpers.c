@@ -12,8 +12,8 @@ static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 static ID new_id = 0;
-// Global references to Datadog::Profiling exception classes
-// TODO: Can these classes be defined in Ruby? Will it work outside of GIL?
+
+// Global references to Datadog::Profiling exception classes defined in Ruby.
 VALUE eNativeRuntimeError = Qnil;
 VALUE eNativeArgumentError = Qnil;
 VALUE eNativeTypeError = Qnil;
