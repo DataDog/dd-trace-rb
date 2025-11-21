@@ -59,9 +59,12 @@ static ID id_integer;
 static ID id_float;
 
 // SAFETY: The returned borrowed string points directly to Ruby's
-// internal string buffer. This is safe as long as the GVL is held
-// preventing garbage collection. (It is held automatically when C
-// extension is called.)
+// internal string buffer.
+//
+// This is safe as long as the GVL is held preventing garbage
+// collection. It is held automatically when C extension is called.)
+// Note that calling into any Ruby cade (rb_funcall, or even
+// rb_hash_lookup) may release GVL or run GC, so are unsafe.
 static inline ddog_ffe_BorrowedStr borrow_str(VALUE str) {
   ENFORCE_TYPE(str, T_STRING);
   return (ddog_ffe_BorrowedStr){
