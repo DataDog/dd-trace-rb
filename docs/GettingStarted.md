@@ -1159,32 +1159,10 @@ end
 ```
 `options` are the following keyword arguments:
 
-| Key                   | Env Var                    | Type   | Description                                                                                                                                                                  | Default |
-| --------------------- | -------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.                                                                                                                       | `true`  |
-| `distributed_tracing` |                            | `Bool` | Enables [distributed tracing](#distributed-tracing) (when iterating through the kafka messages, each of the messages' traces will be resumed for the duration of the block). | `false` |
-
-### WaterDrop
-
-The WaterDrop integration provides tracing of the `waterdrop` gem (a dependency of `karafka`, but also can be used standalone).
-
-This integration activates automatically with the Karafka framework. If your application doesn’t use Karafka (for example, if it only produces messages consumed by another app), enable it manually with `Datadog.configure`:
-
-```ruby
-require 'waterdrop'
-require 'datadog'
-
-Datadog.configure do |c|
-  c.tracing.instrument :waterdrop, **options
-end
-
-```
-`options` are the following keyword arguments:
-
-| Key                   | Env Var                      | Type   | Description                                                                                                          | Default |
-| --------------------- | ---------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- | ------- |
-| `enabled`             | `DD_TRACE_WATERDROP_ENABLED` | `Bool` | Specifies whether the integration should create spans.                                                               | `true`  |
-| `distributed_tracing` |                              | `Bool` | Enables [distributed tracing](#distributed-tracing) (the trace context will be injected onto the produced messages). | `false` |
+| Key                   | Env Var                  | Type   | Description                                         | Default |
+| --------------------- | ------------------------ | ------ | --------------------------------------------------- | ------- |
+| `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.        | `true`  |
+| `distributed_tracing` |                          | `Bool` | Enables [distributed tracing](#distributed-tracing). | `false` |
 
 ### MongoDB
 
@@ -2105,7 +2083,10 @@ client.query("SELECT * FROM users WHERE group='x'")
 To change the default behavior of `datadog`, you can use, in order of priority, with 1 being the highest:
 
 1. [Remote Configuration](https://docs.datadoghq.com/agent/remote_config).
-2. Options set inside a `Datadog.configure` block, e.g.:
+
+   **Note**: By default, Remote Configuration is enabled. To disable it, set `DD_REMOTE_CONFIGURATION_ENABLED=false` or use `Datadog.configure { |c| c.remote.enabled = false }`. 
+
+1. Options set inside a `Datadog.configure` block, e.g.:
 
    ```ruby
    Datadog.configure do |c|
@@ -2116,7 +2097,7 @@ To change the default behavior of `datadog`, you can use, in order of priority, 
    end
    ```
 
-3. Environment variables.
+1. Environment variables.
 
 **If a higher priority value is set for an option, setting that option with a lower priority value will not change its effective value.**
 
