@@ -56,16 +56,16 @@ namespace :test do
 
       candidates.each_key do |group|
         env = if group.empty?
-          {}
-        else
-          gemfile = AppraisalConversion.to_bundle_gemfile(group)
-          {'BUNDLE_GEMFILE' => gemfile}
-        end
+                {}
+              else
+                gemfile = AppraisalConversion.to_bundle_gemfile(group)
+                { 'BUNDLE_GEMFILE' => gemfile }
+              end
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
-        total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
-        current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
+        total_executors = Datadog::DATADOG_ENV.key?('CIRCLE_NODE_TOTAL') ? Datadog::DATADOG_ENV['CIRCLE_NODE_TOTAL'].to_i : nil
+        current_executor = Datadog::DATADOG_ENV.key?('CIRCLE_NODE_INDEX') ? Datadog::DATADOG_ENV['CIRCLE_NODE_INDEX'].to_i : nil
 
         if total_executors && current_executor && total_executors > 1
           @execution_count ||= 0
@@ -83,10 +83,10 @@ desc 'Run RSpec'
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   task all: [:main, :benchmark, :custom_cop,
-    :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
-    :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
-    :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :core_with_libdatadog_api, :error_tracking, :open_feature]
+             :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
+             :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
+             :profiling, :core_with_libdatadog_api, :error_tracking, :open_feature]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -229,7 +229,12 @@ namespace :spec do
     t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end.tap do |t|
-    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+    Rake::Task[t.name].enhance(
+      [
+        "compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}",
+        "compile:datadog_runtime_stacks.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
+      ]
+    )
   end
   # rubocop:enable Style/MultilineBlockChain
 
@@ -319,7 +324,7 @@ namespace :spec do
     rescue => e
       # Compilation failed (likely unsupported Ruby version) - tests will skip gracefully
       puts "Warning: libdatadog_api compilation failed: #{e.class}: #{e}"
-      puts "DSM tests will be skipped for this Ruby version"
+      puts 'DSM tests will be skipped for this Ruby version'
     end
 
     DSM_ENABLED_LIBRARIES.each do |task_name|
@@ -462,11 +467,11 @@ namespace :coverage do
   task :report do
     require 'simplecov'
 
-    resultset_files = Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/.resultset.json"] +
-      Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/**/.resultset.json"]
+    resultset_files = Dir["#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/.resultset.json"] +
+      Dir["#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/**/.resultset.json"]
 
     SimpleCov.collate resultset_files do
-      coverage_dir "#{ENV.fetch("COVERAGE_DIR", "coverage")}/report"
+      coverage_dir "#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/report"
       formatter SimpleCov::Formatter::HTMLFormatter
     end
   end
@@ -476,11 +481,11 @@ namespace :coverage do
     require 'simplecov'
     require_relative 'spec/support/simplecov_fix'
 
-    versions = Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/*"].map { |f| File.basename(f) }
+    versions = Dir["#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/*"].map { |f| File.basename(f) }
     versions.map do |version|
       puts "Generating report for: #{version}"
-      SimpleCov.collate Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/#{version}/**/.resultset.json"] do
-        coverage_dir "#{ENV.fetch("COVERAGE_DIR", "coverage")}/report/versions/#{version}"
+      SimpleCov.collate Dir["#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/#{version}/**/.resultset.json"] do
+        coverage_dir "#{Datadog::DATADOG_ENV.fetch('COVERAGE_DIR', 'coverage')}/report/versions/#{version}"
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
@@ -498,6 +503,10 @@ end
 NATIVE_EXTS = [
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = 'ext/libdatadog_api'
+  end,
+
+  Rake::ExtensionTask.new("datadog_runtime_stacks.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/datadog_runtime_stacks'
   end,
 
   Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|

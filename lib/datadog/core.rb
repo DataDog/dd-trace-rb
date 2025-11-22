@@ -20,6 +20,14 @@ module Datadog
       rescue LoadError => e
         e.message
       end
+
+    RUNTIME_STACKS_FAILURE =
+      begin
+        require "datadog_runtime_stacks.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
+        nil
+      rescue LoadError => e
+        e.message
+      end
   end
 
   DATADOG_ENV = Core::Configuration::ConfigHelper.new
