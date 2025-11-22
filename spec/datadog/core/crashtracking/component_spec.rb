@@ -115,7 +115,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         crashtracker = build_crashtracker(logger: logger)
 
         expect(described_class).to receive(:_native_start_or_update_on_fork)
-        expect(described_class).to receive(:_native_register_runtime_stack_callback).and_return(true)
+        expect(Datadog::RuntimeStacks).to receive(:_native_register_runtime_stack_callback).and_return(true)
 
         crashtracker.start
       end
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           error = StandardError.new('Callback registration failed')
 
           expect(described_class).to receive(:_native_start_or_update_on_fork)
-          expect(described_class).to receive(:_native_register_runtime_stack_callback).and_raise(error)
+          expect(Datadog::RuntimeStacks).to receive(:_native_register_runtime_stack_callback).and_raise(error)
           allow(logger).to receive(:debug) # Allow other debug messages
           expect(logger).to receive(:error).with('Failed to register runtime stack callback: Callback registration failed')
 
@@ -401,7 +401,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       it 'returns true when callback is registered' do
         crashtracker = build_crashtracker(logger: logger)
 
-        expect(described_class).to receive(:_native_is_runtime_callback_registered).and_return(true)
+        expect(Datadog::RuntimeStacks).to receive(:_native_is_runtime_callback_registered).and_return(true)
 
         expect(crashtracker.runtime_callback_registered?).to be true
       end
@@ -409,17 +409,17 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       it 'returns false when callback is not registered' do
         crashtracker = build_crashtracker(logger: logger)
 
-        expect(described_class).to receive(:_native_is_runtime_callback_registered).and_return(false)
+        expect(Datadog::RuntimeStacks).to receive(:_native_is_runtime_callback_registered).and_return(false)
 
         expect(crashtracker.runtime_callback_registered?).to be false
       end
 
-      it 'returns false and logs errors when native method raises exception' do
+      it 'returns false and logs debug when native method raises exception' do
         crashtracker = build_crashtracker(logger: logger)
         error = StandardError.new('Native error')
 
-        expect(described_class).to receive(:_native_is_runtime_callback_registered).and_raise(error)
-        expect(logger).to receive(:error).with('Failed to check runtime callback registration status: Native error')
+        expect(Datadog::RuntimeStacks).to receive(:_native_is_runtime_callback_registered).and_raise(error)
+        expect(logger).to receive(:debug).with('Runtime stack callback status check not available: Native error')
 
         expect(crashtracker.runtime_callback_registered?).to be false
       end
