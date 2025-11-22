@@ -6,7 +6,7 @@ require_relative '../libdatadog_extconf_helpers'
 
 def skip_building_extension!(reason)
   $stderr.puts(
-    "WARN: Skipping build of libdatadog_api (#{reason}). Some functionality will not be available."
+    "WARN: Skipping build of datadog_runtime_stacks (#{reason}). Runtime stack capture will not be available."
   )
 
   fail_install_if_missing_extension = ENV['DD_FAIL_INSTALL_IF_MISSING_EXTENSION'].to_s.strip.downcase == 'true'
@@ -42,6 +42,9 @@ append_cflags '-Werror' if ENV['DATADOG_GEM_CI'] == 'true'
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
 append_cflags '-std=gnu99'
 
+# Gets really noisy when we include the MJIT header, let's omit it (TODO: Use #pragma GCC diagnostic instead?)
+append_cflags "-Wno-unused-function"
+
 # Allow defining variables at any point in a function
 append_cflags '-Wno-declaration-after-statement'
 
@@ -49,11 +52,8 @@ append_cflags '-Wno-declaration-after-statement'
 # cause a segfault later. Let's ensure that never happens.
 append_cflags '-Werror-implicit-function-declaration'
 
-# Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-append_cflags '-Wunused-parameter'
-
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
-# the sole exception being `Init_libdatadog_api` which needs to be visible for Ruby to call it when
+# the sole exception being `Init_datadog_runtime_stacks` which needs to be visible for Ruby to call it when
 # it `dlopen`s the library.
 #
 # By setting this compiler flag, we tell it to assume that everything is private unless explicitly stated.
@@ -98,13 +98,104 @@ extra_relative_rpaths = [
 extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
 Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
+# Enable access to Ruby VM internal headers for runtime stack walking
+# Ruby version compatibility definitions
+
+# On Ruby 3.5, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
+$defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "3.5"
+
+# On Ruby 2.5 and 3.3, this symbol was not visible. It is on 2.6 to 3.2, as well as 3.4+
+$defs << "-DNO_RB_OBJ_INFO" if RUBY_VERSION.start_with?("2.5", "3.3")
+
+# On older Rubies, M:N threads were not available
+$defs << "-DNO_MN_THREADS_AVAILABLE" if RUBY_VERSION < "3.3"
+
+# On older Rubies, we did not need to include the ractor header (this was built into the MJIT header)
+$defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3.3"
+
+# On older Rubies, some of the Ractor internal APIs were directly accessible
+$defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
+
+# On older Rubies, the first_lineno inside a location was a VALUE and not a int (https://github.com/ruby/ruby/pull/6430)
+$defs << "-DNO_INT_FIRST_LINENO" if RUBY_VERSION < "3.2"
+
+# On older Rubies, there are no Ractors
+$defs << "-DNO_RACTORS" if RUBY_VERSION < "3"
+
+# On older Rubies, rb_imemo_name did not exist
+$defs << "-DNO_IMEMO_NAME" if RUBY_VERSION < "3"
+
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.
 # When requiring, we need to use the exact same string, including the version and the platform.
-EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
+EXTENSION_NAME = "datadog_runtime_stacks.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
-create_makefile(EXTENSION_NAME)
+CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?("2.6", "2.7", "3.0.", "3.1.", "3.2.")
+
+mjit_header_worked = false
+
+if CAN_USE_MJIT_HEADER
+  mjit_header_file_name = "rb_mjit_min_header-#{RUBY_VERSION}.h"
+
+  # Validate that the mjit header can actually be compiled on this system.
+  original_common_headers = MakeMakefile::COMMON_HEADERS
+  MakeMakefile::COMMON_HEADERS = "".freeze
+  if have_macro("RUBY_MJIT_H", mjit_header_file_name)
+    MakeMakefile::COMMON_HEADERS = original_common_headers
+
+    $defs << "-DRUBY_MJIT_HEADER='\"#{mjit_header_file_name}\"'"
+
+    # NOTE: This needs to come after all changes to $defs
+    create_header
+
+    # Note: -Wunused-parameter flag is intentionally added here only after MJIT header validation
+    append_cflags "-Wunused-parameter"
+
+    create_makefile(EXTENSION_NAME)
+    mjit_header_worked = true
+  else
+    # MJIT header compilation failed, fallback to datadog-ruby_core_source
+    $stderr.puts "MJIT header compilation failed, falling back to datadog-ruby_core_source"
+    MakeMakefile::COMMON_HEADERS = original_common_headers
+  end
+end
+
+# The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
+# the datadog-ruby_core_source gem to get access to private VM headers.
+# We also use it as a fallback when MJIT header compilation fails.
+unless mjit_header_worked
+  create_header
+
+  require "datadog/ruby_core_source"
+  dir_config("ruby") # allow user to pass in non-standard core include directory
+
+  # Workaround for mkmf issue with $CPPFLAGS
+  Datadog::RubyCoreSource.define_singleton_method(:with_cppflags) do |newflags, &block|
+    super("#{newflags} #{$CPPFLAGS}", &block)
+  end
+
+  makefile_created = Datadog::RubyCoreSource
+    .create_makefile_with_core(
+      proc do
+        headers_available =
+          have_header("vm_core.h") &&
+          have_header("iseq.h") &&
+          (RUBY_VERSION < "3.3" || have_header("ractor_core.h"))
+
+        if headers_available
+          append_cflags "-Wunused-parameter"
+        end
+
+        headers_available
+      end,
+      EXTENSION_NAME
+    )
+
+  unless makefile_created
+    skip_building_extension!('required Ruby VM internal headers are not available for this Ruby version')
+  end
+end
 
 # rubocop:enable Style/GlobalVars
 # rubocop:enable Style/StderrPuts

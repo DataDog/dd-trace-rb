@@ -83,17 +83,31 @@ module Datadog
         end
 
         def runtime_callback_registered?
-          self.class._native_is_runtime_callback_registered
+          return false if Datadog::Core::RUNTIME_STACKS_FAILURE
+          return false unless Datadog.const_defined?(:RuntimeStacks, false)
+
+          Datadog::RuntimeStacks._native_is_runtime_callback_registered
         rescue => e
-          logger.error("Failed to check runtime callback registration status: #{e.message}")
+          logger.debug("Runtime stack callback status check not available: #{e.message}")
           false
         end
 
         private
 
         def register_runtime_stack_callback
+          # Check if runtime_stacks extension loaded successfully
+          if Datadog::Core::RUNTIME_STACKS_FAILURE
+            logger.debug("Skipping runtime stack callback registration: #{Datadog::Core::RUNTIME_STACKS_FAILURE}")
+            return
+          end
+
+          unless Datadog.const_defined?(:RuntimeStacks, false)
+            logger.debug('Skipping runtime stack callback registration: Datadog::RuntimeStacks not defined')
+            return
+          end
+
           # Always use frame-based callback since that's the only type we support
-          success = self.class._native_register_runtime_stack_callback
+          success = Datadog::RuntimeStacks._native_register_runtime_stack_callback
 
           unless success
             error_message = 'Failed to register runtime stack callback: registration returned false'

@@ -1,49 +1,7 @@
-#include "extconf.h"
-
-#ifdef RUBY_MJIT_HEADER
-  // Pick up internal structures from the private Ruby MJIT header file
-  #include RUBY_MJIT_HEADER
-#else
-  // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  // the datadog-ruby_core_source gem to get access to private VM headers.
-
-  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
-  // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wunused-parameter"
-  #pragma GCC diagnostic ignored "-Wattributes"
-  #pragma GCC diagnostic ignored "-Wpragmas"
-  #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
-    #include <vm_core.h>
-  #pragma GCC diagnostic pop
-
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #include <iseq.h>
-  #pragma GCC diagnostic pop
-
-  #include <ruby.h>
-
-  #ifndef NO_RACTOR_HEADER_INCLUDE
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-      #include <ractor_core.h>
-    #pragma GCC diagnostic pop
-  #endif
-#endif
-
+#include <ruby.h>
 #include <datadog/crashtracker.h>
-#include "datadog_ruby_common.h"
-#include "datadog_runtime_stack.h"
-#include <sys/mman.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
 
-// This was renamed in Ruby 3.2
-#if !defined(ccan_list_for_each) && defined(list_for_each)
-  #define ccan_list_for_each list_for_each
-#endif
+#include "datadog_ruby_common.h"
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
@@ -59,7 +17,6 @@ void crashtracker_init(VALUE core_module) {
 
   rb_define_singleton_method(crashtracker_class, "_native_start_or_update_on_fork", _native_start_or_update_on_fork, -1);
   rb_define_singleton_method(crashtracker_class, "_native_stop", _native_stop, 0);
-  datadog_runtime_stack_init(crashtracker_class);
 }
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
@@ -166,4 +123,3 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
 
   return Qtrue;
 }
-

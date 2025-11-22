@@ -33,7 +33,7 @@
 #endif
 
 #include <datadog/crashtracker.h>
-#include "datadog_runtime_stack.h"
+#include "runtime_stacks.h"
 #include "datadog_ruby_common.h"
 #include <sys/mman.h>
 #include <unistd.h>
@@ -495,15 +495,10 @@ static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self) 
   return ddog_crasht_is_runtime_callback_registered() ? Qtrue : Qfalse;
 }
 
-void datadog_runtime_stack_init(VALUE crashtracker_class) {
-  rb_define_singleton_method(crashtracker_class, "_native_register_runtime_stack_callback", _native_register_runtime_stack_callback, 0);
-  rb_define_singleton_method(crashtracker_class, "_native_is_runtime_callback_registered", _native_is_runtime_callback_registered, 0);
-}
+void DDTRACE_EXPORT Init_datadog_runtime_stacks(void) {
+  VALUE datadog_module = rb_define_module("Datadog");
+  VALUE runtime_stacks_class = rb_define_class_under(datadog_module, "RuntimeStacks", rb_cObject);
 
-VALUE datadog_runtime_stack_register_callback(void) {
-  return _native_register_runtime_stack_callback(Qnil);
-}
-
-VALUE datadog_runtime_stack_is_callback_registered(void) {
-  return _native_is_runtime_callback_registered(Qnil);
+  rb_define_singleton_method(runtime_stacks_class, "_native_register_runtime_stack_callback", _native_register_runtime_stack_callback, 0);
+  rb_define_singleton_method(runtime_stacks_class, "_native_is_runtime_callback_registered", _native_is_runtime_callback_registered, 0);
 }

@@ -230,7 +230,12 @@ namespace :spec do
     t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end.tap do |t|
-    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+    Rake::Task[t.name].enhance(
+      [
+        "compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}",
+        "compile:datadog_runtime_stacks.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
+      ]
+    )
   end
   # rubocop:enable Style/MultilineBlockChain
 
@@ -326,7 +331,7 @@ namespace :spec do
     rescue => e
       # Compilation failed (likely unsupported Ruby version) - tests will skip gracefully
       puts "Warning: libdatadog_api compilation failed: #{e.class}: #{e}"
-      puts "DSM tests will be skipped for this Ruby version"
+      puts 'DSM tests will be skipped for this Ruby version'
     end
 
     DSM_ENABLED_LIBRARIES.each do |task_name|
@@ -505,6 +510,10 @@ end
 NATIVE_EXTS = [
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = 'ext/libdatadog_api'
+  end,
+
+  Rake::ExtensionTask.new("datadog_runtime_stacks.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/datadog_runtime_stacks'
   end,
 
   Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
