@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
     let(:agent_settings) do
       instance_double(Datadog::Core::Configuration::AgentSettings)
     end
-    let(:tags) { {'tag1' => 'value1'} }
+    let(:tags) { { 'tag1' => 'value1' } }
     let(:agent_base_url) { 'agent_base_url' }
     let(:ld_library_path) { 'ld_library_path' }
     let(:path_to_crashtracking_receiver_binary) { 'path_to_crashtracking_receiver_binary' }
@@ -115,7 +115,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         crashtracker = build_crashtracker(logger: logger)
 
         expect(described_class).to receive(:_native_start_or_update_on_fork)
-        expect(described_class).to receive(:_native_register_runtime_stack_callback).and_return(true)
+        expect(Datadog::RuntimeStacks).to receive(:_native_register_runtime_stack_callback).and_return(true)
 
         crashtracker.start
       end
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           error = StandardError.new('Callback registration failed')
 
           expect(described_class).to receive(:_native_start_or_update_on_fork)
-          expect(described_class).to receive(:_native_register_runtime_stack_callback).and_raise(error)
+          expect(Datadog::RuntimeStacks).to receive(:_native_register_runtime_stack_callback).and_raise(error)
           allow(logger).to receive(:debug) # Allow other debug messages
           expect(logger).to receive(:error).with('Failed to register runtime stack callback: Callback registration failed')
 
@@ -267,7 +267,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
           crash_tracker = build_crashtracker(
             agent_base_url: agent_base_url,
-            tags: {'latest_settings' => 'included'},
+            tags: { 'latest_settings' => 'included' },
             logger: logger
           )
           crash_tracker.start
@@ -401,7 +401,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       it 'returns true when callback is registered' do
         crashtracker = build_crashtracker(logger: logger)
 
-        expect(described_class).to receive(:_native_is_runtime_callback_registered).and_return(true)
+        expect(Datadog::RuntimeStacks).to receive(:_native_is_runtime_callback_registered).and_return(true)
 
         expect(crashtracker.runtime_callback_registered?).to be true
       end
@@ -409,17 +409,17 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       it 'returns false when callback is not registered' do
         crashtracker = build_crashtracker(logger: logger)
 
-        expect(described_class).to receive(:_native_is_runtime_callback_registered).and_return(false)
+        expect(Datadog::RuntimeStacks).to receive(:_native_is_runtime_callback_registered).and_return(false)
 
         expect(crashtracker.runtime_callback_registered?).to be false
       end
 
-      it 'returns false and logs errors when native method raises exception' do
+      it 'returns false and logs debug when native method raises exception' do
         crashtracker = build_crashtracker(logger: logger)
         error = StandardError.new('Native error')
 
-        expect(described_class).to receive(:_native_is_runtime_callback_registered).and_raise(error)
-        expect(logger).to receive(:error).with('Failed to check runtime callback registration status: Native error')
+        expect(Datadog::RuntimeStacks).to receive(:_native_is_runtime_callback_registered).and_raise(error)
+        expect(logger).to receive(:debug).with('Runtime stack callback status check not available: Native error')
 
         expect(crashtracker.runtime_callback_registered?).to be false
       end
@@ -431,7 +431,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
     described_class.new(
       agent_base_url: options[:agent_base_url] || 'http://localhost:6006',
       tags: options[:tags] ||
-        {'tag1' => 'value1', 'tag2' => 'value2', 'language' => testing_string, 'service' => testing_string},
+        { 'tag1' => 'value1', 'tag2' => 'value2', 'language' => testing_string, 'service' => testing_string },
       path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
       ld_library_path: Libdatadog.ld_library_path,
       logger: options[:logger] || Logger.new($stdout),
