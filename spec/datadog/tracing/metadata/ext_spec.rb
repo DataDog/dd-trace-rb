@@ -25,16 +25,24 @@ RSpec.describe Datadog::Tracing::Metadata::Ext::HTTP::Headers do
     context 'with supported special characters' do
       let(:tag) { '_-:/' }
 
-      it 'preserves them' do
-        is_expected.to eq(tag)
+      it 'normalizes them to an empty string' do
+        is_expected.to eq("")
       end
     end
 
-    context 'with unsupported characters' do
+    context 'with a mix of unsupported and supported characters' do
+      let(:tag) { "\\ \t!@?a" }
+
+      it 'the first letter to show up is the supported character' do
+        is_expected.to eq('a')
+      end
+    end
+
+    context 'with all unsupported characters' do
       let(:tag) { "\\ \t!@?" }
 
-      it 'replaces each with an underscore' do
-        is_expected.to eq('_' * tag.size)
+      it 'turns into an empty string because the first character must be a letter' do
+        is_expected.to eq('')
       end
     end
 
