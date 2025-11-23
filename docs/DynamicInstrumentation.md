@@ -1,5 +1,20 @@
 # Dynamic Instrumentation
 
+## Getting Started
+
+To use dynamic instrumentation:
+
+1. Ensure you are using a production environment
+(`RAILS_ENV=production`, etc.).
+2. Ensure you have `DD_ENV` set:
+
+export DD_ENV=prod
+
+3. Ensure you set the [source code metadata tags](https://docs.datadoghq.com/integrations/guide/source-code-integration/?tab=ruby#embed-git-information-in-your-build-artifacts):
+
+export DD_GIT_REPOSITORY_URL=https://github.com/example-org/repo
+export DD_GIT_COMMIT_SHA=`git rev-parse HEAD`
+
 ## Instrumentable Code
 
 Instrumentation can be installed on lines containing executable code and
