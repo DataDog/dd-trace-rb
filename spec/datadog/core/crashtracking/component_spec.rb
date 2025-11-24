@@ -392,6 +392,18 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             )
           )
 
+          expect(frames).to include(
+            hash_including(
+              function: 'ruby_method_with_c_calls'
+            )
+          )
+
+          expect(frames).to include(
+            hash_including(
+              function: 'top_level_ruby_method'
+            )
+          )
+
           temp_script.unlink
         end
       end
