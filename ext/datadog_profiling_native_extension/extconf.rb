@@ -70,6 +70,11 @@ $stderr.puts(
 # that may fail on an environment not properly setup for building Ruby extensions.
 require "mkmf"
 
+Datadog::LibdatadogExtconfHelpers.add_shared_sources!(
+  extension_dir: __dir__,
+  shared_relative_dir: File.join("..", "shared")
+)
+
 Logging.message("[datadog] Using compiler:\n")
 xsystem("#{CONFIG["CC"]} -v")
 Logging.message("[datadog] End of compiler information\n")
