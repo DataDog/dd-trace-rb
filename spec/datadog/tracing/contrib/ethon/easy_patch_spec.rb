@@ -6,11 +6,9 @@ require 'datadog/tracing/contrib/ethon/easy_patch'
 require 'datadog/tracing/contrib/ethon/shared_examples'
 require 'datadog/tracing/contrib/analytics_examples'
 
-require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
-
 RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
   let(:configuration_options) { {} }
-  let(:easy) { EthonSupport.ethon_easy_new }
+  let(:easy) { Ethon::Easy.new }
   let(:server_error_statuses) { nil }
 
   before do
@@ -252,7 +250,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
   context 'when basic auth in url' do
     it 'does not collect auth info' do
-      easy = EthonSupport.ethon_easy_new(url: 'http://username:pasword@example.com/sample/path')
+      easy = Ethon::Easy.new(url: 'http://username:pasword@example.com/sample/path')
 
       easy.perform
 
@@ -263,7 +261,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
   context 'when query string in url' do
     it 'does not collect query string' do
-      easy = EthonSupport.ethon_easy_new(url: 'http://example.com/sample/path?foo=bar')
+      easy = Ethon::Easy.new(url: 'http://example.com/sample/path?foo=bar')
 
       easy.perform
 

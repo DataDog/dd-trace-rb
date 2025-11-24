@@ -3,7 +3,7 @@ PATH
   specs:
     datadog (2.23.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 24.0.0.1.0)
+      libdatadog (~> 24.0.1.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -31,7 +31,7 @@ GEM
     hashdiff (1.1.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (24.0.0.1.0)
+    libdatadog (24.0.1.1.0)
     libddwaf (1.30.0.0.0)
       ffi (~> 1.0)
     logger (1.7.0)
@@ -79,7 +79,7 @@ GEM
     simplecov_json_formatter (0.1.4)
     spoon (0.0.6)
       ffi
-    stripe (17.2.0)
+    stripe (18.0.1)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)

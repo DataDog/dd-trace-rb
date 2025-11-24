@@ -89,7 +89,6 @@ RSpec.describe 'Telemetry integration tests' do
         # The most common unsupported reason is failure to load profiling
         # C extension due to it not having been compiled - we get that in
         # some CI configurations.
-        expect(Datadog::Profiling).to receive(:enabled?).and_return(false)
         expect(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
       end
     end
@@ -103,7 +102,7 @@ RSpec.describe 'Telemetry integration tests' do
         include_context 'disable profiling'
 
         it 'sends app-started' do
-          component.start
+          component.start(false, components: Datadog.send(:components))
 
           component.flush
           expect(sent_payloads.length).to eq 2
@@ -132,7 +131,7 @@ RSpec.describe 'Telemetry integration tests' do
 
       context 'when asked to send configuration change event' do
         it 'sends app-client-configuration-change' do
-          component.start(true)
+          component.start(true, components: Datadog.send(:components))
 
           component.flush
           expect(sent_payloads.length).to eq 1
@@ -167,7 +166,7 @@ RSpec.describe 'Telemetry integration tests' do
         end
 
         it 'sends app-dependencies-loaded event' do
-          component.start
+          component.start(false, components: Datadog.send(:components))
 
           component.flush
           expect(sent_payloads.length).to eq 2
@@ -201,7 +200,7 @@ RSpec.describe 'Telemetry integration tests' do
     describe 'error event' do
       before do
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
-        component.start
+        component.start(false, components: Datadog.send(:components))
       end
 
       it 'sends expected payload' do
@@ -241,7 +240,7 @@ RSpec.describe 'Telemetry integration tests' do
     describe 'heartbeat event' do
       before do
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
-        component.start
+        component.start(false, components: Datadog.send(:components))
       end
 
       it 'sends expected payload' do
@@ -272,7 +271,7 @@ RSpec.describe 'Telemetry integration tests' do
         settings.telemetry.debug = true
 
         expect(component.worker).to receive(:sent_initial_event?).at_least(:once).and_return(true)
-        component.start
+        component.start(false, components: Datadog.send(:components))
       end
 
       it 'sets debug to true in payload' do
@@ -380,7 +379,7 @@ RSpec.describe 'Telemetry integration tests' do
 
       expect(component.worker.buffer.length).to eq 1
 
-      component.start
+      component.start(false, components: Datadog.send(:components))
 
       component.worker.flush
       expect(sent_payloads.length).to eq 3
@@ -461,7 +460,7 @@ RSpec.describe 'Telemetry integration tests' do
         an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
       ).ordered.and_return(ok_response)
 
-      component.start
+      component.start(false, components: Datadog.send(:components))
 
       component.worker.flush
 

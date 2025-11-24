@@ -2,7 +2,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'datadog/tracing/contrib/ethon/shared_examples'
 require 'datadog/tracing/contrib/ethon/integration_context'
-require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Ethon do
   skip_unless_integration_testing_enabled
@@ -18,7 +17,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon do
     #
     # This allows us to still ensure that the integration
     # itself is leak-free.
-    EthonSupport.ethon_easy_new
+    Ethon::Easy.new
   end
 
   context 'with Typhoeus request' do

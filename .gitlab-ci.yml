@@ -5,7 +5,6 @@ stages:
   - vaccine
   - macrobenchmarks
   - microbenchmarks
-  - benchmarks
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
@@ -19,6 +18,10 @@ variables:
 
 default:
   tags: ["runner:main", "size:large"]
+
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
 
 .build-image-base:
   stage: manual-images
@@ -143,7 +146,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 7cc82692d3d02b17f20d6d0fcbee09de21f27ad4 # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_REF: 7c0b024b7754c95ee31c41eee156e12860cb77b1 # Automated: This reference is automatically updated.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
 
 save_versions:

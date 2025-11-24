@@ -96,6 +96,7 @@ module Datadog
         attr_reader \
           :health_metrics,
           :settings,
+          :agent_settings,
           :logger,
           :remote,
           :profiler,
@@ -120,7 +121,7 @@ module Datadog
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend
           # the Core resolver from within your product/component's namespace.
-          agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
+          @agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
           # Exposes agent capability information for detection by any components
           @agent_info = Core::Environment::AgentInfo.new(agent_settings, logger: @logger)
@@ -162,7 +163,7 @@ module Datadog
 
         # Starts up components
         def startup!(settings, old_state: nil)
-          telemetry.start(old_state&.telemetry_enabled?)
+          telemetry.start(old_state&.telemetry_enabled?, components: self)
 
           if settings.profiling.enabled
             if profiler

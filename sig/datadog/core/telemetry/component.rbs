@@ -26,7 +26,7 @@ module Datadog
 
         def disable!: () -> void
 
-        def start: (?bool initial_event_is_change) -> void
+        def start: (?bool initial_event_is_change, components: Datadog::Core::Configuration::Components) -> void
 
         def shutdown!: () -> void
 

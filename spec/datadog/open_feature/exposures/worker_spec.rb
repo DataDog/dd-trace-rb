@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/open_feature/transport/exposures'
+require 'datadog/open_feature/transport'
 
 RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   after do
@@ -21,7 +21,7 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   end
 
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:transport) { instance_double(Datadog::OpenFeature::Transport::Exposures::Transport) }
+  let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: true) }
   let(:logger) { logger_allowing_debug }

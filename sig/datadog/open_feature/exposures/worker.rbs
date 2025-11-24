@@ -20,7 +20,7 @@ module Datadog
 
         def initialize: (
           settings: Core::Configuration::Settings,
-          transport: Transport::Exposures::Transport,
+          transport: Transport::HTTP,
           telemetry: Core::Telemetry::Component,
           logger: Core::Logger,
           ?flush_interval_seconds: ::Integer,
