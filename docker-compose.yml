@@ -159,8 +159,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-3.5:
-    image: ghcr.io/datadog/images-rb/engines/ruby:3.5-gnu-gcc
+  tracer-4.0:
+    image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
@@ -168,13 +168,13 @@ services:
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.5.gemfile
+      BUNDLE_GEMFILE: /app/ruby-4.0.gemfile
     stdin_open: true
     tty: true
     volumes:
       - .:/app
       - extension-build-tmp:/app/tmp
-      - bundle-3.5:/usr/local/bundle
+      - bundle-4.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
   tracer-jruby-9.2:
@@ -360,7 +360,7 @@ volumes:
   bundle-3.2:
   bundle-3.3:
   bundle-3.4:
-  bundle-3.5:
+  bundle-4.0:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2:
   bundle-jruby-9.3:
