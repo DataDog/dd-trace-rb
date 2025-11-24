@@ -99,26 +99,27 @@ static VALUE _native_configurator_get(VALUE self) {
   ddog_Configurator *configurator;
   TypedData_Get_Struct(self, ddog_Configurator, &configurator_typed_data, configurator);
 
-  // Wrapping config_logged_result into a Ruby object enables the Ruby GC to manage its memory
-  // We need to allocate memory for config_logged_result because once it is out of scope, it will be freed (at the end of this function)
-  // So we cannot reference it with &config_logged_result
-  // We are doing this in case one of the ruby API raises an exception before the end of this function,
-  // so the allocated memory will still be freed
-  ddog_LibraryConfigLoggedResult *configurator_logged_result = ruby_xcalloc(1, sizeof(ddog_LibraryConfigLoggedResult));
-  *configurator_logged_result = ddog_library_configurator_get(configurator);
-  VALUE config_logged_result_rb = TypedData_Wrap_Struct(config_logged_result_class, &config_logged_result_typed_data, configurator_logged_result);
+  // We don't allocate memory here so if there is an error, we don't need to manage the memory
+  ddog_LibraryConfigLoggedResult before_error_result = ddog_library_configurator_get(configurator);
 
-  if (configurator_logged_result->tag == DDOG_LIBRARY_CONFIG_LOGGED_RESULT_ERR) {
-    ddog_Error err = configurator_logged_result->err;
+  if (before_error_result.tag == DDOG_LIBRARY_CONFIG_LOGGED_RESULT_ERR) {
+    ddog_Error err = before_error_result.err;
     VALUE message = get_error_details_and_drop(&err);
     if (is_config_loaded()) {
       log_warning(message);
     } else {
       log_warning_without_config(message);
     }
-    RB_GC_GUARD(config_logged_result_rb);
     return rb_hash_new();
   }
+
+  // Wrapping config_logged_result into a Ruby object enables the Ruby GC to manage its memory
+  // We need to allocate memory for config_logged_result because once it is out of scope, it will be freed (at the end of this function)
+  // We are doing this in case one of the ruby API raises an exception before the end of this function,
+  // so the allocated memory will still be freed
+  ddog_LibraryConfigLoggedResult *configurator_logged_result = ruby_xcalloc(1, sizeof(ddog_LibraryConfigLoggedResult));
+  *configurator_logged_result = before_error_result;
+  VALUE config_logged_result_rb = TypedData_Wrap_Struct(config_logged_result_class, &config_logged_result_typed_data, configurator_logged_result);
 
   VALUE logs = Qnil;
   if (configurator_logged_result->ok.logs.length > 0) {
