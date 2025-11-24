@@ -65,8 +65,8 @@ namespace :test do
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
-        total_executors = Datadog::DATADOG_ENV.key?('CIRCLE_NODE_TOTAL') ? Datadog::DATADOG_ENV['CIRCLE_NODE_TOTAL'].to_i : nil
-        current_executor = Datadog::DATADOG_ENV.key?('CIRCLE_NODE_INDEX') ? Datadog::DATADOG_ENV['CIRCLE_NODE_INDEX'].to_i : nil
+        total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
+        current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
 
         if total_executors && current_executor && total_executors > 1
           @execution_count ||= 0
@@ -474,11 +474,11 @@ namespace :coverage do
   task :report do
     require 'simplecov'
 
-    resultset_files = Dir["#{Datadog::DATADOG_ENV.fetch("COVERAGE_DIR", "coverage")}/.resultset.json"] +
-      Dir["#{Datadog::DATADOG_ENV.fetch("COVERAGE_DIR", "coverage")}/versions/**/.resultset.json"]
+    resultset_files = Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/.resultset.json"] +
+      Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/**/.resultset.json"]
 
     SimpleCov.collate resultset_files do
-      coverage_dir "#{Datadog::DATADOG_ENV.fetch("COVERAGE_DIR", "coverage")}/report"
+      coverage_dir "#{ENV.fetch("COVERAGE_DIR", "coverage")}/report"
       formatter SimpleCov::Formatter::HTMLFormatter
     end
   end
@@ -488,11 +488,11 @@ namespace :coverage do
     require 'simplecov'
     require_relative 'spec/support/simplecov_fix'
 
-    versions = Dir["#{Datadog::DATADOG_ENV.fetch("COVERAGE_DIR", "coverage")}/versions/*"].map { |f| File.basename(f) }
+    versions = Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/*"].map { |f| File.basename(f) }
     versions.map do |version|
       puts "Generating report for: #{version}"
-      SimpleCov.collate Dir["#{Datadog::DATADOG_ENV.fetch("COVERAGE_DIR", "coverage")}/versions/#{version}/**/.resultset.json"] do
-        coverage_dir "#{Datadog::DATADOG_ENV.fetch("COVERAGE_DIR", "coverage")}/report/versions/#{version}"
+      SimpleCov.collate Dir["#{ENV.fetch("COVERAGE_DIR", "coverage")}/versions/#{version}/**/.resultset.json"] do
+        coverage_dir "#{ENV.fetch("COVERAGE_DIR", "coverage")}/report/versions/#{version}"
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
