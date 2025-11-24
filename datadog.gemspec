@@ -89,7 +89,6 @@ Gem::Specification.new do |spec|
 
   spec.extensions = [
     'ext/datadog_profiling_native_extension/extconf.rb',
-    'ext/datadog_runtime_stacks/extconf.rb',
     'ext/libdatadog_api/extconf.rb'
   ]
 end
