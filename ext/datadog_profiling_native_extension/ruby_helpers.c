@@ -27,12 +27,12 @@ void ruby_helpers_init(void) {
   new_id = rb_intern("new");
 }
 // Raises a NativeError exception with seperate telemetry-safe and detailed messages.
-void _raise_native_error(VALUE native_exception_class, const char *detailed_message, VALUE static_message) {
+void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, VALUE static_message) {
   #ifdef DD_DEBUG
     if (native_exception_class != eNativeRuntimeError &&
         native_exception_class != eNativeArgumentError &&
         native_exception_class != eNativeTypeError) {
-        rb_raise(rb_eRuntimeError, "[ddtrace] BUG: _raise_native_error called with an exception that might not support two error messages. "
+        rb_raise(rb_eRuntimeError, "[ddtrace] BUG: private_raise_native_error called with an exception that might not support two error messages. "
             "Must be one of eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError, was: %s", rb_class2name(native_exception_class));
     }
   #endif
@@ -48,13 +48,13 @@ void _raise_native_error(VALUE native_exception_class, const char *detailed_mess
 
 #define MAX_RAISE_MESSAGE_SIZE 256
 // Use `raise_error` the macro instead, as it provides additional argument checks.
-void _raise_error(VALUE native_exception_class, const char *fmt, ...) {
+void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   char formatted_msg[MAX_RAISE_MESSAGE_SIZE];
   vsnprintf(formatted_msg, MAX_RAISE_MESSAGE_SIZE, fmt, args);
   va_end(args);
-  _raise_native_error(native_exception_class, formatted_msg, rb_str_new_cstr(fmt));
+  private_raise_native_error(native_exception_class, formatted_msg, rb_str_new_cstr(fmt));
 }
 
 typedef struct {
@@ -66,14 +66,14 @@ typedef struct {
 static void *trigger_raise(void *raise_arguments) {
   raise_args *args = (raise_args *) raise_arguments;
 
-  _raise_native_error(
+  private_raise_native_error(
     args->exception_class,
     args->exception_message,
     rb_str_new_cstr(args->telemetry_message)
   );
 }
 
-void _grab_gvl_and_raise(VALUE native_exception_class, const char *format_string, ...) {
+void private_grab_gvl_and_raise(VALUE native_exception_class, const char *format_string, ...) {
   raise_args args;
 
   args.exception_class = native_exception_class;
@@ -95,7 +95,7 @@ void _grab_gvl_and_raise(VALUE native_exception_class, const char *format_string
     // Render the full exception message.
     char exception_message[MAX_RAISE_MESSAGE_SIZE];
     snprintf(exception_message, MAX_RAISE_MESSAGE_SIZE, telemetry_message, args.exception_message);
-    _raise_native_error(eNativeRuntimeError, exception_message, rb_str_new_cstr(telemetry_message));
+    private_raise_native_error(eNativeRuntimeError, exception_message, rb_str_new_cstr(telemetry_message));
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
@@ -143,7 +143,7 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
     char exception_message[MAX_RAISE_MESSAGE_SIZE];
     snprintf(exception_message, MAX_RAISE_MESSAGE_SIZE, telemetry_message, args.exception_message);
 
-    _raise_native_error(
+    private_raise_native_error(
       eNativeRuntimeError,
       exception_message,
       rb_str_new_cstr(telemetry_message)

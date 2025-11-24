@@ -119,7 +119,7 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
   if (RTEST(release_gvl)) {
     rb_thread_call_without_gvl(trigger_grab_gvl_and_raise, &args, NULL, NULL);
   } else {
-    _grab_gvl_and_raise(args.exception_class, args.test_message, args.test_message_arg);
+    private_grab_gvl_and_raise(args.exception_class, args.test_message, args.test_message_arg);
   }
 
   raise_error(eNativeRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
@@ -129,9 +129,9 @@ static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   trigger_grab_gvl_and_raise_arguments *args = (trigger_grab_gvl_and_raise_arguments *) trigger_args;
 
   if (args->test_message_arg >= 0) {
-    _grab_gvl_and_raise(args->exception_class, args->test_message, args->test_message_arg);
+    private_grab_gvl_and_raise(args->exception_class, args->test_message, args->test_message_arg);
   } else {
-    _grab_gvl_and_raise(args->exception_class, args->test_message);
+    private_grab_gvl_and_raise(args->exception_class, args->test_message);
   }
 
   return NULL;

@@ -52,9 +52,9 @@ extern VALUE eNativeTypeError;
 // Declare exception class globals from ruby_helpers.h
 // (We can't include ruby_helpers.h here as it pulls in public Ruby headers that conflict with private VM headers)
 #define raise_error(native_exception_class, fmt, ...) \
-  _raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
+  private_raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
 NORETURN(
-  void _raise_error(VALUE native_exception_class, const char *fmt, ...)
+  void private_raise_error(VALUE native_exception_class, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
 

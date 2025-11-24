@@ -51,17 +51,17 @@ extern VALUE eNativeTypeError;
 // Only the following error classes are supported, as they require an extra field for
 // the telemetry-safe string: NativeRuntimeError, NativeArgumentError, NativeTypeError.
 #define raise_error(native_exception_class, fmt, ...) \
-  _raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
+  private_raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
 NORETURN(
-  void _raise_error(VALUE native_exception_class, const char *fmt, ...)
+  void private_raise_error(VALUE native_exception_class, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
 
 #define grab_gvl_and_raise(native_exception_class, fmt, ...) \
-  _grab_gvl_and_raise(native_exception_class, "" fmt, ##__VA_ARGS__)
+  private_grab_gvl_and_raise(native_exception_class, "" fmt, ##__VA_ARGS__)
 
 NORETURN(
-  void _grab_gvl_and_raise(VALUE native_exception_class, const char *format_string, ...)
+  void private_grab_gvl_and_raise(VALUE native_exception_class, const char *format_string, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
 NORETURN(
