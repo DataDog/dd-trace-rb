@@ -52,6 +52,8 @@ module Datadog
 
               registry_klass.new(*args, **kwargs)
             else
+            p config
+            raise NotImplementedError
               config
             end
           end
