@@ -3,8 +3,8 @@ PATH
   specs:
     datadog (2.23.0)
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 23.0.0.1.0)
-      libddwaf (~> 1.25.1.1.0)
+      libdatadog (~> 24.0.1.1.0)
+      libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
 
@@ -57,11 +57,11 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (23.0.0.1.0-aarch64-linux)
-    libdatadog (23.0.0.1.0-x86_64-linux)
-    libddwaf (1.25.1.1.0-aarch64-linux)
+    libdatadog (24.0.1.1.0-aarch64-linux)
+    libdatadog (24.0.1.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.25.1.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     llhttp-ffi (0.3.1)
       ffi-compiler (~> 1.0)

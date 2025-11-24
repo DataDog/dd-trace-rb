@@ -1,4 +1,26 @@
 module Datadog
+  # This type is a semantic version of `untyped` when the accepted or returned
+  # value is literally anything. And `untyped` should be used as a signal that
+  # the typing is not finished yet.
+  #
+  # WARNING: This type should be used sparingly and only when there are no distinct
+  #          types that can be used to represent the value.
+  #
+  # Examples:
+  #
+  #   when Hash values are impossible to narrow down to a specific type
+  #
+  #   ```rbs
+  #   def my_function: (::Hash[::String, any] payload) -> void
+  #   ```
+  #
+  #   or when an arbitrary Array with uncontrolled values is needed
+  #
+  #   ```rbs
+  #   def my_function: (::Array[any] payload) -> void
+  #   ```
+  type any = untyped
+
   extend Core::Extensions
   extend Core::Configuration
 

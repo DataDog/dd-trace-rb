@@ -1,0 +1,38 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Architecture and Design
+
+This library provides tools to get visibility into the performance and security of Ruby applications.
+This includes distributed tracing, profiling, app & api protection, dynamic instrumentation, metrics emission, open feature, etc.
+
+## Project Structure
+
+- @lib/datadog/appsec - app & api protection implementation (formely known as appsec)
+- @lib/datadog/appsec/contrib - app & api protection integrations with third-party libraries
+- @lib/datadog/core - glue and shared code
+- @lib/datadog/di - dynamic instrumentation
+- @lib/datadog/open_feature - an implementation of OpenFeature Provider https://openfeature.dev/docs/reference/sdks/server/ruby
+- @lib/datadog/profiling - profiling
+- @lib/datadog/tracing - distributed tracing
+- @lib/datadog/tracing/contrib - distributed tracing integrations with third-party libraries
+- @spec/ - Library test suite
+- @ext/datadog_profiling_native_extension - native extension for profiling
+- @ext/libdatadog_api - native extension for libdatadog apis
+- @docs/ - Developer documentation. Includes API documentation, upgrade guides, etc.
+
+## Integration Pattern
+
+Each framework integration follows a common pattern:
+1. `patcher.rb` - Modifies framework behavior
+2. `integration.rb` - Describes the integration
+3. `ext.rb` - Constants specific to the integration
+4. `configuration/settings.rb` - Integration-specific settings
+
+## Native Extensions
+
+The library uses native extensions which requires using Ruby C API.
+
+The native extension is in `ext/` directory and compiled for each Ruby version.
