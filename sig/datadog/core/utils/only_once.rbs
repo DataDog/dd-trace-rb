@@ -11,7 +11,9 @@ module Datadog
 
         def ran?: () -> untyped
 
-        def reset: -> void
+        private
+
+        def reset_ran_once_state_for_tests: () -> untyped
       end
     end
   end

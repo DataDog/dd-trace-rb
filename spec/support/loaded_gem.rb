@@ -38,14 +38,14 @@ module LoadedGem
 
     def remove_patch!(integration, patch_key = :patch)
       if (integration.is_a?(Module) || integration.is_a?(Class)) && integration <= Datadog::Tracing::Contrib::Patcher
-        integration::PATCH_ONLY_ONCE.reset if defined?(integration::PATCH_ONLY_ONCE)
+        integration::PATCH_ONLY_ONCE.send(:reset_ran_once_state_for_tests) if defined?(integration::PATCH_ONLY_ONCE)
         if integration.respond_to?(:patch_only_once, true)
-          integration.send(:patch_only_once).reset
+          integration.send(:patch_only_once).send(:reset_ran_once_state_for_tests)
         end
       elsif Datadog.registry[integration].respond_to?(:patcher)
         Datadog.registry[integration].patcher.tap do |patcher|
-          patcher::PATCH_ONLY_ONCE.reset if defined?(patcher::PATCH_ONLY_ONCE)
-          patcher.send(:patch_only_once).reset if patcher.respond_to?(
+          patcher::PATCH_ONLY_ONCE.send(:reset_ran_once_state_for_tests) if defined?(patcher::PATCH_ONLY_ONCE)
+          patcher.send(:patch_only_once).send(:reset_ran_once_state_for_tests) if patcher.respond_to?(
             :patch_only_once,
             true
           )

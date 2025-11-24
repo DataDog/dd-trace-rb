@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/lograge/patcher'
 
 RSpec.describe Datadog::Tracing::Contrib::Lograge::Patcher do
   describe '.patch' do
-    before { described_class.instance_variable_get(:@patch_only_once)&.reset }
+    before { described_class.instance_variable_get(:@patch_only_once)&.send(:reset_ran_once_state_for_tests) }
 
     it 'adds Instrumentation to ancestors of LogSubscribers::Base class' do
       described_class.patch

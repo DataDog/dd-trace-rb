@@ -20,7 +20,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Patcher do
     stub_const('Sidekiq::ServerInternalTracer::RedisInfo', Class.new)
 
     # NB: This is needed because we want to patch multiple times.
-    described_class.instance_variable_get(:@patch_only_once)&.reset
+    described_class.instance_variable_get(:@patch_only_once)&.send(:reset_ran_once_state_for_tests)
   end
 
   # NB: This needs to be after the before block above so that the use :sidekiq

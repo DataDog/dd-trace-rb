@@ -535,7 +535,7 @@ RSpec.describe Datadog::Tracing::Component do
       let(:responses) { [double('response')] }
 
       before do
-        Datadog::Tracing::Component::WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE.reset
+        Datadog::Tracing::Component::WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
       end
 
       it 'invokes the environment logger with responses' do

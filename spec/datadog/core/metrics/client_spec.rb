@@ -76,7 +76,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         let(:options) { {statsd: statsd} }
 
         before do
-          described_class.const_get('IGNORED_STATSD_ONLY_ONCE').reset
+          described_class.const_get('IGNORED_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests)
           allow(logger).to receive(:warn)
         end
 
