@@ -98,12 +98,7 @@ RSpec.describe 'DI integration from remote config' do
   end
 
   let(:agent_settings) do
-    instance_double_agent_settings.tap do |agent_settings|
-      allow(agent_settings).to receive(:hostname)
-      allow(agent_settings).to receive(:port)
-      allow(agent_settings).to receive(:timeout_seconds).and_return(1)
-      allow(agent_settings).to receive(:ssl)
-    end
+    instance_double_agent_settings_with_stubs
   end
 
   let(:stringified_probe_spec) do
