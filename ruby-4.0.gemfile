@@ -61,6 +61,15 @@ group :check do
   gem 'rubocop-packaging', '~> 0.5.2', require: false
   gem 'rubocop-performance', '~> 1.20', require: false
   gem 'rubocop-rspec', '~> 2.31', require: false
+
+  # Removes a warning:
+  #
+  # > rubocop-1.71.2/lib/rubocop/cop/style/parallel_assignment.rb:3: warning:
+  # > tsort was loaded from the standard library, but will no longer be part of
+  # > the default gems starting from Ruby 4.1.0
+  #
+  # TODO: Remove once rubocop has updated its dependencies
+  gem 'tsort'
 end
 
 group :dev do
