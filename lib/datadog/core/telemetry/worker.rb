@@ -270,7 +270,7 @@ module Datadog
           # having wrong state. It is possible that in the future telemetry
           # will be re-enabled after errors.
           buffer.clear
-          initial_event_once.reset
+          @initial_event_once = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
           # In the child process, we get a new runtime_id.
           # As such we need to send AppStarted event.
           # In the parent process, the event may have been the
