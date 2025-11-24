@@ -23,7 +23,7 @@ module Datadog
 
     RUNTIME_STACKS_FAILURE =
       begin
-        require "datadog_runtime_stacks.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
+        require 'datadog/runtime_stacks'
         nil
       rescue LoadError => e
         e.message

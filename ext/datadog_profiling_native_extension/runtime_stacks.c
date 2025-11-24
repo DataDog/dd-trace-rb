@@ -32,9 +32,10 @@
   #endif
 #endif
 
-#include <datadog/crashtracker.h>
 #include "runtime_stacks.h"
+#include <datadog/crashtracker.h>
 #include "datadog_ruby_common.h"
+#include "private_vm_api_access.h"
 #include <sys/mman.h>
 #include <unistd.h>
 #include <errno.h>
@@ -310,58 +311,7 @@ static void ruby_runtime_stack_callback(
       const char *function_name = "<C method>";
       const char *file_name = "<C extension>";
 
-#ifdef RUBY_MJIT_HEADER
-      // Only attempt method entry resolution on Ruby versions with MJIT header
-      // where rb_vm_frame_method_entry is guaranteed to be available
-      const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(cfp);
-      if (me && is_pointer_readable(me, sizeof(rb_callable_method_entry_t))) {
-        if (me->def && is_pointer_readable(me->def, sizeof(*me->def))) {
-          if (me->def->original_id) {
-            const char *method_name = rb_id2name(me->def->original_id);
-            if (method_name && is_pointer_readable(method_name, strlen(method_name))) {
-              size_t method_name_len = strlen(method_name);
-              if (method_name_len > 0 && method_name_len < 256) {
-                function_name = method_name;
-              }
-            }
-          }
-
-          if (me->def->type == VM_METHOD_TYPE_CFUNC && me->owner) {
-            // Try to get the full class/module path
-            VALUE owner_name = Qnil;
-            VALUE actual_owner = me->owner;
-
-            // If this is a singleton class (like Fiddle's singleton class for module methods),
-            // try to get the attached object which should be the actual module or else we will
-            // just get `Module` which is not that useful to us
-            if (RB_TYPE_P(me->owner, T_CLASS) && FL_TEST(me->owner, FL_SINGLETON)) {
-              VALUE attached = rb_ivar_get(me->owner, rb_intern("__attached__"));
-              if (attached != Qnil) {
-                actual_owner = attached;
-              }
-            }
-
-            // Get the class/module path
-            if (RB_TYPE_P(actual_owner, T_CLASS) || RB_TYPE_P(actual_owner, T_MODULE)) {
-              owner_name = rb_class_path(actual_owner);
-            }
-
-            // Fallback to rb_class_name if rb_class_path fails
-            if (owner_name == Qnil) {
-              owner_name = rb_class_name(actual_owner);
-            }
-
-            if (owner_name != Qnil) {
-              const char *owner_str = safe_string_ptr(owner_name);
-              static char file_buffer[256];
-              snprintf(file_buffer, sizeof(file_buffer), "<%s (C extension)>", owner_str);
-              file_name = file_buffer;
-            }
-          }
-        }
-      }
-#else
-      // For Ruby versions without MJIT header, use our own rb_vm_frame_method_entry implementation
+      // Resolve Ruby C frames via rb_vm_frame_method_entry (Ruby or our fallback depending on version)
       const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(cfp);
       if (me && is_pointer_readable(me, sizeof(rb_callable_method_entry_t))) {
         if (me->def && is_pointer_readable(me->def, sizeof(*me->def))) {
@@ -408,7 +358,6 @@ static void ruby_runtime_stack_callback(
           }
         }
       }
-#endif
 
       ddog_crasht_RuntimeStackFrame frame = {
         .type_name = char_slice_from_cstr(NULL),
@@ -423,58 +372,6 @@ static void ruby_runtime_stack_callback(
     }
   }
 }
-
-// Support code for Ruby versions without MJIT header (copied from private_vm_api_access.c)
-#ifndef RUBY_MJIT_HEADER
-
-#define MJIT_STATIC // No-op on older Rubies
-
-#ifndef FALSE
-# define FALSE false
-#elif FALSE
-# error FALSE must be false
-#endif
-
-#ifndef TRUE
-# define TRUE true
-#elif ! TRUE
-# error TRUE must be true
-#endif
-
-static rb_callable_method_entry_t *
-check_method_entry(VALUE obj, int can_be_svar)
-{
-    if (obj == Qfalse) return NULL;
-
-    switch (imemo_type(obj)) {
-      case imemo_ment:
-        return (rb_callable_method_entry_t *)obj;
-      case imemo_cref:
-        return NULL;
-      case imemo_svar:
-        if (can_be_svar) {
-            return check_method_entry(((struct vm_svar *)obj)->cref_or_me, FALSE);
-        }
-        // fallthrough
-      default:
-        return NULL;
-    }
-}
-
-MJIT_STATIC const rb_callable_method_entry_t *
-rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
-{
-    const VALUE *ep = cfp->ep;
-    rb_callable_method_entry_t *me;
-
-    while (!VM_ENV_LOCAL_P(ep)) {
-        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) return me;
-        ep = VM_ENV_PREV_EP(ep);
-    }
-
-    return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
-}
-#endif // RUBY_MJIT_HEADER
 
 static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self) {
   enum ddog_crasht_CallbackResult result = ddog_crasht_register_runtime_frame_callback(
@@ -495,10 +392,20 @@ static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self) 
   return ddog_crasht_is_runtime_callback_registered() ? Qtrue : Qfalse;
 }
 
-void DDTRACE_EXPORT Init_datadog_runtime_stacks(void) {
-  VALUE datadog_module = rb_define_module("Datadog");
+void runtime_stacks_init(VALUE datadog_module) {
   VALUE runtime_stacks_class = rb_define_class_under(datadog_module, "RuntimeStacks", rb_cObject);
 
-  rb_define_singleton_method(runtime_stacks_class, "_native_register_runtime_stack_callback", _native_register_runtime_stack_callback, 0);
-  rb_define_singleton_method(runtime_stacks_class, "_native_is_runtime_callback_registered", _native_is_runtime_callback_registered, 0);
+  rb_define_singleton_method(
+    runtime_stacks_class,
+    "_native_register_runtime_stack_callback",
+    _native_register_runtime_stack_callback,
+    0
+  );
+  rb_define_singleton_method(
+    runtime_stacks_class,
+    "_native_is_runtime_callback_registered",
+    _native_is_runtime_callback_registered,
+    0
+  );
 }
+
