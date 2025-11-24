@@ -27,7 +27,7 @@ void ruby_helpers_init(void) {
   new_id = rb_intern("new");
 }
 // Raises a NativeError exception with seperate telemetry-safe and detailed messages.
-void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, VALUE static_message) {
+void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
   #ifdef DD_DEBUG
     if (native_exception_class != eNativeRuntimeError &&
         native_exception_class != eNativeArgumentError &&
@@ -41,7 +41,7 @@ void private_raise_native_error(VALUE native_exception_class, const char *detail
     new_id,
     2,
     rb_str_new_cstr(detailed_message),
-    static_message
+    rb_str_new_cstr(static_message)
   );
   rb_exc_raise(exception);
 }
@@ -54,7 +54,7 @@ void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
   char formatted_msg[MAX_RAISE_MESSAGE_SIZE];
   vsnprintf(formatted_msg, MAX_RAISE_MESSAGE_SIZE, fmt, args);
   va_end(args);
-  private_raise_native_error(native_exception_class, formatted_msg, rb_str_new_cstr(fmt));
+  private_raise_native_error(native_exception_class, formatted_msg, fmt);
 }
 
 typedef struct {
@@ -69,7 +69,7 @@ static void *trigger_raise(void *raise_arguments) {
   private_raise_native_error(
     args->exception_class,
     args->exception_message,
-    rb_str_new_cstr(args->telemetry_message)
+    args->telemetry_message
   );
 }
 
@@ -95,7 +95,7 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, const char *format
     // Render the full exception message.
     char exception_message[MAX_RAISE_MESSAGE_SIZE];
     snprintf(exception_message, MAX_RAISE_MESSAGE_SIZE, telemetry_message, args.exception_message);
-    private_raise_native_error(eNativeRuntimeError, exception_message, rb_str_new_cstr(telemetry_message));
+    private_raise_native_error(eNativeRuntimeError, exception_message, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
@@ -146,7 +146,7 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
     private_raise_native_error(
       eNativeRuntimeError,
       exception_message,
-      rb_str_new_cstr(telemetry_message)
+      telemetry_message
     );
   }
 
