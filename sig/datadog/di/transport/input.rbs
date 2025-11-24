@@ -30,12 +30,16 @@ module Datadog
           attr_reader current_api_id: untyped
 
           attr_reader logger: untyped
+          MAX_CHUNK_SIZE: untyped
+          DEFAULT_CHUNK_SIZE: untyped
 
           def initialize: (untyped apis, untyped default_api, logger: untyped) -> void
 
           def current_api: () -> untyped
 
           def send_input: (untyped payload, untyped tags) -> untyped
+
+          def send_input_chunk: (untyped chunked_payload, untyped serialized_tags) -> untyped
         end
       end
     end
