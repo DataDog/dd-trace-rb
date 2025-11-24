@@ -141,8 +141,8 @@ end
 # On Ruby 3.5, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
 $defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "3.5"
 
-# On Ruby 2.5 and 3.3, this symbol was not visible. It is on 2.6 to 3.2, as well as 3.4+
-$defs << "-DNO_RB_OBJ_INFO" if RUBY_VERSION.start_with?("2.5", "3.3")
+# This symbol is only visible on certain Ruby versions: 2.6 to 3.2 and 3.4, but not 4.0
+$defs << "-DNO_RB_OBJ_INFO" if RUBY_VERSION.start_with?("2.5", "3.3", "4.0")
 
 # On older Rubies, rb_postponed_job_preregister/rb_postponed_job_trigger did not exist
 $defs << "-DNO_POSTPONED_TRIGGER" if RUBY_VERSION < "3.3"
