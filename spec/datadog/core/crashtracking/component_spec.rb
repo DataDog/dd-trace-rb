@@ -1,11 +1,20 @@
 require 'spec_helper'
 require 'datadog/core/crashtracking/component'
+require 'datadog/runtime_stacks'
 
 require 'webrick'
 require 'fiddle'
 
 RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers.supported? do
   let(:logger) { Logger.new($stdout) }
+
+  shared_context 'runtime stack emission enabled' do
+    around do |example|
+      ClimateControl.modify('DD_CRASHTRACKER_EMIT_RUNTIME_STACKS' => 'true') do
+        example.run
+      end
+    end
+  end
 
   describe '.build' do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
@@ -100,6 +109,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
   context 'instance methods' do
     describe '#start' do
+      include_context 'runtime stack emission enabled'
       context 'when _native_start_or_update_on_fork raises an exception' do
         it 'logs the exception' do
           crashtracker = build_crashtracker(logger: logger)
@@ -343,6 +353,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
 
       describe 'Ruby and C method runtime stack capture' do
+        include_context 'runtime stack emission enabled'
+
         let(:runtime_stack) { crash_report_experimental[:runtime_stack] }
 
         it 'captures both Ruby and C method frames in mixed stacks' do
@@ -392,6 +404,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             )
           )
 
+          # Sanity check some frames
           expect(frames).to include(
             hash_including(
               function: 'ruby_method_with_c_calls'
@@ -410,6 +423,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
     end
 
     describe '#runtime_callback_registered?' do
+      include_context 'runtime stack emission enabled'
+
       it 'returns true when callback is registered' do
         crashtracker = build_crashtracker(logger: logger)
 

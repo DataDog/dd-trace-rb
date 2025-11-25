@@ -57,7 +57,9 @@ module Datadog
           Utils::AtForkMonkeyPatch.apply!
 
           start_or_update_on_fork(action: :start, tags: tags)
-          register_runtime_stack_callback
+          if DATADOG_ENV['DD_CRASHTRACKER_EMIT_RUNTIME_STACKS'] == 'true'
+            register_runtime_stack_callback
+          end
 
           ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.at_fork(:child) do
@@ -106,7 +108,6 @@ module Datadog
             return
           end
 
-          # Always use frame-based callback since that's the only type we support
           success = Datadog::RuntimeStacks._native_register_runtime_stack_callback
 
           unless success
