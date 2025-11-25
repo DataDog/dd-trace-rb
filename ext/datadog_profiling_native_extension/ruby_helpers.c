@@ -12,12 +12,13 @@ static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 static ID new_id = 0;
-// Global references to Datadog::Profiling exception classes defined in Ruby.
+
+// Exception classes defined in Ruby, in the `Datadog::Profiling` namespace.
 VALUE eNativeRuntimeError = Qnil;
 VALUE eNativeArgumentError = Qnil;
 VALUE eNativeTypeError = Qnil;
 
-void ruby_helpers_init(void) {
+void ruby_helpers_init(VALUE profiling_module) {
   rb_global_variable(&module_object_space);
 
   module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
@@ -25,6 +26,13 @@ void ruby_helpers_init(void) {
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");
   new_id = rb_intern("new");
+
+  eNativeRuntimeError = rb_const_get(profiling_module, rb_intern("NativeRuntimeError"));
+  rb_global_variable(&eNativeRuntimeError);
+  eNativeArgumentError = rb_const_get(profiling_module, rb_intern("NativeArgumentError"));
+  rb_global_variable(&eNativeArgumentError);
+  eNativeTypeError = rb_const_get(profiling_module, rb_intern("NativeTypeError"));
+  rb_global_variable(&eNativeTypeError);
 }
 
 #define MAX_RAISE_MESSAGE_SIZE 256
