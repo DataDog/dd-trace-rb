@@ -9,7 +9,7 @@
 #include "helpers.h"
 #include "private_vm_api_access.h"
 #include "ruby_helpers.h"
-#include "runtime_stacks.h"
+#include "crashtracking_runtime_stacks.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
@@ -66,7 +66,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   encoded_profile_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
-  runtime_stacks_init(datadog_module);
+  crashtracking_runtime_stacks_init(datadog_module);
   unsafe_api_calls_check_init();
 
   // Hosts methods used for testing the native code using RSpec

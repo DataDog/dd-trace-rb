@@ -230,6 +230,8 @@ namespace :spec do
     t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end.tap do |t|
+    # Core with libdatadog is dependent on profiling because crashtracking runtime stacks logic
+    # lives in the profiling extension (they share same logic accessing Ruby internals)
     Rake::Task[t.name].enhance(
       [
         "compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}",

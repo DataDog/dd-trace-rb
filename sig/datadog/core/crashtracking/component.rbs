@@ -1,6 +1,8 @@
 module Datadog
   module Core
     module Crashtracking
+      RUNTIME_STACKS_FAILURE: ::String?
+
       class Component
         ONLY_ONCE: Core::Utils::OnlyOnce
 

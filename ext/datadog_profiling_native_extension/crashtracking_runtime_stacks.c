@@ -1,3 +1,9 @@
+// NOTE: This file is a part of the profiling native extension even though the
+// runtime stacks feature is consumed by the crashtracker. The profiling
+// extension already carries all the Ruby VM private header access and build
+// plumbing required to safely poke at internal structures. Sharing that setup
+// avoids duplicating another native extension with the same (fragile) access
+// patterns, and keeps the overall install/build surface area smaller.
 #include "extconf.h"
 
 #ifdef RUBY_MJIT_HEADER
@@ -32,7 +38,7 @@
   #endif
 #endif
 
-#include "runtime_stacks.h"
+#include "crashtracking_runtime_stacks.h"
 #include <datadog/crashtracker.h>
 #include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
@@ -41,13 +47,9 @@
 #include <errno.h>
 #include <string.h>
 
-// This was renamed in Ruby 3.2
-#if !defined(ccan_list_for_each) && defined(list_for_each)
-  #define ccan_list_for_each list_for_each
-#endif
-
 static VALUE _native_register_runtime_stack_callback(VALUE _self);
 static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self);
+static const rb_data_type_t *crashtracker_thread_data_type = NULL;
 
 static void ruby_runtime_stack_callback(
   void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*)
@@ -202,13 +204,9 @@ static void ruby_runtime_stack_callback(
   VALUE current_thread = rb_thread_current();
   if (current_thread == Qnil) return;
 
-  static const rb_data_type_t *thread_data_type = NULL;
-  if (thread_data_type == NULL) {
-    thread_data_type = RTYPEDDATA_TYPE(current_thread);
-    if (!thread_data_type) return;
-  }
+  if (crashtracker_thread_data_type == NULL) return;
 
-  rb_thread_t *th = (rb_thread_t *) rb_check_typeddata(current_thread, thread_data_type);
+  rb_thread_t *th = (rb_thread_t *) rb_check_typeddata(current_thread, crashtracker_thread_data_type);
   if (!th) return;
 
   const rb_execution_context_t *ec = th->ec;
@@ -374,6 +372,16 @@ static void ruby_runtime_stack_callback(
 }
 
 static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self) {
+  if (crashtracker_thread_data_type == NULL) {
+    VALUE current_thread = rb_thread_current();
+    if (current_thread == Qnil) return Qfalse;
+
+    const rb_data_type_t *thread_data_type = RTYPEDDATA_TYPE(current_thread);
+    if (!thread_data_type) return Qfalse;
+
+    crashtracker_thread_data_type = thread_data_type;
+  }
+
   enum ddog_crasht_CallbackResult result = ddog_crasht_register_runtime_frame_callback(
     ruby_runtime_stack_callback
   );
@@ -392,8 +400,10 @@ static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self) 
   return ddog_crasht_is_runtime_callback_registered() ? Qtrue : Qfalse;
 }
 
-void runtime_stacks_init(VALUE datadog_module) {
-  VALUE runtime_stacks_class = rb_define_class_under(datadog_module, "RuntimeStacks", rb_cObject);
+void crashtracking_runtime_stacks_init(VALUE datadog_module) {
+  VALUE core_module = rb_define_module_under(datadog_module, "Core");
+  VALUE crashtracking_module = rb_define_module_under(core_module, "Crashtracking");
+  VALUE runtime_stacks_class = rb_define_class_under(crashtracking_module, "RuntimeStacks", rb_cObject);
 
   rb_define_singleton_method(
     runtime_stacks_class,
