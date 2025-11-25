@@ -868,6 +868,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       before do
         skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+        skip "Heap profiling is disabled on Ruby 4 until https://bugs.ruby-lang.org/issues/21710 is fixed" if RUBY_VERSION.start_with?("4.")
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
