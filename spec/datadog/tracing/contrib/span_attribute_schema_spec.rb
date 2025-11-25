@@ -4,10 +4,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
   describe '#fetch_service_name' do
     context 'when integration service is set' do
       it 'returns the integration specific service name' do
-        with_modified_env DD_INTEGRATION_SERVICE: 'integration-service-name' do
+        with_modified_env TEST_DD_INTEGRATION_SERVICE: 'integration-service-name' do
           expect(
             described_class
-              .fetch_service_name('DD_INTEGRATION_SERVICE',
+              .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
                 'default-integration-service-name')
           ).to eq('integration-service-name')
         end
@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         with_modified_env DD_SERVICE: 'service' do
           expect(
             described_class
-              .fetch_service_name('DD_INTEGRATION_SERVICE',
+              .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
                 'default-integration-service-name')
           ).to eq('default-integration-service-name')
         end
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       it 'returns default integration service name' do
         expect(
           described_class
-            .fetch_service_name('DD_INTEGRATION_SERVICE',
+            .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
               'default-integration-service-name')
         ).to eq('default-integration-service-name')
       end
@@ -42,7 +42,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           DD_SERVICE: 'service' do
             expect(
               described_class
-                .fetch_service_name('DD_INTEGRATION_SERVICE',
+                .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
                   'default-integration-service-name')
             ).to eq('service')
           end
