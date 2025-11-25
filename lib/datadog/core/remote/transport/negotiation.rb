@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../core/transport/request'
+require_relative 'http/negotiation'
 
 # TODO: Resolve conceptual conundrum
 #
@@ -55,7 +56,7 @@ module Datadog
               @apis = apis
               @logger = logger
 
-              @client = HTTP::Client.new(current_api, logger: logger)
+              @client = Remote::Transport::HTTP::Negotiation::Client.new(current_api, logger: logger)
             end
 
             def send_info

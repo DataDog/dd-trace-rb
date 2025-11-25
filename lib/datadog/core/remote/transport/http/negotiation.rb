@@ -3,7 +3,7 @@
 require 'json'
 
 require_relative '../negotiation'
-require_relative 'client'
+require_relative '../../../transport/http/client'
 require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
 
@@ -31,8 +31,8 @@ module Datadog
               end
             end
 
-            # Extensions for HTTP client
-            module Client
+            # Remote negotiation HTTP client
+            class Client < Core::Transport::HTTP::Client
               def send_info_payload(request)
                 send_request(request) do |api, env|
                   api.send_info(env)
@@ -92,9 +92,6 @@ module Datadog
                 end
               end
             end
-
-            # Add negotiation behavior to transport components
-            HTTP::Client.include(Negotiation::Client)
           end
         end
       end

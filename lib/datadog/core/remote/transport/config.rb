@@ -2,6 +2,7 @@
 
 require_relative '../../../core/transport/request'
 require_relative '../../../core/transport/parcel'
+require_relative 'http/config'
 
 module Datadog
   module Core
@@ -38,7 +39,7 @@ module Datadog
               @apis = apis
               @logger = logger
 
-              @client = HTTP::Client.new(current_api, logger: logger)
+              @client = Remote::Transport::HTTP::Config::Client.new(current_api, logger: logger)
             end
 
             ##### there is only one transport! it's negotiation!
