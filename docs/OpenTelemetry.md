@@ -68,11 +68,19 @@
     require 'opentelemetry/exporter/otlp_metrics'
     require 'datadog/opentelemetry'
 
+    # IMPORTANT: Call Datadog.configure before OpenTelemetry::SDK.configure
+    # and keep both in the same file to ensure proper initialization order.
+    Datadog.configure do |c|
+      # Configure Datadog settings here
+    end
+
     # Initialize OpenTelemetry SDK (required for metrics)
     OpenTelemetry::SDK.configure
     ```
 
 1. Use the [OpenTelemetry Metrics API](https://opentelemetry.io/docs/languages/ruby/instrumentation/#metrics) to create and record metrics.
+
+**Note:** Call `Datadog.configure` before `OpenTelemetry::SDK.configure` and keep both in the same file. Configuration changes require calling `OpenTelemetry::SDK.configure` again to take effect.
 
 **Configuration Options:**
 
