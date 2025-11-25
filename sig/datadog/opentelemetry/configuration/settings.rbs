@@ -6,6 +6,10 @@ module Datadog
 
         def self.add_settings!: (untyped base) -> void
 
+        def self.normalize_temporality_preference: (::String env_var_name) -> untyped
+
+        def self.normalize_protocol: (::String env_var_name) -> untyped
+
         def self.headers_parser: (::String env_var_name) -> untyped
 
         # DSL methods dynamically added via class_eval

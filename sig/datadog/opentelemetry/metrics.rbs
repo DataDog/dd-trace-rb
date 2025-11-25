@@ -1,23 +1,21 @@
 module Datadog
   module OpenTelemetry
     module Metrics
-      @logger: Core::Logger
-      @settings: Core::Configuration::Settings
-      @agent_host: ::String
+      EXPORTER_NONE: ::String
 
-      def self?.initialize!: (Core::Configuration::Components components) -> bool
+      def self.initialize!: (Core::Configuration::Components components) -> bool
 
       private
 
-      def self?.configure_metrics_sdk: () -> void
+      def self.configure_metrics_sdk: () -> void
 
-      def self?.create_resource: () -> untyped
+      def self.create_resource: () -> untyped
 
-      def self?.configure_metric_reader: (untyped provider) -> void
+      def self.configure_metric_reader: (untyped provider) -> void
 
-      def self?.resolve_metrics_endpoint: () -> ::String
+      def self.resolve_metrics_endpoint: () -> ::String
 
-      def self?.configure_otlp_exporter: (untyped provider) -> void
+      def self.configure_otlp_exporter: (untyped provider) -> void
     end
   end
 end

@@ -72,7 +72,7 @@ module Datadog
 
         return metrics_config.endpoint.to_s if metrics_config.endpoint
         return exporter_config.endpoint.to_s if exporter_config.endpoint
-        "#{@agent_ssl ? 'https' : 'http'}://#{@agent_host}:4318/v1/metrics"
+        "#{@agent_ssl ? "https" : "http"}://#{@agent_host}:4318/v1/metrics"
       end
 
       def self.configure_otlp_exporter(provider)
