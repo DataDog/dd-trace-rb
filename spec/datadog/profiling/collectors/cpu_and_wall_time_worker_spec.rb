@@ -683,8 +683,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "records allocated objects" do
-        # TODO: Ruby 3.5 - Remove this skip after investigation.
-        pending('Allocation profiling call not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('preview')
+        # TODO: Remove this when Ruby 3.5.0-preview1 is removed from CI
+        pending('Allocation profiling call not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('3.5.0preview1')
 
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 

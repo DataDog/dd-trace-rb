@@ -190,7 +190,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     subject(:safe_object_info) { described_class::Testing._native_safe_object_info(object_to_inspect) }
 
     context "on a Ruby with rb_obj_info" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION.start_with?("2.5", "3.3") }
+      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION.start_with?("2.5", "3.3", "4.0") }
 
       it "returns a string with information about the object" do
         expect(safe_object_info).to include("T_STRING")
@@ -198,7 +198,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "on a Ruby without rb_obj_info" do
-      before { skip "Behavior does not apply to current Ruby version" unless RUBY_VERSION.start_with?("2.5", "3.3") }
+      before { skip "Behavior does not apply to current Ruby version" unless RUBY_VERSION.start_with?("2.5", "3.3", "4.0") }
 
       it "returns a placeholder string and does not otherwise fail" do
         expect(safe_object_info).to eq "(No rb_obj_info for current Ruby)"
