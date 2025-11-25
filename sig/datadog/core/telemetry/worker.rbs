@@ -26,6 +26,7 @@ module Datadog
 	attr_reader initial_event_once: Datadog::Core::Utils::OnlyOnceSuccessful
 
         def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?shutdown_timeout: Float | Integer, ?buffer_size: Integer, dependency_collection: bool, logger: ::Logger) -> void
+        def initialize_state: -> void
 
         def start: (Telemetry::Event::Base initial_event) -> void
 
