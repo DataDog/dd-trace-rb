@@ -51,7 +51,7 @@ module Datadog
           initialize_state
         end
 
-        def initialize_state
+        private def initialize_state
           self.buffer = buffer_klass.new(@buffer_size)
 
           @initial_event_once = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
