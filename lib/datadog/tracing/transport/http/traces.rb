@@ -3,7 +3,6 @@
 require 'json'
 
 require_relative '../traces'
-require_relative 'client'
 require_relative '../../../core/transport/http/response'
 require_relative '../../../core/transport/http/api/endpoint'
 require_relative '../../../core/transport/http/api/spec'
@@ -24,15 +23,6 @@ module Datadog
               super(http_response)
               @service_rates = options.fetch(:service_rates, nil)
               @trace_count = options.fetch(:trace_count, 0)
-            end
-          end
-
-          # Extensions for HTTP client
-          module Client
-            def send_traces_payload(request)
-              send_request(request) do |api, env|
-                api.send_traces(env)
-              end
             end
           end
 
@@ -111,9 +101,6 @@ module Datadog
               end
             end
           end
-
-          # Add traces behavior to transport components
-          HTTP::Client.include(Traces::Client)
         end
       end
     end

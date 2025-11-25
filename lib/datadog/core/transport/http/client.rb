@@ -18,9 +18,15 @@ module Datadog
             @logger = logger
           end
 
+          def send_request(action, request, &block)
+            send_request_impl(request) do |api, env|
+              api.public_send("send_#{action}", env)
+            end
+          end
+
           private
 
-          def send_request(request, &block)
+          def send_request_impl(request, &block)
             # Build request into env
             env = build_env(request)
 
