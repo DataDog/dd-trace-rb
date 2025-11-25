@@ -77,3 +77,5 @@ group :dev do
   gem 'pimpmychangelog', '~> 0.1.3', require: false
   gem 'ruby-lsp', require: false
 end
+
+gem 'datadog-ruby_core_source', github: 'DataDog/datadog-ruby_core_source', ref: '7b95302a593c42b16d4f1e97c993de001a18a3b5'
