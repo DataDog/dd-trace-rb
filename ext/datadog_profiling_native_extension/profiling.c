@@ -99,7 +99,7 @@ static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
 typedef struct {
   VALUE exception_class;
   char *test_message;
-  int test_message_arg;
+  char *test_message_arg;
 } trigger_grab_gvl_and_raise_arguments;
 
 static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
@@ -109,7 +109,7 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
 
   args.exception_class = exception_class;
   args.test_message = StringValueCStr(test_message);
-  args.test_message_arg = test_message_arg != Qnil ? NUM2INT(test_message_arg) : -1;
+  args.test_message_arg = test_message_arg != Qnil ? StringValueCStr(test_message_arg) : NULL;
 
   if (RTEST(release_gvl)) {
     rb_thread_call_without_gvl(trigger_grab_gvl_and_raise, &args, NULL, NULL);
@@ -123,7 +123,7 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
 static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   trigger_grab_gvl_and_raise_arguments *args = (trigger_grab_gvl_and_raise_arguments *) trigger_args;
 
-  if (args->test_message_arg >= 0) {
+  if (args->test_message_arg != NULL) {
     private_grab_gvl_and_raise(args->exception_class, args->test_message, args->test_message_arg);
   } else {
     private_grab_gvl_and_raise(args->exception_class, args->test_message);

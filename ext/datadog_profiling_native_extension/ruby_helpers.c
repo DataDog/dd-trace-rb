@@ -110,11 +110,17 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, const char *format
       MAX_RAISE_MESSAGE_SIZE,
       "grab_gvl_and_raise called by thread holding the global VM lock: %s (%s)",
       format_string,
-      rb_class2name(native_exception_class)
+      rb_class2name(native_exception_class) ?: "(Unknown)"
     );
     // Render the full exception message.
     char exception_message[MAX_RAISE_MESSAGE_SIZE];
-    snprintf(exception_message, MAX_RAISE_MESSAGE_SIZE, telemetry_message, args.exception_message);
+    snprintf(
+      exception_message,
+      MAX_RAISE_MESSAGE_SIZE,
+      "grab_gvl_and_raise called by thread holding the global VM lock: %s (%s)",
+      args.exception_message,
+      rb_class2name(native_exception_class) ?: "(Unknown)"
+    );
     private_raise_native_error(eNativeRuntimeError, exception_message, telemetry_message);
   }
 

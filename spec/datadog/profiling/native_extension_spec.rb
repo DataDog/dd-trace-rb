@@ -17,8 +17,8 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     it "on printf-style, only report the fixed string for telemetry" do
-      expect { described_class::Testing._native_grab_gvl_and_raise(Datadog::Profiling::NativeRuntimeError, "divided zero by %d", 42, true) }
-        .to raise_native_error(Datadog::Profiling::NativeRuntimeError, "divided zero by 42", "divided zero by %d")
+      expect { described_class::Testing._native_grab_gvl_and_raise(Datadog::Profiling::NativeRuntimeError, "message %s", "oops", true) }
+        .to raise_native_error(Datadog::Profiling::NativeRuntimeError, "message oops", "message %s")
     end
 
     it "limits the exception message to 255 characters" do
@@ -31,11 +31,11 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     context "when called without releasing the gvl" do
       it "raises a NativeError" do
         expect do
-          described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "this is a test", nil, false)
+          described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "message %s", 'oops', false)
         end.to raise_native_error(
           Datadog::Profiling::NativeRuntimeError,
-          include('called by thread holding the global VM lock: this is a test (ZeroDivisionError)'),
-          include('called by thread holding the global VM lock: %s (ZeroDivisionError)'),
+          include('called by thread holding the global VM lock: message oops (ZeroDivisionError)'),
+          include('called by thread holding the global VM lock: message %s (ZeroDivisionError)'),
         )
       end
     end
