@@ -26,16 +26,28 @@ void ruby_helpers_init(void) {
   to_s_id = rb_intern("to_s");
   new_id = rb_intern("new");
 }
+
+#define MAX_RAISE_MESSAGE_SIZE 256
+
 // Raises a NativeError exception with seperate telemetry-safe and detailed messages.
 void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
-  #ifdef DD_DEBUG
-    if (native_exception_class != eNativeRuntimeError &&
-        native_exception_class != eNativeArgumentError &&
-        native_exception_class != eNativeTypeError) {
-        rb_raise(rb_eRuntimeError, "[ddtrace] BUG: private_raise_native_error called with an exception that might not support two error messages. "
-            "Must be one of eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError, was: %s", rb_class2name(native_exception_class));
-    }
-  #endif
+  if (native_exception_class != eNativeRuntimeError &&
+      native_exception_class != eNativeArgumentError &&
+      native_exception_class != eNativeTypeError) {
+
+      const char* fmt = "private_raise_native_error called with an exception that might not support two error messages. " \
+        "Expected eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError, was: %s";
+
+      VALUE exception = rb_funcall(
+        eNativeArgumentError,
+        new_id,
+        2,
+        rb_sprintf(fmt, rb_class2name(native_exception_class) ?: "(Unknown)"),
+        rb_str_new_cstr(fmt)
+      );
+      rb_exc_raise(exception);
+  }
+
   VALUE exception = rb_funcall(
     native_exception_class,
     new_id,
@@ -46,7 +58,6 @@ void private_raise_native_error(VALUE native_exception_class, const char *detail
   rb_exc_raise(exception);
 }
 
-#define MAX_RAISE_MESSAGE_SIZE 256
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
   va_list args;

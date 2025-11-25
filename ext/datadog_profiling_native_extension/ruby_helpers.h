@@ -50,6 +50,12 @@ extern VALUE eNativeTypeError;
 // *Ruby exceptions not raised through this function will not be reported via telemetry.*
 // Only the following error classes are supported, as they require an extra field for
 // the telemetry-safe string: NativeRuntimeError, NativeArgumentError, NativeTypeError.
+
+// NOTE: Only used externally for testing, by `_native_raise_native_error_with_invalid_class`
+NORETURN(
+  void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message)
+);
+
 #define raise_error(native_exception_class, fmt, ...) \
   private_raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
 NORETURN(

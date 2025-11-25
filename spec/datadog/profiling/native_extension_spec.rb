@@ -83,6 +83,25 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
   end
 
+  describe "raise_native_error_with_invalid_class" do
+    it "raises a safe error when trying to raise a native error with an unsupported error class" do
+      expect { described_class::Testing._native_raise_native_error_with_invalid_class(ZeroDivisionError, "original", "telemetry") }
+        .to raise_native_error(
+          Datadog::Profiling::NativeArgumentError,
+          include('exception that might not support two error messages') & include("ZeroDivisionError"),
+          satisfy do |telemetry_message|
+            telemetry_message.include?('exception that might not support two error messages') &&
+            !telemetry_message.include?("ZeroDivisionError")
+          end,
+        )
+    end
+
+    it 'raises original error with a supported error class' do
+      expect { described_class::Testing._native_raise_native_error_with_invalid_class(Datadog::Profiling::NativeRuntimeError, "original", "telemetry") }
+        .to raise_native_error(Datadog::Profiling::NativeRuntimeError, "original", "telemetry")
+    end
+  end
+
   describe "grab_gvl_and_raise_syserr" do
     it "raises an exception with the passed in message and errno" do
       expect do
