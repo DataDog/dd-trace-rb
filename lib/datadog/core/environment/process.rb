@@ -28,7 +28,7 @@ module Datadog
 
             tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
           rescue => e
-            Datadog.logger.debug("failed to get process_tags: #{e.message}")
+            Datadog.logger.debug("failed to get process_tags: #{e.class}: #{e}")
           end
           @serialized = tags.join(',').freeze
         end
