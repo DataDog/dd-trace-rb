@@ -11,6 +11,28 @@ module Datadog
           add_settings!(base)
         end
 
+        def self.normalize_temporality_preference(env_var_name)
+          proc do |value|
+            if value && value.to_s.downcase != 'delta' && value.to_s.downcase != 'cumulative'
+              Datadog.logger.warn("#{env_var_name}=#{value} is not supported. Using delta instead.")
+              'delta'
+            else
+              value
+            end
+          end
+        end
+
+        def self.normalize_protocol(env_var_name)
+          proc do |value|
+            if value && value.to_s.downcase != 'http/protobuf'
+              Datadog.logger.warn("#{env_var_name}=#{value} is not supported. Using http/protobuf instead.")
+              'http/protobuf'
+            else
+              value
+            end
+          end
+        end
+
         def self.headers_parser(env_var_name)
           proc do |value|
             return {} if value.nil? || value.empty?
@@ -25,8 +47,8 @@ module Datadog
                 return {}
               end
 
-              key = key.strip
-              header_value = header_value.strip
+              key.strip!
+              header_value.strip!
               if key.empty? || header_value.empty?
                 Datadog.logger.warn("#{env_var_name} has empty key or value in: #{key_value.inspect}")
                 return {}
@@ -44,6 +66,7 @@ module Datadog
               settings :exporter do
                 option :protocol do |o|
                   o.type :string
+                  o.setter(&Settings.normalize_protocol('OTEL_EXPORTER_OTLP_PROTOCOL'))
                   o.env 'OTEL_EXPORTER_OTLP_PROTOCOL'
                   o.default 'http/protobuf'
                 end
@@ -100,6 +123,7 @@ module Datadog
                   o.type :string
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'
                   o.default 'delta'
+                  o.setter(&Settings.normalize_temporality_preference('OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'))
                 end
 
                 option :endpoint do |o|
@@ -125,6 +149,7 @@ module Datadog
                   o.type :string, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'
                   o.default nil
+                  o.setter(&Settings.normalize_protocol('OTEL_EXPORTER_OTLP_METRICS_PROTOCOL'))
                 end
               end
             end

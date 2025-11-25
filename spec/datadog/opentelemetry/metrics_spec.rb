@@ -46,7 +46,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
     uri = URI("http://#{agent_host}:#{default_otlp_http_port}/test/session/clear")
     Net::HTTP.post_form(uri, {})
   rescue => e
-    raise "Error clearing testagent metrics: #{e.message}"
+    raise "Error clearing testagent metrics: #{e.class}: #{e}"
   end
 
   def get_testagent_metrics
@@ -303,6 +303,28 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
       flush_and_wait(provider)
       metric = find_metric_in_json(get_testagent_metrics, 'test')
       expect(metric['sum']['data_points'].first['as_int'].to_i).to eq(1)
+    end
+
+    it 'defaults to HTTP when protocol is set to grpc' do
+      setup_metrics(
+        'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL' => 'grpc'
+      )
+      settings = Datadog.configuration.opentelemetry.metrics
+      expect(settings.protocol).to eq('http/protobuf')
+      provider = ::OpenTelemetry.meter_provider
+      reader = provider.metric_readers.first
+      exporter = reader.instance_variable_get(:@exporter)
+
+      # Should use HTTP port (4318) and path (/v1/metrics) even though grpc was specified
+      expect(exporter.instance_variable_get(:@uri).to_s).to eq("http://#{agent_host}:4318/v1/metrics")
+    end
+
+    it 'defaults to delta when temporality preference is invalid' do
+      setup_metrics(
+        'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE' => 'invalid'
+      )
+      settings = Datadog.configuration.opentelemetry.metrics
+      expect(settings.temporality_preference).to eq('delta')
     end
 
     it 'does not initialize when DD_METRICS_OTEL_ENABLED is false' do

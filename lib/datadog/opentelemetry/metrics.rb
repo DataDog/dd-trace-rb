@@ -5,6 +5,8 @@ require_relative '../core/configuration/ext'
 module Datadog
   module OpenTelemetry
     module Metrics
+      EXPORTER_NONE = 'none'
+
       def self.initialize!(components)
         @logger = components.logger
         @settings = components.settings
@@ -57,11 +59,11 @@ module Datadog
 
       def self.configure_metric_reader(provider)
         exporter_name = @settings.opentelemetry.metrics.exporter
-        return if exporter_name == 'none'
+        return if exporter_name == Datadog::OpenTelemetry::Metrics::EXPORTER_NONE
 
         configure_otlp_exporter(provider)
       rescue => e
-        @logger.warn("Failed to configure OTLP metrics exporter: #{e.message}")
+        @logger.warn("Failed to configure OTLP metrics exporter:  #{e.class}: #{e}")
       end
 
       def self.resolve_metrics_endpoint
@@ -69,21 +71,8 @@ module Datadog
         exporter_config = @settings.opentelemetry.exporter
 
         return metrics_config.endpoint.to_s if metrics_config.endpoint
-        scheme = @agent_ssl ? 'https' : 'http'
-
-        if metrics_config.protocol
-          protocol = metrics_config.protocol
-          port = (protocol == 'http/protobuf') ? 4318 : 4317
-          path = (protocol == 'http/protobuf') ? '/v1/metrics' : ''
-          return "#{scheme}://#{@agent_host}:#{port}#{path}"
-        end
-
         return exporter_config.endpoint.to_s if exporter_config.endpoint
-
-        protocol = exporter_config.protocol || 'http/protobuf'
-        port = (protocol == 'http/protobuf') ? 4318 : 4317
-        path = (protocol == 'http/protobuf') ? '/v1/metrics' : ''
-        "#{scheme}://#{@agent_host}:#{port}#{path}"
+        "#{@agent_ssl ? 'https' : 'http'}://#{@agent_host}:4318/v1/metrics"
       end
 
       def self.configure_otlp_exporter(provider)
@@ -110,7 +99,7 @@ module Datadog
         )
         provider.add_metric_reader(reader)
       rescue LoadError => e
-        @logger.warn("Could not load OTLP metrics exporter: #{e.message}")
+        @logger.warn("Could not load OTLP metrics exporter:  #{e.class}: #{e}")
       end
 
       private_class_method :configure_metrics_sdk, :create_resource, :configure_metric_reader, :resolve_metrics_endpoint, :configure_otlp_exporter
