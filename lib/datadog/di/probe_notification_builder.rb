@@ -116,6 +116,11 @@ module Datadog
         location = if probe.line?
           {
             file: context.path,
+            # Line numbers are required to be strings by the
+            # system tests schema.
+            # Backend I think accepts them also as integers, but some
+            # other languages send strings and we decided to require
+            # strings for everyone.
             lines: [probe.line_no.to_s],
           }
         elsif probe.method?
