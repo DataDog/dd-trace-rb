@@ -374,14 +374,6 @@
         "default": "true"
       }
     ],
-    "DD_INTEGRATION_SERVICE": [
-      {
-        "version": "A",
-        "type": null,
-        "propertyKeys": [null],
-        "default": null
-      }
-    ],
     "DD_LOGS_INJECTION": [
       {
         "version": "A",
