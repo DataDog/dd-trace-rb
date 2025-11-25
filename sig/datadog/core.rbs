@@ -1,7 +1,6 @@
 module Datadog
   module Core
     LIBDATADOG_API_FAILURE: ::String?
-    RUNTIME_STACKS_FAILURE: ::String?
     extend Core::Deprecations
   end
 end

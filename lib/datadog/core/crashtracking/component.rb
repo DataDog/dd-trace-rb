@@ -9,6 +9,14 @@ require_relative '../utils/at_fork_monkey_patch'
 module Datadog
   module Core
     module Crashtracking
+      RUNTIME_STACKS_FAILURE =
+        begin
+          require_relative 'crashtracking_runtime_stacks'
+          nil
+        rescue LoadError => e
+          e.message
+        end
+
       # Used to report Ruby VM crashes.
       #
       # NOTE: The crashtracker native state is a singleton;
@@ -57,9 +65,7 @@ module Datadog
           Utils::AtForkMonkeyPatch.apply!
 
           start_or_update_on_fork(action: :start, tags: tags)
-          if DATADOG_ENV['DD_CRASHTRACKER_EMIT_RUNTIME_STACKS'] == 'true'
-            register_runtime_stack_callback
-          end
+          register_runtime_stack_callback if DATADOG_ENV['DD_CRASHTRACKING_EMIT_RUNTIME_STACKS'] == 'true'
 
           ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.at_fork(:child) do
@@ -84,39 +90,25 @@ module Datadog
           logger.error("Failed to stop crash tracking: #{e.message}")
         end
 
-        def runtime_callback_registered?
-          return false if Datadog::Core::RUNTIME_STACKS_FAILURE
-          return false unless Datadog.const_defined?(:RuntimeStacks, false)
-
-          Datadog::RuntimeStacks._native_is_runtime_callback_registered
-        rescue => e
-          logger.debug("Runtime stack callback status check not available: #{e.message}")
-          false
-        end
-
         private
 
         def register_runtime_stack_callback
           # Check if runtime_stacks extension loaded successfully
-          if Datadog::Core::RUNTIME_STACKS_FAILURE
-            logger.debug("Skipping runtime stack callback registration: #{Datadog::Core::RUNTIME_STACKS_FAILURE}")
+          if Crashtracking::RUNTIME_STACKS_FAILURE
+            logger.debug("Skipping runtime stack callback registration: #{Crashtracking::RUNTIME_STACKS_FAILURE}")
             return
           end
 
-          unless Datadog.const_defined?(:RuntimeStacks, false)
-            logger.debug('Skipping runtime stack callback registration: Datadog::RuntimeStacks not defined')
+          unless Crashtracking.const_defined?(:RuntimeStacks, false)
+            logger.debug('Skipping runtime stack callback registration: Crashtracking::RuntimeStacks not defined')
             return
           end
 
-          success = Datadog::RuntimeStacks._native_register_runtime_stack_callback
+          success = Crashtracking::RuntimeStacks._native_register_runtime_stack_callback
 
-          unless success
-            error_message = 'Failed to register runtime stack callback: registration returned false'
-            logger.error(error_message)
-            raise StandardError, error_message
-          end
+          raise StandardError, 'Failed to register runtime stack callback: registration returned false' unless success
         rescue => e
-          logger.error("Failed to register runtime stack callback: #{e.message}")
+          logger.warn("Failed to register runtime stack callback: #{e.message}")
           raise
         end
 

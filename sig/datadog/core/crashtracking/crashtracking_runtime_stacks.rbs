@@ -1,0 +1,10 @@
+module Datadog
+  module Core
+    module Crashtracking
+      class RuntimeStacks
+      end
+    end
+  end
+end
+
+
