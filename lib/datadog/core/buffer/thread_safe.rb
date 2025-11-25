@@ -49,10 +49,6 @@ module Datadog
           synchronize { super }
         end
 
-        def clear
-          synchronize { super }
-        end
-
         def synchronize(&block)
           @mutex.synchronize(&block)
         end

@@ -84,12 +84,6 @@ module Datadog
           @closed
         end
 
-        # Discards the contents of the buffer.
-        def clear
-          @items = []
-          nil
-        end
-
         protected
 
         # Segment items into two segments: underflow and overflow.

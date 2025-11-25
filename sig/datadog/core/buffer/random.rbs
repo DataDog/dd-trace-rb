@@ -35,8 +35,6 @@ module Datadog
         def push: (Object) -> Object?
 
         def replace!: (Object) -> Object?
-
-        def clear: -> void
       end
     end
   end
