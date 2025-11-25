@@ -57,5 +57,3 @@ lib/*.so
 
 # Benchmark result files
 /benchmarks/*.json
-
-debug_runtime_callback.rb
