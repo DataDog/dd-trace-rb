@@ -13,6 +13,8 @@ module Datadog
         class Client < Core::Transport::HTTP::Client
           include Datadog::Tracing::Transport::HTTP::Statistics
 
+          private
+
           def on_response(response)
             super
 
