@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../transport/parcel'
+require_relative '../../transport/transport'
 require_relative 'http/telemetry'
 
 module Datadog
@@ -23,16 +24,10 @@ module Datadog
             end
           end
 
-          class Transport
-            attr_reader :client, :apis, :default_api, :current_api_id, :logger
+          class Transport < Core::Transport::Transport
+            self.http_client_class = Core::Telemetry::Transport::HTTP::Telemetry::Client
+
             attr_accessor :api_key
-
-            def initialize(apis, default_api, logger:)
-              @apis = apis
-              @logger = logger
-
-              @client = Core::Telemetry::Transport::HTTP::Telemetry::Client.new(@apis[default_api], logger: logger)
-            end
 
             def send_telemetry(request_type:, payload:)
               json = JSON.dump(payload)

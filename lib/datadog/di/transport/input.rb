@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require_relative '../../core/transport/parcel'
+require_relative '../../core/transport/request'
+require_relative '../../core/transport/transport'
+require_relative '../error'
 require_relative 'http/input'
 
 module Datadog
@@ -21,19 +24,8 @@ module Datadog
           end
         end
 
-        class Transport
-          attr_reader :client, :apis, :default_api, :current_api_id, :logger
-
-          def initialize(apis, default_api, logger:)
-            @apis = apis
-            @logger = logger
-
-            @client = DI::Transport::HTTP::Input::Client.new(current_api, logger: logger)
-          end
-
-          def current_api
-            @apis[HTTP::API::INPUT]
-          end
+        class Transport < Core::Transport::Transport
+          self.http_client_class = DI::Transport::HTTP::Input::Client
 
           def send_input(payload, tags)
             json = JSON.dump(payload)

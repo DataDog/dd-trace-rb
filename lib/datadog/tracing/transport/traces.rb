@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 require_relative '../../core/chunker'
+require_relative '../../core/transport/http/api/downgradable'
 require_relative '../../core/transport/parcel'
 require_relative '../../core/transport/request'
+require_relative '../../core/transport/transport'
+require_relative 'http/client'
 require_relative 'serializable_trace'
 require_relative 'trace_formatter'
 
@@ -123,16 +126,10 @@ module Datadog
         # This class initializes the HTTP client, breaks down large
         # batches of traces into smaller chunks and handles
         # API version downgrade handshake.
-        class Transport
-          attr_reader :client, :apis, :default_api, :current_api_id, :logger
+        class Transport < Core::Transport::Transport
+          include Core::Transport::HTTP::API::Downgradable
 
-          def initialize(apis, default_api, logger: Datadog.logger)
-            @apis = apis
-            @default_api = default_api
-            @logger = logger
-
-            change_api!(default_api)
-          end
+          self.http_client_class = Tracing::Transport::HTTP::Client
 
           def send_traces(traces)
             encoder = current_api.encoder
@@ -176,31 +173,7 @@ module Datadog
             @client.stats
           end
 
-          def current_api
-            apis[@current_api_id]
-          end
-
           private
-
-          def downgrade?(response)
-            return false unless apis.fallbacks.key?(@current_api_id)
-
-            response.not_found? || response.unsupported?
-          end
-
-          def downgrade!
-            downgrade_api_id = apis.fallbacks[@current_api_id]
-            raise NoDowngradeAvailableError, @current_api_id if downgrade_api_id.nil?
-
-            change_api!(downgrade_api_id)
-          end
-
-          def change_api!(api_id)
-            raise UnknownApiVersionError, api_id unless apis.key?(api_id)
-
-            @current_api_id = api_id
-            @client = HTTP::Client.new(current_api, logger: logger)
-          end
 
           # Queries the agent for native span events serialization support.
           # This changes how the serialization of span events performed.
@@ -219,36 +192,6 @@ module Datadog
               @native_events_supported = res.span_events == true
             else
               false
-            end
-          end
-
-          # Raised when configured with an unknown API version
-          class UnknownApiVersionError < StandardError
-            attr_reader :version
-
-            def initialize(version)
-              super
-
-              @version = version
-            end
-
-            def message
-              "No matching transport API for version #{version}!"
-            end
-          end
-
-          # Raised when configured with an unknown API version
-          class NoDowngradeAvailableError < StandardError
-            attr_reader :version
-
-            def initialize(version)
-              super
-
-              @version = version
-            end
-
-            def message
-              "No downgrade from transport API version #{version} is available!"
             end
           end
         end
