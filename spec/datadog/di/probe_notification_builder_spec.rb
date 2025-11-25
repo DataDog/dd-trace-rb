@@ -192,7 +192,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
                 id: '123',
                 location: {
                   file: nil,
-                  lines: [1],
+                  lines: ['1'],
                 },
                 version: 0,
               },
@@ -243,7 +243,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
                 id: '123',
                 location: {
                   file: nil,
-                  lines: [1],
+                  lines: ['1'],
                 },
                 version: 0,
               },
@@ -319,7 +319,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
                 id: '123',
                 location: {
                   file: '/foo.rb',
-                  lines: [1],
+                  lines: ['1'],
                 },
                 version: 0,
               },

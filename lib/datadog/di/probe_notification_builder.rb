@@ -116,7 +116,7 @@ module Datadog
         location = if probe.line?
           {
             file: context.path,
-            lines: [probe.line_no],
+            lines: [probe.line_no.to_s],
           }
         elsif probe.method?
           {
