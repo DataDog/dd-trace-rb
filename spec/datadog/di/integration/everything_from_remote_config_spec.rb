@@ -658,7 +658,7 @@ RSpec.describe 'DI integration from remote config' do
                 id: '11',
                 location: {
                   file: String,
-                  lines: [Integer],
+                  lines: [String],
                 },
                 version: 0,
               },
@@ -743,7 +743,7 @@ RSpec.describe 'DI integration from remote config' do
                   id: '11',
                   location: {
                     file: File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb'),
-                    lines: [67],
+                    lines: ['67'],
                   },
                   version: 0,
                 },
