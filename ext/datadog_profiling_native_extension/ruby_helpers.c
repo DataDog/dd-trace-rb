@@ -108,7 +108,8 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, const char *format
     snprintf(
       telemetry_message,
       MAX_RAISE_MESSAGE_SIZE,
-      "grab_gvl_and_raise called by thread holding the global VM lock: %%s (%s)",
+      "grab_gvl_and_raise called by thread holding the global VM lock: %s (%s)",
+      format_string,
       rb_class2name(native_exception_class)
     );
     // Render the full exception message.
@@ -154,8 +155,9 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
     snprintf(
       telemetry_message,
       MAX_RAISE_MESSAGE_SIZE,
-      "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%%s'",
-      syserr_errno
+      "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%s'",
+      syserr_errno,
+      format_string
     );
 
     // Then add the original exception message, to create the complete new message.
