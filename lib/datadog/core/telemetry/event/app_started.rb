@@ -16,7 +16,7 @@ module Datadog
             # the runtime_id or sequence numbers.
             # This event is reused when a process forks, but in the
             # child process the runtime_id would be different and sequence
-            # number would obviously also be different.
+            # number is reset.
             @configuration = configuration(components.settings, components.agent_settings)
             @install_signature = install_signature(components.settings)
             @products = products(components)
