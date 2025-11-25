@@ -13,7 +13,7 @@ module Datadog
             # the event payload here in the constructor.
             #
             # Important: do not store data that contains (or is derived from)
-            # the runtime_id oor sequence numbers.
+            # the runtime_id or sequence numbers.
             # This event is reused when a process forks, but in the
             # child process the runtime_id would be different and sequence
             # number would obviously also be different.
