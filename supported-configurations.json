@@ -36,7 +36,7 @@
     "DD_API_SECURITY_REQUEST_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["api_security.sample_rate"],
         "default": "0.1"
       }
@@ -44,7 +44,7 @@
     "DD_API_SECURITY_SAMPLE_DELAY": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["api_security.sample_delay"],
         "default": "30"
       }
@@ -489,7 +489,7 @@
     "DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["advanced.overhead_target_percentage"],
         "default": "2.0"
       }
@@ -539,7 +539,7 @@
     "DD_PROFILING_UPLOAD_TIMEOUT": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["upload.timeout_seconds"],
         "default": "30.0"
       }
@@ -564,7 +564,7 @@
     "DD_REMOTE_CONFIG_BOOT_TIMEOUT_SECONDS": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["remote.boot_timeout_seconds"],
         "default": "1.0"
       }
@@ -572,7 +572,7 @@
     "DD_REMOTE_CONFIG_POLL_INTERVAL_SECONDS": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["remote.poll_interval_seconds"],
         "default": "5.0"
       }
@@ -588,7 +588,7 @@
     "DD_RODA_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -669,7 +669,7 @@
     "DD_TELEMETRY_HEARTBEAT_INTERVAL": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["telemetry.heartbeat_interval_seconds"],
         "default": "60.0"
       }
@@ -685,7 +685,7 @@
     "DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["telemetry.metrics_aggregation_interval_seconds"],
         "default": "10.0"
       }
@@ -725,7 +725,7 @@
     "DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -749,7 +749,7 @@
     "DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -773,7 +773,7 @@
     "DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -797,7 +797,7 @@
     "DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -821,7 +821,7 @@
     "DD_TRACE_ACTIVE_JOB_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -845,7 +845,7 @@
     "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -869,7 +869,7 @@
     "DD_TRACE_ACTIVE_RECORD_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -893,7 +893,7 @@
     "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -946,7 +946,7 @@
     "DD_TRACE_AWS_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1017,7 +1017,7 @@
     "DD_TRACE_DALLI_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1065,7 +1065,7 @@
     "DD_TRACE_DELAYED_JOB_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1089,7 +1089,7 @@
     "DD_TRACE_ELASTICSEARCH_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1137,7 +1137,7 @@
     "DD_TRACE_ETHON_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1176,7 +1176,7 @@
     "DD_TRACE_EXCON_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1231,7 +1231,7 @@
     "DD_TRACE_FARADAY_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1278,7 +1278,7 @@
     "DD_TRACE_GRAPE_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1310,7 +1310,7 @@
     "DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1358,7 +1358,7 @@
     "DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1413,7 +1413,7 @@
     "DD_TRACE_HTTPCLIENT_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1460,7 +1460,7 @@
     "DD_TRACE_HTTPRB_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1507,7 +1507,7 @@
     "DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1555,7 +1555,7 @@
     "DD_TRACE_KAFKA_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1603,7 +1603,7 @@
     "DD_TRACE_MONGO_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1650,7 +1650,7 @@
     "DD_TRACE_MYSQL2_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1712,7 +1712,7 @@
     "DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1775,7 +1775,7 @@
     "DD_TRACE_PG_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1814,7 +1814,7 @@
     "DD_TRACE_PRESTO_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1886,7 +1886,7 @@
     "DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1926,7 +1926,7 @@
     "DD_TRACE_RACECAR_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1950,7 +1950,7 @@
     "DD_TRACE_RACK_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1974,7 +1974,7 @@
     "DD_TRACE_RAILS_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -1998,7 +1998,7 @@
     "DD_TRACE_RAKE_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2030,7 +2030,7 @@
     "DD_TRACE_REDIS_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2101,7 +2101,7 @@
     "DD_TRACE_RESQUE_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2125,7 +2125,7 @@
     "DD_TRACE_REST_CLIENT_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2164,7 +2164,7 @@
     "DD_TRACE_SAMPLE_RATE": [
       {
         "version": "B",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["sampling.default_rate"],
         "aliases": ["OTEL_TRACES_SAMPLER"],
         "default": null
@@ -2197,7 +2197,7 @@
     "DD_TRACE_SEQUEL_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2221,7 +2221,7 @@
     "DD_TRACE_SHORYUKEN_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2245,7 +2245,7 @@
     "DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2269,7 +2269,7 @@
     "DD_TRACE_SINATRA_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2293,7 +2293,7 @@
     "DD_TRACE_SNEAKERS_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2325,7 +2325,7 @@
     "DD_TRACE_STRIPE_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2349,7 +2349,7 @@
     "DD_TRACE_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2381,7 +2381,7 @@
     "DD_TRACE_TRILOGY_ANALYTICS_SAMPLE_RATE": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["analytics_sample_rate"],
         "default": "1.0"
       }
@@ -2475,7 +2475,7 @@
     "OTEL_TRACES_SAMPLER": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "propertyKeys": ["sampling.default_rate"],
         "default": null
       }
@@ -2483,7 +2483,7 @@
     "OTEL_TRACES_SAMPLER_ARG": [
       {
         "version": "A",
-        "type": "float",
+        "type": "decimal",
         "default": "1.0"
       }
     ]
