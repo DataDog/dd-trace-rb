@@ -179,9 +179,9 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           expect(payload).to be_a(Hash)
-          expect(payload).to include(:"debugger.snapshot")
-          snapshot = payload.fetch(:"debugger.snapshot")
-          expect(snapshot[:captures]).to be nil
+          expect(payload).to include(:debugger)
+          snapshot = payload.fetch(:debugger).fetch(:snapshot)
+          expect(snapshot.fetch(:captures)).to be nil
         end
 
         it 'assembles expected notification payload which does not include captures' do
@@ -216,7 +216,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationDelayedTestClass.new.test_method).to eq(43)
             component.probe_notifier_worker.flush
 
-            snapshot = payload.fetch(:"debugger.snapshot")
+            snapshot = payload.fetch(:debugger).fetch(:snapshot)
             expect(snapshot).to match(
               id: String,
               timestamp: Integer,
@@ -261,7 +261,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationDelayedPartialTestClass.new.test_method).to eq(43)
             component.probe_notifier_worker.flush
 
-            snapshot = payload.fetch(:"debugger.snapshot")
+            snapshot = payload.fetch(:debugger).fetch(:snapshot)
             expect(snapshot).to match(
               id: String,
               timestamp: Integer,
@@ -304,7 +304,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationVirtualTestClass.new.test_method).to eq(:test_method)
             component.probe_notifier_worker.flush
 
-            snapshot = payload.fetch(:"debugger.snapshot")
+            snapshot = payload.fetch(:debugger).fetch(:snapshot)
             expect(snapshot).to match(
               id: String,
               timestamp: Integer,
@@ -374,7 +374,7 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           expect(payload).to be_a(Hash)
-          captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
           expect(captures).to eq(expected_captures)
         end
 
@@ -672,7 +672,7 @@ RSpec.describe 'Instrumentation integration' do
             end
 
             let(:snapshot) do
-              payload.fetch(:"debugger.snapshot")
+              payload.fetch(:debugger).fetch(:snapshot)
             end
 
             it 'does not have captures' do
@@ -741,7 +741,7 @@ RSpec.describe 'Instrumentation integration' do
             end
 
             let(:snapshot) do
-              payload.fetch(:"debugger.snapshot")
+              payload.fetch(:debugger).fetch(:snapshot)
             end
 
             it 'does not have captures' do
@@ -910,7 +910,7 @@ RSpec.describe 'Instrumentation integration' do
             component.probe_notifier_worker.flush
 
             expect(payload).to be_a(Hash)
-            captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+            captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
             expect(captures).to eq(expected_captures)
           end
         end

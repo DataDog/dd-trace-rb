@@ -11,6 +11,7 @@ LOWERCASE_UUID_REGEXP = /\A[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0
 
 RSpec.describe 'DI integration from remote config' do
   di_test
+  skip_unless_integration_testing_enabled
 
   let(:remote) { Datadog::DI::Remote }
   let(:path) { 'datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash' }
@@ -202,21 +203,24 @@ RSpec.describe 'DI integration from remote config' do
       # We do not have active span/trace in the test.
       "dd.span_id": nil,
       "dd.trace_id": nil,
-      "debugger.snapshot": {
-        captures: nil,
-        evaluationErrors: [],
-        id: LOWERCASE_UUID_REGEXP,
-        language: 'ruby',
-        probe: {
-          id: '11',
-          location: {
-            method: 'target_method',
-            type: 'EverythingFromRemoteConfigSpecTestClass',
+      debugger: {
+        type: 'snapshot',
+        snapshot: {
+          captures: nil,
+          evaluationErrors: [],
+          id: LOWERCASE_UUID_REGEXP,
+          language: 'ruby',
+          probe: {
+            id: '11',
+            location: {
+              method: 'target_method',
+              type: 'EverythingFromRemoteConfigSpecTestClass',
+            },
+            version: 0,
           },
-          version: 0,
+          stack: Array,
+          timestamp: Integer,
         },
-        stack: Array,
-        timestamp: Integer,
       },
       ddsource: 'dd_debugger',
       duration: Integer,
@@ -464,23 +468,26 @@ RSpec.describe 'DI integration from remote config' do
           # We do not have active span/trace in the test.
           "dd.span_id": nil,
           "dd.trace_id": nil,
-          "debugger.snapshot": {
-            captures: nil,
-            evaluationErrors: [
-              {'expr' => '(failing expression)', 'message' => 'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: NilClass'},
-            ],
-            id: LOWERCASE_UUID_REGEXP,
-            language: 'ruby',
-            probe: {
-              id: '11',
-              location: {
-                method: 'target_method',
-                type: 'EverythingFromRemoteConfigSpecTestClass',
+          debugger: {
+            type: 'snapshot',
+            snapshot: {
+              captures: nil,
+              evaluationErrors: [
+                {'expr' => '(failing expression)', 'message' => 'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: NilClass'},
+              ],
+              id: LOWERCASE_UUID_REGEXP,
+              language: 'ruby',
+              probe: {
+                id: '11',
+                location: {
+                  method: 'target_method',
+                  type: 'EverythingFromRemoteConfigSpecTestClass',
+                },
+                version: 0,
               },
-              version: 0,
+              stack: Array,
+              timestamp: Integer,
             },
-            stack: Array,
-            timestamp: Integer,
           },
           ddsource: 'dd_debugger',
           duration: Integer,
@@ -638,23 +645,26 @@ RSpec.describe 'DI integration from remote config' do
           # We do not have active span/trace in the test.
           "dd.span_id": nil,
           "dd.trace_id": nil,
-          "debugger.snapshot": {
-            captures: nil,
-            evaluationErrors: [
-              {'expr' => '(expression)', 'message' => evaluation_error_message},
-            ],
-            id: LOWERCASE_UUID_REGEXP,
-            language: 'ruby',
-            probe: {
-              id: '11',
-              location: {
-                file: String,
-                lines: [Integer],
+          debugger: {
+            type: 'snapshot',
+            snapshot: {
+              captures: nil,
+              evaluationErrors: [
+                {'expr' => '(expression)', 'message' => evaluation_error_message},
+              ],
+              id: LOWERCASE_UUID_REGEXP,
+              language: 'ruby',
+              probe: {
+                id: '11',
+                location: {
+                  file: String,
+                  lines: [Integer],
+                },
+                version: 0,
               },
-              version: 0,
+              stack: Array,
+              timestamp: Integer,
             },
-            stack: Array,
-            timestamp: Integer,
           },
           ddsource: 'dd_debugger',
           duration: Integer,
@@ -722,21 +732,24 @@ RSpec.describe 'DI integration from remote config' do
             # We do not have active span/trace in the test.
             "dd.span_id": nil,
             "dd.trace_id": nil,
-            "debugger.snapshot": {
-              captures: expected_captures,
-              evaluationErrors: [],
-              id: LOWERCASE_UUID_REGEXP,
-              language: 'ruby',
-              probe: {
-                id: '11',
-                location: {
-                  file: File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb'),
-                  lines: [67],
+            debugger: {
+              type: 'snapshot',
+              snapshot: {
+                captures: expected_captures,
+                evaluationErrors: [],
+                id: LOWERCASE_UUID_REGEXP,
+                language: 'ruby',
+                probe: {
+                  id: '11',
+                  location: {
+                    file: File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb'),
+                    lines: [67],
+                  },
+                  version: 0,
                 },
-                version: 0,
+                stack: Array,
+                timestamp: Integer,
               },
-              stack: Array,
-              timestamp: Integer,
             },
             ddsource: 'dd_debugger',
             duration: Integer,

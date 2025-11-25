@@ -131,19 +131,34 @@ module Datadog
 
         {
           service: settings.service,
-          "debugger.snapshot": {
-            id: SecureRandom.uuid,
-            timestamp: timestamp,
-            evaluationErrors: evaluation_errors,
-            probe: {
-              id: probe.id,
-              version: 0,
-              location: location,
+          debugger: {
+            type: 'snapshot',
+            # Product can have three values: di, ld, er.
+            # We do not currently implement exception replay.
+            # There is currently no specification, and no consensus, for
+            # when product should be di (dynamic instrumentation) and when
+            # it should be ld (live debugger). I thought the backend was
+            # supposed to provide this in probe specification via remote
+            # config, but apparently this is not the case and the expectation
+            # is that the library figures out the product via heuristics,
+            # except there is currently no consensus on said heuristics.
+            # .NET always sends ld, other languages send nothing at the moment.
+            # Don't send anything for the time being.
+            #product: 'di/ld',
+            snapshot: {
+              id: SecureRandom.uuid,
+              timestamp: timestamp,
+              evaluationErrors: evaluation_errors,
+              probe: {
+                id: probe.id,
+                version: 0,
+                location: location,
+              },
+              language: 'ruby',
+              # TODO add test coverage for callers being nil
+              stack: stack,
+              captures: captures,
             },
-            language: 'ruby',
-            # TODO add test coverage for callers being nil
-            stack: stack,
-            captures: captures,
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
