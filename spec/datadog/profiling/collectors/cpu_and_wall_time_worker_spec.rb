@@ -1184,7 +1184,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal
-              end.take
+              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
             end
           )
       end
@@ -1196,7 +1196,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_sample_from_postponed_job
-              end.take
+              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
             end
           )
       end

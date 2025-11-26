@@ -95,7 +95,9 @@ RSpec.describe Datadog::Profiling::NativeExtension do
         before { skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.") }
 
         subject(:ddtrace_rb_ractor_main_p) do
-          Ractor.new { Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p }.take
+          Ractor.new do
+            Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p
+          end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
         end
 
         it { is_expected.to be false }
