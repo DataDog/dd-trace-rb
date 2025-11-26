@@ -57,7 +57,7 @@ module Datadog
               #
               # @default `DD_AI_GUARD_MAX_CONTENT_SIZE`, otherwise 524 228 bytes
               # @return [Integer]
-              option :max_content_size do |o|
+              option :max_content_size_bytes do |o|
                 o.type :int
                 o.env Ext::ENV_AI_GUARD_MAX_CONTENT_SIZE
                 o.default 512 * 1024
