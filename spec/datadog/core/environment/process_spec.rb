@@ -48,7 +48,7 @@ RSpec.describe Datadog::Core::Environment::Process do
       end
     end
 
-    it 'uses the basedir for irb' do
+    it 'uses the basedir for my/path/rubyapp.rb' do
       with_program_name('my/path/rubyapp.rb') do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:rubyapp.rb')
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Core::Environment::Process do
       end
     end
 
-    it 'uses the basedir for irb' do
+    it 'uses the basedir for bin/rails s' do
       with_program_name('bin/rails s') do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:rails_s')
