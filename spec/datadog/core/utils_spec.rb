@@ -95,56 +95,21 @@ RSpec.describe Datadog::Core::Utils do
           is_expected.to eq('valid part')
         end
       end
-
-      context 'with replace_invalid: true' do
-        let(:options) { {replace_invalid: true} }
-
-        it 'returns a valid UTF-8 string without raising an error' do
-          expect { subject }.not_to raise_error
-          expect(subject.encoding).to eq(Encoding::UTF_8)
-        end
-      end
     end
 
     context 'with valid and invalid characters in the string' do
       let(:str) { "test\x99\x8faaa".force_encoding(Encoding::ASCII_8BIT) }
 
-      context 'with replace_invalid: true' do
-        let(:options) { {replace_invalid: true} }
-
-        it 'returns valid UTF-8 string' do
-          expect(subject).to include('aaa')
-          expect(subject.encoding).to eq(Encoding::UTF_8)
-        end
-      end
-
-      context 'with replace_invalid: false' do
-        let(:options) { {} }
-
-        it 'returns an empty string' do
-          is_expected.to eq(Datadog::Core::Utils::EMPTY_STRING)
-        end
+      it 'returns an empty string' do
+        is_expected.to eq(Datadog::Core::Utils::EMPTY_STRING)
       end
     end
 
     context 'with Unicode characters' do
       let(:str) { 'ünicöde' }
 
-      context 'with replace_invalid: true' do
-        let(:options) { {replace_invalid: true} }
-
-        it 'returns a valid UTF-8 string' do
-          is_expected.to eq(str)
-          expect(subject.encoding).to eq(Encoding::UTF_8)
-        end
-      end
-
-      context 'with replace_invalid: false' do
-        let(:options) { {} }
-
-        it 'preserves the original string' do
-          is_expected.to eq(str)
-        end
+      it 'preserves the original string' do
+        is_expected.to eq(str)
       end
     end
   end

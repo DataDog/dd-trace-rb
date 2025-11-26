@@ -38,24 +38,21 @@ module Datadog
 
       # Ensure `str` is a valid UTF-8, ready to be
       # sent through the tracer transport.
+      # DEV-3.0: This method should unconditionally handle invalid byte sequences
+      # DEV-3.0: and return a safe string to display.
       #
       # @param [String,#to_s] str object to be converted to a UTF-8 string
       # @param [Boolean] binary whether to expect binary data in the `str` parameter
       # @param [String] placeholder string to be returned when encoding fails
-      # @param [Boolean] replace_invalid whether to replace invalid characters (Trace Agent tags expectation)
       # @return a UTF-8 string version of `str`
       # @!visibility private
-      def self.utf8_encode(str, binary: false, replace_invalid: false, placeholder: EMPTY_STRING)
+      def self.utf8_encode(str, binary: false, placeholder: EMPTY_STRING)
         str = str.to_s
 
         if binary
           # This option is useful for "gracefully" displaying binary data that
           # often contains text such as marshalled objects
           str.encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
-        elsif replace_invalid
-          # A non binary mode that replaces invalid characters
-          # Main use case is to be on par with the Trace Agent's encoding logic for tag normalization
-          str.encode('UTF-8', invalid: :replace, undef: :replace)
         elsif str.encoding == ::Encoding::UTF_8
           str
         elsif str.empty?

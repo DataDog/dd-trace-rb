@@ -5,7 +5,7 @@ module Datadog
 
       EMPTY_STRING: untyped
       def self.truncate: (untyped value, untyped size, ?::String omission) -> untyped
-      def self.utf8_encode: (untyped str, ?binary: bool, ?replace_invalid: bool, ?placeholder: untyped) -> untyped
+      def self.utf8_encode: (untyped str, ?binary: bool, ?placeholder: untyped) -> untyped
 
       def self.encode_tags: (untyped hash) -> untyped
       def self.without_warnings: () { () -> untyped } -> untyped

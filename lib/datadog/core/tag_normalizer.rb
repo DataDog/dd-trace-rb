@@ -32,31 +32,31 @@ module Datadog
       # @param remove_digit_start_char [Boolean] - whether to remove the leading digit (currently only used for tag values)
       # @return [String] The normalized string
       def self.normalize(original_value, remove_digit_start_char: false)
-        transformed_value = Utils.utf8_encode(original_value, replace_invalid: true)
-        transformed_value.strip!
-        return "" if transformed_value.empty?
+        # DEV-3.0: Ideally this encode call should be replaced with Datadog::Core::Utils.utf8_encode once it
+        #          is safe to modify the default behavior.
+        value = original_value.to_s.encode('UTF-8', invalid: :replace, undef: :replace)
+        value.strip!
+        return "" if value.empty?
 
-        return transformed_value if transformed_value.bytesize <= MAX_BYTE_SIZE &&
-          transformed_value.match?(VALID_ASCII_TAG)
+        return value if value.bytesize <= MAX_BYTE_SIZE &&
+          value.match?(VALID_ASCII_TAG)
 
-        normalized_value = transformed_value
-
-        if normalized_value.bytesize > MAX_BYTE_SIZE
-          normalized_value = normalized_value.byteslice(0, MAX_BYTE_SIZE)
-          normalized_value.scrub!("")
+        if value.bytesize > MAX_BYTE_SIZE
+          value = value.byteslice(0, MAX_BYTE_SIZE)
+          value.scrub!("")
         end
 
-        normalized_value.downcase!
-        normalized_value.gsub!(INVALID_TAG_CHARACTERS, '_')
+        value.downcase!
+        value.gsub!(INVALID_TAG_CHARACTERS, '_')
 
         # The Trace Agent allows tag values to start with a number so this logic is here too
         leading_invalid_regex = remove_digit_start_char ? LEADING_INVALID_CHARS_NO_DIGITS : LEADING_INVALID_CHARS_WITH_DIGITS
-        normalized_value.sub!(leading_invalid_regex, "")
+        value.sub!(leading_invalid_regex, "")
 
-        normalized_value.squeeze!('_') if normalized_value.include?('__')
-        normalized_value.delete_suffix!('_')
+        value.squeeze!('_') if value.include?('__')
+        value.delete_suffix!('_')
 
-        normalized_value
+        value
       end
     end
   end
