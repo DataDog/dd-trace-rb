@@ -53,18 +53,18 @@ module Datadog
               end
 
               # Maximum content size in bytes.
-              # TODO: describe what happens when this limit is exceeded
+              # Content that exceeds the maximum allowed size is truncated before being sent to the AI Guard API.
               #
               # @default `DD_AI_GUARD_MAX_CONTENT_SIZE`, otherwise 524 228 bytes
               # @return [Integer]
-              option :max_content_size do |o|
+              option :max_content_size_bytes do |o|
                 o.type :int
                 o.env Ext::ENV_AI_GUARD_MAX_CONTENT_SIZE
                 o.default 512 * 1024
               end
 
               # Maximum amount of messages.
-              # # TODO: describe what happens when this limit is exceeded
+              # Older messages are omitted once the maximum message limit is reached.
               #
               # @default `DD_AI_GUARD_MAX_MESSAGES_LENGTH`, otherwise 16 messages
               # @return [Integer]
