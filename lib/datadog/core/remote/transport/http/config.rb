@@ -2,7 +2,6 @@
 
 require 'json'
 
-require_relative '../config'
 require_relative '../../../transport/http/client'
 require_relative '../../../utils/base64'
 require_relative '../../../utils/truncation'
@@ -19,7 +18,6 @@ module Datadog
             # Response from HTTP transport for remote configuration
             class Response
               include Datadog::Core::Transport::HTTP::Response
-              include Core::Remote::Transport::Config::Response
 
               def initialize(http_response, options = {}) # standard:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
                 super(http_response)
@@ -112,6 +110,12 @@ module Datadog
 
                   s.freeze
                 end.freeze
+              end
+
+              attr_reader :roots, :targets, :target_files, :client_configs
+
+              def empty?
+                @empty
               end
 
               def inspect

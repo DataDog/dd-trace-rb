@@ -4,6 +4,8 @@ require_relative '../../environment/container'
 require_relative '../../environment/ext'
 require_relative '../../transport/ext'
 require_relative '../../transport/http'
+require_relative 'config'
+require_relative 'negotiation'
 
 # TODO: Improve negotiation to allow per endpoint selection
 #

@@ -22,15 +22,6 @@ module Datadog
           class Request < Datadog::Core::Transport::Request
           end
 
-          # Config response
-          module Response
-            attr_reader :roots, :targets, :target_files, :client_configs
-
-            def empty?
-              @empty
-            end
-          end
-
           # Config transport
           class Transport
             attr_reader :client, :apis, :default_api, :current_api_id, :logger
