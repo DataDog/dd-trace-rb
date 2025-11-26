@@ -29,10 +29,19 @@ module Datadog
         class Transport
           attr_reader :client, :apis, :default_api, :current_api_id, :logger
 
-          # The maximum chunk size that intake permits is 10 MB.
+          # The limit on an individual snapshot payload, aka "log line",
+          # is 1 MB.
+          #
+          # TODO There is an RFC for snapshot pruning that should be
+          # implemented to reduce the size of snapshots to be below this
+          # limit, so that we can send a portion of the captured data
+          # rather than dropping the snapshot entirely.
+          MAX_SERIALIZED_SNAPSHOT_SIZE = 1024 * 1024
+
+          # The maximum chunk (batch) size that intake permits is 5 MB.
           #
           # Two bytes are for the [ and ] of JSON array syntax.
-          MAX_CHUNK_SIZE = 10 * 1024 * 1024 - 2
+          MAX_CHUNK_SIZE = 5 * 1024 * 1024 - 2
 
           # Try to send smaller payloads to avoid large network requests.
           # If a payload is larger than default chunk size but is under the
@@ -55,27 +64,33 @@ module Datadog
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
             encoder = Core::Encoding::JSONEncoder
-            encoded_snapshots = payload.map do |snapshot|
-              encoder.encode(snapshot)
+            encoded_snapshots = Core::Utils::Array.filter_map(payload) do |snapshot|
+              encoded = encoder.encode(snapshot)
+              if encoded.length > MAX_SERIALIZED_SNAPSHOT_SIZE
+                # Drop the snapshot.
+                # TODO report via telemetry metric?
+                logger.debug { "di: dropping too big snapshot" }
+                nil
+              else
+                encoded
+              end
             end
 
             Datadog::Core::Chunker.chunk_by_size(
               encoded_snapshots, DEFAULT_CHUNK_SIZE,
             ).each do |chunk|
-              if chunk.length == 1 && chunk.first.length > MAX_CHUNK_SIZE
-                # Drop the chunk.
-                # TODO report via telemetry metric?
-                logger.debug { "di: dropping too big snapshot" }
-              else
-                chunked_payload = encoder.join(chunk)
+              # We drop snapshots that are too big earlier.
+              # The limit on chunked payload length here is greater
+              # than the limit on snapshot size, therefore no chunks
+              # can exceed limits here.
+              chunked_payload = encoder.join(chunk)
 
-                # We need to rescue exceptions for each chunk so that
-                # subsequent chunks are attempted to be sent.
-                begin
-                  send_input_chunk(chunked_payload, serialized_tags)
-                rescue => exc
-                  logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
-                end
+              # We need to rescue exceptions for each chunk so that
+              # subsequent chunks are attempted to be sent.
+              begin
+                send_input_chunk(chunked_payload, serialized_tags)
+              rescue => exc
+                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
               end
             end
 

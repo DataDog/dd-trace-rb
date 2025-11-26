@@ -23,8 +23,8 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
   context 'when the combined size of snapshots serialized exceeds intake max' do
     before do
       # Reduce limits to make the test run faster and not require a lot of memory
-      stub_const('Datadog::DI::Transport::Input::Transport::DEFAULT_CHUNK_SIZE', 1_000_000)
-      stub_const('Datadog::DI::Transport::Input::Transport::MAX_CHUNK_SIZE', 2_000_000)
+      stub_const('Datadog::DI::Transport::Input::Transport::DEFAULT_CHUNK_SIZE', 100_000)
+      stub_const('Datadog::DI::Transport::Input::Transport::MAX_CHUNK_SIZE', 200_000)
     end
 
     let(:snapshot) do
@@ -36,15 +36,15 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     end
 
     let(:snapshots) do
-      # This serializes to 9782001 bytes of JSON - just under 10 MB.
-      [snapshot] * 1_000
+      # This serializes to 978201 bytes of JSON - just under 1 MB.
+      [snapshot] * 100
     end
 
     it 'chunks snapshots' do
-      # Just under 10 MB payload, default chunk size 1 MB, we expect 10 chunks
+      # Just under 1 MB payload, default chunk size ~100 KB, we expect 10 chunks
       expect(transport).to receive(:send_input_chunk).exactly(10).times do |chunked_payload, serialized_tags|
-        expect(chunked_payload.length).to be < 1_000_000
-        expect(chunked_payload.length).to be > 800_000
+        expect(chunked_payload.length).to be < 100_000
+        expect(chunked_payload.length).to be > 90_000
       end
       transport.send_input(snapshots, tags)
     end
@@ -52,8 +52,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
     context 'when individual snapshot exceeds intake max' do
       before do
         # Reduce limits even more to force a reasonably-sized snapshot to be dropped
-        stub_const('Datadog::DI::Transport::Input::Transport::DEFAULT_CHUNK_SIZE', 1_000)
-        stub_const('Datadog::DI::Transport::Input::Transport::MAX_CHUNK_SIZE', 2_000)
+        stub_const('Datadog::DI::Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE', 2_000)
       end
 
       let(:small_snapshot) do
