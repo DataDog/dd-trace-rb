@@ -184,7 +184,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           debugger: {
             type: 'snapshot',
             snapshot: {
-              captures: nil,
+              captures: {},
               evaluationErrors: [],
               id: String,
               language: 'ruby',
@@ -235,7 +235,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           debugger: {
             type: 'snapshot',
             snapshot: {
-              captures: nil,
+              captures: {},
               evaluationErrors: [],
               id: String,
               language: 'ruby',

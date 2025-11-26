@@ -181,7 +181,7 @@ RSpec.describe 'Instrumentation integration' do
           expect(payload).to be_a(Hash)
           expect(payload).to include(:debugger)
           snapshot = payload.fetch(:debugger).fetch(:snapshot)
-          expect(snapshot.fetch(:captures)).to be nil
+          expect(snapshot.fetch(:captures)).to eq({})
         end
 
         it 'assembles expected notification payload which does not include captures' do
@@ -226,7 +226,7 @@ RSpec.describe 'Instrumentation integration' do
               }},
               language: 'ruby',
               stack: Array,
-              captures: nil,
+              captures: {},
             )
           end
         end
@@ -273,7 +273,7 @@ RSpec.describe 'Instrumentation integration' do
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
-              captures: nil,
+              captures: {},
             )
           end
         end
@@ -316,7 +316,7 @@ RSpec.describe 'Instrumentation integration' do
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
-              captures: nil,
+              captures: {},
             )
           end
         end
@@ -678,7 +678,7 @@ RSpec.describe 'Instrumentation integration' do
             it 'does not have captures' do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
-              expect(snapshot.fetch(:captures)).to be nil
+              expect(snapshot.fetch(:captures)).to eq({})
             end
 
             let(:stack) do
@@ -747,7 +747,7 @@ RSpec.describe 'Instrumentation integration' do
             it 'does not have captures' do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
-              expect(snapshot.fetch(:captures)).to be nil
+              expect(snapshot.fetch(:captures)).to eq({})
             end
 
             let(:stack) do

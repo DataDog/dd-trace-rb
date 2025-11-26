@@ -162,7 +162,9 @@ module Datadog
               language: 'ruby',
               # TODO add test coverage for callers being nil
               stack: stack,
-              captures: captures,
+              # System tests schema validation requires captures to
+              # always be present
+              captures: captures || {},
             },
           },
           # In python tracer duration is under debugger.snapshot,

@@ -166,7 +166,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           expect(payload[:message]).to eq 'hello42'
 
           # We asked to not create a snapshot
-          expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to be nil
+          expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
         end
 
         context 'when there is an evaluation error' do
@@ -186,7 +186,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             ]
 
             # We asked to not create a snapshot
-            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to be nil
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
           end
         end
 
@@ -210,7 +210,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             ]
 
             # We asked to not create a snapshot
-            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to be nil
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
           end
         end
 
@@ -232,7 +232,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             expect(payload[:message]).to eq 'hellonil'
 
             # We asked to not create a snapshot
-            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to be nil
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
           end
         end
       end

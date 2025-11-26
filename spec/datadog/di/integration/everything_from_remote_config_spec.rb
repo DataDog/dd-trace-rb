@@ -206,7 +206,7 @@ RSpec.describe 'DI integration from remote config' do
       debugger: {
         type: 'snapshot',
         snapshot: {
-          captures: nil,
+          captures: {},
           evaluationErrors: [],
           id: LOWERCASE_UUID_REGEXP,
           language: 'ruby',
@@ -471,7 +471,7 @@ RSpec.describe 'DI integration from remote config' do
           debugger: {
             type: 'snapshot',
             snapshot: {
-              captures: nil,
+              captures: {},
               evaluationErrors: [
                 {'expr' => '(failing expression)', 'message' => 'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: NilClass'},
               ],
@@ -648,7 +648,7 @@ RSpec.describe 'DI integration from remote config' do
           debugger: {
             type: 'snapshot',
             snapshot: {
-              captures: nil,
+              captures: {},
               evaluationErrors: [
                 {'expr' => '(expression)', 'message' => evaluation_error_message},
               ],
@@ -724,7 +724,7 @@ RSpec.describe 'DI integration from remote config' do
           'Datadog::DI::Error::ExpressionEvaluationError: Invalid arguments for contains: false, baz'
         end
 
-        let(:expected_captures) { nil }
+        let(:expected_captures) { {} }
 
         let(:expected_second_snapshot_payload) do
           {
