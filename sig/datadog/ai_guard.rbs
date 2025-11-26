@@ -1,0 +1,5 @@
+module Datadog
+  module AIGuard
+    def self.enabled?: () -> bool
+  end
+end

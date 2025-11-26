@@ -8,6 +8,11 @@ module Datadog
     module Configuration
       SUPPORTED_CONFIGURATIONS =
         {"DD_AGENT_HOST" => {version: ["A"]},
+         "DD_AI_GUARD_ENABLED" => {version: ["A"]},
+         "DD_AI_GUARD_ENDPOINT" => {version: ["A"]},
+         "DD_AI_GUARD_MAX_CONTENT_SIZE" => {version: ["A"]},
+         "DD_AI_GUARD_MAX_MESSAGES_LENGTH" => {version: ["A"]},
+         "DD_AI_GUARD_TIMEOUT" => {version: ["A"]},
          "DD_API_KEY" => {version: ["A"]},
          "DD_API_SECURITY_ENABLED" => {version: ["A"]},
          "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED" => {version: ["A"]},
