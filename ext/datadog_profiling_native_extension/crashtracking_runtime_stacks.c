@@ -110,26 +110,6 @@ static inline bool is_pointer_readable(const void *ptr, size_t size) {
   }
 }
 
-static bool is_safe_string_encoding(const char *ptr, long len) {
-  if (!ptr || len <= 0) return false;
-
-  // Sanity check to scan the first 128 bytes to check
-  // for control characters and high bytes
-  for (long i = 0; i < len && i < 128; i++) {
-    unsigned char c = (unsigned char)ptr[i];
-
-    if (c == 0 && i < len - 1) return false;
-
-    // Control characters (except tab, newline, return) is sus
-    if (c < 0x20 && c != 0x09 && c != 0x0A && c != 0x0D) return false;
-
-    // High bytes
-    if (c >= 0xF8) return false;
-  }
-
-  return true;
-}
-
 static bool is_reasonable_string_size(VALUE str) {
   if (str == Qnil) return false;
   if (!RB_TYPE_P(str, T_STRING)) return false;
@@ -161,7 +141,6 @@ static const char* safe_string_ptr(VALUE str) {
   if (!ptr) return "<null>";
 
   if (!is_pointer_readable(ptr, len > 0 ? len : 1)) return "<unreadable>";
-  if (!is_safe_string_encoding(ptr, len)) return "<unsafe_encoding>";
 
   return ptr;
 }
