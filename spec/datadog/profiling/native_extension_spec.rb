@@ -111,8 +111,8 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     it "accepts printf-style string formatting" do
       expect do
-        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "divided zero by ", 42, true)
-      end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - divided zero by 42")
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "message %s", "oops", true)
+      end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - message oops")
     end
 
     it "limits the caller-provided exception message to 255 characters" do
@@ -126,11 +126,11 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     context "when called without releasing the gvl" do
       it "raises a NativeError, preserving the Errno exception class information" do
         expect do
-          described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "this is a test", nil, false)
+          described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "message %s", "oops", false)
         end.to raise_native_error(
           Datadog::Profiling::NativeRuntimeError,
-          include("called by thread holding the global VM lock. syserr_errno: 4, exception_message: 'this is a test'"),
-          include("called by thread holding the global VM lock. syserr_errno: 4, exception_message: '%s'")
+          include("called by thread holding the global VM lock. syserr_errno: 4, exception_message: 'message oops'"),
+          include("called by thread holding the global VM lock. syserr_errno: 4, exception_message: 'message %s'")
         )
       end
     end

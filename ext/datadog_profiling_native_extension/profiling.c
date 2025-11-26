@@ -135,7 +135,7 @@ static void *trigger_grab_gvl_and_raise(void *trigger_args) {
 typedef struct {
   int syserr_errno;
   char *test_message;
-  int test_message_arg;
+  char *test_message_arg;
 } trigger_grab_gvl_and_raise_syserr_arguments;
 
 static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
@@ -145,12 +145,12 @@ static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE
 
   args.syserr_errno = NUM2INT(syserr_errno);
   args.test_message = StringValueCStr(test_message);
-  args.test_message_arg = test_message_arg != Qnil ? NUM2INT(test_message_arg) : -1;
+  args.test_message_arg = test_message_arg != Qnil ? StringValueCStr(test_message_arg) : NULL;
 
   if (RTEST(release_gvl)) {
     rb_thread_call_without_gvl(trigger_grab_gvl_and_raise_syserr, &args, NULL, NULL);
   } else {
-    grab_gvl_and_raise_syserr(args.syserr_errno, "%s", args.test_message);
+    grab_gvl_and_raise_syserr(args.syserr_errno, args.test_message, args.test_message_arg);
   }
 
   raise_error(eNativeRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_syserr; this should never happen");
@@ -159,10 +159,10 @@ static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE
 static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
   trigger_grab_gvl_and_raise_syserr_arguments *args = (trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
 
-  if (args->test_message_arg >= 0) {
-    grab_gvl_and_raise_syserr(args->syserr_errno, "%s%d", args->test_message, args->test_message_arg);
+  if (args->test_message_arg != NULL) {
+    grab_gvl_and_raise_syserr(args->syserr_errno, args->test_message, args->test_message_arg);
   } else {
-    grab_gvl_and_raise_syserr(args->syserr_errno, "%s", args->test_message);
+    grab_gvl_and_raise_syserr(args->syserr_errno, args->test_message);
   }
 
   return NULL;

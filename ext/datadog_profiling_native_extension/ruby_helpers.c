@@ -156,7 +156,7 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
     // the same information as the original errno exception, we include
     // the errno value in the message and telemetry message.
 
-    // Add errno, but not the formatted message to the telemetry message.
+    // Add errno and static format string to the telemetry message.
     char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
     snprintf(
       telemetry_message,
@@ -166,9 +166,15 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
       format_string
     );
 
-    // Then add the original exception message, to create the complete new message.
+    // Render the full exception message.
     char exception_message[MAX_RAISE_MESSAGE_SIZE];
-    snprintf(exception_message, MAX_RAISE_MESSAGE_SIZE, telemetry_message, args.exception_message);
+    snprintf(
+      exception_message,
+      MAX_RAISE_MESSAGE_SIZE,
+      "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%s'",
+      syserr_errno,
+      args.exception_message
+    );
 
     private_raise_native_error(
       eNativeRuntimeError,
