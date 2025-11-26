@@ -6,6 +6,21 @@ RSpec.describe Datadog::Core::Environment::Process do
   describe '::serialized' do
     subject(:serialized) { described_class.serialized }
 
+    def with_program_name(value)
+      original_0 = $0
+      $0 = value
+      reset_serialized!
+
+      yield
+    ensure
+      $0 = original_0
+      reset_serialized!
+    end
+
+    def reset_serialized!
+      described_class.remove_instance_variable(:@serialized) if described_class.instance_variable_defined?(:@serialized)
+    end
+
     it { is_expected.to be_a_kind_of(String) }
 
     it 'returns the same object when called multiple times' do
@@ -13,6 +28,42 @@ RSpec.describe Datadog::Core::Environment::Process do
       first_call = described_class.serialized
       second_call = described_class.serialized
       expect(first_call).to equal(second_call)
+    end
+
+    it 'uses the basedir for /expectedbasedir/executable' do
+      with_program_name('/expectedbasedir/executable') do
+        expect(described_class.serialized).to include('entrypoint.workdir:app')
+        expect(described_class.serialized).to include('entrypoint.name:executable')
+        expect(described_class.serialized).to include('entrypoint.basedir:expectedbasedir')
+        expect(described_class.serialized).to include('entrypoint.type:script')
+      end
+    end
+
+    it 'uses the basedir for irb' do
+      with_program_name('irb') do
+        expect(described_class.serialized).to include('entrypoint.workdir:app')
+        expect(described_class.serialized).to include('entrypoint.name:irb')
+        expect(described_class.serialized).to include('entrypoint.basedir:app')
+        expect(described_class.serialized).to include('entrypoint.type:script')
+      end
+    end
+
+    it 'uses the basedir for irb' do
+      with_program_name('my/path/rubyapp.rb') do
+        expect(described_class.serialized).to include('entrypoint.workdir:app')
+        expect(described_class.serialized).to include('entrypoint.name:rubyapp.rb')
+        expect(described_class.serialized).to include('entrypoint.basedir:path')
+        expect(described_class.serialized).to include('entrypoint.type:script')
+      end
+    end
+
+    it 'uses the basedir for irb' do
+      with_program_name('bin/rails s') do
+        expect(described_class.serialized).to include('entrypoint.workdir:app')
+        expect(described_class.serialized).to include('entrypoint.name:rails_s')
+        expect(described_class.serialized).to include('entrypoint.basedir:bin')
+        expect(described_class.serialized).to include('entrypoint.type:script')
+      end
     end
   end
 
