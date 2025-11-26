@@ -102,12 +102,10 @@ module DIHelpers
     end
 
     def instance_double_agent_settings_with_stubs
-      instance_double_agent_settings.tap do |agent_settings|
-        allow(agent_settings).to receive(:hostname)
-        allow(agent_settings).to receive(:port)
-        allow(agent_settings).to receive(:timeout_seconds).and_return(1)
-        allow(agent_settings).to receive(:ssl)
-      end
+      instance_double(
+        Datadog::Core::Configuration::AgentSettings,
+        hostname: "test-host", port: 9000, timeout_seconds: 1, ssl: false
+      )
     end
   end
 end
