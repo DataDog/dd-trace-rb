@@ -2,7 +2,7 @@
 
 module Datadog
   module Core
-    # This class exists to wrap a ddsketch_Handle_DDSketch into a Ruby object.
+    # Used to access ddsketch APIs.
     #
     # This class is not empty; all of this class is implemented as native code.
     #
