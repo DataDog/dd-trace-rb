@@ -2,18 +2,16 @@
 
 module Datadog
   module Core
-    # Used to access ddsketch APIs.
+    # Datadog::Core::DDSketch is defined completely in the native extension.
+    # Do not define it here (for example, as an empty class) because we don't
+    # want to be able to create instances of the empty stub class if the
+    # native extension is missing or failed to load.
     #
-    # This class is not empty; all of this class is implemented as native code.
+    # Use Core.ddsketch_supported? to determine if DDSketch class exists and
+    # is usable.
     #
-    # @api private
-    class DDSketch # rubocop:disable Lint/EmptyClass
-      # This constructor is replaced by the C extension and will only be
-      # used if the C extension failed to build or was not loaded,
-      # in which case DDSketch is not available.
-      def initialize
-        raise ArgumentError, "DDSketch is not supported: #{Datadog::Core::LIBDATADOG_API_FAILURE}"
-      end
-    end
+    # See https://github.com/datadog/dd-trace-rb/pull/5008 and
+    # https://github.com/DataDog/dd-trace-rb/pull/4901 for the background on
+    # dependency issues with DDSketch.
   end
 end
