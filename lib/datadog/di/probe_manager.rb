@@ -134,38 +134,30 @@ module Datadog
         end
       end
 
-      # Removes probes with ids other than in the specified list.
-      #
-      # This method is meant to be invoked from remote config processor.
-      # Remote config contains the list of currently defined probes; any
-      # probes not in that list have been removed by user and should be
-      # de-instrumented from the application.
-      def remove_other_probes(probe_ids)
+      # Removes probe with specified id. The probe could be pending or
+      # installed. Does nothing if there is no probe with the specified id.
+      def remove_probe(probe_id)
         @lock.synchronize do
-          @pending_probes.values.each do |probe|
-            unless probe_ids.include?(probe.id)
-              @pending_probes.delete(probe.id)
-            end
-          end
-          @installed_probes.values.each do |probe|
-            unless probe_ids.include?(probe.id)
-              begin
-                instrumenter.unhook(probe)
-                # Only remove the probe from installed list if it was
-                # successfully de-instrumented. Active probes do incur overhead
-                # for the running application, and if the error is ephemeral
-                # we want to try removing the probe again at the next opportunity.
-                #
-                # TODO give up after some time?
-                @installed_probes.delete(probe.id)
-              rescue => exc
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-                # Silence all exceptions?
-                # TODO should we propagate here and rescue upstream?
-                logger.debug { "di: error removing #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc}" }
-                telemetry&.report(exc, description: "Error removing probe")
-              end
-            end
+          @pending_probes.delete(probe_id)
+        end
+
+        # Do not delete the probe from the registry here in case
+        # deinstrumentation fails - though I don't know why deinstrumentation
+        # would fail and how we could recover if it does.
+        # I plan on tracking the number of outstanding (instrumented) probes
+        # in the future, and if deinstrumentation fails I would want to
+        # keep that probe as "installed" for the count, so that we can
+        # investigate the situation.
+        if probe = @installed_probes[probe_id]
+          begin
+            instrumenter.unhook(probe)
+            @installed_probes.delete(probe_id)
+          rescue => exc
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+            # Silence all exceptions?
+            # TODO should we propagate here and rescue upstream?
+            logger.debug { "di: error removing #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc}" }
+            telemetry&.report(exc, description: "Error removing probe")
           end
         end
       end
