@@ -64,8 +64,8 @@ module Datadog
         def start
           Utils::AtForkMonkeyPatch.apply!
 
-          start_or_update_on_fork(action: :start, tags: tags)
           register_runtime_stack_callback if DATADOG_ENV['DD_CRASHTRACKING_EMIT_RUNTIME_STACKS'] == 'true'
+          start_or_update_on_fork(action: :start, tags: tags)
 
           ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.at_fork(:child) do
@@ -104,12 +104,12 @@ module Datadog
             return
           end
 
+          # Even if runtime stacks callback registration fails, we shouldn't block crashtracker
           success = Crashtracking::RuntimeStacks._native_register_runtime_stack_callback
 
           raise StandardError, 'Failed to register runtime stack callback: registration returned false' unless success
         rescue => e
           logger.warn("Failed to register runtime stack callback: #{e.message}")
-          raise
         end
 
         attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger
