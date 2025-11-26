@@ -46,17 +46,6 @@
 #else
   #define DDTRACE_UNUSED
 #endif
-extern VALUE eNativeRuntimeError;
-extern VALUE eNativeArgumentError;
-extern VALUE eNativeTypeError;
-// Declare exception class globals from ruby_helpers.h
-// (We can't include ruby_helpers.h here as it pulls in public Ruby headers that conflict with private VM headers)
-#define raise_error(native_exception_class, fmt, ...) \
-  private_raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
-NORETURN(
-  void private_raise_error(VALUE native_exception_class, const char *fmt, ...)
-  __attribute__ ((format (printf, 2, 3)));
-);
 
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
@@ -749,7 +738,7 @@ void self_test_mn_enabled(void) {
     return;
   #else
     if (ddtrace_get_ractor()->threads.sched.enable_mn_threads == true) {
-      raise_error(eNativeRuntimeError, "Ruby VM is running with RUBY_MN_THREADS=1. This is not yet supported");
+      rb_raise(rb_eRuntimeError, "Ruby VM is running with RUBY_MN_THREADS=1. This is not yet supported");
     }
   #endif
 }
@@ -882,11 +871,11 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
       expected_current_fiber = current_fiber_for(rb_thread_current());
     }
 
-    if (expected_current_fiber != actual_current_fiber) raise_error(eNativeRuntimeError, "current_fiber_for() self-test failed");
+    if (expected_current_fiber != actual_current_fiber) rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
   }
 #else
   NORETURN(VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread));
 
-  VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { raise_error(eNativeRuntimeError, "Not implemented for Ruby < 3.1"); }
+  VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
   void self_test_current_fiber_for(void) { } // Nothing to do
 #endif

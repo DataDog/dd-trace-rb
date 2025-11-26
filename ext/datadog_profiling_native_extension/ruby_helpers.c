@@ -12,6 +12,7 @@ static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 static ID new_id = 0;
+static ID telemetry_message_id = Qnil;
 
 // Exception classes defined in Ruby, in the `Datadog::Profiling` namespace.
 VALUE eNativeRuntimeError = Qnil;
@@ -26,6 +27,7 @@ void ruby_helpers_init(VALUE profiling_module) {
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");
   new_id = rb_intern("new");
+  telemetry_message_id = rb_intern("@telemetry_message");
 
   eNativeRuntimeError = rb_const_get(profiling_module, rb_intern("NativeRuntimeError"));
   rb_global_variable(&eNativeRuntimeError);
@@ -36,6 +38,13 @@ void ruby_helpers_init(VALUE profiling_module) {
 }
 
 #define MAX_RAISE_MESSAGE_SIZE 256
+
+#define FORMAT_VA_ERROR_MESSAGE(buf, fmt) \
+  char buf[MAX_RAISE_MESSAGE_SIZE]; \
+  va_list buf##_args; \
+  va_start(buf##_args, fmt); \
+  vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
+  va_end(buf##_args);
 
 // Raises a NativeError exception with seperate telemetry-safe and detailed messages.
 void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
@@ -68,11 +77,7 @@ void private_raise_native_error(VALUE native_exception_class, const char *detail
 
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  char formatted_msg[MAX_RAISE_MESSAGE_SIZE];
-  vsnprintf(formatted_msg, MAX_RAISE_MESSAGE_SIZE, fmt, args);
-  va_end(args);
+  FORMAT_VA_ERROR_MESSAGE(formatted_msg, fmt);
   private_raise_native_error(native_exception_class, formatted_msg, fmt);
 }
 
@@ -92,14 +97,37 @@ static void *trigger_raise(void *raise_arguments) {
   );
 }
 
+void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message) {
+  VALUE error = rb_syserr_new(syserr_errno, detailed_message);
+
+  // Because there are 150+ Errno error classes,
+  // we set the telemetry-safe message to an instance variable, instead
+  // of creating/modifying a large amount of exception classes.
+  rb_ivar_set(error, telemetry_message_id, rb_str_new_cstr(static_message));
+
+  rb_exc_raise(error);
+}
+
+// The message must be statically bound and checked.
+void raise_telemetry_safe_error(VALUE native_exception_class, const char *telemetry_safe_format, ...) {
+  FORMAT_VA_ERROR_MESSAGE(telemetry_safe_message, telemetry_safe_format);
+  private_raise_native_error(native_exception_class, telemetry_safe_message, telemetry_safe_message);
+}
+
+// The message must be statically bound and checked.
+void raise_telemetry_safe_syserr(int syserr_errno, const char *telemetry_safe_format, ...) {
+  FORMAT_VA_ERROR_MESSAGE(telemetry_safe_message, telemetry_safe_format);
+
+  private_raise_syserr(syserr_errno, telemetry_safe_message, telemetry_safe_message);
+}
+
 void private_grab_gvl_and_raise(VALUE native_exception_class, const char *format_string, ...) {
   raise_args args;
 
   args.exception_class = native_exception_class;
 
-  va_list format_string_arguments;
-  va_start(format_string_arguments, format_string);
-  vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
+  FORMAT_VA_ERROR_MESSAGE(formatted_exception_message, format_string);
+  snprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, "%s", formatted_exception_message);
   snprintf(args.telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", format_string);
 
   if (is_current_thread_holding_the_gvl()) {
@@ -136,9 +164,12 @@ typedef struct {
 
 static void *trigger_syserr_raise(void *syserr_raise_arguments) {
   syserr_raise_args *args = (syserr_raise_args *) syserr_raise_arguments;
-  // Because each errno has a unique exception class, we do not need
-  // to report a custom telemetry message. The exception class is always reported.
-  rb_syserr_fail(args->syserr_errno, args->exception_message);
+
+  private_raise_syserr(
+    args->syserr_errno,
+    args->exception_message,
+    args->exception_message
+  );
 }
 
 void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...) {
@@ -146,9 +177,8 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
 
   args.syserr_errno = syserr_errno;
 
-  va_list format_string_arguments;
-  va_start(format_string_arguments, format_string);
-  vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
+  FORMAT_VA_ERROR_MESSAGE(formatted_exception_message, format_string);
+  snprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, "%s", formatted_exception_message);
 
   if (is_current_thread_holding_the_gvl()) {
     // Errno exceptions have unique classes for each errno value.

@@ -51,28 +51,42 @@ extern VALUE eNativeTypeError;
 // Only the following error classes are supported, as they require an extra field for
 // the telemetry-safe string: NativeRuntimeError, NativeArgumentError, NativeTypeError.
 
-// NOTE: Only used externally for testing, by `_native_raise_native_error_with_invalid_class`
-NORETURN(
-  void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message)
-);
-
 #define raise_error(native_exception_class, fmt, ...) \
   private_raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
+
+#define grab_gvl_and_raise(native_exception_class, fmt, ...) \
+  private_grab_gvl_and_raise(native_exception_class, "" fmt, ##__VA_ARGS__)
+
+// The message must be statically bound and checked.
+NORETURN(
+  void raise_telemetry_safe_error(VALUE native_exception_class, const char *telemetry_safe_format, ...)
+  __attribute__ ((format (printf, 2, 3)));
+);
+
+// The message must be statically bound and checked.
+NORETURN(
+  void raise_telemetry_safe_syserr(int syserr_errno, const char *telemetry_safe_format, ...)
+  __attribute__ ((format (printf, 2, 3)));
+);
+
+NORETURN(
+  void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
+  __attribute__ ((format (printf, 2, 3)));
+);
+
 NORETURN(
   void private_raise_error(VALUE native_exception_class, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
 
-#define grab_gvl_and_raise(native_exception_class, fmt, ...) \
-  private_grab_gvl_and_raise(native_exception_class, "" fmt, ##__VA_ARGS__)
-
 NORETURN(
   void private_grab_gvl_and_raise(VALUE native_exception_class, const char *format_string, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
+
+// NOTE: Only used externally for testing, by `_native_raise_native_error_with_invalid_class`
 NORETURN(
-  void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
-  __attribute__ ((format (printf, 2, 3)));
+  void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message)
 );
 
 #define ENFORCE_SUCCESS_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, true)
@@ -93,6 +107,25 @@ NORETURN(void raise_syserr(
   int line,
   const char *function_name
 ));
+
+typedef enum {
+  SIGNAL_HANDLER_NAME_NULL, // Reserved to avoid accidental 0-value usage
+  SIGNAL_HANDLER_NAME_handle_sampling_signal,
+  SIGNAL_HANDLER_NAME_testing_signal_handler,
+  SIGNAL_HANDLER_NAME_holding_the_gvl_signal_handler,
+  SIGNAL_HANDLER_NAME_empty_signal_handler,
+  SIGNAL_HANDLER_NAME_COUNT
+} signal_handler_name_t;
+
+static const char *const SIGNAL_HANDLER_NAMES[SIGNAL_HANDLER_NAME_COUNT] = {
+  [SIGNAL_HANDLER_NAME_NULL] = "", // Unused
+  [SIGNAL_HANDLER_NAME_handle_sampling_signal] = "handle_sampling_signal",
+  [SIGNAL_HANDLER_NAME_testing_signal_handler] = "testing_signal_handler",
+  [SIGNAL_HANDLER_NAME_holding_the_gvl_signal_handler] = "holding_the_gvl_signal_handler",
+  [SIGNAL_HANDLER_NAME_empty_signal_handler] = "empty_signal_handler"
+};
+
+#define SIGNAL_HANDLER_NAME(var) SIGNAL_HANDLER_NAME_##var
 
 // Native wrapper to get an object ref from an id. Returns true on success and
 // writes the ref to the value pointer parameter if !NULL. False if id doesn't

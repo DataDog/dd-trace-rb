@@ -11,23 +11,23 @@
 
 static void install_sigprof_signal_handler_internal(
   void (*signal_handler_function)(int, siginfo_t *, void *),
-  const char *handler_pretty_name,
+  signal_handler_name_t handler_pretty_name,
   void (*signal_handler_to_replace)(int, siginfo_t *, void *)
 );
 
 void empty_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) { }
 
-void install_sigprof_signal_handler(void (*signal_handler_function)(int, siginfo_t *, void *), const char *handler_pretty_name) {
-  install_sigprof_signal_handler_internal(signal_handler_function, handler_pretty_name, NULL);
+void private_install_sigprof_signal_handler(void (*signal_handler_function)(int, siginfo_t *, void *), signal_handler_name_t handler_name) {
+  install_sigprof_signal_handler_internal(signal_handler_function, handler_name, NULL);
 }
 
 void replace_sigprof_signal_handler_with_empty_handler(void (*expected_existing_handler)(int, siginfo_t *, void *)) {
-  install_sigprof_signal_handler_internal(empty_signal_handler, "empty_signal_handler", expected_existing_handler);
+  install_sigprof_signal_handler_internal(empty_signal_handler, SIGNAL_HANDLER_NAME(empty_signal_handler), expected_existing_handler);
 }
 
 static void install_sigprof_signal_handler_internal(
   void (*signal_handler_function)(int, siginfo_t *, void *),
-  const char *handler_pretty_name,
+  signal_handler_name_t handler_name,
   void (*signal_handler_to_replace)(int, siginfo_t *, void *)
 ) {
   struct sigaction existing_signal_handler_config = {.sa_sigaction = NULL};
@@ -37,8 +37,17 @@ static void install_sigprof_signal_handler_internal(
   };
   sigemptyset(&signal_handler_config.sa_mask);
 
+  // Get statically bound handler name, ensuring it's safe for telemetry.
+  const char *handler_pretty_name;
+  if (handler_name > SIGNAL_HANDLER_NAME_NULL && handler_name < SIGNAL_HANDLER_NAME_COUNT) {
+    handler_pretty_name = SIGNAL_HANDLER_NAMES[handler_name];
+  } else {
+    // Add the new handler to SIGNAL_HANDLER_NAMES if you see this
+    handler_pretty_name = "(UNNAMED)";
+  }
+
   if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
-    raise_syserr(errno, true, "Could not install profiling signal handler", __FILE__, __LINE__, handler_pretty_name);
+    raise_telemetry_safe_syserr(errno, "Could not install profiling signal handler (%s)", handler_pretty_name);
   }
 
   // Because signal handler functions are global, let's check if we're not stepping on someone else's toes.
@@ -56,22 +65,22 @@ static void install_sigprof_signal_handler_internal(
     // of the installation.
 
     if (sigaction(SIGPROF, &existing_signal_handler_config, NULL) != 0) {
-      rb_exc_raise(
-        rb_syserr_new_str(
-          errno,
-          rb_sprintf(
-            "Failed to install profiling signal handler (%s): " \
-            "While installing a SIGPROF signal handler, the profiler detected that another software/library/gem had " \
-            "previously installed a different SIGPROF signal handler. " \
-            "The profiler tried to restore the previous SIGPROF signal handler, but this failed. " \
-            "The other software/library/gem may have been left in a broken state. ",
-            handler_pretty_name
-          )
-        )
+      raise_telemetry_safe_syserr(
+        errno,
+        "Failed to install profiling signal handler (%s): " \
+        "While installing a SIGPROF signal handler, the profiler detected that another software/library/gem had " \
+        "previously installed a different SIGPROF signal handler. " \
+        "The profiler tried to restore the previous SIGPROF signal handler, but this failed. " \
+        "The other software/library/gem may have been left in a broken state. ",
+        handler_pretty_name
       );
     }
 
-    raise_error(eNativeRuntimeError, "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler", handler_pretty_name);
+    raise_telemetry_safe_error(
+      eNativeRuntimeError,
+      "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler",
+      handler_pretty_name
+    );
   }
 }
 
@@ -92,7 +101,13 @@ static inline void toggle_sigprof_signal_handler_for_current_thread(int action) 
   sigemptyset(&signals_to_toggle);
   sigaddset(&signals_to_toggle, SIGPROF);
   int error = pthread_sigmask(action, &signals_to_toggle, NULL);
-  if (error) rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action)));
+
+  if (error) {
+    // Ensure we know statically the possible values for `action`.
+    int telemetry_safe_action = (action >= SIG_BLOCK && action <= SIG_UNBLOCK) ? action : -1;
+
+    raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask, action=%d", telemetry_safe_action);
+  }
 }
 
 void block_sigprof_signal_handler_from_running_in_current_thread(void) {
