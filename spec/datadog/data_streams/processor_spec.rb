@@ -186,35 +186,37 @@ RSpec.describe Datadog::DataStreams::Processor do
 
     describe 'internal bucket aggregation' do
       it 'aggregates multiple checkpoints into DDSketch histograms' do
+        frozen_time = Time.utc(2000, 1, 1, 0, 0, 0)
+        allow(Datadog::Core::Utils::Time).to receive(:now).and_return(frozen_time)
         allow(Datadog::Tracing).to receive(:active_span).and_return(nil)
 
         processor.stop(true)
 
-        with_frozen_time do
-          processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
-          processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
-          processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
+        processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
 
-          processor.send(:process_events)
+        processor.send(:process_events)
 
-          now_ns = (Time.utc(2000, 1, 1, 0, 0, 0).to_f * 1e9).to_i
-          bucket_time_ns = now_ns - (now_ns % processor.bucket_size_ns)
+        now_ns = (frozen_time.to_f * 1e9).to_i
+        bucket_time_ns = now_ns - (now_ns % processor.bucket_size_ns)
 
-          expect(processor.buckets).not_to be_empty, lambda {
-            "Expected bucket key: #{bucket_time_ns}, actual keys: #{processor.buckets.keys.inspect}"
-          }
+        expect(processor.buckets).not_to be_empty, lambda {
+          "Expected bucket key: #{bucket_time_ns}, actual keys: #{processor.buckets.keys.inspect}"
+        }
 
-          bucket = processor.buckets[bucket_time_ns]
-          expect(bucket).not_to be_nil, lambda {
-            "Expected bucket: #{bucket_time_ns}, actual: #{processor.buckets.keys.inspect}"
-          }
+        bucket = processor.buckets[bucket_time_ns]
+        expect(bucket).not_to be_nil, lambda {
+          "Expected bucket: #{bucket_time_ns}, actual: #{processor.buckets.keys.inspect}"
+        }
 
-          pathway_stats = bucket[:pathway_stats]
-          expect(pathway_stats).not_to be_empty
+        pathway_stats = bucket[:pathway_stats]
+        expect(pathway_stats).not_to be_empty
 
-          aggr_key = pathway_stats.keys.first
-          stats = pathway_stats[aggr_key]
+        aggr_key = pathway_stats.keys.first
+        stats = pathway_stats[aggr_key]
 
+        aggregate_failures do
           expect(stats[:edge_latency]).to be_a(Datadog::Core::DDSketch)
           expect(stats[:full_pathway_latency]).to be_a(Datadog::Core::DDSketch)
 

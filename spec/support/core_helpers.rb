@@ -3,15 +3,6 @@ module CoreHelpers
     before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
   end
 
-  def with_frozen_time(timestamp = Time.utc(2000, 1, 1, 0, 0, 0))
-    begin
-      Datadog::Core::Utils::Time.now_provider = -> { timestamp }
-      yield
-    ensure
-      Datadog::Core::Utils::Time.now_provider = -> { ::Time.now }
-    end
-  end
-
   # Test matcher for this library's deprecated operation recorder.
   #
   # @example Matching the message
