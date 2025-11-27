@@ -131,8 +131,11 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (24.0.1.1.0)
+    libdatadog (24.0.1.1.0-aarch64-linux)
     libdatadog (24.0.1.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
@@ -149,6 +152,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     mini_mime (1.1.5)
+    mini_portile2 (2.8.9)
     minitest (5.25.5)
     msgpack (1.8.0)
     net-imap (0.5.10)
@@ -161,6 +165,9 @@ GEM
     net-smtp (0.5.1)
       net-protocol
     nio4r (2.7.4)
+    nokogiri (1.18.10)
+      mini_portile2 (~> 2.8.2)
+      racc (~> 1.4)
     nokogiri (1.18.10-x86_64-linux-gnu)
       racc (~> 1.4)
     os (1.1.4)
@@ -270,6 +277,7 @@ GEM
     zeitwerk (2.7.3)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
