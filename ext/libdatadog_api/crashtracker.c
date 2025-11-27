@@ -132,9 +132,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv,
   ddog_endpoint_drop(endpoint);
   // }} End of exception-free zone to prevent leaks
 
-  if (result.tag == DDOG_VOID_RESULT_ERR) {
-    raise_lib_error("Failed to start/update the crash tracker: %" PRIsVALUE, result);
-  }
+  CHECK_VOID_RESULT("Failed to start/update the crash tracker", result);
 
   return Qtrue;
 }
@@ -142,9 +140,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv,
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
   ddog_VoidResult result = ddog_crasht_disable();
 
-  if (result.tag == DDOG_VOID_RESULT_ERR) {
-    raise_lib_error("Failed to stop the crash tracker: %" PRIsVALUE, result);
-  }
+  CHECK_VOID_RESULT("Failed to stop the crash tracker", result);
 
   return Qtrue;
 }

@@ -64,8 +64,7 @@ static VALUE native_add(VALUE self, VALUE point) {
 
   ddog_VoidResult result = ddog_ddsketch_add(state, NUM2DBL(point));
 
-  if (result.tag == DDOG_VOID_RESULT_ERR)
-    raise_lib_error("DDSketch add failed: %" PRIsVALUE, result);
+  CHECK_VOID_RESULT("DDSketch add failed", result);
 
   return self;
 }
@@ -78,8 +77,7 @@ static VALUE native_add_with_count(VALUE self, VALUE point, VALUE count) {
   ddog_VoidResult result =
       ddog_ddsketch_add_with_count(state, NUM2DBL(point), NUM2DBL(count));
 
-  if (result.tag == DDOG_VOID_RESULT_ERR)
-    raise_lib_error("DDSketch add_with_count failed: %" PRIsVALUE, result);
+  CHECK_VOID_RESULT("DDSketch add_with_count failed", result);
 
   return self;
 }
@@ -92,8 +90,7 @@ static VALUE native_count(VALUE self) {
   double count_out;
   ddog_VoidResult result = ddog_ddsketch_count(state, &count_out);
 
-  if (result.tag == DDOG_VOID_RESULT_ERR)
-    raise_lib_error("DDSketch count failed: %" PRIsVALUE, result);
+  CHECK_VOID_RESULT("DDSketch count failed", result);
 
   return DBL2NUM(count_out);
 }
