@@ -32,9 +32,6 @@
 
 NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name));
 
-// Helper to raise errors with formatted messages
-NORETURN(void raise_error(VALUE error_class, const char *fmt, ...));
-
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);
 
