@@ -37,6 +37,18 @@ module Datadog
         TAG_SERVICE: String
 
         TAG_VERSION: String
+
+        PROCESS_TYPE: ::String
+
+        TAG_ENTRYPOINT_BASEDIR: ::String
+
+        TAG_ENTRYPOINT_NAME: ::String
+
+        TAG_ENTRYPOINT_WORKDIR: ::String
+
+        TAG_ENTRYPOINT_TYPE: ::String
+
+        TAG_PROCESS_TAGS: ::String
       end
     end
   end
