@@ -1,4 +1,5 @@
 #include "datadog_ruby_common.h"
+#include <stdarg.h>
 
 // IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
@@ -16,6 +17,14 @@ void raise_unexpected_type(VALUE value, const char *value_name, const char *type
       )
     )
   );
+}
+
+void raise_error(VALUE error_class, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  VALUE message = rb_vsprintf(fmt, args);
+  va_end(args);
+  rb_raise(error_class, "%"PRIsVALUE, message);
 }
 
 VALUE datadog_gem_version(void) {

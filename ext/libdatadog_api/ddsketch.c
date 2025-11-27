@@ -49,7 +49,7 @@ static void ddsketch_free(void *ptr) {
 }
 
 static void raise_ddsketch_error(const char *message, ddog_VoidResult result) {
-  // raise_error(eNativeRuntimeError, "%s: %"PRIsVALUE, message, get_error_details_and_drop(&result.err));
+  rb_raise(rb_eRuntimeError, "%s: %"PRIsVALUE, message, get_error_details_and_drop(&result.err));
 }
 
 static VALUE native_add(VALUE self, VALUE point) {
