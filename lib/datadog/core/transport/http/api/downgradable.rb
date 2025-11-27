@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Transport
-
       # Raised when the API verson to downgrade to does not map to a
       # defined API.
       class NoDowngradeAvailableError < StandardError
@@ -24,7 +23,6 @@ module Datadog
         module API
           # Functionality for downgrading API to a fallback one.
           module Downgradable
-
             private
 
             def downgrade?(response)

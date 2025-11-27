@@ -3,7 +3,6 @@
 module Datadog
   module Core
     module Transport
-
       # Raised when configured with an unknown API version
       class UnknownApiVersionError < StandardError
         attr_reader :version
@@ -53,7 +52,7 @@ module Datadog
           raise UnknownApiVersionError, api_id unless apis.key?(api_id)
 
           @current_api_id = api_id
-          unless client_class = self.class.http_client_class
+          unless (client_class = self.class.http_client_class)
             raise HTTPClientClassNotSet, "http_client_class is not set for #{self.class}"
           end
           @client = client_class.new(current_api, logger: logger)
