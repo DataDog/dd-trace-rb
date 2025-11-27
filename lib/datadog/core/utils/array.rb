@@ -10,7 +10,12 @@ module Datadog
             # DEV Supported since Ruby 2.7, saves an intermediate object creation
             array.filter_map(&block)
           else
-            array.map(&block).compact
+            # You would think that .compact would work here, but it does not:
+            # the result of .map could be an Enumerator::Lazy instance which
+            # does not implement #compact.
+            array.map(&block).reject do |item|
+              item.nil?
+            end
           end
         end
       end
