@@ -37,7 +37,7 @@ module Datadog
           #       moved into C extension
           @value = json?(value) ? JSON.parse(value) : value
         rescue JSON::ParserError => e
-          raise Error, "Failed to parse JSON value: #{e.message}"
+          raise Error, "Failed to parse JSON value: #{e.class}: #{e}"
         end
 
         # Check if the resolution resulted in an error
