@@ -12,7 +12,7 @@ module Datadog
           else
             # You would think that .compact would work here, but it does not:
             # the result of .map could be an Enumerator::Lazy instance which
-            # does not implement #compact.
+            # does not implement #compact on Ruby 2.5/2.6.
             array.map(&block).reject do |item|
               item.nil?
             end
