@@ -23,10 +23,6 @@ module Datadog
 
         private
 
-        def acquire_lock: () -> void
-
-        def release_lock: () -> void
-
         def poll: (::Float interval) -> void
 
         def call: () -> void
