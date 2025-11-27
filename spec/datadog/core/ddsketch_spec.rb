@@ -27,7 +27,7 @@ RSpec.describe Datadog::Core::DDSketch do
 
       context 'when the point is a negative number' do
         it 'raises an error' do
-          expect { sketch.add(-1.0) }.to raise_error(RuntimeError, 'DDSketch add failed: point is invalid')
+          expect { sketch.add(-1.0) }.to raise_error(Datadog::Core::NativeRuntimeError, 'DDSketch add failed: point is invalid')
         end
       end
     end
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Core::DDSketch do
 
       context 'when the point is a negative number' do
         it 'raises an error' do
-          expect { sketch.add_with_count(-1.0, 1.0) }.to raise_error(RuntimeError, 'DDSketch add_with_count failed: point is invalid')
+          expect { sketch.add_with_count(-1.0, 1.0) }.to raise_error(Datadog::Core::NativeRuntimeError, 'DDSketch add_with_count failed: point is invalid')
         end
       end
     end
