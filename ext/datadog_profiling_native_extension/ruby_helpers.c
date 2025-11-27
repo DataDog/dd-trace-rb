@@ -15,6 +15,9 @@ static ID new_id = 0;
 static ID telemetry_message_id = Qnil;
 
 void ruby_helpers_init(VALUE profiling_module) {
+  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  datadog_ruby_common_init(datadog_module);
+
   rb_global_variable(&module_object_space);
 
   module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
@@ -23,10 +26,6 @@ void ruby_helpers_init(VALUE profiling_module) {
   to_s_id = rb_intern("to_s");
   new_id = rb_intern("new");
   telemetry_message_id = rb_intern("@telemetry_message");
-
-  // Initialize exception classes from Datadog::Core::Native
-  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  datadog_ruby_common_init(datadog_module);
 }
 
 #define MAX_RAISE_MESSAGE_SIZE 256

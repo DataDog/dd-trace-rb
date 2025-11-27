@@ -6,6 +6,9 @@
 #include <datadog/common.h>
 #include <ruby.h>
 
+// Must be called once during initialization
+void datadog_ruby_common_init(VALUE datadog_module);
+
 // Used to mark symbols to be exported to the outside of the extension.
 // Consider very carefully before tagging a function with this.
 #define DDTRACE_EXPORT __attribute__((visibility("default")))
@@ -77,10 +80,6 @@ static inline VALUE log_warning(VALUE warning) {
 
 __attribute__((warn_unused_result)) ddog_Vec_Tag
 convert_tags(VALUE tags_as_array);
-
-// Initialize exception classes from Datadog::Core::Native
-// Called once during module initialization with the Datadog module
-void datadog_ruby_common_init(VALUE datadog_module);
 
 static inline VALUE ruby_string_from_error(const ddog_Error *error) {
   ddog_CharSlice char_slice = ddog_Error_message(error);
