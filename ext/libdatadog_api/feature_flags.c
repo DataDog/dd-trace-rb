@@ -195,9 +195,11 @@ static int evaluation_context_foreach_callback(VALUE key, VALUE value, VALUE arg
     return ST_CONTINUE;
   }
 
-  // Ensure we don't exceed capacity (should not happen if capacity = hash size)
+  // Ensure we don't exceed capacity.
   if (builder->attr_count >= builder->attr_capacity) {
-    return ST_STOP;
+    // This should never happen because evaluation_context_from_hash()
+    // pre-allocates attr_capacity equal to iterated Hash size.
+    rb_raise(feature_flags_error_class, "Internal: Attribute count exceeded capacity");
   }
 
   ddog_ffe_AttributePair *attr = &builder->attrs[builder->attr_count];
@@ -349,8 +351,10 @@ static VALUE resolution_details_get_raw_value(VALUE self) {
     case DDOG_FFE_VARIANT_VALUE_OBJECT:
       return str_from_borrow(value.string);
     case DDOG_FFE_VARIANT_VALUE_NONE:
-    default:
       return Qnil;
+    default:
+      // This should never happen as we checked for all possible tag values.
+      rb_raise(feature_flags_error_class, "Internal: Unexpected ResolutionDetails value tag");
   }
 }
 
@@ -380,8 +384,10 @@ static VALUE resolution_details_get_flag_type(VALUE self) {
     case DDOG_FFE_VARIANT_VALUE_OBJECT:
       return ID2SYM(id_object);
     case DDOG_FFE_VARIANT_VALUE_NONE:
-    default:
       return Qnil;
+    default:
+      // This should never happen as we checked for all possible tag values.
+      rb_raise(feature_flags_error_class, "Internal: Unexpected ResolutionDetails value tag");
   }
 }
 
@@ -411,7 +417,7 @@ static VALUE resolution_details_get_variant(VALUE self) {
 static VALUE resolution_details_get_allocation_key(VALUE self) {
   ddog_ffe_Handle_ResolutionDetails resolution_details =
     (ddog_ffe_Handle_ResolutionDetails)rb_check_typeddata(self, &resolution_details_typed_data);
-  struct ddog_ffe_BorrowedStr allocation_key =ddog_ffe_assignment_get_allocation_key(resolution_details);
+  struct ddog_ffe_BorrowedStr allocation_key = ddog_ffe_assignment_get_allocation_key(resolution_details);
   return str_from_borrow(allocation_key);
 }
 
