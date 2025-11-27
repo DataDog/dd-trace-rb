@@ -118,8 +118,8 @@ RSpec.configure do |config|
 end
 
 RSpec::Matchers.define :raise_native_error do |expected_class, expected_message = nil, expected_telemetry_message = nil, &block|
-  unless expected_class.is_a?(Class) && expected_class <= Datadog::Profiling::NativeError
-    raise ArgumentError, "expected_class must be a subclass of Datadog::Profiling::NativeError"
+  unless expected_class.is_a?(Class) && expected_class <= Datadog::Core::Native::Error
+    raise ArgumentError, "expected_class must be a subclass of Datadog::Core::Native::Error"
   end
 
   supports_block_expectations

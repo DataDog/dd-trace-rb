@@ -94,3 +94,17 @@ convert_tags(VALUE tags_as_array) {
 
   return tags;
 }
+
+void datadog_ruby_common_init(void) {
+  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  VALUE core_module = rb_const_get(datadog_module, rb_intern("Core"));
+  VALUE native_module = rb_const_get(core_module, rb_intern("Native"));
+
+  rb_global_variable(&eNativeRuntimeError);
+  rb_global_variable(&eNativeArgumentError);
+  rb_global_variable(&eNativeTypeError);
+
+  eNativeRuntimeError = rb_const_get(native_module, rb_intern("RuntimeError"));
+  eNativeArgumentError = rb_const_get(native_module, rb_intern("ArgumentError"));
+  eNativeTypeError = rb_const_get(native_module, rb_intern("TypeError"));
+}

@@ -78,6 +78,10 @@ static inline VALUE log_warning(VALUE warning) {
 __attribute__((warn_unused_result)) ddog_Vec_Tag
 convert_tags(VALUE tags_as_array);
 
+// Initialize exception classes from Datadog::Core::Native
+// Called once during module initialization
+void datadog_ruby_common_init(void);
+
 static inline VALUE ruby_string_from_error(const ddog_Error *error) {
   ddog_CharSlice char_slice = ddog_Error_message(error);
   return rb_str_new(char_slice.ptr, char_slice.len);
