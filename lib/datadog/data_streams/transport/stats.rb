@@ -4,6 +4,8 @@ require 'msgpack'
 require 'zlib'
 require_relative '../../core/transport/parcel'
 require_relative '../../core/transport/request'
+require_relative '../../core/transport/transport'
+require_relative 'http/client'
 
 module Datadog
   module DataStreams
@@ -25,17 +27,8 @@ module Datadog
         end
 
         # Transport for Data Streams Monitoring stats
-        class Transport
-          attr_reader :client, :apis, :current_api_id, :logger
-
-          def initialize(apis, default_api, logger:)
-            @apis = apis
-            @logger = logger
-            @default_api = default_api
-            @current_api_id = default_api
-
-            @client = DataStreams::Transport::HTTP::Client.new(current_api, logger: @logger)
-          end
+        class Transport < Core::Transport::Transport
+          self.http_client_class = DataStreams::Transport::HTTP::Client
 
           def send_stats(payload)
             # MessagePack encode and gzip compress the payload
@@ -48,10 +41,6 @@ module Datadog
 
             # Send to agent
             client.send_stats_payload(request)
-          end
-
-          def current_api
-            apis[@current_api_id]
           end
         end
       end

@@ -2,6 +2,7 @@
 
 require_relative '../../../core/transport/request'
 require_relative '../../../core/transport/parcel'
+require_relative '../../../core/transport/transport'
 require_relative 'http/config'
 
 module Datadog
@@ -23,27 +24,15 @@ module Datadog
           end
 
           # Config transport
-          class Transport
-            attr_reader :client, :apis, :default_api, :current_api_id, :logger
+          class Transport < Core::Transport::Transport
+            self.http_client_class = Remote::Transport::HTTP::Config::Client
 
-            def initialize(apis, default_api, logger: Datadog.logger)
-              @apis = apis
-              @logger = logger
-
-              @client = Remote::Transport::HTTP::Config::Client.new(current_api, logger: logger)
-            end
-
-            ##### there is only one transport! it's negotiation!
             def send_config(payload)
               json = JSON.dump(payload)
               parcel = EncodedParcel.new(json)
               request = Request.new(parcel)
 
               @client.send_config_payload(request)
-            end
-
-            def current_api
-              @apis[HTTP::API::V7]
             end
           end
         end

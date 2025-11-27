@@ -463,21 +463,21 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     it { is_expected.to be(api_v2) }
   end
 
-  describe '#change_api!' do
+  describe '#set_api!' do
     include_context 'APIs with fallbacks'
 
-    subject(:change_api!) { transport.send(:change_api!, api_id) }
+    subject(:set_api!) { transport.send(:set_api!, api_id) }
 
     context 'when the API ID does not match an API' do
       let(:api_id) { :v99 }
 
-      it { expect { change_api! }.to raise_error(described_class::UnknownApiVersionError) }
+      it { expect { set_api! }.to raise_error(Datadog::Core::Transport::UnknownApiVersionError) }
     end
 
     context 'when the API ID matches an API' do
       let(:api_id) { :v1 }
 
-      it { expect { change_api! }.to change { transport.current_api }.from(api_v2).to(api_v1) }
+      it { expect { set_api! }.to change { transport.current_api }.from(api_v2).to(api_v1) }
     end
   end
 
@@ -489,7 +489,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     context 'when the API has no fallback' do
       let(:current_api_id) { :v1 }
 
-      it { expect { downgrade! }.to raise_error(described_class::NoDowngradeAvailableError) }
+      it { expect { downgrade! }.to raise_error(Datadog::Core::Transport::NoDowngradeAvailableError) }
     end
 
     context 'when the API has fallback' do
