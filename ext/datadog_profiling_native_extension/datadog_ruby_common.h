@@ -12,9 +12,9 @@
 
 // Used to mark function arguments that are deliberately left unused
 #ifdef __GNUC__
-#define DDTRACE_UNUSED __attribute__((unused))
+  #define DDTRACE_UNUSED  __attribute__((unused))
 #else
-#define DDTRACE_UNUSED
+  #define DDTRACE_UNUSED
 #endif
 
 #define ADD_QUOTES_HELPER(x) #x

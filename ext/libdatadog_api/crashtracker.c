@@ -98,24 +98,23 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv,
   };
 
   ddog_crasht_Metadata metadata = {
-      .library_name = DDOG_CHARSLICE_C("dd-trace-rb"),
-      .library_version = char_slice_from_ruby_string(version),
-      .family = DDOG_CHARSLICE_C("ruby"),
-      .tags = &tags,
+    .library_name = DDOG_CHARSLICE_C("dd-trace-rb"),
+    .library_version = char_slice_from_ruby_string(version),
+    .family = DDOG_CHARSLICE_C("ruby"),
+    .tags = &tags,
   };
 
   ddog_crasht_EnvVar ld_library_path_env = {
-      .key = DDOG_CHARSLICE_C("LD_LIBRARY_PATH"),
-      .val = char_slice_from_ruby_string(ld_library_path),
+    .key = DDOG_CHARSLICE_C("LD_LIBRARY_PATH"),
+    .val = char_slice_from_ruby_string(ld_library_path),
   };
 
   ddog_crasht_ReceiverConfig receiver_config = {
-      .args = {},
-      .env = {.ptr = &ld_library_path_env, .len = 1},
-      .path_to_receiver_binary =
-          char_slice_from_ruby_string(path_to_crashtracking_receiver_binary),
-      .optional_stderr_filename = {},
-      .optional_stdout_filename = {},
+    .args = {},
+    .env = {.ptr = &ld_library_path_env, .len = 1},
+    .path_to_receiver_binary = char_slice_from_ruby_string(path_to_crashtracking_receiver_binary),
+    .optional_stderr_filename = {},
+    .optional_stdout_filename = {},
   };
 
   ddog_VoidResult result =
