@@ -13,13 +13,14 @@ module Datadog
             return if boot.nil?
             return if span.nil?
 
-            return if Datadog::Core::Remote.active_remote.nil?
+            active_remote = Datadog.send(:components, allow_initialization: false)&.remote
+            return if active_remote.nil?
 
             # TODO: this is not thread-consistent
-            ready = Datadog::Core::Remote.active_remote.healthy
+            ready = active_remote.healthy
             status = ready ? 'ready' : 'disconnected'
 
-            span.set_tag('_dd.rc.client_id', Datadog::Core::Remote.active_remote.client.id)
+            span.set_tag('_dd.rc.client_id', active_remote.client.id)
             span.set_tag('_dd.rc.status', status)
 
             if boot.barrier != :pass
