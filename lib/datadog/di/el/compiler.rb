@@ -22,7 +22,8 @@ module Datadog
 
         private
 
-        OPERATORS = {
+        # Steep: https://github.com/soutaro/steep/issues/363
+        OPERATORS = { # steep:ignore IncompatibleAssignment
           'eq' => '==',
           'ne' => '!=',
           'ge' => '>=',
@@ -31,16 +32,19 @@ module Datadog
           'lt' => '<',
         }.freeze
 
+        # Steep: https://github.com/soutaro/steep/issues/363
         SINGLE_ARG_METHODS = %w[
           len isEmpty isUndefined
-        ].freeze
+        ].freeze # steep:ignore IncompatibleAssignment
 
+        # Steep: https://github.com/soutaro/steep/issues/363
         TWO_ARG_METHODS = %w[
           startsWith endsWith contains matches
           getmember index instanceof
-        ].freeze
+        ].freeze # steep:ignore IncompatibleAssignment
 
-        MULTI_ARG_METHODS = {
+        # Steep: https://github.com/soutaro/steep/issues/363
+        MULTI_ARG_METHODS = { # steep:ignore IncompatibleAssignment
           'and' => '&&',
           'or' => '||',
         }.freeze

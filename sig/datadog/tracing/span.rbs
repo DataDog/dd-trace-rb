@@ -27,7 +27,7 @@ module Datadog
           ?id: (Integer | nil),
           ?meta: (Hash[String, String] | nil),
           ?metrics: (Hash[String, Float] | nil),
-          ?metastruct: Hash[String | Symbol, untyped],
+          ?metastruct: Hash[String | Symbol, untyped]?,
           ?parent_id: Integer,
           ?resource: String,
           ?service: (String | nil),

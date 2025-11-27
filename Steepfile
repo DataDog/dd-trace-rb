@@ -19,10 +19,6 @@ target :datadog do
     # * `:information`, `:hint`: To see these, run `rake 'typecheck[--severity-level=information]'`
     #   or `rake 'typecheck[--severity-level=hint]'`
 
-    # These first checks are likely the easiest to fix, given they capture a mismatch
-    # between the already declared type in `.rbs` and the actual type inferred by Steep.
-    hash[Ruby::IncompatibleAssignment] = :information
-
     # These checks are a bit harder, because they represent the lack of sufficient type information.
     hash[Ruby::FallbackAny] = :information
     hash[Ruby::UnknownInstanceVariable] = :information

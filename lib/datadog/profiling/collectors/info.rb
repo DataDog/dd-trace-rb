@@ -16,7 +16,8 @@ module Datadog
       class Info
         def initialize(settings)
           @profiler_info = nil
-          @info = {
+          # Steep: https://github.com/soutaro/steep/issues/363
+          @info = { # steep:ignore IncompatibleAssignment
             platform: collect_platform_info,
             runtime: collect_runtime_info,
             application: collect_application_info(settings),
