@@ -3,9 +3,13 @@ module Datadog
     module Telemetry
       module Event
         class SynthAppClientConfigurationChange < AppStarted
-          def type: () -> "app-client-configuration-change"
+          def type: -> ("app-client-configuration-change" | "app-started")
 
-          def payload: () -> { configuration: untyped }
+          def payload: () -> { ?products: untyped, configuration: untyped, ?install_signature: untyped }
+
+          def reset?: -> bool
+
+          def reset!: -> void
         end
       end
     end
