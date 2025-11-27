@@ -15,8 +15,6 @@ static ID new_id = 0;
 static ID telemetry_message_id = Qnil;
 
 // Exception classes defined in Ruby, in the `Datadog::Profiling` namespace.
-VALUE eNativeRuntimeError = Qnil;
-VALUE eNativeArgumentError = Qnil;
 VALUE eNativeTypeError = Qnil;
 
 void ruby_helpers_init(VALUE profiling_module) {
