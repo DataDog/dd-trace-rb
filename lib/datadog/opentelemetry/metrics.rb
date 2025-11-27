@@ -4,23 +4,25 @@ require_relative '../core/configuration/ext'
 
 module Datadog
   module OpenTelemetry
-    module Metrics
+    class Metrics
       EXPORTER_NONE = 'none'
 
       def self.initialize!(components)
+        new(components).configure_metrics_sdk
+        true
+      rescue => exc
+        components.logger.error("Failed to initialize OpenTelemetry metrics: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
+        false
+      end
+
+      def initialize(components)
         @logger = components.logger
         @settings = components.settings
         @agent_host = components.agent_settings.hostname
         @agent_ssl = components.agent_settings.ssl
-
-        configure_metrics_sdk
-        true
-      rescue => exc
-        @logger.error("Failed to initialize OpenTelemetry metrics: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
-        false
       end
 
-      def self.configure_metrics_sdk
+      def configure_metrics_sdk
         provider = ::OpenTelemetry.meter_provider
         provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
 
@@ -36,7 +38,7 @@ module Datadog
         ::OpenTelemetry.meter_provider = provider
       end
 
-      def self.create_resource
+      def create_resource
         resource_attributes = {}
         resource_attributes['host.name'] = Datadog::Core::Environment::Socket.hostname if @settings.tracing.report_hostname
 
@@ -50,32 +52,32 @@ module Datadog
           resource_attributes[otel_key] = value
         end
 
-        resource_attributes['service.name'] = @settings.service_without_fallback || resource_attributes['service.name'] || ''
+        resource_attributes['service.name'] = @settings.service_without_fallback || resource_attributes['service.name'] || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME
         resource_attributes['deployment.environment'] = @settings.env if @settings.env
         resource_attributes['service.version'] = @settings.version if @settings.version
 
         ::OpenTelemetry::SDK::Resources::Resource.create(resource_attributes)
       end
 
-      def self.configure_metric_reader(provider)
+      def configure_metric_reader(provider)
         exporter_name = @settings.opentelemetry.metrics.exporter
-        return if exporter_name == Datadog::OpenTelemetry::Metrics::EXPORTER_NONE
+        return if exporter_name == EXPORTER_NONE
 
         configure_otlp_exporter(provider)
       rescue => e
         @logger.warn("Failed to configure OTLP metrics exporter:  #{e.class}: #{e}")
       end
 
-      def self.resolve_metrics_endpoint
+      def resolve_metrics_endpoint
         metrics_config = @settings.opentelemetry.metrics
         exporter_config = @settings.opentelemetry.exporter
 
-        return metrics_config.endpoint.to_s if metrics_config.endpoint
-        return exporter_config.endpoint.to_s if exporter_config.endpoint
+        return metrics_config.endpoint if metrics_config.endpoint
+        return exporter_config.endpoint if exporter_config.endpoint
         "#{@agent_ssl ? "https" : "http"}://#{@agent_host}:4318/v1/metrics"
       end
 
-      def self.configure_otlp_exporter(provider)
+      def configure_otlp_exporter(provider)
         require 'opentelemetry/exporter/otlp_metrics'
         require_relative 'sdk/metrics_exporter'
 
@@ -102,7 +104,7 @@ module Datadog
         @logger.warn("Could not load OTLP metrics exporter:  #{e.class}: #{e}")
       end
 
-      private_class_method :configure_metrics_sdk, :create_resource, :configure_metric_reader, :resolve_metrics_endpoint, :configure_otlp_exporter
+      private :create_resource, :configure_metric_reader, :resolve_metrics_endpoint, :configure_otlp_exporter
     end
   end
 end

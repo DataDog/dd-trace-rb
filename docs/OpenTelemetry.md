@@ -5,8 +5,8 @@
 | Type          | Documentation                                        | datadog version | Gem version support |
 | ------------- | ---------------------------------------------------- | --------------- | ------------------- |
 | Tracing       | https://github.com/open-telemetry/opentelemetry-ruby | 1.9.0+          | >= 1.1.0            |
-| Metrics SDK   | https://rubygems.org/gems/opentelemetry-metrics-sdk  | 2.25.0+         |  >= 0.8             |
-| OTLP Metrics Exporter | https://rubygems.org/gems/opentelemetry-exporter-otlp-metrics  | 2.25.0+         |  >= 0.4            |
+| Metrics SDK   | https://rubygems.org/gems/opentelemetry-metrics-sdk  | 2.23.0+         |  >= 0.8             |
+| OTLP Metrics Exporter | https://rubygems.org/gems/opentelemetry-exporter-otlp-metrics  | 2.23.0+         |  >= 0.4            |
 
 ## Configuring OpenTelemetry Tracing
 
@@ -48,7 +48,7 @@
 
 ## Configuring OpenTelemetry Metrics
 
-1. Add required gems to your Gemfile:
+1. Add the required gems to your Gemfile:
 
     ```ruby
     gem 'datadog'
@@ -64,23 +64,21 @@
     # Set environment variable before initializing metrics support
     ENV['DD_METRICS_OTEL_ENABLED'] = 'true'
     require 'opentelemetry/sdk'
-    require 'opentelemetry-metrics-sdk'
-    require 'opentelemetry/exporter/otlp_metrics'
     require 'datadog/opentelemetry'
 
-    # IMPORTANT: Call Datadog.configure before OpenTelemetry::SDK.configure
-    # and keep both in the same file to ensure proper initialization order.
     Datadog.configure do |c|
       # Configure Datadog settings here
     end
 
-    # Initialize OpenTelemetry SDK (required for metrics)
+    # Call after Datadog.configure to initialize metrics.
+    # Can be called multiple times to pick up configuration changes.
+    # Requires: opentelemetry/exporter/otlp_metrics and opentelemetry/exporter/otlp_metrics
     OpenTelemetry::SDK.configure
     ```
 
 1. Use the [OpenTelemetry Metrics API](https://opentelemetry.io/docs/languages/ruby/instrumentation/#metrics) to create and record metrics.
 
-**Note:** Call `Datadog.configure` before `OpenTelemetry::SDK.configure` and keep both in the same file. Configuration changes require calling `OpenTelemetry::SDK.configure` again to take effect.
+**Note:** Call `OpenTelemetry::SDK.configure` after `Datadog.configure` and call it again whenever Datadog configuration changes to update the meter provider.
 
 **Configuration Options:**
 

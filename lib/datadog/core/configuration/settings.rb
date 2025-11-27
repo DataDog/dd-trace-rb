@@ -1032,7 +1032,6 @@ module Datadog
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings
 
-        # OpenTelemetry Metrics settings
         extend Datadog::OpenTelemetry::Configuration::Settings
       end
       # standard:enable Metrics/BlockLength

@@ -1,21 +1,23 @@
 module Datadog
   module OpenTelemetry
-    module Metrics
+    class Metrics
       EXPORTER_NONE: ::String
 
       def self.initialize!: (Core::Configuration::Components components) -> bool
 
+      def initialize: (Core::Configuration::Components components) -> void
+
+      def configure_metrics_sdk: () -> void
+
       private
 
-      def self.configure_metrics_sdk: () -> void
+      def create_resource: () -> untyped
 
-      def self.create_resource: () -> untyped
+      def configure_metric_reader: (untyped provider) -> void
 
-      def self.configure_metric_reader: (untyped provider) -> void
+      def resolve_metrics_endpoint: () -> ::String
 
-      def self.resolve_metrics_endpoint: () -> ::String
-
-      def self.configure_otlp_exporter: (untyped provider) -> void
+      def configure_otlp_exporter: (untyped provider) -> void
     end
   end
 end

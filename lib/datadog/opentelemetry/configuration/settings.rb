@@ -34,7 +34,7 @@ module Datadog
         end
 
         def self.headers_parser(env_var_name)
-          proc do |value|
+          lambda do |value|
             return {} if value.nil? || value.empty?
 
             headers = {}
