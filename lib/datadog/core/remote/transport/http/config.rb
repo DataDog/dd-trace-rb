@@ -2,8 +2,7 @@
 
 require 'json'
 
-require_relative '../config'
-require_relative 'client'
+require_relative '../../../transport/http/client'
 require_relative '../../../utils/base64'
 require_relative '../../../utils/truncation'
 require_relative '../../../transport/http/response'
@@ -19,7 +18,6 @@ module Datadog
             # Response from HTTP transport for remote configuration
             class Response
               include Datadog::Core::Transport::HTTP::Response
-              include Core::Remote::Transport::Config::Response
 
               def initialize(http_response, options = {}) # standard:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
                 super(http_response)
@@ -114,6 +112,12 @@ module Datadog
                 end.freeze
               end
 
+              attr_reader :roots, :targets, :target_files, :client_configs
+
+              def empty?
+                @empty
+              end
+
               def inspect
                 "#{super}, #{
                   {
@@ -174,8 +178,8 @@ module Datadog
               end
             end
 
-            # Extensions for HTTP client
-            module Client
+            # Remote transport HTTP client
+            class Client < Core::Transport::HTTP::Client
               def send_config_payload(request)
                 send_request(request) do |api, env|
                   api.send_config(env)
@@ -240,10 +244,6 @@ module Datadog
                 end
               end
             end
-
-            # Add remote configuration behavior to transport components
-            ###### overrides send_payload! which calls send_<endpoint>! kills any other possible endpoint!
-            HTTP::Client.include(Config::Client)
           end
         end
       end
