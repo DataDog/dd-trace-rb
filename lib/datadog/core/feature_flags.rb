@@ -6,6 +6,8 @@ module Datadog
   module Core
     # Feature flags evaluation using libdatadog
     # The classes in this module are defined as C extensions in ext/libdatadog_api/feature_flags.c
+    #
+    # @api private
     module FeatureFlags
       # A top-level error raised by the extension
       class Error < StandardError # rubocop:disable Lint/EmptyClass
@@ -47,6 +49,9 @@ module Datadog
 
         private
 
+        # NOTE: A JSON raw string will be returned by the `libdatadog` as
+        #       a Ruby String class with a flag type `:object`, otherwise it's
+        #       just a string.
         def json?(value)
           flag_type == :object && value.is_a?(String)
         end

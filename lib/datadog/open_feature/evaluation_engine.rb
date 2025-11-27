@@ -43,6 +43,12 @@ module Datadog
         )
       end
 
+      # Reconfigure evaluation engine with new set of feature flags configuration
+      #
+      # @param configuration [String, nil] JSON string containing feature flags in the format expected by `libdatadog`,
+      #                                    or nil to remove it.
+      # @raise [ReconfigurationError] If the configuration is invalid or the evaluation engine fails to reconfigure.
+      # @return [NoopEvaluator, NativeEvaluator] The evaluator instance.
       def reconfigure!(configuration)
         if configuration.nil?
           @logger.debug('OpenFeature: Removing configuration')
