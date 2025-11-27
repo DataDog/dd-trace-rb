@@ -79,8 +79,8 @@ __attribute__((warn_unused_result)) ddog_Vec_Tag
 convert_tags(VALUE tags_as_array);
 
 // Initialize exception classes from Datadog::Core::Native
-// Called once during module initialization
-void datadog_ruby_common_init(void);
+// Called once during module initialization with the Datadog module
+void datadog_ruby_common_init(VALUE datadog_module);
 
 static inline VALUE ruby_string_from_error(const ddog_Error *error) {
   ddog_CharSlice char_slice = ddog_Error_message(error);

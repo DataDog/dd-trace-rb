@@ -25,7 +25,8 @@ void ruby_helpers_init(VALUE profiling_module) {
   telemetry_message_id = rb_intern("@telemetry_message");
 
   // Initialize exception classes from Datadog::Core::Native
-  datadog_ruby_common_init();
+  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  datadog_ruby_common_init(datadog_module);
 }
 
 #define MAX_RAISE_MESSAGE_SIZE 256

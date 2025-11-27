@@ -11,9 +11,7 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE core_module = rb_define_module_under(datadog_module, "Core");
 
-  // Initialize exception class globals from Ruby-defined classes
-  datadog_ruby_common_init();
-
+  datadog_ruby_common_init(datadog_module);
   crashtracker_init(core_module);
   process_discovery_init(core_module);
   library_config_init(core_module);
