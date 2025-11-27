@@ -140,12 +140,11 @@ RSpec.describe 'Instrumentation integration' do
 
   context 'log probe' do
     before do
-      allow(agent_settings).to receive(:hostname)
-      allow(agent_settings).to receive(:port)
-      allow(agent_settings).to receive(:timeout_seconds).and_return(1)
-      allow(agent_settings).to receive(:ssl)
-
       allow(Datadog::DI).to receive(:current_component).and_return(component)
+    end
+
+    let(:agent_settings) do
+      instance_double_agent_settings_with_stubs
     end
 
     context 'method probe' do

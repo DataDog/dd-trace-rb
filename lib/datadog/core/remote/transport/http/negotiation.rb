@@ -2,8 +2,7 @@
 
 require 'json'
 
-require_relative '../negotiation'
-require_relative 'client'
+require_relative '../../../transport/http/client'
 require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
 
@@ -17,7 +16,6 @@ module Datadog
             # Response from HTTP transport for agent feature negotiation
             class Response
               include Datadog::Core::Transport::HTTP::Response
-              include Core::Remote::Transport::Negotiation::Response
 
               def initialize(http_response, options = {})
                 super(http_response)
@@ -29,10 +27,24 @@ module Datadog
                 @config = options[:config]
                 @span_events = options[:span_events]
               end
+
+              # @!attribute [r] version
+              #   The version of the agent.
+              #   @return [String]
+              # @!attribute [r] endpoints
+              #   The HTTP endpoints the agent supports.
+              #   @return [Array<String>]
+              # @!attribute [r] config
+              #   The agent configuration. These are configured by the user when starting the agent, as well as any defaults.
+              #   @return [Hash]
+              # @!attribute [r] span_events
+              #   Whether the agent supports the top-level span events field in flushed spans.
+              #   @return [Boolean,nil]
+              attr_reader :version, :endpoints, :config, :span_events
             end
 
-            # Extensions for HTTP client
-            module Client
+            # Remote negotiation HTTP client
+            class Client < Core::Transport::HTTP::Client
               def send_info_payload(request)
                 send_request(request) do |api, env|
                   api.send_info(env)
@@ -92,9 +104,6 @@ module Datadog
                 end
               end
             end
-
-            # Add negotiation behavior to transport components
-            HTTP::Client.include(Negotiation::Client)
           end
         end
       end
