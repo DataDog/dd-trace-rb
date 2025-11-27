@@ -98,7 +98,7 @@ module Datadog
         return component_not_configured_default(default_value) if engine.nil?
 
         result = engine.fetch_value(
-          flag_key: flag_key,
+          flag_key,
           default_value: default_value,
           expected_type: expected_type,
           evaluation_context: evaluation_context
@@ -123,7 +123,7 @@ module Datadog
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: default_value,
           error_code: Ext::GENERAL,
-          error_message: e.message,
+          error_message: "#{e.class}: #{e.message}",
           reason: Ext::ERROR
         )
       end

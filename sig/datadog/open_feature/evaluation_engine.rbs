@@ -9,7 +9,7 @@ module Datadog
       def initialize: (Exposures::Reporter reporter, telemetry: Core::Telemetry::Component, logger: Core::Logger) -> void
 
       def fetch_value: (
-        flag_key: ::String,
+        ::String flag_key,
         default_value: untyped,
         expected_type: ::Symbol,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?

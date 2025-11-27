@@ -21,7 +21,7 @@ module Datadog
         @evaluator = NoopEvaluator.new(nil)
       end
 
-      def fetch_value(flag_key:, default_value:, expected_type:, evaluation_context: nil)
+      def fetch_value(flag_key, default_value:, expected_type:, evaluation_context: nil)
         unless ALLOWED_TYPES.include?(expected_type)
           message = "unknown type #{expected_type.inspect}, allowed types #{ALLOWED_TYPES.join(", ")}"
           return ResolutionDetails.build_error(
@@ -30,7 +30,9 @@ module Datadog
         end
 
         context = evaluation_context&.fields.to_h
-        result = @evaluator.get_assignment(flag_key, default_value, context, expected_type)
+        result = @evaluator.get_assignment(
+          flag_key, default_value: default_value, context: context, expected_type: expected_type
+        )
 
         @reporter.report(result, flag_key: flag_key, context: evaluation_context)
 
@@ -43,12 +45,9 @@ module Datadog
         )
       end
 
-      # Reconfigure evaluation engine with new set of feature flags configuration
-      #
-      # @param configuration [String, nil] JSON string containing feature flags in the format expected by `libdatadog`,
-      #                                    or nil to remove it.
-      # @raise [ReconfigurationError] If the configuration is invalid or the evaluation engine fails to reconfigure.
-      # @return [NoopEvaluator, NativeEvaluator] The evaluator instance.
+      # NOTE: In a currect implementation configuration is expected to be a raw
+      #       JSON string containing feature flags (straight from the remote config)
+      #       in the format expected by `libdatadog` without any modifications
       def reconfigure!(configuration)
         if configuration.nil?
           @logger.debug('OpenFeature: Removing configuration')
@@ -60,8 +59,8 @@ module Datadog
       rescue => e
         message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
-        @logger.error("#{message}, error #{e.inspect}")
-        @telemetry.report(e, description: message)
+        @logger.error("#{message}, #{e.class}: #{e.message}")
+        @telemetry.report(e, description: "#{message} (#{e.class})")
 
         raise ReconfigurationError, e.message
       end
