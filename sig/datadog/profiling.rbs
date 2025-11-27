@@ -1,11 +1,22 @@
 module Datadog
   module Profiling
-    class NativeError < RuntimeError
-      attr_reader telemetry_message: String?
-      def initialize: (*untyped args, **untyped kwargs) -> void
+    module NativeError
+      attr_reader telemetry_message: ::String?
+      def initialize: (::String? message, ?::String? telemetry_message) -> void
     end
-    ProfilingError: singleton(NativeError)
-    ProfilingInternalError: singleton(NativeError)
+
+    class NativeRuntimeError < ::RuntimeError
+      prepend NativeError
+    end
+
+    class NativeArgumentError < ::ArgumentError
+      prepend NativeError
+    end
+
+    class NativeTypeError < ::TypeError
+      prepend NativeError
+    end
+
     def self.supported?: () -> bool
     def self.unsupported_reason: () -> ::String?
     def self.start_if_enabled: () -> bool
