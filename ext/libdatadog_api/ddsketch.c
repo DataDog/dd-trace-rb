@@ -9,8 +9,6 @@ static VALUE native_add(VALUE self, VALUE point);
 static VALUE native_add_with_count(VALUE self, VALUE point, VALUE count);
 static VALUE native_count(VALUE self);
 static VALUE native_encode(VALUE self);
-NORETURN(static void raise_ddsketch_error(const char *message,
-                                          ddog_VoidResult result));
 
 void ddsketch_init(VALUE core_module) {
   VALUE ddsketch_class =
@@ -57,9 +55,10 @@ static void ddsketch_free(void *ptr) {
 }
 
 #define raise_ddsketch_error(message, result)                                  \
-  raise_error(eNativeRuntimeError, message,                                    \
-              get_error_details_and_drop(&result.err));
-}
+  do {                                                                         \
+    raise_error(eNativeRuntimeError, message,                                  \
+                get_error_details_and_drop(&result.err));                      \
+  } while (0)
 
 static VALUE native_add(VALUE self, VALUE point) {
   ddsketch_Handle_DDSketch *state;
@@ -69,7 +68,7 @@ static VALUE native_add(VALUE self, VALUE point) {
   ddog_VoidResult result = ddog_ddsketch_add(state, NUM2DBL(point));
 
   if (result.tag == DDOG_VOID_RESULT_ERR)
-    raise_ddsketch_error("DDSketch add failed: %" PRIsVALUE", result);
+    raise_ddsketch_error("DDSketch add failed: %" PRIsVALUE, result);
 
   return self;
 }
@@ -83,7 +82,7 @@ static VALUE native_add_with_count(VALUE self, VALUE point, VALUE count) {
       ddog_ddsketch_add_with_count(state, NUM2DBL(point), NUM2DBL(count));
 
   if (result.tag == DDOG_VOID_RESULT_ERR)
-    raise_ddsketch_error("DDSketch add_with_count failed: %" PRIsVALUE", result);
+    raise_ddsketch_error("DDSketch add_with_count failed: %" PRIsVALUE, result);
 
   return self;
 }
@@ -97,7 +96,7 @@ static VALUE native_count(VALUE self) {
   ddog_VoidResult result = ddog_ddsketch_count(state, &count_out);
 
   if (result.tag == DDOG_VOID_RESULT_ERR)
-    raise_ddsketch_error("DDSketch count failed: %" PRIsVALUE", result);
+    raise_ddsketch_error("DDSketch count failed: %" PRIsVALUE, result);
 
   return DBL2NUM(count_out);
 }

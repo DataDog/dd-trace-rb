@@ -1,15 +1,23 @@
 #include <ruby.h>
 
-#include "datadog_ruby_common.h"
 #include "crashtracker.h"
-#include "process_discovery.h"
+#include "datadog_ruby_common.h"
 #include "library_config.h"
+#include "process_discovery.h"
 
 void ddsketch_init(VALUE core_module);
 
 void DDTRACE_EXPORT Init_libdatadog_api(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE core_module = rb_define_module_under(datadog_module, "Core");
+
+  // Initialize exception classes
+  rb_global_variable(&eNativeRuntimeError);
+  rb_global_variable(&eNativeArgumentError);
+  eNativeRuntimeError = rb_define_class_under(core_module, "NativeRuntimeError",
+                                              rb_eStandardError);
+  eNativeArgumentError = rb_define_class_under(
+      core_module, "NativeArgumentError", rb_eStandardError);
 
   crashtracker_init(core_module);
   process_discovery_init(core_module);

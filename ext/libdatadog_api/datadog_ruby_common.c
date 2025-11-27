@@ -1,21 +1,29 @@
 #include "datadog_ruby_common.h"
+#include <stdarg.h>
 
-// IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
+// IMPORTANT: Currently this file is copy-pasted between extensions. Make sure
+// to update all versions when doing any change!
 
-void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name) {
-  rb_exc_raise(
-    rb_exc_new_str(
-      rb_eTypeError,
-      rb_sprintf("wrong argument %"PRIsVALUE" for '%s' (expected a %s) at %s:%d:in `%s'",
-        rb_inspect(value),
-        value_name,
-        type_name,
-        file,
-        line,
-        function_name
-      )
-    )
-  );
+// Exception classes defined in Ruby, in the `Datadog::Core` namespace.
+VALUE eNativeRuntimeError = Qnil;
+VALUE eNativeArgumentError = Qnil;
+
+void raise_unexpected_type(VALUE value, const char *value_name,
+                           const char *type_name, const char *file, int line,
+                           const char *function_name) {
+  rb_exc_raise(rb_exc_new_str(
+      rb_eTypeError, rb_sprintf("wrong argument %" PRIsVALUE
+                                " for '%s' (expected a %s) at %s:%d:in `%s'",
+                                rb_inspect(value), value_name, type_name, file,
+                                line, function_name)));
+}
+
+void raise_error(VALUE error_class, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  VALUE message = rb_vsprintf(fmt, args);
+  va_end(args);
+  rb_raise(error_class, "%" PRIsVALUE, message);
 }
 
 VALUE datadog_gem_version(void) {
@@ -29,11 +37,12 @@ VALUE datadog_gem_version(void) {
 }
 
 static VALUE log_failure_to_process_tag(VALUE err_details) {
-  return log_warning(rb_sprintf("Failed to convert tag: %"PRIsVALUE, err_details));
+  return log_warning(
+      rb_sprintf("Failed to convert tag: %" PRIsVALUE, err_details));
 }
 
-__attribute__((warn_unused_result))
-ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
+__attribute__((warn_unused_result)) ddog_Vec_Tag
+convert_tags(VALUE tags_as_array) {
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
 
   long tags_count = RARRAY_LEN(tags_as_array);
@@ -47,7 +56,8 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
       ENFORCE_TYPE(name_value_pair, T_ARRAY);
     }
 
-    // Note: We can index the array without checking its size first because rb_ary_entry returns Qnil if out of bounds
+    // Note: We can index the array without checking its size first because
+    // rb_ary_entry returns Qnil if out of bounds
     VALUE tag_name = rb_ary_entry(name_value_pair, 0);
     VALUE tag_value = rb_ary_entry(name_value_pair, 1);
 
@@ -58,20 +68,25 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
     }
 
     ddog_Vec_Tag_PushResult push_result =
-      ddog_Vec_Tag_push(&tags, char_slice_from_ruby_string(tag_name), char_slice_from_ruby_string(tag_value));
+        ddog_Vec_Tag_push(&tags, char_slice_from_ruby_string(tag_name),
+                          char_slice_from_ruby_string(tag_value));
 
     if (push_result.tag == DDOG_VEC_TAG_PUSH_RESULT_ERR) {
-      // libdatadog validates tags and may catch invalid tags that ddtrace didn't actually catch.
-      // We warn users about such tags, and then just ignore them.
+      // libdatadog validates tags and may catch invalid tags that ddtrace
+      // didn't actually catch. We warn users about such tags, and then just
+      // ignore them.
 
       int exception_state;
-      rb_protect(log_failure_to_process_tag, get_error_details_and_drop(&push_result.err), &exception_state);
+      rb_protect(log_failure_to_process_tag,
+                 get_error_details_and_drop(&push_result.err),
+                 &exception_state);
 
-      // Since we are calling into Ruby code, it may raise an exception. Ensure that dynamically-allocated tags
-      // get cleaned before propagating the exception.
+      // Since we are calling into Ruby code, it may raise an exception. Ensure
+      // that dynamically-allocated tags get cleaned before propagating the
+      // exception.
       if (exception_state) {
         ddog_Vec_Tag_drop(tags);
-        rb_jump_tag(exception_state);  // "Re-raise" exception
+        rb_jump_tag(exception_state); // "Re-raise" exception
       }
     }
   }
