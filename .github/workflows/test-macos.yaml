@@ -44,6 +44,13 @@ jobs:
       - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
         with:
           ruby-version: ${{ matrix.ruby }}
+      - run: |
+          which ruby
+          ruby --version
+          which gem
+          gem --version
+          which bundle
+          bundle --version
       - run: bundle install
       - run: bundle exec rake spec:main
 
