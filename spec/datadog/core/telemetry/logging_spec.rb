@@ -82,6 +82,45 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         end
       end
     end
+    context 'with an Erro error carrying telemetry message' do
+      subject(:report) do
+        raise Errno::ENOENT, 'Dynamic runtime message'
+      rescue SystemCallError => error
+        # This is normally done by native extensions, when raising Errno errors
+        error.instance_variable_set(:@telemetry_message, 'Safe message')
+
+        component.report(error, level: :error, description: description)
+      end
+
+      let(:description) { nil }
+
+      it 'includes the telemetry message but not the dynamic exception message' do
+        expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+          expect(event.payload).to include(
+            logs: [{message: 'Errno::ENOENT: (Safe message)', level: 'ERROR', count: 1,
+                    stack_trace: a_string_including('REDACTED')}]
+          )
+          expect(event.payload[:logs].first[:message]).not_to include('Dynamic runtime message')
+        end
+
+        report
+      end
+
+      context 'with description' do
+        let(:description) { 'Operation failed' }
+
+        it 'includes both description and telemetry message' do
+          expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+            expect(event.payload).to include(
+              logs: [{message: 'Errno::ENOENT: Operation failed (Safe message)', level: 'ERROR', count: 1,
+                      stack_trace: a_string_including('REDACTED')}]
+            )
+          end
+
+          report
+        end
+      end
+    end
     context 'with NativeError' do
       before do
         skip unless defined?(Datadog::Profiling::NativeError)

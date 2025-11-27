@@ -97,6 +97,8 @@ static void *trigger_raise(void *raise_arguments) {
   );
 }
 
+// Raises a SysErr exception with seperate telemetry-safe and detailed messages.
+// The telemetry-safe message is set in the instance variable `@telemetry_message`.
 void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message) {
   VALUE error = rb_syserr_new(syserr_errno, detailed_message);
 
