@@ -14,9 +14,6 @@ static ID to_s_id = Qnil;
 static ID new_id = 0;
 static ID telemetry_message_id = Qnil;
 
-// Exception classes defined in Ruby, in the `Datadog::Profiling` namespace.
-VALUE eNativeTypeError = Qnil;
-
 void ruby_helpers_init(VALUE profiling_module) {
   rb_global_variable(&module_object_space);
 
@@ -27,11 +24,15 @@ void ruby_helpers_init(VALUE profiling_module) {
   new_id = rb_intern("new");
   telemetry_message_id = rb_intern("@telemetry_message");
 
-  eNativeRuntimeError = rb_const_get(profiling_module, rb_intern("NativeRuntimeError"));
+  // Initialize exception classes from Datadog::Core::Native
+  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  VALUE core_module = rb_const_get(datadog_module, rb_intern("Core"));
+  VALUE native_module = rb_const_get(core_module, rb_intern("Native"));
+  eNativeRuntimeError = rb_const_get(native_module, rb_intern("RuntimeError"));
   rb_global_variable(&eNativeRuntimeError);
-  eNativeArgumentError = rb_const_get(profiling_module, rb_intern("NativeArgumentError"));
+  eNativeArgumentError = rb_const_get(native_module, rb_intern("ArgumentError"));
   rb_global_variable(&eNativeArgumentError);
-  eNativeTypeError = rb_const_get(profiling_module, rb_intern("NativeTypeError"));
+  eNativeTypeError = rb_const_get(native_module, rb_intern("TypeError"));
   rb_global_variable(&eNativeTypeError);
 }
 

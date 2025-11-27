@@ -75,26 +75,6 @@ module Datadog
         raise 'Profiler not enabled or available'
       end
     end
-    # Base error type for exceptions raised by our native extensions.
-    # These errors have both the original error message and a telemetry-safe message.
-    # The telemetry-safe message is statically defined and does not possess dynamic data.
-    module NativeError
-      attr_reader :telemetry_message
-      def initialize(message, telemetry_message = nil)
-        super(message)
-        @telemetry_message = telemetry_message
-      end
-    end
-    class NativeRuntimeError < RuntimeError
-      prepend NativeError
-    end
-    class NativeArgumentError < ArgumentError
-      prepend NativeError
-    end
-    class NativeTypeError < TypeError
-      prepend NativeError
-    end
-
     private_class_method def self.replace_noop_allocation_count
       class << self
         remove_method :allocation_count

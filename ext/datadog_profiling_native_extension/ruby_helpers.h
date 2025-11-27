@@ -40,10 +40,6 @@ static inline int check_if_pending_exception(void) {
 
 #define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
 
-// Global references to Datadog::Profiling exception classes.
-extern VALUE eNativeRuntimeError;
-extern VALUE eNativeArgumentError;
-extern VALUE eNativeTypeError;
 // Raises an exception of the specified class with the formatted string as its message.
 // This macro ensures that the literay string is sent for telemetry, while the formatted
 // message is the default `Exception#message`.

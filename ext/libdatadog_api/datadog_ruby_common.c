@@ -7,6 +7,7 @@
 // Exception classes defined in Ruby, in the `Datadog::Core` namespace.
 VALUE eNativeRuntimeError = Qnil;
 VALUE eNativeArgumentError = Qnil;
+VALUE eNativeTypeError = Qnil;
 
 void raise_unexpected_type(VALUE value, const char *value_name,
                            const char *type_name, const char *file, int line,

@@ -56,6 +56,7 @@ NORETURN(void raise_error(VALUE error_class, const char *fmt, ...));
 // Exception classes defined in Ruby, in the `Datadog::Core` namespace.
 extern VALUE eNativeRuntimeError;
 extern VALUE eNativeArgumentError;
+extern VALUE eNativeTypeError;
 
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);

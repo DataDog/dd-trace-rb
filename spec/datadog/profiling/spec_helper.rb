@@ -175,7 +175,7 @@ RSpec::Matchers.define :raise_native_error do |expected_class, expected_message 
 
     actual_proc.call
     false
-  rescue Datadog::Profiling::NativeError => e
+  rescue Datadog::Core::Native::Error => e
     @actual_error = e
 
     unless e.is_a?(expected_class)

@@ -10,14 +10,18 @@ void ddsketch_init(VALUE core_module);
 void DDTRACE_EXPORT Init_libdatadog_api(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE core_module = rb_define_module_under(datadog_module, "Core");
+  VALUE native_module = rb_define_module_under(core_module, "Native");
 
-  // Initialize exception classes
+  // Initialize exception classes under Core::Native
   rb_global_variable(&eNativeRuntimeError);
   rb_global_variable(&eNativeArgumentError);
-  eNativeRuntimeError = rb_define_class_under(core_module, "NativeRuntimeError",
-                                              rb_eStandardError);
+  rb_global_variable(&eNativeTypeError);
+  eNativeRuntimeError = rb_define_class_under(native_module, "RuntimeError",
+                                              rb_eRuntimeError);
   eNativeArgumentError = rb_define_class_under(
-      core_module, "NativeArgumentError", rb_eStandardError);
+      native_module, "ArgumentError", rb_eArgError);
+  eNativeTypeError = rb_define_class_under(native_module, "TypeError",
+                                           rb_eTypeError);
 
   crashtracker_init(core_module);
   process_discovery_init(core_module);
