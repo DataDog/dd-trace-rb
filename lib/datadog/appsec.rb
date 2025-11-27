@@ -11,11 +11,13 @@ module Datadog
   module AppSec
     class << self
       def enabled?
-        Datadog.configuration.appsec.enabled
+        !!components.appsec
       end
 
       def rasp_enabled?
-        Datadog.configuration.appsec.rasp_enabled
+        # TODO this should take rasp_enabled flag from the settings in
+        # the appsec component rather than reading global configuration.
+        enabled? && Datadog.configuration.appsec.rasp_enabled
       end
 
       def active_context
@@ -23,7 +25,7 @@ module Datadog
       end
 
       def telemetry
-        components.appsec&.telemetry
+        components.telemetry
       end
 
       def security_engine
