@@ -2,6 +2,7 @@ PATH
   remote: ..
   specs:
     datadog (2.23.0)
+      cgi
       datadog-ruby_core_source (~> 3.4, >= 3.4.1)
       libdatadog (~> 24.0.1.1.0)
       libddwaf (~> 1.30.0.0.0)
@@ -19,6 +20,7 @@ GEM
       memory_profiler (~> 0.9)
     bigdecimal (3.1.9)
     byebug (11.1.3)
+    cgi (0.5.0)
     climate_control (1.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.3.5)
@@ -35,7 +37,6 @@ GEM
     dogstatsd-ruby (5.6.5)
     excon (1.3.1)
       logger
-    ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-x86_64-linux-gnu)
     google-protobuf (3.25.6)
     hashdiff (1.1.2)
@@ -46,10 +47,7 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (24.0.1.1.0-aarch64-linux)
     libdatadog (24.0.1.1.0-x86_64-linux)
-    libddwaf (1.30.0.0.0-aarch64-linux)
-      ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
@@ -112,7 +110,6 @@ GEM
     zstd-ruby (2.0.3)
 
 PLATFORMS
-  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
