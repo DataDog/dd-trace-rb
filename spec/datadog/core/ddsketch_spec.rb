@@ -1,7 +1,6 @@
 require 'datadog/core'
 require 'datadog/core/ddsketch'
 require 'datadog/core/ddsketch_pprof/ddsketch_pb'
-require 'datadog/profiling/spec_helper'
 
 RSpec.describe Datadog::Core::DDSketch do
   context 'when DDSketch is not supported' do

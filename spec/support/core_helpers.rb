@@ -62,6 +62,94 @@ module CoreHelpers
     end
   end
 
+  RSpec::Matchers.define :raise_native_error do |expected_class, expected_message = nil, expected_telemetry_message = nil, &block|
+    unless expected_class.is_a?(Class) && expected_class <= Datadog::Core::Native::Error
+      raise ArgumentError, "expected_class must be a subclass of Datadog::Core::Native::Error"
+    end
+
+    supports_block_expectations
+
+    def describe_expected(value)
+      if value.respond_to?(:description) && value.description
+        value.description
+      else
+        value.inspect
+      end
+    end
+
+    def match_expected?(expected, actual, attribute)
+      return true if expected.nil?
+
+      actual_description = actual.nil? ? "nil" : actual.inspect
+
+      if expected.respond_to?(:matches?)
+        result = expected.matches?(actual)
+        unless result
+          @failure_message ||= if expected.respond_to?(:failure_message)
+            expected.failure_message
+          else
+            "expected native exception #{attribute} to match #{describe_expected(expected)}, but was #{actual_description}"
+          end
+        end
+        result
+      elsif expected.is_a?(Regexp)
+        actual_string = if actual.is_a?(String)
+          actual
+        elsif actual.respond_to?(:to_str)
+          actual.to_str
+        end
+        result = actual_string && expected.match?(actual_string)
+        unless result
+          @failure_message ||= "expected native exception #{attribute} to match #{expected.inspect}, but was #{actual_description}"
+        end
+        result
+      else
+        result = actual == expected
+        unless result
+          @failure_message ||= "expected native exception #{attribute} to equal #{expected.inspect}, but was #{actual_description}"
+        end
+        result
+      end
+    end
+
+    match do |actual_proc|
+      @failure_message = nil
+      @actual_error = nil
+
+      actual_proc.call
+      false
+    rescue Datadog::Core::Native::Error => e
+      @actual_error = e
+
+      unless e.is_a?(expected_class)
+        @failure_message =
+          "expected native exception of class #{expected_class}, but #{e.class} was raised"
+        return false
+      end
+
+      message_matches = match_expected?(expected_message, e.message, "message")
+      telemetry_matches = match_expected?(expected_telemetry_message, e.telemetry_message, "telemetry message")
+
+      return false unless message_matches && telemetry_matches
+
+      block&.call(e)
+
+      true
+    end
+
+    failure_message do
+      if @actual_error
+        @failure_message ||
+          "expected native exception of class #{expected_class} with message #{expected_message.inspect} " \
+          "and telemetry message #{expected_telemetry_message.inspect}, but got #{@actual_error.class} " \
+          "with message #{@actual_error.message.inspect} and telemetry message #{@actual_error.telemetry_message.inspect}"
+      else
+        "expected native exception of class #{expected_class} with message #{expected_message.inspect} " \
+        "and telemetry message #{expected_telemetry_message.inspect}, but no exception was raised"
+      end
+    end
+  end
+
   module ClassMethods
     def skip_unless_integration_testing_enabled
       unless ENV['TEST_DATADOG_INTEGRATION']
