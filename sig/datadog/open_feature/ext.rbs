@@ -7,6 +7,8 @@ module Datadog
 
       UNKNOWN_TYPE: ::String
 
+      GENERAL: ::String
+
       PROVIDER_FATAL: ::String
 
       PROVIDER_NOT_READY: ::String
