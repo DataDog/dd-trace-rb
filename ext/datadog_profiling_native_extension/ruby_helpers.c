@@ -86,10 +86,13 @@ static void *trigger_raise(void *raise_arguments) {
     args->exception_message,
     args->telemetry_message
   );
+
+  return NULL;
 }
 
 // Raises a SysErr exception with seperate telemetry-safe and detailed messages.
 // The telemetry-safe message is set in the instance variable `@telemetry_message`.
+NORETURN(void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message));
 void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message) {
   VALUE error = rb_syserr_new(syserr_errno, detailed_message);
 
@@ -163,6 +166,8 @@ static void *trigger_syserr_raise(void *syserr_raise_arguments) {
     args->exception_message,
     args->exception_message
   );
+
+  return NULL;
 }
 
 void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...) {

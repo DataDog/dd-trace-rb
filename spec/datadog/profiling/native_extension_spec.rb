@@ -115,6 +115,15 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - message oops")
     end
 
+    it "keeps telemetry-safe message unformatted" do
+      expect do
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "message %s", "oops", true)
+      end.to raise_error(Errno::EINTR) do |error|
+        expect(error.message).to include("message oops")
+        expect(error.instance_variable_get(:@telemetry_message)).to eq("message %s")
+      end
+    end
+
     it "limits the caller-provided exception message to 255 characters" do
       big_message = "a" * 500
 
