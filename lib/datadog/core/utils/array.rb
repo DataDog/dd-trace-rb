@@ -13,9 +13,8 @@ module Datadog
             # You would think that .compact would work here, but it does not:
             # the result of .map could be an Enumerator::Lazy instance which
             # does not implement #compact on Ruby 2.5/2.6.
-            array.each_with_object([]) do |item, memo|
-              new_item = block.call(item)
-              memo.push(new_item) unless new_item.nil?
+            array.map(&block).reject do |item|
+              item.nil?
             end
           end
         end
