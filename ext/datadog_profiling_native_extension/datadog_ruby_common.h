@@ -1,62 +1,42 @@
 #pragma once
 
-// IMPORTANT: Currently this file is copy-pasted between extensions. Make sure
-// to update all versions when doing any change!
+// IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
-#include <datadog/common.h>
 #include <ruby.h>
+#include <datadog/common.h>
 
 // Must be called once during initialization
 void datadog_ruby_common_init(VALUE datadog_module);
 
 // Used to mark symbols to be exported to the outside of the extension.
 // Consider very carefully before tagging a function with this.
-#define DDTRACE_EXPORT __attribute__((visibility("default")))
+#define DDTRACE_EXPORT __attribute__ ((visibility ("default")))
 
 // Used to mark function arguments that are deliberately left unused
 #ifdef __GNUC__
   #define DDTRACE_UNUSED  __attribute__((unused))
-  #define DDTRACE_PRINTF_FORMAT(format_index, vararg_index) __attribute__((format(gnu_printf, format_index, vararg_index)))
 #else
   #define DDTRACE_UNUSED
-  #define DDTRACE_PRINTF_FORMAT(format_index, vararg_index)
 #endif
 
 #define ADD_QUOTES_HELPER(x) #x
 #define ADD_QUOTES(x) ADD_QUOTES_HELPER(x)
 
-// Ruby has a Check_Type(value, type) that is roughly equivalent to this BUT
-// Ruby's version is rather cryptic when it fails e.g. "wrong argument type nil
-// (expected String)". This is a replacement that prints more information to
-// help debugging.
-#define ENFORCE_TYPE(value, type)                                              \
-  {                                                                            \
-    if (RB_UNLIKELY(!RB_TYPE_P(value, type)))                                  \
-      raise_unexpected_type(value, ADD_QUOTES(value), ADD_QUOTES(type),        \
-                            __FILE__, __LINE__, __func__);                     \
-  }
+// Ruby has a Check_Type(value, type) that is roughly equivalent to this BUT Ruby's version is rather cryptic when it fails
+// e.g. "wrong argument type nil (expected String)". This is a replacement that prints more information to help debugging.
+#define ENFORCE_TYPE(value, type) \
+  { if (RB_UNLIKELY(!RB_TYPE_P(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), ADD_QUOTES(type), __FILE__, __LINE__, __func__); }
 
-#define ENFORCE_BOOLEAN(value)                                                 \
-  {                                                                            \
-    if (RB_UNLIKELY(value != Qtrue && value != Qfalse))                        \
-      raise_unexpected_type(value, ADD_QUOTES(value), "true or false",         \
-                            __FILE__, __LINE__, __func__);                     \
-  }
+#define ENFORCE_BOOLEAN(value) \
+  { if (RB_UNLIKELY(value != Qtrue && value != Qfalse)) raise_unexpected_type(value, ADD_QUOTES(value), "true or false", __FILE__, __LINE__, __func__); }
 
-#define ENFORCE_TYPED_DATA(value, type)                                        \
-  {                                                                            \
-    if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, type)))                    \
-      raise_unexpected_type(value, ADD_QUOTES(value),                          \
-                            "TypedData of type " ADD_QUOTES(type), __FILE__,   \
-                            __LINE__, __func__);                               \
-  }
+#define ENFORCE_TYPED_DATA(value, type) \
+  { if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), "TypedData of type " ADD_QUOTES(type), __FILE__, __LINE__, __func__); }
 
-NORETURN(void raise_unexpected_type(VALUE value, const char *value_name,
-                                    const char *type_name, const char *file,
-                                    int line, const char *function_name));
+NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name));
 
 // Helper to raise errors with formatted messages
-NORETURN(void raise_error(VALUE error_class, const char *fmt, ...)) DDTRACE_PRINTF_FORMAT(2, 3);
+NORETURN(void raise_error(VALUE error_class, const char *fmt, ...));
 
 // Exception classes defined in Ruby, in the `Datadog::Core` namespace.
 extern VALUE eNativeRuntimeError;
@@ -68,8 +48,7 @@ VALUE datadog_gem_version(void);
 
 static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   ENFORCE_TYPE(string, T_STRING);
-  ddog_CharSlice char_slice = {.ptr = RSTRING_PTR(string),
-                               .len = RSTRING_LEN(string)};
+  ddog_CharSlice char_slice = {.ptr = RSTRING_PTR(string), .len = RSTRING_LEN(string)};
   return char_slice;
 }
 
@@ -80,8 +59,8 @@ static inline VALUE log_warning(VALUE warning) {
   return rb_funcall(logger, rb_intern("warn"), 1, warning);
 }
 
-__attribute__((warn_unused_result)) ddog_Vec_Tag
-convert_tags(VALUE tags_as_array);
+__attribute__((warn_unused_result))
+ddog_Vec_Tag convert_tags(VALUE tags_as_array);
 
 static inline VALUE ruby_string_from_error(const ddog_Error *error) {
   ddog_CharSlice char_slice = ddog_Error_message(error);
