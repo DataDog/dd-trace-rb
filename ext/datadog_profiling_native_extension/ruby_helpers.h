@@ -50,7 +50,7 @@ static inline int check_if_pending_exception(void) {
   private_raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
 
 #define grab_gvl_and_raise(native_exception_class, fmt, ...) \
-  private_grab_gvl_and_raise(native_exception_class, "" fmt, ##__VA_ARGS__)
+  private_grab_gvl_and_raise(native_exception_class, 0, "" fmt, ##__VA_ARGS__)
 
 // The message must be statically bound and checked.
 NORETURN(
@@ -64,10 +64,7 @@ NORETURN(
   __attribute__ ((format (printf, 2, 3)));
 );
 
-NORETURN(
-  void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
-  __attribute__ ((format (printf, 2, 3)));
-);
+
 
 NORETURN(
   void private_raise_error(VALUE native_exception_class, const char *fmt, ...)
@@ -75,8 +72,8 @@ NORETURN(
 );
 
 NORETURN(
-  void private_grab_gvl_and_raise(VALUE native_exception_class, const char *format_string, ...)
-  __attribute__ ((format (printf, 2, 3)));
+  void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, const char *format_string, ...)
+  __attribute__ ((format (printf, 3, 4)));
 );
 
 // NOTE: Only used externally for testing, by `_native_raise_native_error_with_invalid_class`

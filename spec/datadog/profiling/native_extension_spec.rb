@@ -138,8 +138,8 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "message %s", "oops", false)
         end.to raise_native_error(
           Datadog::Core::Native::RuntimeError,
-          include("called by thread holding the global VM lock. syserr_errno: 4, exception_message: 'message oops'"),
-          include("called by thread holding the global VM lock. syserr_errno: 4, exception_message: 'message %s'")
+          include("called by thread holding the global VM lock: message oops (Errno 4)"),
+          include("called by thread holding the global VM lock: message %s (Errno 4)")
         )
       end
     end
