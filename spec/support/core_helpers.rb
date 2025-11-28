@@ -82,33 +82,34 @@ module CoreHelpers
 
       actual_description = actual.nil? ? "nil" : actual.inspect
 
-      if expected.respond_to?(:matches?)
-        result = expected.matches?(actual)
-        unless result
-          @failure_message ||= if expected.respond_to?(:failure_message)
+      failure_message = if expected.respond_to?(:matches?)
+        unless expected.matches?(actual)
+          if expected.respond_to?(:failure_message)
             expected.failure_message
           else
             "expected native exception #{attribute} to match #{describe_expected(expected)}, but was #{actual_description}"
           end
         end
-        result
       elsif expected.is_a?(Regexp)
         actual_string = if actual.is_a?(String)
           actual
         elsif actual.respond_to?(:to_str)
           actual.to_str
         end
-        result = actual_string && expected.match?(actual_string)
-        unless result
-          @failure_message ||= "expected native exception #{attribute} to match #{expected.inspect}, but was #{actual_description}"
+        unless actual_string && expected.match?(actual_string)
+          "expected native exception #{attribute} to match #{expected.inspect}, but was #{actual_description}"
         end
-        result
       else
-        result = actual == expected
-        unless result
-          @failure_message ||= "expected native exception #{attribute} to equal #{expected.inspect}, but was #{actual_description}"
+        unless actual == expected
+          "expected native exception #{attribute} to equal #{expected.inspect}, but was #{actual_description}"
         end
-        result
+      end
+
+      if failure_message
+        @failure_message ||= failure_message
+        false
+      else
+        true
       end
     end
 
