@@ -101,13 +101,7 @@ static inline void toggle_sigprof_signal_handler_for_current_thread(int action) 
   sigemptyset(&signals_to_toggle);
   sigaddset(&signals_to_toggle, SIGPROF);
   int error = pthread_sigmask(action, &signals_to_toggle, NULL);
-
-  if (error) {
-    // Ensure we know statically the possible values for `action`.
-    int telemetry_safe_action = (action >= SIG_BLOCK && action <= SIG_UNBLOCK) ? action : -1;
-
-    raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask, action=%d", telemetry_safe_action);
-  }
+  if (error) rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action)));
 }
 
 void block_sigprof_signal_handler_from_running_in_current_thread(void) {
