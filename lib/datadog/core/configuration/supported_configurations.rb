@@ -32,6 +32,7 @@ module Datadog
          "DD_APPSEC_TRACE_RATE_LIMIT" => {version: ["A"]},
          "DD_APPSEC_WAF_DEBUG" => {version: ["A"]},
          "DD_APPSEC_WAF_TIMEOUT" => {version: ["A"]},
+         "DD_CRASHTRACKING_EMIT_RUNTIME_STACKS" => {version: ["A"]},
          "DD_CRASHTRACKING_ENABLED" => {version: ["A"]},
          "DD_DATA_STREAMS_ENABLED" => {version: ["A"]},
          "DD_DBM_PROPAGATION_MODE" => {version: ["A"]},
