@@ -82,7 +82,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         end
       end
     end
-    context 'with an Erro error carrying telemetry message' do
+    context 'with an Errno error carrying telemetry message' do
       subject(:report) do
         raise Errno::ENOENT, 'Dynamic runtime message'
       rescue SystemCallError => error
