@@ -36,7 +36,7 @@ void datadog_ruby_common_init(VALUE datadog_module);
 NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name));
 
 // Helper to raise errors with formatted messages
-NORETURN(void raise_error(VALUE error_class, const char *fmt, ...));
+NORETURN(void raise_error(VALUE error_class, const char *fmt, ...)) __attribute__ ((format (gnu_printf, 2, 3)));
 
 // Exception classes defined in Ruby, in the `Datadog::Core` namespace.
 extern VALUE eNativeRuntimeError;
