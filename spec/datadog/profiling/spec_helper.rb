@@ -24,12 +24,12 @@ module ProfileHelpers
 
     # Profiling is not officially supported on macOS due to missing libdatadog binaries,
     # but it's still useful to allow it to be enabled for development.
-    # if PlatformHelpers.mac? && ENV["DD_PROFILING_MACOS_TESTING"] != "true"
-    #   testcase.skip(
-    #     "Profiling is not supported on macOS. If you still want to run these specs, you can use " \
-    #     "DD_PROFILING_MACOS_TESTING=true to override this check."
-    #   )
-    # end
+    if PlatformHelpers.mac? && ENV["DD_PROFILING_MACOS_TESTING"] != "true"
+      testcase.skip(
+        "Profiling is not supported on macOS. If you still want to run these specs, you can use " \
+        "DD_PROFILING_MACOS_TESTING=true to override this check."
+      )
+    end
 
     return if Datadog::Profiling.supported?
 
