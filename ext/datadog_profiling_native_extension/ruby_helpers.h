@@ -103,25 +103,6 @@ NORETURN(void raise_syserr(
   const char *function_name
 ));
 
-typedef enum {
-  SIGNAL_HANDLER_NAME_NULL, // Reserved to avoid accidental 0-value usage
-  SIGNAL_HANDLER_NAME_handle_sampling_signal,
-  SIGNAL_HANDLER_NAME_testing_signal_handler,
-  SIGNAL_HANDLER_NAME_holding_the_gvl_signal_handler,
-  SIGNAL_HANDLER_NAME_empty_signal_handler,
-  SIGNAL_HANDLER_NAME_COUNT
-} signal_handler_name_t;
-
-static const char *const SIGNAL_HANDLER_NAMES[SIGNAL_HANDLER_NAME_COUNT] = {
-  [SIGNAL_HANDLER_NAME_NULL] = "", // Unused
-  [SIGNAL_HANDLER_NAME_handle_sampling_signal] = "handle_sampling_signal",
-  [SIGNAL_HANDLER_NAME_testing_signal_handler] = "testing_signal_handler",
-  [SIGNAL_HANDLER_NAME_holding_the_gvl_signal_handler] = "holding_the_gvl_signal_handler",
-  [SIGNAL_HANDLER_NAME_empty_signal_handler] = "empty_signal_handler"
-};
-
-#define SIGNAL_HANDLER_NAME(var) SIGNAL_HANDLER_NAME_##var
-
 // Native wrapper to get an object ref from an id. Returns true on success and
 // writes the ref to the value pointer parameter if !NULL. False if id doesn't
 // reference a valid object (in which case value is not changed).
