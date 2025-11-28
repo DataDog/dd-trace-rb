@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Utils
+      module Array
+        def self.filter_map: (::Array[any] array) { (any) -> any } -> ::Array[any]
+      end
+    end
+  end
+end
