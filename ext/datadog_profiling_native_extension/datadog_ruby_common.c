@@ -95,13 +95,20 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
 
 void datadog_ruby_common_init(VALUE datadog_module) {
   VALUE core_module = rb_const_get(datadog_module, rb_intern("Core"));
+  ENFORCE_TYPE(core_module, T_MODULE);
+
   VALUE native_module = rb_const_get(core_module, rb_intern("Native"));
+  ENFORCE_TYPE(native_module, T_MODULE);
 
   rb_global_variable(&eNativeRuntimeError);
-  rb_global_variable(&eNativeArgumentError);
-  rb_global_variable(&eNativeTypeError);
-
   eNativeRuntimeError = rb_const_get(native_module, rb_intern("RuntimeError"));
+  ENFORCE_TYPE(eNativeRuntimeError, T_CLASS);
+
+  rb_global_variable(&eNativeArgumentError);
   eNativeArgumentError = rb_const_get(native_module, rb_intern("ArgumentError"));
+  ENFORCE_TYPE(eNativeArgumentError, T_CLASS);
+
+  rb_global_variable(&eNativeTypeError);
   eNativeTypeError = rb_const_get(native_module, rb_intern("TypeError"));
+  ENFORCE_TYPE(eNativeTypeError, T_CLASS);
 }
