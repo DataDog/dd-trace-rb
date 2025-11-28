@@ -25,14 +25,13 @@ module Datadog
           # @see https://github.com/karafka/karafka/blob/b06d1f7c17818e1605f80c2bb573454a33376b40/README.md?plain=1#L29-L35
           def each(&block)
             @messages_array.each do |message|
-              if configuration[:distributed_tracing]
+              trace_digest = if configuration[:distributed_tracing]
                 headers = if message.metadata.respond_to?(:raw_headers)
                   message.metadata.raw_headers
                 else
                   message.metadata.headers
                 end
-                trace_digest = Karafka.extract(headers)
-                Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
+                Karafka.extract(headers)
               end
 
               if Datadog::DataStreams.enabled?
@@ -53,7 +52,7 @@ module Datadog
                 end
               end
 
-              Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
+              Tracing.trace(Ext::SPAN_MESSAGE_CONSUME, continue_from: trace_digest) do |span, trace|
                 span.set_tag(Ext::TAG_OFFSET, message.metadata.offset)
                 span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, message.topic)
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
