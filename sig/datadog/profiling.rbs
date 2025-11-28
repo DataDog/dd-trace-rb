@@ -1,21 +1,5 @@
 module Datadog
   module Profiling
-    module NativeError
-      attr_reader telemetry_message: ::String?
-      def initialize: (::String? message, ?::String? telemetry_message) -> void
-    end
-
-    class NativeRuntimeError < ::RuntimeError
-      prepend NativeError
-    end
-
-    class NativeArgumentError < ::ArgumentError
-      prepend NativeError
-    end
-
-    class NativeTypeError < ::TypeError
-      prepend NativeError
-    end
 
     def self.supported?: () -> bool
     def self.unsupported_reason: () -> ::String?
