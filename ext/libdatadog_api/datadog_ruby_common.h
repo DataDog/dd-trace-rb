@@ -16,8 +16,10 @@ void datadog_ruby_common_init(VALUE datadog_module);
 // Used to mark function arguments that are deliberately left unused
 #ifdef __GNUC__
   #define DDTRACE_UNUSED  __attribute__((unused))
+  #define DDTRACE_PRINTF_FORMAT(format_index, vararg_index) __attribute__((format(gnu_printf, format_index, vararg_index)))
 #else
   #define DDTRACE_UNUSED
+  #define DDTRACE_PRINTF_FORMAT(format_index, vararg_index)
 #endif
 
 #define ADD_QUOTES_HELPER(x) #x
@@ -54,7 +56,7 @@ NORETURN(void raise_unexpected_type(VALUE value, const char *value_name,
                                     int line, const char *function_name));
 
 // Helper to raise errors with formatted messages
-NORETURN(void raise_error(VALUE error_class, const char *fmt, ...));
+NORETURN(void raise_error(VALUE error_class, const char *fmt, ...)) DDTRACE_PRINTF_FORMAT(2, 3);
 
 // Exception classes defined in Ruby, in the `Datadog::Core` namespace.
 extern VALUE eNativeRuntimeError;

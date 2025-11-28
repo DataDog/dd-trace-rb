@@ -152,8 +152,6 @@ RSpec::Matchers.define :raise_native_error do |expected_class, expected_message 
         actual
       elsif actual.respond_to?(:to_str)
         actual.to_str
-      else
-        nil
       end
       result = actual_string && expected.match?(actual_string)
       unless result

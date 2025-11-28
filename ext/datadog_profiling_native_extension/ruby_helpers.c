@@ -156,6 +156,7 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, const char *format
 typedef struct {
   int syserr_errno;
   char exception_message[MAX_RAISE_MESSAGE_SIZE];
+  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
 } syserr_raise_args;
 
 static void *trigger_syserr_raise(void *syserr_raise_arguments) {
@@ -164,7 +165,7 @@ static void *trigger_syserr_raise(void *syserr_raise_arguments) {
   private_raise_syserr(
     args->syserr_errno,
     args->exception_message,
-    args->exception_message
+    args->telemetry_message
   );
 
   return NULL;
@@ -177,6 +178,7 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
 
   FORMAT_VA_ERROR_MESSAGE(formatted_exception_message, format_string);
   snprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, "%s", formatted_exception_message);
+  snprintf(args.telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", format_string);
 
   if (is_current_thread_holding_the_gvl()) {
     // Errno exceptions have unique classes for each errno value.
