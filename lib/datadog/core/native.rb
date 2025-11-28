@@ -3,7 +3,6 @@
 module Datadog
   module Core
     # Namespace for native extension related code
-    # Exception classes are defined here and used by C extensions
     module Native
       # Base error type for exceptions raised by our native extensions.
       # These errors have both the original error message and a telemetry-safe message.

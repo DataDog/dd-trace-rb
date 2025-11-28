@@ -1,9 +1,9 @@
 #include <ruby.h>
 
-#include "crashtracker.h"
 #include "datadog_ruby_common.h"
-#include "library_config.h"
+#include "crashtracker.h"
 #include "process_discovery.h"
+#include "library_config.h"
 
 void ddsketch_init(VALUE core_module);
 

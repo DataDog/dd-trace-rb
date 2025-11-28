@@ -1,5 +1,5 @@
-#include <datadog/ddsketch.h>
 #include <ruby.h>
+#include <datadog/ddsketch.h>
 
 #include "datadog_ruby_common.h"
 #include "helpers.h"

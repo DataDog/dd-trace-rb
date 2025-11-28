@@ -88,7 +88,7 @@ module Datadog
         else
           error_message = result
 
-          raise "Failed to serialize profiling data: #{error_message}"
+          raise("Failed to serialize profiling data: #{error_message}")
         end
       end
 

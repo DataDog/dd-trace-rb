@@ -1,5 +1,5 @@
-#include <datadog/crashtracker.h>
 #include <ruby.h>
+#include <datadog/crashtracker.h>
 
 #include "datadog_ruby_common.h"
 #include "helpers.h"

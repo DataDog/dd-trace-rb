@@ -75,6 +75,7 @@ module Datadog
         raise 'Profiler not enabled or available'
       end
     end
+
     private_class_method def self.replace_noop_allocation_count
       class << self
         remove_method :allocation_count
