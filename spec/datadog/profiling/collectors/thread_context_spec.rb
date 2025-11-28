@@ -1582,7 +1582,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     context "when called before on_gc_start/on_gc_finish" do
       it do
-        expect { sample_after_gc(allow_exception: true) }.to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
+        expect { sample_after_gc(allow_exception: true) }.to raise_error(Datadog::Core::Native::RuntimeError, /Unexpected call to sample_after_gc/)
       end
     end
 
@@ -1601,7 +1601,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           sample_after_gc
 
           expect { sample_after_gc(allow_exception: true) }
-            .to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
+            .to raise_error(Datadog::Core::Native::RuntimeError, /Unexpected call to sample_after_gc/)
         end
       end
 
@@ -1967,6 +1967,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#sample_after_gvl_running" do
     before { skip_if_gvl_profiling_not_supported(self) }
+
+    context "when timeline is disabled" do
+      let(:timeline_enabled) { false }
+      before do
+        # TODO: Investigate this further
+        # skip "GVL profiling timeline crashes on macOS" if PlatformHelpers.mac?
+      end
+      it "raises a telemetry-instrumented error" do
+        expect { sample_after_gvl_running(t1) }.to raise_error(Datadog::Core::Native::RuntimeError, "GVL profiling requires timeline to be enabled")
+      end
+    end
 
     let(:timeline_enabled) { true }
 

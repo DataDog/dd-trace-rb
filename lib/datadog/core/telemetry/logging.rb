@@ -45,11 +45,20 @@ module Datadog
           end
         end
 
+        # @param exception [Exception] The exception to report
+        # @param level [Symbol] The log level (:error, :warn, :info, :debug)
+        # @param description [String, nil] A low cardinality description, without dynamic data
         def report(exception, level: :error, description: nil)
           # Anonymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +"#{exception.class.name || exception.class.inspect}" # standard:disable Style/RedundantInterpolation
 
-          message << ": #{description}" if description
+          telemetry_message = message_for_telemetry(exception)
+
+          if description || telemetry_message
+            message << ':'
+            message << " #{description}" if description
+            message << " (#{telemetry_message})" if telemetry_message
+          end
 
           event = Event::Log.new(
             message: message,
@@ -64,6 +73,20 @@ module Datadog
           event = Event::Log.new(message: description, level: :error)
 
           log!(event)
+        end
+
+        private
+
+        # A constant string representing the exception
+        def message_for_telemetry(exception)
+          if exception.respond_to?(:telemetry_message)
+            exception.telemetry_message
+          # For the 150+ `Errno` error classes, we set the telemetry message as an instance variable.
+          # We don't want to create/modify such a large number of classes for a small feature.
+          # Note: Errno classes are subclasses of SystemCallError.
+          elsif exception.is_a?(SystemCallError) && exception.instance_variable_defined?(:@telemetry_message)
+            exception.instance_variable_get(:@telemetry_message)
+          end
         end
       end
     end

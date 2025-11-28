@@ -11,43 +11,161 @@ static VALUE module_object_space = Qnil;
 static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
+static ID new_id = 0;
+static ID telemetry_message_id = Qnil;
 
 void ruby_helpers_init(void) {
+  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  datadog_ruby_common_init(datadog_module);
+
   rb_global_variable(&module_object_space);
 
   module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
   _id2ref_id = rb_intern("_id2ref");
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");
+  new_id = rb_intern("new");
+  telemetry_message_id = rb_intern("@telemetry_message");
 }
 
 #define MAX_RAISE_MESSAGE_SIZE 256
 
+#define FORMAT_VA_ERROR_MESSAGE(buf, fmt) \
+  char buf[MAX_RAISE_MESSAGE_SIZE]; \
+  va_list buf##_args; \
+  va_start(buf##_args, fmt); \
+  vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
+  va_end(buf##_args);
+
+// Raises a NativeError exception with seperate telemetry-safe and detailed messages.
+void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
+  if (native_exception_class != eNativeRuntimeError &&
+      native_exception_class != eNativeArgumentError &&
+      native_exception_class != eNativeTypeError) {
+
+      const char* fmt = "private_raise_native_error called with an exception that might not support two error messages. " \
+        "Expected eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError, was: %s";
+
+      VALUE exception = rb_funcall(
+        eNativeArgumentError,
+        new_id,
+        2,
+        rb_sprintf(fmt, rb_class2name(native_exception_class) ?: "(Unknown)"),
+        rb_str_new_cstr(fmt)
+      );
+      rb_exc_raise(exception);
+  }
+
+  VALUE exception = rb_funcall(
+    native_exception_class,
+    new_id,
+    2,
+    rb_str_new_cstr(detailed_message),
+    rb_str_new_cstr(static_message)
+  );
+  rb_exc_raise(exception);
+}
+
+// Use `raise_error` the macro instead, as it provides additional argument checks.
+void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
+  FORMAT_VA_ERROR_MESSAGE(formatted_msg, fmt);
+  private_raise_native_error(native_exception_class, formatted_msg, fmt);
+}
+
+// Raises a SysErr exception with seperate telemetry-safe and detailed messages.
+// The telemetry-safe message is set in the instance variable `@telemetry_message`.
+NORETURN(void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message));
+void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message) {
+  VALUE error = rb_syserr_new(syserr_errno, detailed_message);
+
+  // Because there are 150+ Errno error classes,
+  // we set the telemetry-safe message to an instance variable, instead
+  // of creating/modifying a large amount of exception classes.
+  rb_ivar_set(error, telemetry_message_id, rb_str_new_cstr(static_message));
+
+  rb_exc_raise(error);
+}
+
 typedef struct {
   VALUE exception_class;
+  int syserr_errno;
   char exception_message[MAX_RAISE_MESSAGE_SIZE];
+  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
 } raise_args;
 
 static void *trigger_raise(void *raise_arguments) {
   raise_args *args = (raise_args *) raise_arguments;
-  rb_raise(args->exception_class, "%s", args->exception_message);
+
+  if (args->syserr_errno) {
+    private_raise_syserr(
+      args->syserr_errno,
+      args->exception_message,
+      args->telemetry_message
+    );
+  } else {
+    private_raise_native_error(
+      args->exception_class,
+      args->exception_message,
+      args->telemetry_message
+    );
+  }
+
+  return NULL;
 }
 
-void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
+// The message must be statically bound and checked.
+void raise_telemetry_safe_error(VALUE native_exception_class, const char *telemetry_safe_format, ...) {
+  FORMAT_VA_ERROR_MESSAGE(telemetry_safe_message, telemetry_safe_format);
+  private_raise_native_error(native_exception_class, telemetry_safe_message, telemetry_safe_message);
+}
+
+// The message must be statically bound and checked.
+void raise_telemetry_safe_syserr(int syserr_errno, const char *telemetry_safe_format, ...) {
+  FORMAT_VA_ERROR_MESSAGE(telemetry_safe_message, telemetry_safe_format);
+
+  private_raise_syserr(syserr_errno, telemetry_safe_message, telemetry_safe_message);
+}
+
+void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, const char *format_string, ...) {
   raise_args args;
+  char short_error_type[MAX_RAISE_MESSAGE_SIZE];
 
-  args.exception_class = exception_class;
+  if (syserr_errno != 0) {
+    args.exception_class = Qnil;
+    args.syserr_errno = syserr_errno;
 
-  va_list format_string_arguments;
-  va_start(format_string_arguments, format_string);
-  vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
+    snprintf(short_error_type, MAX_RAISE_MESSAGE_SIZE, "Errno %d", syserr_errno);
+  } else {
+    args.exception_class = native_exception_class;
+    args.syserr_errno = 0;
+
+    snprintf(short_error_type, MAX_RAISE_MESSAGE_SIZE, "%s", rb_class2name(native_exception_class) ?: "(Unknown)");
+  }
+
+  FORMAT_VA_ERROR_MESSAGE(formatted_exception_message, format_string);
+  snprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, "%s", formatted_exception_message);
+  snprintf(args.telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", format_string);
 
   if (is_current_thread_holding_the_gvl()) {
-    rb_raise(
-      rb_eRuntimeError,
-      "grab_gvl_and_raise called by thread holding the global VM lock. exception_message: '%s'",
-      args.exception_message
+    // Render telemetry message without formatted arguments, only the exception class.
+    char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
+    snprintf(
+      telemetry_message,
+      MAX_RAISE_MESSAGE_SIZE,
+      "grab_gvl_and_raise called by thread holding the global VM lock: %s (%s)",
+      format_string,
+      short_error_type
     );
+    // Render the full exception message.
+    char exception_message[MAX_RAISE_MESSAGE_SIZE];
+    snprintf(
+      exception_message,
+      MAX_RAISE_MESSAGE_SIZE,
+      "grab_gvl_and_raise called by thread holding the global VM lock: %s (%s)",
+      args.exception_message,
+      short_error_type
+    );
+    private_raise_native_error(eNativeRuntimeError, exception_message, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
@@ -58,35 +176,8 @@ void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
 typedef struct {
   int syserr_errno;
   char exception_message[MAX_RAISE_MESSAGE_SIZE];
+  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
 } syserr_raise_args;
-
-static void *trigger_syserr_raise(void *syserr_raise_arguments) {
-  syserr_raise_args *args = (syserr_raise_args *) syserr_raise_arguments;
-  rb_syserr_fail(args->syserr_errno, args->exception_message);
-}
-
-void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...) {
-  syserr_raise_args args;
-
-  args.syserr_errno = syserr_errno;
-
-  va_list format_string_arguments;
-  va_start(format_string_arguments, format_string);
-  vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
-
-  if (is_current_thread_holding_the_gvl()) {
-    rb_raise(
-      rb_eRuntimeError,
-      "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%s'",
-      syserr_errno,
-      args.exception_message
-    );
-  }
-
-  rb_thread_call_with_gvl(trigger_syserr_raise, &args);
-
-  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise_syserr while raising '%s'\n", args.exception_message);
-}
 
 void raise_syserr(
   int syserr_errno,
@@ -99,7 +190,7 @@ void raise_syserr(
   if (have_gvl) {
     rb_exc_raise(rb_syserr_new_str(syserr_errno, rb_sprintf("Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name)));
   } else {
-    grab_gvl_and_raise_syserr(syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
+    private_grab_gvl_and_raise(Qnil, syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
   }
 }
 

@@ -21,6 +21,8 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
     it "records libraries that are currently loaded" do
       refresh
 
+      platform_fragment = RUBY_PLATFORM
+      hyphenated_platform_fragment = platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
       expect(generate_result).to include(
         {
           kind: "standard library",
@@ -34,7 +36,10 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           version: Datadog::VERSION::STRING,
           paths: contain_exactly(
             start_with("/"),
-            include("extensions").and(include(RUBY_PLATFORM)),
+            satisfy do |path|
+              path.include?("extensions") &&
+                (path.include?(platform_fragment) || path.include?(hyphenated_platform_fragment))
+            end,
             "#{Gem.bindir}/ddprofrb",
             "#{Bundler.bin_path}/ddprofrb",
           ),
@@ -50,6 +55,8 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
     it "includes the native extension directory for gems with native extensions" do
       refresh
+      platform_fragment = RUBY_PLATFORM
+      hyphenated_platform_fragment = platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
 
       expect(generate_result.find { |it| it[:name] == "msgpack" }).to include(
         {
@@ -58,7 +65,10 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           version: MessagePack::VERSION,
           paths: contain_exactly(
             satisfy { |it| it.start_with?(Gem.dir) && !it.include?("extensions") },
-            include("extensions").and(include(RUBY_PLATFORM)),
+            satisfy do |path|
+              path.include?("extensions") &&
+                (path.include?(platform_fragment) || path.include?(hyphenated_platform_fragment))
+            end,
           ),
         }
       )

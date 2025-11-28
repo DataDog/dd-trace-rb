@@ -14,10 +14,12 @@ module Datadog
       #   read: lib/datadog/core/telemetry/logging.rb
       module Logger
         class << self
+          # (see Datadog::Core::Telemetry::Logging#report)
           def report(exception, level: :error, description: nil)
             instance&.report(exception, level: level, description: description)
           end
 
+          # (see Datadog::Core::Telemetry::Logging#error)
           def error(description)
             instance&.error(description)
           end

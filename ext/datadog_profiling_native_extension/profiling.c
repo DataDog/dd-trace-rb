@@ -40,6 +40,7 @@ static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_er
 static void *trigger_enforce_success(void *trigger_args);
 static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj);
+static VALUE _native_raise_native_error_with_invalid_class(DDTRACE_UNUSED VALUE _self, VALUE invalid_exception_class, VALUE message, VALUE telemetry_message);
 
 void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   // The profiler still has a lot of limitations around being used in Ractors BUT for now we're choosing to take care of those
@@ -84,6 +85,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_define_singleton_method(testing_module, "_native_enforce_success", _native_enforce_success, 2);
   rb_define_singleton_method(testing_module, "_native_malloc_stats", _native_malloc_stats, 0);
   rb_define_singleton_method(testing_module, "_native_safe_object_info", _native_safe_object_info, 1);
+  rb_define_singleton_method(testing_module, "_native_raise_native_error_with_invalid_class", _native_raise_native_error_with_invalid_class, 3);
 }
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
@@ -97,7 +99,7 @@ static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
 typedef struct {
   VALUE exception_class;
   char *test_message;
-  int test_message_arg;
+  char *test_message_arg;
 } trigger_grab_gvl_and_raise_arguments;
 
 static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
@@ -107,24 +109,24 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
 
   args.exception_class = exception_class;
   args.test_message = StringValueCStr(test_message);
-  args.test_message_arg = test_message_arg != Qnil ? NUM2INT(test_message_arg) : -1;
+  args.test_message_arg = test_message_arg != Qnil ? StringValueCStr(test_message_arg) : NULL;
 
   if (RTEST(release_gvl)) {
     rb_thread_call_without_gvl(trigger_grab_gvl_and_raise, &args, NULL, NULL);
   } else {
-    grab_gvl_and_raise(args.exception_class, "%s", args.test_message);
+    private_grab_gvl_and_raise(args.exception_class, 0, args.test_message, args.test_message_arg);
   }
 
-  rb_raise(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
+  raise_error(eNativeRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
 }
 
 static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   trigger_grab_gvl_and_raise_arguments *args = (trigger_grab_gvl_and_raise_arguments *) trigger_args;
 
-  if (args->test_message_arg >= 0) {
-    grab_gvl_and_raise(args->exception_class, "%s%d", args->test_message, args->test_message_arg);
+  if (args->test_message_arg != NULL) {
+    private_grab_gvl_and_raise(args->exception_class, 0, args->test_message, args->test_message_arg);
   } else {
-    grab_gvl_and_raise(args->exception_class, "%s", args->test_message);
+    private_grab_gvl_and_raise(args->exception_class, 0, args->test_message);
   }
 
   return NULL;
@@ -133,7 +135,7 @@ static void *trigger_grab_gvl_and_raise(void *trigger_args) {
 typedef struct {
   int syserr_errno;
   char *test_message;
-  int test_message_arg;
+  char *test_message_arg;
 } trigger_grab_gvl_and_raise_syserr_arguments;
 
 static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
@@ -143,24 +145,24 @@ static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE
 
   args.syserr_errno = NUM2INT(syserr_errno);
   args.test_message = StringValueCStr(test_message);
-  args.test_message_arg = test_message_arg != Qnil ? NUM2INT(test_message_arg) : -1;
+  args.test_message_arg = test_message_arg != Qnil ? StringValueCStr(test_message_arg) : NULL;
 
   if (RTEST(release_gvl)) {
     rb_thread_call_without_gvl(trigger_grab_gvl_and_raise_syserr, &args, NULL, NULL);
   } else {
-    grab_gvl_and_raise_syserr(args.syserr_errno, "%s", args.test_message);
+    private_grab_gvl_and_raise(Qnil, args.syserr_errno, args.test_message, args.test_message_arg);
   }
 
-  rb_raise(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_syserr; this should never happen");
+  raise_error(eNativeRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_syserr; this should never happen");
 }
 
 static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
   trigger_grab_gvl_and_raise_syserr_arguments *args = (trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
 
-  if (args->test_message_arg >= 0) {
-    grab_gvl_and_raise_syserr(args->syserr_errno, "%s%d", args->test_message, args->test_message_arg);
+  if (args->test_message_arg != NULL) {
+    private_grab_gvl_and_raise(Qnil, args->syserr_errno, args->test_message, args->test_message_arg);
   } else {
-    grab_gvl_and_raise_syserr(args->syserr_errno, "%s", args->test_message);
+    private_grab_gvl_and_raise(Qnil, args->syserr_errno, args->test_message);
   }
 
   return NULL;
@@ -183,7 +185,11 @@ static void *testing_is_current_thread_holding_the_gvl(DDTRACE_UNUSED void *_unu
 }
 
 static VALUE _native_install_holding_the_gvl_signal_handler(DDTRACE_UNUSED VALUE _self) {
-  install_sigprof_signal_handler(holding_the_gvl_signal_handler, "holding_the_gvl_signal_handler");
+  static const signal_handler_t handler = {
+    .function = holding_the_gvl_signal_handler,
+    .name = "holding_the_gvl_signal_handler"
+  };
+  install_sigprof_signal_handler(&handler);
   return Qtrue;
 }
 
@@ -246,7 +252,7 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 
   replace_sigprof_signal_handler_with_empty_handler(holding_the_gvl_signal_handler);
 
-  if (holding_the_gvl_signal_handler_result[0] == Qfalse) rb_raise(rb_eRuntimeError, "Could not signal background_thread");
+  if (holding_the_gvl_signal_handler_result[0] == Qfalse) raise_error(eNativeRuntimeError, "Could not signal background_thread");
 
   VALUE result = rb_hash_new();
   rb_hash_aset(result, ID2SYM(rb_intern("ruby_thread_has_gvl_p")), holding_the_gvl_signal_handler_result[1]);
@@ -281,4 +287,12 @@ static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self) {
 
 static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj) {
   return rb_str_new_cstr(safe_object_info(obj));
+}
+
+// Allows testing raise_error with an unrecognized exception class
+static VALUE _native_raise_native_error_with_invalid_class(DDTRACE_UNUSED VALUE _self, VALUE invalid_exception_class, VALUE message, VALUE telemetry_message) {
+  ENFORCE_TYPE(message, T_STRING);
+  ENFORCE_TYPE(telemetry_message, T_STRING);
+
+  private_raise_native_error(invalid_exception_class, StringValueCStr(message), StringValueCStr(telemetry_message));
 }

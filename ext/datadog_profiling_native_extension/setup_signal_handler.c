@@ -17,8 +17,8 @@ static void install_sigprof_signal_handler_internal(
 
 void empty_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) { }
 
-void install_sigprof_signal_handler(void (*signal_handler_function)(int, siginfo_t *, void *), const char *handler_pretty_name) {
-  install_sigprof_signal_handler_internal(signal_handler_function, handler_pretty_name, NULL);
+void install_sigprof_signal_handler(const signal_handler_t *signal_handler) {
+  install_sigprof_signal_handler_internal(signal_handler->function, signal_handler->name, NULL);
 }
 
 void replace_sigprof_signal_handler_with_empty_handler(void (*expected_existing_handler)(int, siginfo_t *, void *)) {
@@ -38,7 +38,7 @@ static void install_sigprof_signal_handler_internal(
   sigemptyset(&signal_handler_config.sa_mask);
 
   if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
-    rb_exc_raise(rb_syserr_new_str(errno, rb_sprintf("Could not install profiling signal handler (%s)", handler_pretty_name)));
+    raise_telemetry_safe_syserr(errno, "Could not install profiling signal handler (%s)", handler_pretty_name);
   }
 
   // Because signal handler functions are global, let's check if we're not stepping on someone else's toes.
@@ -56,23 +56,19 @@ static void install_sigprof_signal_handler_internal(
     // of the installation.
 
     if (sigaction(SIGPROF, &existing_signal_handler_config, NULL) != 0) {
-      rb_exc_raise(
-        rb_syserr_new_str(
-          errno,
-          rb_sprintf(
-            "Failed to install profiling signal handler (%s): " \
-            "While installing a SIGPROF signal handler, the profiler detected that another software/library/gem had " \
-            "previously installed a different SIGPROF signal handler. " \
-            "The profiler tried to restore the previous SIGPROF signal handler, but this failed. " \
-            "The other software/library/gem may have been left in a broken state. ",
-            handler_pretty_name
-          )
-        )
+      raise_telemetry_safe_syserr(
+        errno,
+        "Failed to install profiling signal handler (%s): " \
+        "While installing a SIGPROF signal handler, the profiler detected that another software/library/gem had " \
+        "previously installed a different SIGPROF signal handler. " \
+        "The profiler tried to restore the previous SIGPROF signal handler, but this failed. " \
+        "The other software/library/gem may have been left in a broken state. ",
+        handler_pretty_name
       );
     }
 
-    rb_raise(
-      rb_eRuntimeError,
+    raise_telemetry_safe_error(
+      eNativeRuntimeError,
       "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler",
       handler_pretty_name
     );
@@ -96,7 +92,9 @@ static inline void toggle_sigprof_signal_handler_for_current_thread(int action) 
   sigemptyset(&signals_to_toggle);
   sigaddset(&signals_to_toggle, SIGPROF);
   int error = pthread_sigmask(action, &signals_to_toggle, NULL);
-  if (error) rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action)));
+
+  // `action` is telemetry-safe as it is only provided the caller methods in this file.
+  if (error) raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask, action=%d", action);
 }
 
 void block_sigprof_signal_handler_from_running_in_current_thread(void) {

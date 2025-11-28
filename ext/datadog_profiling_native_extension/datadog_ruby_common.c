@@ -1,8 +1,14 @@
 #include "datadog_ruby_common.h"
+#include <stdarg.h>
 
 // IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
-void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name) {
+// Exception classes defined in Ruby, in the `Datadog::Core` namespace.
+VALUE eNativeRuntimeError = Qnil;
+VALUE eNativeArgumentError = Qnil;
+VALUE eNativeTypeError = Qnil;
+
+void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char *function_name) {
   rb_exc_raise(
     rb_exc_new_str(
       rb_eTypeError,
@@ -16,6 +22,14 @@ void raise_unexpected_type(VALUE value, const char *value_name, const char *type
       )
     )
   );
+}
+
+void raise_error(VALUE error_class, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  VALUE message = rb_vsprintf(fmt, args);
+  va_end(args);
+  rb_raise(error_class, "%"PRIsVALUE, message);
 }
 
 VALUE datadog_gem_version(void) {
@@ -77,4 +91,24 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
   }
 
   return tags;
+}
+
+void datadog_ruby_common_init(VALUE datadog_module) {
+  VALUE core_module = rb_const_get(datadog_module, rb_intern("Core"));
+  ENFORCE_TYPE(core_module, T_MODULE);
+
+  VALUE native_module = rb_const_get(core_module, rb_intern("Native"));
+  ENFORCE_TYPE(native_module, T_MODULE);
+
+  rb_global_variable(&eNativeRuntimeError);
+  eNativeRuntimeError = rb_const_get(native_module, rb_intern("RuntimeError"));
+  ENFORCE_TYPE(eNativeRuntimeError, T_CLASS);
+
+  rb_global_variable(&eNativeArgumentError);
+  eNativeArgumentError = rb_const_get(native_module, rb_intern("ArgumentError"));
+  ENFORCE_TYPE(eNativeArgumentError, T_CLASS);
+
+  rb_global_variable(&eNativeTypeError);
+  eNativeTypeError = rb_const_get(native_module, rb_intern("TypeError"));
+  ENFORCE_TYPE(eNativeTypeError, T_CLASS);
 }

@@ -1,0 +1,22 @@
+module Datadog
+  module Core
+    module Native
+      module Error
+        attr_reader telemetry_message: ::String?
+        def initialize: (::String? message, ?::String? telemetry_message) -> void
+      end
+
+      class RuntimeError < ::RuntimeError
+        prepend Error
+      end
+
+      class ArgumentError < ::ArgumentError
+        prepend Error
+      end
+
+      class TypeError < ::TypeError
+        prepend Error
+      end
+    end
+  end
+end
