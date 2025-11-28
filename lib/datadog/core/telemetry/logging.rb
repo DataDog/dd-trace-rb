@@ -49,7 +49,7 @@ module Datadog
           # Anonymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +"#{exception.class.name || exception.class.inspect}" # standard:disable Style/RedundantInterpolation
 
-          telemetry_message = message_for_telemety(exception)
+          telemetry_message = message_for_telemetry(exception)
 
           if description || telemetry_message
             message << ':'
@@ -75,7 +75,7 @@ module Datadog
         private
 
         # A constant string representing the exception
-        def message_for_telemety(exception)
+        def message_for_telemetry(exception)
           if exception.respond_to?(:telemetry_message)
             exception.telemetry_message
           # For the 150+ `Errno` error classes, we set the telemetry message as an instance variable.
