@@ -14,7 +14,7 @@ static ID to_s_id = Qnil;
 static ID new_id = 0;
 static ID telemetry_message_id = Qnil;
 
-void ruby_helpers_init(VALUE profiling_module) {
+void ruby_helpers_init(void) {
   VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
   datadog_ruby_common_init(datadog_module);
 

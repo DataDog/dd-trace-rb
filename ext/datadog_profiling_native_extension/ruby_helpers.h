@@ -6,7 +6,7 @@
 
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
 // usage of ruby helpers.
-void ruby_helpers_init(VALUE profiling_module);
+void ruby_helpers_init(void);
 
 // Processes any pending interruptions, including exceptions to be raised.
 // If there's an exception to be raised, it raises it. In that case, this function does not return.
