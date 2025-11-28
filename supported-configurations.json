@@ -155,10 +155,11 @@
     ],
     "DD_APPSEC_RULES": [
       {
-        "__comment": "The environment variable is coerced to string type, although internally it can also be a Symbol, File, StringIO, or Hash.",
+        "__comment": "The environment variable is coerced to string type, although internally it can also be a Symbol, File, StringIO, or Hash. Default is :recommended, not settable via environment variable",
         "version": "A",
         "type": "string",
-        "propertyKeys": ["appsec.ruleset"]
+        "propertyKeys": ["appsec.ruleset"],
+        "default": null
       }
     ],
     "DD_APPSEC_SCA_ENABLED": [
@@ -491,7 +492,8 @@
         "__comment": "Default value is :auto, not settable via environment variable",
         "version": "A",
         "type": "boolean",
-        "propertyKeys": ["advanced.no_signals_workaround_enabled"]
+        "propertyKeys": ["advanced.no_signals_workaround_enabled"],
+        "default": null
       }
     ],
     "DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE": [
@@ -655,7 +657,7 @@
         "type": "map",
         "propertyKeys": ["tags"],
         "aliases": ["OTEL_RESOURCE_ATTRIBUTES"],
-        "default": null
+        "default": ""
       }
     ],
     "DD_TELEMETRY_AGENTLESS_URL": [
@@ -2461,7 +2463,8 @@
       {
         "version": "A",
         "type": "map",
-        "propertyKeys": ["tags"]
+        "propertyKeys": ["tags"],
+        "default": ""
       }
     ],
     "OTEL_SERVICE_NAME": [
