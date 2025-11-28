@@ -46,7 +46,6 @@ static inline int check_if_pending_exception(void) {
 // *Ruby exceptions not raised through this function will not be reported via telemetry.*
 // Only the following error classes are supported, as they require an extra field for
 // the telemetry-safe string: NativeRuntimeError, NativeArgumentError, NativeTypeError.
-
 #define raise_error(native_exception_class, fmt, ...) \
   private_raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
 

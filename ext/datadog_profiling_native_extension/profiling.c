@@ -285,6 +285,7 @@ static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj) {
   return rb_str_new_cstr(safe_object_info(obj));
 }
 
+// Allows testing raise_error with an unrecognized exception class
 static VALUE _native_raise_native_error_with_invalid_class(DDTRACE_UNUSED VALUE _self, VALUE invalid_exception_class, VALUE message, VALUE telemetry_message) {
   ENFORCE_TYPE(message, T_STRING);
   ENFORCE_TYPE(telemetry_message, T_STRING);
