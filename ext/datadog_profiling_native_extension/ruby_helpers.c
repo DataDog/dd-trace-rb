@@ -11,7 +11,7 @@ static VALUE module_object_space = Qnil;
 static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
-static ID new_id = 0;
+
 static ID telemetry_message_id = Qnil;
 
 void ruby_helpers_init(void) {
@@ -24,7 +24,7 @@ void ruby_helpers_init(void) {
   _id2ref_id = rb_intern("_id2ref");
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");
-  new_id = rb_intern("new");
+
   telemetry_message_id = rb_intern("@telemetry_message");
 }
 
@@ -38,6 +38,8 @@ void ruby_helpers_init(void) {
   va_end(buf##_args);
 
 // Raises a NativeError exception with seperate telemetry-safe and detailed messages.
+// Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
+// @see debug_enter_unsafe_context
 void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
   if (native_exception_class != eNativeRuntimeError &&
       native_exception_class != eNativeArgumentError &&
@@ -45,24 +47,16 @@ void private_raise_native_error(VALUE native_exception_class, const char *detail
 
       const char* fmt = "private_raise_native_error called with an exception that might not support two error messages. " \
         "Expected eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError, was: %s";
-
-      VALUE exception = rb_funcall(
+      VALUE exception = rb_exc_new_str(
         eNativeArgumentError,
-        new_id,
-        2,
-        rb_sprintf(fmt, rb_class2name(native_exception_class) ?: "(Unknown)"),
-        rb_str_new_cstr(fmt)
+        rb_sprintf(fmt, rb_class2name(native_exception_class) ?: "(Unknown)")
       );
+      rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(fmt));
       rb_exc_raise(exception);
   }
 
-  VALUE exception = rb_funcall(
-    native_exception_class,
-    new_id,
-    2,
-    rb_str_new_cstr(detailed_message),
-    rb_str_new_cstr(static_message)
-  );
+  VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
+  rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
   rb_exc_raise(exception);
 }
 
@@ -74,6 +68,9 @@ void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
 
 // Raises a SysErr exception with seperate telemetry-safe and detailed messages.
 // The telemetry-safe message is set in the instance variable `@telemetry_message`.
+//
+// Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
+// @see debug_enter_unsafe_context
 NORETURN(void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message));
 void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message) {
   VALUE error = rb_syserr_new(syserr_errno, detailed_message);

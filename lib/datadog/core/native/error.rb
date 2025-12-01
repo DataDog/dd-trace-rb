@@ -6,13 +6,11 @@ module Datadog
       # Base error type for exceptions raised by our native extensions.
       # These errors have both the original error message and a telemetry-safe message.
       # The telemetry-safe message is statically defined and does not possess dynamic data.
+      #
+      # IMPORTANT: Native errors must not call Ruby methods during creation, to avoid
+      # releasing the GVL when raising errors in unsafe contexts (see `debug_enter_unsafe_context`).
       module Error
         attr_reader :telemetry_message
-
-        def initialize(message, telemetry_message = nil)
-          super(message)
-          @telemetry_message = telemetry_message
-        end
       end
 
       # Common exception class for native extension runtime errors

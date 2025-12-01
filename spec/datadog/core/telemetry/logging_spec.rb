@@ -132,7 +132,9 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           expect(event.payload[:logs].map { |log| log[:message] }).not_to include('Dynamic message')
         end
         begin
-          raise Datadog::Core::Native::RuntimeError.new('Dynamic message', 'Static message')
+          error = Datadog::Core::Native::RuntimeError.new('Dynamic message')
+          error.instance_variable_set(:@telemetry_message, 'Static message')
+          raise error
         rescue => e
           component.report(e, level: :error)
         end
@@ -147,7 +149,9 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
             expect(event.payload[:logs].map { |log| log[:message] }).not_to include('Dynamic message')
           end
           begin
-            raise Datadog::Core::Native::RuntimeError.new('Dynamic message', 'Static message')
+            error = Datadog::Core::Native::RuntimeError.new('Dynamic message')
+            error.instance_variable_set(:@telemetry_message, 'Static message')
+            raise error
           rescue => e
             component.report(e, level: :error, description: 'Static description')
           end
