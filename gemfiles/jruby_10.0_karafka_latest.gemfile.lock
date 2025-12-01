@@ -40,7 +40,7 @@ GEM
       karafka-rdkafka (>= 0.23.1)
       waterdrop (>= 2.8.14, < 3.0.0)
       zeitwerk (~> 2.3)
-    karafka-core (2.5.7)
+    karafka-core (2.5.8)
       karafka-rdkafka (>= 0.20.0)
       logger (>= 1.6.0)
     karafka-rdkafka (0.23.1)
@@ -100,7 +100,7 @@ GEM
     spoon (0.0.6)
       ffi
     warning (1.5.0)
-    waterdrop (2.8.14)
+    waterdrop (2.8.15)
       karafka-core (>= 2.4.9, < 3.0.0)
       karafka-rdkafka (>= 0.23.1)
       zeitwerk (~> 2.3)

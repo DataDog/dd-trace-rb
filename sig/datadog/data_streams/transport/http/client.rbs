@@ -2,22 +2,8 @@ module Datadog
   module DataStreams
     module Transport
       module HTTP
-        class Client
-          @api: Stats::API::Instance
-          @logger: Core::Logger
-
-          attr_reader api: Stats::API::Instance
-          attr_reader logger: Core::Logger
-
-          def initialize: (Stats::API::Instance api, logger: Core::Logger) -> void
-
+        class Client < Core::Transport::HTTP::Client
           def send_stats_payload: (Transport::Stats::Request request) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
-
-          private
-
-          def send_request: (Transport::Stats::Request request) { (Stats::API::Instance, Core::Transport::HTTP::Env) -> Core::Transport::HTTP::Response } -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
-
-          def build_env: (Transport::Stats::Request request) -> Core::Transport::HTTP::Env
         end
       end
     end

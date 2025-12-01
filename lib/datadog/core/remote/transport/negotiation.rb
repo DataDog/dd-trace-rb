@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../core/transport/request'
+require_relative 'http/negotiation'
 
 # TODO: Resolve conceptual conundrum
 #
@@ -30,23 +31,6 @@ module Datadog
           class Request < Datadog::Core::Transport::Request
           end
 
-          # Negotiation response
-          module Response
-            # @!attribute [r] version
-            #   The version of the agent.
-            #   @return [String]
-            # @!attribute [r] endpoints
-            #   The HTTP endpoints the agent supports.
-            #   @return [Array<String>]
-            # @!attribute [r] config
-            #   The agent configuration. These are configured by the user when starting the agent, as well as any defaults.
-            #   @return [Hash]
-            # @!attribute [r] span_events
-            #   Whether the agent supports the top-level span events field in flushed spans.
-            #   @return [Boolean,nil]
-            attr_reader :version, :endpoints, :config, :span_events
-          end
-
           # Negotiation transport
           class Transport
             attr_reader :client, :apis, :default_api, :current_api_id, :logger
@@ -55,7 +39,7 @@ module Datadog
               @apis = apis
               @logger = logger
 
-              @client = HTTP::Client.new(current_api, logger: logger)
+              @client = Remote::Transport::HTTP::Negotiation::Client.new(current_api, logger: logger)
             end
 
             def send_info

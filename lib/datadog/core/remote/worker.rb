@@ -25,49 +25,45 @@ module Datadog
         def start
           logger.debug { "remote worker starting (pid: #{Process.pid})" }
 
-          acquire_lock
+          @mutex.synchronize do
+            if @stopped
+              logger.debug('remote worker: refusing to restart after previous stop')
+              return
+            end
 
-          if @stopped
-            logger.debug('remote worker: refusing to restart after previous stop')
-            return
+            return if @starting || @started
+
+            @starting = true
+
+            thread = Thread.new { poll(@interval) }
+            thread.name = self.class.name
+            thread.thread_variable_set(:fork_safe, true)
+            @thr = thread
+
+            @started = true
+            @starting = false
           end
 
-          return if @starting || @started
-
-          @starting = true
-
-          thread = Thread.new { poll(@interval) }
-          thread.name = self.class.name
-          thread.thread_variable_set(:fork_safe, true)
-          @thr = thread
-
-          @started = true
-          @starting = false
-
           logger.debug { 'remote worker started' }
-        ensure
-          release_lock
         end
 
         def stop
           logger.debug { "remote worker stopping (pid: #{Process.pid})" }
 
-          acquire_lock
+          @mutex.synchronize do
+            thread = @thr
 
-          thread = @thr
+            if thread
+              thread.kill
+              thread.join
+            end
 
-          if thread
-            thread.kill
-            thread.join
+            @started = false
+            @thr = nil
+            @stopped = true
           end
 
-          @started = false
-          @thr = nil
-          @stopped = true
-
           logger.debug { 'remote worker stopped' }
-        ensure
-          release_lock
         end
 
         def started?
@@ -75,14 +71,6 @@ module Datadog
         end
 
         private
-
-        def acquire_lock
-          @mutex.lock
-        end
-
-        def release_lock
-          @mutex.unlock
-        end
 
         def poll(interval)
           loop do

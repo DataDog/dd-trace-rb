@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Find existing comment
         id: comment
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -34,12 +34,12 @@ jobs:
             return undefined === comment ? null : comment.id
 
       - name: Checkout current branch
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
+        uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
         with:
           ruby-version: "3.4"
 
@@ -60,7 +60,7 @@ jobs:
           ruby ${{ runner.temp }}/typing_stats_compute.rb >> "${{ runner.temp }}/typing-stats-current.json"
 
       - name: Checkout base branch
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.base.ref }}
@@ -79,7 +79,7 @@ jobs:
         run: ruby ${{ runner.temp }}/typing_stats_compare.rb >> "${{ runner.temp }}/typing-stats-compare.md"
 
       - name: Write comment
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |

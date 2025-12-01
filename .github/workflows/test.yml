@@ -24,14 +24,6 @@ concurrency:
 
 jobs:
   # ADD NEW RUBIES HERE
-  ruby-35:
-    name: "Ruby 3.5"
-    uses: ./.github/workflows/_unit_test.yml
-    with:
-      engine: ruby
-      version: "3.5"
-      alias: ruby-35
-
   ruby-34:
     name: "Ruby 3.4"
     uses: ./.github/workflows/_unit_test.yml
@@ -145,7 +137,6 @@ jobs:
         DD_GIT_REPOSITORY_URL: "${{ github.repositoryUrl }}"
     needs:
       # ADD NEW RUBIES HERE
-      - ruby-35
       - ruby-34
       - ruby-33
       - ruby-32
@@ -161,7 +152,7 @@ jobs:
     steps:
       - run: mkdir -p tmp/rspec && datadog-ci version
       - name: Download all junit reports
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           path: tmp/rspec
           pattern: junit-*
@@ -192,7 +183,6 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       # ADD NEW RUBIES HERE
-      - ruby-35
       - ruby-34
       - ruby-33
       - ruby-32
@@ -219,7 +209,7 @@ jobs:
     steps:
       - run: mkdir -p tmp/coverage && datadog-ci version
       - name: Download all coverage data
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           path: tmp/coverage
           pattern: coverage-*
@@ -232,7 +222,6 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       # ADD NEW RUBIES HERE
-      - ruby-35
       - ruby-34
       - ruby-33
       - ruby-32

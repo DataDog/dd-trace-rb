@@ -23,11 +23,8 @@ RSpec.describe Datadog::DI::Component do
     context 'when dynamic instrumentation is enabled' do
       let(:dynamic_instrumentation_enabled) { true }
 
-      before do
-        allow(agent_settings).to receive(:hostname)
-        allow(agent_settings).to receive(:port)
-        allow(agent_settings).to receive(:timeout_seconds).and_return(1)
-        allow(agent_settings).to receive(:ssl)
+      let(:agent_settings) do
+        instance_double_agent_settings_with_stubs
       end
 
       context 'when remote config is enabled' do
