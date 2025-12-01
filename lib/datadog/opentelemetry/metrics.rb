@@ -38,6 +38,8 @@ module Datadog
         ::OpenTelemetry.meter_provider = provider
       end
 
+      private
+
       def create_resource
         resource_attributes = {}
         resource_attributes['host.name'] = Datadog::Core::Environment::Socket.hostname if @settings.tracing.report_hostname
@@ -103,8 +105,6 @@ module Datadog
       rescue LoadError => e
         @logger.warn("Could not load OTLP metrics exporter:  #{e.class}: #{e}")
       end
-
-      private :create_resource, :configure_metric_reader, :resolve_metrics_endpoint, :configure_otlp_exporter
     end
   end
 end
