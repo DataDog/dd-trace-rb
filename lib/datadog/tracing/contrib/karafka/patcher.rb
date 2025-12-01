@@ -34,25 +34,25 @@ module Datadog
                 Karafka.extract(headers)
               end
 
-              if Datadog::DataStreams.enabled?
-                begin
-                  headers = if message.metadata.respond_to?(:raw_headers)
-                    message.metadata.raw_headers
-                  else
-                    message.metadata.headers
-                  end
-
-                  Datadog::DataStreams.set_consume_checkpoint(
-                    type: 'kafka',
-                    source: message.topic,
-                    auto_instrumentation: true
-                  ) { |key| headers[key] }
-                rescue => e
-                  Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
-                end
-              end
-
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME, continue_from: trace_digest) do |span, trace|
+                if Datadog::DataStreams.enabled?
+                  begin
+                    headers = if message.metadata.respond_to?(:raw_headers)
+                      message.metadata.raw_headers
+                    else
+                      message.metadata.headers
+                    end
+
+                    Datadog::DataStreams.set_consume_checkpoint(
+                      type: 'kafka',
+                      source: message.topic,
+                      auto_instrumentation: true
+                    ) { |key| headers[key] }
+                  rescue => e
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
+                  end
+                end
+
                 span.set_tag(Ext::TAG_OFFSET, message.metadata.offset)
                 span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, message.topic)
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
