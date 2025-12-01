@@ -64,7 +64,7 @@ module Datadog
         def start
           Utils::AtForkMonkeyPatch.apply!
 
-          register_runtime_stack_callback if DATADOG_ENV['DD_CRASHTRACKING_EMIT_RUNTIME_STACKS'] == 'true'
+          register_runtime_stack_callback
           start_or_update_on_fork(action: :start, tags: tags)
 
           ONLY_ONCE.run do
