@@ -11,13 +11,13 @@ module Datadog
 
       private
 
-      def create_resource: () -> untyped
+      def create_resource: () -> ::OpenTelemetry::SDK::Resources::Resource
 
-      def configure_metric_reader: (untyped provider) -> void
+      def configure_metric_reader: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
 
       def resolve_metrics_endpoint: () -> ::String
 
-      def configure_otlp_exporter: (untyped provider) -> void
+      def configure_otlp_exporter: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
     end
   end
 end

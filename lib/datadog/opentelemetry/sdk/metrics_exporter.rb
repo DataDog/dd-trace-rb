@@ -16,14 +16,14 @@ module Datadog
         end
 
         def export(metrics, timeout: nil)
-          telemetry.inc('tracers', METRIC_EXPORT_ATTEMPTS, 1, tags: @telemetry_tags)
+          telemetry&.inc('tracers', METRIC_EXPORT_ATTEMPTS, 1, tags: @telemetry_tags)
           result = super
           metric_name = (result == 0) ? METRIC_EXPORT_SUCCESSES : METRIC_EXPORT_FAILURES
-          telemetry.inc('tracers', metric_name, 1, tags: @telemetry_tags)
+          telemetry&.inc('tracers', metric_name, 1, tags: @telemetry_tags)
           result
         rescue => e
           Datadog.logger.error("Failed to export OpenTelemetry Metrics:  #{e.class}: #{e}")
-          telemetry.inc('tracers', METRIC_EXPORT_FAILURES, 1, tags: @telemetry_tags)
+          telemetry&.inc('tracers', METRIC_EXPORT_FAILURES, 1, tags: @telemetry_tags)
           raise
         end
 

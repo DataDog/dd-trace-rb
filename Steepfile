@@ -158,8 +158,6 @@ target :datadog do
   ignore 'lib/datadog/opentelemetry/api/context.rb'
   ignore 'lib/datadog/opentelemetry/api/trace/span.rb'
   ignore 'lib/datadog/opentelemetry/sdk/configurator.rb'
-  ignore 'lib/datadog/opentelemetry/sdk/exporter.rb'
-  ignore 'lib/datadog/opentelemetry/sdk/metrics_exporter.rb'
   ignore 'lib/datadog/opentelemetry/sdk/id_generator.rb'
   ignore 'lib/datadog/opentelemetry/sdk/propagator.rb'
   ignore 'lib/datadog/opentelemetry/sdk/span_processor.rb'
