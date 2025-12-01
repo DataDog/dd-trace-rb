@@ -8,6 +8,7 @@
 #include "clock_id.h"
 #include "helpers.h"
 #include "private_vm_api_access.h"
+#include "datadog_ruby_common.h"
 #include "ruby_helpers.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
@@ -56,6 +57,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_define_singleton_method(native_extension_module, "native_working?", native_working_p, 0);
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));
 
+  datadog_ruby_common_init(datadog_module);
   ruby_helpers_init();
   collectors_cpu_and_wall_time_worker_init(profiling_module);
   collectors_discrete_dynamic_sampler_init(profiling_module);
