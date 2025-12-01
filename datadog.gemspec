@@ -77,6 +77,12 @@ Gem::Specification.new do |spec|
   # We support all versions of this gem and don't particularly require any version restriction.
   spec.add_dependency 'logger'
 
+  # Will no longer be a default gem on Ruby 4.1, see
+  # https://github.com/ruby/ruby/commit/600c616507b258cdf9dbfbc822deb267f3202325 and
+  # https://stdgems.org/ .
+  # We support all versions of this gem and don't particularly require any version restriction.
+  spec.add_dependency 'cgi'
+
   # Tip: When adding or removing dependencies, search the codebase for the string
   # ADD NEW DEPENDENCIES HERE
   # to find out a few more places that need to be kept in-sync.
