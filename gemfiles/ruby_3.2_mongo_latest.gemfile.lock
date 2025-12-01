@@ -75,7 +75,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    mongo (2.21.3)
+    mongo (2.22.0)
       base64
       bson (>= 4.14.1, < 6.0.0)
     msgpack (1.8.0)
