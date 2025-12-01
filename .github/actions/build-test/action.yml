@@ -38,7 +38,7 @@ runs:
 
   - name: Debug with SSH connection
     if: ${{ failure() && runner.debug == '1' }}
-    uses: mxschmitt/action-tmate@7b6a61a73bbb9793cb80ad69b8dd8ac19261834c # v3.19.0
+    uses: mxschmitt/action-tmate@c0afd6f790e3a5564914980036ebf83216678101 # v3.19.0
     with:
       limit-access-to-actor: true
       # This mode will wait at the end of the job for a user to connect and then to terminate the tmate session.
@@ -53,13 +53,13 @@ runs:
 
   - name: Upload junit reports
     if: ${{ !cancelled() }}
-    uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+    uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
     with:
       name: junit-${{ inputs.alias }}-${{ inputs.container-id }}
       path: tmp/rspec/*.xml
 
   - name: Upload coverage data
-    uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+    uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
     with:
       name: coverage-${{ inputs.alias }}-${{ inputs.container-id }}
       path: coverage
