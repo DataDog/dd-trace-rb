@@ -190,6 +190,7 @@ RSpec.describe Datadog::DataStreams::Processor do
         allow(Datadog::Core::Utils::Time).to receive(:now).and_return(frozen_time)
         allow(Datadog::Tracing).to receive(:active_span).and_return(nil)
 
+        # Stop background worker to prevent it from flushing buckets during manual inspection
         processor.stop(true)
 
         processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
