@@ -4,7 +4,7 @@
   "supportedConfigurations": {
     "DD_AGENT_HOST": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "default": "127.0.0.1"
       }
@@ -67,7 +67,7 @@
     ],
     "DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["auto_user_instrumentation.mode"],
         "default": "identification"
@@ -83,7 +83,7 @@
     ],
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["templates.html"],
         "default": null
@@ -91,7 +91,7 @@
     ],
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["templates.json"],
         "default": null
@@ -131,7 +131,7 @@
     ],
     "DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["appsec.obfuscator_key_regex"],
         "default": "(?i)pass|pw(?:or)?d|secret|(?:api|private|public|access)[_-]?key|token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)|bearer|authorization|jsessionid|phpsessid|asp\\.net[_-]sessionid|sid|jwt"
@@ -139,7 +139,7 @@
     ],
     "DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["appsec.obfuscator_value_regex"],
         "default": "(?i)(?:p(?:ass)?w(?:or)?d|pass(?:[_-]?phrase)?|secret(?:[_-]?key)?|(?:(?:api|private|public|access)[_-]?)key(?:[_-]?id)?|(?:(?:auth|access|id|refresh)[_-]?)?token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?|jsessionid|phpsessid|asp\\.net(?:[_-]|-)sessionid|sid|jwt)(?:\\s*=[^;]|\"\\s*:\\s*\"[^\"]+\")|bearer\\s+[a-z0-9\\._\\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\\w=-]+\\.ey[I-L][\\w=-]+(?:\\.[\\w.+\\/=-]+)?|[\\-]{5}BEGIN[a-z\\s]+PRIVATE\\sKEY[\\-]{5}[^\\-]+[\\-]{5}END[a-z\\s]+PRIVATE\\sKEY|ssh-rsa\\s*[a-z0-9\\/\\.+]{100,}"
@@ -156,7 +156,7 @@
     "DD_APPSEC_RULES": [
       {
         "__comment": "The environment variable is coerced to string type, although internally it can also be a Symbol, File, StringIO, or Hash. Default is :recommended, not settable via environment variable",
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["appsec.ruleset"],
         "default": null
@@ -164,7 +164,7 @@
     ],
     "DD_APPSEC_SCA_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
         "propertyKeys": ["appsec.sca_enabled"],
         "default": null
@@ -268,7 +268,7 @@
     ],
     "DD_ENV": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["env"],
         "default": null
@@ -330,7 +330,7 @@
     ],
     "DD_INJECTION_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "default": "tracer"
       }
@@ -377,7 +377,7 @@
     ],
     "DD_LOGS_INJECTION": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
         "propertyKeys": ["tracing.log_injection"],
         "default": "true"
@@ -631,7 +631,7 @@
     ],
     "DD_SITE": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["site"],
         "default": null
@@ -639,7 +639,7 @@
     ],
     "DD_SPAN_SAMPLING_RULES": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "default": null
       }
@@ -678,7 +678,7 @@
     ],
     "DD_TELEMETRY_HEARTBEAT_INTERVAL": [
       {
-        "version": "A",
+        "version": "B",
         "type": "decimal",
         "propertyKeys": ["telemetry.heartbeat_interval_seconds"],
         "default": "60.0"
@@ -932,7 +932,7 @@
     ],
     "DD_TRACE_AGENT_URL": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "default": null
       }
@@ -1002,7 +1002,7 @@
     ],
     "DD_TRACE_CLIENT_IP_HEADER": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["client_ip.header_name"],
         "default": null
@@ -1690,7 +1690,7 @@
     ],
     "DD_TRACE_NATIVE_SPAN_EVENTS": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
         "propertyKeys": ["tracing.native_span_events"],
         "default": null
@@ -1871,7 +1871,7 @@
     ],
     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": [
       {
-        "version": "A",
+        "version": "B",
         "type": "array",
         "propertyKeys": ["tracing.propagation_style_extract"],
         "default": "datadog, tracecontext, baggage"
@@ -1879,7 +1879,7 @@
     ],
     "DD_TRACE_PROPAGATION_STYLE_INJECT": [
       {
-        "version": "A",
+        "version": "B",
         "type": "array",
         "propertyKeys": ["tracing.propagation_style_inject"],
         "default": "datadog, tracecontext, baggage"
@@ -2182,7 +2182,7 @@
     ],
     "DD_TRACE_SAMPLING_RULES": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["sampling.rules"],
         "default": null
@@ -2318,7 +2318,7 @@
     ],
     "DD_TRACE_STARTUP_LOGS": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
         "propertyKeys": ["startup_logs.enabled"],
         "default": null
@@ -2437,7 +2437,7 @@
     ],
     "DD_VERSION": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "propertyKeys": ["version"],
         "default": null
