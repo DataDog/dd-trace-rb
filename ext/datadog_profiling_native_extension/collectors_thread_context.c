@@ -1962,7 +1962,10 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-    if (!state->timeline_enabled) raise_error(eNativeRuntimeError, "GVL profiling requires timeline to be enabled");
+    if (!state->timeline_enabled) {
+      debug_leave_unsafe_context();
+      raise_error(eNativeRuntimeError, "GVL profiling requires timeline to be enabled");
+    }
 
     intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(current_thread);
 

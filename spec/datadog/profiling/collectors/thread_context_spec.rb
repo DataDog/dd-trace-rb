@@ -1970,10 +1970,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     context "when timeline is disabled" do
       let(:timeline_enabled) { false }
-      before do
-        # TODO: Investigate this further
-        # skip "GVL profiling timeline crashes on macOS" if PlatformHelpers.mac?
-      end
       it "raises a telemetry-instrumented error" do
         expect { sample_after_gvl_running(t1) }.to raise_error(Datadog::Core::Native::RuntimeError, "GVL profiling requires timeline to be enabled")
       end
