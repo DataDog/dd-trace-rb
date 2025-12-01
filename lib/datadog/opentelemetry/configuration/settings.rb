@@ -26,10 +26,9 @@ module Datadog
           proc do |value|
             if value && value.to_s.downcase != 'http/protobuf'
               Datadog.logger.warn("#{env_var_name}=#{value} is not supported. Using http/protobuf instead.")
-              'http/protobuf'
-            else
-              value
             end
+         
+            'http/protobuf'
           end
         end
 

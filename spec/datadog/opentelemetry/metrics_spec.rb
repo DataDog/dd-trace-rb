@@ -92,7 +92,6 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   describe 'Basic Functionality' do
     it 'exports counter metrics' do
       setup_metrics
-      provider = ::OpenTelemetry.meter_provider
       provider.meter('app').create_counter('requests_myapp').add(5)
       provider.force_flush
 
@@ -102,7 +101,6 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
 
     it 'exports histogram metrics' do
       setup_metrics
-      provider = ::OpenTelemetry.meter_provider
       provider.meter('app').create_histogram('duration').record(100)
       provider.force_flush
 
@@ -252,7 +250,6 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
             'OTEL_METRIC_EXPORT_INTERVAL' => '4000',
             'OTEL_METRIC_EXPORT_TIMEOUT' => '3000',
             'OTEL_EXPORTER_OTLP_PROTOCOL' => 'grpc',
-            'OTEL_EXPORTER_OTLP_TIMEOUT' => '2000'
           )
         end
 
