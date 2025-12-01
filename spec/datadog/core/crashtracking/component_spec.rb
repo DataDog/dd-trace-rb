@@ -24,6 +24,20 @@ end
 require 'webrick'
 require 'fiddle'
 
+class ComponentSpecCrashStackHelper
+  def top_level_ruby_method
+    ruby_method_with_c_calls
+  end
+
+  def ruby_method_with_c_calls
+    'hello world'.gsub("world") do |_match|
+      {a: 1, b: 2}.each do |key, _value|
+        Fiddle.free(42) if key == :a
+      end
+    end
+  end
+end
+
 RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers.supported? do
   let(:logger) { Logger.new($stdout) }
 
@@ -377,42 +391,11 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         let(:runtime_stack) { crash_report_experimental[:runtime_stack] }
 
         it 'captures both Ruby and C method frames in mixed stacks' do
-          # Create standalone Ruby script to completely avoid RSpec context
-          # We do this because RSpec context frames show up if we crash within
-          # top level RSpec context
-          test_script_content = <<~RUBY
-            require 'fiddle'
-            require 'datadog'
-
-            # Configure crashtracker
-            Datadog.configure do |c|
-              c.agent.host = '127.0.0.1'
-              c.agent.port = #{agent_base_url.match(/:(\d+)/)[1]}
-            end
-
-            def top_level_ruby_method
-              ruby_method_with_c_calls
-            end
-
-            def ruby_method_with_c_calls
-              "hello world".gsub(/world/) do |match|
-                {a: 1, b: 2}.each do |key, value|
-                  if key == :a
-                    Fiddle.free(42)
-                  end
-                end
-              end
-            end
-
-            top_level_ruby_method
-          RUBY
-
-          temp_script = Tempfile.new(['crash_test_script', '.rb'])
-          temp_script.write(test_script_content)
-          temp_script.close
-
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
-            exec(RbConfig.ruby, temp_script.path)
+            crash_tracker = build_crashtracker(agent_base_url: agent_base_url)
+            crash_tracker.start
+
+            ComponentSpecCrashStackHelper.new.top_level_ruby_method
           end
 
           frames = runtime_stack[:frames]
@@ -436,7 +419,17 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             )
           )
 
-          temp_script.unlink
+          expect(frames).to include(
+            hash_including(
+              function: 'gsub'
+            )
+          )
+
+          expect(frames).to include(
+            hash_including(
+              function: 'each'
+            )
+          )
         end
       end
     end
