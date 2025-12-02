@@ -31,7 +31,7 @@
 // ### Constraints
 //
 // Currently, sampling Ruby threads requires calling Ruby VM APIs that are only safe to call while holding on to the
-// global VM lock (and are not async-signal safe -- cannot be called from a signal handler).
+// global VM lock.
 //
 // @ivoanjo: As a note, I don't think we should think of this constraint as set in stone. Since we can reach inside the Ruby
 // internals, we may be able to figure out a way of overcoming it. But it's definitely going to be hard so for now
