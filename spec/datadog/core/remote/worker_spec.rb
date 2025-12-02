@@ -26,8 +26,7 @@ RSpec.describe Datadog::Core::Remote::Worker do
     end
 
     it 'acquire and release lock' do
-      expect(worker).to receive(:acquire_lock).at_least(:once)
-      expect(worker).to receive(:release_lock).at_least(:once)
+      expect(worker.instance_variable_get('@mutex')).to receive(:synchronize).at_least(:once)
       worker.start
     end
 
@@ -84,8 +83,7 @@ RSpec.describe Datadog::Core::Remote::Worker do
     end
 
     it 'acquire and release lock' do
-      expect(worker).to receive(:acquire_lock)
-      expect(worker).to receive(:release_lock)
+      expect(worker.instance_variable_get('@mutex')).to receive(:synchronize).at_least(:once)
       worker.stop
     end
   end

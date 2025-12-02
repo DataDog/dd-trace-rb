@@ -3,7 +3,7 @@ module Datadog
     module Transport
       module HTTP
         module Input
-          module Client
+          class Client < Core::Transport::HTTP::Client
             def send_input_payload: (untyped request) -> untyped
           end
 

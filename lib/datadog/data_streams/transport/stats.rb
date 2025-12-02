@@ -34,7 +34,7 @@ module Datadog
             @default_api = default_api
             @current_api_id = default_api
 
-            @client = HTTP::Client.new(current_api, logger: @logger)
+            @client = DataStreams::Transport::HTTP::Client.new(current_api, logger: @logger)
           end
 
           def send_stats(payload)

@@ -3,7 +3,7 @@ module Datadog
     module Transport
       module HTTP
         module Diagnostics
-          module Client
+          class Client < Core::Transport::HTTP::Client
             def send_diagnostics_payload: (untyped request) -> untyped
           end
 

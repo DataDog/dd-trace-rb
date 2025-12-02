@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../core/transport/parcel'
-require_relative 'http/client'
+require_relative 'http/diagnostics'
 
 module Datadog
   module DI
@@ -21,7 +21,7 @@ module Datadog
             @apis = apis
             @logger = logger
 
-            @client = HTTP::Client.new(current_api, logger: logger)
+            @client = DI::Transport::HTTP::Diagnostics::Client.new(current_api, logger: logger)
           end
 
           def current_api
