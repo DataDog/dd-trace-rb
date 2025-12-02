@@ -1,15 +1,16 @@
 module Datadog
   module OpenFeature
-    class NoopEvaluator
-      def initialize: (::String?) -> void
+    class NativeEvaluator
+      @configuration: Core::FeatureFlags::Configuration
+
+      def initialize: (::String configuration) -> void
 
       def get_assignment: (
         ::String flag_key,
         default_value: untyped,
         context: ::OpenFeature::SDK::EvaluationContext::fields_t,
         expected_type: ::Symbol
-      ) -> ResolutionDetails
+      ) -> Core::FeatureFlags::ResolutionDetails
     end
   end
 end
-

@@ -52,7 +52,7 @@ module Datadog
       def evaluate: (
         ::String flag_key,
         default_value: ::OpenFeature::SDK::Provider::ResolutionDetails::value_t,
-        expected_type: ::String,
+        expected_type: ::Symbol,
         evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
