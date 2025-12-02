@@ -101,6 +101,33 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
       end
     end
 
+    describe '#application_key' do
+      context 'when DD_AI_GUARD_APPLICATION_KEY is not defined' do
+        around do |example|
+          ClimateControl.modify('DD_AI_GUARD_APPLICATION_KEY' => nil) { example.run }
+        end
+
+        it { expect(settings.ai_guard.application_key).to be_nil }
+      end
+
+      context 'when DD_AI_GUARD_APPLICATION_KEY is defined' do
+        around do |example|
+          ClimateControl.modify('DD_AI_GUARD_APPLICATION_KEY' => 'some-application-key') do
+            example.run
+          end
+        end
+
+        it { expect(settings.ai_guard.application_key).to eq('some-application-key') }
+      end
+    end
+
+    describe '#application_key=' do
+      it 'changes application key value' do
+        expect { settings.ai_guard.application_key = 'another-application-key' }
+          .to change { settings.ai_guard.application_key }.to('another-application-key')
+      end
+    end
+
     describe '#timeout' do
       context 'when DD_AI_GUARD_TIMEOUT is not defined' do
         around do |example|

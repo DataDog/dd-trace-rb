@@ -7,6 +7,9 @@
     "DD_AI_GUARD_API_KEY": {
       "version": ["A"]
     },
+    "DD_AI_GUARD_APPLICATION_KEY": {
+      "version": ["A"]
+    },
     "DD_AI_GUARD_ENABLED": {
       "version": ["A"]
     },

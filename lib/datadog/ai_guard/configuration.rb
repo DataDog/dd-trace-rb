@@ -2,7 +2,7 @@
 
 module Datadog
   module AIGuard
-    # Configuration for AI Guard
+    # Configuration module for AI Guard
     module Configuration
     end
   end
