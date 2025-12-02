@@ -4,13 +4,13 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
       version:
-        description: Version to update to
+        description: Version to update to; should usually have .dev suffix e.g. 2.23.0.dev
         required: true
         type: string
   workflow_call:
     inputs:
       version:
-        description: Version to update to
+        description: Version to update to; should usually have .dev suffix e.g. 2.23.0.dev
         required: true
         type: string
 
