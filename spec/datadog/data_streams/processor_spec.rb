@@ -290,6 +290,34 @@ RSpec.describe Datadog::DataStreams::Processor do
         # Should still track successfully despite gap
         expect { processor.send(:perform) }.not_to raise_error
       end
+
+      it 'serializes consumer backlogs with type:kafka_commit tag' do
+        processor.track_kafka_consume('orders', 0, 100, base_time)
+        processor.track_kafka_consume('payments', 1, 50, base_time + 1)
+
+        # Process events and trigger flush
+        processor.send(:process_events)
+
+        # Manually call serialize_consumer_backlogs to verify the tag structure
+        backlogs = processor.send(:serialize_consumer_backlogs)
+
+        expect(backlogs).not_to be_empty
+        expect(backlogs.length).to eq(2)
+
+        backlogs.each do |backlog|
+          expect(backlog['Tags']).to include('type:kafka_commit')
+          expect(backlog).to have_key('Value')
+          expect(backlog).to have_key('Tags')
+        end
+
+        orders_backlog = backlogs.find { |b| b['Tags'].include?('topic:orders') }
+        expect(orders_backlog['Tags']).to include('partition:0')
+        expect(orders_backlog['Value']).to eq(100)
+
+        payments_backlog = backlogs.find { |b| b['Tags'].include?('topic:payments') }
+        expect(payments_backlog['Tags']).to include('partition:1')
+        expect(payments_backlog['Value']).to eq(50)
+      end
     end
 
     describe 'end-to-end Kafka flow' do
