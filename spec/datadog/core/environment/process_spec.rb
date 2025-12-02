@@ -77,7 +77,11 @@ RSpec.describe Datadog::Core::Environment::Process do
     skip_unless_integration_testing_enabled
 
     context 'when running a real Rails application' do
-      it 'detects Rails process information correctly' do
+      before do
+        skip 'Rails 8 is only supported on CRuby' unless PlatformHelpers.mri?
+      end
+
+      it 'detects Rails process information correctly', ruby: '>= 3.2' do
         project_root_directory = Dir.pwd
 
         Dir.mktmpdir do |tmp_dir|
