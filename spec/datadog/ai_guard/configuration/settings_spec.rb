@@ -74,33 +74,6 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
       end
     end
 
-    describe '#api_key' do
-      context 'when DD_AI_GUARD_API_KEY is not defined' do
-        around do |example|
-          ClimateControl.modify('DD_AI_GUARD_API_KEY' => nil) { example.run }
-        end
-
-        it { expect(settings.ai_guard.api_key).to be_nil }
-      end
-
-      context 'when DD_AI_GUARD_API_KEY is defined' do
-        around do |example|
-          ClimateControl.modify('DD_AI_GUARD_API_KEY' => 'some-api-key') do
-            example.run
-          end
-        end
-
-        it { expect(settings.ai_guard.api_key).to eq('some-api-key') }
-      end
-    end
-
-    describe '#api_key=' do
-      it 'changes API key value' do
-        expect { settings.ai_guard.api_key = 'another-api-key' }
-          .to change { settings.ai_guard.api_key }.to('another-api-key')
-      end
-    end
-
     describe '#application_key' do
       context 'when DD_AI_GUARD_APPLICATION_KEY is not defined' do
         around do |example|

@@ -39,15 +39,7 @@ module Datadog
                 o.default "https://app.datadoghq.com/api/v2/ai-guard"
               end
 
-              # AI Guard API key.
-              #
-              # @default `DD_AI_GUARD_API_KEY`, otherwise nil
-              # @return [String, nil]
-              option :api_key do |o|
-                o.type :string, nilable: true
-                o.env Ext::ENV_AI_GUARD_API_KEY
-              end
-
+              # TODO: use tracer app key
               # AI Guard Application key.
               #
               # @default `DD_AI_GUARD_APPLICATION_KEY`, otherwise nil

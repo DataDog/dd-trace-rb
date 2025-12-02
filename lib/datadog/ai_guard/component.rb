@@ -17,7 +17,7 @@ module Datadog
         # TODO: validate settings
         api_client = APIClient.new(
           endpoint: settings.ai_guard.endpoint,
-          api_key: settings.ai_guard.api_key,
+          api_key: settings.api_key,
           application_key: settings.ai_guard.application_key,
           timeout: settings.ai_guard.timeout
         )
