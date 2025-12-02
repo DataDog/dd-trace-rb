@@ -1,10 +1,21 @@
 #!/bin/bash
+
 set -e
 
-echo CI=$1
-echo MONOTONIC_ID=$2
-echo GIT_REF=$3
-echo GIT_COMMIT_SHA=$4
+CI=$1
+MONOTONIC_ID=$2
+GIT_REF=$3
+GIT_COMMIT_SHA=$4
+
+if test -z "$CI" || test -z "$MONOTONIC_ID" || test -z "$GIT_REF" || test -z "$GIT_COMMIT_SHA"; then
+  echo Some required variables are missing - this script is meant to run in a CI enviroment 1>&2
+  exit 1
+fi
+
+echo CI=$CI
+echo MONOTONIC_ID=$MONOTONIC_ID
+echo GIT_REF=$GIT_REF
+echo GIT_COMMIT_SHA=$GIT_COMMIT_SHA
 
 git_branch="${GIT_REF#refs/heads/}"
 echo git_branch="${git_branch}"
