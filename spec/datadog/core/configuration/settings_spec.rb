@@ -55,6 +55,40 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
+  describe '#app_key' do
+    subject(:app_key) { settings.app_key }
+
+    context "when #{Datadog::Core::Environment::Ext::ENV_APP_KEY}" do
+      around do |example|
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_APP_KEY => app_key_env) do
+          example.run
+        end
+      end
+
+      context 'is not defined' do
+        let(:app_key_env) { nil }
+
+        it { is_expected.to be nil }
+      end
+
+      context 'is defined' do
+        let(:app_key_env) { SecureRandom.uuid.delete('-') }
+
+        it { is_expected.to eq(app_key_env) }
+      end
+    end
+  end
+
+  describe '#app_key=' do
+    context 'when given a value' do
+      before do
+        settings.app_key = 'some-app-key'
+      end
+
+      it { expect(settings.app_key).to eq('some-app-key') }
+    end
+  end
+
   describe '#diagnostics' do
     describe '#debug' do
       subject(:debug) { settings.diagnostics.debug }

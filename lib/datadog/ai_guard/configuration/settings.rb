@@ -39,16 +39,6 @@ module Datadog
                 o.default "https://app.datadoghq.com/api/v2/ai-guard"
               end
 
-              # TODO: use tracer app key
-              # AI Guard Application key.
-              #
-              # @default `DD_AI_GUARD_APPLICATION_KEY`, otherwise nil
-              # @return [String, nil]
-              option :application_key do |o|
-                o.type :string, nilable: true
-                o.env Ext::ENV_AI_GUARD_APPLICATION_KEY
-              end
-
               # Request timeout in milliseconds.
               #
               # @default `DD_AI_GUARD_TIMEOUT`, otherwise 10 000 ms

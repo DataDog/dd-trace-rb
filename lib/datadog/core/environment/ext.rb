@@ -16,6 +16,7 @@ module Datadog
         end
 
         ENV_API_KEY = 'DD_API_KEY'
+        ENV_APP_KEY = 'DD_APP_KEY'
         ENV_ENVIRONMENT = 'DD_ENV'
         ENV_SERVICE = 'DD_SERVICE'
         ENV_SITE = 'DD_SITE'

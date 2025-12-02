@@ -20,6 +20,8 @@ module Datadog
 
         ENV_API_KEY: String
 
+        ENV_APP_KEY: String
+
         ENV_ENVIRONMENT: String
 
         ENV_SERVICE: String

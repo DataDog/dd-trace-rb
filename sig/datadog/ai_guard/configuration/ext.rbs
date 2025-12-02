@@ -4,7 +4,6 @@ module Datadog
       module Ext
         ENV_AI_GUARD_ENABLED: String
         ENV_AI_GUARD_ENDPOINT: String
-        ENV_AI_GUARD_APPLICATION_KEY: String
         ENV_AI_GUARD_TIMEOUT: String
         ENV_AI_GUARD_MAX_CONTENT_SIZE: String
         ENV_AI_GUARD_MAX_MESSAGES_LENGTH: String

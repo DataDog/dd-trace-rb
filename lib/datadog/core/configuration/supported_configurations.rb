@@ -8,7 +8,6 @@ module Datadog
     module Configuration
       SUPPORTED_CONFIGURATIONS =
         {"DD_AGENT_HOST" => {version: ["A"]},
-         "DD_AI_GUARD_APPLICATION_KEY" => {version: ["A"]},
          "DD_AI_GUARD_ENABLED" => {version: ["A"]},
          "DD_AI_GUARD_ENDPOINT" => {version: ["A"]},
          "DD_AI_GUARD_MAX_CONTENT_SIZE" => {version: ["A"]},
@@ -38,6 +37,7 @@ module Datadog
          "DD_APPSEC_TRACE_RATE_LIMIT" => {version: ["A"]},
          "DD_APPSEC_WAF_DEBUG" => {version: ["A"]},
          "DD_APPSEC_WAF_TIMEOUT" => {version: ["A"]},
+         "DD_APP_KEY" => {version: ["A"]},
          "DD_CRASHTRACKING_ENABLED" => {version: ["A"]},
          "DD_DATA_STREAMS_ENABLED" => {version: ["A"]},
          "DD_DBM_PROPAGATION_MODE" => {version: ["A"]},

@@ -106,6 +106,18 @@ module Datadog
           o.env Core::Environment::Ext::ENV_API_KEY
         end
 
+        # Datadog Application key.
+        #
+        # For internal use only.
+        # NOTE: This should be only used when interacting with the Datadog API directly.
+        #
+        # @default `DD_APP_KEY` environment variable, otherwise `nil`
+        # @return [String, nil]
+        option :app_key do |o|
+          o.type :string, nilable: true
+          o.env Core::Environment::Ext::ENV_APP_KEY
+        end
+
         # Datadog diagnostic settings.
         #
         # Enabling these surfaces debug information that can be helpful to
