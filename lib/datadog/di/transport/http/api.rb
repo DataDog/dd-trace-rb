@@ -13,8 +13,9 @@ module Datadog
         # Namespace for API components
         module API
           # Default API versions
-          DIAGNOSTICS = 'diagnostics'
-          INPUT = 'input'
+          DIAGNOSTICS = '/debugger/v1/diagnostics'
+          INPUT = '/debugger/v2/input'
+          LEGACY_INPUT = 'legacy:/debugger/v1/diagnostics'
 
           module_function
 
@@ -25,10 +26,19 @@ module Datadog
                 Core::Encoding::JSONEncoder,
               ),
               INPUT => Input::API::Endpoint.new(
+                '/debugger/v2/input',
+                Core::Encoding::JSONEncoder,
+              ),
+              LEGACY_INPUT => Input::API::Endpoint.new(
+                # TODO is this really supposed to be diagnostics?
+                #'/debugger/v1/diagnostics',
                 '/debugger/v1/input',
                 Core::Encoding::JSONEncoder,
               ),
-            ]
+            # This fallbacks definition seems to be doing nothing,
+            # the fallbacks that are used are actually specified in the DI
+            # Transport::HTTP module. # standard:disable Layout/CommentIndentation
+            ].with_fallbacks(INPUT => LEGACY_INPUT)
           end
         end
       end

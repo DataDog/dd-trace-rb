@@ -2,7 +2,7 @@ require "datadog/di/spec_helper"
 require 'datadog/di'
 require "datadog/di/probe_notifier_worker"
 
-# standard tries to wreck regular expressions in this fiel
+# standard tries to wreck regular expressions in this file
 # rubocop:disable Style/PercentLiteralDelimiters
 # rubocop:disable Layout/LineContinuationSpacing
 
@@ -37,18 +37,21 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
   let(:diagnostics_payloads) { [] }
   let(:input_payloads) { [] }
+  let(:missing_endpoint_payloads) { [] }
 
-  http_server do |http_server|
-    @received_snapshot_count = 0
-    @received_snapshot_bytes = 0
-
+  def define_diagnostics_endpoint(http_server)
     http_server.mount_proc('/debugger/v1/diagnostics') do |req, res|
       # This request is a multipart form post
       expect(req.content_type).to match(%r,^multipart/form-data;,)
       diagnostics_payloads << req.body
     end
+  end
 
-    http_server.mount_proc('/debugger/v1/input') do |req, res|
+  def define_input_endpoint(http_server, path)
+    @received_snapshot_count = 0
+    @received_snapshot_bytes = 0
+
+    http_server.mount_proc(path) do |req, res|
       expect(req.content_type).to eq('application/json')
       payload = JSON.parse(req.body)
 
@@ -64,11 +67,27 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     end
   end
 
+  def define_missing_endpoint(http_server, path)
+    http_server.mount_proc(path) do |req, res|
+      expect(req.content_type).to eq('application/json')
+      payload = JSON.parse(req.body)
+
+      missing_endpoint_payloads << {body: payload}
+
+      res.status = 404
+      res.body = "endpoint not implemented: #{path}"
+    end
+  end
+
   after do
     worker.stop
   end
 
   context 'probe status' do
+    http_server do |http_server|
+      define_diagnostics_endpoint(http_server)
+    end
+
     let(:installed_payload) do
       {ddsource: 'dd_debugger',
        debugger: {
@@ -106,63 +125,27 @@ Content-Transfer-Encoding: binary
 
   context 'probe snapshot' do
     let(:snapshot_payload) do
+      # Not a real snapshot payload.
+      # We specify the payload as argument to probe notifier worker,
+      # the worker in turn sends it over the wire without validation/changes.
+      # Use a dummy payload to avoid confusion with respect to whether
+      # the contents is correct as far as backend expectations.
       {
-        path: '/debugger/v1/input',
-        # We do not have active span/trace in the test.
-        "dd.span_id": nil,
-        "dd.trace_id": nil,
-        "debugger.snapshot": {
-          captures: nil,
-          evaluationErrors: [],
-          id: 'test id',
-          language: 'ruby',
-          probe: {
-            id: '11',
-            location: {
-              method: 'target_method',
-              type: 'EverythingFromRemoteConfigSpecTestClass',
-            },
-            version: 0,
-          },
-          stack: ['test entry'],
-          timestamp: 1234567890,
-        },
-        ddsource: 'dd_debugger',
-        duration: 123.45,
-        host: nil,
-        logger: {
-          method: 'target_method',
-          name: nil,
-          thread_id: nil,
-          thread_name: 'Thread.main',
-          version: 2,
-        },
-        message: nil,
-        service: 'rspec',
-        timestamp: 1234567890,
+        snapshot: 'payload',
       }.freeze
     end
 
-    it 'sends expected payload' do
-      worker.add_snapshot(snapshot_payload)
-      worker.flush
-      expect(worker.send(:thread)).to be_alive
-
-      expect(input_payloads.length).to be 1
-      # deep stringify keys
-      expect(input_payloads.first[:body]).to eq([JSON.parse(snapshot_payload.to_json)])
-    end
-
-    context 'when git environment variables are set' do
-      with_env 'DD_GIT_REPOSITORY_URL' => 'http://foo',
-        'DD_GIT_COMMIT_SHA' => '1234hash'
-
-      before do
-        Datadog::Core::Environment::Git.reset_for_tests
-        Datadog::Core::TagBuilder.reset_for_tests
+    context 'when /debugger/v2/input endpoint is available' do
+      http_server do |http_server|
+        define_diagnostics_endpoint(http_server)
+        define_input_endpoint(http_server, '/debugger/v2/input')
+        # In practice, an agent implementing v2 endpoint will also implement
+        # the v1 endpoint. We set v1 endpoint as missing to receive the
+        # payload into a different variable for assertions.
+        define_missing_endpoint(http_server, '/debugger/v1/input')
       end
 
-      it 'includes SCM tags in payload' do
+      it 'sends expected payload to v2 endpoint only' do
         worker.add_snapshot(snapshot_payload)
         worker.flush
         expect(worker.send(:thread)).to be_alive
@@ -171,9 +154,56 @@ Content-Transfer-Encoding: binary
         # deep stringify keys
         expect(input_payloads.first[:body]).to eq([JSON.parse(snapshot_payload.to_json)])
 
-        tags = input_payloads.first[:tags]
-        expect(tags).to include('git.repository_url:http://foo')
-        expect(tags).to include('git.commit.sha:1234hash')
+        expect(missing_endpoint_payloads).to be_empty
+      end
+
+      context 'when git environment variables are set' do
+        with_env 'DD_GIT_REPOSITORY_URL' => 'http://foo',
+          'DD_GIT_COMMIT_SHA' => '1234hash'
+
+        before do
+          Datadog::Core::Environment::Git.reset_for_tests
+          Datadog::Core::TagBuilder.reset_for_tests
+        end
+
+        it 'includes SCM tags in payload' do
+          worker.add_snapshot(snapshot_payload)
+          worker.flush
+          expect(worker.send(:thread)).to be_alive
+
+          expect(input_payloads.length).to be 1
+          # deep stringify keys
+          expect(input_payloads.first[:body]).to eq([JSON.parse(snapshot_payload.to_json)])
+
+          tags = input_payloads.first[:tags]
+          expect(tags).to include('git.repository_url:http://foo')
+          expect(tags).to include('git.commit.sha:1234hash')
+        end
+      end
+    end
+
+    context 'when /debugger/v2/input endpoint is not available' do
+      http_server do |http_server|
+        define_diagnostics_endpoint(http_server)
+        define_input_endpoint(http_server, '/debugger/v1/input')
+        define_missing_endpoint(http_server, '/debugger/v2/input')
+      end
+
+      it 'sends expected payload to v2 then v1 endpoint' do
+        allow(logger).to receive(:debug)
+
+        worker.add_snapshot(snapshot_payload)
+        worker.flush
+        expect(worker.send(:thread)).to be_alive
+
+        expect(input_payloads.length).to be 1
+        # deep stringify keys
+        expect(input_payloads.first[:body]).to eq([JSON.parse(snapshot_payload.to_json)])
+
+        expect(missing_endpoint_payloads.length).to be 1
+        expect(missing_endpoint_payloads.first[:body]).to eq([JSON.parse(snapshot_payload.to_json)])
+
+        expect(logger).to have_lazy_debug_logged(/send_request :input failed:.*endpoint not implemented/)
       end
     end
   end

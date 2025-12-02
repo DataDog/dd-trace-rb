@@ -89,7 +89,12 @@ module Datadog
             parcel = EncodedParcel.new(chunked_payload)
             request = Request.new(parcel, serialized_tags)
 
-            client.send_request(:input, request)
+            client.send_request(:input, request).tap do |response|
+              if downgrade?(response)
+                downgrade!
+                return send_input_chunk(chunked_payload, serialized_tags)
+              end
+            end
           end
         end
       end

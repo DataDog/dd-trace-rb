@@ -10,11 +10,9 @@ module Datadog
     module Transport
       # Namespace for HTTP transport components
       module HTTP
-        module_function
-
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
-        def diagnostics(
+        def self.diagnostics(
           agent_settings:,
           logger:,
           api_version: nil,
@@ -35,7 +33,7 @@ module Datadog
 
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
-        def input(
+        def self.input(
           agent_settings:,
           logger:,
           api_version: nil,
@@ -49,7 +47,8 @@ module Datadog
           ) do |transport|
             apis = API.defaults
 
-            transport.api API::INPUT, apis[API::INPUT]
+            transport.api API::INPUT, apis[API::INPUT], fallback: API::LEGACY_INPUT, default: true
+            transport.api API::LEGACY_INPUT, apis[API::LEGACY_INPUT]
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?
