@@ -16,20 +16,17 @@ module Datadog
           return @serialized if defined?(@serialized)
           tags = []
 
-          begin
-            workdir = TagNormalizer.normalize(entrypoint_workdir.to_s, remove_digit_start_char: false)
-            tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{workdir}" unless workdir.empty?
+          workdir = TagNormalizer.normalize(entrypoint_workdir.to_s, remove_digit_start_char: false)
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{workdir}" unless workdir.empty?
 
-            entry_name = TagNormalizer.normalize(entrypoint_name.to_s, remove_digit_start_char: false)
-            tags << "#{Environment::Ext::TAG_ENTRYPOINT_NAME}:#{entry_name}" unless entry_name.empty?
+          entry_name = TagNormalizer.normalize(entrypoint_name.to_s, remove_digit_start_char: false)
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_NAME}:#{entry_name}" unless entry_name.empty?
 
-            basedir = TagNormalizer.normalize(entrypoint_basedir.to_s, remove_digit_start_char: false)
-            tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{basedir}" unless basedir.empty?
+          basedir = TagNormalizer.normalize(entrypoint_basedir.to_s, remove_digit_start_char: false)
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{basedir}" unless basedir.empty?
 
-            tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
-          rescue => e
-            Datadog.logger.debug("failed to get process_tags: #{e.class}: #{e}")
-          end
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
+
           @serialized = tags.join(',').freeze
         end
 

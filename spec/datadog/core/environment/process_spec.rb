@@ -6,14 +6,17 @@ RSpec.describe Datadog::Core::Environment::Process do
   describe '::serialized' do
     subject(:serialized) { described_class.serialized }
 
-    def with_program_name(value)
+    def with_process_env(program_name:, pwd: nil)
       original_0 = $0
-      $0 = value
+      original_pwd = Dir.pwd
+      $0 = program_name
+      allow(Dir).to receive(:pwd).and_return(pwd) if pwd
       reset_serialized!
 
       yield
     ensure
       $0 = original_0
+      allow(Dir).to receive(:pwd).and_return(original_pwd) if pwd
       reset_serialized!
     end
 
@@ -31,7 +34,7 @@ RSpec.describe Datadog::Core::Environment::Process do
     end
 
     it 'uses the basedir for /expectedbasedir/executable' do
-      with_program_name('/expectedbasedir/executable') do
+      with_process_env(program_name: '/expectedbasedir/executable', pwd: '/app') do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:executable')
         expect(described_class.serialized).to include('entrypoint.basedir:expectedbasedir')
@@ -40,7 +43,7 @@ RSpec.describe Datadog::Core::Environment::Process do
     end
 
     it 'uses the basedir for irb' do
-      with_program_name('irb') do
+      with_process_env(program_name: 'irb', pwd: '/app') do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:irb')
         expect(described_class.serialized).to include('entrypoint.basedir:app')
@@ -49,7 +52,7 @@ RSpec.describe Datadog::Core::Environment::Process do
     end
 
     it 'uses the basedir for my/path/rubyapp.rb' do
-      with_program_name('my/path/rubyapp.rb') do
+      with_process_env(program_name: 'my/path/rubyapp.rb', pwd: '/app') do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:rubyapp.rb')
         expect(described_class.serialized).to include('entrypoint.basedir:path')
@@ -58,7 +61,7 @@ RSpec.describe Datadog::Core::Environment::Process do
     end
 
     it 'uses the basedir for bin/rails s' do
-      with_program_name('bin/rails s') do
+      with_process_env(program_name: 'bin/rails s', pwd: '/app') do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:rails_s')
         expect(described_class.serialized).to include('entrypoint.basedir:bin')
