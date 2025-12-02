@@ -48,6 +48,12 @@ module Datadog
         # Example 1: /bin/mybin -> mybin
         # Example 2: ruby /test/myapp.rb -> myapp
         # @return [String] the last segment of base directory of the script
+        #
+        # @note Determining true entrypoint name is rather complicated. This method
+        # is the initial implementation but it does not produce optimal output in all cases.
+        # For example, all Rails applications launched via `rails server` get `rails`
+        # as their entrypoint name.
+        # We might improve the behavior in the future if there is customer demand for it.
         def self.entrypoint_name
           File.basename($0)
         end
