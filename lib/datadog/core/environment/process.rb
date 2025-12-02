@@ -62,6 +62,12 @@ module Datadog
         # Example 1: /bin/mybin -> bin
         # Example 2: ruby /test/myapp.js -> test
         # @return [String] the last segment of the base directory of the script
+        # 
+        # @note As with entrypoint name, determining true entrypoint directory is complicated.
+        # This method has an initial implementation that does not necessarily return good
+        # results in all cases. For example, for Rails applications launched via `rails server`
+        # the entrypoint basedir is `bin` which is not very helpful.
+        # We might improve this in the future if there is customer demand.
         def self.entrypoint_basedir
           File.basename(File.expand_path(File.dirname($0)))
         end
