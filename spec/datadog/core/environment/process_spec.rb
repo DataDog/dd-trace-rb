@@ -11,12 +11,15 @@ RSpec.describe Datadog::Core::Environment::Process do
       original_pwd = Dir.pwd
       $0 = program_name
       allow(Dir).to receive(:pwd).and_return(pwd) if pwd
+      allow(File).to receive(:expand_path).and_call_original
+      allow(File).to receive(:expand_path).with('.').and_return('/app')
       reset_serialized!
 
       yield
     ensure
       $0 = original_0
       allow(Dir).to receive(:pwd).and_return(original_pwd) if pwd
+      RSpec::Mocks.space.proxy_for(File).reset
       reset_serialized!
     end
 
@@ -61,9 +64,9 @@ RSpec.describe Datadog::Core::Environment::Process do
     end
 
     it 'uses the basedir for bin/rails s' do
-      with_process_env(program_name: 'bin/rails s', pwd: '/app') do
+      with_process_env(program_name: 'bin/rails', pwd: '/app') do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
-        expect(described_class.serialized).to include('entrypoint.name:rails_s')
+        expect(described_class.serialized).to include('entrypoint.name:rails')
         expect(described_class.serialized).to include('entrypoint.basedir:bin')
         expect(described_class.serialized).to include('entrypoint.type:script')
       end
