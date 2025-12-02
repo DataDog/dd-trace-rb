@@ -15,11 +15,12 @@ module Datadog
       INVALID_TAG_CHARACTERS = %r{[^\p{L}0-9_\-:./]}
       LEADING_INVALID_CHARS_NO_DIGITS = %r{\A[^\p{L}:]++}
       LEADING_INVALID_CHARS_WITH_DIGITS = %r{\A[^\p{L}0-9:./]++}
-      MAX_BYTE_SIZE = 200 # Represents the max tag length
+      MAX_BYTE_SIZE = 200 # Represents the general max tag length
+      MAX_PROCESS_VALUES_BYTE_SIZE = 100 # Represents the max tag length for process tags
       VALID_ASCII_TAG = %r{\A[a-z:][a-z0-9:./-]*\z}
 
       # Based on https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize.go#L131
-      # Specifically:
+      # Specifically for general normalization:
       # - Must be valid UTF-8
       # - Invalid characters are replaced with an underscore
       # - Leading non-letter characters are removed but colons are kept
@@ -55,6 +56,27 @@ module Datadog
 
         value.squeeze!('_') if value.include?('__')
         value.delete_suffix!('_')
+
+        value
+      end
+
+      # Process tags values follow an additional piece of normalization:
+      # - must not be more than 100 bytes
+      # - and must not contain colons
+      # @param value [String] The original string
+      # @return [String] The normalized string
+      def self.process_values_normalize(value)
+        value = normalize(value)
+        return value if value.empty?
+
+        value.tr!(':', '_')
+
+        value.squeeze!('_') if value.include?('__')
+
+        if value.bytesize > MAX_PROCESS_VALUES_BYTE_SIZE
+          value = value.byteslice(0, MAX_PROCESS_VALUES_BYTE_SIZE) || value
+          value.scrub!("")
+        end
 
         value
       end

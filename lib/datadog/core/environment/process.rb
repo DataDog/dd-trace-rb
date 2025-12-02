@@ -16,13 +16,13 @@ module Datadog
           return @serialized if defined?(@serialized)
           tags = []
 
-          workdir = TagNormalizer.normalize(entrypoint_workdir.to_s, remove_digit_start_char: false)
+          workdir = TagNormalizer.process_values_normalize(entrypoint_workdir.to_s)
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{workdir}" unless workdir.empty?
 
-          entry_name = TagNormalizer.normalize(entrypoint_name.to_s, remove_digit_start_char: false)
+          entry_name = TagNormalizer.process_values_normalize(entrypoint_name.to_s)
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_NAME}:#{entry_name}" unless entry_name.empty?
 
-          basedir = TagNormalizer.normalize(entrypoint_basedir.to_s, remove_digit_start_char: false)
+          basedir = TagNormalizer.process_values_normalize(entrypoint_basedir.to_s)
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{basedir}" unless basedir.empty?
 
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
@@ -62,7 +62,7 @@ module Datadog
         # Example 1: /bin/mybin -> bin
         # Example 2: ruby /test/myapp.js -> test
         # @return [String] the last segment of the base directory of the script
-        # 
+        #
         # @note As with entrypoint name, determining true entrypoint directory is complicated.
         # This method has an initial implementation that does not necessarily return good
         # results in all cases. For example, for Rails applications launched via `rails server`

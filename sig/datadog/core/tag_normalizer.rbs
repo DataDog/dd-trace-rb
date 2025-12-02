@@ -5,9 +5,12 @@ module Datadog
       LEADING_INVALID_CHARS_NO_DIGITS: ::Regexp
       LEADING_INVALID_CHARS_WITH_DIGITS: ::Regexp
       MAX_BYTE_SIZE: ::Integer
+      MAX_PROCESS_VALUES_BYTE_SIZE: ::Integer
       VALID_ASCII_TAG: ::Regexp
 
       def self.normalize: (untyped original_value, ?remove_digit_start_char: bool) -> ::String
+
+      def self.process_values_normalize: (untyped value) -> ::String
     end
   end
 end

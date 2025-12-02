@@ -6,25 +6,26 @@ RSpec.describe Datadog::Core::Environment::Process do
   describe '::serialized' do
     subject(:serialized) { described_class.serialized }
 
-    def with_process_env(program_name:, pwd: nil)
-      original_0 = $0
-      original_pwd = Dir.pwd
-      $0 = program_name
-      allow(Dir).to receive(:pwd).and_return(pwd) if pwd
-      allow(File).to receive(:expand_path).and_call_original
-      allow(File).to receive(:expand_path).with('.').and_return('/app')
-      reset_serialized!
-
-      yield
-    ensure
-      $0 = original_0
-      allow(Dir).to receive(:pwd).and_return(original_pwd) if pwd
-      RSpec::Mocks.space.proxy_for(File).reset
-      reset_serialized!
-    end
-
     def reset_serialized!
       described_class.remove_instance_variable(:@serialized) if described_class.instance_variable_defined?(:@serialized)
+    end
+
+    shared_context 'with mocked process environment' do
+      let(:pwd) { '/app' }
+
+      before do
+        @original_0 = $0
+        $0 = program_name
+        allow(Dir).to receive(:pwd).and_return(pwd)
+        allow(File).to receive(:expand_path).and_call_original
+        allow(File).to receive(:expand_path).with('.').and_return('/app')
+        reset_serialized!
+      end
+
+      after do
+        $0 = @original_0
+        reset_serialized!
+      end
     end
 
     it { is_expected.to be_a_kind_of(String) }
@@ -36,8 +37,11 @@ RSpec.describe Datadog::Core::Environment::Process do
       expect(first_call).to equal(second_call)
     end
 
-    it 'uses the basedir for /expectedbasedir/executable' do
-      with_process_env(program_name: '/expectedbasedir/executable', pwd: '/app') do
+    context 'with /expectedbasedir/executable' do
+      include_context 'with mocked process environment'
+      let(:program_name) { '/expectedbasedir/executable' }
+
+      it 'uses the basedir correctly' do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:executable')
         expect(described_class.serialized).to include('entrypoint.basedir:expectedbasedir')
@@ -45,8 +49,11 @@ RSpec.describe Datadog::Core::Environment::Process do
       end
     end
 
-    it 'uses the basedir for irb' do
-      with_process_env(program_name: 'irb', pwd: '/app') do
+    context 'with irb' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'irb' }
+
+      it 'uses the basedir correctly' do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:irb')
         expect(described_class.serialized).to include('entrypoint.basedir:app')
@@ -54,8 +61,11 @@ RSpec.describe Datadog::Core::Environment::Process do
       end
     end
 
-    it 'uses the basedir for my/path/rubyapp.rb' do
-      with_process_env(program_name: 'my/path/rubyapp.rb', pwd: '/app') do
+    context 'with my/path/rubyapp.rb' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'my/path/rubyapp.rb' }
+
+      it 'extracts out serialized tags correctly' do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:rubyapp.rb')
         expect(described_class.serialized).to include('entrypoint.basedir:path')
@@ -63,8 +73,23 @@ RSpec.describe Datadog::Core::Environment::Process do
       end
     end
 
-    it 'uses the basedir for bin/rails s' do
-      with_process_env(program_name: 'bin/rails', pwd: '/app') do
+    context 'with my/path/foo:,bar' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'my/path/foo:,bar' }
+
+      it 'extracts out serialized tags correctly' do
+        expect(described_class.serialized).to include('entrypoint.workdir:app')
+        expect(described_class.serialized).to include('entrypoint.name:foo_bar')
+        expect(described_class.serialized).to include('entrypoint.basedir:path')
+        expect(described_class.serialized).to include('entrypoint.type:script')
+      end
+    end
+
+    context 'with bin/rails' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'bin/rails' }
+
+      it 'extracts out serialized tags correctly' do
         expect(described_class.serialized).to include('entrypoint.workdir:app')
         expect(described_class.serialized).to include('entrypoint.name:rails')
         expect(described_class.serialized).to include('entrypoint.basedir:bin')
