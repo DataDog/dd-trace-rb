@@ -11,13 +11,14 @@ module Datadog
           "ABORT" => :abort
         }.freeze
 
-        attr_reader :action, :reason
+        attr_reader :action, :reason, :tags
 
         def initialize(raw_response)
           attributes = raw_response.fetch('data').fetch('attributes')
 
           @action = ACTIONS.fetch(attributes.fetch('action'))
           @reason = attributes.fetch('reason')
+          @tags = attributes.fetch('tags')
 
           # TODO: handle missing key errors or unknown actions
         end
