@@ -94,7 +94,7 @@ jobs:
       ref: de7effbf9d2afa744933e4366e7a9a3b3c627722  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
-      push_to_test_optimization: true
+      push_to_test_optimization: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
   complete:
     name: System Tests (complete)

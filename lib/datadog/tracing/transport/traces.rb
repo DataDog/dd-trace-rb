@@ -3,6 +3,7 @@
 require_relative '../../core/chunker'
 require_relative '../../core/transport/parcel'
 require_relative '../../core/transport/request'
+require_relative '../../core/utils/array'
 require_relative 'serializable_trace'
 require_relative 'trace_formatter'
 
@@ -65,11 +66,8 @@ module Datadog
           # @return [Enumerable[Array[Bytes,Integer]]] list of encoded chunks: each containing a byte array and
           #   number of traces
           def encode_in_chunks(traces)
-            encoded_traces = if traces.respond_to?(:filter_map)
-              # DEV Supported since Ruby 2.7, saves an intermediate object creation
-              traces.filter_map { |t| encode_one(t) }
-            else
-              traces.map { |t| encode_one(t) }.reject(&:nil?)
+            encoded_traces = Core::Utils::Array.filter_map(traces) do |trace|
+              encode_one(trace)
             end
 
             Datadog::Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
