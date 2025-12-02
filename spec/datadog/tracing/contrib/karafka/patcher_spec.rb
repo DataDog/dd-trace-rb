@@ -87,6 +87,8 @@ RSpec.describe 'Karafka patcher' do
 
             topic = ::Karafka::Routing::Topic.new('topic_a', double(id: 0))
             messages = ::Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
+            # NOTE: The following will iterate through the messages and create a new span representing
+            #       the individual message processing (and `span` will refer to that particular span)
             expect(messages).to all(be_a(::Karafka::Messages::Message))
 
             # assert that the current trace re-set to the original trace after iterating the messages
@@ -94,9 +96,13 @@ RSpec.describe 'Karafka patcher' do
             expect(Datadog::Tracing.active_span).to eq(consumer_span)
           end
 
+          # spans:
+          #  [consumer span]
+          #  [producer span]
+          #  ↳ [message processing span]
           expect(spans).to have(3).items
 
-          # assert that the message span is a continuation of the producer span
+          # assert that the message processing span is a continuation of the producer span, NOT of the consumer span
           expect(span.parent_id).to eq producer_trace_digest.span_id
           expect(span.trace_id).to eq producer_trace_digest.trace_id
         end
@@ -115,6 +121,8 @@ RSpec.describe 'Karafka patcher' do
 
             topic = ::Karafka::Routing::Topic.new('topic_a', double(id: 0))
             messages = ::Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
+            # NOTE: The following will iterate through the messages and create a new span representing
+            #       the individual message processing (and `span` will refer to that particular span)
             expect(messages).to all(be_a(::Karafka::Messages::Message))
 
             # assert that the current trace re-set to the original trace after iterating the messages
@@ -122,9 +130,13 @@ RSpec.describe 'Karafka patcher' do
             expect(Datadog::Tracing.active_span).to eq(consumer_span)
           end
 
+          # spans:
+          #  [consumer span]
+          #  ↳ [message processing span]
+          #  [producer span]
           expect(spans).to have(3).items
 
-          # assert that the message span is not continuation of the producer span
+          # assert that the message processing span is a continuation of the consumer span, NOT of the producer span
           expect(span.parent_id).to eq(consumer_span.id)
           expect(span.trace_id).to eq(consumer_trace.id)
         end
