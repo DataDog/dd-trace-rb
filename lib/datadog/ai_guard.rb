@@ -11,5 +11,9 @@ module Datadog
     def self.enabled?
       Datadog.configuration.ai_guard.enabled
     end
+
+    def self.api_client
+      Datadog.send(:components).ai_guard&.api_client
+    end
   end
 end
