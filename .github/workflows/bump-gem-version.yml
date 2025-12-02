@@ -48,7 +48,7 @@ jobs:
       - name: Update version file
         run: |
           echo "Updating version to ${NEXT_VERSION}"
-          bundle exec rake version:bump["${NEXT_VERSION}]"
+          bundle exec rake "version:bump[${NEXT_VERSION}]"
 
       - name: Generate GitHub App Token
         id: generate-token
