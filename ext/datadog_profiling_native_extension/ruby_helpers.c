@@ -25,21 +25,6 @@ void ruby_helpers_init(void) {
   telemetry_message_id = rb_intern("@telemetry_message");
 }
 
-
-static inline bool is_datadog_native_exception(VALUE native_exception_class) {
-  return native_exception_class == eDatadogRuntimeError ||
-    native_exception_class == eDatadogArgumentError ||
-    native_exception_class == eDatadogTypeError;
-}
-
-static VALUE build_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
-  VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
-  rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
-  return exception;
-}
-
-
-
 #define MAX_RAISE_MESSAGE_SIZE 256
 
 #define FORMAT_VA_ERROR_MESSAGE(buf, fmt) \
@@ -53,7 +38,12 @@ static VALUE build_native_error(VALUE native_exception_class, const char *detail
 // Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
 // @see debug_enter_unsafe_context
 void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
-  if (!is_datadog_native_exception(native_exception_class)) {
+  bool native_exception_supported =
+    native_exception_class == eDatadogRuntimeError ||
+    native_exception_class == eDatadogArgumentError ||
+    native_exception_class == eDatadogTypeError;
+
+  if (!native_exception_supported) {
     static const char unsupported_exception_static_message[] =
       "private_raise_native_error called with an exception that might not support two error messages.";
     char unsupported_exception_detailed_message[MAX_RAISE_MESSAGE_SIZE];
@@ -65,14 +55,14 @@ void private_raise_native_error(VALUE native_exception_class, const char *detail
       unsupported_exception_static_message
     );
 
-    rb_exc_raise(build_native_error(
-      eDatadogArgumentError,
-      unsupported_exception_detailed_message,
-      unsupported_exception_static_message
-    ));
+    VALUE unsupported_exception = rb_exc_new_cstr(eDatadogArgumentError, unsupported_exception_detailed_message);
+    rb_ivar_set(unsupported_exception, telemetry_message_id, rb_str_new_cstr(unsupported_exception_static_message));
+    rb_exc_raise(unsupported_exception);
   }
 
-  rb_exc_raise(build_native_error(native_exception_class, detailed_message, static_message));
+  VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
+  rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
+  rb_exc_raise(exception);
 }
 
 // Use `raise_error` the macro instead, as it provides additional argument checks.
