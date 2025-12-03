@@ -70,7 +70,6 @@ module Datadog
         return value if value.empty?
 
         value.tr!(':', '_')
-
         value.squeeze!('_') if value.include?('__')
 
         if value.bytesize > MAX_PROCESS_VALUES_BYTE_SIZE
