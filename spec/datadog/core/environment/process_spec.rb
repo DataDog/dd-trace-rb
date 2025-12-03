@@ -13,9 +13,14 @@ RSpec.describe Datadog::Core::Environment::Process do
     shared_context 'with mocked process environment' do
       let(:pwd) { '/app' }
 
-      before do
+      around do |example|
         @original_0 = $0
         $0 = program_name
+        example.run
+        $0 = @original_0
+      end
+
+      before do
         allow(Dir).to receive(:pwd).and_return(pwd)
         allow(File).to receive(:expand_path).and_call_original
         allow(File).to receive(:expand_path).with('.').and_return('/app')
@@ -23,7 +28,6 @@ RSpec.describe Datadog::Core::Environment::Process do
       end
 
       after do
-        $0 = @original_0
         reset_serialized!
       end
     end
