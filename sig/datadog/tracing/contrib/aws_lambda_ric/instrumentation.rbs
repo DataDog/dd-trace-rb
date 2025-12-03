@@ -1,0 +1,37 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module AwsLambdaRic
+        module Instrumentation
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            @lambda_user_code_args: untyped
+            @lambda_call_handler_args: untyped
+            @lambda_handler_result: untyped
+            @lambda_span: untyped
+
+            def run_user_code: () -> untyped
+
+            def call_handler: (request: untyped, context: untyped) -> untyped
+
+            private
+
+            def start_lambda_trace: () -> untyped
+
+            def finish_lambda_trace: () -> (nil | untyped)
+
+            def annotate_span!: (untyped span, untyped operation) -> untyped
+
+            def datadog_configuration: () -> untyped
+
+            def analytics_enabled?: () -> untyped
+
+            def analytics_sample_rate: () -> untyped
+
+            def enabled?: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end
