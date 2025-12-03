@@ -41,7 +41,7 @@ static inline int check_if_pending_exception(void) {
 #define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
 
 // Raises an exception of the specified class with the formatted string as its message.
-// This macro ensures that the literay string is sent for telemetry, while the formatted
+// This macro ensures that the literal string is sent for telemetry, while the formatted
 // message is the default `Exception#message`.
 // *Ruby exceptions not raised through this function will not be reported via telemetry.*
 // Only the following error classes are supported, as they require an extra field for
