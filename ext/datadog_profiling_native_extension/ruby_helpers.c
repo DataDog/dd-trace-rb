@@ -146,19 +146,6 @@ static void *trigger_raise(void *raise_arguments) {
   return NULL;
 }
 
-// The message must be statically bound and checked.
-void raise_telemetry_safe_error(VALUE native_exception_class, const char *telemetry_safe_format, ...) {
-  FORMAT_VA_ERROR_MESSAGE(telemetry_safe_message, telemetry_safe_format);
-  private_raise_native_error(native_exception_class, telemetry_safe_message, telemetry_safe_message);
-}
-
-// The message must be statically bound and checked.
-void raise_telemetry_safe_syserr(int syserr_errno, const char *telemetry_safe_format, ...) {
-  FORMAT_VA_ERROR_MESSAGE(telemetry_safe_message, telemetry_safe_format);
-
-  private_raise_syserr(syserr_errno, telemetry_safe_message, telemetry_safe_message);
-}
-
 void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, const char *format_string, ...) {
   raise_args args;
   const char *short_error_type = NULL;

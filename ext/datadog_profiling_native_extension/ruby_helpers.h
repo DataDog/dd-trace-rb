@@ -52,20 +52,6 @@ static inline int check_if_pending_exception(void) {
 #define grab_gvl_and_raise(native_exception_class, fmt, ...) \
   private_grab_gvl_and_raise(native_exception_class, 0, "" fmt, ##__VA_ARGS__)
 
-// The message must be statically bound and checked.
-NORETURN(
-  void raise_telemetry_safe_error(VALUE native_exception_class, const char *telemetry_safe_format, ...)
-  __attribute__ ((format (printf, 2, 3)));
-);
-
-// The message must be statically bound and checked.
-NORETURN(
-  void raise_telemetry_safe_syserr(int syserr_errno, const char *telemetry_safe_format, ...)
-  __attribute__ ((format (printf, 2, 3)));
-);
-
-
-
 NORETURN(
   void private_raise_error(VALUE native_exception_class, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
@@ -79,6 +65,10 @@ NORETURN(
 // NOTE: Only used externally for testing, by `_native_raise_native_error_with_invalid_class`
 NORETURN(
   void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message)
+);
+
+NORETURN(
+  void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message)
 );
 
 #define ENFORCE_SUCCESS_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, true)

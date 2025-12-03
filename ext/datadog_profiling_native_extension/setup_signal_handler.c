@@ -38,7 +38,8 @@ static void install_sigprof_signal_handler_internal(
   sigemptyset(&signal_handler_config.sa_mask);
 
   if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
-    raise_telemetry_safe_syserr(errno, "Could not install profiling signal handler (%s)", handler_pretty_name);
+    VALUE message = rb_sprintf("Could not install profiling signal handler (%s)", handler_pretty_name);
+    rb_exc_raise(rb_syserr_new_str(errno, message));
   }
 
   // Because signal handler functions are global, let's check if we're not stepping on someone else's toes.
@@ -56,19 +57,19 @@ static void install_sigprof_signal_handler_internal(
     // of the installation.
 
     if (sigaction(SIGPROF, &existing_signal_handler_config, NULL) != 0) {
-      raise_telemetry_safe_syserr(
-        errno,
-        "Failed to install profiling signal handler (%s): " \
-        "While installing a SIGPROF signal handler, the profiler detected that another software/library/gem had " \
-        "previously installed a different SIGPROF signal handler. " \
-        "The profiler tried to restore the previous SIGPROF signal handler, but this failed. " \
+      VALUE message = rb_sprintf(
+        "Failed to install profiling signal handler (%s): "
+        "While installing a SIGPROF signal handler, the profiler detected that another software/library/gem had "
+        "previously installed a different SIGPROF signal handler. "
+        "The profiler tried to restore the previous SIGPROF signal handler, but this failed. "
         "The other software/library/gem may have been left in a broken state. ",
         handler_pretty_name
       );
+      rb_exc_raise(rb_syserr_new_str(errno, message));
     }
 
-    raise_telemetry_safe_error(
-      eDatadogRuntimeError,
+    rb_raise(
+      rb_eRuntimeError,
       "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler",
       handler_pretty_name
     );
@@ -93,15 +94,16 @@ static inline void toggle_sigprof_signal_handler_for_current_thread(int action) 
   sigaddset(&signals_to_toggle, SIGPROF);
   int error = pthread_sigmask(action, &signals_to_toggle, NULL);
 
-  // `action` is telemetry-safe as it is only provided the caller methods in this file.
   if (error) {
+    VALUE message;
     if (action == SIG_BLOCK) {
-      raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask while blocking SIGPROF");
+      message = rb_str_new_cstr("Unexpected failure in pthread_sigmask while blocking SIGPROF");
     } else if (action == SIG_UNBLOCK) {
-      raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask while unblocking SIGPROF");
+      message = rb_str_new_cstr("Unexpected failure in pthread_sigmask while unblocking SIGPROF");
     } else {
-      raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask for SIGPROF");
+      message = rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action);
     }
+    rb_exc_raise(rb_syserr_new_str(error, message));
   }
 }
 
