@@ -68,7 +68,7 @@ static void install_sigprof_signal_handler_internal(
     }
 
     raise_telemetry_safe_error(
-      eNativeRuntimeError,
+      eDatadogRuntimeError,
       "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler",
       handler_pretty_name
     );
@@ -94,7 +94,15 @@ static inline void toggle_sigprof_signal_handler_for_current_thread(int action) 
   int error = pthread_sigmask(action, &signals_to_toggle, NULL);
 
   // `action` is telemetry-safe as it is only provided the caller methods in this file.
-  if (error) raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask, action=%d", action);
+  if (error) {
+    if (action == SIG_BLOCK) {
+      raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask while blocking SIGPROF");
+    } else if (action == SIG_UNBLOCK) {
+      raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask while unblocking SIGPROF");
+    } else {
+      raise_telemetry_safe_syserr(error, "Unexpected failure in pthread_sigmask for SIGPROF");
+    }
+  }
 }
 
 void block_sigprof_signal_handler_from_running_in_current_thread(void) {

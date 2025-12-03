@@ -39,9 +39,9 @@ NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const c
 NORETURN(void raise_error(VALUE error_class, const char *fmt, ...)) __attribute__ ((format (gnu_printf, 2, 3)));
 
 // Exception classes defined in Ruby, in the `Datadog::Core` namespace.
-extern VALUE eNativeRuntimeError;
-extern VALUE eNativeArgumentError;
-extern VALUE eNativeTypeError;
+extern VALUE eDatadogRuntimeError;
+extern VALUE eDatadogArgumentError;
+extern VALUE eDatadogTypeError;
 
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);

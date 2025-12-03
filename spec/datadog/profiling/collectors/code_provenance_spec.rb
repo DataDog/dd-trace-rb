@@ -15,14 +15,17 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
     JSON.parse(code_provenance.generate_json, symbolize_names: true).fetch(:v1)
   end
 
+  let(:expected_platform_fragment) do
+    platform_fragment = RUBY_PLATFORM
+    platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
+  end
+
   describe "#refresh" do
     subject(:refresh) { code_provenance.refresh }
 
     it "records libraries that are currently loaded" do
       refresh
 
-      platform_fragment = RUBY_PLATFORM
-      hyphenated_platform_fragment = platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
       expect(generate_result).to include(
         {
           kind: "standard library",
@@ -37,8 +40,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           paths: contain_exactly(
             start_with("/"),
             satisfy do |path|
-              path.include?("extensions") &&
-                (path.include?(platform_fragment) || path.include?(hyphenated_platform_fragment))
+              path.include?("extensions") && path.include?(expected_platform_fragment)
             end,
             "#{Gem.bindir}/ddprofrb",
             "#{Bundler.bin_path}/ddprofrb",
@@ -55,8 +57,6 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
     it "includes the native extension directory for gems with native extensions" do
       refresh
-      platform_fragment = RUBY_PLATFORM
-      hyphenated_platform_fragment = platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
 
       expect(generate_result.find { |it| it[:name] == "msgpack" }).to include(
         {
@@ -66,8 +66,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           paths: contain_exactly(
             satisfy { |it| it.start_with?(Gem.dir) && !it.include?("extensions") },
             satisfy do |path|
-              path.include?("extensions") &&
-                (path.include?(platform_fragment) || path.include?(hyphenated_platform_fragment))
+              path.include?("extensions") && path.include?(expected_platform_fragment)
             end,
           ),
         }

@@ -21,5 +21,5 @@
 // @param[in] result (struct { ddog_Error res; ... }) Any type of result
 #define raise_lib_error(message, result)                                        \
   do {                                                                         \
-    raise_error(eNativeRuntimeError, message ": %" PRIsVALUE, get_error_details_and_drop(&result.err)); \
+    raise_error(eDatadogRuntimeError, message ": %" PRIsVALUE, get_error_details_and_drop(&result.err)); \
   } while (0)

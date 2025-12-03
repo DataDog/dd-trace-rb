@@ -22,7 +22,7 @@ void unsafe_api_calls_check_init(void) {
     check_for_unsafe_api_calls_handle = rb_postponed_job_preregister(unused_flags, check_for_unsafe_api_calls, NULL);
 
    if (check_for_unsafe_api_calls_handle == POSTPONED_JOB_HANDLE_INVALID) {
-     raise_error(eNativeRuntimeError, "Failed to register check_for_unsafe_api_calls_handle postponed job (got POSTPONED_JOB_HANDLE_INVALID)");
+     raise_error(eDatadogRuntimeError, "Failed to register check_for_unsafe_api_calls_handle postponed job (got POSTPONED_JOB_HANDLE_INVALID)");
    }
   #endif
 }

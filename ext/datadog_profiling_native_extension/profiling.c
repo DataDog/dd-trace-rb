@@ -51,13 +51,13 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   #endif
 
   VALUE datadog_module = rb_define_module("Datadog");
+  datadog_ruby_common_init(datadog_module);
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE native_extension_module = rb_define_module_under(profiling_module, "NativeExtension");
 
   rb_define_singleton_method(native_extension_module, "native_working?", native_working_p, 0);
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));
 
-  datadog_ruby_common_init(datadog_module);
   ruby_helpers_init();
   collectors_cpu_and_wall_time_worker_init(profiling_module);
   collectors_discrete_dynamic_sampler_init(profiling_module);
@@ -119,7 +119,7 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
     private_grab_gvl_and_raise(args.exception_class, 0, args.test_message, args.test_message_arg);
   }
 
-  raise_error(eNativeRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
+  raise_error(eDatadogRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
 }
 
 static void *trigger_grab_gvl_and_raise(void *trigger_args) {
@@ -155,7 +155,7 @@ static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE
     private_grab_gvl_and_raise(Qnil, args.syserr_errno, args.test_message, args.test_message_arg);
   }
 
-  raise_error(eNativeRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_syserr; this should never happen");
+  raise_error(eDatadogRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_syserr; this should never happen");
 }
 
 static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
@@ -250,7 +250,7 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 
   replace_sigprof_signal_handler_with_empty_handler(holding_the_gvl_signal_handler);
 
-  if (holding_the_gvl_signal_handler_result[0] == Qfalse) raise_error(eNativeRuntimeError, "Could not signal background_thread");
+  if (holding_the_gvl_signal_handler_result[0] == Qfalse) raise_error(eDatadogRuntimeError, "Could not signal background_thread");
 
   VALUE result = rb_hash_new();
   rb_hash_aset(result, ID2SYM(rb_intern("ruby_thread_has_gvl_p")), holding_the_gvl_signal_handler_result[1]);

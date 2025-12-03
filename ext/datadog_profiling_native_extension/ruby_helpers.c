@@ -25,6 +25,26 @@ void ruby_helpers_init(void) {
   telemetry_message_id = rb_intern("@telemetry_message");
 }
 
+
+static inline bool is_datadog_native_exception(VALUE native_exception_class) {
+  return native_exception_class == eDatadogRuntimeError ||
+    native_exception_class == eDatadogArgumentError ||
+    native_exception_class == eDatadogTypeError;
+}
+
+static VALUE build_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
+  VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
+  rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
+  return exception;
+}
+
+static const char *datadog_native_exception_name(VALUE native_exception_class) {
+  if (native_exception_class == eDatadogRuntimeError) return "Datadog::Core::Native::RuntimeError";
+  if (native_exception_class == eDatadogArgumentError) return "Datadog::Core::Native::ArgumentError";
+  if (native_exception_class == eDatadogTypeError) return "Datadog::Core::Native::TypeError";
+  return "(Unknown)";
+}
+
 #define MAX_RAISE_MESSAGE_SIZE 256
 
 #define FORMAT_VA_ERROR_MESSAGE(buf, fmt) \
@@ -38,23 +58,42 @@ void ruby_helpers_init(void) {
 // Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
 // @see debug_enter_unsafe_context
 void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
-  if (native_exception_class != eNativeRuntimeError &&
-      native_exception_class != eNativeArgumentError &&
-      native_exception_class != eNativeTypeError) {
+  if (!is_datadog_native_exception(native_exception_class)) {
+    static const char unsupported_exception_static_message[] =
+      "private_raise_native_error called with an exception that might not support two error messages.";
+    char unsupported_exception_detailed_message[MAX_RAISE_MESSAGE_SIZE];
 
-      const char* fmt = "private_raise_native_error called with an exception that might not support two error messages. " \
-        "Expected eNativeRuntimeError, eNativeArgumentError, or eNativeTypeError, was: %s";
-      VALUE exception = rb_exc_new_str(
-        eNativeArgumentError,
-        rb_sprintf(fmt, rb_class2name(native_exception_class) ?: "(Unknown)")
+    const char *unsupported_exception_class_name = NULL;
+    if (is_current_thread_holding_the_gvl()) {
+      unsupported_exception_class_name = rb_class2name(native_exception_class);
+    }
+
+    if (unsupported_exception_class_name != NULL) {
+      snprintf(
+        unsupported_exception_detailed_message,
+        MAX_RAISE_MESSAGE_SIZE,
+        "%s Expected eDatadogRuntimeError, eDatadogArgumentError, or eDatadogTypeError, was: %s",
+        unsupported_exception_static_message,
+        unsupported_exception_class_name
       );
-      rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(fmt));
-      rb_exc_raise(exception);
+    } else {
+      snprintf(
+        unsupported_exception_detailed_message,
+        MAX_RAISE_MESSAGE_SIZE,
+        "%s Expected eDatadogRuntimeError, eDatadogArgumentError, or eDatadogTypeError, was VALUE=%p",
+        unsupported_exception_static_message,
+        (void *) native_exception_class
+      );
+    }
+
+    rb_exc_raise(build_native_error(
+      eDatadogArgumentError,
+      unsupported_exception_detailed_message,
+      unsupported_exception_static_message
+    ));
   }
 
-  VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
-  rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
-  rb_exc_raise(exception);
+  rb_exc_raise(build_native_error(native_exception_class, detailed_message, static_message));
 }
 
 // Use `raise_error` the macro instead, as it provides additional argument checks.
@@ -122,18 +161,21 @@ void raise_telemetry_safe_syserr(int syserr_errno, const char *telemetry_safe_fo
 
 void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, const char *format_string, ...) {
   raise_args args;
-  char short_error_type[MAX_RAISE_MESSAGE_SIZE];
+  const char *short_error_type = NULL;
+  char errno_short_error_type[MAX_RAISE_MESSAGE_SIZE];
+  char exception_short_error_type[MAX_RAISE_MESSAGE_SIZE];
 
   if (syserr_errno != 0) {
     args.exception_class = Qnil;
     args.syserr_errno = syserr_errno;
 
-    snprintf(short_error_type, MAX_RAISE_MESSAGE_SIZE, "Errno %d", syserr_errno);
+    snprintf(errno_short_error_type, MAX_RAISE_MESSAGE_SIZE, "Errno %d", syserr_errno);
+    short_error_type = errno_short_error_type;
   } else {
     args.exception_class = native_exception_class;
     args.syserr_errno = 0;
 
-    snprintf(short_error_type, MAX_RAISE_MESSAGE_SIZE, "%s", rb_class2name(native_exception_class) ?: "(Unknown)");
+    short_error_type = datadog_native_exception_name(native_exception_class);
   }
 
   FORMAT_VA_ERROR_MESSAGE(formatted_exception_message, format_string);
@@ -142,13 +184,19 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, 
 
   if (is_current_thread_holding_the_gvl()) {
     // Render telemetry message without formatted arguments, only the exception class.
+    const char *error_type_for_message = short_error_type;
+    if (native_exception_class != Qnil) {
+      snprintf(exception_short_error_type, MAX_RAISE_MESSAGE_SIZE, "%s", rb_class2name(native_exception_class) ?: "(Unknown)");
+      error_type_for_message = exception_short_error_type;
+    }
+
     char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
     snprintf(
       telemetry_message,
       MAX_RAISE_MESSAGE_SIZE,
       "grab_gvl_and_raise called by thread holding the global VM lock: %s (%s)",
       format_string,
-      short_error_type
+      error_type_for_message
     );
     // Render the full exception message.
     char exception_message[MAX_RAISE_MESSAGE_SIZE];
@@ -157,9 +205,9 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, 
       MAX_RAISE_MESSAGE_SIZE,
       "grab_gvl_and_raise called by thread holding the global VM lock: %s (%s)",
       args.exception_message,
-      short_error_type
+      error_type_for_message
     );
-    private_raise_native_error(eNativeRuntimeError, exception_message, telemetry_message);
+    private_raise_native_error(eDatadogRuntimeError, exception_message, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);

@@ -519,7 +519,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   } else if (otel_context_enabled == ID2SYM(rb_intern("both"))) {
     state->otel_context_enabled = OTEL_CONTEXT_ENABLED_BOTH;
   } else {
-    raise_error(eNativeArgumentError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
+    raise_error(eDatadogArgumentError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
   }
 
   global_waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
@@ -540,7 +540,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE profiler_overhead_stack_thread, VALUE allow_exception) {
   ENFORCE_BOOLEAN(allow_exception);
 
-  if (!is_thread_alive(profiler_overhead_stack_thread)) raise_error(eNativeArgumentError, "Unexpected: profiler_overhead_stack_thread is not alive");
+  if (!is_thread_alive(profiler_overhead_stack_thread)) raise_error(eDatadogArgumentError, "Unexpected: profiler_overhead_stack_thread is not alive");
 
   if (allow_exception == Qfalse) debug_enter_unsafe_context();
 
@@ -832,7 +832,7 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   if (state->gc_tracking.wall_time_at_previous_gc_ns == INVALID_TIME) {
-    raise_error(eNativeRuntimeError, "BUG: Unexpected call to sample_after_gc without valid GC information available");
+    raise_error(eDatadogRuntimeError, "BUG: Unexpected call to sample_after_gc without valid GC information available");
   }
 
   int max_labels_needed_for_gc = 7; // Magic number gets validated inside gc_profiling_set_metadata
@@ -999,7 +999,7 @@ static void trigger_sample_for_thread(
   // @ivoanjo: I wonder if C compilers are smart enough to statically prove this check never triggers unless someone
   // changes the code erroneously and remove it entirely?
   if (label_pos > max_label_count) {
-    raise_error(eNativeRuntimeError, "BUG: Unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
+    raise_error(eDatadogRuntimeError, "BUG: Unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = label_pos};
@@ -1296,7 +1296,7 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
       elapsed_time_ns = 0;
     } else {
       // We don't expect non-wall time to go backwards, so let's flag this as a bug
-      raise_error(eNativeRuntimeError, "BUG: Unexpected negative elapsed_time_ns between samples");
+      raise_error(eDatadogRuntimeError, "BUG: Unexpected negative elapsed_time_ns between samples");
     }
   }
 
@@ -1962,7 +1962,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-    if (!state->timeline_enabled) raise_error(eNativeRuntimeError, "GVL profiling requires timeline to be enabled");
+    if (!state->timeline_enabled) raise_error(eDatadogRuntimeError, "GVL profiling requires timeline to be enabled");
 
     intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(current_thread);
 
@@ -2158,7 +2158,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
     per_thread_context *thread_context = get_context_for(thread, state);
-    if (thread_context == NULL) raise_error(eNativeArgumentError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
+    if (thread_context == NULL) raise_error(eDatadogArgumentError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
 
     thread_context->cpu_time_at_previous_sample_ns += NUM2LONG(delta_ns);
 

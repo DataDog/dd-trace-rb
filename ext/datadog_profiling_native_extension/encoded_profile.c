@@ -42,7 +42,7 @@ VALUE from_ddog_prof_EncodedProfile(ddog_prof_EncodedProfile profile) {
 static ddog_ByteSlice get_bytes(ddog_prof_EncodedProfile *state) {
   ddog_prof_Result_ByteSlice raw_bytes = ddog_prof_EncodedProfile_bytes(state);
   if (raw_bytes.tag == DDOG_PROF_RESULT_BYTE_SLICE_ERR_BYTE_SLICE) {
-    raise_error(eNativeRuntimeError, "Failed to get bytes from profile: %"PRIsVALUE, get_error_details_and_drop(&raw_bytes.err));
+    raise_error(eDatadogRuntimeError, "Failed to get bytes from profile: %"PRIsVALUE, get_error_details_and_drop(&raw_bytes.err));
   }
   return raw_bytes.ok;
 }

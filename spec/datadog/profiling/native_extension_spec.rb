@@ -15,7 +15,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       expect { described_class::Testing._native_grab_gvl_and_raise(Datadog::Core::Native::RuntimeError, "this is a test", nil, true) }
         .to raise_error(Datadog::Core::Native::RuntimeError) do |error|
           expect(error.message).to eq("this is a test")
-          expect(error.telemetry_message).to eq("this is a test")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("this is a test")
         end
     end
 
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       expect { described_class::Testing._native_grab_gvl_and_raise(Datadog::Core::Native::RuntimeError, "message %s", "oops", true) }
         .to raise_error(Datadog::Core::Native::RuntimeError) do |error|
           expect(error.message).to eq("message oops")
-          expect(error.telemetry_message).to eq("message %s")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("message %s")
         end
     end
 
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       expect { described_class::Testing._native_grab_gvl_and_raise(Datadog::Core::Native::RuntimeError, big_message, nil, true) }
         .to raise_error(Datadog::Core::Native::RuntimeError) do |error|
           expect(error.message).to match(/a{255}\z/)
-          expect(error.telemetry_message).to match(/a{255}\z/)
+          expect(error.instance_variable_get(:@telemetry_message)).to match(/a{255}\z/)
         end
     end
 
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "message %s", 'oops', false)
         end.to raise_error(Datadog::Core::Native::RuntimeError) do |error|
           expect(error.message).to include('called by thread holding the global VM lock: message oops (ZeroDivisionError)')
-          expect(error.telemetry_message).to include('called by thread holding the global VM lock: message %s (ZeroDivisionError)')
+          expect(error.instance_variable_get(:@telemetry_message)).to include('called by thread holding the global VM lock: message %s (ZeroDivisionError)')
         end
       end
     end
@@ -56,7 +56,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       it "raises a NativeRuntimeError" do
         expect { raise_native_runtime_error }.to raise_error(Datadog::Core::Native::RuntimeError) do |error|
           expect(error.message).to eq("runtime error test")
-          expect(error.telemetry_message).to eq("runtime error test")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("runtime error test")
         end
       end
 
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       it "raises a NativeArgumentError" do
         expect { raise_native_argument_error }.to raise_error(Datadog::Core::Native::ArgumentError) do |error|
           expect(error.message).to eq("argument error test")
-          expect(error.telemetry_message).to eq("argument error test")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("argument error test")
         end
       end
 
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       it "raises a NativeTypeError" do
         expect { raise_native_type_error }.to raise_error(Datadog::Core::Native::TypeError) do |error|
           expect(error.message).to eq("type error test")
-          expect(error.telemetry_message).to eq("type error test")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("type error test")
         end
       end
 
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
         .to raise_error(Datadog::Core::Native::ArgumentError) do |error|
           expect(error.message).to include('exception that might not support two error messages')
           expect(error.message).to include("ZeroDivisionError")
-          telemetry_message = error.telemetry_message
+          telemetry_message = error.instance_variable_get(:@telemetry_message)
           expect(telemetry_message).to include('exception that might not support two error messages')
           expect(telemetry_message).not_to include("ZeroDivisionError")
         end
@@ -116,7 +116,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       expect { described_class::Testing._native_raise_native_error_with_invalid_class(Datadog::Core::Native::RuntimeError, "original", "telemetry") }
         .to raise_error(Datadog::Core::Native::RuntimeError) do |error|
           expect(error.message).to eq("original")
-          expect(error.telemetry_message).to eq("telemetry")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("telemetry")
         end
     end
   end
@@ -157,7 +157,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "message %s", "oops", false)
         end.to raise_error(Datadog::Core::Native::RuntimeError) do |error|
           expect(error.message).to include("called by thread holding the global VM lock: message oops (Errno 4)")
-          expect(error.telemetry_message).to include("called by thread holding the global VM lock: message %s (Errno 4)")
+          expect(error.instance_variable_get(:@telemetry_message)).to include("called by thread holding the global VM lock: message %s (Errno 4)")
         end
       end
     end

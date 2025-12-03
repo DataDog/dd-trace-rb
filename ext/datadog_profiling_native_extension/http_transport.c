@@ -85,7 +85,7 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
 
     return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
   } else {
-    raise_error(eNativeArgumentError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
+    raise_error(eDatadogArgumentError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
   }
 }
 
@@ -112,7 +112,7 @@ static ddog_prof_ProfileExporter_Result create_exporter(VALUE exporter_configura
 }
 
 static void validate_token(ddog_CancellationToken token, const char *file, int line) {
-  if (token.inner == NULL) raise_error(eNativeRuntimeError, "Unexpected: Validation token was empty at %s:%d", file, line);
+  if (token.inner == NULL) raise_error(eDatadogRuntimeError, "Unexpected: Validation token was empty at %s:%d", file, line);
 }
 
 static VALUE handle_exporter_failure(ddog_prof_ProfileExporter_Result exporter_result) {

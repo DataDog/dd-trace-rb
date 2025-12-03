@@ -259,7 +259,7 @@ void heap_recorder_set_sample_rate(heap_recorder *heap_recorder, int sample_rate
   }
 
   if (sample_rate <= 0) {
-    raise_error(eNativeArgumentError, "Heap sample rate must be a positive integer value but was %d", sample_rate);
+    raise_error(eDatadogArgumentError, "Heap sample rate must be a positive integer value but was %d", sample_rate);
   }
 
   heap_recorder->sample_rate = sample_rate;
@@ -300,7 +300,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   }
 
   if (heap_recorder->active_recording != NULL) {
-    raise_error(eNativeRuntimeError, "Detected consecutive heap allocation recording starts without end.");
+    raise_error(eDatadogRuntimeError, "Detected consecutive heap allocation recording starts without end.");
   }
 
   if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate ||
@@ -323,7 +323,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 
   VALUE ruby_obj_id = rb_obj_id(new_obj);
   if (!FIXNUM_P(ruby_obj_id)) {
-    raise_error(eNativeRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
+    raise_error(eDatadogRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
   }
 
   heap_recorder->active_recording = object_record_new(
@@ -371,7 +371,7 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
 
   if (active_recording == NULL) {
     // Recording ended without having been started?
-    raise_error(eNativeRuntimeError, "Ended a heap recording that was not started");
+    raise_error(eDatadogRuntimeError, "Ended a heap recording that was not started");
   }
   // From now on, mark the global active recording as invalid so we can short-circuit at any point
   // and not end up with a still active recording. the local active_recording still holds the
@@ -487,14 +487,14 @@ void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
 
   if (heap_recorder->object_records_snapshot != NULL) {
     // we could trivially handle this but we raise to highlight and catch unexpected usages.
-    raise_error(eNativeRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
+    raise_error(eDatadogRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
   }
 
   heap_recorder_update(heap_recorder, /* full_update: */ true);
 
   heap_recorder->object_records_snapshot = st_copy(heap_recorder->object_records);
   if (heap_recorder->object_records_snapshot == NULL) {
-    raise_error(eNativeRuntimeError, "Failed to create heap snapshot.");
+    raise_error(eDatadogRuntimeError, "Failed to create heap snapshot.");
   }
 }
 
@@ -505,7 +505,7 @@ void heap_recorder_finish_iteration(heap_recorder *heap_recorder) {
 
   if (heap_recorder->object_records_snapshot == NULL) {
     // we could trivially handle this but we raise to highlight and catch unexpected usages.
-    raise_error(eNativeRuntimeError, "Heap recorder iteration finished without having been prepared.");
+    raise_error(eDatadogRuntimeError, "Heap recorder iteration finished without having been prepared.");
   }
 
   st_free_table(heap_recorder->object_records_snapshot);
@@ -581,7 +581,7 @@ typedef struct {
 
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
-    raise_error(eNativeArgumentError, "heap_recorder is NULL");
+    raise_error(eDatadogArgumentError, "heap_recorder is NULL");
   }
 
   VALUE debug_str = rb_str_new2("object records:\n");
@@ -733,7 +733,7 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
   // needed to fully build the object_record.
   active_recording->heap_record = heap_record;
   if (heap_record->num_tracked_objects == UINT32_MAX) {
-    raise_error(eNativeRuntimeError, "Reached maximum number of tracked objects for heap record");
+    raise_error(eDatadogRuntimeError, "Reached maximum number of tracked objects for heap record");
   }
   heap_record->num_tracked_objects++;
 
@@ -741,11 +741,11 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
   if (existing_error) {
     object_record *existing_record = NULL;
     st_lookup(heap_recorder->object_records, active_recording->obj_id, (st_data_t *) &existing_record);
-    if (existing_record == NULL) raise_error(eNativeRuntimeError, "Unexpected NULL when reading existing record");
+    if (existing_record == NULL) raise_error(eDatadogRuntimeError, "Unexpected NULL when reading existing record");
 
     VALUE existing_inspect = object_record_inspect(heap_recorder, existing_record);
     VALUE new_inspect = object_record_inspect(heap_recorder, active_recording);
-    raise_error(eNativeRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
+    raise_error(eDatadogRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
       "the same id. previous={%"PRIsVALUE"} new={%"PRIsVALUE"}", existing_inspect, new_inspect);
   }
 }
@@ -781,7 +781,7 @@ static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_rec
   }
 
   if (!st_delete(heap_recorder->heap_records, (st_data_t*) &heap_record, NULL)) {
-    raise_error(eNativeRuntimeError, "Attempted to cleanup an untracked heap_record");
+    raise_error(eDatadogRuntimeError, "Attempted to cleanup an untracked heap_record");
   };
   heap_record_free(heap_recorder, heap_record);
 }
@@ -791,14 +791,14 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
   // (See PROF-10656 Datadog-internal for details). Just in case, I've sprinkled a bunch of NULL tests in this function for now.
   // Once we figure out the issue we can get rid of them again.
 
-  if (heap_recorder == NULL) raise_error(eNativeRuntimeError, "heap_recorder was NULL in on_committed_object_record_cleanup");
-  if (heap_recorder->heap_records == NULL) raise_error(eNativeRuntimeError, "heap_recorder->heap_records was NULL in on_committed_object_record_cleanup");
-  if (record == NULL) raise_error(eNativeRuntimeError, "record was NULL in on_committed_object_record_cleanup");
+  if (heap_recorder == NULL) raise_error(eDatadogRuntimeError, "heap_recorder was NULL in on_committed_object_record_cleanup");
+  if (heap_recorder->heap_records == NULL) raise_error(eDatadogRuntimeError, "heap_recorder->heap_records was NULL in on_committed_object_record_cleanup");
+  if (record == NULL) raise_error(eDatadogRuntimeError, "record was NULL in on_committed_object_record_cleanup");
 
   // Starting with the associated heap record. There will now be one less tracked object pointing to it
   heap_record *heap_record = record->heap_record;
 
-  if (heap_record == NULL) raise_error(eNativeRuntimeError, "heap_record was NULL in on_committed_object_record_cleanup");
+  if (heap_record == NULL) raise_error(eDatadogRuntimeError, "heap_record was NULL in on_committed_object_record_cleanup");
 
   heap_record->num_tracked_objects--;
 
@@ -862,7 +862,7 @@ heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location l
   uint16_t frames_len = locations.len;
   if (frames_len > MAX_FRAMES_LIMIT) {
     // This is not expected as MAX_FRAMES_LIMIT is shared with the stacktrace construction mechanism
-    raise_error(eNativeRuntimeError, "Found stack with more than %d frames (%d)", MAX_FRAMES_LIMIT, frames_len);
+    raise_error(eDatadogRuntimeError, "Found stack with more than %d frames (%d)", MAX_FRAMES_LIMIT, frames_len);
   }
   heap_record *stack = calloc(1, sizeof(heap_record) + frames_len * sizeof(heap_frame)); // See "note on calloc vs ruby_xcalloc use" above
   stack->num_tracked_objects = 0;
@@ -933,21 +933,21 @@ static void unintern_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId
 
   ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern(recorder->string_storage, id);
   if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    raise_error(eNativeRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+    raise_error(eDatadogRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
 }
 
 static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids) {
   ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern_all(recorder->string_storage, ids);
   if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    raise_error(eNativeRuntimeError, "Failed to unintern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+    raise_error(eDatadogRuntimeError, "Failed to unintern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
 }
 
 static VALUE get_ruby_string_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
   ddog_StringWrapperResult get_string_result = ddog_prof_ManagedStringStorage_get_string(recorder->string_storage, id);
   if (get_string_result.tag == DDOG_STRING_WRAPPER_RESULT_ERR) {
-    raise_error(eNativeRuntimeError, "Failed to get string: %"PRIsVALUE, get_error_details_and_drop(&get_string_result.err));
+    raise_error(eDatadogRuntimeError, "Failed to get string: %"PRIsVALUE, get_error_details_and_drop(&get_string_result.err));
   }
   VALUE ruby_string = ruby_string_from_vec_u8(get_string_result.ok.message);
   ddog_StringWrapper_drop((ddog_StringWrapper *) &get_string_result.ok);
@@ -962,7 +962,7 @@ static inline double ewma_stat(double previous, double current) {
 
 VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VALUE obj_id) {
   if (heap_recorder == NULL) {
-    raise_error(eNativeArgumentError, "heap_recorder is NULL");
+    raise_error(eDatadogArgumentError, "heap_recorder is NULL");
   }
 
   // Check if object records contains an object with this object_id
@@ -971,15 +971,15 @@ VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VA
 
 void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
-    raise_error(eNativeArgumentError, "heap_recorder is NULL");
+    raise_error(eDatadogArgumentError, "heap_recorder is NULL");
   }
 
   heap_recorder->last_update_ns = 0;
 }
 
 void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all) {
-  if (heap_recorder == NULL) raise_error(eNativeArgumentError, "heap profiling must be enabled");
-  if (times > REUSABLE_FRAME_DETAILS_SIZE) raise_error(eNativeArgumentError, "times cannot be > than REUSABLE_FRAME_DETAILS_SIZE");
+  if (heap_recorder == NULL) raise_error(eDatadogArgumentError, "heap profiling must be enabled");
+  if (times > REUSABLE_FRAME_DETAILS_SIZE) raise_error(eDatadogArgumentError, "times cannot be > than REUSABLE_FRAME_DETAILS_SIZE");
 
   if (use_all) {
     ddog_CharSlice *strings = heap_recorder->reusable_char_slices;

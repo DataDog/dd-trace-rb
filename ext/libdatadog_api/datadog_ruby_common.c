@@ -4,9 +4,9 @@
 // IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
 // Exception classes defined in Ruby, in the `Datadog::Core` namespace.
-VALUE eNativeRuntimeError = Qnil;
-VALUE eNativeArgumentError = Qnil;
-VALUE eNativeTypeError = Qnil;
+VALUE eDatadogRuntimeError = Qnil;
+VALUE eDatadogArgumentError = Qnil;
+VALUE eDatadogTypeError = Qnil;
 
 void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name) {
   rb_exc_raise(
@@ -97,11 +97,11 @@ void datadog_ruby_common_init(VALUE datadog_module) {
   VALUE core_module = rb_const_get(datadog_module, rb_intern("Core"));
   VALUE native_module = rb_const_get(core_module, rb_intern("Native"));
 
-  rb_global_variable(&eNativeRuntimeError);
-  rb_global_variable(&eNativeArgumentError);
-  rb_global_variable(&eNativeTypeError);
+  rb_global_variable(&eDatadogRuntimeError);
+  rb_global_variable(&eDatadogArgumentError);
+  rb_global_variable(&eDatadogTypeError);
 
-  eNativeRuntimeError = rb_const_get(native_module, rb_intern("RuntimeError"));
-  eNativeArgumentError = rb_const_get(native_module, rb_intern("ArgumentError"));
-  eNativeTypeError = rb_const_get(native_module, rb_intern("TypeError"));
+  eDatadogRuntimeError = rb_const_get(native_module, rb_intern("RuntimeError"));
+  eDatadogArgumentError = rb_const_get(native_module, rb_intern("ArgumentError"));
+  eDatadogTypeError = rb_const_get(native_module, rb_intern("TypeError"));
 }
