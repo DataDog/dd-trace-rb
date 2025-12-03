@@ -157,6 +157,22 @@ jobs:
       - name: Run yamllint
         run: yamllint --strict .
 
+  check_config_doc:
+    name: check_config_doc/lint
+    runs-on: ubuntu-24.04
+    needs: [ 'build' ]
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+      - run: bundle exec ruby .github/scripts/check_config_doc.rb
+
   complete:
     name: Static Analysis (complete)
     needs:
@@ -167,6 +183,7 @@ jobs:
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
+      - 'check_config_doc'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"
