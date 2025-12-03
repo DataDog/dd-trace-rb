@@ -18,20 +18,12 @@ module Datadog
             @logger = logger
           end
 
-          def send_request(action, request, &block)
-            send_request_impl(request) do |api, env|
-              api.public_send("send_#{action}", env)
-            end
-          end
-
-          private
-
-          def send_request_impl(request, &block)
+          def send_request(action, request)
             # Build request into env
             env = build_env(request)
 
             # Get responses from API
-            yield(api, env).tap do |response|
+            api.public_send("send_#{action}", env).tap do |response|
               on_response(response)
             end
           rescue => exception
