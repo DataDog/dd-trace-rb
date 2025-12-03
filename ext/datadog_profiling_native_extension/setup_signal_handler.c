@@ -38,8 +38,7 @@ static void install_sigprof_signal_handler_internal(
   sigemptyset(&signal_handler_config.sa_mask);
 
   if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
-    VALUE message = rb_sprintf("Could not install profiling signal handler (%s)", handler_pretty_name);
-    rb_exc_raise(rb_syserr_new_str(errno, message));
+    rb_exc_raise(rb_syserr_new_str(errno, rb_sprintf("Could not install profiling signal handler (%s)", handler_pretty_name)));
   }
 
   // Because signal handler functions are global, let's check if we're not stepping on someone else's toes.
@@ -57,15 +56,19 @@ static void install_sigprof_signal_handler_internal(
     // of the installation.
 
     if (sigaction(SIGPROF, &existing_signal_handler_config, NULL) != 0) {
-      VALUE message = rb_sprintf(
-        "Failed to install profiling signal handler (%s): "
-        "While installing a SIGPROF signal handler, the profiler detected that another software/library/gem had "
-        "previously installed a different SIGPROF signal handler. "
-        "The profiler tried to restore the previous SIGPROF signal handler, but this failed. "
-        "The other software/library/gem may have been left in a broken state. ",
-        handler_pretty_name
+      rb_exc_raise(
+        rb_syserr_new_str(
+          errno,
+          rb_sprintf(
+            "Failed to install profiling signal handler (%s): " \
+            "While installing a SIGPROF signal handler, the profiler detected that another software/library/gem had " \
+            "previously installed a different SIGPROF signal handler. " \
+            "The profiler tried to restore the previous SIGPROF signal handler, but this failed. " \
+            "The other software/library/gem may have been left in a broken state. ",
+            handler_pretty_name
+          )
+        )
       );
-      rb_exc_raise(rb_syserr_new_str(errno, message));
     }
 
     rb_raise(
@@ -93,18 +96,7 @@ static inline void toggle_sigprof_signal_handler_for_current_thread(int action) 
   sigemptyset(&signals_to_toggle);
   sigaddset(&signals_to_toggle, SIGPROF);
   int error = pthread_sigmask(action, &signals_to_toggle, NULL);
-
-  if (error) {
-    VALUE message;
-    if (action == SIG_BLOCK) {
-      message = rb_str_new_cstr("Unexpected failure in pthread_sigmask while blocking SIGPROF");
-    } else if (action == SIG_UNBLOCK) {
-      message = rb_str_new_cstr("Unexpected failure in pthread_sigmask while unblocking SIGPROF");
-    } else {
-      message = rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action);
-    }
-    rb_exc_raise(rb_syserr_new_str(error, message));
-  }
+  if (error) rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action)));
 }
 
 void block_sigprof_signal_handler_from_running_in_current_thread(void) {
