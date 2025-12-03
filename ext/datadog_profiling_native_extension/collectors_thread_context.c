@@ -2136,8 +2136,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     ENFORCE_THREAD(thread);
     ENFORCE_BOOLEAN(allow_exception);
 
-    printf("ThreadContextCollector#_native_sample_after_gvl_running called\n");
-    printf("allow_exception: %d\n", allow_exception == Qtrue ? 1 : 0);
+
 
     if (allow_exception == Qfalse) debug_enter_unsafe_context();
 
