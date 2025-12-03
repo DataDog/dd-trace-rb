@@ -14,7 +14,7 @@ class Basic < Parent
 
     [
       200,
-      { 'content-type' => 'text/plain' },
+      {'content-type' => 'text/plain'},
       ["Basic: Fibonacci(#{n}): #{result}"]
     ]
   end
@@ -22,6 +22,6 @@ class Basic < Parent
   private
 
   def fib(n)
-    n <= 1 ? n : fib(n - 1) + fib(n - 2)
+    (n <= 1) ? n : fib(n - 1) + fib(n - 2)
   end
 end

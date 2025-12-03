@@ -5,12 +5,11 @@ module Acme
         include Acme::Action
 
         def call(params)
-=begin Uncomment for testing failures
-          # binding.pry
-          if rand > 0.5
-            raise "Oooops...."
-          end
-=end
+          # Uncomment for testing failures
+          #           # binding.pry
+          #           if rand > 0.5
+          #             raise "Oooops...."
+          #           end
         end
       end
     end
