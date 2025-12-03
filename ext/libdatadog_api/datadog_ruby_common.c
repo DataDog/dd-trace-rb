@@ -8,7 +8,7 @@ VALUE eDatadogRuntimeError = Qnil;
 VALUE eDatadogArgumentError = Qnil;
 VALUE eDatadogTypeError = Qnil;
 
-void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name) {
+void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char *function_name) {
   rb_exc_raise(
     rb_exc_new_str(
       rb_eTypeError,
@@ -95,13 +95,20 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
 
 void datadog_ruby_common_init(VALUE datadog_module) {
   VALUE core_module = rb_const_get(datadog_module, rb_intern("Core"));
+  ENFORCE_TYPE(core_module, T_MODULE);
+
   VALUE native_module = rb_const_get(core_module, rb_intern("Native"));
+  ENFORCE_TYPE(native_module, T_MODULE);
 
   rb_global_variable(&eDatadogRuntimeError);
-  rb_global_variable(&eDatadogArgumentError);
-  rb_global_variable(&eDatadogTypeError);
-
   eDatadogRuntimeError = rb_const_get(native_module, rb_intern("RuntimeError"));
+  ENFORCE_TYPE(eDatadogRuntimeError, T_CLASS);
+
+  rb_global_variable(&eDatadogArgumentError);
   eDatadogArgumentError = rb_const_get(native_module, rb_intern("ArgumentError"));
+  ENFORCE_TYPE(eDatadogArgumentError, T_CLASS);
+
+  rb_global_variable(&eDatadogTypeError);
   eDatadogTypeError = rb_const_get(native_module, rb_intern("TypeError"));
+  ENFORCE_TYPE(eDatadogTypeError, T_CLASS);
 }
