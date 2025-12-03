@@ -16,7 +16,7 @@ module Datadog
       LEADING_INVALID_CHARS_NO_DIGITS = %r{\A[^\p{L}:]++}
       LEADING_INVALID_CHARS_WITH_DIGITS = %r{\A[^\p{L}0-9:./]++}
       MAX_BYTE_SIZE = 200 # Represents the general max tag length
-      MAX_PROCESS_VALUES_BYTE_SIZE = 100 # Represents the max tag length for process tags
+      MAX_PROCESS_VALUE_BYTE_SIZE = 100 # Represents the max tag length for process tags
       VALID_ASCII_TAG = %r{\A[a-z:][a-z0-9:./-]*\z}
 
       # Based on https://github.com/DataDog/datadog-agent/blob/45799c842bbd216bcda208737f9f11cade6fdd95/pkg/trace/traceutil/normalize.go#L131
