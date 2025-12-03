@@ -19,7 +19,7 @@ jobs:
     outputs:
       changes: ${{ steps.changes.outputs.dependencies }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
@@ -37,7 +37,7 @@ jobs:
         engine:
           # ADD NEW RUBIES HERE
           - name: ruby
-            version: "3.5"
+            version: "4.0"
           - name: ruby
             version: "3.4"
           - name: ruby
@@ -67,7 +67,7 @@ jobs:
       env:
         BUNDLE_WITHOUT: check
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
       - run: |
@@ -77,7 +77,7 @@ jobs:
       - run: bundle install
       - run: bundle exec rake dependency:generate
       - run: bundle exec rake dependency:lock
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: lock-dependency-${{ github.run_id }}-${{ matrix.engine.name }}-${{ matrix.engine.version }}
           path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
@@ -90,15 +90,15 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: generate-token
-        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        uses: actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94 # v2.2.0
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: true # required for `git` operations (commit & push) at later steps
           token: ${{ steps.generate-token.outputs.token }}
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           path: gemfiles
           pattern: lock-dependency-${{ github.run_id }}-*
@@ -109,7 +109,7 @@ jobs:
         run: git add gemfiles
       - run: git diff --cached --color=always
       - name: Commit changes
-        uses: planetscale/ghcommit-action@f24050e41f8694750427d111b52f4ef9ca81a32d # v0.2.18
+        uses: planetscale/ghcommit-action@343f41817a6a0f882f18bbc59fdd37f49452736f # v0.2.19
         with:
           repo: ${{ github.repository }}
           branch: ${{ github.head_ref }}

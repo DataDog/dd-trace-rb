@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../transport/parcel'
-require_relative 'http/client'
 require_relative 'http/telemetry'
 
 module Datadog
@@ -32,7 +31,7 @@ module Datadog
               @apis = apis
               @logger = logger
 
-              @client = HTTP::Client.new(@apis[default_api], logger: logger)
+              @client = Core::Telemetry::Transport::HTTP::Telemetry::Client.new(@apis[default_api], logger: logger)
             end
 
             def send_telemetry(request_type:, payload:)

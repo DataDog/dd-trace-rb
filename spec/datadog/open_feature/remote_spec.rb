@@ -115,6 +115,9 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
     context 'when change type is update' do
       before do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new)
+          .and_return(instance_double(Datadog::OpenFeature::NativeEvaluator))
+
         txn = repository.transaction { |_, t| t.insert(content.path, target, content) }
         receiver.call(repository, txn)
       end

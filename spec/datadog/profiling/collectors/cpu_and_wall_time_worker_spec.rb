@@ -683,8 +683,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "records allocated objects" do
-        # TODO: Ruby 3.5 - Remove this skip after investigation.
-        pending('Allocation profiling call not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('preview')
+        # TODO: Remove this when Ruby 3.5.0-preview1 is removed from CI
+        pending('Allocation profiling call not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('3.5.0preview1')
 
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 
@@ -868,6 +868,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       before do
         skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+        skip "Heap profiling is disabled on Ruby 4 until https://bugs.ruby-lang.org/issues/21710 is fixed" if RUBY_VERSION.start_with?("4.")
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
@@ -1183,7 +1184,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal
-              end.take
+              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
             end
           )
       end
@@ -1195,7 +1196,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_sample_from_postponed_job
-              end.take
+              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
             end
           )
       end
