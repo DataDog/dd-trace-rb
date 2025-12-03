@@ -293,7 +293,7 @@ static bool handle_gvl_waiting(
 static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
-static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
+static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
 static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
 static void otel_without_ddtrace_trace_identifiers_for(
   thread_context_collector_state *state,
@@ -343,7 +343,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
     rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 1);
-    rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 2);
+    rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 3);
     rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 3);
   #endif
 
@@ -1962,10 +1962,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-    if (!state->timeline_enabled) {
-      debug_leave_unsafe_context();
-      raise_error(eNativeRuntimeError, "GVL profiling requires timeline to be enabled");
-    }
+    if (!state->timeline_enabled) raise_error(eNativeRuntimeError, "GVL profiling requires timeline to be enabled");
 
     intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(current_thread);
 
@@ -2135,10 +2132,14 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     return result;
   }
 
-  static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
+  static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception) {
     ENFORCE_THREAD(thread);
+    ENFORCE_BOOLEAN(allow_exception);
 
-    debug_enter_unsafe_context();
+    printf("ThreadContextCollector#_native_sample_after_gvl_running called\n");
+    printf("allow_exception: %d\n", allow_exception == Qtrue ? 1 : 0);
+
+    if (allow_exception == Qfalse) debug_enter_unsafe_context();
 
     VALUE result = thread_context_collector_sample_after_gvl_running(
       collector_instance,
@@ -2146,7 +2147,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
     );
 
-    debug_leave_unsafe_context();
+    if (allow_exception == Qfalse) debug_leave_unsafe_context();
 
     return result;
   }

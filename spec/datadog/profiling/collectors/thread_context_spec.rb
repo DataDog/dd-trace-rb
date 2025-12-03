@@ -119,8 +119,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gvl_running(thread)
   end
 
-  def sample_after_gvl_running(thread)
-    described_class::Testing._native_sample_after_gvl_running(thread_context_collector, thread)
+  def sample_after_gvl_running(thread, allow_exception: false)
+    described_class::Testing._native_sample_after_gvl_running(thread_context_collector, thread, allow_exception)
   end
 
   def thread_list
@@ -1971,7 +1971,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     context "when timeline is disabled" do
       let(:timeline_enabled) { false }
       it "raises a telemetry-instrumented error" do
-        expect { sample_after_gvl_running(t1) }.to raise_error(Datadog::Core::Native::RuntimeError, "GVL profiling requires timeline to be enabled")
+        expect { sample_after_gvl_running(t1, allow_exception: true) }.to raise_error(
+          Datadog::Core::Native::RuntimeError,
+          "GVL profiling requires timeline to be enabled"
+        )
       end
     end
 

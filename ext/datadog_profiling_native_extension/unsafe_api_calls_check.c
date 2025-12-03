@@ -42,10 +42,7 @@ void debug_leave_unsafe_context(void) {
 }
 
 static void check_for_unsafe_api_calls(DDTRACE_UNUSED void *_unused) {
-  // Errors raised in an unsafe context have to acquire the GVL,
-  // which we don't want, but they are also aborting the current sampling
-  // thus they don't affect the sampling correctness.
-  if (inside_unsafe_context && rb_errinfo() != Qnil) rb_bug(
+  if (inside_unsafe_context) rb_bug(
     "Datadog Ruby profiler detected callback nested inside sample. Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug"
   );
 }
