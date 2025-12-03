@@ -825,7 +825,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   describe "_native_filenames_available?" do
-    it "returns true" do
+    it "returns true on linux and macOS" do
       expect(described_class._native_filenames_available?).to be true
     end
   end
