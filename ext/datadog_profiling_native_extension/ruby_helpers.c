@@ -202,12 +202,6 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, 
   rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
 }
 
-typedef struct {
-  int syserr_errno;
-  char exception_message[MAX_RAISE_MESSAGE_SIZE];
-  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
-} syserr_raise_args;
-
 void raise_syserr(
   int syserr_errno,
   bool have_gvl,
