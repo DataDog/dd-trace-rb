@@ -7,10 +7,7 @@ module Datadog
     end
 
     class TokenBucket < RateLimiter
-      # This should be `::Numeric`, but it's used with `*` method on another
-      # `Numeric` which makes steep fail with an error `Ruby::UnresolvedOverloading`
-      # "Cannot find compatible overloading of method"
-      @rate: ::Float
+      @rate: ::Float | ::Integer
 
       @max_tokens: ::Numeric
 
@@ -20,26 +17,19 @@ module Datadog
 
       @conforming_messages: ::Integer
 
-      # This should be `::Integer?` but steep can't see conditional branching
-      # which safe-guards us from errors like "undefined method for NilClass"
-      @prev_conforming_messages: ::Integer
+      @prev_conforming_messages: ::Integer?
 
-      # This should be `::Integer?` but steep can't see conditional branching
-      # which safe-guards us from errors like "undefined method for NilClass"
-      @prev_total_messages: ::Integer
+      @prev_total_messages: ::Integer?
 
-      # This should be `::Integer?`, but steep can't see conditional branching
-      # which safe-guards us from errors like "undefined method for NilClass"
-      @current_window: ::Numeric
+      @current_window: ::Float?
 
       @last_refill: ::Numeric
 
-      # This should be `::Numeric`, but has to follow `@rate` type definition
-      attr_reader rate: ::Float
+      attr_reader rate: ::Float | ::Integer
 
       attr_reader max_tokens: ::Numeric
 
-      def initialize: (::Numeric rate, ?::Numeric max_tokens) -> void
+      def initialize: (::Float | ::Integer rate, ?::Numeric max_tokens) -> void
 
       def allow?: (?::Integer size) -> bool
 

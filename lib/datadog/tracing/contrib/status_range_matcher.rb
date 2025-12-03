@@ -8,7 +8,8 @@ module Datadog
         attr_reader :ranges
 
         def initialize(ranges)
-          @ranges = Array(ranges)
+          # Steep: https://github.com/ruby/rbs/issues/1874
+          @ranges = Array(ranges) # steep:ignore IncompatibleAssignment
         end
 
         def +(other)
