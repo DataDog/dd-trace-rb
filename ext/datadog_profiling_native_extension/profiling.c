@@ -187,11 +187,7 @@ static void *testing_is_current_thread_holding_the_gvl(DDTRACE_UNUSED void *_unu
 }
 
 static VALUE _native_install_holding_the_gvl_signal_handler(DDTRACE_UNUSED VALUE _self) {
-  static const signal_handler_t handler = {
-    .function = holding_the_gvl_signal_handler,
-    .name = "holding_the_gvl_signal_handler"
-  };
-  install_sigprof_signal_handler(&handler);
+  install_sigprof_signal_handler(holding_the_gvl_signal_handler, "holding_the_gvl_signal_handler");
   return Qtrue;
 }
 

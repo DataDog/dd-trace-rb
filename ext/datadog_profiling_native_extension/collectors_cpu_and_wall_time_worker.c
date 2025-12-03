@@ -785,16 +785,12 @@ static VALUE _native_current_sigprof_signal_handler(DDTRACE_UNUSED VALUE self) {
 }
 
 static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
-  static const signal_handler_t handler = {
-    .function = handle_sampling_signal,
-    .name = "handle_sampling_signal"
-  };
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   // Final preparations: Setup signal handler and enable tracepoints. We run these here and not in `_native_sampling_loop`
   // because they may raise exceptions.
-  install_sigprof_signal_handler(&handler);
+  install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
   if (state->allocation_profiling_enabled) {
     rb_add_event_hook2(
@@ -852,11 +848,7 @@ static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
-  static const signal_handler_t handler = {
-    .function = testing_signal_handler,
-    .name = "testing_signal_handler"
-  };
-  install_sigprof_signal_handler(&handler);
+  install_sigprof_signal_handler(testing_signal_handler, "testing_signal_handler");
   return Qtrue;
 }
 
