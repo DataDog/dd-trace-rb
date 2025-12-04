@@ -4,6 +4,7 @@
 
 #include "crashtracker.h"
 #include "ddsketch.h"
+#include "di.h"
 #include "feature_flags.h"
 #include "library_config.h"
 #include "process_discovery.h"
@@ -17,4 +18,5 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   library_config_init(core_module);
   ddsketch_init(core_module);
   feature_flags_init(core_module);
+  di_init(datadog_module);
 }

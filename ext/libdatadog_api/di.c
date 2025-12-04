@@ -36,6 +36,7 @@ static VALUE all_iseqs(DDTRACE_UNUSED VALUE _self) {
     return oes.array;
 }
 
-void di_init(VALUE di_module) {
+void di_init(VALUE datadog_module) {
+  VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
 }
