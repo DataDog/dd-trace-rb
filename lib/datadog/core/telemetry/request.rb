@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../environment/platform'
+require_relative '../environment/process'
 require_relative '../utils/hash'
 
 module Datadog
@@ -23,6 +24,7 @@ module Datadog
               seq_id: seq_id,
               tracer_time: Core::Utils::Time.now.to_i,
             }
+            tag_process_tags!(hash)
             hash.compact!
             hash
           end
@@ -63,6 +65,15 @@ module Datadog
               kernel_release: Core::Environment::Platform.kernel_release,
               kernel_version: Core::Environment::Platform.kernel_version
             }
+          end
+
+          def tag_process_tags!(hash)
+            return unless Datadog.configuration.experimental_propagate_process_tags_enabled
+
+            process_tags = Core::Environment::Process.serialized
+            return if process_tags.empty?
+
+            hash[:process_tags] = process_tags
           end
         end
       end
