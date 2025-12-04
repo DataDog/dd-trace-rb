@@ -3,7 +3,6 @@
 require_relative 'core/deprecations'
 require_relative 'core/configuration/config_helper'
 require_relative 'core/extensions'
-require_relative 'core/native/error'
 
 # We must load core extensions to make certain global APIs
 # accessible: both for Datadog features and the core itself.
@@ -13,6 +12,9 @@ module Datadog
   # for higher-level features.
   module Core
     extend Core::Deprecations
+
+    module Native
+    end
 
     LIBDATADOG_API_FAILURE =
       begin

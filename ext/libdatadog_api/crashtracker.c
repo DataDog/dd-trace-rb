@@ -42,7 +42,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ENFORCE_TYPE(action, T_SYMBOL);
   ENFORCE_TYPE(upload_timeout_seconds, T_FIXNUM);
 
-  if (action != start_action && action != update_on_fork_action) raise_error(eDatadogArgumentError, "Unexpected action: %+"PRIsVALUE, action);
+  if (action != start_action && action != update_on_fork_action) raise_error(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
 
   VALUE version = datadog_gem_version();
 
@@ -50,7 +50,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   // Start of exception-free zone to prevent leaks {{
   ddog_Endpoint *endpoint = ddog_endpoint_from_url(char_slice_from_ruby_string(agent_base_url));
   if (endpoint == NULL) {
-    raise_error(eDatadogRuntimeError, "Failed to create endpoint from agent_base_url: %"PRIsVALUE, agent_base_url);
+    raise_error(rb_eRuntimeError, "Failed to create endpoint from agent_base_url: %"PRIsVALUE, agent_base_url);
   }
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 

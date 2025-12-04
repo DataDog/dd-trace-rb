@@ -34,32 +34,10 @@ void ruby_helpers_init(void) {
   vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
   va_end(buf##_args);
 
-// Raises a NativeError exception with seperate telemetry-safe and detailed messages.
+// Raises an exception with separate telemetry-safe and detailed messages.
 // Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
 // @see debug_enter_unsafe_context
 void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
-  bool native_exception_supported =
-    native_exception_class == eDatadogRuntimeError ||
-    native_exception_class == eDatadogArgumentError ||
-    native_exception_class == eDatadogTypeError;
-
-  if (!native_exception_supported) {
-    static const char unsupported_exception_static_message[] =
-      "private_raise_native_error called with an exception that might not support two error messages.";
-    char unsupported_exception_detailed_message[MAX_RAISE_MESSAGE_SIZE];
-
-    snprintf(
-      unsupported_exception_detailed_message,
-      MAX_RAISE_MESSAGE_SIZE,
-      "%s Expected eDatadogRuntimeError, eDatadogArgumentError, or eDatadogTypeError.",
-      unsupported_exception_static_message
-    );
-
-    VALUE unsupported_exception = rb_exc_new_cstr(eDatadogArgumentError, unsupported_exception_detailed_message);
-    rb_ivar_set(unsupported_exception, telemetry_message_id, rb_str_new_cstr(unsupported_exception_static_message));
-    rb_exc_raise(unsupported_exception);
-  }
-
   VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
   rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
   rb_exc_raise(exception);
@@ -115,19 +93,17 @@ static void *trigger_raise(void *raise_arguments) {
   return NULL;
 }
 
-void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, const char *format_string, ...) {
+static void raise_with_gvl(VALUE native_exception_class, int syserr_errno, const char *format_string, ...) {
   raise_args args;
 
-  if (syserr_errno != 0) {
-    args.exception_class = Qnil;
-    args.syserr_errno = syserr_errno;
-  } else {
-    args.exception_class = native_exception_class;
-    args.syserr_errno = 0;
-  }
+  args.syserr_errno = syserr_errno;
+  args.exception_class = syserr_errno != 0 ? Qnil : native_exception_class;
 
-  FORMAT_VA_ERROR_MESSAGE(formatted_exception_message, format_string);
-  snprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, "%s", formatted_exception_message);
+  va_list format_string_arguments;
+  va_start(format_string_arguments, format_string);
+  vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
+  va_end(format_string_arguments);
+
   snprintf(args.telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", format_string);
 
   if (is_current_thread_holding_the_gvl()) {
@@ -145,13 +121,21 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, 
       "grab_gvl_and_raise called by thread holding the global VM lock: %s",
       args.exception_message
     );
-    private_raise_native_error(eDatadogRuntimeError, exception_message, telemetry_message);
+    private_raise_native_error(rb_eRuntimeError, exception_message, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
 
   rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
 }
+
+#define grab_gvl_and_raise(native_exception_class, format_string, ...) \
+  raise_with_gvl(native_exception_class, 0, format_string, __VA_ARGS__)
+
+#define grab_gvl_and_raise_syserr(syserr_errno, format_string, ...) \
+  raise_with_gvl(Qnil, syserr_errno, format_string, __VA_ARGS__)
+
+
 
 void raise_syserr(
   int syserr_errno,
@@ -164,7 +148,7 @@ void raise_syserr(
   if (have_gvl) {
     rb_exc_raise(rb_syserr_new_str(syserr_errno, rb_sprintf("Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name)));
   } else {
-    private_grab_gvl_and_raise(Qnil, syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
+    grab_gvl_and_raise_syserr(syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
   }
 }
 

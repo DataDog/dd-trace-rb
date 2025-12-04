@@ -119,19 +119,23 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
   if (RTEST(release_gvl)) {
     rb_thread_call_without_gvl(trigger_grab_gvl_and_raise, &args, NULL, NULL);
   } else {
-    private_grab_gvl_and_raise(args.exception_class, 0, args.test_message, args.test_message_arg);
+    if (args.test_message_arg != NULL) {
+      grab_gvl_and_raise(args.exception_class, args.test_message, args.test_message_arg);
+    } else {
+      grab_gvl_and_raise(args.exception_class, args.test_message);
+    }
   }
 
-  raise_error(eDatadogRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
+  raise_error(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
 }
 
 static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   trigger_grab_gvl_and_raise_arguments *args = (trigger_grab_gvl_and_raise_arguments *) trigger_args;
 
   if (args->test_message_arg != NULL) {
-    private_grab_gvl_and_raise(args->exception_class, 0, args->test_message, args->test_message_arg);
+    grab_gvl_and_raise(args->exception_class, args->test_message, args->test_message_arg);
   } else {
-    private_grab_gvl_and_raise(args->exception_class, 0, args->test_message);
+    grab_gvl_and_raise(args->exception_class, args->test_message);
   }
 
   return NULL;
@@ -155,19 +159,23 @@ static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE
   if (RTEST(release_gvl)) {
     rb_thread_call_without_gvl(trigger_grab_gvl_and_raise_syserr, &args, NULL, NULL);
   } else {
-    private_grab_gvl_and_raise(Qnil, args.syserr_errno, args.test_message, args.test_message_arg);
+    if (args.test_message_arg != NULL) {
+      grab_gvl_and_raise_syserr(args.syserr_errno, args.test_message, args.test_message_arg);
+    } else {
+      grab_gvl_and_raise_syserr(args.syserr_errno, args.test_message);
+    }
   }
 
-  raise_error(eDatadogRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_syserr; this should never happen");
+  raise_error(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_syserr; this should never happen");
 }
 
 static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
   trigger_grab_gvl_and_raise_syserr_arguments *args = (trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
 
   if (args->test_message_arg != NULL) {
-    private_grab_gvl_and_raise(Qnil, args->syserr_errno, args->test_message, args->test_message_arg);
+    grab_gvl_and_raise_syserr(args->syserr_errno, args->test_message, args->test_message_arg);
   } else {
-    private_grab_gvl_and_raise(Qnil, args->syserr_errno, args->test_message);
+    grab_gvl_and_raise_syserr(args->syserr_errno, args->test_message);
   }
 
   return NULL;
@@ -253,7 +261,7 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 
   replace_sigprof_signal_handler_with_empty_handler(holding_the_gvl_signal_handler);
 
-  if (holding_the_gvl_signal_handler_result[0] == Qfalse) raise_error(eDatadogRuntimeError, "Could not signal background_thread");
+  if (holding_the_gvl_signal_handler_result[0] == Qfalse) raise_error(rb_eRuntimeError, "Could not signal background_thread");
 
   VALUE result = rb_hash_new();
   rb_hash_aset(result, ID2SYM(rb_intern("ruby_thread_has_gvl_p")), holding_the_gvl_signal_handler_result[1]);

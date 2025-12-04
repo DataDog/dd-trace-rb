@@ -45,22 +45,25 @@ static inline int check_if_pending_exception(void) {
 // message is the default `Exception#message`.
 // *Ruby exceptions not raised through this function will not be reported via telemetry.*
 // Only the following error classes are supported, as they require an extra field for
-// the telemetry-safe string: NativeRuntimeError, NativeArgumentError, NativeTypeError.
+// the telemetry-safe string: RuntimeError, ArgumentError, TypeError.
 #define raise_error(native_exception_class, fmt, ...) \
   private_raise_error(native_exception_class, "" fmt, ##__VA_ARGS__)
 
-#define grab_gvl_and_raise(native_exception_class, fmt, ...) \
-  private_grab_gvl_and_raise(native_exception_class, 0, "" fmt, ##__VA_ARGS__)
+NORETURN(
+  void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...)
+  __attribute__ ((format (printf, 2, 3)));
+);
+NORETURN(
+  void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
+  __attribute__ ((format (printf, 2, 3)));
+);
 
 NORETURN(
   void private_raise_error(VALUE native_exception_class, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
 
-NORETURN(
-  void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, const char *format_string, ...)
-  __attribute__ ((format (printf, 3, 4)));
-);
+
 
 // NOTE: Only used externally for testing, by `_native_raise_native_error_with_invalid_class`
 NORETURN(
