@@ -11,14 +11,14 @@ module Datadog
         # no-op
       end
 
-      def get_assignment(_flag_key, default_value, _context, _expected_type)
+      def get_assignment(_flag_key, default_value:, context:, expected_type:)
         ResolutionDetails.new(
           value: default_value,
           log?: false,
           error?: true,
           error_code: Ext::PROVIDER_NOT_READY,
-          error_message: 'Waiting for universal flag configuration',
-          reason: Ext::INITIALIZING
+          error_message: 'Waiting for flags configuration',
+          reason: Ext::ERROR
         )
       end
     end

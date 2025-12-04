@@ -1,0 +1,24 @@
+module Datadog
+  module OpenTelemetry
+    module SDK
+      class MetricsExporter < ::OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter
+        @telemetry_tags: ::Hash[::String, ::String]
+
+        METRIC_EXPORT_ATTEMPTS: "otel.metrics_export_attempts"
+
+        METRIC_EXPORT_SUCCESSES: "otel.metrics_export_successes"
+
+        METRIC_EXPORT_FAILURES: "otel.metrics_export_failures"
+
+        def initialize: (endpoint: ::String, timeout: ::Float, headers: ::Hash[::String, any], protocol: ::String) -> void
+
+        def export: (untyped metrics, ?timeout: ::Float?) -> Integer
+
+        private
+
+        def telemetry: () -> Core::Telemetry::Component?
+      end
+    end
+  end
+end
+
