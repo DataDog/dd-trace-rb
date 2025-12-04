@@ -30,13 +30,23 @@ RSpec.describe 'all_iseqs' do
   # be expecting here.
   # Since we do have some knowledge about our own library, for now assert
   # that we have a reasonable set of files from dd-trace-rb in the iseqs.
-  it 'returns iseqs for all loaded files' do
+  it 'returns iseqs for loaded files' do
     datadog_iseqs = file_iseqs.select do |iseq|
       iseq.absolute_path =~ %r,lib/datadog/,
     end
-    #pp datadog_iseqs
-    p datadog_iseqs.length
-    require'byebug';byebug
-    expect(datadog_iseqs.length).to be >= $LOADED_FEATURES.length
+    paths = datadog_iseqs.map(&:absolute_path).uniq
+
+    # When this test was written, there were 650+ files with
+    # iseqs in them and 5200+ iseq objects available.
+    # Allow for a margin but assume the amount of code in dd-trace-rb
+    # will generally grow over time.
+    expect(paths.length).to be > 500
+    expect(datadog_iseqs.length).to be > 4000
+
+    # An initial attempt at this test compared the number of iseqs
+    # we got to the size of $LOADED_FEATURES. This is not a working
+    # comparison because loaded features contain Ruby files with constants
+    # only (simplest case) that have no iseqs, therefore generally,
+    # the loaded features and available iseqs are not correlated.
   end
 end
