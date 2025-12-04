@@ -271,7 +271,7 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
   end
 end
 
-['3.23.2', '4'].each do |v|
+['3.23.2'].each do |v|
   appraise "view_component-#{v}" do
     gem 'view_component', "~> #{v}"
     gem "actionview"
