@@ -2,7 +2,7 @@
 
 module Datadog
   module AIGuard
-    module Evaluation
+    class Evaluation
       # Wrapper class for evaluation API response
       class Response
         ACTIONS = {

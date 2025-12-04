@@ -110,6 +110,7 @@ module Datadog
         #
         # For internal use only.
         # NOTE: This should be only used when interacting with the Datadog API directly.
+        # TODO: mark this as experimental?
         #
         # @default `DD_APP_KEY` environment variable, otherwise `nil`
         # @return [String, nil]

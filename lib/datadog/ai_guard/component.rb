@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 require_relative 'api_client'
+require_relative 'evaluation'
 require_relative 'evaluation/request'
 require_relative 'evaluation/response'
-require_relative 'session'
+require_relative 'evaluation/message'
+require_relative 'evaluation/tool_call'
 
 module Datadog
   module AIGuard
