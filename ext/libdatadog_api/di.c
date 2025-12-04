@@ -27,6 +27,13 @@ static int ddtrace_di_os_obj_of_i(void *vstart, void *vend, size_t stride, void 
     return 0;
 }
 
+/* 
+Return iseqs existing in the current process.
+This returns iseqs corresponding to defined methods.
+If a file has, for example, only constant definitions, after that
+file is loaded its iseq object is no longer needed for anything else
+and is (generally?) garbage collected.
+*/
 static VALUE all_iseqs(DDTRACE_UNUSED VALUE _self) {
     struct ddtrace_di_os_each_struct oes;
 
