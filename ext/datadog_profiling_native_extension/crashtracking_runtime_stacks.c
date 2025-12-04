@@ -148,10 +148,34 @@ static const char* safe_string_ptr(VALUE str) {
 static bool is_valid_control_frame(const rb_control_frame_t *cfp,
                                    const rb_execution_context_t *ec) {
   if (!cfp) return false;
+  if (!ec) return false;
 
-  void *stack_start = ec->vm_stack;
-  void *stack_end = (char*)stack_start + ec->vm_stack_size * sizeof(VALUE);
-  if ((void*)cfp < stack_start || (void*)cfp >= stack_end) {
+  if (!is_pointer_readable(ec, sizeof(*ec))) {
+    return false;
+  }
+
+  VALUE *stack_ptr = ec->vm_stack;
+  size_t stack_slots = ec->vm_stack_size;
+  if (!stack_ptr || stack_slots == 0) {
+    return false;
+  }
+
+  size_t stack_bytes = stack_slots * sizeof(VALUE);
+  if (stack_bytes / sizeof(VALUE) != stack_slots) {
+    return false;  // overflow
+  }
+
+  const char *stack_start = (const char *)stack_ptr;
+  if (!is_pointer_readable(stack_start, sizeof(VALUE))) {
+    return false;
+  }
+
+  const char *stack_end = stack_start + stack_bytes;
+  if (!is_pointer_readable(stack_end - sizeof(VALUE), sizeof(VALUE))) {
+    return false;
+  }
+  const char *cfp_ptr = (const char *)cfp;
+  if (cfp_ptr < stack_start || cfp_ptr >= stack_end) {
     return false;
   }
 
@@ -162,16 +186,38 @@ static bool is_valid_control_frame(const rb_control_frame_t *cfp,
   return true;
 }
 
-static bool is_valid_iseq(const rb_iseq_t *iseq) {
+static bool fetch_iseq_body(const rb_iseq_t *iseq, const struct rb_iseq_constant_body **body_out) {
   if (!iseq) return false;
   if (!is_pointer_readable(iseq, sizeof(rb_iseq_t))) return false;
 
-  // Check iseq body
-  if (!iseq->body) return false;
-  if (!is_pointer_readable(iseq->body, sizeof(*iseq->body))) return false;
+  const struct rb_iseq_constant_body *body = iseq->body;
+  if (!body) return false;
+
+  if (!is_pointer_readable(body, sizeof(*body))) return false;
+  if (!is_pointer_readable(&body->type, sizeof(body->type))) return false;
+  if (!is_pointer_readable(&body->location, sizeof(body->location))) return false;
+  if (!is_pointer_readable(&body->iseq_size, sizeof(body->iseq_size))) return false;
+  if (!is_pointer_readable(&body->iseq_encoded, sizeof(body->iseq_encoded))) return false;
+
+  if (body_out) {
+    *body_out = body;
+  }
+
+  return true;
+}
+
+static bool is_valid_iseq(const rb_iseq_t *iseq, const struct rb_iseq_constant_body **body_out) {
+  const struct rb_iseq_constant_body *body = NULL;
+  if (!fetch_iseq_body(iseq, &body)) {
+    return false;
+  }
 
   // Validate iseq size
-  if (iseq->body->iseq_size > 100000) return false; // > 100K instructions, suspicious
+  if (body->iseq_size > 100000) return false; // > 100K instructions, suspicious
+
+  if (body_out) {
+    *body_out = body;
+  }
 
   return true;
 }
@@ -186,10 +232,10 @@ static void ruby_runtime_stack_callback(
   if (crashtracker_thread_data_type == NULL) return;
 
   rb_thread_t *th = (rb_thread_t *) rb_check_typeddata(current_thread, crashtracker_thread_data_type);
-  if (!th) return;
+  if (!th || !is_pointer_readable(th, sizeof(*th))) return;
 
   const rb_execution_context_t *ec = th->ec;
-  if (!ec) return;
+  if (!ec || !is_pointer_readable(ec, sizeof(*ec))) return;
 
   if (th->status == THREAD_KILLED) return;
   if (!ec->vm_stack || ec->vm_stack_size == 0) return;
@@ -218,8 +264,9 @@ static void ruby_runtime_stack_callback(
     if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->iseq) {
       // Handle Ruby frames
       const rb_iseq_t *iseq = cfp->iseq;
+      const struct rb_iseq_constant_body *body = NULL;
 
-      if (!is_valid_iseq(iseq)) {
+      if (!is_valid_iseq(iseq, &body)) {
         continue;
       }
 
@@ -236,29 +283,29 @@ static void ruby_runtime_stack_callback(
       }
 
       int line_no = 0;
-      if (iseq && iseq->body) {
+      if (body) {
         if (!cfp->pc) {
           // Handle case where PC is NULL; using first line number like private_vm_api_access.c
-          if (iseq->body->type == ISEQ_TYPE_TOP) {
+          if (body->type == ISEQ_TYPE_TOP) {
             // For TOP type iseqs, line number should be 0
             line_no = 0;
           } else {
             // Use first line number for other types
             # ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
-              line_no = iseq->body->location.first_lineno;
+              line_no = body->location.first_lineno;
             # else
-              line_no = FIX2INT(iseq->body->location.first_lineno);
+              line_no = FIX2INT(body->location.first_lineno);
             #endif
           }
         } else {
           // Handle case where PC is available - mirror calc_pos logic
-          if (is_pointer_readable(iseq->body->iseq_encoded, iseq->body->iseq_size * sizeof(*iseq->body->iseq_encoded)) &&
-              iseq->body->iseq_size > 0) {
-            ptrdiff_t pc_offset = cfp->pc - iseq->body->iseq_encoded;
+          if (body->iseq_size > 0 &&
+              is_pointer_readable(body->iseq_encoded, body->iseq_size * sizeof(*body->iseq_encoded))) {
+            ptrdiff_t pc_offset = cfp->pc - body->iseq_encoded;
 
             // bounds checking like private_vm_api_access.c PROF-11475 fix
             // to prevent crashes when calling rb_iseq_line_no
-            if (pc_offset >= 0 && pc_offset <= iseq->body->iseq_size) {
+            if (pc_offset >= 0 && pc_offset <= (ptrdiff_t)body->iseq_size) {
               size_t pos = (size_t)pc_offset;
               if (pos > 0) {
                 // Use pos-1 because PC points to next instruction
@@ -266,7 +313,7 @@ static void ruby_runtime_stack_callback(
               }
 
               // Additional safety check before calling rb_iseq_line_no (PROF-11475 fix)
-              if (pos < iseq->body->iseq_size) {
+              if (pos < body->iseq_size) {
                 line_no = rb_iseq_line_no(iseq, pos);
               }
             }
@@ -290,19 +337,20 @@ static void ruby_runtime_stack_callback(
 
       // Resolve Ruby C frames via rb_vm_frame_method_entry (Ruby or our fallback depending on version)
       const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(cfp);
-      if (me && is_pointer_readable(me, sizeof(rb_callable_method_entry_t))) {
-        if (me->def && is_pointer_readable(me->def, sizeof(*me->def))) {
-          if (me->def->original_id) {
-            const char *method_name = rb_id2name(me->def->original_id);
-            if (method_name && is_pointer_readable(method_name, strlen(method_name))) {
-              size_t method_name_len = strlen(method_name);
+      if (is_pointer_readable(me, sizeof(rb_callable_method_entry_t))) {
+        const rb_method_definition_t *method_def = me->def;
+        if (is_pointer_readable(method_def, sizeof(*method_def))) {
+          if (method_def->original_id) {
+            const char *method_name = rb_id2name(method_def->original_id);
+            if (is_pointer_readable(method_name, 256)) {
+              size_t method_name_len = strnlen(method_name, 256);
               if (method_name_len > 0 && method_name_len < 256) {
                 function_name = method_name;
               }
             }
           }
 
-          if (me->def->type == VM_METHOD_TYPE_CFUNC && me->owner) {
+          if (method_def->type == VM_METHOD_TYPE_CFUNC && me->owner) {
             // Try to get the full class/module path
             VALUE owner_name = Qnil;
             VALUE actual_owner = me->owner;
