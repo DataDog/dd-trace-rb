@@ -8,32 +8,34 @@ module Datadog
         @idle_sampling_helper: IdleSamplingHelper
 
         def initialize: (
-          gc_profiling_enabled: bool,
-          no_signals_workaround_enabled: bool,
-          thread_context_collector: Datadog::Profiling::Collectors::ThreadContext,
-          dynamic_sampling_rate_overhead_target_percentage: Float,
-          ?idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper,
+          ?cpu_profiling_v3_enabled: bool,
           ?dynamic_sampling_rate_enabled: bool,
-          allocation_profiling_enabled: bool,
-          allocation_counting_enabled: bool,
-          gvl_profiling_enabled: bool,
-          sighandler_sampling_enabled: bool,
+          ?idle_sampling_helper: IdleSamplingHelper,
           ?skip_idle_samples_for_testing: false,
+          allocation_counting_enabled: bool,
+          allocation_profiling_enabled: bool,
+          dynamic_sampling_rate_overhead_target_percentage: Float,
+          gc_profiling_enabled: bool,
+          gvl_profiling_enabled: bool,
+          no_signals_workaround_enabled: bool,
+          sighandler_sampling_enabled: bool,
+          thread_context_collector: ThreadContext,
         ) -> void
 
         def self._native_initialize: (
-          self_instance: CpuAndWallTimeWorker,
-          thread_context_collector: ThreadContext,
-          gc_profiling_enabled: bool,
-          idle_sampling_helper: IdleSamplingHelper,
-          no_signals_workaround_enabled: bool,
+          allocation_counting_enabled: bool,
+          allocation_profiling_enabled: bool,
+          cpu_profiling_v3_enabled: bool,
           dynamic_sampling_rate_enabled: bool,
           dynamic_sampling_rate_overhead_target_percentage: Float,
-          allocation_profiling_enabled: bool,
-          allocation_counting_enabled: bool,
+          gc_profiling_enabled: bool,
           gvl_profiling_enabled: bool,
+          idle_sampling_helper: IdleSamplingHelper,
+          no_signals_workaround_enabled: bool,
+          self_instance: CpuAndWallTimeWorker,
           sighandler_sampling_enabled: bool,
           skip_idle_samples_for_testing: bool,
+          thread_context_collector: ThreadContext,
         ) -> true
 
         def start: (?on_failure_proc: ::Proc?) -> bool?

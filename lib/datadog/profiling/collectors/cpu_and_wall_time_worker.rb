@@ -16,14 +16,15 @@ module Datadog
         public
 
         def initialize(
-          gc_profiling_enabled:,
-          no_signals_workaround_enabled:,
-          thread_context_collector:,
-          dynamic_sampling_rate_overhead_target_percentage:,
-          allocation_profiling_enabled:,
           allocation_counting_enabled:,
+          allocation_profiling_enabled:,
+          cpu_profiling_v3_enabled: true,
+          dynamic_sampling_rate_overhead_target_percentage:,
+          gc_profiling_enabled:,
           gvl_profiling_enabled:,
+          no_signals_workaround_enabled:,
           sighandler_sampling_enabled:,
+          thread_context_collector:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
@@ -41,17 +42,18 @@ module Datadog
 
           self.class._native_initialize(
             self_instance: self,
-            thread_context_collector: thread_context_collector,
-            gc_profiling_enabled: gc_profiling_enabled,
-            idle_sampling_helper: idle_sampling_helper,
-            no_signals_workaround_enabled: no_signals_workaround_enabled,
-            dynamic_sampling_rate_enabled: dynamic_sampling_rate_enabled,
-            dynamic_sampling_rate_overhead_target_percentage: dynamic_sampling_rate_overhead_target_percentage,
-            allocation_profiling_enabled: allocation_profiling_enabled,
             allocation_counting_enabled: allocation_counting_enabled,
+            allocation_profiling_enabled: allocation_profiling_enabled,
+            cpu_profiling_v3_enabled: cpu_profiling_v3_enabled,
+            dynamic_sampling_rate_overhead_target_percentage: dynamic_sampling_rate_overhead_target_percentage,
+            gc_profiling_enabled: gc_profiling_enabled,
             gvl_profiling_enabled: gvl_profiling_enabled,
+            no_signals_workaround_enabled: no_signals_workaround_enabled,
             sighandler_sampling_enabled: sighandler_sampling_enabled,
+            thread_context_collector: thread_context_collector,
+            dynamic_sampling_rate_enabled: dynamic_sampling_rate_enabled,
             skip_idle_samples_for_testing: skip_idle_samples_for_testing,
+            idle_sampling_helper: idle_sampling_helper,
           )
           @worker_thread = nil
           @failure_exception = nil
