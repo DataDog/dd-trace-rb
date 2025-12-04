@@ -22,7 +22,7 @@ module Datadog
 
             def event_name
               return DEPRECATED_EVENT_NAME if configuration[:use_deprecated_instrumentation_name]
-              return EVENT_NAME
+              EVENT_NAME
             end
 
             def span_name

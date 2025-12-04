@@ -3,7 +3,6 @@ require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/tracing/contrib/view_component/utils'
 require 'datadog/tracing/contrib/view_component/integration'
 
-
 require 'view_component'
 
 RSpec.describe 'ViewComponent integration tests', execute_in_fork: Rails.version.to_i >= 8 do
@@ -56,7 +55,7 @@ RSpec.describe 'ViewComponent integration tests', execute_in_fork: Rails.version
 
   it "stores instrumentation data when rendering" do
     controller.render(component.new)
-    span = spans.find{|s| s.name == "view_component.render" }
+    span = spans.find { |s| s.name == "view_component.render" }
 
     expect(span.name).to eq("view_component.render")
     expect(span.resource).to eq("TestComponent")
