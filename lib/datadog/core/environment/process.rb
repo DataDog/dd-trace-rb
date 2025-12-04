@@ -16,13 +16,13 @@ module Datadog
           return @serialized if defined?(@serialized)
           tags = []
 
-          workdir = TagNormalizer.process_values_normalize(entrypoint_workdir.to_s)
+          workdir = TagNormalizer.normalize_process_value(entrypoint_workdir.to_s)
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{workdir}" unless workdir.empty?
 
-          entry_name = TagNormalizer.process_values_normalize(entrypoint_name.to_s)
+          entry_name = TagNormalizer.normalize_process_value(entrypoint_name.to_s)
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_NAME}:#{entry_name}" unless entry_name.empty?
 
-          basedir = TagNormalizer.process_values_normalize(entrypoint_basedir.to_s)
+          basedir = TagNormalizer.normalize_process_value(entrypoint_basedir.to_s)
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{basedir}" unless basedir.empty?
 
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"

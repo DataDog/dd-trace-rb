@@ -157,7 +157,7 @@ RSpec.describe Datadog::Core::TagNormalizer do
 
     test_cases.each do |test_case|
       it "normalizes #{test_case[:in].inspect} to #{test_case[:out].inspect}" do
-        expect(described_class.process_values_normalize(test_case[:in])).to eq(test_case[:out])
+        expect(described_class.normalize_process_value(test_case[:in])).to eq(test_case[:out])
       end
     end
   end

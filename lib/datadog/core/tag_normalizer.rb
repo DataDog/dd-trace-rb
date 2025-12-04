@@ -65,15 +65,15 @@ module Datadog
       # - and must not contain colons
       # @param value [String] The original string
       # @return [String] The normalized string
-      def self.process_values_normalize(value)
+      def self.normalize_process_value(value)
         value = normalize(value)
         return value if value.empty?
 
         value.tr!(':', '_')
         value.squeeze!('_') if value.include?('__')
 
-        if value.bytesize > MAX_PROCESS_VALUES_BYTE_SIZE
-          value = value.byteslice(0, MAX_PROCESS_VALUES_BYTE_SIZE) || value
+        if value.bytesize > MAX_PROCESS_VALUE_BYTE_SIZE
+          value = value.byteslice(0, MAX_PROCESS_VALUE_BYTE_SIZE) || value
           value.scrub!("")
         end
 
