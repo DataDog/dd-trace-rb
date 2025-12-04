@@ -14,7 +14,7 @@
 #endif
 
 #ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS // Ruby 3.2
-  __thread gvl_profiling_thread gvl_waiting_tls;
+  static __thread gvl_profiling_thread gvl_waiting_tls;
   static bool gvl_profiling_state_thread_tracking_workaround_installed = false;
 
   static void on_thread_start(

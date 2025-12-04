@@ -16,6 +16,7 @@
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "cpu_profiling_v3_helper.h"
 
 // Used to trigger the execution of Collectors::ThreadContext, which implements all of the sampling logic
 // itself; this class only implements the "when to do it" part.
@@ -1335,6 +1336,9 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       // But we're not sure if we're on the main Ractor yet. The thread context collector actually can actually help here:
       // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
       // Ractor. Thus, if we get a ON_GVL_RUNNING_UNKNOWN result we shouldn't touch any state, but otherwise we're good to go.
+      //
+      // Note also that while the GVL may be acquired, this also gets called when the thread has just been created and may
+      // not be in an entirely healthy state yet (e.g. can't raise exceptions).
 
       #ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS
         target_thread = gvl_profiling_state_maybe_initialize();
@@ -1355,6 +1359,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
         state->stats.gvl_dont_sample++;
       }
+
+      cpu_profiling_v3_on_resume();
     } else {
       // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
       fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
