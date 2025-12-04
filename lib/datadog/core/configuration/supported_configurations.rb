@@ -311,6 +311,7 @@ module Datadog
          "DD_TRACE_TRILOGY_ENABLED" => {version: ["A"]},
          "DD_TRACE_TRILOGY_PEER_SERVICE" => {version: ["A"]},
          "DD_TRACE_TRILOGY_SERVICE_NAME" => {version: ["A"]},
+         "DD_TRACE_VIEW_COMPONENT_ANALYTICS_ENABLED" => {version: ["A"]},
          "DD_TRACE_VIEW_COMPONENT_ENABLED" => {version: ["A"]},
          "DD_TRACE_WATERDROP_ENABLED" => {version: ["A"]},
          "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH" => {version: ["A"]},
