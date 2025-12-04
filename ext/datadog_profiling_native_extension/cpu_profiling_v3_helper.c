@@ -1,9 +1,12 @@
-#include "cpu_profiling_v3_helper.h"
-#include "ruby_helpers.h"
-
+#include <ruby.h>
+#include <ruby/thread.h>
+#include <unistd.h>
 #include <signal.h>
 #include <time.h>
 #include <stdbool.h>
+
+#include "datadog_ruby_common.h"
+#include "cpu_profiling_v3_helper.h"
 
 typedef struct {
   bool valid;
@@ -40,4 +43,23 @@ void cpu_profiling_v3_on_resume(void) {
   }
 
   // TODO
+}
+
+static void on_thread_exit_cleanup_timer(
+  DDTRACE_UNUSED rb_event_flag_t _unused1,
+  DDTRACE_UNUSED const rb_internal_thread_event_data_t *_unused2,
+  DDTRACE_UNUSED void *_unused3
+) {
+  if (current_thread_timer.valid) {
+    int error = timer_delete(current_thread_timer.timer);
+    if (error != 0) {
+      // TODO: Better logging
+      fprintf(stderr, "Failure to delete CPU timer %s:%d:in `%s': %s\n",  __FILE__, __LINE__, __func__, strerror(errno));
+    }
+    current_thread_timer.valid = false;
+  }
+}
+
+void cpu_profiling_v3_enable_timer_cleanup(void) {
+  rb_internal_thread_add_event_hook(on_thread_exit_cleanup_timer, RUBY_INTERNAL_THREAD_EVENT_EXITED, NULL);
 }

@@ -816,6 +816,8 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
         gvl_profiling_state_thread_tracking_workaround();
       #endif
 
+      cpu_profiling_v3_enable_timer_cleanup();
+
       state->gvl_profiling_hook = rb_internal_thread_add_event_hook(
         on_gvl_event,
         (
