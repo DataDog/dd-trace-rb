@@ -55,14 +55,28 @@ we can use the full-file iseq to target any line in the file.
 The third type, iseqs for a method, is the only iseqs we have available
 for much of third-party code. They require DI to identify the correct
 iseq object in a particular file that contains the line that the probe
-is trying to instrument.
+is trying to instrument. Doing so, as far as I can tell, requires
+examining the iseq's instructions because a method can define another
+method via +define_method+, in which case the line numbers within one
+method definition are not contiguous and methods are nested.
 
-iseqs contain the first line of the code they correspond to, but no
-last line or number of lines. The actual instructions are labeled
-per line, therefore it is possible to figure out the range of each
-iseq from the instructions. However I think this is unnecessary -
-all that should be required is picking the iseq with first_lineno
-smaller than, and closest to, the desired line number.
+The +trace_points+ method of the iseq object appears te be the easiest
+way of accessing the line numbers that correspond to that iseq.
+
+Finally, it is possible for the same line of code to be present in
+multiple methods. Consider for example:
+
+    class Foo
+      def self.bar; define_method(:dynamic) { 42 } end
+    end
+
+After +bar+ executes, it will have defined the method +dynamic+ which
+exists on the same lines of code as +bar+.
+
+This situation is considered an error in DI/LD products - a probe
+specification must resolve to exactly one code location, because the UI
+only has provision to how one code location as the instrumentation target.
+Thus, in this case, instrumentation should produce an error.
 */
 static VALUE all_iseqs(DDTRACE_UNUSED VALUE _self) {
     struct ddtrace_di_os_each_struct oes;
