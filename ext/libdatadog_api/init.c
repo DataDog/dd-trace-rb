@@ -1,12 +1,12 @@
 #include <ruby.h>
 
 #include "datadog_ruby_common.h"
-#include "crashtracker.h"
-#include "process_discovery.h"
-#include "library_config.h"
-#include "feature_flags.h"
 
-void ddsketch_init(VALUE core_module);
+#include "crashtracker.h"
+#include "ddsketch.h"
+#include "feature_flags.h"
+#include "library_config.h"
+#include "process_discovery.h"
 
 void DDTRACE_EXPORT Init_libdatadog_api(void) {
   VALUE datadog_module = rb_define_module("Datadog");
