@@ -46,9 +46,17 @@ module Datadog
 
             option :error_status_codes do |o|
               o.env Ext::ENV_ERROR_STATUS_CODES
-              o.default 400...600
-              o.setter do |v|
-                Tracing::Contrib::StatusRangeMatcher.new(v) if v
+              o.setter do |value|
+                if value.nil?
+                  # Fallback to global config, which is defaulted to client (400..499) + server (500..599)
+                  # DEV-3.0: `http` is a client library, this should fall back to `http_error_statuses.client` only.
+                  # We cannot change it without causing a breaking change.
+                  client_global_error_statuses = Datadog.configuration.tracing.http_error_statuses.client
+                  server_global_error_statuses = Datadog.configuration.tracing.http_error_statuses.server
+                  client_global_error_statuses + server_global_error_statuses
+                else
+                  Tracing::Contrib::StatusRangeMatcher.new(value)
+                end
               end
               o.env_parser do |v|
                 Tracing::Contrib::StatusRangeEnvParser.call(v) if v

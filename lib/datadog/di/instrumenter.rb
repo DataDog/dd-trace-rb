@@ -89,11 +89,7 @@ module Datadog
       # from the method but from outside of the method).
       Location = Struct.new(:path, :lineno, :label)
 
-      def hook_method(probe, &block)
-        unless block
-          raise ArgumentError, 'block is required'
-        end
-
+      def hook_method(probe, responder)
         lock.synchronize do
           if probe.instrumentation_module
             # Already instrumented, warn?
@@ -130,10 +126,34 @@ module Datadog
                   caller_locations: caller_locations,
                 )
                 continue = condition.satisfied?(context)
-              rescue
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+              rescue => exc
+                # Evaluation error exception can be raised for "expected"
+                # errors, we probably need another setting to control whether
+                # these exceptions are propagated.
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                  !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
-                # TODO log / report via telemetry?
+                if context
+                  # We want to report evaluation errors for conditions
+                  # as probe snapshots. However, if we failed to create
+                  # the context, we won't be able to report anything as
+                  # the probe notifier builder requires a context.
+                  begin
+                    responder.probe_condition_evaluation_failed_callback(context, exc)
+                  rescue
+                    raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                    # TODO log / report via telemetry?
+                  end
+                else
+                  _ = 42 # stop standard from wrecking this code
+
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                  # TODO log / report via telemetry?
+                  # If execution gets here, there is probably a bug in the tracer.
+                end
+
                 continue = false
               end
             end
@@ -195,8 +215,7 @@ module Datadog
                 caller_locations: caller_locs,
                 return_value: rv, duration: duration, exception: exc,)
 
-              # & is to stop steep complaints, block is always present here.
-              block&.call(context)
+              responder.probe_executed_callback(context)
               if exc
                 raise exc
               else
@@ -258,11 +277,7 @@ module Datadog
       # not for eval'd code, unless the eval'd code is associated with
       # a file name and client invokes this method with the correct
       # file name for the eval'd code.
-      def hook_line(probe, &block)
-        unless block
-          raise ArgumentError, 'No block given to hook_line'
-        end
-
+      def hook_line(probe, responder)
         lock.synchronize do
           if probe.instrumentation_trace_point
             # Already instrumented, warn?
@@ -367,14 +382,44 @@ module Datadog
 
             if continue
               if condition = probe.condition
-                context = Context.new(
-                  locals: Instrumenter.get_local_variables(tp),
-                  target_self: tp.self,
-                  probe: probe, settings: settings, serializer: serializer,
-                  path: tp.path,
-                  caller_locations: caller_locations,
-                )
-                continue = condition.satisfied?(context)
+                begin
+                  context = Context.new(
+                    locals: Instrumenter.get_local_variables(tp),
+                    target_self: tp.self,
+                    probe: probe, settings: settings, serializer: serializer,
+                    path: tp.path,
+                    caller_locations: caller_locations,
+                  )
+                  continue = condition.satisfied?(context)
+                rescue => exc
+                  # Evaluation error exception can be raised for "expected"
+                  # errors, we probably need another setting to control whether
+                  # these exceptions are propagated.
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                    !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+                  continue = false
+                  if context
+                    # We want to report evaluation errors for conditions
+                    # as probe snapshots. However, if we failed to create
+                    # the context, we won't be able to report anything as
+                    # the probe notifier builder requires a context.
+                    begin
+                      responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+                    rescue
+                      raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                      # TODO log / report via telemetry?
+                    end
+                  else
+                    _ = 42 # stop standard from wrecking this code
+
+                    raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                    # TODO log / report via telemetry?
+                    # If execution gets here, there is probably a bug in the tracer.
+                  end
+                end
               end
             end
 
@@ -393,8 +438,7 @@ module Datadog
                 caller_locations: caller_locations,
               )
 
-              # & is to stop steep complaints, block is always present here.
-              block&.call(context)
+              responder.probe_executed_callback(context)
             end
           rescue => exc
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
@@ -409,9 +453,11 @@ module Datadog
           # TODO test this path
         end
 
-        # TODO internal check - remove or use a proper exception
+        # Internal sanity check - untargeted trace points create a huge
+        # performance impact, and we absolutely do not want to set them
+        # accidentally.
         if !iseq && !permit_untargeted_trace_points
-          raise "Trying to use an untargeted trace point when user did not permit it"
+          raise Error::InternalError, "Trying to use an untargeted trace point when user did not permit it"
         end
 
         lock.synchronize do
@@ -443,11 +489,11 @@ module Datadog
         end
       end
 
-      def hook(probe, &block)
+      def hook(probe, responder)
         if probe.method?
-          hook_method(probe, &block)
+          hook_method(probe, responder)
         elsif probe.line?
-          hook_line(probe, &block)
+          hook_line(probe, responder)
         else
           # TODO add test coverage for this path
           logger.debug { "di: unknown probe type to hook: #{probe}" }

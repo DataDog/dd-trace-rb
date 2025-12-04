@@ -10,6 +10,10 @@ module Datadog
     #
     # @api private
     class Error < StandardError
+      # Internal Dynamic Instrumentation error ("should never happen").
+      class InternalError < Error
+      end
+
       # Probe does not contain a line number (i.e., is not a line probe).
       class MissingLineNumber < Error
       end

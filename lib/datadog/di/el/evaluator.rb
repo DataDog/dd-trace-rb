@@ -17,7 +17,7 @@ module Datadog
 
         def len(var, var_name)
           case var
-          when Array, String
+          when Array, String, Hash
             var.length
           else
             raise DI::Error::ExpressionEvaluationError, "Unsupported type for length: #{var.class}: #{var_name}"

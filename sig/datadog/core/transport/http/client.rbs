@@ -1,0 +1,27 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        class Client
+          @api: HTTP::API::Instance
+          @logger: Core::Logger
+
+          attr_reader api: HTTP::API::Instance
+          attr_reader logger: Core::Logger
+
+          def initialize: (HTTP::API::Instance api, logger: Core::Logger) -> void
+
+          private
+
+          def send_request: (Transport::Request request) { (HTTP::API::Instance, Core::Transport::HTTP::Env) -> Core::Transport::HTTP::Response } -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
+
+          def build_env: (Transport::Request request) -> Core::Transport::HTTP::Env
+          def on_response: (Core::Transport::HTTP::Response response) -> void
+          def on_exception: (Exception exception) -> void
+
+          def build_exception_message: (Exception exception) -> ::String
+        end
+      end
+    end
+  end
+end

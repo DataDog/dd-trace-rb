@@ -6,15 +6,15 @@ require 'datadog/tracing/contrib/ethon/easy_patch'
 require 'datadog/tracing/contrib/ethon/shared_examples'
 require 'datadog/tracing/contrib/analytics_examples'
 
-require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
-
 RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
   let(:configuration_options) { {} }
-  let(:easy) { EthonSupport.ethon_easy_new }
+  let(:easy) { Ethon::Easy.new }
+  let(:server_error_statuses) { nil }
 
   before do
     Datadog.configure do |c|
       c.tracing.instrument :ethon, configuration_options
+      c.tracing.http_error_statuses.server = server_error_statuses if server_error_statuses
     end
   end
 
@@ -163,6 +163,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
       end
 
       it 'has error set' do
+        expect(span).to have_error
         expect(span).to have_error_message('Request has failed with HTTP error: 500')
       end
     end
@@ -179,6 +180,15 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
       it 'has no error set' do
         expect(span).to_not have_error_message
+      end
+
+      context 'when the server error statuses are configured to include 404' do
+        let(:server_error_statuses) { 400..599 }
+
+        it 'has error set' do
+          expect(span).to have_error
+          expect(span).to have_error_message('Request has failed with HTTP error: 404')
+        end
       end
     end
 
@@ -240,7 +250,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
   context 'when basic auth in url' do
     it 'does not collect auth info' do
-      easy = EthonSupport.ethon_easy_new(url: 'http://username:pasword@example.com/sample/path')
+      easy = Ethon::Easy.new(url: 'http://username:pasword@example.com/sample/path')
 
       easy.perform
 
@@ -251,7 +261,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
   context 'when query string in url' do
     it 'does not collect query string' do
-      easy = EthonSupport.ethon_easy_new(url: 'http://example.com/sample/path?foo=bar')
+      easy = Ethon::Easy.new(url: 'http://example.com/sample/path?foo=bar')
 
       easy.perform
 

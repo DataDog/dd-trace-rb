@@ -13,8 +13,7 @@ module Datadog
               # Gets the equivalent status code for the exception (not all are 5XX)
               # You can add custom errors via `config.action_dispatch.rescue_responses`
               status = ::ActionDispatch::ExceptionWrapper.status_code_for_exception(exception.class.name)
-              # Only 5XX exceptions are actually errors (e.g. don't flag 404s)
-              status.to_s.start_with?('5')
+              Datadog.configuration.tracing.http_error_statuses.server.include?(status)
             else
               true
             end

@@ -33,14 +33,14 @@ module Datadog
       
       attr_reader telemetry: Core::Telemetry::Component?
 
-      def hook_method: (Probe probe) ?{ (?) -> untyped } -> void
+      def hook_method: (Probe probe, untyped responder) -> void
 
       def unhook_method: (Probe probe) -> void
-      def hook_line: (Probe probe) ?{ (?) -> untyped } -> void
+      def hook_line: (Probe probe, untyped responder) -> void
 
       def unhook_line: (Probe probe) -> void
 
-      def hook: (Probe probe) { (?) -> untyped } -> void
+      def hook: (Probe probe, untyped responder) -> void
 
       def unhook: (Probe probe) -> void
       

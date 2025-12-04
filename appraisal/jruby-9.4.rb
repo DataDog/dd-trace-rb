@@ -82,6 +82,7 @@ build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
+build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 
 appraise 'karafka-min' do
   gem 'karafka', '= 2.3.0'

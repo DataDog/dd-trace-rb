@@ -30,6 +30,12 @@ runs:
     env:
       COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ inputs.container-id }}
 
+  - name: Display debug info
+    if: ${{ !cancelled() }}
+    shell: bash
+    run: |
+      df -h
+
   - name: Debug with SSH connection
     if: ${{ failure() && runner.debug == '1' }}
     uses: mxschmitt/action-tmate@7b6a61a73bbb9793cb80ad69b8dd8ac19261834c # v3.19.0

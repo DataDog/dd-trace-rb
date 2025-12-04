@@ -20,6 +20,13 @@ class InstrumentationSpecTestClass
     42
   end
 
+  def long_test_method
+    # This method is used to assert on @duration, and +test_method+
+    # somehow managed to report an execution time of 0.0 in CI one time
+    # (though normally it takes about 1 microsecond).
+    Object.methods.length > 0 and 42
+  end
+
   def mutating_method(greeting)
     greeting.sub!('hello', 'bye')
   end
@@ -90,7 +97,13 @@ RSpec.describe 'Instrumentation integration' do
   end
 
   let(:component) do
-    Datadog::DI::Component.build!(settings, agent_settings, logger)
+    # TODO should this use Component.new? We have to manually pass in
+    # the code tracker in that case.
+    Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
+      if component.nil?
+        raise "Component failed to create - unsuitable environment? Check log entries"
+      end
+    end
   end
 
   let(:expected_installed_payload) do
@@ -127,12 +140,11 @@ RSpec.describe 'Instrumentation integration' do
 
   context 'log probe' do
     before do
-      allow(agent_settings).to receive(:hostname)
-      allow(agent_settings).to receive(:port)
-      allow(agent_settings).to receive(:timeout_seconds).and_return(1)
-      allow(agent_settings).to receive(:ssl)
-
       allow(Datadog::DI).to receive(:current_component).and_return(component)
+    end
+
+    let(:agent_settings) do
+      instance_double_agent_settings_with_stubs
     end
 
     context 'method probe' do
@@ -166,9 +178,9 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           expect(payload).to be_a(Hash)
-          expect(payload).to include(:"debugger.snapshot")
-          snapshot = payload.fetch(:"debugger.snapshot")
-          expect(snapshot[:captures]).to be nil
+          expect(payload).to include(:debugger)
+          snapshot = payload.fetch(:debugger).fetch(:snapshot)
+          expect(snapshot.fetch(:captures)).to eq({})
         end
 
         it 'assembles expected notification payload which does not include captures' do
@@ -203,7 +215,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationDelayedTestClass.new.test_method).to eq(43)
             component.probe_notifier_worker.flush
 
-            snapshot = payload.fetch(:"debugger.snapshot")
+            snapshot = payload.fetch(:debugger).fetch(:snapshot)
             expect(snapshot).to match(
               id: String,
               timestamp: Integer,
@@ -213,7 +225,7 @@ RSpec.describe 'Instrumentation integration' do
               }},
               language: 'ruby',
               stack: Array,
-              captures: nil,
+              captures: {},
             )
           end
         end
@@ -248,7 +260,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationDelayedPartialTestClass.new.test_method).to eq(43)
             component.probe_notifier_worker.flush
 
-            snapshot = payload.fetch(:"debugger.snapshot")
+            snapshot = payload.fetch(:debugger).fetch(:snapshot)
             expect(snapshot).to match(
               id: String,
               timestamp: Integer,
@@ -260,7 +272,7 @@ RSpec.describe 'Instrumentation integration' do
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
-              captures: nil,
+              captures: {},
             )
           end
         end
@@ -291,7 +303,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationVirtualTestClass.new.test_method).to eq(:test_method)
             component.probe_notifier_worker.flush
 
-            snapshot = payload.fetch(:"debugger.snapshot")
+            snapshot = payload.fetch(:debugger).fetch(:snapshot)
             expect(snapshot).to match(
               id: String,
               timestamp: Integer,
@@ -303,7 +315,7 @@ RSpec.describe 'Instrumentation integration' do
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
-              captures: nil,
+              captures: {},
             )
           end
         end
@@ -361,7 +373,7 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           expect(payload).to be_a(Hash)
-          captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
           expect(captures).to eq(expected_captures)
         end
 
@@ -514,6 +526,15 @@ RSpec.describe 'Instrumentation integration' do
             ]
           end
 
+          let(:probe_spec) do
+            {
+              id: '1234',
+              type: 'LOG_PROBE',
+              where: {typeName: 'InstrumentationSpecTestClass', methodName: 'long_test_method'},
+              segments: segments,
+            }
+          end
+
           it 'substitutes the expected value' do
             probe_manager.add_probe(probe)
 
@@ -529,7 +550,7 @@ RSpec.describe 'Instrumentation integration' do
               expect(value).to be > 0
               expect(value).to be < 1
             end
-            expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+            expect(InstrumentationSpecTestClass.new.long_test_method).to eq(42)
             component.probe_notifier_worker.flush
           end
         end
@@ -616,7 +637,7 @@ RSpec.describe 'Instrumentation integration' do
       context 'simple log probe' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 20,
+            file: 'instrumentation_integration_test_class.rb', line_no: 40,
             capture_snapshot: false,)
         end
 
@@ -650,13 +671,13 @@ RSpec.describe 'Instrumentation integration' do
             end
 
             let(:snapshot) do
-              payload.fetch(:"debugger.snapshot")
+              payload.fetch(:debugger).fetch(:snapshot)
             end
 
             it 'does not have captures' do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
-              expect(snapshot.fetch(:captures)).to be nil
+              expect(snapshot.fetch(:captures)).to eq({})
             end
 
             let(:stack) do
@@ -680,7 +701,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a method' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 22,
+              file: 'instrumentation_integration_test_class.rb', line_no: 42,
               capture_snapshot: false,)
           end
 
@@ -690,7 +711,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a block' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 33,
+              file: 'instrumentation_integration_test_class.rb', line_no: 53,
               capture_snapshot: false,)
           end
 
@@ -719,13 +740,13 @@ RSpec.describe 'Instrumentation integration' do
             end
 
             let(:snapshot) do
-              payload.fetch(:"debugger.snapshot")
+              payload.fetch(:debugger).fetch(:snapshot)
             end
 
             it 'does not have captures' do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
-              expect(snapshot.fetch(:captures)).to be nil
+              expect(snapshot.fetch(:captures)).to eq({})
             end
 
             let(:stack) do
@@ -760,12 +781,12 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is else of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 44,
+              file: 'instrumentation_integration_test_class.rb', line_no: 64,
               capture_snapshot: false,)
           end
 
           let(:call_target) do
-            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(2)
+            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(1)
           end
 
           include_examples 'installs but does not invoke probe'
@@ -774,12 +795,12 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is end of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 46,
+              file: 'instrumentation_integration_test_class.rb', line_no: 66,
               capture_snapshot: false,)
           end
 
           let(:call_target) do
-            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(2)
+            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(1)
           end
 
           include_examples 'installs but does not invoke probe'
@@ -788,7 +809,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line contains a comment (no executable code)' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 50,
+              file: 'instrumentation_integration_test_class.rb', line_no: 70,
               capture_snapshot: false,)
           end
 
@@ -802,7 +823,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is in a loaded file that is not in code tracker' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 33,
+              file: 'instrumentation_integration_test_class.rb', line_no: 53,
               capture_snapshot: false,)
           end
 
@@ -836,12 +857,12 @@ RSpec.describe 'Instrumentation integration' do
       context 'enriched probe' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 20,
+            file: 'instrumentation_integration_test_class.rb', line_no: 40,
             capture_snapshot: true,)
         end
 
         let(:expected_captures) do
-          {lines: {20 => {
+          {lines: {40 => {
             locals: {
               a: {type: 'Integer', value: '21'},
               password: {type: 'String', notCapturedReason: 'redactedIdent'},
@@ -888,7 +909,7 @@ RSpec.describe 'Instrumentation integration' do
             component.probe_notifier_worker.flush
 
             expect(payload).to be_a(Hash)
-            captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+            captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
             expect(captures).to eq(expected_captures)
           end
         end
@@ -900,12 +921,12 @@ RSpec.describe 'Instrumentation integration' do
         context 'when there are instance variables but no local variables' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 7,
+              file: 'instrumentation_integration_test_class.rb', line_no: 27,
               capture_snapshot: true,)
           end
 
           let(:expected_captures) do
-            {lines: {7 => {
+            {lines: {27 => {
               # Reports instance variables but no locals
               locals: {},
               arguments: {
@@ -1036,7 +1057,7 @@ RSpec.describe 'Instrumentation integration' do
 
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 20,
+            file: 'instrumentation_integration_test_class.rb', line_no: 40,
             capture_snapshot: false,)
         end
 

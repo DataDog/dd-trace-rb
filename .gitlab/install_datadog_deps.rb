@@ -86,6 +86,7 @@ env = {
   'msgpack',
   'libdatadog', # libdatadog MUST be installed before datadog to ensure libdatadog native extension is compiled
   'logger',
+  'cgi',
   'datadog',
 ].each do |gem|
   version = gem_version_mapping.delete(gem)

@@ -70,7 +70,9 @@ module Datadog
                   sinatra_response = ::Sinatra::Response.new([], status) # Build object to use status code helpers
 
                   span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, sinatra_response.status)
-                  span.set_error(env['sinatra.error']) if sinatra_response.server_error?
+                  if Datadog.configuration.tracing.http_error_statuses.server.include?(sinatra_response.status)
+                    span.set_error(env['sinatra.error'])
+                  end
                 end
 
                 if (headers = response[1])

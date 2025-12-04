@@ -54,7 +54,7 @@ module Datadog
         def self._native_hold_signals: () -> void
         def self._native_resume_signals: () -> void
 
-        def wait_until_running: (timeout_seconds: ::Integer?) -> true
+        def wait_until_running: (?timeout_seconds: ::Integer?) -> true
 
         private
 

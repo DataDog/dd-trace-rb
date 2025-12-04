@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module WaterDrop
+        class Integration
+          include Contrib::Integration
+
+          MINIMUM_VERSION: ::Gem::Version
+
+          def self.register_as: (untyped name, ?registry: untyped, ?auto_patch: bool, **untyped options) -> untyped
+
+          def self.version: () -> untyped
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+
+          def new_configuration: () -> Configuration::Settings
+
+          def patcher: () -> untyped
+        end
+      end
+    end
+  end
+end

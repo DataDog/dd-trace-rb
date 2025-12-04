@@ -21,6 +21,8 @@ module Datadog
           cf-connecting-ipv6
         ].freeze
 
+        CGNAT_IP_RANGE = IPAddr.new('100.64.0.0/10')
+
         class << self
           # Returns a client IP associated with the request if it was
           #   retrieved successfully.
@@ -131,7 +133,7 @@ module Datadog
           end
 
           def global_ip?(parsed_ip)
-            parsed_ip && !parsed_ip.private? && !parsed_ip.loopback? && !parsed_ip.link_local?
+            parsed_ip && !parsed_ip.private? && !parsed_ip.loopback? && !parsed_ip.link_local? && !CGNAT_IP_RANGE.include?(parsed_ip)
           end
         end
       end

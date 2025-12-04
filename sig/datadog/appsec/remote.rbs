@@ -29,6 +29,10 @@ module Datadog
 
       CAP_ASM_TRUSTED_IPS: ::Integer
 
+      CAP_ASM_PROCESSOR_OVERRIDES: ::Integer
+
+      CAP_ASM_CUSTOM_DATA_SCANNERS: ::Integer
+
       CAP_ASM_RASP_SSRF: ::Integer
 
       CAP_ASM_RASP_SQLI: ::Integer

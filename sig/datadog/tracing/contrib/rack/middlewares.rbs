@@ -5,18 +5,22 @@ module Datadog
         class TraceMiddleware
           def initialize: (untyped app) -> void
 
-          def compute_queue_time: (untyped env) -> (nil | untyped)
+          def compute_queue_time: (::Hash[::String, untyped] env) -> (nil | untyped)
 
-          def call: (untyped env) -> untyped
-          def set_request_tags!: (untyped trace, untyped request_span, untyped env, untyped status, untyped headers, untyped response, untyped original_env) -> untyped
+          def call: (::Hash[::String, untyped] env) -> untyped
+          def set_request_tags!: (Datadog::Tracing::TraceOperation trace, Datadog::Tracing::SpanOperation request_span, ::Hash[::String, untyped] env, ::Integer status, untyped headers, untyped response, ::Hash[::String, untyped] original_env) -> untyped
 
           private
 
           def configuration: () -> untyped
 
+          def set_route_and_endpoint_tags: (trace: Datadog::Tracing::TraceOperation, request_span: Datadog::Tracing::SpanOperation, status: ::Integer, env: ::Hash[::String, untyped]) -> void
+
+          def set_endpoint_tag: (request_span: Datadog::Tracing::SpanOperation, value: ::String) -> void
+
           def trace_http_server: (untyped span_name, start_time: untyped) -> untyped
 
-          def parse_url: (untyped env, untyped original_env) -> untyped
+          def parse_url: (::Hash[::String, untyped] env, ::Hash[::String, untyped] original_env) -> untyped
 
           def parse_user_agent_header: (untyped headers) -> untyped
 

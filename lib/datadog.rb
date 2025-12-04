@@ -8,6 +8,8 @@ require_relative 'datadog/tracing/contrib'
 require_relative 'datadog/profiling'
 require_relative 'datadog/appsec'
 require_relative 'datadog/di'
+require_relative 'datadog/data_streams'
+require_relative 'datadog/open_feature'
 
 # Line probes will not work on Ruby < 2.6 because of lack of :script_compiled
 # trace point. Activate DI automatically on supported Ruby versions but

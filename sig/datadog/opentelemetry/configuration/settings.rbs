@@ -1,0 +1,58 @@
+module Datadog
+  module OpenTelemetry
+    module Configuration
+      module Settings
+        def self.extended: (::Class | ::Module base) -> void
+
+        def self.add_settings!: (untyped base) -> void
+
+        def self.normalize_temporality_preference: (::String env_var_name) -> untyped
+
+        def self.normalize_protocol: (::String env_var_name) -> untyped
+
+        def self.headers_parser: (::String env_var_name) -> untyped
+
+        # DSL methods dynamically added via class_eval
+        def self.settings: (untyped name) ?{ (untyped) -> void } -> untyped
+
+        def self.option: (untyped name) ?{ (untyped) -> void } -> untyped
+
+        interface _OpenTelemetry
+          def exporter: () -> _Exporter
+
+          def metrics: () -> _Metrics
+        end
+
+        interface _Exporter
+          def protocol: () -> ::String
+
+          def timeout: () -> ::Integer
+
+          def headers: () -> ::Hash[untyped, untyped]
+
+          def endpoint: () -> ::String?
+        end
+
+        interface _Metrics
+          def enabled: () -> bool
+
+          def exporter: () -> ::String
+
+          def export_interval: () -> ::Integer
+
+          def export_timeout: () -> ::Integer
+
+          def temporality_preference: () -> ::String
+
+          def endpoint: () -> ::String?
+
+          def headers: () -> ::Hash[untyped, untyped]?
+
+          def timeout: () -> ::Integer?
+
+          def protocol: () -> ::String?
+        end
+      end
+    end
+  end
+end

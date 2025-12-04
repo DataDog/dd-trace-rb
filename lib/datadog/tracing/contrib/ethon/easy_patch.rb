@@ -57,7 +57,10 @@ module Datadog
                   set_span_error_message("Request has failed: #{message}")
                 else
                   @datadog_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response_code)
-                  if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(response_code)
+                  # DEV-3.0: This was previously checking against a 500..599 range.
+                  # To not introduce breaking change, this was changed to use `http_error_statuses.server`,
+                  # but `ethon` is a client library, this check should use `http_error_statuses.client` instead.
+                  if Datadog.configuration.tracing.http_error_statuses.server.include?(response_code)
                     set_span_error_message("Request has failed with HTTP error: #{response_code}")
                   end
                 end

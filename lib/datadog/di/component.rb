@@ -29,22 +29,6 @@ module Datadog
           end
         end
 
-        def build!(settings, agent_settings, logger, telemetry: nil)
-          unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
-            raise "Requested DI component but DI is not enabled in settings"
-          end
-
-          unless settings.respond_to?(:remote) && settings.remote.enabled
-            raise "Requested DI component but remote config is not enabled in settings"
-          end
-
-          unless environment_supported?(settings, logger)
-            raise "DI does not support the environment (development or Ruby version too low or not MRI)"
-          end
-
-          new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry)
-        end
-
         # Checks whether the runtime environment is supported by
         # dynamic instrumentation. Currently we only require that, if Rails
         # is used, that Rails environment is not development because

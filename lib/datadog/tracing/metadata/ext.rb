@@ -94,8 +94,8 @@ module Datadog
 
         # @public_api
         module HTTP
-          ERROR_RANGE = (500...600).freeze
           TAG_BASE_URL = 'http.base_url'
+          TAG_ENDPOINT = 'http.endpoint'
           TAG_METHOD = 'http.method'
           TAG_STATUS_CODE = 'http.status_code'
           TAG_USER_AGENT = 'http.useragent'

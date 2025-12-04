@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Find existing comment
         id: comment
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -33,95 +33,78 @@ jobs:
 
             return undefined === comment ? null : comment.id
 
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout current branch
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
+        uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
         with:
-          ruby-version: "3.3"
+          ruby-version: "3.4"
 
       - name: Install steep
-        run: gem install steep -v 1.9.1
+        run: gem install steep -v 1.10
 
-      - name: Run typing stats
-        id: typing-stats
+      - name: Copy scripts to directory outside of workspace
+        run: |
+          cp .github/scripts/typing_stats_compute.rb ${{ runner.temp }}/typing_stats_compute.rb
+          cp .github/scripts/typing_stats_compare.rb ${{ runner.temp }}/typing_stats_compare.rb
+
+      - name: Run typing stats on current branch
+        id: typing-stats-current
         env:
           STEEPFILE_PATH: ${{ github.workspace }}/Steepfile
         run: |
           mkdir -p "${{ github.workspace }}/tmp"
-          ruby .github/scripts/typing_stats.rb >> "${{ github.workspace }}/tmp/typing-stats.json"
+          ruby ${{ runner.temp }}/typing_stats_compute.rb >> "${{ runner.temp }}/typing-stats-current.json"
+
+      - name: Checkout base branch
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Run typing stats on base branch
+        id: typing-stats-base
+        env:
+          STEEPFILE_PATH: ${{ github.workspace }}/Steepfile
+        run: ruby ${{ runner.temp }}/typing_stats_compute.rb >> "${{ runner.temp }}/typing-stats-base.json"
+
+      - name: Run typing stats compare
+        id: typing-stats-compare
+        env:
+          CURRENT_STATS_PATH: ${{ runner.temp }}/typing-stats-current.json
+          BASE_STATS_PATH: ${{ runner.temp }}/typing-stats-base.json
+        run: ruby ${{ runner.temp }}/typing_stats_compare.rb >> "${{ runner.temp }}/typing-stats-compare.md"
 
       - name: Write comment
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
             var fs = require('fs')
 
             const previousCommentId = ${{steps.comment.outputs.result}}
-            const stats = JSON.parse(fs.readFileSync("${{ github.workspace }}/tmp/typing-stats.json", "utf8"))
-
-            const typedFilesPercentage = ((stats.total_files_size - stats.ignored_files.size) / stats.total_files_size * 100).toFixed(2)
-
-            const totalMethods = stats.untyped_methods.length + stats.partially_typed_methods.length + stats.typed_methods_size
-            const typedMethodsPercentage = (stats.typed_methods_size / totalMethods * 100).toFixed(2)
-
-            const totalOthers = stats.untyped_others.length + stats.partially_typed_others.length + stats.typed_others_size
-            const typedOthersPercentage = (stats.typed_others_size / totalOthers * 100).toFixed(2)
-
+            const commentContent = fs.readFileSync("${{ runner.temp }}/typing-stats-compare.md", "utf8")
             const commentBody = `<!-- TYPING_STATS_HIDDEN_MARKER -->
             ## Typing analysis
-
-            ### Ignored files
-            There are **${stats.ignored_files.size}** ignored files in the Steepfile out of ${stats.total_files_size}.
-            **${typedFilesPercentage}%** of the codebase is type checked.
-            <details><summary>Ignored files</summary>
-              <pre><code>${stats.ignored_files.paths.map((path) => `${path}`).join('\n')}</code></pre>
-            </details>
-
-            *__Note__: Ignored files are excluded from the next sections.*
-
-            ### \`steep:ignore\` comments
-            There are **${stats.steep_ignore_comments.length}** \`steep:ignore\` comments in the codebase.
-            <details><summary><code>steep:ignore</code> comments</summary>
-              <pre><code>${stats.steep_ignore_comments.map((comment) => `${comment.path}:${comment.line}`).join('\n')}</code></pre>
-            </details>
-
-            ### Untyped methods
-            There are **${stats.untyped_methods.length}** untyped and **${stats.partially_typed_methods.length}** partially typed methods out of ${totalMethods}.
-            **${typedMethodsPercentage}%** of the methods are typed.
-            <details><summary>Untyped methods</summary>
-              <pre><code>${stats.untyped_methods.map((method) => `${method.path}:${method.line}\n└── ${method.line_content}`).join('\n')}</code></pre>
-            </details>
-            <details><summary>Partially typed methods</summary>
-              <pre><code>${stats.partially_typed_methods.map((method) => `${method.path}:${method.line}\n└── ${method.line_content}`).join('\n')}</code></pre>
-            </details>
-
-            ### Untyped attributes, constants, globals, instance variables
-            There are **${stats.untyped_others.length}** untyped and **${stats.partially_typed_others.length}** partially typed attributes, constants, globals, instance variables out of **${totalOthers}**.
-            **${typedOthersPercentage}%** of them are typed.
-            <details><summary>Untyped attributes, constants, globals, instance variables</summary>
-              <pre><code>${stats.untyped_others.map((other) => `${other.path}:${other.line}\n└── ${other.line_content}`).join('\n')}</code></pre>
-            </details>
-            <details><summary>Partially typed attributes, constants, globals, instance variables</summary>
-              <pre><code>${stats.partially_typed_others.map((other) => `${other.path}:${other.line}\n└── ${other.line_content}`).join('\n')}</code></pre>
-            </details>
-
-            *If you believe a method or an attribute is rightfully untyped or partially typed, you can add \`# untyped:accept\` to the end of the line to remove it from the stats.*
+            ${commentContent}
+            `
+            const thankYouBody = `<!-- TYPING_STATS_HIDDEN_MARKER -->
+            ## Typing analysis
+            *This PR does not change typing compared to the base branch.*
             `
 
             const options = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
-              body: commentBody
+              body: commentContent !== "" ? commentBody : thankYouBody
             }
 
-            if (null === previousCommentId) {
+            if (null === previousCommentId && commentContent !== "") {
               await github.rest.issues.createComment(options)
-            } else {
+            } else if (previousCommentId) {
               await github.rest.issues.updateComment({...options, comment_id: previousCommentId})
             }

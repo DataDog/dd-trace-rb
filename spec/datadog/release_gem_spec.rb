@@ -54,6 +54,7 @@ RSpec.describe 'gem release process' do
             sig
             |spec
             |docs
+            |\.cursor
             |\.github
             |\.gitlab
             |\.vscode
@@ -114,6 +115,7 @@ RSpec.describe 'gem release process' do
           'libddwaf',
           'msgpack',
           'logger',
+          'cgi',
         )
       end
     end

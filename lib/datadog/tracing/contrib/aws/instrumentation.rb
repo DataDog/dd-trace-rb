@@ -36,8 +36,10 @@ module Datadog
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)
 
-            # Set error on the span if the Response Status Code is in error range
-            if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(context.safely(:status_code))
+            # DEV-3.0: This was previously checking against a 500..599 range.
+            # To not introduce breaking change, this was changed to use `http_error_statuses.server`,
+            # but `aws` is a client library, this check should use `http_error_statuses.client` instead.
+            if Datadog.configuration.tracing.http_error_statuses.server.include?(context.safely(:status_code))
               # At this point we do not have any additional diagnostics
               # besides the HTTP status code which is recorded in the span tags
               # later in this method.

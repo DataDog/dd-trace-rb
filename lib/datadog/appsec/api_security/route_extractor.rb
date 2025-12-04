@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../tracing/contrib/rack/route_inference'
+
 module Datadog
   module AppSec
     module APISecurity
@@ -8,7 +10,8 @@ module Datadog
         SINATRA_ROUTE_KEY = 'sinatra.route'
         SINATRA_ROUTE_SEPARATOR = ' '
         GRAPE_ROUTE_KEY = 'grape.routing_args'
-        RAILS_ROUTE_KEY = 'action_dispatch.route_uri_pattern'
+        RAILS_ROUTE_URI_PATTERN_KEY = 'action_dispatch.route_uri_pattern'
+        RAILS_ROUTE_KEY = 'action_dispatch.route' # Rails 8.1.1+
         RAILS_ROUTES_KEY = 'action_dispatch.routes'
         RAILS_PATH_PARAMS_KEY = 'action_dispatch.request.path_parameters'
         RAILS_FORMAT_SUFFIX = '(.:format)'
@@ -35,6 +38,9 @@ module Datadog
         #       Rails > 7.1 (fast path)
         #         uses `action_dispatch.route_uri_pattern` with a string like
         #         "/users/:id(.:format)"
+        #       Rails > 8.1.1 (fast path)
+        #         uses `action_dispatch.route` to store the ActionDispatch::Journey::Route
+        #         that matched when the request was routed
         #
         # WARNING: This method works only *after* the request has been routed.
         #
@@ -50,11 +56,18 @@ module Datadog
             pattern = request.env[SINATRA_ROUTE_KEY].split(SINATRA_ROUTE_SEPARATOR, 2)[1]
             "#{request.script_name}#{pattern}"
           elsif request.env.key?(RAILS_ROUTE_KEY)
-            request.env[RAILS_ROUTE_KEY].delete_suffix(RAILS_FORMAT_SUFFIX)
+            request.env[RAILS_ROUTE_KEY].path.spec.to_s.delete_suffix(RAILS_FORMAT_SUFFIX)
+          elsif request.env.key?(RAILS_ROUTE_URI_PATTERN_KEY)
+            request.env[RAILS_ROUTE_URI_PATTERN_KEY].delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTES_KEY) && !request.env.fetch(RAILS_PATH_PARAMS_KEY, {}).empty?
-            # NOTE: Rails mutate HEAD request in order to understand that route is supported.
-            #       It will assing GET request method and run the route recognition.
-            request = request.env[RAILS_ROUTES_KEY].request_class.new(request.env) if request.head?
+            # NOTE: In Rails < 7.1 this `request` argument will be a Rack::Request,
+            #       it does not have all the methods that ActionDispatch::Request has.
+            #       Before trying to use the router to recognize the route, we need to
+            #       create a new ActionDispatch::Request from the request env
+            #
+            # NOTE: Rails mutates HEAD request by changing the method to GET
+            #       and uses it for route recognition to check if the route is defined
+            request = request.env[RAILS_ROUTES_KEY].request_class.new(request.env)
 
             pattern = request.env[RAILS_ROUTES_KEY].router
               .recognize(request) { |route, _| break route.path.spec.to_s }
@@ -66,8 +79,12 @@ module Datadog
             #       to generic request path
             (pattern || request.path).delete_suffix(RAILS_FORMAT_SUFFIX)
           else
-            request.path
+            Tracing::Contrib::Rack::RouteInference.read_or_infer(request.env)
           end
+        rescue => e
+          AppSec.telemetry&.report(e, description: 'AppSec: Could not extract route pattern')
+
+          nil
         end
       end
     end

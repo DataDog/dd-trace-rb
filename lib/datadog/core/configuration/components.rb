@@ -15,10 +15,12 @@ require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
 require_relative '../../di/component'
+require_relative '../../open_feature/component'
 require_relative '../../error_tracking/component'
 require_relative '../crashtracking/component'
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
+require_relative '../../data_streams/processor'
 
 module Datadog
   module Core
@@ -75,11 +77,26 @@ module Datadog
 
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
+
+          def build_data_streams(settings, agent_settings, logger)
+            return unless settings.data_streams.enabled
+
+            Datadog::DataStreams::Processor.new(
+              interval: settings.data_streams.interval,
+              logger: logger,
+              settings: settings,
+              agent_settings: agent_settings
+            )
+          rescue => e
+            logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e}")
+            nil
+          end
         end
 
         attr_reader \
           :health_metrics,
           :settings,
+          :agent_settings,
           :logger,
           :remote,
           :profiler,
@@ -90,7 +107,9 @@ module Datadog
           :error_tracking,
           :dynamic_instrumentation,
           :appsec,
-          :agent_info
+          :agent_info,
+          :data_streams,
+          :open_feature
 
         def initialize(settings)
           @settings = settings
@@ -102,7 +121,7 @@ module Datadog
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend
           # the Core resolver from within your product/component's namespace.
-          agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
+          @agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
           # Exposes agent capability information for detection by any components
           @agent_info = Core::Environment::AgentInfo.new(agent_settings, logger: @logger)
@@ -124,8 +143,10 @@ module Datadog
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger, telemetry)
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
+          @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
+          @data_streams = self.class.build_data_streams(settings, agent_settings, @logger)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
           # Configure non-privileged components.
@@ -142,7 +163,7 @@ module Datadog
 
         # Starts up components
         def startup!(settings, old_state: nil)
-          telemetry.start(old_state&.telemetry_enabled?)
+          telemetry.start(old_state&.telemetry_enabled?, components: self)
 
           if settings.profiling.enabled
             if profiler
@@ -182,6 +203,9 @@ module Datadog
           # Shutdown DI after remote, since remote config triggers DI operations.
           dynamic_instrumentation&.shutdown!
 
+          # Shutdown OpenFeature component
+          open_feature&.shutdown!
+
           # Decommission AppSec
           appsec&.shutdown!
 
@@ -194,6 +218,9 @@ module Datadog
 
           # Shutdown workers
           runtime_metrics.stop(true, close_metrics: false)
+
+          # Shutdown Data Streams Monitoring processor
+          data_streams&.stop(true)
 
           # Shutdown the old metrics, unless they are still being used.
           # (e.g. custom Statsd instances.)

@@ -14,10 +14,12 @@ require 'datadog/tracing/contrib/aws/patcher'
 
 RSpec.describe 'AWS instrumentation' do
   let(:configuration_options) { {} }
+  let(:server_error_statuses) { nil }
 
   before do
     Datadog.configure do |c|
       c.tracing.instrument :aws, configuration_options
+      c.tracing.http_error_statuses.server = server_error_statuses if server_error_statuses
     end
   end
 
@@ -139,23 +141,56 @@ RSpec.describe 'AWS instrumentation' do
 
       let(:client) { ::Aws::S3::Client.new(stub_responses: true) }
 
-      before do
-        client.stub_responses(
-          :list_buckets,
-          status_code: 500,
-          body: 'test body with 500 error',
-          headers: {}
-        )
+      context 'when the error status code is 500' do
+        before do
+          client.stub_responses(
+            :list_buckets,
+            status_code: 500,
+            body: 'test body with 500 error',
+            headers: {}
+          )
+        end
+
+        it 'generates an errored span' do
+          expect do
+            list_buckets
+          end.to raise_error(Aws::S3::Errors::Http500Error)
+          # The Http500Error instance does not contain the body of the
+          # response.
+          expect(span).to have_error
+          expect(span.tags['http.status_code']).to eq('500')
+        end
       end
 
-      it 'generates an errored span' do
-        expect do
-          list_buckets
-        end.to raise_error(Aws::S3::Errors::Http500Error)
-        # The Http500Error instance does not contain the body of the
-        # response.
-        expect(span).to have_error
-        expect(span.tags['http.status_code']).to eq('500')
+      context 'when the error status code is 404' do
+        before do
+          client.stub_responses(
+            :list_buckets,
+            status_code: 404,
+            body: 'test body with 404 error',
+            headers: {}
+          )
+        end
+
+        it ' does not generates an errored span' do
+          expect do
+            list_buckets
+          end.to raise_error(Aws::S3::Errors::NotFound)
+          expect(span).not_to have_error
+          expect(span.tags['http.status_code']).to eq('404')
+        end
+
+        context 'when the server error statuses are configured to include 404' do
+          let(:server_error_statuses) { 400..599 }
+
+          it 'generates an errored span' do
+            expect do
+              list_buckets
+            end.to raise_error(Aws::S3::Errors::NotFound)
+            expect(span).to have_error
+            expect(span.tags['http.status_code']).to eq('404')
+          end
+        end
       end
     end
 

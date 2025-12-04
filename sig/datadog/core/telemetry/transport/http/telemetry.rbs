@@ -4,7 +4,7 @@ module Datadog
       module Transport
         module HTTP
           module Telemetry
-            module Client
+            class Client < Core::Transport::HTTP::Client
               def send_telemetry_payload: (untyped request) -> untyped
             end
 

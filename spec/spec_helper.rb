@@ -182,6 +182,8 @@ RSpec.configure do |config|
           !t.alive? ||
           # Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
           t.name == 'Timeout stdlib thread' ||
+          # FFI threads: https://github.com/ffi/ffi/pull/883
+          t.name == 'FFI Callback Dispatcher' ||
           # JRuby: Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
           t == Timeout.instance_exec { @timeout_thread if defined?(@timeout_thread) } ||
           # Internal JRuby thread

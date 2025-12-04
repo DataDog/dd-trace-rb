@@ -5,9 +5,9 @@ module Datadog
       include Metadata::Tagging
       include Metadata::Errors
       prepend Metadata::Analytics
-      
+
       @logger: Core::Logger
-      
+
       attr_reader logger: Core::Logger
 
       attr_reader links: untyped
@@ -36,6 +36,7 @@ module Datadog
 
       def initialize: (
           String name,
+          ?logger: Core::Logger,
           ?events: Events,
           ?on_error: on_error,
           ?parent_id: Integer,
@@ -96,7 +97,7 @@ module Datadog
         include Tracing::Events
 
         DEFAULT_ON_ERROR: on_error
-	
+
 	attr_reader logger: Core::Logger
 
         attr_reader after_finish: untyped
@@ -123,7 +124,7 @@ module Datadog
 
         class OnError
           def initialize: (untyped default, ?logger: Core::Logger) -> void
-	
+
           attr_reader logger: Core::Logger
 
           def wrap_default: () { (untyped, untyped) -> untyped } -> untyped
