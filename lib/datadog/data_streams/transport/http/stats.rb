@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../stats'
-require_relative 'client'
 require_relative '../../../core/transport/http/response'
 require_relative '../../../core/transport/http/api/endpoint'
 require_relative '../../../core/transport/http/api/spec'

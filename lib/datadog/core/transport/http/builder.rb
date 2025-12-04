@@ -73,6 +73,12 @@ module Datadog
             @apis[key] = spec
 
             # Apply as default API, if specified to do so.
+            #
+            # This code also sets the first defined API to be the default API.
+            # In APIs without fallbacks (currently, everything other than
+            # tracing's Traces, though DI Input will also have fallbacks soon)
+            # there is only one declaration of `transport.api`, and that
+            # API is set as the default API in the transport by this line.
             @default_api = key if options.delete(:default) || @default_api.nil?
 
             # Save all other settings for initialization

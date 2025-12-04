@@ -12,15 +12,6 @@ module Datadog
       module Transport
         module HTTP
           module Telemetry
-            class Client < Core::Transport::HTTP::Client
-              def send_telemetry_payload(request)
-                send_request(request) do |api, env|
-                  # TODO how to make api have the derived type for steep?
-                  api.send_telemetry(env) # steep:ignore
-                end
-              end
-            end
-
             module API
               class Instance < Core::Transport::HTTP::API::Instance
                 def send_telemetry(env)

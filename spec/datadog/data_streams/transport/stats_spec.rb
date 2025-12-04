@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/data_streams/transport/stats'
-require 'datadog/data_streams/transport/http/client'
+require 'datadog/core/transport/http/client'
 
 RSpec.describe Datadog::DataStreams::Transport::Stats do
   let(:logger) { logger_allowing_debug }
@@ -12,10 +12,10 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
     let(:default_api) { :v01 }
     let(:apis) { {v01: api_instance} }
     let(:api_instance) { instance_double(Datadog::Core::Transport::HTTP::API::Instance) }
-    let(:client) { instance_double(Datadog::DataStreams::Transport::HTTP::Client) }
+    let(:client) { instance_double(Datadog::Core::Transport::HTTP::Client) }
 
     before do
-      allow(Datadog::DataStreams::Transport::HTTP::Client).to receive(:new)
+      allow(Datadog::Core::Transport::HTTP::Client).to receive(:new)
         .with(api_instance, logger: logger)
         .and_return(client)
     end
@@ -42,7 +42,7 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
       let(:response) { instance_double(Datadog::Core::Transport::HTTP::Response, ok?: true) }
 
       before do
-        allow(client).to receive(:send_stats_payload).and_return(response)
+        allow(client).to receive(:send_request).and_return(response)
       end
 
       it 'encodes payload with MessagePack' do
@@ -56,7 +56,8 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
       end
 
       it 'sends the compressed data via client' do
-        expect(client).to receive(:send_stats_payload) do |request|
+        expect(client).to receive(:send_request) do |action, request|
+          expect(action).to eq(:stats)
           expect(request).to be_a(Datadog::DataStreams::Transport::Stats::Request)
           expect(request.parcel).to be_a(Datadog::DataStreams::Transport::Stats::EncodedParcel)
 

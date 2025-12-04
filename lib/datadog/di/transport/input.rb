@@ -5,6 +5,7 @@ require_relative '../../core/encoding'
 require_relative '../../core/tag_builder'
 require_relative '../../core/transport/parcel'
 require_relative '../../core/transport/request'
+require_relative '../../core/transport/transport'
 require_relative '../error'
 require_relative 'http/input'
 
@@ -26,9 +27,7 @@ module Datadog
           end
         end
 
-        class Transport
-          attr_reader :client, :apis, :default_api, :current_api_id, :logger
-
+        class Transport < Core::Transport::Transport
           # The limit on an individual snapshot payload, aka "log line",
           # is 1 MB.
           #
@@ -47,17 +46,6 @@ module Datadog
           # If a payload is larger than default chunk size but is under the
           # max chunk size, it will still get sent out.
           DEFAULT_CHUNK_SIZE = 2 * 1024 * 1024
-
-          def initialize(apis, default_api, logger:)
-            @apis = apis
-            @logger = logger
-
-            @client = DI::Transport::HTTP::Input::Client.new(current_api, logger: logger)
-          end
-
-          def current_api
-            @apis[HTTP::API::INPUT]
-          end
 
           def send_input(payload, tags)
             # Tags are the same for all chunks, serialize them one time.
@@ -101,7 +89,7 @@ module Datadog
             parcel = EncodedParcel.new(chunked_payload)
             request = Request.new(parcel, serialized_tags)
 
-            response = @client.send_input_payload(request)
+            response = @client.send_request(:input, request)
             unless response.ok?
               # TODO Datadog::Core::Transport::InternalErrorResponse
               # does not have +code+ method, what is the actual API of

@@ -20,9 +20,9 @@ module Datadog
           @logger: Core::Logger
           @default_api: ::String
           @current_api_id: ::String
-          @client: HTTP::Client
+          @client: Core::Transport::HTTP::Client
 
-          attr_reader client: HTTP::Client
+          attr_reader client: Core::Transport::HTTP::Client
           attr_reader apis: ::Hash[::String, HTTP::Stats::API::Instance]
           attr_reader current_api_id: ::String
           attr_reader logger: Core::Logger
