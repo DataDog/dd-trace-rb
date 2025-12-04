@@ -298,6 +298,56 @@ RSpec.describe 'Telemetry integration tests' do
         )
       end
     end
+
+    describe 'process tags' do
+      include_context 'disable profiling'
+
+      before do
+        settings.telemetry.dependency_collection = true
+      end
+
+      context 'when process tags propagation is enabled' do
+        it 'includes process tags in the payload when the process tags have values' do
+          allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+
+          component.start(false, components: Datadog.send(:components))
+          component.flush
+          expect(sent_payloads.length).to eq 2
+
+          payload = sent_payloads[0]
+          expect(payload.fetch(:payload)).to include('process_tags' => String)
+          expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.workdir')
+          expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.basedir')
+          expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.type')
+          expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.name')
+        end
+
+        it 'does not include process_tags when serialized value is empty' do
+          allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+          allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return('')
+
+          component.start(false, components: Datadog.send(:components))
+          component.flush
+          expect(sent_payloads.length).to eq 2
+
+          payload = sent_payloads[0]
+          expect(payload.fetch(:payload)).not_to have_key('process_tags')
+        end
+      end
+
+      context 'when process tags propagation is disabled' do
+        it 'does not include process_tags in the payload' do
+          allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+
+          component.start(false, components: Datadog.send(:components))
+          component.flush
+          expect(sent_payloads.length).to eq 2
+
+          payload = sent_payloads[0]
+          expect(payload.fetch(:payload)).not_to have_key('process_tags')
+        end
+      end
+    end
   end
 
   let(:handler_proc) do
@@ -365,70 +415,6 @@ RSpec.describe 'Telemetry integration tests' do
     let(:expected_headers) { expected_agentless_headers }
 
     include_examples 'telemetry integration tests'
-  end
-
-  context 'when process tags propagation is enabled' do
-    include_context 'agent mode'
-    include_context 'disable profiling'
-
-    let(:settings) do
-      Datadog::Core::Configuration::Settings.new.tap do |settings|
-        settings.agent.port = http_server_port
-        settings.telemetry.enabled = true
-        settings.telemetry.dependency_collection = true
-      end
-    end
-
-    it 'includes process tags in the payload when the process tags have values' do
-      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
-
-      component.start(false, components: Datadog.send(:components))
-      component.flush
-      expect(sent_payloads.length).to eq 2
-
-      payload = sent_payloads[0]
-      expect(payload.fetch(:payload)).to include('process_tags' => String)
-      expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.workdir')
-      expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.basedir')
-      expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.type')
-      expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.name')
-    end
-
-    it 'does not include process_tags when serialized value is empty' do
-      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
-      allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return('')
-
-      component.start(false, components: Datadog.send(:components))
-      component.flush
-      expect(sent_payloads.length).to eq 2
-
-      payload = sent_payloads[0]
-      expect(payload.fetch(:payload)).not_to have_key('process_tags')
-    end
-  end
-
-  context 'when process tags propagation is disabled' do
-    include_context 'agent mode'
-    include_context 'disable profiling'
-
-    let(:settings) do
-      Datadog::Core::Configuration::Settings.new.tap do |settings|
-        settings.agent.port = http_server_port
-        settings.telemetry.enabled = true
-        settings.telemetry.dependency_collection = true
-      end
-    end
-
-    it 'does not include process_tags in the payload' do
-      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
-
-      component.start(false, components: Datadog.send(:components))
-      component.flush
-      expect(sent_payloads.length).to eq 2
-
-      payload = sent_payloads[0]
-      expect(payload.fetch(:payload)).not_to have_key('process_tags')
-    end
   end
 
   context 'when events are enqueued prior to start' do
