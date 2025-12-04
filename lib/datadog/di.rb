@@ -13,6 +13,12 @@ module Datadog
       def enabled?
         Datadog.configuration.dynamic_instrumentation.enabled
       end
+
+      def file_iseqs
+        all_iseqs.select do |iseq|
+          iseq.absolute_path
+        end
+      end
     end
 
     # Expose DI to global shared objects
