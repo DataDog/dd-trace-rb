@@ -156,7 +156,12 @@ static bool is_valid_control_frame(const rb_control_frame_t *cfp,
 
   VALUE *stack_ptr = ec->vm_stack;
   size_t stack_slots = ec->vm_stack_size;
-  if (!stack_ptr || stack_slots == 0) {
+
+  if (!is_pointer_readable(stack_ptr, sizeof(VALUE))) {
+    return false;
+  }
+
+  if (stack_slots == 0) {
     return false;
   }
 
@@ -222,6 +227,14 @@ static bool is_valid_iseq(const rb_iseq_t *iseq, const struct rb_iseq_constant_b
   return true;
 }
 
+
+// We intentionally keep using the Ruby helper APIs (rb_vm_frame_method_entry,
+// rb_iseq_line_no) inside this handler. The crashtracker only runs once per process crash,
+// guarded by NUM_TIMES_CALLED, and the crash report pipeline proceeds even if this callback
+// faults (the collector times out, the emitter still finishes). Because the worst case for
+// mishandling these helpers is "we lose the runtime stack but still emit a crash report,"
+// we favor readable, idiomatic integration with the VM over re-implementing everything with
+// manual pointer spelunking.
 static void ruby_runtime_stack_callback(
   void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*)
 ) {
@@ -248,8 +261,6 @@ static void ruby_runtime_stack_callback(
   // Skip dummy frame, `thread_profile_frames` does this too
   end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
   if (end_cfp <= cfp) return;
-
-  end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
   int frame_count = 0;
   const int MAX_FRAMES = 400;
@@ -301,20 +312,22 @@ static void ruby_runtime_stack_callback(
           // Handle case where PC is available - mirror calc_pos logic
           if (body->iseq_size > 0 &&
               is_pointer_readable(body->iseq_encoded, body->iseq_size * sizeof(*body->iseq_encoded))) {
-            ptrdiff_t pc_offset = cfp->pc - body->iseq_encoded;
 
-            // bounds checking like private_vm_api_access.c PROF-11475 fix
-            // to prevent crashes when calling rb_iseq_line_no
-            if (pc_offset >= 0 && pc_offset <= (ptrdiff_t)body->iseq_size) {
-              size_t pos = (size_t)pc_offset;
-              if (pos > 0) {
-                // Use pos-1 because PC points to next instruction
-                pos--;
-              }
+            if (cfp->pc && is_pointer_readable(cfp->pc, sizeof(VALUE))) {
+                ptrdiff_t pc_offset = (uintptr_t)cfp->pc - (uintptr_t)body->iseq_encoded;
+              // bounds checking like private_vm_api_access.c PROF-11475 fix
+              // to prevent crashes when calling rb_iseq_line_no
+              if (pc_offset >= 0 && pc_offset <= (ptrdiff_t)body->iseq_size) {
+                size_t pos = (size_t)pc_offset;
+                if (pos > 0) {
+                  // Use pos-1 because PC points to next instruction
+                  pos--;
+                }
 
-              // Additional safety check before calling rb_iseq_line_no (PROF-11475 fix)
-              if (pos < body->iseq_size) {
-                line_no = rb_iseq_line_no(iseq, pos);
+                // Additional safety check before calling rb_iseq_line_no (PROF-11475 fix)
+                if (pos < body->iseq_size) {
+                  line_no = rb_iseq_line_no(iseq, pos);
+                }
               }
             }
           }
