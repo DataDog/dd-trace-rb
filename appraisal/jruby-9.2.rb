@@ -274,8 +274,8 @@ end
 ['3.23.2'].each do |v|
   appraise "view_component-#{v}" do
     gem 'view_component', "~> #{v}"
-    gem "actionview"
-    gem "rails"
+    gem 'actionview'
+    gem 'rails'
     gem 'sprockets', '< 4'
     gem 'pg'
   end
