@@ -1004,6 +1004,16 @@ module Datadog
           end
         end
 
+        # Enable experimental process tags propagation such that payloads like spans contain the process tag.
+        #
+        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `false`
+        # @return [Boolean]
+        option :experimental_propagate_process_tags_enabled do |o|
+          o.env 'DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED'
+          o.default false
+          o.type :bool
+        end
+
         # Tracer specific configuration starting with APM (e.g. DD_APM_TRACING_ENABLED).
         # @public_api
         settings :apm do
