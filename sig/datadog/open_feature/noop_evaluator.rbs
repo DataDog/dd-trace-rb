@@ -4,10 +4,10 @@ module Datadog
       def initialize: (::String?) -> void
 
       def get_assignment: (
-        ::String,
-        untyped,
-        ::OpenFeature::SDK::EvaluationContext::fields_t,
-        ::String
+        ::String flag_key,
+        default_value: untyped,
+        context: ::OpenFeature::SDK::EvaluationContext::fields_t,
+        expected_type: ::Symbol
       ) -> ResolutionDetails
     end
   end
