@@ -16,6 +16,12 @@ module Datadog
         Datadog.configuration.dynamic_instrumentation.enabled
       end
 
+      def file_iseqs
+        all_iseqs.select do |iseq|
+          iseq.absolute_path
+        end
+      end
+
       # This method is called from DI Remote handler to issue DI operations
       # to the probe manager (add or remove probes).
       #
