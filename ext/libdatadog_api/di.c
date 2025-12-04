@@ -33,6 +33,13 @@ This returns iseqs corresponding to defined methods.
 If a file has, for example, only constant definitions, after that
 file is loaded its iseq object is no longer needed for anything else
 and is (generally?) garbage collected.
+
+iseqs contain the first line of the code they correspond to, but no
+last line or number of lines. The actual instructions are labeled
+per line, therefore it is possible to figure out the range of each
+iseq from the instructions. However I think this is unnecessary -
+all that should be required is picking the iseq with first_lineno
+smaller than, and closest to, the desired line number.
 */
 static VALUE all_iseqs(DDTRACE_UNUSED VALUE _self) {
     struct ddtrace_di_os_each_struct oes;

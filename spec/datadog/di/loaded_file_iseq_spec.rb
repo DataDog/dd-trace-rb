@@ -10,9 +10,7 @@ RSpec.describe 'all_iseqs' do
   end
 
   let(:file_iseqs) do
-    iseqs.select do |iseq|
-      iseq.first_lineno == 0
-    end
+    Datadog::DI.file_iseqs
   end
 
   it 'returns iseqs' do
@@ -23,7 +21,22 @@ RSpec.describe 'all_iseqs' do
     end
   end
 
-  it 'returns iseqs for all required files' do
-    expect(file_iseqs.length).to be >= $LOADED_FEATURES.length
+  # We would like to assert that the iseqs we are getting from the VM are
+  # complete. Unfortunately only iseqs that correspond to files that defined
+  # methods generally exist in the VM - a file that was executed and has
+  # no more executable code (for example, it contained only constant
+  # definitions) won't have any iseqs remaining after it was loaded.
+  # Therefore it's difficult to establish the set of iseqs that we should
+  # be expecting here.
+  # Since we do have some knowledge about our own library, for now assert
+  # that we have a reasonable set of files from dd-trace-rb in the iseqs.
+  it 'returns iseqs for all loaded files' do
+    datadog_iseqs = file_iseqs.select do |iseq|
+      iseq.absolute_path =~ %r,lib/datadog/,
+    end
+    #pp datadog_iseqs
+    p datadog_iseqs.length
+    require'byebug';byebug
+    expect(datadog_iseqs.length).to be >= $LOADED_FEATURES.length
   end
 end
