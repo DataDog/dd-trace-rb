@@ -6,7 +6,7 @@ RSpec.describe 'all_iseqs' do
   end
 
   let(:iseqs) do
-    Datadog::DI::VMAccess.all_iseqs
+    Datadog::DI.all_iseqs
   end
 
   let(:file_iseqs) do
