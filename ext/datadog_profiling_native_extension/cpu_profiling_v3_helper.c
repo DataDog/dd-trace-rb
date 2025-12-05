@@ -45,7 +45,7 @@ static void initialize_current_thread_cpu_timer(void) {
   };
 
   timer_t new_timer;
-  int error = timer_create(CLOCK_PROCESS_CPUTIME_ID, &config, &new_timer);
+  int error = timer_create(CLOCK_THREAD_CPUTIME_ID, &config, &new_timer);
 
   if (error == 0) {
     // Fully reinitialize the state, to make sure there's no leftover counters
