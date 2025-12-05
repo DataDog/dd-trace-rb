@@ -50,7 +50,7 @@ module Datadog
         # @param description [String, nil] A low cardinality description, without dynamic data
         def report(exception, level: :error, description: nil)
           # Anonymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
-          message = +"#{exception.class.name || exception.class.inspect}" # standard:disable Style/RedundantInterpolation
+          message = +(exception.class.name || exception.class.inspect)
 
           telemetry_message = message_for_telemetry(exception)
 
