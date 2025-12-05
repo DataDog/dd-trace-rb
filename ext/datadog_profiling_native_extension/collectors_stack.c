@@ -592,6 +592,9 @@ void record_placeholder_stack(
 bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
   // Since this can get called from inside a signal handler, we don't want to touch the buffer if
   // the thread was actually in the middle of marking it.
+  //
+  // TODO: Maybe handle this a bit cleaner in the cpu and wall time worker -- if we're doing GC, perhaps we shouldn't be calling into this method anyway?
+  // Failing this far out is weird; I don't like it
   if (buffer->is_marking) return false;
 
   buffer->pending_sample = true;

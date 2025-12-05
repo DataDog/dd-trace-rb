@@ -135,6 +135,7 @@ void cpu_profiling_v3_on_suspend(VALUE current_thread) {
     return;
   }
 
+  // TODO: This is needed to track CPU spent without the timer (e.g. without the GVL acquired)
   long current_cpu_time_ns = current_cpu.tv_nsec + SECONDS_AS_NS(current_cpu.tv_sec);
 
   rb_internal_thread_specific_set(current_thread, cpu_time_at_suspend_key, (void *) current_cpu_time_ns);

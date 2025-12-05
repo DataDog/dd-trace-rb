@@ -193,6 +193,8 @@ typedef struct {
     long cpu_time_at_start_ns;
     long wall_time_at_start_ns;
   } gc_tracking;
+
+  uint32_t cpu_profiling_v3_interval_periods_to_flush;
 } per_thread_context;
 
 // Used to correlate profiles with traces
@@ -632,16 +634,17 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
 
-  update_metrics_and_sample(
-    state,
-    /* thread_being_sampled: */ current_thread,
-    /* stack_from_thread: */ profiler_overhead_stack_thread,
-    current_thread_context,
-    // Here we use the overhead thread's sampling buffer so as to not invalidate the cache in the buffer of the thread being sampled
-    &get_or_create_context_for(profiler_overhead_stack_thread, state)->sampling_buffer,
-    cpu_time_now_ns(current_thread_context),
-    monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
-  );
+  // TODO: Restore overhead sample
+  // update_metrics_and_sample(
+  //   state,
+  //   /* thread_being_sampled: */ current_thread,
+  //   /* stack_from_thread: */ profiler_overhead_stack_thread,
+  //   current_thread_context,
+  //   // Here we use the overhead thread's sampling buffer so as to not invalidate the cache in the buffer of the thread being sampled
+  //   &get_or_create_context_for(profiler_overhead_stack_thread, state)->sampling_buffer,
+  //   cpu_time_now_ns(current_thread_context),
+  //   monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
+  // );
 }
 
 static void update_metrics_and_sample(
@@ -663,6 +666,10 @@ static void update_metrics_and_sample(
     thread_context->gc_tracking.cpu_time_at_start_ns,
     IS_NOT_WALL_TIME
   );
+
+  // Actually ignore what went on in the previous line for cpu profiling 3.0 and account differently ;)
+  cpu_time_elapsed_ns = thread_context->cpu_profiling_v3_interval_periods_to_flush * MILLIS_AS_NS(10);
+  thread_context->cpu_profiling_v3_interval_periods_to_flush = 0;
 
   long wall_time_elapsed_ns = update_time_since_previous_sample(
     &thread_context->wall_time_at_previous_sample_ns,
@@ -1141,6 +1148,8 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context,
     // to the current profiler instance, so that's OK)
     gvl_profiling_state_thread_object_set(thread, GVL_WAITING_ENABLED_EMPTY);
   #endif
+
+  thread_context->cpu_profiling_v3_interval_periods_to_flush = 0;
 }
 
 static void free_context(per_thread_context* thread_context) {
@@ -1469,7 +1478,7 @@ static VALUE thread_list(thread_context_collector_state *state) {
 // expected to be called from a signal handler and to be async-signal-safe.
 //
 // Also, no allocation (Ruby or malloc) can happen.
-bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance) {
+bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance, uint32_t cpu_profiling_v3_intervals_to_flush_add) {
   thread_context_collector_state *state;
   if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return false;
   // This should never fail if the above check passes
@@ -1478,6 +1487,8 @@ bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_in
   VALUE current_thread = rb_thread_current();
   per_thread_context *thread_context = get_context_for(current_thread, state);
   if (thread_context == NULL) return false;
+
+  thread_context->cpu_profiling_v3_interval_periods_to_flush += cpu_profiling_v3_intervals_to_flush_add;
 
   return prepare_sample_thread(current_thread, &thread_context->sampling_buffer);
 }
@@ -2217,5 +2228,5 @@ static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE c
 }
 
 static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  return thread_context_collector_prepare_sample_inside_signal_handler(collector_instance) ? Qtrue : Qfalse;
+  return thread_context_collector_prepare_sample_inside_signal_handler(collector_instance, 0) ? Qtrue : Qfalse;
 }

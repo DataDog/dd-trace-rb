@@ -618,7 +618,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, siginfo_t *info /
   if (sample_from_signal_handler) {
     // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
     // until the postponed job below gets run.
-    bool prepared = thread_context_collector_prepare_sample_inside_signal_handler(state->thread_context_collector_instance);
+    bool prepared = thread_context_collector_prepare_sample_inside_signal_handler(state->thread_context_collector_instance, 1);
 
     if (prepared) state->stats.signal_handler_prepared_sample++;
   }

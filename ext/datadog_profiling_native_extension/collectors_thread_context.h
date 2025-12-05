@@ -10,7 +10,7 @@ void thread_context_collector_sample(
   long current_monotonic_wall_time_ns,
   VALUE profiler_overhead_stack_thread
 );
-__attribute__((warn_unused_result)) bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance);
+__attribute__((warn_unused_result)) bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance, uint32_t cpu_profiling_v3_intervals_to_flush_add);
 void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object);
 void thread_context_collector_sample_skipped_allocation_samples(VALUE self_instance, unsigned int skipped_samples);
 VALUE thread_context_collector_sample_after_gc(VALUE self_instance);
