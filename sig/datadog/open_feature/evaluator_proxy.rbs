@@ -1,0 +1,16 @@
+module Datadog
+  module OpenFeature
+    class EvaluatorProxy
+      def initialize: (untyped?) -> void
+
+      def update_evaluator!: (untyped) -> void
+
+      def get_assignment: (
+        ::String flag_key,
+        default_value: untyped,
+        context: ::OpenFeature::SDK::EvaluationContext::fields_t,
+        expected_type: ::Symbol
+      ) -> ResolutionDetails
+    end
+  end
+end

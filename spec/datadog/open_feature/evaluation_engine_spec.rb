@@ -175,5 +175,39 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect { engine.reconfigure!('{}') }.to raise_error(described_class::ReconfigurationError, 'Ooops')
       end
     end
+
+    context 'when evaluator proxy prevents stale reference issues' do
+      let(:initial_evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
+      let(:updated_evaluator) { instance_double(Datadog::OpenFeature::NativeEvaluator) }
+      let(:initial_result) { instance_double(Datadog::OpenFeature::ResolutionDetails, value: 200) }
+      let(:updated_result) { instance_double(Datadog::OpenFeature::ResolutionDetails, value: 300) }
+
+      before do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new)
+          .with('{"initial": true}').and_return(initial_evaluator)
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new)
+          .with('{"updated": true}').and_return(updated_evaluator)
+
+        allow(initial_evaluator).to receive(:get_assignment).and_return(initial_result)
+        allow(updated_evaluator).to receive(:get_assignment).and_return(updated_result)
+        allow(reporter).to receive(:report)
+      end
+
+      it 'ensures all evaluations use current evaluator after reconfiguration' do
+        engine.reconfigure!('{"initial": true}')
+        cached_engine_reference = engine
+
+        initial_value = cached_engine_reference.fetch_value('flag', default_value: 0, expected_type: :number).value
+        expect(initial_value).to eq(200)
+
+        engine.reconfigure!('{"updated": true}')
+
+        updated_value = cached_engine_reference.fetch_value('flag', default_value: 0, expected_type: :number).value
+        expect(updated_value).to eq(300)
+
+        expect(initial_evaluator).to have_received(:get_assignment).once
+        expect(updated_evaluator).to have_received(:get_assignment).once
+      end
+    end
   end
 end

@@ -4,6 +4,7 @@ require_relative 'ext'
 require_relative 'noop_evaluator'
 require_relative 'native_evaluator'
 require_relative 'resolution_details'
+require_relative 'evaluator_proxy'
 
 module Datadog
   module OpenFeature
@@ -18,7 +19,7 @@ module Datadog
         @telemetry = telemetry
         @logger = logger
 
-        @evaluator = NoopEvaluator.new(nil)
+        @evaluator_proxy = EvaluatorProxy.new(NoopEvaluator.new(nil))
       end
 
       def fetch_value(flag_key, default_value:, expected_type:, evaluation_context: nil)
@@ -30,7 +31,7 @@ module Datadog
         end
 
         context = evaluation_context&.fields.to_h
-        result = @evaluator.get_assignment(
+        result = @evaluator_proxy.get_assignment(
           flag_key, default_value: default_value, context: context, expected_type: expected_type
         )
 
@@ -52,10 +53,12 @@ module Datadog
         if configuration.nil?
           @logger.debug('OpenFeature: Removing configuration')
 
-          return @evaluator = NoopEvaluator.new(configuration)
+          new_evaluator = NoopEvaluator.new(configuration)
+        else
+          new_evaluator = NativeEvaluator.new(configuration)
         end
 
-        @evaluator = NativeEvaluator.new(configuration)
+        @evaluator_proxy.update_evaluator!(new_evaluator)
       rescue => e
         message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
