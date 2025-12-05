@@ -1,7 +1,7 @@
 module Datadog
   module OpenFeature
     class EvaluatorProxy
-      def initialize: (untyped?) -> void
+      def initialize: (untyped) -> void
 
       def update_evaluator!: (untyped) -> void
 
