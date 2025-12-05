@@ -70,11 +70,7 @@ NORETURN(
   __attribute__ ((format (printf, 3, 4)));
 );
 
-// NOTE: Only used externally for testing
-// TODO: unexpose this.
-NORETURN(
-  void private_raise_exception(VALUE exception, const char *detailed_message, const char *static_message)
-);
+
 
 #define ENFORCE_SUCCESS_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, true)
 #define ENFORCE_SUCCESS_NO_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, false)

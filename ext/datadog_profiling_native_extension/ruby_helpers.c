@@ -40,7 +40,7 @@ void ruby_helpers_init(void) {
 // Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
 // NOTE: Raising the exception acquires the GVL (unsafe), but it also aborts the current execution flow.
 // @see debug_enter_unsafe_context
-void private_raise_exception(VALUE exception, const char *detailed_message, const char *static_message) {
+static void private_raise_exception(VALUE exception, const char *detailed_message, const char *static_message) {
   rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
   rb_exc_raise(exception);
 }
