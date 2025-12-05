@@ -109,13 +109,7 @@ module Datadog
         end
 
         def parse_content(content)
-          data = content.data.read
-
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          JSON.parse(data)
+          JSON.parse(content.data)
         end
       end
     end

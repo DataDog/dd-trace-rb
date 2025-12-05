@@ -92,7 +92,7 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
       rules_override: []
     }
   end
-  let(:string_io_content) { StringIO.new(raw.to_json) }
+  let(:string_io_content) { raw.to_json }
   let(:content) do
     Datadog::Core::Remote::Configuration::Content.parse({path: path.to_s, content: string_io_content})
   end

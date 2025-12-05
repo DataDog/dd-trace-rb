@@ -62,12 +62,9 @@ module Datadog
         private
 
         def read_content(content)
-          data = content.data.read
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          data
+          # Unlike all of the other remotes, this one does not JSON-parse
+          # the data.
+          content.data
         end
       end
     end

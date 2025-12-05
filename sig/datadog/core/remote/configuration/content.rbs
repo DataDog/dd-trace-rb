@@ -7,7 +7,7 @@ module Datadog
 
           attr_reader path: Configuration::Path
 
-          attr_reader data: StringIO
+          attr_reader data: String
 
           attr_reader hashes: Hash[Symbol, String]
 
@@ -19,7 +19,7 @@ module Datadog
 
           @length: Integer
 
-          def initialize: (path: Configuration::Path, data: StringIO) -> void
+          def initialize: (path: Configuration::Path, data: String) -> void
 
           def applied: -> void
 
