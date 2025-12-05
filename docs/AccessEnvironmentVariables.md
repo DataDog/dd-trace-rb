@@ -105,6 +105,9 @@ Edit the `supported-configurations.json` file and add your variable (Please keep
 
 ### Step 2: Generate Configuration Assets
 
+This step requires Ruby 3.4 or higher due to the change in the format of
+generated JSON output.
+
 Run the rake task to generate the Ruby configuration assets:
 
 ```bash

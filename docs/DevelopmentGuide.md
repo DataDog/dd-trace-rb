@@ -19,14 +19,17 @@ This guide covers some of the common how-tos and technical reference material fo
 
 The trace library uses Docker Compose to create a Ruby environment to develop and test within, as well as containers for any dependencies that might be necessary for certain kinds of tests.
 
-To start a development environment, choose a target Ruby or JRuby version. Then run the following:
+To start a development environment, choose a target Ruby or JRuby version.
+Some of the development tooling is only defined for the recent MRI versions,
+therefore we suggest using Ruby 3.4 unless you specifically need a different
+version. Run the following:
 
 ```bash
 # In the root directory of the project...
 cd ~/dd-trace-rb
 
-# Create and start a Ruby 3.3 test environment with its dependencies
-docker compose run --rm tracer-3.3 /bin/bash
+# Create and start a Ruby 3.4 test environment with its dependencies
+docker compose run --rm tracer-3.4 /bin/bash
 
 # or a JRuby test environment with its dependencies
 docker compose run --rm tracer-jruby-9.4 /bin/bash
@@ -134,7 +137,7 @@ bundle exec rake dependency:list
 `dependency:list` is convenient to look for a specific gemfile path before assigning it to the environment variable `BUNDLE_GEMFILE`. `BUNDLE_GEMFILE` is useful for doing all kinds of stuff, such as:
 
 ```bash
-env BUNDLE_GEMFILE=/app/gemfiles/ruby_3.3_stripe_latest.gemfile bundle update stripe
+env BUNDLE_GEMFILE=/app/gemfiles/ruby_3.4_stripe_latest.gemfile bundle update stripe
 ```
 
 After introducing a new dependency group or changing an existing one, run `bundle exec rake dependency:generate` to propagate the changes to the gemfile. `dependency:generate` is idempotent and only changes `gemfiles/*.gemfile` but not `gemfiles/*.lock`.
@@ -147,9 +150,9 @@ Both `dependency:lock` and `dependency:install` can be provided with a specific 
 
 ```bash
 # Generate lockfiles for all the stripe groups with `stripe_*` pattern
-bundle exec rake dependency:lock['/app/gemfiles/ruby_3.3_stripe_*.gemfile']
+bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_*.gemfile']
 # or only generate lockfile for the `stripe_latest` group
-bundle exec rake dependency:lock['/app/gemfiles/ruby_3.3_stripe_latest.gemfile']
+bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_latest.gemfile']
 ```
 
 **How to add a new dependency group**
@@ -357,6 +360,12 @@ docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
 ```bash
 docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
 ```
+
+## Accessing Environment Variables
+
+If you need to access any environment variables via `ENV`, please see
+[Access Environment Variables](./AccessEnvironmentVariables.md) for the
+required procedure.
 
 ## Appendix
 
