@@ -7,6 +7,7 @@
 
 #include "datadog_ruby_common.h"
 #include "cpu_profiling_v3_helper.h"
+#include "time_helpers.h"
 
 typedef struct {
   bool valid;
@@ -28,6 +29,7 @@ static void initialize_current_thread_cpu_timer(void) {
     // Manpage calls this `sigev_notify_thread_id` ( https://manpages.opensuse.org/Tumbleweed/man-pages/sigevent.3type.en.html )
     // but the glibc definition is... different?
     ._sigev_un._tid = gettid(),
+    .sigev_value.sival_int = 1234, // WIP
   };
 
   int error = timer_create(CLOCK_PROCESS_CPUTIME_ID, &config, &current_thread_timer.timer);
@@ -41,13 +43,35 @@ static void initialize_current_thread_cpu_timer(void) {
   }
 }
 
+// TODO: Right now this assumes CPU Profiling 3.0 is always enabled
 void cpu_profiling_v3_on_resume(void) {
   if (!current_thread_timer.valid && !current_thread_timer.failed) {
     initialize_current_thread_cpu_timer();
     if (!current_thread_timer.valid) return;
   }
 
-  // TODO
+  // Let's arm the timer
+  struct itimerspec timer_config = {
+    .it_interval = {.tv_nsec = MILLIS_AS_NS(10)},
+    .it_value = {.tv_nsec = MILLIS_AS_NS(10)},
+  };
+  int error = timer_settime(current_thread_timer.timer, 0, &timer_config, NULL);
+  if (error != 0) {
+    // TODO: Better logging
+    fprintf(stderr, "Failure to set CPU timer on thread %d %s:%d:in `%s': %s\n",  gettid(), __FILE__, __LINE__, __func__, strerror(errno));
+  }
+}
+
+void cpu_profiling_v3_on_suspend(void) {
+  if (!current_thread_timer.valid) return;
+
+  // Let's disarm the timer
+  struct itimerspec disabled_timer = { 0 };
+  int error = timer_settime(current_thread_timer.timer, 0, &disabled_timer, NULL);
+  if (error != 0) {
+    // TODO: Better logging
+    fprintf(stderr, "Failure to disarm CPU timer on thread %d %s:%d:in `%s': %s\n",  gettid(), __FILE__, __LINE__, __func__, strerror(errno));
+  }
 }
 
 static void on_thread_exit_cleanup_timer(

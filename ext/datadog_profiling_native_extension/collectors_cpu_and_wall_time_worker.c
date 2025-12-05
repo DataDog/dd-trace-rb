@@ -583,7 +583,7 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
 // NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
-static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
+static void handle_sampling_signal(DDTRACE_UNUSED int _signal, siginfo_t *info /* Can be null */, DDTRACE_UNUSED void *_ucontext) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening; nothing to do
@@ -595,6 +595,11 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   ) {
     state->stats.signal_handler_wrong_thread++;
+    return;
+  }
+
+  if (info && info->si_value.sival_int == 1234) {
+    fprintf(stderr, "Got a SIGPROF from the CPU Profiling 3.0 timer\n");
     return;
   }
 
@@ -824,7 +829,8 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
           // For now we're only asking for these events, even though there's more
           // (e.g. check docs or gvl-tracing gem)
           RUBY_INTERNAL_THREAD_EVENT_READY /* waiting for gvl */ |
-          RUBY_INTERNAL_THREAD_EVENT_RESUMED /* running/runnable */
+          RUBY_INTERNAL_THREAD_EVENT_RESUMED /* running/runnable */ |
+          RUBY_INTERNAL_THREAD_EVENT_SUSPENDED /* gvl released - waiting or doing work in C */
         ),
         NULL
       );
@@ -1363,6 +1369,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       }
 
       cpu_profiling_v3_on_resume();
+    } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_SUSPENDED) {
+      cpu_profiling_v3_on_suspend();
     } else {
       // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
       fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
