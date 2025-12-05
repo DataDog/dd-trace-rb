@@ -34,11 +34,13 @@ void ruby_helpers_init(void) {
   vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
   va_end(buf##_args);
 
+
+
 // Raises an exception with separate telemetry-safe and detailed messages.
 // Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
 // NOTE: Raising the exception acquires the GVL (unsafe), but it also aborts the current execution flow.
 // @see debug_enter_unsafe_context
-void private_raise_native_error(VALUE exception, const char *detailed_message, const char *static_message) {
+void private_raise_formatted(VALUE exception, const char *detailed_message, const char *static_message) {
   rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
   rb_exc_raise(exception);
 }
@@ -46,15 +48,25 @@ void private_raise_native_error(VALUE exception, const char *detailed_message, c
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
   FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
-  VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
-  private_raise_native_error(exception, detailed_message, fmt);
+  private_raise_error_formatted(native_exception_class, detailed_message, fmt);
 }
 
 // Use `raise_syserr` the macro instead, as it provides additional argument checks.
 void private_raise_syserr(int syserr_errno, const char *fmt, ...) {
   FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
+  private_raise_syserr_formatted(syserr_errno, detailed_message, fmt);
+}
+
+// Internal helper for raising pre-formatted exceptions
+static NORETURN(void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message)) {
+  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
+  private_raise_formatted(exception, detailed_message, static_message);
+}
+
+// Internal helper for raising pre-formatted syserr exceptions
+static NORETURN(void private_raise_syserr_formatted(int syserr_errno, const char *detailed_message, const char *static_message)) {
   VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
-  private_raise_native_error(exception, detailed_message, fmt);
+  private_raise_formatted(exception, detailed_message, static_message);
 }
 
 typedef struct {
@@ -68,13 +80,13 @@ static void *trigger_raise(void *raise_arguments) {
   raise_args *args = (raise_args *) raise_arguments;
 
   if (args->syserr_errno) {
-    private_raise_syserr(
+    private_raise_syserr_formatted(
       args->syserr_errno,
       args->exception_message,
       args->telemetry_message
     );
   } else {
-    private_raise_native_error(
+    private_raise_error_formatted(
       args->exception_class,
       args->exception_message,
       args->telemetry_message
@@ -114,7 +126,8 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, 
       "grab_gvl_and_raise called by thread holding the global VM lock: %s",
       args.exception_message
     );
-    private_raise_native_error(rb_eRuntimeError, exception_message, telemetry_message);
+    VALUE exception = rb_exc_new_cstr(rb_eRuntimeError, exception_message);
+    private_raise_formatted(exception, exception_message, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
