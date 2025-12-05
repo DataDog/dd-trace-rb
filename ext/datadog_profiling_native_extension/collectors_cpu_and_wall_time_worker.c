@@ -753,6 +753,8 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
     return Qnil;
   }
 
+  cpu_profiling_v3_on_suspend(); // Don't trigger cpu time-based sampling while we're already sampling (TODO: we'll account for it separately)
+
   state->stats.cpu_sampled++;
 
   VALUE profiler_overhead_stack_thread = state->owner_thread; // Used to attribute profiler overhead to a different stack
@@ -769,6 +771,8 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   state->stats.cpu_sampling_time_ns_total += sampling_time_ns;
 
   dynamic_sampling_rate_after_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_after_sample, sampling_time_ns);
+
+  cpu_profiling_v3_on_resume();
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
@@ -920,9 +924,11 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   if (state == NULL) return;
 
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
+    cpu_profiling_v3_on_suspend(); // Don't trigger cpu time-based sampling during GC (The CPU time spent in GC is accounted for by on_gc_start/finish directly)
     thread_context_collector_on_gc_start(state->thread_context_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
     bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
+    cpu_profiling_v3_on_resume();
 
     // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc when the
     // thread collector flags it's time to flush.
