@@ -11,12 +11,13 @@ module Datadog
         )
 
         def self.boot
-          return if Datadog::Core::Remote.active_remote.nil?
+          active_remote = Datadog.send(:components, allow_initialization: false)&.remote
+          return if active_remote.nil?
 
           barrier = nil
 
           t = Datadog::Core::Utils::Time.measure do
-            barrier = Datadog::Core::Remote.active_remote.barrier(:once)
+            barrier = active_remote.barrier(:once)
           end
 
           # steep does not permit the next line due to
