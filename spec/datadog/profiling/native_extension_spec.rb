@@ -38,7 +38,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "when called without releasing the gvl" do
-      it "raises a NativeError" do
+      it "raises a RuntimeError with appropriate error handling when called without GVL" do
         expect do
           described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "message %s", 'oops', false)
         end.to raise_error(::RuntimeError) do |error|
@@ -48,12 +48,12 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
     end
 
-    context "when raising NativeRuntimeError" do
+    context "when raising RuntimeError" do
       subject(:raise_native_runtime_error) do
         described_class::Testing._native_grab_gvl_and_raise(::RuntimeError, "runtime error test", nil, true)
       end
 
-      it "raises a NativeRuntimeError" do
+      it "raises a RuntimeError" do
         expect { raise_native_runtime_error }.to raise_error(::RuntimeError) do |error|
           expect(error.message).to eq("runtime error test")
           expect(error.instance_variable_get(:@telemetry_message)).to eq("runtime error test")
@@ -65,12 +65,12 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
     end
 
-    context "when raising NativeArgumentError" do
+    context "when raising ArgumentError" do
       subject(:raise_native_argument_error) do
         described_class::Testing._native_grab_gvl_and_raise(::ArgumentError, "argument error test", nil, true)
       end
 
-      it "raises a NativeArgumentError" do
+      it "raises an ArgumentError" do
         expect { raise_native_argument_error }.to raise_error(::ArgumentError) do |error|
           expect(error.message).to eq("argument error test")
           expect(error.instance_variable_get(:@telemetry_message)).to eq("argument error test")
@@ -82,12 +82,12 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
     end
 
-    context "when raising NativeTypeError" do
+    context "when raising TypeError" do
       subject(:raise_native_type_error) do
         described_class::Testing._native_grab_gvl_and_raise(::TypeError, "type error test", nil, true)
       end
 
-      it "raises a NativeTypeError" do
+      it "raises a TypeError" do
         expect { raise_native_type_error }.to raise_error(::TypeError) do |error|
           expect(error.message).to eq("type error test")
           expect(error.instance_variable_get(:@telemetry_message)).to eq("type error test")
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "when called without releasing the gvl" do
-      it "raises a NativeError, preserving the Errno exception class information" do
+      it "raises a RuntimeError with appropriate error handling" do
         expect do
           described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "message %s", "oops", false)
         end.to raise_error(::RuntimeError) do |error|

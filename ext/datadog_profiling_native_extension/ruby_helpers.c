@@ -34,11 +34,11 @@ void ruby_helpers_init(void) {
   vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
   va_end(buf##_args);
 
-// Raises a NativeError exception with seperate telemetry-safe and detailed messages.
+// Raises an exception with separate telemetry-safe and detailed messages.
 // Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
+// NOTE: Raising the exception acquires the GVL (unsafe), but it also aborts the current execution flow.
 // @see debug_enter_unsafe_context
-void private_raise_native_error(VALUE native_exception_class, const char *detailed_message, const char *static_message) {
-  VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
+void private_raise_native_error(VALUE exception, const char *detailed_message, const char *static_message) {
   rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
   rb_exc_raise(exception);
 }
@@ -46,24 +46,15 @@ void private_raise_native_error(VALUE native_exception_class, const char *detail
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
   FORMAT_VA_ERROR_MESSAGE(formatted_msg, fmt);
-  private_raise_native_error(native_exception_class, formatted_msg, fmt);
+  VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
+  private_raise_native_error(exception, formatted_msg, fmt);
 }
 
-// Raises a SysErr exception with seperate telemetry-safe and detailed messages.
-// The telemetry-safe message is set in the instance variable `@telemetry_message`.
-//
-// Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
-// @see debug_enter_unsafe_context
-NORETURN(void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message));
-void private_raise_syserr(int syserr_errno, const char *detailed_message, const char *static_message) {
-  VALUE error = rb_syserr_new(syserr_errno, detailed_message);
-
-  // Because there are 150+ Errno error classes,
-  // we set the telemetry-safe message to an instance variable, instead
-  // of creating/modifying a large amount of exception classes.
-  rb_ivar_set(error, telemetry_message_id, rb_str_new_cstr(static_message));
-
-  rb_exc_raise(error);
+// Use `raise_syserr` the macro instead, as it provides additional argument checks.
+void private_raise_syserr(VALUE native_exception_class, const char *fmt, ...) {
+  FORMAT_VA_ERROR_MESSAGE(formatted_msg, fmt);
+  VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
+  private_raise_native_error(exception, formatted_msg, fmt);
 }
 
 typedef struct {

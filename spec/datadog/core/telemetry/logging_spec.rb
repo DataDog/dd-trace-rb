@@ -122,7 +122,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         end
       end
     end
-    context 'with NativeError' do
+    context 'with telemetry_message instance variable' do
       it 'includes the telemetry-safe message in telemetry' do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
