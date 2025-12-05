@@ -7,6 +7,11 @@
 #define DDTRACE_UNUSED  __attribute__((unused))
 #endif
 
+// The ID value of the string "mesg" which is used in Ruby source as
+// id_mesg or idMesg, and is used to set and retrieve the exception message
+// from standard library exception classes like NameError.
+static ID id_mesg;
+
 struct ddtrace_di_os_each_struct {
   VALUE array;
 };
@@ -87,7 +92,32 @@ static VALUE all_iseqs(DDTRACE_UNUSED VALUE _self) {
   return oes.array;
 }
 
+/*
+ * call-seq:
+ *   DI.exception_message(exception) -> String | Object
+ *
+ * Returns the exception message associated with the exception via the
+ * exception's constructor.
+ *
+ * This method does not invoke Ruby code and as such will not call
+ * the +message+ method, if one is defined on the exception object.
+ *
+ * Normally, the exception message is a string, however there is no
+ * type enforcement done by Ruby for the messages and objects of arbitrary
+ * classes can be passed to exception constructors and will, subsequently,
+ * be returned by this method.
+ *
+ * @param exception [Exception] The exception object
+ * @return [String | Object] The exception message
+ */
+static VALUE exception_message(DDTRACE_UNUSED VALUE _self, VALUE exception) {
+  return rb_ivar_get(exception, id_mesg);
+}
+
 void di_init(VALUE datadog_module) {
+  id_mesg = rb_intern("mesg");
+  
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
+  rb_define_singleton_method(di_module, "exception_message", exception_message, 1);
 }
