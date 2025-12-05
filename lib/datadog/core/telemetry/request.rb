@@ -24,7 +24,6 @@ module Datadog
               seq_id: seq_id,
               tracer_time: Core::Utils::Time.now.to_i,
             }
-            tag_process_tags!(hash)
             hash.compact!
             hash
           end
@@ -45,7 +44,7 @@ module Datadog
               tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}"
             end
 
-            {
+            app = {
               env: config.env,
               language_name: Core::Environment::Ext::LANG,
               language_version: Core::Environment::Ext::LANG_VERSION,
@@ -55,6 +54,10 @@ module Datadog
               service_version: config.version,
               tracer_version: tracer_version
             }
+
+            tag_process_tags!(app)
+
+            app
           end
 
           def host
@@ -67,13 +70,13 @@ module Datadog
             }
           end
 
-          def tag_process_tags!(hash)
+          def tag_process_tags!(app)
             return unless Datadog.configuration.experimental_propagate_process_tags_enabled
 
             process_tags = Core::Environment::Process.serialized
             return if process_tags.empty?
 
-            hash[:process_tags] = process_tags
+            app[:process_tags] = process_tags
           end
         end
       end

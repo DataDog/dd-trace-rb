@@ -307,6 +307,10 @@ RSpec.describe 'Telemetry integration tests' do
       end
 
       context 'when process tags propagation is enabled' do
+        let(:expected_application_hash) do
+          super().merge('process_tags' => String)
+        end
+
         it 'includes process tags in the payload when the process tags have values' do
           allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
 
@@ -315,23 +319,22 @@ RSpec.describe 'Telemetry integration tests' do
           expect(sent_payloads.length).to eq 2
 
           payload = sent_payloads[0]
-          expect(payload.fetch(:payload)).to include('process_tags' => String)
-          expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.workdir')
-          expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.basedir')
-          expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.type')
-          expect(payload.dig(:payload, 'process_tags')).to include('entrypoint.name')
-        end
+          expect(payload.fetch(:payload)).to match(
+            'api_version' => 'v2',
+            'application' => expected_application_hash,
+            'debug' => false,
+            'host' => expected_host_hash,
+            'payload' => Hash,
+            'request_type' => 'app-started',
+            'runtime_id' => String,
+            'seq_id' => Integer,
+            'tracer_time' => Integer,
+          )
 
-        it 'does not include process_tags when serialized value is empty' do
-          allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
-          allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return('')
-
-          component.start(false, components: Datadog.send(:components))
-          component.flush
-          expect(sent_payloads.length).to eq 2
-
-          payload = sent_payloads[0]
-          expect(payload.fetch(:payload)).not_to have_key('process_tags')
+          expect(payload.dig(:payload, 'application', 'process_tags')).to include('entrypoint.workdir')
+          expect(payload.dig(:payload, 'application', 'process_tags')).to include('entrypoint.basedir')
+          expect(payload.dig(:payload, 'application', 'process_tags')).to include('entrypoint.type')
+          expect(payload.dig(:payload, 'application', 'process_tags')).to include('entrypoint.name')
         end
       end
 
@@ -344,7 +347,7 @@ RSpec.describe 'Telemetry integration tests' do
           expect(sent_payloads.length).to eq 2
 
           payload = sent_payloads[0]
-          expect(payload.fetch(:payload)).not_to have_key('process_tags')
+          expect(payload.dig(:payload, 'application')).not_to have_key('process_tags')
         end
       end
     end

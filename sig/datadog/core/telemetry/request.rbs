@@ -8,7 +8,7 @@ module Datadog
 
         def self.application: -> ::Hash[Symbol, untyped]
         def self.host: -> ::Hash[Symbol, untyped]
-        def self.tag_process_tags!: (Hash[Symbol, untyped] hash) -> void
+        def self.tag_process_tags!: (Hash[Symbol, untyped] app) -> void
       end
     end
   end
