@@ -600,10 +600,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, siginfo_t *info /
     return;
   }
 
-  if (info && info->si_value.sival_int == 1234) {
-    fprintf(stderr, "Got a SIGPROF from the CPU Profiling 3.0 timer\n");
-    return;
-  }
+  bool is_cpu_profiling_v3_signal = info && info->si_value.sival_int == 1234;
 
   // We assume there can be no concurrent nor nested calls to handle_sampling_signal because
   // a) we get triggered using SIGPROF, and the docs state a second SIGPROF will not interrupt an existing one (see sigaction docs on sa_mask)
@@ -615,6 +612,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, siginfo_t *info /
   bool sample_from_signal_handler =
     state->sighandler_sampling_enabled &&
     // Don't sample if we're already in the middle of processing a sample
+    is_cpu_profiling_v3_signal && // TODO: IMPORTANT -- THIS BREAKS SAMPLING FROM SIGNAL HANDLER FOR CPU PROFILING 2.0
     !state->during_sample;
 
   if (sample_from_signal_handler) {
@@ -623,6 +621,16 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, siginfo_t *info /
     bool prepared = thread_context_collector_prepare_sample_inside_signal_handler(state->thread_context_collector_instance);
 
     if (prepared) state->stats.signal_handler_prepared_sample++;
+  }
+
+  if (state->during_sample && is_cpu_profiling_v3_signal) {
+    // TODO: Think a bit more about this
+    fprintf(stderr, "Got cpu profiling v3 signal during sample -- this is not expected?\n");
+  }
+
+  if (is_cpu_profiling_v3_signal) {
+    // Flushing of cpu profiling v3 samples is "handled" by wall samples, we don't immediately trigger a sample
+    return;
   }
 
   #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
