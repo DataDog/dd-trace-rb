@@ -16,6 +16,7 @@ typedef struct {
   // Whenever we disarm the timer, we keep here "how far we were from the next sample". This makes sure that we correctly account for
   // CPU time spent across a disarm/arm cycle (otherwise if we started always from the interval we'd be throwing CPU time away)
   struct timespec last_suspend_leftover_time;
+  bool is_armed; // TODO: valid/failed/is_armed smells of state machine. Do we want to make it a bit more explicit?
 } per_thread_cpu_timer_state;
 
 static __thread per_thread_cpu_timer_state current_thread_timer;
@@ -50,8 +51,10 @@ static void initialize_current_thread_cpu_timer(void) {
     // Fully reinitialize the state, to make sure there's no leftover counters
     current_thread_timer = (per_thread_cpu_timer_state) {
       .valid = true,
+      .failed = false,
       .timer = new_timer,
       .last_suspend_leftover_time = CPU_TIMER_DEFAULT_INTERVAL,
+      .is_armed = false,
     };
   } else {
     current_thread_timer.failed = true;
@@ -67,6 +70,12 @@ void cpu_profiling_v3_on_resume(void) {
     if (!current_thread_timer.valid) return;
   }
 
+  if (current_thread_timer.is_armed) {
+    // TODO: Think a bit more about what to do here
+    fprintf(stderr, "CPU timer on thread %d was already armed\n", gettid());
+    return;
+  }
+
   // Let's arm the timer
   struct itimerspec timer_config = {
     .it_interval = CPU_TIMER_DEFAULT_INTERVAL,
@@ -76,11 +85,22 @@ void cpu_profiling_v3_on_resume(void) {
   if (error != 0) {
     // TODO: Better logging
     fprintf(stderr, "Failure to set CPU timer on thread %d %s:%d:in `%s': %s\n",  gettid(), __FILE__, __LINE__, __func__, strerror(errno));
+  } else {
+    current_thread_timer.is_armed = true;
   }
 }
 
 void cpu_profiling_v3_on_suspend(void) {
   if (!current_thread_timer.valid) return;
+
+  if (!current_thread_timer.is_armed) {
+    // TODO: I suspect this can actually happen sometimes -- I left a comment on gvl-tracing that indicated multiple
+    // suspends can show up for a Ruby thread in a row, and we're calling this code based also on SUSPEND.
+    // (TODO: We could make it an error based on some argument -- have the caller tell us if it's ok to double-suspend or not,
+    // since we know for which callers this would be expected to happen or not)
+    fprintf(stderr, "CPU timer on thread %d was not armed\n", gettid());
+    return;
+  }
 
   // Let's disarm the timer
   struct itimerspec disable_timer = { 0 };
@@ -97,12 +117,10 @@ void cpu_profiling_v3_on_suspend(void) {
   }
 
   if (timer_state.it_interval.tv_sec == 0 && timer_state.it_interval.tv_nsec == 0) {
-    // TODO: I suspect this can actually happen sometimes -- I left a comment on gvl-tracing that indicated multiple
-    // suspends can show up for a Ruby thread in a row, and we're calling this code based also on SUSPEND.
-    // (TODO: We could make it an error based on some argument -- have the caller tell us if it's ok to double-suspend or not,
-    // since we know for which callers this would be expected to happen or not)
-    fprintf(stderr, "CPU timer on thread %d was disabled during suspension\n", gettid());
+    fprintf(stderr, "CPU timer on thread %d was disabled but is_armed was true\n", gettid());
   }
+
+  current_thread_timer.is_armed = false;
 }
 
 static void on_thread_exit_cleanup_timer(
