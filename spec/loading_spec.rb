@@ -64,9 +64,7 @@ RSpec.describe 'loading of products' do
       end
 
       it 'produces no output' do
-        out, status = Open3.capture2e('ruby', '-w', stdin_data: code)
-        raise("Test script failed with exit status #{status.exitstatus}:\n#{out}") unless status.success?
-        raise("Test script produced unexpected output: #{out}") unless out.empty?
+        run_ruby_code_and_verify_no_output(code)
       end
     end
   end
@@ -91,6 +89,10 @@ RSpec.describe 'load core only and configure library with no settings' do
   it 'configures successfully' do
     rv = system("ruby -e #{Shellwords.shellescape(code)}")
     expect(rv).to be true
+  end
+
+  it 'produces no output' do
+    run_ruby_code_and_verify_no_output(code)
   end
 end
 
