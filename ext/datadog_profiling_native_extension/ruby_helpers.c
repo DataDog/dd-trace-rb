@@ -40,33 +40,33 @@ void ruby_helpers_init(void) {
 // Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
 // NOTE: Raising the exception acquires the GVL (unsafe), but it also aborts the current execution flow.
 // @see debug_enter_unsafe_context
-void private_raise_formatted(VALUE exception, const char *detailed_message, const char *static_message) {
+void private_raise_exception(VALUE exception, const char *detailed_message, const char *static_message) {
   rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
   rb_exc_raise(exception);
 }
 
+// Internal helper for raising pre-formatted exceptions
+static NORETURN(void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message)) {
+  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
+  private_raise_exception(exception, detailed_message, static_message);
+}
+
+// Internal helper for raising pre-formatted syserr exceptions
+static NORETURN(void private_raise_syserr_formatted(int syserr_errno, const char *detailed_message, const char *static_message)) {
+  VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
+  private_raise_exception(exception, detailed_message, static_message);
+}
+
 // Use `raise_error` the macro instead, as it provides additional argument checks.
-void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
+void private_raise_error(VALUE exception_class, const char *fmt, ...) {
   FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
-  private_raise_error_formatted(native_exception_class, detailed_message, fmt);
+  private_raise_error_formatted(exception_class, detailed_message, fmt);
 }
 
 // Use `raise_syserr` the macro instead, as it provides additional argument checks.
 void private_raise_syserr(int syserr_errno, const char *fmt, ...) {
   FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
   private_raise_syserr_formatted(syserr_errno, detailed_message, fmt);
-}
-
-// Internal helper for raising pre-formatted exceptions
-static NORETURN(void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message)) {
-  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
-  private_raise_formatted(exception, detailed_message, static_message);
-}
-
-// Internal helper for raising pre-formatted syserr exceptions
-static NORETURN(void private_raise_syserr_formatted(int syserr_errno, const char *detailed_message, const char *static_message)) {
-  VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
-  private_raise_formatted(exception, detailed_message, static_message);
 }
 
 typedef struct {
@@ -96,14 +96,14 @@ static void *trigger_raise(void *raise_arguments) {
   return NULL;
 }
 
-void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, const char *format_string, ...) {
+void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const char *format_string, ...) {
   raise_args args;
 
   if (syserr_errno != 0) {
     args.exception_class = Qnil;
     args.syserr_errno = syserr_errno;
   } else {
-    args.exception_class = native_exception_class;
+    args.exception_class = exception_class;
     args.syserr_errno = 0;
   }
 
@@ -127,7 +127,7 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, 
       args.exception_message
     );
     VALUE exception = rb_exc_new_cstr(rb_eRuntimeError, exception_message);
-    private_raise_formatted(exception, exception_message, telemetry_message);
+    private_raise_exception(exception, exception_message, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);

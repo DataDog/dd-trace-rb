@@ -296,5 +296,6 @@ static VALUE _native_raise_native_error_with_invalid_class(DDTRACE_UNUSED VALUE 
   ENFORCE_TYPE(message, T_STRING);
   ENFORCE_TYPE(telemetry_message, T_STRING);
 
-  private_raise_native_error(invalid_exception_class, StringValueCStr(message), StringValueCStr(telemetry_message));
+  VALUE exception = rb_exc_new_cstr(invalid_exception_class, StringValueCStr(message));
+  private_raise_exception(exception, StringValueCStr(message), StringValueCStr(telemetry_message));
 }
