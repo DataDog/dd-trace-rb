@@ -49,6 +49,7 @@ RSpec.describe Datadog::Tracing::Contrib do
     'shoryuken' => 'Shoryuken',
     'sidekiq' => 'Sidekiq',
     'sinatra' => 'Sinatra',
+    'view_component' => 'ViewComponent',
     'sneakers' => 'Sneakers',
     'stripe' => 'Stripe',
     'sucker_punch' => 'SuckerPunch',
