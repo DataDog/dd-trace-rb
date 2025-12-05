@@ -3,7 +3,6 @@
 require_relative 'core/deprecations'
 require_relative 'core/configuration/config_helper'
 require_relative 'core/extensions'
-require_relative 'core/native/error'
 
 # We must load core extensions to make certain global APIs
 # accessible: both for Datadog features and the core itself.

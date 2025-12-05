@@ -285,11 +285,11 @@ void sample_thread(
   // here, but >= 0 makes this easier to understand/debug.
   bool only_wall_time = cpu_or_wall_sample && values.cpu_time_ns == 0 && values.wall_time_ns >= 0;
 
-  if (cpu_or_wall_sample && state_label == NULL) raise_error(eDatadogRuntimeError, "BUG: Unexpected missing state_label");
+  if (cpu_or_wall_sample && state_label == NULL) raise_error(rb_eRuntimeError, "BUG: Unexpected missing state_label");
 
   if (has_cpu_time) {
     state_label->str = DDOG_CHARSLICE_C("had cpu");
-    if (labels.is_gvl_waiting_state) raise_error(eDatadogRuntimeError, "BUG: Unexpected combination of cpu-time with is_gvl_waiting");
+    if (labels.is_gvl_waiting_state) raise_error(rb_eRuntimeError, "BUG: Unexpected combination of cpu-time with is_gvl_waiting");
   }
 
   int top_of_stack_position = captured_frames - 1;
@@ -601,8 +601,8 @@ bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
 }
 
 uint16_t sampling_buffer_check_max_frames(int max_frames) {
-  if (max_frames < 5) raise_error(eDatadogArgumentError, "Invalid max_frames: value must be >= 5");
-  if (max_frames > MAX_FRAMES_LIMIT) raise_error(eDatadogArgumentError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
+  if (max_frames < 5) raise_error(rb_eArgError, "Invalid max_frames: value must be >= 5");
+  if (max_frames > MAX_FRAMES_LIMIT) raise_error(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
   return max_frames;
 }
 
@@ -619,7 +619,7 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, dd
 
 void sampling_buffer_free(sampling_buffer *buffer) {
   if (buffer->max_frames == 0 || buffer->locations == NULL || buffer->stack_buffer == NULL) {
-    raise_error(eDatadogArgumentError, "sampling_buffer_free called with invalid buffer");
+    raise_error(rb_eArgError, "sampling_buffer_free called with invalid buffer");
   }
 
   ruby_xfree(buffer->stack_buffer);

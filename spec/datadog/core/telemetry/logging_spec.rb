@@ -126,13 +126,13 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
       it 'includes the telemetry-safe message in telemetry' do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
-            logs: [{message: 'Datadog::Core::Native::RuntimeError: (Static message)', level: 'ERROR', count: 1,
+            logs: [{message: 'RuntimeError: (Static message)', level: 'ERROR', count: 1,
                     stack_trace: a_string_including('REDACTED')}]
           )
           expect(event.payload[:logs].map { |log| log[:message] }).not_to include('Dynamic message')
         end
         begin
-          error = Datadog::Core::Native::RuntimeError.new('Dynamic message')
+          error = ::RuntimeError.new('Dynamic message')
           error.instance_variable_set(:@telemetry_message, 'Static message')
           raise error
         rescue => e
@@ -143,13 +143,13 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         it 'includes both description and telemetry message' do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
-              logs: [{message: 'Datadog::Core::Native::RuntimeError: Static description (Static message)', level: 'ERROR', count: 1,
+              logs: [{message: 'RuntimeError: Static description (Static message)', level: 'ERROR', count: 1,
                       stack_trace: a_string_including('REDACTED')}]
             )
             expect(event.payload[:logs].map { |log| log[:message] }).not_to include('Dynamic message')
           end
           begin
-            error = Datadog::Core::Native::RuntimeError.new('Dynamic message')
+            error = ::RuntimeError.new('Dynamic message')
             error.instance_variable_set(:@telemetry_message, 'Static message')
             raise error
           rescue => e
@@ -161,13 +161,13 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         it 'omits the dynamic exception message from telemetry' do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
-              logs: [{message: 'Datadog::Core::Native::RuntimeError', level: 'ERROR', count: 1,
+              logs: [{message: 'RuntimeError', level: 'ERROR', count: 1,
                       stack_trace: a_string_including('REDACTED')}]
             )
             expect(event.payload[:logs].map { |log| log[:message] }).not_to include('Dynamic message')
           end
           begin
-            raise Datadog::Core::Native::RuntimeError, 'Dynamic message'
+            raise 'Dynamic message'
           rescue => e
             component.report(e, level: :error)
           end
@@ -178,13 +178,13 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         it 'includes the description but not the dynamic exception message' do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
-              logs: [{message: 'Datadog::Core::Native::RuntimeError: Static description', level: 'ERROR', count: 1,
+              logs: [{message: 'RuntimeError: Static description', level: 'ERROR', count: 1,
                       stack_trace: a_string_including('REDACTED')}]
             )
             expect(event.payload[:logs].map { |log| log[:message] }).not_to include(/memory address/)
           end
           begin
-            raise Datadog::Core::Native::RuntimeError, 'Dynamic message'
+            raise 'Dynamic message'
           rescue => e
             component.report(e, level: :error, description: 'Static description')
           end

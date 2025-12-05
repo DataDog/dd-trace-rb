@@ -72,7 +72,7 @@ uint8_t gc_profiling_set_metadata(ddog_prof_Label *labels, int labels_length) {
     1;  // gc type
 
   if (max_label_count > labels_length) {
-    raise_error(eDatadogArgumentError, "BUG: gc_profiling_set_metadata invalid labels_length (%d) < max_label_count (%d)", labels_length, max_label_count);
+    raise_error(rb_eArgError, "BUG: gc_profiling_set_metadata invalid labels_length (%d) < max_label_count (%d)", labels_length, max_label_count);
   }
 
   uint8_t label_pos = 0;
@@ -120,7 +120,7 @@ uint8_t gc_profiling_set_metadata(ddog_prof_Label *labels, int labels_length) {
   };
 
   if (label_pos > max_label_count) {
-    raise_error(eDatadogRuntimeError, "BUG: gc_profiling_set_metadata unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
+    raise_error(rb_eRuntimeError, "BUG: gc_profiling_set_metadata unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
 
   return label_pos;

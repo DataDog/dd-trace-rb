@@ -358,7 +358,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         it do
           expect {
             sample_and_decode(background_thread, :labels, is_gvl_waiting_state: true)
-          }.to raise_error(Datadog::Core::Native::RuntimeError, /BUG: .* is_gvl_waiting/)
+          }.to raise_error(::RuntimeError, /BUG: .* is_gvl_waiting/)
         end
       end
 
@@ -394,7 +394,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           let(:metric_values) { {"cpu-samples" => 1} }
 
           it "raises an exception" do
-            expect { gathered_stack }.to raise_error(Datadog::Core::Native::RuntimeError, /BUG: Unexpected missing state_label/)
+            expect { gathered_stack }.to raise_error(::RuntimeError, /BUG: Unexpected missing state_label/)
           end
         end
 
