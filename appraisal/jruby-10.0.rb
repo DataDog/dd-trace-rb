@@ -158,6 +158,15 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
   end
 end
 
+['3.23.2', '4'].each do |v|
+  appraise "view_component-#{v}" do
+    gem 'view_component', "~> #{v}"
+    gem 'actionview'
+    gem 'rails'
+    gem 'pg'
+  end
+end
+
 appraise 'contrib-old' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
