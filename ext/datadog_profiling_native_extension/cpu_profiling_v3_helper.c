@@ -126,7 +126,18 @@ void cpu_profiling_v3_on_suspend(VALUE current_thread) {
     fprintf(stderr, "CPU timer on thread %d was disabled but is_armed was true\n", gettid());
   }
 
-  rb_internal_thread_specific_set(current_thread, cpu_time_at_suspend_key, (void *) 1); // TODO
+  struct timespec current_cpu;
+  error = clock_gettime(CLOCK_THREAD_CPUTIME_ID, &current_cpu);
+
+  if (error != 0) {
+    // TODO: Better logging
+    fprintf(stderr, "Failure to get current CPU time on thread %d %s:%d:in `%s': %s\n",  gettid(), __FILE__, __LINE__, __func__, strerror(errno));
+    return;
+  }
+
+  long current_cpu_time_ns = current_cpu.tv_nsec + SECONDS_AS_NS(current_cpu.tv_sec);
+
+  rb_internal_thread_specific_set(current_thread, cpu_time_at_suspend_key, (void *) current_cpu_time_ns);
 
   current_thread_timer.is_armed = false;
 }
