@@ -8,29 +8,29 @@ module Datadog
   module AIGuard
     # API Client for AI Guard API
     class APIClient
+      DEFAULT_SITE = 'app.datadoghq.com'
+
       def initialize(endpoint:, api_key:, application_key:, timeout:)
         @api_key = api_key
         @application_key = application_key
         @timeout = timeout
+        @site = Datadog.configuration.site || DEFAULT_SITE
         @endpoint = endpoint
-
-        endpoint_uri = URI.parse(@endpoint)
-        @http = Net::HTTP.new(endpoint_uri.host, endpoint_uri.port)
-        @http.use_ssl = true
       end
 
       def post(path:, request_body:)
-        uri = URI.parse(@endpoint)
-        uri.path += path
+        uri = URI::HTTPS.build(host: @site, path: @endpoint + path)
 
-        request = Net::HTTP::Post.new(uri.request_uri, headers)
-        request.body = request_body.to_json
+        Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+          request = Net::HTTP::Post.new(uri.request_uri, headers)
+          request.body = request_body.to_json
 
-        # TODO: handle http errors
-        response = @http.request(request)
+          # TODO: handle http errors?
+          response = http.request(request)
 
-        # TODO: handle json parsing errors
-        JSON.parse(response.body)
+          # TODO: handle JSON parsing errors?
+          JSON.parse(response.body)
+        end
       end
 
       private

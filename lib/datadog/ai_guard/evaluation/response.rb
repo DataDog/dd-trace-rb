@@ -17,9 +17,9 @@ module Datadog
           @action = attributes.fetch('action')
           @reason = attributes.fetch('reason')
           @tags = attributes.fetch('tags')
-
+        rescue KeyError => e
+          raise InvalidResponseError, "Missing key: \"#{e.key}\""
         end
-        # TODO: handle missing key errors
 
         def allow?
           action == ALLOW_ACTION

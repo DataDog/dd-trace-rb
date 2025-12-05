@@ -29,14 +29,18 @@ module Datadog
                 o.default true
               end
 
-              # AI Guard API endpoint URL.
+              # AI Guard API endpoint path.
               #
-              # @default `DD_AI_GUARD_ENDPOINT`, otherwise app.datadoghq.com/api/v2/ai-guard
+              # @default `DD_AI_GUARD_ENDPOINT`, otherwise /api/v2/ai-guard
               # @return [String, nil]
               option :endpoint do |o|
                 o.type :string, nilable: true
                 o.env Ext::ENV_AI_GUARD_ENDPOINT
-                o.default "https://app.datadoghq.com/api/v2/ai-guard"
+                o.default "/api/v2/ai-guard"
+
+                o.setter do |value|
+                  value.delete_suffix('/')
+                end
               end
 
               # Request timeout in milliseconds.

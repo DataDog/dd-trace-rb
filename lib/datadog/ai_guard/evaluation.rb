@@ -6,11 +6,25 @@ module Datadog
     class Evaluation
       class AIGuardAbortError < StandardError
         def initialize(reason)
+          super()
+
           @reason = reason
         end
 
         def to_s
           "Request aborted. #{@reason}"
+        end
+      end
+
+      class InvalidResponseError < StandardError
+        def initialize(details)
+          super()
+
+          @details = details
+        end
+
+        def to_s
+          "Invalid AI Guard API response. #{@details}"
         end
       end
 

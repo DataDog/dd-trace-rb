@@ -17,7 +17,6 @@ module Datadog
       def self.build(settings, logger:, telemetry:)
         return unless settings.respond_to?(:ai_guard) && settings.ai_guard.enabled
 
-        # TODO: validate settings
         api_client = APIClient.new(
           endpoint: settings.ai_guard.endpoint,
           api_key: settings.api_key,

@@ -53,24 +53,29 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
           ClimateControl.modify('DD_AI_GUARD_ENDPOINT' => nil) { example.run }
         end
 
-        it { expect(settings.ai_guard.endpoint).to eq('https://app.datadoghq.com/api/v2/ai-guard') }
+        it { expect(settings.ai_guard.endpoint).to eq('/api/v2/ai-guard') }
       end
 
       context 'when DD_AI_GUARD_ENDPOINT is defined' do
         around do |example|
-          ClimateControl.modify('DD_AI_GUARD_ENDPOINT' => 'https://app.datad0g.com/api/v2/ai-guard') do
+          ClimateControl.modify('DD_AI_GUARD_ENDPOINT' => '/api/v2/ai-guard') do
             example.run
           end
         end
 
-        it { expect(settings.ai_guard.endpoint).to eq('https://app.datad0g.com/api/v2/ai-guard') }
+        it { expect(settings.ai_guard.endpoint).to eq('/api/v2/ai-guard') }
       end
     end
 
     describe '#endpoint=' do
       it 'changes endpoint value' do
-        expect { settings.ai_guard.endpoint = 'https://app.datadoghq.com/path/to/ai-guard' }
-          .to change { settings.ai_guard.endpoint }.to('https://app.datadoghq.com/path/to/ai-guard')
+        expect { settings.ai_guard.endpoint = '/path/to/ai-guard' }
+          .to change { settings.ai_guard.endpoint }.to('/path/to/ai-guard')
+      end
+
+      it 'removes "/" suffix' do
+        expect { settings.ai_guard.endpoint = '/path/to/ai-guard/' }
+          .to change { settings.ai_guard.endpoint }.to('/path/to/ai-guard')
       end
     end
 
