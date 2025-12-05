@@ -76,9 +76,6 @@
     "DD_APPSEC_WAF_TIMEOUT": {
       "version": ["A"]
     },
-    "DD_CRASHTRACKING_EMIT_RUNTIME_STACKS": {
-      "version": ["A"]
-    },
     "DD_CRASHTRACKING_ENABLED": {
       "version": ["A"]
     },

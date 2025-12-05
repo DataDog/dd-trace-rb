@@ -395,6 +395,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             )
           )
 
+          puts frames.to_json
+
           # Sanity check some frames
           expect(frames).to include(
             hash_including(
