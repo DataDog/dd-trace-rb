@@ -16,6 +16,11 @@ typedef struct {
 
 static __thread per_thread_cpu_timer current_thread_timer;
 
+// TODO: According to the https://manpages.opensuse.org/Tumbleweed/man-pages/timer_create.2.en.html manpage, the first argument to
+// `timer_create` "can be specified as the clockid returned by a call to clock_getcpuclockid(3) or pthread_getcpuclockid(3)".
+//
+// This means that we don't necessarily need to create the timer on the thread it refers to... Which may lead to some code
+// simplifications. To be explored later?
 static void initialize_current_thread_cpu_timer(void) {
   struct sigevent config = {
     .sigev_notify = SIGEV_THREAD_ID,
