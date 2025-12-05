@@ -4,9 +4,9 @@ module Datadog
       include Metadata::Tagging
 
       DEFAULT_MAX_LENGTH: ::Integer
-      
+
       @logger: Core::Logger
-      
+
       attr_reader logger: Core::Logger
 
       attr_accessor agent_sample_rate: untyped
@@ -17,17 +17,23 @@ module Datadog
       attr_accessor sample_rate: untyped
       attr_accessor remote_parent: untyped
       attr_accessor sampling_priority: untyped
+      attr_accessor baggage: untyped
       attr_reader active_span_count: untyped
       attr_reader active_span: untyped
       attr_reader id: untyped
       attr_reader max_length: untyped
       attr_reader parent_span_id: untyped
+      attr_reader trace_state: untyped
+      attr_reader trace_state_unknown_fields: untyped
       attr_writer name: untyped
       attr_writer resource: untyped
       attr_writer sampled: untyped
       attr_writer service: untyped
 
-      def initialize: (?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?profiling_enabled: untyped?, ?apm_tracing_enabled: untyped?, ?tags: untyped?, ?metrics: untyped?, ?remote_parent: untyped?) -> void
+      def initialize: (?logger: untyped, ?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?profiling_enabled: untyped?, ?apm_tracing_enabled: untyped?, ?tags: untyped?, ?metrics: untyped?, ?trace_state: untyped?, ?trace_state_unknown_fields: untyped?, ?remote_parent: untyped?, ?tracer: untyped?, ?baggage: untyped?, ?auto_finish: bool) -> void
+
+      def finish!: -> void
+
       def full?: () -> untyped
       def finished_span_count: () -> untyped
       def finished?: () -> untyped

@@ -824,6 +824,24 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(tracer.active_trace).to be original_trace
         end
+
+        it 'create a root span inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span).to be_root_span
+        end
+
+        it 'create multiple root spans inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
+          end
+
+          expect(spans).to have(2).items
+          expect(spans).to all(be_root_span)
+        end
       end
     end
 
@@ -866,6 +884,24 @@ RSpec.describe Datadog::Tracing::Tracer do
           end
 
           expect(tracer.active_trace).to be original_trace
+        end
+
+        it 'create a root span inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span).to be_root_span
+        end
+
+        it 'create two root spans inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
+          end
+
+          expect(spans).to have(2).items
+          expect(spans).to all(be_root_span)
         end
       end
     end
@@ -945,6 +981,47 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(tracer.active_trace).to be original_trace
         end
+
+        it 'create a child span inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+          end
+
+          expect(span.parent_id).to eq(digest.span_id)
+        end
+
+        it 'create multiple child spans inside the block' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('span-1') {}
+            tracer.trace('span-2') {}
+          end
+
+          expect(spans).to have(2).items
+          expect(spans.map(&:parent_id)).to all(eq(digest.span_id))
+        end
+
+        it 'flushes finished spans and loses unfinished spans' do
+          tracer.continue_trace!(digest) do
+            tracer.trace('finished-span') {}
+            tracer.trace('unfinished-span')
+          end
+
+          expect(spans).to have(1).item
+          expect(span.name).to eq('finished-span')
+        end
+
+        it 'flushes finished span when an error occurs in the block' do
+          expect do
+            tracer.continue_trace!(digest) do
+              tracer.trace('finished-span') {}
+              raise 'test error'
+            end
+          end.to raise_error('test error')
+
+          expect(spans).to have(1).item
+          expect(span.name).to eq('finished-span')
+          expect(span.parent_id).to eq(digest.span_id)
+        end
       end
     end
 
@@ -953,18 +1030,57 @@ RSpec.describe Datadog::Tracing::Tracer do
 
       before { continue_trace! }
 
-      it 'starts a new trace' do
-        tracer.trace('operation') do |span, trace|
-          expect(trace).to have_attributes(
-            origin: nil,
-            sampling_priority: nil
-          )
+      context 'starts a new trace' do
+        context 'and a block raising an error handling' do
+          it 'flushes trace and restore context' do
+            original_trace = tracer.active_trace
 
-          expect(span).to have_attributes(
-            parent_id: 0,
-            id: a_kind_of(Integer),
-            trace_id: a_kind_of(Integer)
-          )
+            expect do
+              tracer.continue_trace!(digest) do
+                tracer.trace('span-1') {} # This span finishes
+                raise StandardError, 'test error'
+              end
+            end.to raise_error(StandardError, 'test error')
+
+            expect(spans).to have(1).item
+            expect(span.name).to eq('span-1')
+            expect(tracer.active_trace).to be original_trace
+          end
+        end
+
+        context 'and a block with flush conditions' do
+          it 'flushes trace only when finished_span_count > 0' do
+            tracer.continue_trace!(digest) do
+              tracer.trace('span-1') {} # This completes
+            end
+
+            expect(spans).to have(1).item
+            expect(span.name).to eq('span-1')
+          end
+
+          it 'does not flush trace when finished_span_count is 0' do
+            tracer.continue_trace!(digest) do
+              span_op = tracer.trace('span-1')
+              span_op.start
+              # Don't finish the span, so finished_span_count remains 0
+            end
+
+            # No spans should be flushed
+            expect(spans).to be_empty
+          end
+
+          it 'flushes multiple finished spans' do
+            tracer.continue_trace!(digest) do
+              tracer.trace('span-1') {}
+              tracer.trace('span-2') {}
+              span_op = tracer.trace('span-3')
+              span_op.start # Start but don't finish this one
+            end
+
+            # Only the finished spans should be flushed
+            expect(spans).to have(2).items
+            expect(spans.map(&:name)).to contain_exactly('span-1', 'span-2')
+          end
         end
       end
     end
