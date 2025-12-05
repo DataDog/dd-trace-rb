@@ -5,34 +5,32 @@ module Datadog
     class Evaluation
       # Wrapper class for evaluation API response
       class Response
-        ACTIONS = {
-          "ALLOW" => :allow,
-          "DENY" => :deny,
-          "ABORT" => :abort
-        }.freeze
+        ALLOW_ACTION = 'ALLOW'
+        DENY_ACTION = 'DENY'
+        ABORT_ACTION = 'ABORT'
 
         attr_reader :action, :reason, :tags
 
         def initialize(raw_response)
           attributes = raw_response.fetch('data').fetch('attributes')
 
-          @action = ACTIONS.fetch(attributes.fetch('action'))
+          @action = attributes.fetch('action')
           @reason = attributes.fetch('reason')
           @tags = attributes.fetch('tags')
 
-          # TODO: handle missing key errors or unknown actions
         end
+        # TODO: handle missing key errors
 
         def allow?
-          action == :allow
+          action == ALLOW_ACTION
         end
 
         def deny?
-          action == :deny
+          action == DENY_ACTION
         end
 
         def abort?
-          action == :abort
+          action == ABORT_ACTION
         end
       end
     end

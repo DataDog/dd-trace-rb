@@ -6,6 +6,7 @@ require_relative 'evaluation/request'
 require_relative 'evaluation/response'
 require_relative 'evaluation/message'
 require_relative 'evaluation/tool_call'
+require_relative 'ext'
 
 module Datadog
   module AIGuard

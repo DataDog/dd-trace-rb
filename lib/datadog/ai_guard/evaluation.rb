@@ -19,12 +19,34 @@ module Datadog
       end
 
       def perform(allow_raise: false)
-        response = Request.new(@messages).perform
+        Tracing.trace(Ext::SPAN_NAME) do |span, trace|
+          if (last_message = @messages.last)
+            if last_message.role == :tool
+              span.set_tag(Ext::TARGET_TAG, 'tool')
+              span.set_tag(Ext::TOOL_NAME_TAG, last_message.tool_call.tool_name)
+            else
+              span.set_tag(Ext::TARGET_TAG, 'prompt')
+            end
+          end
 
-        # TODO: add option to either do nothing, or block using appsec rack middleware, or raise
-        raise Evaluation::AIGuardAbortError, response.reason if allow_raise && (response.deny? || response.abort?)
+          request = Request.new(@messages)
+          response = request.perform
 
-        response
+          span.set_tag(Ext::ACTION_TAG, response.action)
+          span.set_tag(Ext::REASON_TAG, response.reason) unless response.allow?
+
+          span.set_metastruct_tag(
+            Ext::METASTRUCT_TAG,
+            {messages: request.serialized_messages, attack_categories: response.tags}
+          )
+
+          if allow_raise && (response.deny? || response.abort?)
+            span.set_tag(Ext::BLOCKED_TAG, true)
+            raise Evaluation::AIGuardAbortError, response.reason
+          end
+
+          response
+        end
       end
     end
   end

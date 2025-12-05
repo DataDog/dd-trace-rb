@@ -7,8 +7,10 @@ module Datadog
       class Request
         REQUEST_PATH = '/evaluate'
 
+        attr_reader :serialized_messages
+
         def initialize(messages)
-          @messages = messages
+          @serialized_messages = serialize_messages(messages)
         end
 
         def perform
@@ -23,7 +25,11 @@ module Datadog
           {
             data: {
               attributes: {
-                messages: serialize_messages(@messages)
+                messages: @serialized_messages,
+                meta: {
+                  service: Datadog.configuration.service,
+                  env: Datadog.configuration.env
+                }
               }
             }
           }
@@ -53,8 +59,10 @@ module Datadog
               tool_calls: [
                 {
                   id: message.tool_call.id,
-                  tool_name: message.tool_call.tool_name,
-                  arguments: message.tool_call.arguments
+                  function: {
+                    name: message.tool_call.tool_name,
+                    arguments: message.tool_call.arguments
+                  }
                 }
               ]
             }
