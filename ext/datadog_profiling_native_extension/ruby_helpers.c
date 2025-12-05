@@ -122,7 +122,7 @@ void private_grab_gvl_and_raise(VALUE native_exception_class, int syserr_errno, 
   rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
 }
 
-void raise_syserr(
+void raise_enforce_syserr(
   int syserr_errno,
   bool have_gvl,
   const char *expression,

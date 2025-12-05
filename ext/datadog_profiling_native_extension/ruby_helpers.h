@@ -86,7 +86,7 @@ NORETURN(
 #define RUBY_AVG_OR_NIL(total, count) ((count == 0) ? Qnil : DBL2NUM(((double) total) / count))
 
 // Called by ENFORCE_SUCCESS_HELPER; should not be used directly
-NORETURN(void raise_syserr(
+NORETURN(void raise_enforce_syserr(
   int syserr_errno,
   bool have_gvl,
   const char *expression,
