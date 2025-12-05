@@ -162,7 +162,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           expect(Datadog::Core::Crashtracking::RuntimeStacks).to receive(:_native_register_runtime_stack_callback).and_raise(error)
           expect(described_class).to receive(:_native_start_or_update_on_fork)
           allow(logger).to receive(:debug) # Allow other debug messages
-          expect(logger).to receive(:warn).with('Failed to register runtime stack callback: Callback registration failed')
+          expect(logger).to receive(:debug).with('Failed to register runtime stack callback: Callback registration failed')
 
           crashtracker.start
         end
@@ -394,6 +394,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
               function: 'free'
             )
           )
+
+          puts frames.to_json
 
           # Sanity check some frames
           expect(frames).to include(

@@ -93,23 +93,16 @@ module Datadog
         private
 
         def register_runtime_stack_callback
-          # Check if runtime_stacks extension loaded successfully
-          if Crashtracking::RUNTIME_STACKS_FAILURE
-            logger.debug("Skipping runtime stack callback registration: #{Crashtracking::RUNTIME_STACKS_FAILURE}")
-            return
-          end
-
-          unless Crashtracking.const_defined?(:RuntimeStacks, false)
-            logger.debug('Skipping runtime stack callback registration: Crashtracking::RuntimeStacks not defined')
-            return
-          end
+          return unless runtime_stacks_supported?
 
           # Even if runtime stacks callback registration fails, we shouldn't block crashtracker
           success = Crashtracking::RuntimeStacks._native_register_runtime_stack_callback
 
-          raise StandardError, 'Failed to register runtime stack callback: registration returned false' unless success
+          return if success
+
+          logger.debug('Failed to register runtime stack callback: registration returned false')
         rescue => e
-          logger.warn("Failed to register runtime stack callback: #{e.message}")
+          logger.debug("Failed to register runtime stack callback: #{e.message}")
         end
 
         attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger
@@ -127,6 +120,21 @@ module Datadog
           logger.debug("Crash tracking action: #{action} successful")
         rescue => e
           logger.error("Failed to #{action} crash tracking: #{e.message}")
+        end
+
+        def runtime_stacks_supported?
+          # Check if runtime_stacks extension loaded successfully
+          if (failure = Crashtracking::RUNTIME_STACKS_FAILURE)
+            logger.debug("Skipping runtime stack callback registration: #{failure}")
+            return false
+          end
+
+          unless Crashtracking.const_defined?(:RuntimeStacks, false)
+            logger.debug('Skipping runtime stack callback registration: Crashtracking::RuntimeStacks not defined')
+            return false
+          end
+
+          true
         end
       end
     end

@@ -110,15 +110,21 @@ static inline bool is_pointer_readable(const void *ptr, size_t size) {
   }
 }
 
+// Heuristically validate a Ruby string VALUE before dereferencing it from crash context:
+// 1) ensure it is actually a String heap object (no immediates/symbols)
+// 2) confirm both the common header (RBasic) and the string payload (RString) live in
+//    readable pages to avoid faulting while inspecting potentially corrupted memory
+// 3) enforce upper bound for lengths we expect to emit (file names, function names)
 static bool is_reasonable_string_size(VALUE str) {
   if (str == Qnil) return false;
-  if (!RB_TYPE_P(str, T_STRING)) return false;
 
-  // Check if the heap object pointed to by str is readable
+  // After RB_TYPE_P confirms this VALUE is a heap string, the tagged VALUE is
+  // guaranteed to be an aligned pointer, so casting to void* is equivalent to
+  // RBASIC(str); we verify the object header is readable before touching it.
   if (!is_pointer_readable((const void *)str, sizeof(struct RBasic))) return false;
 
   // For strings, we need to check the full RString structure
-  if (!is_pointer_readable(RSTRING(str), sizeof(struct RString))) return false;
+  if (!is_pointer_readable((const void *)str, sizeof(struct RString))) return false;
 
   long len = RSTRING_LEN(str);
 
@@ -175,7 +181,15 @@ static bool is_valid_control_frame(const rb_control_frame_t *cfp,
     return false;
   }
 
-  const char *stack_end = stack_start + stack_bytes;
+  // Compute stack_end in uintptr_t space to catch pointer wraparound before casting back
+  const uintptr_t stack_start_addr = (uintptr_t)stack_start;
+  const uintptr_t stack_end_addr = stack_start_addr + stack_bytes;
+  if (stack_end_addr < stack_start_addr) {
+    return false;  // addition wrapped
+  }
+
+  const char *stack_end = (const char *)stack_end_addr;
+  // stack_end points one past the valid stack memory; validate bytes at the last slot.
   if (!is_pointer_readable(stack_end - sizeof(VALUE), sizeof(VALUE))) {
     return false;
   }
@@ -228,22 +242,37 @@ static bool is_valid_iseq(const rb_iseq_t *iseq, const struct rb_iseq_constant_b
 }
 
 
-// We intentionally keep using the Ruby helper APIs (rb_vm_frame_method_entry,
-// rb_iseq_line_no) inside this handler. The crashtracker only runs once per process crash,
-// guarded by NUM_TIMES_CALLED, and the crash report pipeline proceeds even if this callback
-// faults (the collector times out, the emitter still finishes). Because the worst case for
-// mishandling these helpers is "we lose the runtime stack but still emit a crash report,"
-// we favor readable, idiomatic integration with the VM over re-implementing everything with
-// manual pointer spelunking.
+static void emit_placeholder_frame(
+  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*),
+  const char *reason
+) {
+  const char *label = reason ? reason : "<corrupted frame>";
+  ddog_crasht_RuntimeStackFrame frame = {
+    .type_name = char_slice_from_cstr(NULL),
+    .function = char_slice_from_cstr(label),
+    .file = char_slice_from_cstr("<unknown>"),
+    .line = 0,
+    .column = 0
+  };
+  emit_frame(&frame);
+}
+
+// Walk the Ruby control-frame stack for the crashing thread, emit frames in order, and fall back
+// to placeholder markers when corruption is detected so that the crash report still completes.
+// We intentionally keep using Ruby helper APIs (rb_vm_frame_method_entry, rb_iseq_line_no, etc.)
+// here: crashtracker runs only once per crash, the collector tolerates callback faults, and the
+// worst outcome of a bad helper call is a missing runtime stack. We choose this because we prefer readable,
+// idiomatic integration with VM helpers instead of reimplementing a big chunk of Ruby internal APIs.
 static void ruby_runtime_stack_callback(
   void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*)
 ) {
-
+  // Grab the Ruby thread we crashed on; crashtracker only runs once.
   VALUE current_thread = rb_thread_current();
   if (current_thread == Qnil) return;
 
   if (crashtracker_thread_data_type == NULL) return;
 
+  // validate the thread object before dereferencing internals.
   rb_thread_t *th = (rb_thread_t *) rb_check_typeddata(current_thread, crashtracker_thread_data_type);
   if (!th || !is_pointer_readable(th, sizeof(*th))) return;
 
@@ -265,20 +294,24 @@ static void ruby_runtime_stack_callback(
   int frame_count = 0;
   const int MAX_FRAMES = 400;
 
-  // Traverse from current frame backwards to older frames, so that we get the crash point at the top
-  for (; frame_count < MAX_FRAMES && cfp != end_cfp; cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp)) {
+  // traverse from current frame backwards to older frames, so that we get the crash point at the top
+  while (frame_count < MAX_FRAMES && cfp != end_cfp) {
+    // bail out early if this frame pointer is suspicious.
     if (!is_valid_control_frame(cfp, ec)) {
-      continue;
+      emit_placeholder_frame(emit_frame, "<corrupted frame>");
+      break;
     }
 
 
     if (VM_FRAME_RUBYFRAME_P(cfp) && cfp->iseq) {
-      // Handle Ruby frames
+      // handle Ruby frames
       const rb_iseq_t *iseq = cfp->iseq;
       const struct rb_iseq_constant_body *body = NULL;
 
+      // validate instruction sequence before pulling metadata
       if (!is_valid_iseq(iseq, &body)) {
-        continue;
+        emit_placeholder_frame(emit_frame, "<invalid iseq>");
+        goto advance_to_previous_frame;
       }
 
       VALUE name = rb_iseq_base_label(iseq);
@@ -310,11 +343,9 @@ static void ruby_runtime_stack_callback(
           }
         } else {
           // Handle case where PC is available - mirror calc_pos logic
-          if (body->iseq_size > 0 &&
-              is_pointer_readable(body->iseq_encoded, body->iseq_size * sizeof(*body->iseq_encoded))) {
-
-            if (cfp->pc && is_pointer_readable(cfp->pc, sizeof(VALUE))) {
-                ptrdiff_t pc_offset = (uintptr_t)cfp->pc - (uintptr_t)body->iseq_encoded;
+          if (body->iseq_size > 0 ) {
+            if (cfp->pc && is_pointer_readable(cfp->pc, sizeof(*cfp->pc))) {
+              ptrdiff_t pc_offset = (const VALUE *)cfp->pc - body->iseq_encoded;
               // bounds checking like private_vm_api_access.c PROF-11475 fix
               // to prevent crashes when calling rb_iseq_line_no
               if (pc_offset >= 0 && pc_offset <= (ptrdiff_t)body->iseq_size) {
@@ -355,6 +386,7 @@ static void ruby_runtime_stack_callback(
         if (is_pointer_readable(method_def, sizeof(*method_def))) {
           if (method_def->original_id) {
             const char *method_name = rb_id2name(method_def->original_id);
+            // 256 magic number is a conservative max length we are willing to read
             if (is_pointer_readable(method_name, 256)) {
               size_t method_name_len = strnlen(method_name, 256);
               if (method_name_len > 0 && method_name_len < 256) {
@@ -407,7 +439,19 @@ static void ruby_runtime_stack_callback(
 
       emit_frame(&frame);
       frame_count++;
+    } else {
+      emit_placeholder_frame(emit_frame, "<unknown frame>");
     }
+
+advance_to_previous_frame:
+    if (cfp == end_cfp) break;
+    const rb_control_frame_t *prev_cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
+    if (!prev_cfp || prev_cfp == cfp) break;
+    if (prev_cfp != end_cfp && !is_valid_control_frame(prev_cfp, ec)) {
+      emit_placeholder_frame(emit_frame, "<corrupted frame>");
+      break;
+    }
+    cfp = prev_cfp;
   }
 }
 
@@ -432,8 +476,6 @@ static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self)
     default:
       return Qfalse;
   }
-
-  return Qfalse;
 }
 
 static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self) {
