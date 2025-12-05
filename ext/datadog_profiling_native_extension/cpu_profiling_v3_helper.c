@@ -22,6 +22,12 @@ static __thread per_thread_cpu_timer_state current_thread_timer;
 
 static const struct timespec CPU_TIMER_DEFAULT_INTERVAL = {.tv_nsec = MILLIS_AS_NS(10)};
 
+static rb_internal_thread_specific_key_t cpu_time_at_suspend_key;
+
+void cpu_profiling_v3_init(void) {
+  cpu_time_at_suspend_key = rb_internal_thread_specific_key_create();
+}
+
 // TODO: According to the https://manpages.opensuse.org/Tumbleweed/man-pages/timer_create.2.en.html manpage, the first argument to
 // `timer_create` "can be specified as the clockid returned by a call to clock_getcpuclockid(3) or pthread_getcpuclockid(3)".
 //

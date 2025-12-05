@@ -280,6 +280,8 @@ __thread uint64_t allocation_count = 0;
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
 
+  cpu_profiling_v3_init();
+
   #ifndef NO_POSTPONED_TRIGGER
     int unused_flags = 0;
     sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
