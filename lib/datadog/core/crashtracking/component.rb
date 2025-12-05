@@ -9,6 +9,14 @@ require_relative '../utils/at_fork_monkey_patch'
 module Datadog
   module Core
     module Crashtracking
+      RUNTIME_STACKS_FAILURE =
+        begin
+          require_relative 'crashtracking_runtime_stacks'
+          nil
+        rescue LoadError => e
+          e.message
+        end
+
       # Used to report Ruby VM crashes.
       #
       # NOTE: The crashtracker native state is a singleton;
@@ -56,6 +64,7 @@ module Datadog
         def start
           Utils::AtForkMonkeyPatch.apply!
 
+          register_runtime_stack_callback
           start_or_update_on_fork(action: :start, tags: tags)
 
           ONLY_ONCE.run do
@@ -82,6 +91,26 @@ module Datadog
         end
 
         private
+
+        def register_runtime_stack_callback
+          # Check if runtime_stacks extension loaded successfully
+          if Crashtracking::RUNTIME_STACKS_FAILURE
+            logger.debug("Skipping runtime stack callback registration: #{Crashtracking::RUNTIME_STACKS_FAILURE}")
+            return
+          end
+
+          unless Crashtracking.const_defined?(:RuntimeStacks, false)
+            logger.debug('Skipping runtime stack callback registration: Crashtracking::RuntimeStacks not defined')
+            return
+          end
+
+          # Even if runtime stacks callback registration fails, we shouldn't block crashtracker
+          success = Crashtracking::RuntimeStacks._native_register_runtime_stack_callback
+
+          raise StandardError, 'Failed to register runtime stack callback: registration returned false' unless success
+        rescue => e
+          logger.warn("Failed to register runtime stack callback: #{e.message}")
+        end
 
         attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger
 
