@@ -85,12 +85,17 @@ void cpu_profiling_v3_on_resume(void) {
   if (error != 0) {
     // TODO: Better logging
     fprintf(stderr, "Failure to set CPU timer on thread %d %s:%d:in `%s': %s\n",  gettid(), __FILE__, __LINE__, __func__, strerror(errno));
-  } else {
-    current_thread_timer.is_armed = true;
+    return;
   }
+
+  rb_internal_thread_specific_set(rb_thread_current(), cpu_time_at_suspend_key, (void *) 0); // TODO
+
+  current_thread_timer.is_armed = true;
 }
 
-void cpu_profiling_v3_on_suspend(void) {
+// We need to get the thread object as an argument because this method can be called without the GVL and thus we can't rely
+// on `rb_thread_current()`.
+void cpu_profiling_v3_on_suspend(VALUE current_thread) {
   if (!current_thread_timer.valid) return;
 
   if (!current_thread_timer.is_armed) {
@@ -110,6 +115,7 @@ void cpu_profiling_v3_on_suspend(void) {
   if (error != 0) {
     // TODO: Better logging
     fprintf(stderr, "Failure to disarm CPU timer on thread %d %s:%d:in `%s': %s\n",  gettid(), __FILE__, __LINE__, __func__, strerror(errno));
+    return;
   }
 
   if (timer_state.it_value.tv_sec != 0 || timer_state.it_value.tv_nsec != 0) {
@@ -119,6 +125,8 @@ void cpu_profiling_v3_on_suspend(void) {
   if (timer_state.it_interval.tv_sec == 0 && timer_state.it_interval.tv_nsec == 0) {
     fprintf(stderr, "CPU timer on thread %d was disabled but is_armed was true\n", gettid());
   }
+
+  rb_internal_thread_specific_set(current_thread, cpu_time_at_suspend_key, (void *) 1); // TODO
 
   current_thread_timer.is_armed = false;
 }

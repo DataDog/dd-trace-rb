@@ -755,7 +755,9 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
     return Qnil;
   }
 
-  cpu_profiling_v3_on_suspend(); // Don't trigger cpu time-based sampling while we're already sampling (TODO: we'll account for it separately)
+  // TODO: Should there be a way to flag "don't record the cpu-time for this thread, this suspend is already accounted for"? Maybe
+  // a separate on_suspend?
+  cpu_profiling_v3_on_suspend(rb_thread_current()); // Don't trigger cpu time-based sampling while we're already sampling (TODO: we'll account for it separately)
 
   state->stats.cpu_sampled++;
 
@@ -926,7 +928,9 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   if (state == NULL) return;
 
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
-    cpu_profiling_v3_on_suspend(); // Don't trigger cpu time-based sampling during GC (The CPU time spent in GC is accounted for by on_gc_start/finish directly)
+    // TODO: Should there be a way to flag "don't record the cpu-time for this thread, this suspend is already accounted for"? Maybe
+    // a separate on_suspend?
+    cpu_profiling_v3_on_suspend(rb_thread_current()); // Don't trigger cpu time-based sampling during GC (The CPU time spent in GC is accounted for by on_gc_start/finish directly)
     thread_context_collector_on_gc_start(state->thread_context_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
     bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
@@ -1378,7 +1382,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
       cpu_profiling_v3_on_resume();
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_SUSPENDED) {
-      cpu_profiling_v3_on_suspend();
+      cpu_profiling_v3_on_suspend(event_data->thread);
     } else {
       // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
       fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
