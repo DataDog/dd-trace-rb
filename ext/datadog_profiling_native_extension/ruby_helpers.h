@@ -61,7 +61,7 @@ NORETURN(
 );
 
 NORETURN(
-  void private_raise_syserr(VALUE native_exception_class, const char *fmt, ...)
+  void private_raise_syserr(int syserr_errno, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
 
@@ -80,7 +80,7 @@ NORETURN(
 #define ENFORCE_SUCCESS_NO_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, false)
 
 #define ENFORCE_SUCCESS_HELPER(expression, have_gvl) \
-  { int result_syserr_errno = expression; if (RB_UNLIKELY(result_syserr_errno)) raise_syserr(result_syserr_errno, have_gvl, ADD_QUOTES(expression), __FILE__, __LINE__, __func__); }
+  { int result_syserr_errno = expression; if (RB_UNLIKELY(result_syserr_errno)) raise_enforce_syserr(result_syserr_errno, have_gvl, ADD_QUOTES(expression), __FILE__, __LINE__, __func__); }
 
 #define RUBY_NUM_OR_NIL(val, condition, conv) ((val condition) ? conv(val) : Qnil)
 #define RUBY_AVG_OR_NIL(total, count) ((count == 0) ? Qnil : DBL2NUM(((double) total) / count))

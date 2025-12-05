@@ -45,16 +45,16 @@ void private_raise_native_error(VALUE exception, const char *detailed_message, c
 
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void private_raise_error(VALUE native_exception_class, const char *fmt, ...) {
-  FORMAT_VA_ERROR_MESSAGE(formatted_msg, fmt);
+  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
   VALUE exception = rb_exc_new_cstr(native_exception_class, detailed_message);
-  private_raise_native_error(exception, formatted_msg, fmt);
+  private_raise_native_error(exception, detailed_message, fmt);
 }
 
 // Use `raise_syserr` the macro instead, as it provides additional argument checks.
-void private_raise_syserr(VALUE native_exception_class, const char *fmt, ...) {
-  FORMAT_VA_ERROR_MESSAGE(formatted_msg, fmt);
+void private_raise_syserr(int syserr_errno, const char *fmt, ...) {
+  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
   VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
-  private_raise_native_error(exception, formatted_msg, fmt);
+  private_raise_native_error(exception, detailed_message, fmt);
 }
 
 typedef struct {
