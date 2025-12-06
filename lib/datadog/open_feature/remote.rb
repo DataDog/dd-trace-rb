@@ -23,9 +23,9 @@ module Datadog
 
         def receivers(telemetry)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
-          receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
+          receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|            
             engine = OpenFeature.engine
-            break unless engine
+            next unless engine
 
             changes.each do |change|
               content = repository[change.path]
