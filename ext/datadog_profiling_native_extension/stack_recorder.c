@@ -349,7 +349,7 @@ static VALUE _native_new(VALUE klass) {
   ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
 
   if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
+    raise_error(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
   }
 
   state->string_storage = string_storage.ok;
@@ -383,7 +383,7 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
     ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */, state->string_storage);
 
   if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
+    raise_error(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
   }
 
   state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok, .start_timestamp = start_timestamp };
@@ -393,7 +393,7 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
 
   if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
     // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
-    rb_raise(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
+    raise_error(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
   }
 
   state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_result.ok, .start_timestamp = start_timestamp };
@@ -591,7 +591,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   ddog_prof_MaybeError result = args.advance_gen_result;
   if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+    raise_error(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
 
   VALUE start = ruby_time_from(args.slot->start_timestamp);
@@ -658,7 +658,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   sampler_unlock_active_profile(active_slot);
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    raise_error(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 }
 
@@ -682,7 +682,7 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
   sampler_unlock_active_profile(active_slot);
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to record endpoint: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    raise_error(rb_eArgError, "Failed to record endpoint: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 }
 
@@ -824,7 +824,7 @@ static locked_profile_slot sampler_lock_active_profile(stack_recorder_state *sta
   }
 
   // We already tried both multiple times, and we did not succeed. This is not expected to happen. Let's stop sampling.
-  rb_raise(rb_eRuntimeError, "Failed to grab either mutex in sampler_lock_active_profile");
+  raise_error(rb_eRuntimeError, "Failed to grab either mutex in sampler_lock_active_profile");
 }
 
 static void sampler_unlock_active_profile(locked_profile_slot active_slot) {
@@ -889,7 +889,7 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
     return Qtrue;
   } else {
     ENFORCE_SUCCESS_GVL(error);
-    rb_raise(rb_eRuntimeError, "Failed to raise exception in test_slot_mutex_state; this should never happen");
+    raise_error(rb_eRuntimeError, "Failed to raise exception in test_slot_mutex_state; this should never happen");
   }
 }
 
@@ -941,7 +941,7 @@ static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_ins
 static void reset_profile_slot(profile_slot *slot, ddog_Timespec start_timestamp) {
   ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(&slot->profile);
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
+    raise_error(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
   }
   slot->start_timestamp = start_timestamp;
   slot->stats = (stats_slot) {};
@@ -1056,14 +1056,14 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
 
   if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
+    raise_error(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
   }
 
   ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
   ddog_prof_Profile_NewResult profile = ddog_prof_Profile_with_string_storage(sample_types, NULL, string_storage.ok);
 
   if (profile.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to initialize profile: %"PRIsVALUE, get_error_details_and_drop(&profile.err));
+    raise_error(rb_eRuntimeError, "Failed to initialize profile: %"PRIsVALUE, get_error_details_and_drop(&profile.err));
   }
 
   ddog_prof_ManagedStringId hello = intern_or_raise(string_storage.ok, DDOG_CHARSLICE_C("hello"));
@@ -1097,7 +1097,7 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   );
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    raise_error(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 
   ddog_Timespec finish_timestamp = system_epoch_now_timespec();
@@ -1105,13 +1105,13 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   ddog_prof_Profile_SerializeResult serialize_result = ddog_prof_Profile_serialize(&profile.ok, &start_timestamp, &finish_timestamp);
 
   if (serialize_result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
+    raise_error(rb_eRuntimeError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
   }
 
   ddog_prof_MaybeError advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(string_storage.ok);
 
   if (advance_gen_result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&advance_gen_result.some));
+    raise_error(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&advance_gen_result.some));
   }
 
   VALUE encoded_pprof_1 = from_ddog_prof_EncodedProfile(serialize_result.ok);
@@ -1127,13 +1127,13 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   );
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    raise_error(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 
   serialize_result = ddog_prof_Profile_serialize(&profile.ok, &start_timestamp, &finish_timestamp);
 
   if (serialize_result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
+    raise_error(rb_eArgError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
   }
 
   VALUE encoded_pprof_2 = from_ddog_prof_EncodedProfile(serialize_result.ok);

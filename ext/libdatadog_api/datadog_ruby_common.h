@@ -5,6 +5,9 @@
 #include <ruby.h>
 #include <datadog/common.h>
 
+// Must be called once during initialization
+void datadog_ruby_common_init(VALUE datadog_module);
+
 // Used to mark symbols to be exported to the outside of the extension.
 // Consider very carefully before tagging a function with this.
 #define DDTRACE_EXPORT __attribute__ ((visibility ("default")))
@@ -31,6 +34,11 @@
   { if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), "TypedData of type " ADD_QUOTES(type), __FILE__, __LINE__, __func__); }
 
 NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name));
+
+// Helper to raise errors with formatted messages
+NORETURN(void raise_error(VALUE error_class, const char *fmt, ...)) __attribute__ ((format (gnu_printf, 2, 3)));
+
+
 
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);

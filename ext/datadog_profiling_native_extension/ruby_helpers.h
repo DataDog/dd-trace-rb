@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdarg.h>
 #include "datadog_ruby_common.h"
 
 // Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
@@ -39,26 +40,49 @@ static inline int check_if_pending_exception(void) {
 
 #define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
 
+// Raises an exception of the specified class with the formatted string as its message.
+// This macro ensures that the literal string is sent for telemetry, while the formatted
+// message is the default `Exception#message`.
+// *Ruby exceptions not raised through this function will not be reported via telemetry.*
+#define raise_error(exception_class, fmt, ...) \
+  private_raise_error(exception_class, "" fmt, ##__VA_ARGS__)
+
+// Raises a SysErr exception with the formatted string as its message.
+// See `raise_error` for details about telemetry messages.
+#define raise_syserr(syserr_errno, fmt, ...) \
+  private_raise_syserr(syserr_errno, "" fmt, ##__VA_ARGS__)
+
+#define grab_gvl_and_raise(exception_class, fmt, ...) \
+  private_grab_gvl_and_raise(exception_class, 0, "" fmt, ##__VA_ARGS__)
+
 NORETURN(
-  void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...)
+  void private_raise_error(VALUE exception_class, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
+
 NORETURN(
-  void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
+  void private_raise_syserr(int syserr_errno, const char *fmt, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
+
+NORETURN(
+  void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const char *format_string, ...)
+  __attribute__ ((format (printf, 3, 4)));
+);
+
+
 
 #define ENFORCE_SUCCESS_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, true)
 #define ENFORCE_SUCCESS_NO_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, false)
 
 #define ENFORCE_SUCCESS_HELPER(expression, have_gvl) \
-  { int result_syserr_errno = expression; if (RB_UNLIKELY(result_syserr_errno)) raise_syserr(result_syserr_errno, have_gvl, ADD_QUOTES(expression), __FILE__, __LINE__, __func__); }
+  { int result_syserr_errno = expression; if (RB_UNLIKELY(result_syserr_errno)) raise_enforce_syserr(result_syserr_errno, have_gvl, ADD_QUOTES(expression), __FILE__, __LINE__, __func__); }
 
 #define RUBY_NUM_OR_NIL(val, condition, conv) ((val condition) ? conv(val) : Qnil)
 #define RUBY_AVG_OR_NIL(total, count) ((count == 0) ? Qnil : DBL2NUM(((double) total) / count))
 
 // Called by ENFORCE_SUCCESS_HELPER; should not be used directly
-NORETURN(void raise_syserr(
+NORETURN(void raise_enforce_syserr(
   int syserr_errno,
   bool have_gvl,
   const char *expression,

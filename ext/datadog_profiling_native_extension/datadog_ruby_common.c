@@ -1,8 +1,11 @@
 #include "datadog_ruby_common.h"
+#include <stdarg.h>
 
 // IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
-void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name) {
+
+
+void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char *function_name) {
   rb_exc_raise(
     rb_exc_new_str(
       rb_eTypeError,
@@ -16,6 +19,14 @@ void raise_unexpected_type(VALUE value, const char *value_name, const char *type
       )
     )
   );
+}
+
+void raise_error(VALUE error_class, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  VALUE message = rb_vsprintf(fmt, args);
+  va_end(args);
+  rb_raise(error_class, "%"PRIsVALUE, message);
 }
 
 VALUE datadog_gem_version(void) {
@@ -77,4 +88,9 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
   }
 
   return tags;
+}
+
+void datadog_ruby_common_init(VALUE datadog_module) {
+  // No longer needed - using Ruby's built-in exception classes
+  (void)datadog_module;
 }

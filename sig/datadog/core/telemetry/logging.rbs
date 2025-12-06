@@ -15,6 +15,10 @@ module Datadog
         def report: (Exception exception, ?level: Symbol, ?description: String?) -> void
 
         def error: (String description) -> void
+
+        private
+
+        def message_for_telemetry: (Exception exception) -> String?
       end
     end
   end
