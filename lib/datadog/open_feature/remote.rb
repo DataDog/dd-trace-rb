@@ -23,11 +23,14 @@ module Datadog
 
         def receivers(telemetry)
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
-          receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|            
+          receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
+            puts "[OpenFeature Remote] Received #{changes.size} configuration change(s)"
+            
             engine = OpenFeature.engine
             next unless engine
 
             changes.each do |change|
+              puts "[OpenFeature Remote] Processing change: #{change.type} for path: #{change.path}"
               content = repository[change.path]
 
               unless content || change.type == :delete
@@ -40,17 +43,22 @@ module Datadog
               when :insert, :update
                 begin
                   # @type var content: Core::Remote::Configuration::Content
-                  engine.reconfigure!(read_content(content))
+                  config_data = read_content(content)
+                  engine.reconfigure!(config_data)
                   content.applied
+                  puts "[OpenFeature Remote] ✅ Configuration applied successfully (#{config_data.bytesize} bytes)"
                 rescue ReadError => e
+                  puts "[OpenFeature Remote] ❌ ReadError: #{e.message}"
                   content.errored("Error reading Remote Configuration content: #{e.message}")
                 rescue EvaluationEngine::ReconfigurationError => e
+                  puts "[OpenFeature Remote] ❌ ReconfigurationError: #{e.message}"
                   content.errored("Error applying OpenFeature configuration: #{e.message}")
                 end
               when :delete
                 # NOTE: For now, we treat deletion as clearing the configuration
                 #       In a multi-config scenario, we might track configs per path
                 engine.reconfigure!(nil)
+                puts "[OpenFeature Remote] Configuration deleted"
               end
             end
           end
