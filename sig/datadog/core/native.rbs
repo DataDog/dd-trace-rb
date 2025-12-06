@@ -1,6 +1,0 @@
-module Datadog
-  module Core
-    module Native
-    end
-  end
-end
