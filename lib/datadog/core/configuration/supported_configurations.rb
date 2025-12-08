@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'set'
+
 # This file is auto-generated from `supported-configurations.json` by `rake local_config_map:generate`.
 # Do not change manually! Please refer to `docs/AccessEnvironmentVariables.md` for more information.
 
@@ -7,7 +9,7 @@ module Datadog
   module Core
     module Configuration
       SUPPORTED_CONFIGURATIONS =
-        ["DD_AGENT_HOST",
+        Set["DD_AGENT_HOST",
           "DD_API_KEY",
           "DD_API_SECURITY_ENABLED",
           "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED",
@@ -334,7 +336,7 @@ module Datadog
          "DD_TRACE_SAMPLE_RATE" => ["OTEL_TRACES_SAMPLER"]}.freeze
 
       DEPRECATIONS =
-        ["DD_PROFILING_PREVIEW_GVL_ENABLED", "DISABLE_DATADOG_RAILS"].freeze
+        Set["DD_PROFILING_PREVIEW_GVL_ENABLED", "DISABLE_DATADOG_RAILS"]
 
       ALIAS_TO_CANONICAL =
         {"DD_PROFILING_PREVIEW_GVL_ENABLED" => "DD_PROFILING_GVL_ENABLED",

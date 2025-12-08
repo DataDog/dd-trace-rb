@@ -3,9 +3,9 @@ module Datadog
     module Configuration
       type env_var_name = String
 
-      SUPPORTED_CONFIGURATIONS: Array[env_var_name]
+      SUPPORTED_CONFIGURATIONS: ::Set[env_var_name]
       ALIASES: Hash[env_var_name, Array[env_var_name]]
-      DEPRECATIONS: Array[env_var_name]
+      DEPRECATIONS: ::Set[env_var_name]
       ALIAS_TO_CANONICAL: Hash[env_var_name, env_var_name]
     end
   end

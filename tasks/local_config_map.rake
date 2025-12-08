@@ -66,6 +66,8 @@ namespace :local_config_map do
       <<~RUBY
         # frozen_string_literal: true
 
+        require 'set'
+
         # This file is auto-generated from `supported-configurations.json` by `rake local_config_map:generate`.
         # Do not change manually! Please refer to `docs/AccessEnvironmentVariables.md` for more information.
 
@@ -73,13 +75,13 @@ namespace :local_config_map do
           module Core
             module Configuration
               SUPPORTED_CONFIGURATIONS =
-                #{ConfigPrinter.pp(supported_configurations)}.freeze
+                Set#{ConfigPrinter.pp(supported_configurations)}.freeze
 
               ALIASES =
                 #{ConfigPrinter.pp(aliases)}.freeze
 
               DEPRECATIONS =
-                #{ConfigPrinter.pp(deprecations)}.freeze
+                Set#{ConfigPrinter.pp(deprecations)}
 
               ALIAS_TO_CANONICAL =
                 #{ConfigPrinter.pp(alias_to_canonical)}.freeze
