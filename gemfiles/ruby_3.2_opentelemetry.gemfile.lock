@@ -47,6 +47,7 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (24.0.1.1.0)
     libdatadog (24.0.1.1.0-aarch64-linux)
     libdatadog (24.0.1.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0-aarch64-linux)

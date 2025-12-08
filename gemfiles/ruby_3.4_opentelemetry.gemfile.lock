@@ -38,7 +38,6 @@ GEM
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-x86_64-linux-gnu)
     google-protobuf (3.25.3)
-    google-protobuf (3.25.3-arm64-darwin)
     googleapis-common-protos-types (1.20.0)
       google-protobuf (>= 3.18, < 5.a)
     hashdiff (1.1.0)
@@ -145,7 +144,6 @@ GEM
 
 PLATFORMS
   aarch64-linux
-  arm64-darwin-24
   x86_64-linux
 
 DEPENDENCIES
