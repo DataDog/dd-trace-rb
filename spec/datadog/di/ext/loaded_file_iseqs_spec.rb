@@ -28,7 +28,7 @@ RSpec.describe 'all_iseqs' do
   # that we have a reasonable set of files from dd-trace-rb in the iseqs.
   it 'returns iseqs for loaded files' do
     datadog_iseqs = file_iseqs.select do |iseq|
-      iseq.absolute_path =~ %r,lib/datadog/,
+      iseq.absolute_path =~ %r{lib/datadog/}
     end
     paths = datadog_iseqs.map(&:absolute_path).uniq
 
