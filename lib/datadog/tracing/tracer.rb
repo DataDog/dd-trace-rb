@@ -149,10 +149,10 @@ module Datadog
           context = call_context
           active_trace = context.active_trace
           trace = if continue_from || active_trace.nil?
-                    start_trace(continue_from: continue_from)
-                  else
-                    active_trace
-                  end
+            start_trace(continue_from: continue_from)
+          else
+            active_trace
+          end
         rescue => e
           logger.debug { "Failed to trace: #{e}" }
 
@@ -362,12 +362,12 @@ module Datadog
       def build_trace(digest, auto_finish)
         # Resolve hostname if configured
         hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
-        hostname = hostname && !hostname.empty? ? hostname : nil
+        hostname = (hostname && !hostname.empty?) ? hostname : nil
 
         if digest
           sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
-                                digest.trace_sampling_priority
-                              end
+            digest.trace_sampling_priority
+          end
           TraceOperation.new(
             logger: logger,
             hostname: hostname,
@@ -487,13 +487,13 @@ module Datadog
       # rubocop:enable Lint/UnderscorePrefixedVariableName
       def resolve_tags(tags, service)
         merged_tags = if @tags.any? && tags
-                        # Combine default tags with provided tags,
-                        # preferring provided tags.
-                        @tags.merge(tags)
-                      else
-                        # Use provided tags or default tags if none.
-                        tags || @tags.dup
-                      end
+          # Combine default tags with provided tags,
+          # preferring provided tags.
+          @tags.merge(tags)
+        else
+          # Use provided tags or default tags if none.
+          tags || @tags.dup
+        end
         # Remove version tag if service is not the default service
         if merged_tags.key?(Core::Environment::Ext::TAG_VERSION) && service && service != @default_service
           merged_tags.delete(Core::Environment::Ext::TAG_VERSION)

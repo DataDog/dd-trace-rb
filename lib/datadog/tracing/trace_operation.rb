@@ -380,7 +380,7 @@ module Datadog
           trace_state: @trace_state,
           trace_state_unknown_fields: @trace_state_unknown_fields,
           span_remote: @remote_parent && @active_span.nil?,
-          baggage: @baggage.nil? || @baggage.empty? ? nil : @baggage
+          baggage: (@baggage.nil? || @baggage.empty?) ? nil : @baggage
         ).freeze
       end
 
@@ -569,7 +569,7 @@ module Datadog
           service: service,
           tags: meta,
           metrics: metrics,
-          root_span_id: !partial ? root_span&.id : nil,
+          root_span_id: (!partial) ? root_span&.id : nil,
           profiling_enabled: @profiling_enabled,
           apm_tracing_enabled: @apm_tracing_enabled
         )
