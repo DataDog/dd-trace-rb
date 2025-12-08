@@ -2174,11 +2174,95 @@
         "default": null
       }
     ],
+    "OTEL_EXPORTER_OTLP_ENDPOINT": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_HEADERS": [
+      {
+        "version": "A",
+        "type": "map",
+        "default": ""
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_HEADERS": [
+      {
+        "version": "A",
+        "type": "map",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "delta"
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_PROTOCOL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "http/protobuf"
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10000"
+      }
+    ],
     "OTEL_LOG_LEVEL": [
       {
         "version": "A",
         "type": "boolean",
         "default": "false"
+      }
+    ],
+    "OTEL_METRIC_EXPORT_INTERVAL": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10000"
+      }
+    ],
+    "OTEL_METRIC_EXPORT_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "7500"
+      }
+    ],
+    "OTEL_METRICS_EXPORTER": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "otlp"
       }
     ],
     "OTEL_PROPAGATORS": [
