@@ -6,9 +6,18 @@ require 'json'
 
 module Datadog
   module AIGuard
-    # API Client for AI Guard API
+    # API Client for AI Guard API.
+    # Uses net/http to perform request. Raises on client and server errors.
     class APIClient
       DEFAULT_SITE = 'app.datadoghq.com'
+
+      class UnexpectedRedirectError < StandardError; end
+      class ClientError < StandardError; end
+      class NotFoundError < StandardError; end
+      class TooManyRequestsError < ClientError; end
+      class UnauthorizedError < ClientError; end
+      class ForbiddenError < ClientError; end
+      class ServerError < StandardError; end
 
       def initialize(endpoint:, api_key:, application_key:, timeout:)
         @api_key = api_key
@@ -25,15 +34,42 @@ module Datadog
           request = Net::HTTP::Post.new(uri.request_uri, headers)
           request.body = request_body.to_json
 
-          # TODO: handle http errors?
-          response = http.request(request)
+          response = perform_request(request, http: http)
 
-          # TODO: handle JSON parsing errors?
-          JSON.parse(response.body)
+          parse_response_body(response.body)
         end
       end
 
       private
+
+      def perform_request(request, http:)
+        response = http.request(request)
+
+        case response
+        when Net::HTTPSuccess
+          response
+        when Net::HTTPRedirection
+          raise UnexpectedRedirectError, 'Redirects for AI Guard API are not supported'
+        when Net::HTTPNotFound
+          raise NotFoundError, response.body
+        when Net::HTTPTooManyRequestsError
+          raise TooManyRequestsError, response.body
+        when Net::HTTPServerError
+          raise ServerError, response.body
+        when Net::HTTPClientError
+          raise ClientError, response.body
+        when Net::HTTPUnauthorized
+          raise UnauthorizedError, response.body
+        when Net::HTTPForbidden
+          raise ForbiddenError, response.body
+        end
+      end
+
+      def parse_response_body(response_body)
+        JSON.parse(response_body)
+      rescue JSON::ParserError
+        raise ResponseBodyParsingError, "Could not parse response body"
+      end
 
       def headers
         {

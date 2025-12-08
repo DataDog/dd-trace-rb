@@ -2,7 +2,8 @@
 
 module Datadog
   module AIGuard
-    # class that performs AI Guard Evaluation and creates `ai_guard` span
+    # class that performs AI Guard Evaluation request
+    # and creates `ai_guard` span with required tags
     class Evaluation
       class AIGuardAbortError < StandardError
         def initialize(reason)
