@@ -303,7 +303,7 @@
         "version": "A",
         "type": "boolean",
         "propertyKeys": ["experimental_propagate_process_tags_enabled"],
-        "defaultValue": "false"
+        "default": "false"
       }
     ],
     "DD_GIT_COMMIT_SHA": [
