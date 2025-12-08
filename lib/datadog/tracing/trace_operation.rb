@@ -126,7 +126,7 @@ module Datadog
         @events = events || Events.new
         @finished = false
         @spans = []
-        @auto_finish = auto_finish
+        @auto_finish = !!auto_finish
       end
 
       def full?
