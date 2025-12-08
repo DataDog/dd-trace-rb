@@ -1,10 +1,6 @@
 require "datadog/di/spec_helper"
 
 RSpec.describe 'all_iseqs' do
-  before(:all) do
-    require 'libdatadog_api.3.3_x86_64-linux'
-  end
-
   let(:iseqs) do
     Datadog::DI.all_iseqs
   end
