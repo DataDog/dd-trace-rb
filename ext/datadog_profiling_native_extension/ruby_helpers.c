@@ -40,7 +40,7 @@ void ruby_helpers_init(void) {
 // Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
 // NOTE: Raising the exception acquires the GVL (unsafe), but it also aborts the current execution flow.
 // @see debug_enter_unsafe_context
-static NORETURN(void private_raise_exception(VALUE exception, const char *detailed_message, const char *static_message)) {
+static NORETURN(void private_raise_exception(VALUE exception, const char *static_message)) {
   rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
   rb_exc_raise(exception);
 }
@@ -48,13 +48,13 @@ static NORETURN(void private_raise_exception(VALUE exception, const char *detail
 // Internal helper for raising pre-formatted exceptions
 static NORETURN(void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message)) {
   VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
-  private_raise_exception(exception, detailed_message, static_message);
+  private_raise_exception(exception, static_message);
 }
 
 // Internal helper for raising pre-formatted syserr exceptions
 static NORETURN(void private_raise_syserr_formatted(int syserr_errno, const char *detailed_message, const char *static_message)) {
   VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
-  private_raise_exception(exception, detailed_message, static_message);
+  private_raise_exception(exception, static_message);
 }
 
 // Use `raise_error` the macro instead, as it provides additional argument checks.
@@ -127,7 +127,7 @@ void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const c
       args.exception_message
     );
     VALUE exception = rb_exc_new_cstr(rb_eRuntimeError, exception_message);
-    private_raise_exception(exception, exception_message, telemetry_message);
+    private_raise_exception(exception, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
