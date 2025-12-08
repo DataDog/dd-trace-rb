@@ -129,7 +129,6 @@ module Datadog
       # @yield Optional block where new newly created {Datadog::Tracing::SpanOperation} captures the execution.
       # @yieldparam [Datadog::Tracing::SpanOperation] span_op the newly created and active [Datadog::Tracing::SpanOperation]
       # @yieldparam [Datadog::Tracing::TraceOperation] trace_op the active [Datadog::Tracing::TraceOperation]
-      # rubocop:disable Metrics/MethodLength
       def trace(
         name,
         continue_from: nil,
@@ -398,7 +397,6 @@ module Datadog
           )
         end
       end
-      # rubocop:enable Metrics/MethodLength
 
       def bind_trace_events!(trace_op)
         events = trace_op.send(:events)
