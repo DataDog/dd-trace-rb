@@ -34,10 +34,10 @@ CORE_WITH_LIBDATADOG_API = [
   'spec/datadog/core/datadog_ruby_common_spec.rb',
 ].freeze
 
-DI_WITH_EXT = %w(
+DI_WITH_EXT = %w[
   spec/datadog/di/ext/*_spec.rb
   spec/datadog/di/ext/**/*_spec.rb
-)
+]
 
 # Data Streams Monitoring (DSM) requires libdatadog_api for DDSketch
 # Add new instrumentation libraries here as they gain DSM support
