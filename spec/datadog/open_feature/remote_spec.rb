@@ -206,5 +206,11 @@ RSpec.describe Datadog::OpenFeature::Remote do
         receiver.call(repository, changes)
       end
     end
+
+    context 'when engine is unavailable' do
+      let(:engine) { nil }
+
+      it { expect { receiver.call(repository, []) }.not_to raise_error }
+    end
   end
 end
