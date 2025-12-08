@@ -349,6 +349,13 @@
         "default": "8125"
       }
     ],
+    "DD_METRICS_OTEL_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_PROFILING_ALLOCATION_ENABLED": [
       {
         "version": "A",
