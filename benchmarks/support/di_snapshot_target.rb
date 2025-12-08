@@ -1,3 +1,13 @@
+# Dynamic instrumentation target files must not be modified by
+# formatting tools.
+# standard:disable all
+
+# padding
+# padding
+# padding
+# padding
+# padding
+
 class DISnapshotTarget
   def test_method
     # Perform some work to take up time
@@ -17,6 +27,6 @@ class DISnapshotTarget
     # in method probes, or instance variables.
     # Return a complex object which will be serialized for the
     # enriched probe.
-    Datadog.configuration # Line 20
+    Datadog.configuration # Line 30
   end
 end

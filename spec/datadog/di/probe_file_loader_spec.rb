@@ -12,6 +12,9 @@ RSpec.describe Datadog::DI::ProbeFileLoader do
     before do
       expect(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false).at_least(:once)
       Datadog.send(:reset!)
+
+      # Stop environment logger from printing configuration to standard output
+      allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:log_configuration!)
     end
 
     after do

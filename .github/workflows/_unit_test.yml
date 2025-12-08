@@ -1,4 +1,4 @@
-name: Unit Test Template
+name: Unit Tests (Ruby version specific)
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -13,6 +13,9 @@ on: # yamllint disable-line rule:truthy
       alias:
         required: true
         type: string
+      seed:
+        required: false
+        type: number
     outputs:
       lockfile:
         description: "The lockfile artifact"
@@ -21,19 +24,41 @@ on: # yamllint disable-line rule:truthy
         description: "The cache key for bundle"
         value: ${{ jobs.batch.outputs.cache-key }}
 
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: "`ruby` or `jruby`"
+        required: true
+        type: string
+      version:
+        description: "The version of the engine (2.x or 3.x for Ruby, 9.x or 10.x for JRuby)"
+        required: true
+        type: string
+      alias:
+        description: "The alias of the engine (e.g. `ruby-34` for Ruby 3.4)"
+        required: true
+        type: string
+      seed:
+        description: "The seed to reproduce a CI run"
+        required: false
+        type: number
+
+permissions: {}
+
 jobs:
   batch:
     runs-on: ubuntu-24.04
     name: batch
     outputs:
+      seed: "${{ steps.set-batches.outputs.seed }}"
       batches: "${{ steps.set-batches.outputs.batches }}"
       misc: "${{ steps.set-batches.outputs.misc }}"
       cache-key: "${{ steps.bundle-cache.outputs.cache-key }}"
       lockfile: "${{ steps.bundle-cache.outputs.lockfile }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         persist-credentials: false
 
@@ -43,20 +68,23 @@ jobs:
 
     - id: set-batches
       name: Distribute tasks into batches
+      env:
+        CI_TEST_SEED: "${{ inputs.seed || '' }}"
       run: |
         data=$(bundle exec rake github:generate_batches)
         echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
         # Extract each key and set it as a separate output
+        seed_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["seed"]')
         batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
         misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
 
-        echo "batches=$batches_data" >> "$GITHUB_OUTPUT"
-        echo "misc=$misc_data" >> "$GITHUB_OUTPUT"
+        { echo "seed=$seed_data"; echo "batches=$batches_data"; echo "misc=$misc_data"; } >> "$GITHUB_OUTPUT"
     - name: Generate batch summary
-      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
+        CI_TEST_SEED: "${{ steps.set-batches.outputs.seed }}"
+      run: bundle exec rake github:generate_batch_summary
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #
@@ -88,12 +116,13 @@ jobs:
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+      CI_TEST_SEED: "${{ needs.batch.outputs.seed }}"
     strategy:
       fail-fast: false
       matrix:
         include: "${{ fromJson(needs.batch.outputs.batches).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
       env:
         DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
         DD_REMOTE_CONFIGURATION_ENABLED: 'false'
@@ -102,16 +131,20 @@ jobs:
         TEST_MYSQL_HOST: mysql
         DD_AGENT_HOST: agent
         DD_TRACE_AGENT_PORT: '9126'
+        OTLP_GRPC_PORT: '4317'
+        OTLP_HTTP_PORT: '4318'
         DATADOG_GEM_CI: 'true'
         TEST_DATADOG_INTEGRATION: '1'
         JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
           PORT: '9126'
+          OTLP_GRPC_PORT: '4317'
+          OTLP_HTTP_PORT: '4318'
           DD_POOL_TRACE_CHECK_FAILURES: 'true'
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
@@ -130,7 +163,7 @@ jobs:
       redis:
         image: ghcr.io/datadog/images-rb/services/redis:6.2
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         persist-credentials: false
     - name: Restore bundle cache
@@ -152,12 +185,13 @@ jobs:
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+      CI_TEST_SEED: "${{ needs.batch.outputs.seed }}"
     strategy:
       fail-fast: false
       matrix:
         include: "${{ fromJson(needs.batch.outputs.misc).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
       env:
         DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
         DD_REMOTE_CONFIGURATION_ENABLED: 'false'
@@ -176,11 +210,13 @@ jobs:
       options: --link mongodb:mongodb_secondary
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
           PORT: '9126'
+          OTLP_GRPC_PORT: '4317'
+          OTLP_HTTP_PORT: '4318'
           DD_POOL_TRACE_CHECK_FAILURES: 'true'
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
@@ -207,7 +243,7 @@ jobs:
       presto:
         image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         persist-credentials: false
     - name: Restore bundle cache

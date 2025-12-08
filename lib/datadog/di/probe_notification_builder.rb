@@ -87,10 +87,41 @@ module Datadog
           end
         end
 
+        message = nil
+        evaluation_errors = []
+        if segments = probe.template_segments
+          message, evaluation_errors = evaluate_template(segments, context)
+        end
+        build_snapshot_base(context,
+          evaluation_errors: evaluation_errors, message: message,
+          captures: captures)
+      end
+
+      def build_condition_evaluation_failed(context, expression, exception)
+        error = {
+          message: "#{exception.class}: #{exception}",
+          expr: expression.dsl_expr,
+        }
+        build_snapshot_base(context, evaluation_errors: [error])
+      end
+
+      private
+
+      def build_snapshot_base(context, evaluation_errors: [], captures: nil, message: nil)
+        probe = context.probe
+
+        timestamp = timestamp_now
+        duration = context.duration
+
         location = if probe.line?
           {
             file: context.path,
-            lines: [probe.line_no],
+            # Line numbers are required to be strings by the
+            # system tests schema.
+            # Backend I think accepts them also as integers, but some
+            # other languages send strings and we decided to require
+            # strings for everyone.
+            lines: [probe.line_no.to_s],
           }
         elsif probe.method?
           {
@@ -103,28 +134,38 @@ module Datadog
           format_caller_locations(caller_locations)
         end
 
-        timestamp = timestamp_now
-        message = nil
-        evaluation_errors = []
-        if segments = probe.template_segments
-          message, evaluation_errors = evaluate_template(segments, context)
-        end
-        duration = context.duration
         {
           service: settings.service,
-          "debugger.snapshot": {
-            id: SecureRandom.uuid,
-            timestamp: timestamp,
-            evaluationErrors: evaluation_errors,
-            probe: {
-              id: probe.id,
-              version: 0,
-              location: location,
+          debugger: {
+            type: 'snapshot',
+            # Product can have three values: di, ld, er.
+            # We do not currently implement exception replay.
+            # There is currently no specification, and no consensus, for
+            # when product should be di (dynamic instrumentation) and when
+            # it should be ld (live debugger). I thought the backend was
+            # supposed to provide this in probe specification via remote
+            # config, but apparently this is not the case and the expectation
+            # is that the library figures out the product via heuristics,
+            # except there is currently no consensus on said heuristics.
+            # .NET always sends ld, other languages send nothing at the moment.
+            # Don't send anything for the time being.
+            #product: 'di/ld',
+            snapshot: {
+              id: SecureRandom.uuid,
+              timestamp: timestamp,
+              evaluationErrors: evaluation_errors,
+              probe: {
+                id: probe.id,
+                version: 0,
+                location: location,
+              },
+              language: 'ruby',
+              # TODO add test coverage for callers being nil
+              stack: stack,
+              # System tests schema validation requires captures to
+              # always be present
+              captures: captures || {},
             },
-            language: 'ruby',
-            # TODO add test coverage for callers being nil
-            stack: stack,
-            captures: captures,
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
@@ -132,7 +173,7 @@ module Datadog
           host: nil,
           logger: {
             name: probe.file,
-            method: probe.method_name || 'no_method',
+            method: probe.method_name,
             thread_name: Thread.current.name,
             # Dynamic instrumentation currently does not need thread_id for
             # anything. It can be sent if a customer requests it at which point
@@ -149,8 +190,6 @@ module Datadog
           timestamp: timestamp,
         }
       end
-
-      private
 
       def build_status(probe, message:, status:)
         {
@@ -183,12 +222,15 @@ module Datadog
           when String
             segment
           when EL::Expression
-            segment.evaluate(context).to_s
+            serializer.serialize_value_for_message(segment.evaluate(context))
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
         rescue => exc
-          evaluation_errors << "#{exc.class}: #{exc}"
+          evaluation_errors << {
+            message: "#{exc.class}: #{exc}",
+            expr: segment.dsl_expr,
+          }
           '[evaluation error]'
         end.join
         [message, evaluation_errors]

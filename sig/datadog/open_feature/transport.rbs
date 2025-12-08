@@ -1,0 +1,45 @@
+module Datadog
+  module OpenFeature
+    module Transport
+      class EncodedParcel
+        include Core::Transport::Parcel
+
+        def encode_with: (Core::Encoding::Encoder) -> ::String
+      end
+
+      class HTTP
+        class Spec < Core::Transport::HTTP::API::Spec
+          @endpoint: Core::Transport::HTTP::API::Endpoint
+
+          attr_accessor endpoint: Core::Transport::HTTP::API::Endpoint
+
+          def initialize: () -> void
+
+          def call: (Core::Transport::HTTP::Env) { (Core::Transport::HTTP::Env) -> Core::Transport::Response } -> Core::Transport::Response
+        end
+
+        class Instance < Core::Transport::HTTP::API::Instance
+          def send_exposures: (Core::Transport::HTTP::Env) -> Core::Transport::Response
+        end
+
+        @api: HTTP::Instance
+
+        @logger: Core::Logger
+
+        def self.build: (
+          agent_settings: Core::Configuration::AgentSettings,
+          logger: Core::Logger
+        ) -> HTTP
+
+        def initialize: (
+          Core::Transport::HTTP::API::Map apis,
+          ::String default_api,
+          logger: Core::Logger
+        ) -> void
+
+        def send_exposures: (::Hash[::Symbol, untyped] payload) -> Core::Transport::Response
+      end
+    end
+  end
+end
+

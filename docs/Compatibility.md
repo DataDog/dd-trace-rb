@@ -7,6 +7,7 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 ### Supported Ruby interpreters
 
+<!-- Ensure that all "# TODO: Ruby 3.5 - " comments are addressed before including 3.5 in our public support docs -->
 | Type  | Documentation              | Version   | Support type              | Gem version support |
 |-------|----------------------------|-----------|---------------------------|---------------------|
 | MRI   | https://www.ruby-lang.org/ | 3.4       | [latest](#support-latest) | Latest              |
@@ -115,6 +116,7 @@ For a list of available integrations, and their configuration options, refer to 
 | Sneakers                   | `sneakers`                 | `>= 2.12.0`                                 | `>= 2.12.0`                                 | [Link][46]       | [Link](https://github.com/jondot/sneakers)                                   |
 | Stripe                     | `stripe`                   | `>= 5.15.0`                                 | `>= 5.15.0`                                 | [Link][47]       | [Link](https://github.com/stripe/stripe-ruby)                                |
 | Sucker Punch               | `sucker_punch`             | `>= 2.0`                                    | `>= 2.0`                                    | [Link][48]       | [Link](https://github.com/brandonhilkert/sucker_punch)                       |
+| WaterDrop                  | `waterdrop`                | `>= 2.8.8.rc1`                              | `>= 2.8.8.rc1`                              | [Link][55]       | [Link](https://github.com/karafka/waterdrop) |
 
 ### Support Policy
 

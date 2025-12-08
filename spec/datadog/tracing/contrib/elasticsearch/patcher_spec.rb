@@ -31,7 +31,8 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       adapter: :net_http,
       transport_options: {
         headers: headers
-      }
+      },
+      request_timeout: 5
     )
   end
   let(:configuration_options) { {} }

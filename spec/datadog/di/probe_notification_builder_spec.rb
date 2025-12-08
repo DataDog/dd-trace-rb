@@ -164,7 +164,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:payload) { builder.build_executed(context) }
 
     let(:context) do
-      Datadog::DI::EL::Context.new(
+      Datadog::DI::Context.new(
         settings: settings, serializer: serializer,
         probe: probe
       )
@@ -181,27 +181,30 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           ddsource: 'dd_debugger',
           "dd.span_id": nil,
           "dd.trace_id": nil,
-          "debugger.snapshot": {
-            captures: nil,
-            evaluationErrors: [],
-            id: String,
-            language: 'ruby',
-            probe: {
-              id: '123',
-              location: {
-                file: nil,
-                lines: [1],
+          debugger: {
+            type: 'snapshot',
+            snapshot: {
+              captures: {},
+              evaluationErrors: [],
+              id: String,
+              language: 'ruby',
+              probe: {
+                id: '123',
+                location: {
+                  file: nil,
+                  lines: ['1'],
+                },
+                version: 0,
               },
-              version: 0,
+              stack: nil,
+              timestamp: Integer,
             },
-            stack: nil,
-            timestamp: Integer,
           },
           message: "hello world",
           service: 'test service',
           timestamp: Integer,
           logger: {
-            method: 'no_method',
+            method: nil,
             name: 'X',
             thread_id: nil,
             thread_name: 'Thread.main',
@@ -229,27 +232,30 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           ddsource: 'dd_debugger',
           "dd.span_id": nil,
           "dd.trace_id": nil,
-          "debugger.snapshot": {
-            captures: nil,
-            evaluationErrors: [],
-            id: String,
-            language: 'ruby',
-            probe: {
-              id: '123',
-              location: {
-                file: nil,
-                lines: [1],
+          debugger: {
+            type: 'snapshot',
+            snapshot: {
+              captures: {},
+              evaluationErrors: [],
+              id: String,
+              language: 'ruby',
+              probe: {
+                id: '123',
+                location: {
+                  file: nil,
+                  lines: ['1'],
+                },
+                version: 0,
               },
-              version: 0,
+              stack: nil,
+              timestamp: Integer,
             },
-            stack: nil,
-            timestamp: Integer,
           },
           message: nil,
           service: 'test service',
           timestamp: Integer,
           logger: {
-            method: 'no_method',
+            method: nil,
             name: 'X',
             thread_id: nil,
             thread_name: 'Thread.main',
@@ -273,7 +279,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       let(:context) do
-        Datadog::DI::EL::Context.new(probe: probe,
+        Datadog::DI::Context.new(probe: probe,
           settings: settings, serializer: serializer,
           path: '/foo.rb',
           locals: locals, target_self: Object.new)
@@ -292,37 +298,40 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           ddsource: 'dd_debugger',
           "dd.span_id": nil,
           "dd.trace_id": nil,
-          "debugger.snapshot": {
-            captures: {
-              lines: {
-                1 => {
-                  locals: serialized_locals,
-                  arguments: {self: {
-                    type: 'Object',
-                    fields: {},
-                  }},
+          debugger: {
+            type: 'snapshot',
+            snapshot: {
+              captures: {
+                lines: {
+                  1 => {
+                    locals: serialized_locals,
+                    arguments: {self: {
+                      type: 'Object',
+                      fields: {},
+                    }},
+                  },
                 },
               },
-            },
-            evaluationErrors: [],
-            id: String,
-            language: 'ruby',
-            probe: {
-              id: '123',
-              location: {
-                file: '/foo.rb',
-                lines: [1],
+              evaluationErrors: [],
+              id: String,
+              language: 'ruby',
+              probe: {
+                id: '123',
+                location: {
+                  file: '/foo.rb',
+                  lines: ['1'],
+                },
+                version: 0,
               },
-              version: 0,
+              stack: nil,
+              timestamp: Integer,
             },
-            stack: nil,
-            timestamp: Integer,
           },
           message: nil,
           service: 'test service',
           timestamp: Integer,
           logger: {
-            method: 'no_method',
+            method: nil,
             name: 'X',
             thread_id: nil,
             thread_name: 'Thread.main',
@@ -346,9 +355,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       let(:template_segments) do
         [
-          compiler.compile('ref' => 'hello'),
+          Datadog::DI::EL::Expression.new('(expression)', compiler.compile('ref' => 'hello')),
           ' ',
-          compiler.compile('ref' => 'world'),
+          Datadog::DI::EL::Expression.new('(expression)', compiler.compile('ref' => 'world')),
         ]
       end
 
@@ -361,7 +370,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       let(:context) do
-        Datadog::DI::EL::Context.new(
+        Datadog::DI::Context.new(
           settings: settings, serializer: serializer,
           locals: vars,
           probe: probe

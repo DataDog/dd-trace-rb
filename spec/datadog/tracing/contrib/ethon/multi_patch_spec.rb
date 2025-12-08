@@ -7,8 +7,6 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
-require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
-
 RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
   let(:configuration_options) { {} }
 
@@ -26,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
   end
 
   describe '#add' do
-    let(:easy) { EthonSupport.ethon_easy_new }
+    let(:easy) { Ethon::Easy.new }
     let(:span) { easy.instance_eval { @datadog_span } }
     let(:multi_span) { multi.instance_eval { @datadog_multi_span } }
     let(:multi) { ::Ethon::Multi.new }
@@ -61,7 +59,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
   end
 
   describe '#perform' do
-    let(:easy) { EthonSupport.ethon_easy_new }
+    let(:easy) { Ethon::Easy.new }
     let(:easy_span) { spans.find { |span| span.name == 'ethon.request' } }
     let(:multi_span) { spans.find { |span| span.name == 'ethon.multi.request' } }
     let(:multi) { ::Ethon::Multi.new }

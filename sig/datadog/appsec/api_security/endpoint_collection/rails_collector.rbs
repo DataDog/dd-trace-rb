@@ -1,0 +1,21 @@
+module Datadog
+  module AppSec
+    module APISecurity
+      module EndpointCollection
+        class RailsCollector
+          @routes: Array[_RailsRoute]
+
+          def initialize: (Array[_RailsRoute] routes) -> void
+
+          def to_enum: () -> Enumerator[Core::Telemetry::Event::AppEndpointsLoaded::endpoint]
+
+          private
+
+          def mounted_grape_app?: (_RackApp rack_app) -> bool
+
+          def mounted_sinatra_app?: (_RackApp rack_app) -> bool
+        end
+      end
+    end
+  end
+end

@@ -683,6 +683,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "records allocated objects" do
+        # TODO: Remove this when Ruby 3.5.0-preview1 is removed from CI
+        pending('Allocation profiling call not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('3.5.0preview1')
+
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 
         start
@@ -865,6 +868,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       before do
         skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+        skip "Heap profiling is disabled on Ruby 4 until https://bugs.ruby-lang.org/issues/21710 is fixed" if RUBY_VERSION.start_with?("4.")
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
@@ -881,6 +885,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "records live heap objects" do
+        # TODO: Ruby 3.5 - Remove this skip after investigation.
+        skip('Heap profiling not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('preview')
+
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 
         start
@@ -1037,11 +1044,23 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         skip_if_signal_handler_sampling_not_supported
 
-        start
+        GC.start
 
-        loop_until { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
+        begin
+          # The expectations below compare number of enqueued samples with actual samples. To avoid flakiness from a
+          # slow GC in the middle of the test causing less samples than expected to be taken (since we only sample after
+          # GC ends), we disable GC during the test setup.
+          # (Note for future changes: Be careful with what you do with GC disabled!)
+          GC.disable
 
-        cpu_and_wall_time_worker.stop
+          start
+
+          loop_until(check_condition_every_seconds: 0.01) { cpu_and_wall_time_worker.stats.fetch(:signal_handler_enqueued_sample) >= 20 }
+
+          cpu_and_wall_time_worker.stop
+        ensure
+          GC.enable
+        end
 
         expect(sample_count).to be > 0
         expect(sample_count).to be_within(20).percent_of(signal_handler_enqueued_sample)
@@ -1165,7 +1184,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal
-              end.take
+              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
             end
           )
       end
@@ -1177,7 +1196,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_sample_from_postponed_job
-              end.take
+              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
             end
           )
       end
@@ -1642,10 +1661,21 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     )
   end
 
-  def loop_until(timeout_seconds: 5)
-    deadline = Time.now + timeout_seconds
+  def loop_until(timeout_seconds: 5, check_condition_every_seconds: 0)
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
 
-    while Time.now < deadline
+    deadline = started_at + timeout_seconds
+    condition_deadline = started_at + check_condition_every_seconds
+
+    while (now = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)) < deadline
+      if check_condition_every_seconds > 0
+        if now >= condition_deadline
+          condition_deadline = now + check_condition_every_seconds
+        else
+          next
+        end
+      end
+
       result = yield
       return result if result
     end

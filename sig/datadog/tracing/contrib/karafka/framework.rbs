@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Karafka
+        module Framework
+          def self.setup: () -> untyped
+
+          def self.activate_waterdrop!: (untyped datadog_config, untyped karafka_config) -> untyped
+        end
+      end
+    end
+  end
+end

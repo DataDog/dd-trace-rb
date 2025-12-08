@@ -7,10 +7,12 @@ module Datadog
       #
       # @api private
       class Expression
-        def initialize(compiled_expr)
+        def initialize(dsl_expr, compiled_expr)
           unless String === compiled_expr
             raise ArgumentError, "compiled_expr must be a string"
           end
+
+          @dsl_expr = dsl_expr
 
           cls = Class.new(Evaluator)
           cls.class_exec do
@@ -24,6 +26,7 @@ module Datadog
           @evaluator = cls.new
         end
 
+        attr_reader :dsl_expr
         attr_reader :evaluator
 
         def evaluate(context)

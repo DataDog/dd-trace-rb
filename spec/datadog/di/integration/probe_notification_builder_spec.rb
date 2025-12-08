@@ -63,7 +63,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:context) do
-          Datadog::DI::EL::Context.new(
+          Datadog::DI::Context.new(
             settings: settings, serializer: serializer,
             probe: probe, locals: locals, target_self: Object.new
           )
@@ -72,7 +72,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         it 'builds expected payload' do
           payload = builder.build_snapshot(context)
           expect(payload).to be_a(Hash)
-          expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to eq(captures)
+          expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq(captures)
         end
       end
     end
@@ -115,7 +115,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:context) do
-          Datadog::DI::EL::Context.new(
+          Datadog::DI::Context.new(
             settings: settings, serializer: serializer,
             probe: probe, serialized_entry_args: serialized_entry_args,
             target_self: Object.new
@@ -125,7 +125,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         it 'builds expected payload' do
           payload = builder.build_snapshot(context)
           expect(payload).to be_a(Hash)
-          captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
           expect(captures).to eq(expected_captures)
         end
       end
@@ -141,7 +141,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         let(:segments) do
           [
             {str: 'hello'},
-            {json: {ref: 'bar'}},
+            {json: {ref: 'bar'}, dsl: '(expression)'},
           ]
         end
 
@@ -150,7 +150,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:context) do
-          Datadog::DI::EL::Context.new(
+          Datadog::DI::Context.new(
             settings: settings, serializer: serializer,
             probe: probe,
             target_self: Object.new,
@@ -166,14 +166,14 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           expect(payload[:message]).to eq 'hello42'
 
           # We asked to not create a snapshot
-          expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+          expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
         end
 
         context 'when there is an evaluation error' do
           let(:segments) do
             [
               {str: 'hello'},
-              {json: {substring: ['bar', 'baz', 3]}},
+              {json: {substring: ['bar', 'baz', 3]}, dsl: '(expression)'},
             ]
           end
 
@@ -181,10 +181,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             payload = builder.build_snapshot(context)
             expect(payload).to be_a(Hash)
             expect(payload[:message]).to eq "hello[evaluation error]"
-            expect(payload[:"debugger.snapshot"][:evaluationErrors]).to eq ['ArgumentError: bad value for range']
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:evaluationErrors)).to eq [
+              {message: 'ArgumentError: bad value for range', expr: '(expression)'}
+            ]
 
             # We asked to not create a snapshot
-            expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
           end
         end
 
@@ -192,8 +194,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           let(:segments) do
             [
               {str: 'hello'},
-              {json: {substring: ['bar', 'baz', 3]}},
-              {json: {filter: ['bar', 'baz']}},
+              {json: {substring: ['bar', 'baz', 3]}, dsl: '(bar baz 3)'},
+              {json: {filter: ['bar', 'baz']}, dsl: '(bar baz)'},
               {str: 'hello'},
             ]
           end
@@ -202,19 +204,19 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             payload = builder.build_snapshot(context)
             expect(payload).to be_a(Hash)
             expect(payload[:message]).to eq "hello[evaluation error][evaluation error]hello"
-            expect(payload[:"debugger.snapshot"][:evaluationErrors]).to eq [
-              'ArgumentError: bad value for range',
-              'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: String',
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:evaluationErrors)).to eq [
+              {message: 'ArgumentError: bad value for range', expr: '(bar baz 3)'},
+              {message: 'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: String', expr: '(bar baz)'},
             ]
 
             # We asked to not create a snapshot
-            expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
           end
         end
 
         context 'when variables are referenced but none are passed in' do
           let(:context) do
-            Datadog::DI::EL::Context.new(
+            Datadog::DI::Context.new(
               settings: settings, serializer: serializer,
               probe: probe,
               target_self: Object.new,
@@ -224,10 +226,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           it 'builds message with nothing substituted for variables' do
             payload = builder.build_snapshot(context)
             expect(payload).to be_a(Hash)
-            expect(payload[:message]).to eq 'hello'
+            # TODO maybe this output is suboptimal but we need more
+            # complexity to handle missing variable references without
+            # serializing nil as empty string everywhere.
+            expect(payload[:message]).to eq 'hellonil'
 
             # We asked to not create a snapshot
-            expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
           end
         end
       end

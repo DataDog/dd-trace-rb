@@ -10,7 +10,7 @@ require_relative 'gateway/watcher'
 require_relative 'gateway/request'
 require_relative 'patches/render_to_body_patch'
 require_relative 'patches/process_action_patch'
-require_relative '../../api_security/endpoint_collection/rails_routes_serializer'
+require_relative '../../api_security/endpoint_collection/rails_collector'
 
 require_relative '../../../tracing/contrib/rack/middlewares'
 
@@ -149,14 +149,16 @@ module Datadog
             # We do not support Rails 4.x for Endpoint Collection,
             # mainly because the Route#verb was a Regexp before Rails 5.0
             return if target_version < Gem::Version.new('5.0')
-
             return unless Datadog.configuration.appsec.api_security.endpoint_collection.enabled
+            return unless AppSec.telemetry
 
-            GUARD_ROUTES_REPORTING_ONCE_PER_APP[self].run do
+            GUARD_ROUTES_REPORTING_ONCE_PER_APP[::Rails.application].run do
               AppSec.telemetry.app_endpoints_loaded(
-                APISecurity::EndpointCollection::RailsRoutesSerializer.new(routes).to_enum
+                APISecurity::EndpointCollection::RailsCollector.new(routes).to_enum
               )
             end
+          rescue => e
+            AppSec.telemetry&.report(e, description: 'failed to report application endpoints')
           end
 
           def setup_security

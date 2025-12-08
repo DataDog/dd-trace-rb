@@ -2,13 +2,15 @@ module Datadog
   module DI
     module EL
       class Expression
-        @compiled_expr: untyped
+        @dsl_expr: untyped
 
-        def initialize: (untyped compiled_expr) -> void
+        @evaluator: untyped
 
-        attr_reader compiled_expr: untyped
+        def initialize: (untyped dsl_expr, untyped compiled_expr) -> void
 
-        def ==: (untyped other) -> untyped
+        attr_reader dsl_expr: untyped
+
+        attr_reader evaluator: untyped
 
         def evaluate: (untyped context) -> untyped
 

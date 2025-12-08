@@ -79,6 +79,9 @@
     "DD_CRASHTRACKING_ENABLED": {
       "version": ["A"]
     },
+    "DD_DATA_STREAMS_ENABLED": {
+      "version": ["A"]
+    },
     "DD_DBM_PROPAGATION_MODE": {
       "version": ["A"]
     },
@@ -106,6 +109,12 @@
     "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE": {
       "version": ["A"]
     },
+    "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED": {
+      "version": ["A"]
+    },
+    "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": {
+      "version": ["A"]
+    },    
     "DD_GIT_COMMIT_SHA": {
       "version": ["A"]
     },
@@ -140,6 +149,9 @@
       "version": ["A"]
     },
     "DD_METRIC_AGENT_PORT": {
+      "version": ["A"]
+    },
+    "DD_METRICS_OTEL_ENABLED": {
       "version": ["A"]
     },
     "DD_PROFILING_ALLOCATION_ENABLED": {
@@ -565,10 +577,16 @@
     "DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE": {
       "version": ["A"]
     },
+    "DD_TRACE_HTTP_CLIENT_ERROR_STATUSES": {
+      "version": ["A"]
+    },
     "DD_TRACE_HTTP_ENABLED": {
       "version": ["A"]
     },
     "DD_TRACE_HTTP_ERROR_STATUS_CODES": {
+      "version": ["A"]
+    },
+    "DD_TRACE_HTTP_SERVER_ERROR_STATUSES": {
       "version": ["A"]
     },
     "DD_TRACE_KAFKA_ANALYTICS_ENABLED": {
@@ -772,6 +790,12 @@
     "DD_TRACE_REPORT_HOSTNAME": {
       "version": ["A"]
     },
+    "DD_TRACE_RESOURCE_RENAMING_ENABLED": {
+      "version": ["A"]
+    },
+    "DD_TRACE_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT": {
+      "version": ["A"]
+    },
     "DD_TRACE_RESQUE_ANALYTICS_ENABLED": {
       "version": ["A"]
     },
@@ -892,10 +916,49 @@
     "DD_TRACE_TRILOGY_SERVICE_NAME": {
       "version": ["A"]
     },
+    "DD_TRACE_WATERDROP_ENABLED": {
+      "version": ["A"]
+    },
     "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH": {
       "version": ["A"]
     },
     "DD_VERSION": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_ENDPOINT": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_HEADERS": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_HEADERS": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_PROTOCOL": {
+      "version": ["A"]
+    },
+    "OTEL_EXPORTER_OTLP_TIMEOUT": {
+      "version": ["A"]
+    },
+    "OTEL_METRIC_EXPORT_INTERVAL": {
+      "version": ["A"]
+    },
+    "OTEL_METRIC_EXPORT_TIMEOUT": {
+      "version": ["A"]
+    },
+    "OTEL_METRICS_EXPORTER": {
       "version": ["A"]
     },
     "OTEL_TRACES_SAMPLER_ARG": {

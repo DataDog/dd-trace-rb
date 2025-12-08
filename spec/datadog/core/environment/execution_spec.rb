@@ -174,6 +174,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
               source 'https://rubygems.org'
 
               gem 'cucumber', '>= 3', '<= 9.2.1'
+              gem 'logger' # Required for Ruby 3.5+ where logger is no longer a default gem
             end
 
             load Gem.bin_path('cucumber', 'cucumber')

@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/release-24.11";
+    nixpkgs.url = "github:nixos/nixpkgs/release-25.05";
 
     # cross-platform convenience
     flake-utils.url = "github:numtide/flake-utils";
@@ -36,6 +36,8 @@
 
           # enable implicitly resolving gems to bundled version
           export RUBYGEMS_GEMDEPS="$(pwd)/Gemfile"
+
+          export SKIP_SIMPLECOV=1
         '';
 
         deps = [

@@ -7,7 +7,7 @@ gem "benchmark-memory", "< 0.2"
 gem "climate_control", "~> 1.2.0"
 gem "concurrent-ruby"
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
-gem "extlz4", "~> 0.3", ">= 0.3.3"
+gem "zstd-ruby"
 gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
 gem "json-schema", "< 3"
 gem "memory_profiler", "~> 0.9"
@@ -27,12 +27,14 @@ gem "webmock", ">= 3.10.0"
 gem "webrick", ">= 1.7.0"
 gem "devise", "~> 4.9"
 gem "faraday", "~> 2.0"
+gem "grape"
 gem "excon", "~> 1.2"
 gem "rest-client"
 gem "rack", "~> 2"
 gem "rack-contrib", "~> 2"
 gem "rack-test"
 gem "rails", "~> 7.0"
+gem "sinatra"
 gem "sqlite3", ">= 1.4.2", platform: :ruby
 
 group :check do

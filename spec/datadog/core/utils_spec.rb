@@ -96,6 +96,22 @@ RSpec.describe Datadog::Core::Utils do
         end
       end
     end
+
+    context 'with valid and invalid characters in the string' do
+      let(:str) { "test\x99\x8faaa".force_encoding(Encoding::ASCII_8BIT) }
+
+      it 'returns an empty string' do
+        is_expected.to eq(Datadog::Core::Utils::EMPTY_STRING)
+      end
+    end
+
+    context 'with Unicode characters' do
+      let(:str) { 'ünicöde' }
+
+      it 'preserves the original string' do
+        is_expected.to eq(str)
+      end
+    end
   end
 
   describe '.without_warnings' do

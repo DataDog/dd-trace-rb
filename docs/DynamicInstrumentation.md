@@ -1,5 +1,34 @@
 # Dynamic Instrumentation
 
+## Instrumentable Code
+
+Instrumentation can be installed on lines containing executable code and
+the final lines of a method (which does not contain executable code).
+The following example Ruby method is annotated with which lines can be
+targeted by dynamic instrumentation:
+
+    def foo(param)              # No    (*1)
+      rv = if param == 1        # Yes
+        'yes'                   # Yes
+      else                      # No
+        'no'                    # Yes
+      end                       # No    (*2)
+      rv                        # Yes
+    end                         # Yes   (*3)
+
+Note that the method definition line (*1) is executable and can be targeted
+if you wish to instrument the method definition, but if you want to instrument
+the defined method, you must set the line probe on a line inside of the
+method and not on the method definition line itself.
+
+Note that only the "end" that ends a method definition is specially handled
+(*3); other "end" lines, such as (*2), are not instrumentable.
+
+Dynamic instrumentation is not currently able to report when line probes target
+non-executable lines. Setting line probes on non-executable lines will succeed
+(the UI will report that the code is instrumented, if the referenced file
+is loaded and tracked), but no events will be emitted.
+
 ## Expression Language
 
 `dd-trace-rb` supports Dynamic Instrumentation expression language for
@@ -38,3 +67,17 @@ performance reasons.
 possible to guarantee that it will not invoke application code
 (since all operations in Ruby can be redefined at runtime, even for example
 addition of numbers).
+
+## Application Data Sent to Datadog
+
+Dynamic instrumentation sends some of the application data to Datadog.
+The following data is generally sent:
+
+- Class names of objects.
+- Serialized object values, subject to redaction. There are built-in
+redaction rules based on identifier names that are always active.
+Additionally, it is possible to provide a list of class names whose
+object values should always be redacted, and a list of additional
+identifiers to be redacted.
+- Exception class names and messages.
+- Exception stack traces.

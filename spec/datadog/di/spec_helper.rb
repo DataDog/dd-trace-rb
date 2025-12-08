@@ -100,6 +100,13 @@ module DIHelpers
     def instance_double_agent_settings
       instance_double(Datadog::Core::Configuration::AgentSettings)
     end
+
+    def instance_double_agent_settings_with_stubs
+      instance_double(
+        Datadog::Core::Configuration::AgentSettings,
+        hostname: "test-host", port: 9000, timeout_seconds: 1, ssl: false
+      )
+    end
   end
 end
 

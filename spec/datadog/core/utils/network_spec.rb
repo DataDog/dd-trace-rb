@@ -25,6 +25,52 @@ RSpec.describe Datadog::Core::Utils::Network do
           result = described_class.stripped_ip_from_request_headers(headers)
           expect(result).to eq('43.43.43.43')
         end
+
+        it 'does not return IPs from carrier-grade NAT IP range' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'X-Forwarded-For' => '100.64.0.105,43.43.43.43,fe80::1'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('43.43.43.43')
+        end
+      end
+
+      context 'with Forwaded header' do
+        it 'correctly parses a single for IP' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for=43.43.43.43;proto=http;by=203.0.113.43'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('43.43.43.43')
+        end
+
+        it 'is case-insencitive to keys in the header' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'For=43.43.43.43; Proto=http; By=203.0.113.43'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('43.43.43.43')
+        end
+
+        it 'correctly parses multiple for IPs' do
+          headers = Datadog::Core::HeaderCollection.from_hash(
+            {'Forwarded' => 'for=127.0.0.1;host="example.host";by=2.2.2.2;proto=http,for="1.1.1.1:6543"'}
+          )
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('1.1.1.1')
+        end
+
+        it 'correctly parses IPv6' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'for="[2001:db8:cafe::17]:4711"'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to eq('2001:db8:cafe::17')
+        end
+
+        it 'returns nil for invalid values' do
+          headers = Datadog::Core::HeaderCollection.from_hash({'Forwarded' => 'foobar'})
+
+          result = described_class.stripped_ip_from_request_headers(headers)
+          expect(result).to be_nil
+        end
       end
 
       context 'with custom header value' do

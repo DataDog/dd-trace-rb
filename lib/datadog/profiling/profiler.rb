@@ -17,6 +17,10 @@ module Datadog
         @scheduler = scheduler
       end
 
+      def enabled?
+        scheduler.running?
+      end
+
       def start
         after_fork! do
           worker.reset_after_fork

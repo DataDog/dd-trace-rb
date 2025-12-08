@@ -1,39 +1,37 @@
-=begin
-
-"Instrumentation" part of Dynamic Instrumentation benchmarks.
-
-Typical result:
-
-Comparison:
-  no instrumentation:   589490.0 i/s
-method instrumentation - cleared:   545807.2 i/s - 1.08x  slower
-line instrumentation - cleared:   539686.5 i/s - 1.09x  slower
-no instrumentation - again:   535761.0 i/s - 1.10x  slower
-method instrumentation:   129159.5 i/s - 4.56x  slower
-line instrumentation - targeted:   128848.6 i/s - 4.58x  slower
-line instrumentation:    10771.7 i/s - 54.73x  slower
-
-Targeted line and method instrumentations have similar performance at
-about 25% of baseline. Note that the instrumented method is fairly
-small and probably runs very quickly by itself, so while this is not the
-worst possible case for instrumentation (that would be an empty method),
-likely the vast majority of real world uses of DI would have way expensive
-target code and the relative overhead of instrumentation will be significantly
-lower than it is in this benchmark.
-
-Untargeted line instrumentation is extremely slow, too slow to be usable.
-
-In theory, after instrumentation is removed, performance should return to
-the baseline. We are currently observing about a 6-10% performance loss.
-Two theories for why this is so:
-1. Some overhead remains in the code - to be investigated.
-2. The benchmarks were run on a laptop, and during the benchmarking
-process the CPU is heating up and it can't turbo to the same speeds at
-the end of the run as it can at the beginning. Meaning the observed 6-10%
-slowdown at the end is an environmental issue and not an implementation
-problem.
-
-=end
+#
+# "Instrumentation" part of Dynamic Instrumentation benchmarks.
+#
+# Typical result:
+#
+# Comparison:
+#   no instrumentation:   589490.0 i/s
+# method instrumentation - cleared:   545807.2 i/s - 1.08x  slower
+# line instrumentation - cleared:   539686.5 i/s - 1.09x  slower
+# no instrumentation - again:   535761.0 i/s - 1.10x  slower
+# method instrumentation:   129159.5 i/s - 4.56x  slower
+# line instrumentation - targeted:   128848.6 i/s - 4.58x  slower
+# line instrumentation:    10771.7 i/s - 54.73x  slower
+#
+# Targeted line and method instrumentations have similar performance at
+# about 25% of baseline. Note that the instrumented method is fairly
+# small and probably runs very quickly by itself, so while this is not the
+# worst possible case for instrumentation (that would be an empty method),
+# likely the vast majority of real world uses of DI would have way expensive
+# target code and the relative overhead of instrumentation will be significantly
+# lower than it is in this benchmark.
+#
+# Untargeted line instrumentation is extremely slow, too slow to be usable.
+#
+# In theory, after instrumentation is removed, performance should return to
+# the baseline. We are currently observing about a 6-10% performance loss.
+# Two theories for why this is so:
+# 1. Some overhead remains in the code - to be investigated.
+# 2. The benchmarks were run on a laptop, and during the benchmarking
+# process the CPU is heating up and it can't turbo to the same speeds at
+# the end of the run as it can at the beginning. Meaning the observed 6-10%
+# slowdown at the end is an environmental issue and not an implementation
+# problem.
+#
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
@@ -45,6 +43,11 @@ require 'datadog'
 # Need to require datadog/di explicitly because dynamic instrumentation is not
 # currently integrated into the Ruby tracer due to being under development.
 require 'datadog/di'
+begin
+  require 'datadog/di/proc_responder'
+rescue LoadError
+  # Old tree
+end
 
 class DIInstrumentBenchmark
   class Target
@@ -72,7 +75,7 @@ class DIInstrumentBenchmark
   attr_reader :instrumenter
 
   def logger
-    @logger ||= Logger.new(STDERR)
+    @logger ||= Logger.new($stderr)
   end
 
   def configure
@@ -92,7 +95,7 @@ class DIInstrumentBenchmark
     file, line = m.source_location
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -108,15 +111,21 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       type_name: 'DIInstrumentBenchmark::Target', method_name: 'test_method')
-    rv = instrumenter.hook_method(probe) do
+    executed_proc = lambda do |context|
       calls += 1
+    end
+    if defined?(Datadog::DI::ProcResponder)
+      responder = Datadog::DI::ProcResponder.new(executed_proc)
+      rv = instrumenter.hook_method(probe, responder)
+    else
+      rv = instrumenter.hook_method(probe, &executed_proc)
     end
     unless rv
       raise "Method probe was not successfully installed"
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -151,15 +160,18 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: file, line_no: line + 1)
-    rv = instrumenter.hook_line(probe) do
-      calls += 1
+    if defined?(Datadog::DI::ProcResponder)
+      responder = Datadog::DI::ProcResponder.new(executed_proc)
+      rv = instrumenter.hook_line(probe, responder)
+    else
+      rv = instrumenter.hook_line(probe, &executed_proc)
     end
     unless rv
       raise "Line probe (in method) was not successfully installed"
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -200,15 +212,17 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: targeted_file, line_no: targeted_line + 1)
-    rv = instrumenter.hook_line(probe) do
-      calls += 1
+    rv = if defined?(Datadog::DI::ProcResponder)
+      instrumenter.hook_line(probe, responder)
+    else
+      instrumenter.hook_line(probe, &executed_proc)
     end
     unless rv
       raise "Line probe (targeted) was not successfully installed"
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -237,7 +251,7 @@ class DIInstrumentBenchmark
     calls = 0
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -257,7 +271,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -277,7 +291,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
         **benchmark_time,
       )
@@ -289,9 +303,7 @@ class DIInstrumentBenchmark
       x.save! 'di-instrument-results.json' unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
-
   end
-
 end
 
 puts "Current pid is #{Process.pid}"

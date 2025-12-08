@@ -1,7 +1,7 @@
 require 'English'
 
 module SynchronizationHelpers
-  def expect_in_fork(fork_expectations: nil, timeout_seconds: 10)
+  def expect_in_fork(fork_expectations: nil, timeout_seconds: 10, trigger_stacktrace_on_kill: false)
     fork_expectations ||= proc { |status:, stdout:, stderr:|
       expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
     }
@@ -13,13 +13,12 @@ module SynchronizationHelpers
       pid = fork do
         # Capture forked output
         $stdout.reopen(fork_stdout)
+        $stdout.sync = true
         $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
+        $stderr.sync = true
 
         yield
       end
-
-      fork_stderr.close
-      fork_stdout.close
 
       # Wait for fork to finish, retrieve its status.
       # Enforce timeout to ensure test fork doesn't hang the test suite.
@@ -36,10 +35,23 @@ module SynchronizationHelpers
 
       result
     rescue => e
-      stdout ||= File.read(fork_stdout.path)
-      stderr ||= File.read(fork_stderr.path)
+      crash_note = nil
 
-      raise "Failure or timeout in `expect_in_fork`, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", cause: e
+      if trigger_stacktrace_on_kill
+        crash_note = ' (Crashing Ruby to get stacktrace as requested by `trigger_stacktrace_on_kill`)'
+        begin
+          Process.kill('SEGV', pid)
+          warn "Waiting for child process to exit after SEGV signal... #{crash_note}"
+          Process.wait(pid)
+        rescue
+          nil
+        end
+      end
+
+      stdout = File.read(fork_stdout.path)
+      stderr = File.read(fork_stderr.path)
+
+      raise "Failure or timeout in `expect_in_fork`#{crash_note}, STDOUT: `#{stdout}`, STDERR: `#{stderr}`", cause: e
     ensure
       begin
         Process.kill('KILL', pid)
@@ -47,6 +59,8 @@ module SynchronizationHelpers
         nil
       end # Prevent zombie processes on failure
 
+      fork_stderr.close
+      fork_stdout.close
       fork_stdout.unlink
       fork_stderr.unlink
     end

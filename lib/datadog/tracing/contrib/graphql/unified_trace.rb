@@ -176,6 +176,26 @@ module Datadog
             "#{type.graphql_name}.resolve_type"
           end
 
+          # Serialize error's `locations` array as an array of Strings, given
+          # Span Events do not support hashes nested inside arrays.
+          #
+          # Here's an example in which `locations`:
+          #   [
+          #    {"line" => 3, "column" => 10},
+          #    {"line" => 7, "column" => 8},
+          #   ]
+          # is serialized as:
+          #   ["3:10", "7:8"]
+          def self.serialize_error_locations(locations)
+            # locations are only provided by the `graphql` library when the error can
+            # be associated to a particular point in the query.
+            return [] if locations.nil?
+
+            locations.map do |location|
+              "#{location["line"]}:#{location["column"]}"
+            end
+          end
+
           private
 
           # Traces the given callable with the given trace key, resource, and kwargs.
@@ -268,26 +288,11 @@ module Datadog
                   @type_key => parsed_error.type,
                   @stacktrace_key => parsed_error.backtrace,
                   @message_key => graphql_error['message'],
-                  @locations_key => serialize_error_locations(graphql_error['locations']),
+                  @locations_key =>
+                    Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.serialize_error_locations(graphql_error['locations']),
                   @path_key => graphql_error['path'],
                 )
               )
-            end
-          end
-
-          # Serialize error's `locations` array as an array of Strings, given
-          # Span Events do not support hashes nested inside arrays.
-          #
-          # Here's an example in which `locations`:
-          #   [
-          #    {"line" => 3, "column" => 10},
-          #    {"line" => 7, "column" => 8},
-          #   ]
-          # is serialized as:
-          #   ["3:10", "7:8"]
-          def serialize_error_locations(locations)
-            locations.map do |location|
-              "#{location["line"]}:#{location["column"]}"
             end
           end
         end

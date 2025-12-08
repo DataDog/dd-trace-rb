@@ -183,7 +183,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       include_context 'HTTP server'
 
       let(:request) do
-        messages.first
+        # first message is a ping
+        messages[1]
       end
 
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }

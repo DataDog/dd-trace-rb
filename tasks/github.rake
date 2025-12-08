@@ -46,8 +46,9 @@ namespace :github do
       end
     end
 
-    # Random!
-    matching_tasks.shuffle!
+    # Seed
+    rng = (ENV['CI_TEST_SEED'] && ENV['CI_TEST_SEED'] != '') ? Random.new(ENV['CI_TEST_SEED'].to_i) : Random.new
+    matching_tasks.shuffle!(random: rng)
 
     batch_count = 7
     batch_count *= 2 if RUBY_PLATFORM == 'java'
@@ -61,6 +62,7 @@ namespace :github do
     end
 
     data = {
+      seed: rng.seed,
       batches: batched_matrix,
       misc: {'include' => [{'batch' => "0", 'tasks' => misc_tasks}]}
     }
@@ -77,6 +79,7 @@ namespace :github do
     summary = ENV['GITHUB_STEP_SUMMARY']
 
     File.open(summary, 'a') do |f|
+      f.puts "*__Seed__: #{ENV["CI_TEST_SEED"]}*"
       data['include'].each do |batch|
         rows = batch['tasks'].map do |t|
           "* #{t["task"]} (#{t["group"]})"
@@ -118,9 +121,11 @@ namespace :github do
   task :run_batch_tests do
     tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
 
+    rng = Random.new(ENV['CI_TEST_SEED'].to_i)
+
     tasks.each do |task|
       env = {'BUNDLE_GEMFILE' => task['gemfile']}
-      cmd = "bundle exec rake spec:#{task["task"]}"
+      cmd = "bundle exec rake spec:#{task["task"]}['--seed #{rng.rand(0xFFFF)}']"
 
       Bundler.with_unbundled_env { sh(env, cmd) }
     end

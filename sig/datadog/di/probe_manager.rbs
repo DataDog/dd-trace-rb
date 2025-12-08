@@ -45,11 +45,6 @@ module Datadog
       def pending_probes: () -> untyped
       def failed_probes: () -> untyped
       def add_probe: (untyped probe) -> untyped
-
-      private
-      def do_add_probe: (untyped probe) -> untyped
-
-      public
       def remove_other_probes: (untyped probe_ids) -> untyped
 
       private
@@ -57,7 +52,9 @@ module Datadog
 
       public
       def install_pending_line_probes: (untyped path) -> untyped
-      def probe_executed_callback: (EL::Context context) -> untyped
+      def probe_executed_callback: (untyped context) -> untyped
+
+      def probe_condition_evaluation_failed_callback: (untyped context, untyped expr, untyped exc) -> untyped
       attr_reader definition_trace_point: untyped
     end
   end

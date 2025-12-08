@@ -2,8 +2,13 @@ module Datadog
   module Core
     module Configuration
       module StableConfig
+        LOG_ONLY_ONCE: Datadog::Core::Utils::OnlyOnce
 
-        type stable_config = Hash[Symbol, Hash[String, String]]
+        type stable_config = {
+          ?logs: String?,
+          ?local: Hash[String, String],
+          ?fleet: Hash[String, String]
+        }
 
         class Configurator
           def initialize: -> void
@@ -14,6 +19,7 @@ module Datadog
 
         def self.extract_configuration: -> stable_config
         def self.configuration: -> stable_config
+        def self.log_result: (Datadog::Core::Logger logger) -> void
       end
     end
   end

@@ -15,7 +15,7 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
 
       it do
         expect(Datadog.logger).not_to receive(:warn)
-        expect(telemetry).to receive(:report).with(exception, level: :error, description: 'Oops...', pii_safe: false)
+        expect(telemetry).to receive(:report).with(exception, level: :error, description: 'Oops...')
 
         described_class.report(exception, level: :error, description: 'Oops...')
       end
@@ -23,18 +23,9 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
       context 'when only given an exception' do
         it do
           expect(Datadog.logger).not_to receive(:warn)
-          expect(telemetry).to receive(:report).with(exception, level: :error, description: nil, pii_safe: false)
+          expect(telemetry).to receive(:report).with(exception, level: :error, description: nil)
 
           described_class.report(exception)
-        end
-      end
-
-      context 'when pii_safe is true' do
-        it do
-          expect(Datadog.logger).not_to receive(:warn)
-          expect(telemetry).to receive(:report).with(exception, level: :error, description: nil, pii_safe: true)
-
-          described_class.report(exception, pii_safe: true)
         end
       end
     end

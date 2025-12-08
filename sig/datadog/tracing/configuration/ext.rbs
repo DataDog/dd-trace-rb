@@ -4,6 +4,8 @@ module Datadog
       module Ext
         ENV_ENABLED: "DD_TRACE_ENABLED"
         ENV_BAGGAGE_TAG_KEYS: "DD_TRACE_BAGGAGE_TAG_KEYS"
+        ENV_RESOURCE_RENAMING_ENABLED: ::String
+        ENV_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT: ::String
 
         ENV_TRACE_ID_128_BIT_GENERATION_ENABLED: "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED"
         module SpanAttributeSchema
@@ -62,6 +64,10 @@ module Datadog
           ENV_DISABLED: "DD_TRACE_CLIENT_IP_HEADER_DISABLED"
 
           ENV_HEADER_NAME: "DD_TRACE_CLIENT_IP_HEADER"
+        end
+
+        module HTTPErrorStatuses
+          ENV_SERVER_ERROR_STATUSES: "DD_TRACE_HTTP_SERVER_ERROR_STATUSES"
         end
       end
     end

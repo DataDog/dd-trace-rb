@@ -11,7 +11,7 @@ static VALUE _native_configurator_get(VALUE self);
 static VALUE _native_configurator_with_local_path(DDTRACE_UNUSED VALUE _self, VALUE rb_configurator, VALUE path);
 static VALUE _native_configurator_with_fleet_path(DDTRACE_UNUSED VALUE _self, VALUE rb_configurator, VALUE path);
 
-static VALUE config_vec_class = Qnil;
+static VALUE config_logged_result_class = Qnil;
 
 // ddog_Configurator memory management
 static void configurator_free(void *configurator_ptr) {
@@ -29,29 +29,29 @@ static const rb_data_type_t configurator_typed_data = {
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
 
-// ddog_Vec_LibraryConfig memory management
-static void config_vec_free(void *config_vec_ptr) {
-  ddog_Vec_LibraryConfig *config_vec = (ddog_Vec_LibraryConfig *)config_vec_ptr;
+// ddog_LibraryConfigLoggedResult memory management
+static void config_logged_result_free(void *config_logged_result_ptr) {
+  ddog_LibraryConfigLoggedResult *config_logged_result = (ddog_LibraryConfigLoggedResult *)config_logged_result_ptr;
 
-  ddog_library_config_drop(*config_vec);
-  ruby_xfree(config_vec_ptr);
+  ddog_library_config_drop(*config_logged_result);
+  ruby_xfree(config_logged_result_ptr);
 }
 
-static const rb_data_type_t config_vec_typed_data = {
-  .wrap_struct_name = "Datadog::Core::Configuration::StableConfigVec",
+static const rb_data_type_t config_logged_result_typed_data = {
+  .wrap_struct_name = "Datadog::Core::Configuration::StableConfigLoggedResult",
   .function = {
-    .dfree = config_vec_free,
+    .dfree = config_logged_result_free,
     .dsize = NULL,
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
 
 void library_config_init(VALUE core_module) {
-  rb_global_variable(&config_vec_class);
+  rb_global_variable(&config_logged_result_class);
   VALUE configuration_module = rb_define_module_under(core_module, "Configuration");
   VALUE stable_config_module = rb_define_module_under(configuration_module, "StableConfig");
   VALUE configurator_class = rb_define_class_under(stable_config_module, "Configurator", rb_cObject);
-  config_vec_class = rb_define_class_under(configuration_module, "StableConfigVec", rb_cObject);
+  config_logged_result_class = rb_define_class_under(configuration_module, "StableConfigLoggedResult", rb_cObject);
 
   rb_define_alloc_func(configurator_class, _native_configurator_new);
   rb_define_method(configurator_class, "get", _native_configurator_get, 0);
@@ -61,11 +61,12 @@ void library_config_init(VALUE core_module) {
   rb_define_singleton_method(testing_module, "with_local_path", _native_configurator_with_local_path, 2);
   rb_define_singleton_method(testing_module, "with_fleet_path", _native_configurator_with_fleet_path, 2);
 
-  rb_undef_alloc_func(config_vec_class); // It cannot be created from Ruby code and only serves as an intermediate object for the Ruby GC
+  rb_undef_alloc_func(config_logged_result_class); // It cannot be created from Ruby code and only serves as an intermediate object for the Ruby GC
 }
 
 static VALUE _native_configurator_new(VALUE klass) {
-  ddog_Configurator *configurator = ddog_library_configurator_new(false, DDOG_CHARSLICE_C("ruby"));
+  // We always collect debug logs, so if DD_TRACE_DEBUG is set by stable config, we'll be able to log them.
+  ddog_Configurator *configurator = ddog_library_configurator_new(true, DDOG_CHARSLICE_C("ruby"));
 
   ddog_library_configurator_with_detect_process_info(configurator);
 
@@ -98,10 +99,11 @@ static VALUE _native_configurator_get(VALUE self) {
   ddog_Configurator *configurator;
   TypedData_Get_Struct(self, ddog_Configurator, &configurator_typed_data, configurator);
 
-  ddog_Result_VecLibraryConfig configurator_result = ddog_library_configurator_get(configurator);
+  // We don't allocate memory here so if there is an error, we don't need to manage the memory
+  ddog_LibraryConfigLoggedResult before_error_result = ddog_library_configurator_get(configurator);
 
-  if (configurator_result.tag == DDOG_RESULT_VEC_LIBRARY_CONFIG_ERR_VEC_LIBRARY_CONFIG) {
-    ddog_Error err = configurator_result.err;
+  if (before_error_result.tag == DDOG_LIBRARY_CONFIG_LOGGED_RESULT_ERR) {
+    ddog_Error err = before_error_result.err;
     VALUE message = get_error_details_and_drop(&err);
     if (is_config_loaded()) {
       log_warning(message);
@@ -111,14 +113,20 @@ static VALUE _native_configurator_get(VALUE self) {
     return rb_hash_new();
   }
 
-  // Wrapping config_vec into a Ruby object enables the Ruby GC to manage its memory
-  // We need to allocate memory for config_vec because once it is out of scope, it will be freed (at the end of this function)
-  // So we cannot reference it with &config_vec
+  // Wrapping config_logged_result into a Ruby object enables the Ruby GC to manage its memory
+  // We need to allocate memory for config_logged_result because once it is out of scope, it will be freed (at the end of this function)
   // We are doing this in case one of the ruby API raises an exception before the end of this function,
   // so the allocated memory will still be freed
-  ddog_Vec_LibraryConfig *config_vec = ruby_xmalloc(sizeof(ddog_Vec_LibraryConfig));
-  *config_vec = configurator_result.ok;
-  VALUE config_vec_rb = TypedData_Wrap_Struct(config_vec_class, &config_vec_typed_data, config_vec);
+  ddog_LibraryConfigLoggedResult *configurator_logged_result = ruby_xcalloc(1, sizeof(ddog_LibraryConfigLoggedResult));
+  *configurator_logged_result = before_error_result;
+  VALUE config_logged_result_rb = TypedData_Wrap_Struct(config_logged_result_class, &config_logged_result_typed_data, configurator_logged_result);
+
+  VALUE logs = Qnil;
+  if (configurator_logged_result->ok.logs.length > 0) {
+    logs = rb_utf8_str_new_cstr(configurator_logged_result->ok.logs.ptr);
+  }
+
+  ddog_Vec_LibraryConfig config_vec = configurator_logged_result->ok.value;
 
   VALUE local_config_hash = rb_hash_new();
   VALUE fleet_config_hash = rb_hash_new();
@@ -127,8 +135,8 @@ static VALUE _native_configurator_get(VALUE self) {
   bool fleet_config_id_set = false;
   VALUE local_hash = rb_hash_new();
   VALUE fleet_hash = rb_hash_new();
-  for (uintptr_t i = 0; i < config_vec->len; i++) {
-    ddog_LibraryConfig config = config_vec->ptr[i];
+  for (uintptr_t i = 0; i < config_vec.len; i++) {
+    ddog_LibraryConfig config = config_vec.ptr[i];
     VALUE selected_hash;
     if (config.source == DDOG_LIBRARY_CONFIG_SOURCE_LOCAL_STABLE_CONFIG) {
       selected_hash = local_config_hash;
@@ -156,9 +164,10 @@ static VALUE _native_configurator_get(VALUE self) {
   rb_hash_aset(fleet_hash, ID2SYM(rb_intern("config")), fleet_config_hash);
 
   VALUE result = rb_hash_new();
+  rb_hash_aset(result, ID2SYM(rb_intern("logs")), logs);
   rb_hash_aset(result, ID2SYM(rb_intern("local")), local_hash);
   rb_hash_aset(result, ID2SYM(rb_intern("fleet")), fleet_hash);
 
-  RB_GC_GUARD(config_vec_rb);
+  RB_GC_GUARD(config_logged_result_rb);
   return result;
 }

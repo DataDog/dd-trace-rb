@@ -20,7 +20,10 @@ RSpec.describe Datadog::AppSec::Remote do
       end
 
       it 'returns capabilities' do
-        expect(described_class.capabilities).to eq([4, 128, 16, 32, 64, 8, 256, 512, 1024, 8_388_608, 2_097_152])
+        expect(described_class.capabilities).to eq([
+          4, 128, 16, 32, 64, 8, 256, 512, 1024, 65_536, 131_072, 8_388_608, 2_097_152, 2_147_483_648,
+          4_294_967_296, 8_589_934_592, 17_179_869_184, 34_359_738_368, 8_796_093_022_208
+        ])
       end
     end
   end

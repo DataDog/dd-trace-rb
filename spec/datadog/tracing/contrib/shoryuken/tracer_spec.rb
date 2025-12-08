@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 
 require 'datadog'
 require 'shoryuken'
+require 'ostruct'
 
 RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
   let(:shoryuken_tracer) { described_class.new }

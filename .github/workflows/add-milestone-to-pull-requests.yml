@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Checkout code
         # Checks out the branch that the pull request is merged into
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.base.ref }}
@@ -29,7 +29,7 @@ jobs:
 
       - name: Get project milestones
         id: milestones
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -42,7 +42,7 @@ jobs:
 
       - name: Update Pull Request
         # Update the merged pull request with the milestone starts with the major version
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |

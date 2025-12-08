@@ -30,6 +30,13 @@ module Datadog
         # The validations here are not yet comprehensive.
         type = config.fetch('type')
         type_symbol = PROBE_TYPES[type] or raise ArgumentError, "Unrecognized probe type: #{type}"
+        cond = if cond_spec = config['when']
+          unless cond_spec['dsl'] && cond_spec['json']
+            raise ArgumentError, "Malformed condition specification for probe: #{config}"
+          end
+          compiled = EL::Compiler.new.compile(cond_spec['json'])
+          EL::Expression.new(cond_spec['dsl'], compiled)
+        end
         Probe.new(
           id: config.fetch("id"),
           type: type_symbol,
@@ -47,7 +54,7 @@ module Datadog
           max_capture_depth: config["capture"]&.[]("maxReferenceDepth"),
           max_capture_attribute_count: config["capture"]&.[]("maxFieldCount"),
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
-          condition: (cond = config.dig('when', 'json')) && EL::Compiler.new.compile(cond), # steep:ignore
+          condition: cond,
         )
       rescue KeyError => exc
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc}: #{config}"
@@ -59,7 +66,11 @@ module Datadog
             if str = segment['str']
               str
             elsif ast = segment['json']
-              EL::Compiler.new.compile(ast)
+              unless dsl = segment['dsl']
+                raise ArgumentError, "Missing dsl for json in segment: #{segment}"
+              end
+              compiled = EL::Compiler.new.compile(ast)
+              EL::Expression.new(dsl, compiled)
             else
               # TODO report to telemetry?
             end

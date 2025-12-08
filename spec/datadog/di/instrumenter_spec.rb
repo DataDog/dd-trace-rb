@@ -3,6 +3,7 @@ require 'datadog/di/instrumenter'
 require 'datadog/di/code_tracker'
 require 'datadog/di/serializer'
 require 'datadog/di/probe'
+require 'datadog/di/proc_responder'
 require_relative 'hook_line'
 require_relative 'hook_method'
 require 'logger'
@@ -59,6 +60,16 @@ RSpec.describe Datadog::DI::Instrumenter do
     Datadog::DI::Probe.new(**base_probe_args.merge(probe_args))
   end
 
+  def hook_method(probe, &block)
+    responder = Datadog::DI::ProcResponder.new(block)
+    instrumenter.hook_method(probe, responder)
+  end
+
+  def hook_line(probe, &block)
+    responder = Datadog::DI::ProcResponder.new(block)
+    instrumenter.hook_line(probe, responder)
+  end
+
   shared_context 'with code tracking' do
     let!(:code_tracker) do
       Datadog::DI::CodeTracker.new.tap do |tracker|
@@ -82,14 +93,14 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it 'invokes callback' do
-        instrumenter.hook_method(probe) do |payload|
+        hook_method(probe) do |payload|
           observed_calls << payload
         end
 
         expect(HookTestClass.new.hook_test_method).to eq 42
 
         expect(observed_calls.length).to eq 1
-        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
         expect(observed_calls.first.return_value).to eq 42
         expect(observed_calls.first.duration).to be_a(Float)
       end
@@ -103,7 +114,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           it 'invokes callback' do
-            instrumenter.hook_method(probe) do |payload|
+            hook_method(probe) do |payload|
               observed_calls << payload
             end
 
@@ -115,7 +126,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(yielded_value).to eq([['hello'], {}])
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first).to be_a(Datadog::DI::Context)
             expect(observed_calls.first.return_value).to eq [['hello'], {}]
             expect(observed_calls.first.duration).to be_a(Float)
           end
@@ -124,7 +135,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             let(:rate_limit) { 0 }
 
             it 'does not invoke callback but invokes target method with block' do
-              instrumenter.hook_method(probe) do |payload|
+              hook_method(probe) do |payload|
                 observed_calls << payload
               end
 
@@ -150,7 +161,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           it 'invokes callback' do
-            instrumenter.hook_method(probe) do |payload|
+            hook_method(probe) do |payload|
               observed_calls << payload
             end
 
@@ -162,7 +173,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(yielded_value).to eq(expected_rv)
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first).to be_a(Datadog::DI::Context)
             expect(observed_calls.first.return_value).to eq expected_rv
             expect(observed_calls.first.duration).to be_a(Float)
           end
@@ -171,7 +182,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             let(:rate_limit) { 0 }
 
             it 'does not invoke callback but invokes target method with block' do
-              instrumenter.hook_method(probe) do |payload|
+              hook_method(probe) do |payload|
                 observed_calls << payload
               end
 
@@ -193,7 +204,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           it 'invokes callback' do
-            instrumenter.hook_method(probe) do |payload|
+            hook_method(probe) do |payload|
               observed_calls << payload
             end
 
@@ -205,7 +216,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(yielded_value).to eq([['hello'], {kw: 'world'}])
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first).to be_a(Datadog::DI::Context)
             expect(observed_calls.first.return_value).to eq [['hello'], {kw: 'world'}]
             expect(observed_calls.first.duration).to be_a(Float)
           end
@@ -214,7 +225,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             let(:rate_limit) { 0 }
 
             it 'does not invoke callback but invokes target method with block' do
-              instrumenter.hook_method(probe) do |payload|
+              hook_method(probe) do |payload|
                 observed_calls << payload
               end
 
@@ -236,7 +247,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           it 'invokes callback' do
-            instrumenter.hook_method(probe) do |payload|
+            hook_method(probe) do |payload|
               observed_calls << payload
             end
 
@@ -248,7 +259,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(yielded_value).to eq([['hello'], {kw: 'world'}])
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first).to be_a(Datadog::DI::Context)
             expect(observed_calls.first.return_value).to eq [['hello'], {kw: 'world'}]
             expect(observed_calls.first.duration).to be_a(Float)
           end
@@ -257,7 +268,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             let(:rate_limit) { 0 }
 
             it 'does not invoke callback but invokes target method with block' do
-              instrumenter.hook_method(probe) do |payload|
+              hook_method(probe) do |payload|
                 observed_calls << payload
               end
 
@@ -289,7 +300,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
     shared_examples 'does not invoke callback but invokes target method' do
       it 'does not invoke callback but invokes target method' do
-        instrumenter.hook_method(probe) do |payload|
+        hook_method(probe) do |payload|
           observed_calls << payload
         end
 
@@ -310,14 +321,14 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it 'captures instance variables' do
-        instrumenter.hook_method(probe) do |payload|
+        hook_method(probe) do |payload|
           observed_calls << payload
         end
 
         target_call
 
         expect(observed_calls.length).to eq 1
-        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
         expect(observed_calls.first.return_value).to eq 42
         expect(observed_calls.first.duration).to be_a(Float)
 
@@ -339,14 +350,14 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it 'invokes callback' do
-          instrumenter.hook_method(probe) do |payload|
+          hook_method(probe) do |payload|
             observed_calls << payload
           end
 
           expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
 
           expect(observed_calls.length).to eq 1
-          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls.first).to be_a(Datadog::DI::Context)
           expect(observed_calls.first.return_value).to eq 2
           expect(observed_calls.first.duration).to be_a(Float)
           # expect(observed_calls.first.serialized_entry_args).to eq(arg1: 2)
@@ -365,14 +376,14 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         shared_examples 'invokes callback and captures parameters' do
           it 'invokes callback and captures parameters' do
-            instrumenter.hook_method(probe) do |payload|
+            hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first).to be_a(Datadog::DI::Context)
             expect(observed_calls.first.return_value).to eq 2
             expect(observed_calls.first.duration).to be_a(Float)
 
@@ -393,14 +404,14 @@ RSpec.describe Datadog::DI::Instrumenter do
             end
 
             it 'captures instance variables in addition to parameters' do
-              instrumenter.hook_method(probe) do |payload|
+              hook_method(probe) do |payload|
                 observed_calls << payload
               end
 
               target_call
 
               expect(observed_calls.length).to eq 1
-              expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+              expect(observed_calls.first).to be_a(Datadog::DI::Context)
               expect(observed_calls.first.return_value).to eq 2
               expect(observed_calls.first.duration).to be_a(Float)
 
@@ -455,14 +466,14 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         shared_examples 'invokes callback and captures parameters' do
           it 'invokes callback and captures parameters' do
-            instrumenter.hook_method(probe) do |payload|
+            hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first).to be_a(Datadog::DI::Context)
             expect(observed_calls.first.return_value).to eq 42
             expect(observed_calls.first.duration).to be_a(Float)
 
@@ -507,14 +518,14 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           it 'captures instance variables in addition to kwargs' do
-            instrumenter.hook_method(probe) do |payload|
+            hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first).to be_a(Datadog::DI::Context)
             expect(observed_calls.first.return_value).to eq 42
             expect(observed_calls.first.duration).to be_a(Float)
 
@@ -545,14 +556,14 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         shared_examples 'invokes callback and captures parameters' do
           it 'invokes callback and captures parameters' do
-            instrumenter.hook_method(probe) do |payload|
+            hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first).to be_a(Datadog::DI::Context)
             expect(observed_calls.first.return_value).to eq [41, 42]
             expect(observed_calls.first.duration).to be_a(Float)
 
@@ -597,14 +608,14 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       shared_examples 'invokes callback and captures parameters' do
         it 'invokes callback and captures parameters' do
-          instrumenter.hook_method(probe) do |payload|
+          hook_method(probe) do |payload|
             observed_calls << payload
           end
 
           target_call
 
           expect(observed_calls.length).to eq 1
-          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls.first).to be_a(Datadog::DI::Context)
           expect(observed_calls.first.return_value).to eq(kwarg: 42)
           expect(observed_calls.first.duration).to be_a(Float)
 
@@ -652,14 +663,14 @@ RSpec.describe Datadog::DI::Instrumenter do
       context 'when there is also a positional argument' do
         shared_examples 'invokes callback and captures parameters' do
           it 'invokes callback and captures parameters' do
-            instrumenter.hook_method(probe) do |payload|
+            hook_method(probe) do |payload|
               observed_calls << payload
             end
 
             target_call
 
             expect(observed_calls.length).to eq 1
-            expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls.first).to be_a(Datadog::DI::Context)
             expect(observed_calls.first.return_value).to eq(['hello', {kwarg: 42}])
             expect(observed_calls.first.duration).to be_a(Float)
 
@@ -713,7 +724,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it 'invokes callback' do
-        instrumenter.hook_method(probe) do |payload|
+        hook_method(probe) do |payload|
           observed_calls << payload
         end
 
@@ -722,7 +733,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end.to raise_error(HookTestClass::TestException)
 
         expect(observed_calls.length).to eq 1
-        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
         expect(observed_calls.first.return_value).to be nil
         expect(observed_calls.first.exception).to be_a(HookTestClass::TestException)
         expect(observed_calls.first.duration).to be_a(Float)
@@ -754,18 +765,18 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       # We do not currently de-duplicate.
       it 'invokes callback twice' do
-        instrumenter.hook_method(probe) do |payload|
+        hook_method(probe) do |payload|
           observed_calls << payload
         end
 
-        instrumenter.hook_method(probe2) do |payload|
+        hook_method(probe2) do |payload|
           observed_calls << payload
         end
 
         expect(HookTestClass.new.hook_test_method).to eq 42
 
         expect(observed_calls.length).to eq 2
-        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
         expect(observed_calls.first.return_value).to eq 42
         expect(observed_calls.first.duration).to be_a(Float)
 
@@ -781,7 +792,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       it 'raises DITargetNotDefined' do
         expect do
-          instrumenter.hook_method(probe) do |payload|
+          hook_method(probe) do |payload|
           end
         end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
       end
@@ -806,7 +817,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:payload) do
-        instrumenter.hook_method(probe) do |payload|
+        hook_method(probe) do |payload|
           observed_calls << payload
         end
 
@@ -843,7 +854,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it 'invokes callback for every method invocation' do
-          instrumenter.hook_method(probe) do |payload|
+          hook_method(probe) do |payload|
             observed_calls << payload
           end
 
@@ -853,19 +864,19 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           # TODO add assertions for parameters and locals
 
-          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls.first).to be_a(Datadog::DI::Context)
           expect(observed_calls[0].return_value).to eq '+'
           expect(observed_calls[0].duration).to be_a(Float)
 
-          expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[1]).to be_a(Datadog::DI::Context)
           expect(observed_calls[1].return_value).to eq '+-'
           expect(observed_calls[1].duration).to be_a(Float)
 
-          expect(observed_calls[2]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[2]).to be_a(Datadog::DI::Context)
           expect(observed_calls[2].return_value).to eq '+--'
           expect(observed_calls[2].duration).to be_a(Float)
 
-          expect(observed_calls[3]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[3]).to be_a(Datadog::DI::Context)
           expect(observed_calls[3].return_value).to eq '+---'
           expect(observed_calls[3].duration).to be_a(Float)
         end
@@ -880,7 +891,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         it 'does not invoke callback' do
-          instrumenter.hook_method(probe) do |payload|
+          hook_method(probe) do |payload|
             observed_calls << payload
           end
 
@@ -907,7 +918,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       shared_examples 'reports the call' do
         it 'reports the call' do
-          instrumenter.hook_method(probe) do |payload|
+          hook_method(probe) do |payload|
             observed_calls << payload
           end
 
@@ -919,7 +930,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       shared_examples 'does not report the call' do
         it 'does not report the call' do
-          instrumenter.hook_method(probe) do |payload|
+          hook_method(probe) do |payload|
             observed_calls << payload
           end
 
@@ -929,10 +940,23 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
       end
 
+      shared_examples 'does not report the call and reports evaluation failure' do
+        let(:responder) { double('responder') }
+
+        it 'does not report the call and reports evaluation failure' do
+          expect(responder).not_to receive(:probe_executed_callback)
+          expect(responder).to receive(:probe_condition_evaluation_failed_callback)
+          instrumenter.hook_method(probe, responder)
+
+          target_call
+        end
+      end
+
       context 'when condition is on positional argument' do
         context 'when condition is met' do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
+              '(expression)',
               # We use "arg1" here, actual variable name is not currently available
               "ref('arg1') == 41"
             )
@@ -944,6 +968,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         context 'when condition is not met' do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
+              '(expression)',
               # We use "arg1" here, actual variable name is not currently available
               "ref('arg1') == 42"
             )
@@ -957,6 +982,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         context 'when condition is met' do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
+              '(expression)',
               "ref('kwarg') == 42"
             )
           end
@@ -967,6 +993,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         context 'when condition is not met' do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
+              '(expression)',
               "ref('kwarg') == 41"
             )
           end
@@ -980,11 +1007,12 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         let(:condition) do
           Datadog::DI::EL::Expression.new(
+            '(expression)',
             "unknown_function('kwarg') == 42"
           )
         end
 
-        include_examples 'does not report the call'
+        include_examples 'does not report the call and reports evaluation failure'
       end
     end
   end
@@ -1003,14 +1031,14 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 5,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 25,
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
         it 'invokes the instrumentation every time' do
           expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
 
-          instrumenter.hook_line(probe) do |payload|
+          hook_line(probe) do |payload|
             observed_calls << payload
           end
 
@@ -1019,28 +1047,9 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls.length).to eq 2
 
-          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
-          expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls.first).to be_a(Datadog::DI::Context)
+          expect(observed_calls[1]).to be_a(Datadog::DI::Context)
         end
-      end
-    end
-
-    context 'when called without a block' do
-      let(:probe) do
-        instance_double(Datadog::DI::Probe)
-      end
-
-      after do
-        # Needed for the cleanup unhook call.
-        allow(probe).to receive(:method?).and_return(false)
-        allow(probe).to receive(:line?).and_return(false)
-        allow(logger).to receive(:debug)
-      end
-
-      it 'raises ArgumentError' do
-        expect do
-          instrumenter.hook_line(probe)
-        end.to raise_error(ArgumentError, /No block given/)
       end
     end
 
@@ -1055,7 +1064,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         let(:code_tracker) { nil }
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 1,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 21,
             id: 1, type: :log)
         end
 
@@ -1066,13 +1075,13 @@ RSpec.describe Datadog::DI::Instrumenter do
         it 'installs trace point' do
           expect(TracePoint).to receive(:new).and_call_original
 
-          instrumenter.hook_line(probe) do |**opts|
+          hook_line(probe) do |**opts|
             fail 'should not get here'
           end
         end
 
         it 'does not invoke callback' do
-          instrumenter.hook_line(probe) do |**opts|
+          hook_line(probe) do |**opts|
             fail 'should not be invoked'
           end
 
@@ -1091,7 +1100,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 1,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 21,
             id: 1, type: :log)
         end
 
@@ -1103,7 +1112,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(TracePoint).not_to receive(:new)
 
           expect do
-            instrumenter.hook_line(probe) do |**opts|
+            hook_line(probe) do |**opts|
               fail 'should not get here'
             end
           end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
@@ -1128,7 +1137,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
 
-        instrumenter.hook_line(probe) do |payload|
+        hook_line(probe) do |payload|
           observed_calls << payload
         end
 
@@ -1153,7 +1162,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:payload) do
         expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
 
-        instrumenter.hook_line(probe) do |payload|
+        hook_line(probe) do |payload|
           observed_calls << payload
         end
 
@@ -1164,7 +1173,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it 'invokes callback with expected keys' do
-        expect(payload).to be_a(Datadog::DI::EL::Context)
+        expect(payload).to be_a(Datadog::DI::Context)
       end
 
       describe 'stack trace' do
@@ -1205,22 +1214,22 @@ RSpec.describe Datadog::DI::Instrumenter do
       it 'invokes callback twice' do
         expect(observed_calls).to be_empty
 
-        instrumenter.hook_line(probe) do |payload|
+        hook_line(probe) do |payload|
           observed_calls << payload
         end
 
-        instrumenter.hook_line(probe2) do |payload|
+        hook_line(probe2) do |payload|
           observed_calls << payload
         end
 
         HookLineBasicTestClass.new.test_method
 
         expect(observed_calls.length).to eq 2
-        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
         # We do not have locals here because we are not capturing,
         # but we do have path which came from the trace point object.
         expect(observed_calls.first.path).to be_a(String)
-        expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls[1]).to be_a(Datadog::DI::Context)
         expect(observed_calls[1].path).to be_a(String)
       end
     end
@@ -1235,7 +1244,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line_targeted.rb', line_no: 3,
+        Datadog::DI::Probe.new(file: 'hook_line_targeted.rb', line_no: 13,
           id: 1, type: :log)
       end
 
@@ -1244,16 +1253,16 @@ RSpec.describe Datadog::DI::Instrumenter do
         target = code_tracker.send(:registry)[path]
         expect(target).to be_a(RubyVM::InstructionSequence)
 
-        expect_any_instance_of(TracePoint).to receive(:enable).with(target: target, target_line: 3).and_call_original
+        expect_any_instance_of(TracePoint).to receive(:enable).with(target: target, target_line: 13).and_call_original
 
-        instrumenter.hook_line(probe) do |payload|
+        hook_line(probe) do |payload|
           observed_calls << payload
         end
 
         HookLineTargetedTestClass.new.test_method
 
         expect(observed_calls.length).to eq 1
-        expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
       end
 
       context 'end line of a method' do
@@ -1262,14 +1271,14 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 6,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 26,
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
         it 'invokes the instrumentation' do
           expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
 
-          instrumenter.hook_line(probe) do |payload|
+          hook_line(probe) do |payload|
             observed_calls << payload
           end
 
@@ -1277,7 +1286,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls.length).to eq 1
 
-          expect(observed_calls.first).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls.first).to be_a(Datadog::DI::Context)
         end
 
         # Since the instrumentation mutates the state of the probe,
@@ -1286,7 +1295,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           it 'invokes the instrumentation every time' do
             expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
 
-            instrumenter.hook_line(probe) do |payload|
+            hook_line(probe) do |payload|
               observed_calls << payload
             end
 
@@ -1295,8 +1304,8 @@ RSpec.describe Datadog::DI::Instrumenter do
 
             expect(observed_calls.length).to eq 2
 
-            expect(observed_calls[0]).to be_a(Datadog::DI::EL::Context)
-            expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
+            expect(observed_calls[0]).to be_a(Datadog::DI::Context)
+            expect(observed_calls[1]).to be_a(Datadog::DI::Context)
           end
         end
       end
@@ -1309,7 +1318,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         it 'raises DITargetNotInRegistry' do
           expect do
-            instrumenter.hook_line(probe) do |payload|
+            hook_line(probe) do |payload|
             end
           end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
         end
@@ -1327,11 +1336,11 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context 'non-enriched probe' do
         let(:probe_args) do
-          {file: 'hook_line_recursive.rb', line_no: 3}
+          {file: 'hook_line_recursive.rb', line_no: 13}
         end
 
         it 'invokes callback for every method invocation' do
-          instrumenter.hook_line(probe) do |payload|
+          hook_line(probe) do |payload|
             observed_calls << payload
           end
 
@@ -1341,16 +1350,16 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           # TODO add assertions for locals
 
-          expect(observed_calls[0]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[0]).to be_a(Datadog::DI::Context)
           expect(observed_calls[0].caller_locations).to be_a(Array)
 
-          expect(observed_calls[1]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[1]).to be_a(Datadog::DI::Context)
           expect(observed_calls[1].caller_locations).to be_a(Array)
 
-          expect(observed_calls[2]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[2]).to be_a(Datadog::DI::Context)
           expect(observed_calls[2].caller_locations).to be_a(Array)
 
-          expect(observed_calls[3]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[3]).to be_a(Datadog::DI::Context)
           expect(observed_calls[3].caller_locations).to be_a(Array)
         end
       end
@@ -1360,7 +1369,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       include_context 'with code tracking'
 
       before do
-        require_relative 'hook_line_recursive'
+        load File.join(File.dirname(__FILE__), 'hook_line_recursive.rb')
       end
 
       # We need to use a rate limiter, otherwise the stack is exhausted
@@ -1372,12 +1381,12 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context 'non-enriched probe' do
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_recursive.rb', line_no: 11,
+          Datadog::DI::Probe.new(file: 'hook_line_recursive.rb', line_no: 21,
             id: 1, type: :log, rate_limit: rate_limit)
         end
 
         it 'invokes the callback only once' do
-          instrumenter.hook_line(probe) do |payload|
+          hook_line(probe) do |payload|
             observed_calls << payload
           end
 
@@ -1389,7 +1398,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           # generating one snapshot.
           expect(observed_calls.length).to eq 1
 
-          expect(observed_calls[0]).to be_a(Datadog::DI::EL::Context)
+          expect(observed_calls[0]).to be_a(Datadog::DI::Context)
           expect(observed_calls[0].caller_locations).to be_a(Array)
         end
       end
@@ -1403,14 +1412,14 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 32,
+        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 52,
           id: 1, type: :log, rate_limit: rate_limit)
       end
 
       let(:payload) do
         expect_any_instance_of(TracePoint).to receive(:enable).and_call_original
 
-        instrumenter.hook_line(probe) do |payload|
+        hook_line(probe) do |payload|
           observed_calls << payload
         end
 
@@ -1423,7 +1432,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it 'invokes callback with expected keys' do
-        expect(payload).to be_a(Datadog::DI::EL::Context)
+        expect(payload).to be_a(Datadog::DI::Context)
       end
     end
 
@@ -1431,7 +1440,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       include_context 'with code tracking'
 
       let(:probe) do
-        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 10,
+        Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 30,
           id: 1, type: :log, rate_limit: rate_limit, condition: condition)
       end
 
@@ -1442,7 +1451,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       before do
-        instrumenter.hook_line(probe) do |payload|
+        hook_line(probe) do |payload|
           observed_calls << payload
         end
       end
@@ -1451,6 +1460,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         context 'when condition is met' do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
+              '(expression)',
               "ref('local') == 42"
             )
           end
@@ -1466,6 +1476,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         context 'when condition is not met' do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
+              '(expression)',
               "ref('local') == 43"
             )
           end
@@ -1482,13 +1493,14 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       context 'when condition is on instance variable' do
         let(:probe) do
-          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 24,
+          Datadog::DI::Probe.new(file: 'hook_line_load.rb', line_no: 47,
             id: 1, type: :log, rate_limit: rate_limit, condition: condition)
         end
 
         context 'when condition is met' do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
+              '(expression)',
               "iref('@ivar') == 42"
             )
           end
@@ -1504,6 +1516,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         context 'when condition is not met' do
           let(:condition) do
             Datadog::DI::EL::Expression.new(
+              '(expression)',
               "iref('@ivar') == 43"
             )
           end

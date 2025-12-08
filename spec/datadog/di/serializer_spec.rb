@@ -57,6 +57,20 @@ class DISerializerExceptionWithMessageRaiseTestClass < StandardError
   end
 end
 
+class DISerializerSpecBrokenHash < Hash
+  def keys
+    raise "Arrgh!"
+  end
+end
+
+class DISerializerSpecFields
+  def initialize(**fields)
+    fields.each do |k, v|
+      instance_variable_set("@#{k}", v)
+    end
+  end
+end
+
 RSpec.describe Datadog::DI::Serializer do
   di_test
 
@@ -445,6 +459,83 @@ RSpec.describe Datadog::DI::Serializer do
         )
 
         expect(serialized[:foo][:value]).to be frozen_string
+      end
+    end
+  end
+
+  describe '#serialize_string_or_symbol_for_message' do
+    [
+      [100, 'short', 'short'],
+      [100, 'short1234', 'short1234'],
+      # Truncation where the max length is too short for the ellipsis
+      [4, 'short', 'shor'],
+      # Minimum space for ellipsis but there is no need to truncate
+      [5, 'short', 'short'],
+      # Minimum space for ellipsis and truncation is happening
+      [5, 'short1', 's...1'],
+      [5, :short1, 's...1'],
+      # Limited to 100
+      [1000, 'long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long', 'long42longlong42longlong42longlong42longlong42lon...ng42longlong42longlong42longlong42longlong42long'],
+      [1000, 'long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long1', 'long42longlong42longlong42longlong42longlong42lon...g42longlong42longlong42longlong42longlong42long1'],
+      [99, 'long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long', 'long42longlong42longlong42longlong42longlong42lo...ng42longlong42longlong42longlong42longlong42long'],
+      [99, 'long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long1', 'long42longlong42longlong42longlong42longlong42lo...g42longlong42longlong42longlong42longlong42long1'],
+    ].each do |max_length, input, expected_output|
+      context "max length: #{max_length}, input: #{input}" do
+        # Verify our expected output is not longer than the max length
+        it 'output not exceed max length' do
+          expect(expected_output.length).to be <= max_length
+        end
+
+        context 'serialize' do
+          before do
+            expect(di_settings).to receive(:max_capture_string_length).and_return(max_length)
+          end
+
+          it 'produces expected output' do
+            expect(serializer.send(:serialize_string_or_symbol_for_message, input)).to eq(expected_output)
+          end
+        end
+      end
+    end
+  end
+
+  describe '#serialize_value_for_message' do
+    [
+      ['nil', nil, 'nil'],
+      ['integer', 42, '42'],
+      ['float', 42.1, '42.1'],
+      ['true', true, 'true'],
+      ['false', false, 'false'],
+      ['time', Time.utc(2020, 1, 2, 3, 4, 5), '2020-01-02 03:04:05 UTC'],
+      ['date', Date.new(2020, 1, 2), '2020-01-02'],
+      ['string', 'hello world', 'hello world'],
+      ['long string', 'loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string', 'loooooooooooooooooooooooooooooooooooooooooooooooo...ooooooooooooooooooooooooooooooooooooooong string'],
+      ['symbol', :"hello world", ':hello world'],
+      ['empty array', [], '[]'],
+      ['small array', [1, '2'], '[1, 2]'],
+      ['large array', [1, '2', 3.3, 'hello'], '[1, 2, ..., hello]'],
+      ['empty hash', {}, '{}'],
+      ['small hash', {a: 1, b: 2}, '{:a => 1, :b => 2}'],
+      ['large hash', {:a => 1, :b => 2, 'c' => 3, 'd' => 4}, '{:a => 1, :b => 2, ..., d => 4}'],
+      ['array with hash element', [{a: 1}, 2], '[..., 2]'],
+      ['array with object element', [Object.new, 2], '[..., 2]'],
+      ['hash with array value', {a: [1, 2], b: 3}, '{:a => ..., :b => 3}'],
+      ['hash with object value', {a: Object.new, b: 3}, '{:a => ..., :b => 3}'],
+      ['object without fields', Object.new, '#<Object>'],
+      ['object with few fields', DISerializerSpecFields.new(a: 1, b: 2), '#<DISerializerSpecFields @a=1 @b=2>'],
+      ['object with many fields', DISerializerSpecFields.new(a: 1, b: 2, c: 'x', d: 4, e: 4, f: 5), '#<DISerializerSpecFields @a=1 @b=2 @c=x @d=4 ... @f=5>'],
+      ['object with array field', DISerializerSpecFields.new(a: 1, b: [2]), '#<DISerializerSpecFields @a=1 @b=...>'],
+      ['object with hash field', DISerializerSpecFields.new(a: 1, b: {x: 2}), '#<DISerializerSpecFields @a=1 @b=...>'],
+      ['when serialization fails', DISerializerSpecBrokenHash.new, '#<DISerializerSpecBrokenHash: serialization error>'],
+    ].each do |desc, input, expected_output|
+      context desc do
+        let(:actual) do
+          serializer.serialize_value_for_message(input)
+        end
+
+        it 'produces expected output' do
+          expect(actual).to eq(expected_output)
+        end
       end
     end
   end

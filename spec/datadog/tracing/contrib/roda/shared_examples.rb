@@ -9,6 +9,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 RSpec.shared_examples_for 'shared examples for roda' do |test_method|
   let(:configuration_options) { {} }
+  let(:server_error_statuses) { nil }
   let(:test_class) do
     Class.new do
       prepend Datadog::Tracing::Contrib::Roda::Instrumentation
@@ -20,6 +21,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
   before do
     Datadog.configure do |c|
       c.tracing.instrument :roda, configuration_options
+      c.tracing.http_error_statuses.server = server_error_statuses if server_error_statuses
     end
   end
 
@@ -101,6 +103,23 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/unsuccessful_endpoint')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
+      end
+
+      context 'when the server error statuses are configured to include 400' do
+        let(:server_error_statuses) { 400..599 }
+
+        it do
+          instrumented_method
+          expect(spans).to have(1).items
+          expect(span.parent_id).to be 0
+          expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+          expect(span.resource).to eq('GET 404')
+          expect(span.name).to eq('roda.request')
+          expect(span.status).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/unsuccessful_endpoint')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
+        end
       end
     end
 

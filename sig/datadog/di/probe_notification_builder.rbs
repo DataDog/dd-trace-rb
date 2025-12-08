@@ -19,15 +19,18 @@ module Datadog
 
       def build_errored: (Probe probe, Exception exception) -> Hash[Symbol,untyped]
 
-      def build_executed: (EL::Context context) -> Hash[Symbol,untyped]
+      def build_executed: (Context context) -> Hash[Symbol,untyped]
 
-      def build_snapshot: (EL::Context context) -> Hash[Symbol,untyped]
+      def build_snapshot: (Context context) -> Hash[Symbol,untyped]
+      def build_snapshot_base: (Context context, ?evaluation_errors: Array[untyped]?, ?captures: untyped?, ?message: String?) -> Hash[Symbol,untyped]
+
+      def build_condition_evaluation_failed: (Context context, untyped expr, untyped exception) -> Hash[Symbol,untyped]
 
       def build_status: (Probe probe, message: untyped, status: untyped) -> Hash[Symbol,untyped]
 
       def format_caller_locations: (Array[untyped] callers) -> Array[Hash[Symbol,untyped]]
 
-      def evaluate_template: (untyped template, EL::Context context) -> [String, Array[String]]
+      def evaluate_template: (untyped template, Context context) -> [String, Array[String]]
 
       def timestamp_now: () -> Integer
 

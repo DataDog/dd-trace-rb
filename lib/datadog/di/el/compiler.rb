@@ -17,7 +17,7 @@ module Datadog
       # @api private
       class Compiler
         def compile(ast)
-          Expression.new(compile_partial(ast))
+          compile_partial(ast)
         end
 
         private
