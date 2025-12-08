@@ -81,17 +81,19 @@ module Datadog
           def patch
             require_relative 'monitor'
             require_relative 'framework'
-            require_relative '../waterdrop/middleware'
+            require_relative '../waterdrop'
 
             ::Karafka::Instrumentation::Monitor.prepend(Monitor)
             ::Karafka::Messages::Messages.prepend(MessagesPatch)
 
-            ::Karafka.monitor.subscribe('app.initialized') do |event|
-              ACTIVATE_FRAMEWORK_ONLY_ONCE.run do
-                Contrib::Karafka::Framework.setup
-              end
+            if Contrib::WaterDrop::Integration.compatible?
+              ::Karafka.monitor.subscribe('app.initialized') do |event|
+                ACTIVATE_FRAMEWORK_ONLY_ONCE.run do
+                  Contrib::Karafka::Framework.setup
+                end
 
-              Contrib::WaterDrop::Patcher.add_middleware(::Karafka.producer)
+                Contrib::WaterDrop::Patcher.add_middleware(::Karafka.producer)
+              end
             end
           end
         end
