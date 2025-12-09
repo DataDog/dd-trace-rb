@@ -23,10 +23,12 @@ module Datadog
         def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettings agent_settings, Datadog::Core::Logger logger) -> Component
 
         def initialize: (logger: Core::Logger, settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, enabled: true | false) -> void
+	
+        def enabled?: -> bool
 
         def disable!: () -> void
 
-        def start: (?bool initial_event_is_change) -> void
+        def start: (?bool initial_event_is_change, components: Datadog::Core::Configuration::Components) -> void
 
         def shutdown!: () -> void
 

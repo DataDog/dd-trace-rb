@@ -3,8 +3,8 @@
 require_relative '../../../transport/http/api/endpoint'
 require_relative '../../../transport/http/api/instance'
 require_relative '../../../transport/http/api/spec'
+require_relative '../../../transport/http/client'
 require_relative '../../../transport/request'
-require_relative 'client'
 
 module Datadog
   module Core
@@ -12,10 +12,11 @@ module Datadog
       module Transport
         module HTTP
           module Telemetry
-            module Client
+            class Client < Core::Transport::HTTP::Client
               def send_telemetry_payload(request)
-                send_request(request) do |api, env| # steep:ignore
-                  api.send_telemetry(env)
+                send_request(request) do |api, env|
+                  # TODO how to make api have the derived type for steep?
+                  api.send_telemetry(env) # steep:ignore
                 end
               end
             end
@@ -83,8 +84,6 @@ module Datadog
               end
             end
           end
-
-          HTTP::Client.include(Telemetry::Client)
         end
       end
     end

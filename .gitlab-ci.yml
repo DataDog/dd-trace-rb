@@ -5,7 +5,6 @@ stages:
   - vaccine
   - macrobenchmarks
   - microbenchmarks
-  - benchmarks
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
@@ -19,6 +18,10 @@ variables:
 
 default:
   tags: ["runner:main", "size:large"]
+
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
 
 .build-image-base:
   stage: manual-images
@@ -35,7 +38,7 @@ default:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: ["3.5", "3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
+      - RUBY_VERSION: ["4.0", "3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
   script:
     - >
       docker build
@@ -71,7 +74,7 @@ promote-image:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: ["3.5", "3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
+      - RUBY_VERSION: ["4.0", "3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
         ARCHITECTURE: ["amd64", "arm64"]
   script:
     - docker pull $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID
@@ -110,7 +113,7 @@ install-dependencies:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      # TODO: Ruby 3.5 - Not added here yet to avoid increasing SSI OCI image size and adding premature support for 3.5.
+      # TODO: Ruby 4.0 - Not added here yet to avoid increasing SSI OCI image size and adding premature support for 4.0.
       - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7", "2.6"]
         ARCH: ["amd64", "arm64"]
   stage: package
@@ -143,7 +146,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: bd28672d98576c2b07b6885ef18c6086c357d2e9 # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_REF: 1ba9e42aecf75e25ec03cda5285923448f024ad6 # Automated: This reference is automatically updated.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
 
 save_versions:

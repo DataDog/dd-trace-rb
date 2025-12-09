@@ -27,7 +27,7 @@ jobs:
       changes: ${{ steps.changes.outputs.src }}
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
       - name: Changes
@@ -58,14 +58,14 @@ jobs:
       forced_tests: ${{ steps.compute_forced_tests.outputs.forced_tests }}
     steps:
       - name: Checkout DataDog/dd-trace-rb
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           repository: DataDog/dd-trace-rb
           fetch-depth: 2
           persist-credentials: false
           path: packaged/dd-trace-rb
       - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: dd-trace-rb  # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
           path: packaged
@@ -77,7 +77,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@bd28672d98576c2b07b6885ef18c6086c357d2e9  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@1ba9e42aecf75e25ec03cda5285923448f024ad6  # Automated: This reference is automatically updated.
     secrets:
       TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}  # key used to pushed test results to test optim
       DD_API_KEY: ${{ secrets.DD_API_KEY }}  # key used in tests runs
@@ -91,10 +91,10 @@ jobs:
       desired_execution_time: 300  # 5 minutes
       scenarios_groups: tracer_release
       skip_empty_scenarios: true
-      ref: bd28672d98576c2b07b6885ef18c6086c357d2e9  # Automated: This reference is automatically updated.
+      ref: 1ba9e42aecf75e25ec03cda5285923448f024ad6  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
-      push_to_test_optimization: true
+      push_to_test_optimization: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
   complete:
     name: System Tests (complete)

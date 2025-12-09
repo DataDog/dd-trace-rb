@@ -58,7 +58,7 @@ jobs:
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         persist-credentials: false
 
@@ -131,16 +131,20 @@ jobs:
         TEST_MYSQL_HOST: mysql
         DD_AGENT_HOST: agent
         DD_TRACE_AGENT_PORT: '9126'
+        OTLP_GRPC_PORT: '4317'
+        OTLP_HTTP_PORT: '4318'
         DATADOG_GEM_CI: 'true'
         TEST_DATADOG_INTEGRATION: '1'
         JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
           PORT: '9126'
+          OTLP_GRPC_PORT: '4317'
+          OTLP_HTTP_PORT: '4318'
           DD_POOL_TRACE_CHECK_FAILURES: 'true'
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
@@ -159,7 +163,7 @@ jobs:
       redis:
         image: ghcr.io/datadog/images-rb/services/redis:6.2
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         persist-credentials: false
     - name: Restore bundle cache
@@ -206,11 +210,13 @@ jobs:
       options: --link mongodb:mongodb_secondary
     services:
       agent:
-        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
           PORT: '9126'
+          OTLP_GRPC_PORT: '4317'
+          OTLP_HTTP_PORT: '4318'
           DD_POOL_TRACE_CHECK_FAILURES: 'true'
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
@@ -237,7 +243,7 @@ jobs:
       presto:
         image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
     steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       with:
         persist-credentials: false
     - name: Restore bundle cache

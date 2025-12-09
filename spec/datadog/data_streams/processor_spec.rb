@@ -22,6 +22,11 @@ RSpec.describe Datadog::DataStreams::Processor do
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettings.new(adapter: :test, hostname: 'localhost', port: 9999) }
   let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
 
+  after do
+    processor.stop(true)
+    processor.join
+  end
+
   before do
     # Stub HTTP requests to the agent
     stub_request(:post, %r{http://localhost:9999/v0.1/pipeline_stats})
@@ -29,9 +34,14 @@ RSpec.describe Datadog::DataStreams::Processor do
   end
 
   describe '#initialize' do
-    it 'sets up periodic worker with custom interval' do
-      processor = described_class.new(interval: 5.0, logger: logger, settings: settings, agent_settings: agent_settings)
-      expect(processor.loop_base_interval).to eq(5.0)
+    context 'when custom interval is provided' do
+      let(:processor) do
+        described_class.new(interval: 5.0, logger: logger, settings: settings, agent_settings: agent_settings)
+      end
+
+      it 'sets up periodic worker with custom interval' do
+        expect(processor.loop_base_interval).to eq(5.0)
+      end
     end
   end
 
@@ -176,47 +186,49 @@ RSpec.describe Datadog::DataStreams::Processor do
 
     describe 'internal bucket aggregation' do
       it 'aggregates multiple checkpoints into DDSketch histograms' do
-        now = Time.now.to_f
+        frozen_time = Time.utc(2000, 1, 1, 0, 0, 0)
+        allow(Datadog::Core::Utils::Time).to receive(:now).and_return(frozen_time)
+        allow(Datadog::Tracing).to receive(:active_span).and_return(nil)
 
-        # Create multiple checkpoints with the same tags to aggregate
+        # Stop background worker to prevent it from flushing buckets during manual inspection
+        processor.stop(true)
+
         processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
         processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
         processor.set_produce_checkpoint(type: 'kafka', destination: 'topicA', manual_checkpoint: false)
 
-        # Flush the event buffer to process checkpoints
         processor.send(:process_events)
 
-        # Access internal buckets to verify aggregation
-        expect(processor.buckets).not_to be_empty
-
-        # Find the bucket for this time window
-        now_ns = (now * 1e9).to_i
+        now_ns = (frozen_time.to_f * 1e9).to_i
         bucket_time_ns = now_ns - (now_ns % processor.bucket_size_ns)
 
-        bucket = processor.buckets[bucket_time_ns]
-        expect(bucket).not_to be_nil
+        expect(processor.buckets).not_to be_empty, lambda {
+          "Expected bucket key: #{bucket_time_ns}, actual keys: #{processor.buckets.keys.inspect}"
+        }
 
-        # Verify stats were aggregated for this pathway
+        bucket = processor.buckets[bucket_time_ns]
+        expect(bucket).not_to be_nil, lambda {
+          "Expected bucket: #{bucket_time_ns}, actual: #{processor.buckets.keys.inspect}"
+        }
+
         pathway_stats = bucket[:pathway_stats]
         expect(pathway_stats).not_to be_empty
 
-        # At least one aggregation key should exist
         aggr_key = pathway_stats.keys.first
         stats = pathway_stats[aggr_key]
 
-        # Verify DDSketch objects were populated
-        expect(stats[:edge_latency]).to be_a(Datadog::Core::DDSketch)
-        expect(stats[:full_pathway_latency]).to be_a(Datadog::Core::DDSketch)
+        aggregate_failures do
+          expect(stats[:edge_latency]).to be_a(Datadog::Core::DDSketch)
+          expect(stats[:full_pathway_latency]).to be_a(Datadog::Core::DDSketch)
 
-        # Verify exactly 3 samples were recorded (matching Python test)
-        expect(stats[:edge_latency].count).to eq(3)
-        expect(stats[:full_pathway_latency].count).to eq(3)
+          expect(stats[:edge_latency].count).to eq(3)
+          expect(stats[:full_pathway_latency].count).to eq(3)
 
-        # Verify sketches can be encoded for serialization
-        expect(stats[:edge_latency].encode).to be_a(String)
-        expect(stats[:edge_latency].encode).not_to be_empty
-        expect(stats[:full_pathway_latency].encode).to be_a(String)
-        expect(stats[:full_pathway_latency].encode).not_to be_empty
+          expect(stats[:edge_latency].encode).to be_a(String)
+          expect(stats[:edge_latency].encode).not_to be_empty
+          expect(stats[:full_pathway_latency].encode).to be_a(String)
+          expect(stats[:full_pathway_latency].encode).not_to be_empty
+        end
       end
     end
   end
@@ -277,6 +289,34 @@ RSpec.describe Datadog::DataStreams::Processor do
 
         # Should still track successfully despite gap
         expect { processor.send(:perform) }.not_to raise_error
+      end
+
+      it 'serializes consumer backlogs with type:kafka_commit tag' do
+        processor.track_kafka_consume('orders', 0, 100, base_time)
+        processor.track_kafka_consume('payments', 1, 50, base_time + 1)
+
+        # Process events and trigger flush
+        processor.send(:process_events)
+
+        # Manually call serialize_consumer_backlogs to verify the tag structure
+        backlogs = processor.send(:serialize_consumer_backlogs)
+
+        expect(backlogs).not_to be_empty
+        expect(backlogs.length).to eq(2)
+
+        backlogs.each do |backlog|
+          expect(backlog['Tags']).to include('type:kafka_commit')
+          expect(backlog).to have_key('Value')
+          expect(backlog).to have_key('Tags')
+        end
+
+        orders_backlog = backlogs.find { |b| b['Tags'].include?('topic:orders') }
+        expect(orders_backlog['Tags']).to include('partition:0')
+        expect(orders_backlog['Value']).to eq(100)
+
+        payments_backlog = backlogs.find { |b| b['Tags'].include?('topic:payments') }
+        expect(payments_backlog['Tags']).to include('partition:1')
+        expect(payments_backlog['Value']).to eq(50)
       end
     end
 

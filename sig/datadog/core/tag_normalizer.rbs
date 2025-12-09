@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module TagNormalizer
+      INVALID_TAG_CHARACTERS: ::Regexp
+      LEADING_INVALID_CHARS_NO_DIGITS: ::Regexp
+      LEADING_INVALID_CHARS_WITH_DIGITS: ::Regexp
+      MAX_BYTE_SIZE: ::Integer
+      MAX_PROCESS_VALUE_BYTE_SIZE: ::Integer
+      VALID_ASCII_TAG: ::Regexp
+
+      def self.normalize: (untyped original_value, ?remove_digit_start_char: bool) -> ::String
+
+      def self.normalize_process_value: (untyped value) -> ::String
+    end
+  end
+end
+

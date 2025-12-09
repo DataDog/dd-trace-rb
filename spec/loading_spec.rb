@@ -21,6 +21,7 @@ REQUIRES = [
   {require: 'datadog/kit', check: 'Datadog::Kit'},
   {require: 'datadog/profiling', check: 'Datadog::Profiling'},
   {require: 'datadog/tracing', check: 'Datadog::Tracing'},
+  {require: 'datadog/open_feature', check: 'Datadog::OpenFeature'},
 ].freeze
 
 RSpec.describe 'loading of products' do

@@ -72,16 +72,15 @@ RSpec.describe Datadog::Profiling do
     end
 
     context 'when a profiler is available' do
-      let(:profiler) { instance_double('Datadog::Profiling::Profiler', scheduler: scheduler) }
-      let(:scheduler) { instance_double('Datadog::Profiling::Scheduler', running?: running) }
+      let(:profiler) { instance_double('Datadog::Profiling::Profiler', enabled?: enabled) }
 
-      context 'when the profiler is running' do
-        let(:running) { true }
+      context 'when the profiler is enabled' do
+        let(:enabled) { true }
         it { is_expected.to be(true) }
       end
 
-      context 'when the profiler is not running' do
-        let(:running) { false }
+      context 'when the profiler is not enabled' do
+        let(:enabled) { false }
         it { is_expected.to be(false) }
       end
     end

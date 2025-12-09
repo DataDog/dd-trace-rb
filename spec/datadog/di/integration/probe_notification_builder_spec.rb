@@ -72,7 +72,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         it 'builds expected payload' do
           payload = builder.build_snapshot(context)
           expect(payload).to be_a(Hash)
-          expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to eq(captures)
+          expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq(captures)
         end
       end
     end
@@ -125,7 +125,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         it 'builds expected payload' do
           payload = builder.build_snapshot(context)
           expect(payload).to be_a(Hash)
-          captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
           expect(captures).to eq(expected_captures)
         end
       end
@@ -166,7 +166,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           expect(payload[:message]).to eq 'hello42'
 
           # We asked to not create a snapshot
-          expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+          expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
         end
 
         context 'when there is an evaluation error' do
@@ -181,12 +181,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             payload = builder.build_snapshot(context)
             expect(payload).to be_a(Hash)
             expect(payload[:message]).to eq "hello[evaluation error]"
-            expect(payload[:"debugger.snapshot"][:evaluationErrors]).to eq [
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:evaluationErrors)).to eq [
               {message: 'ArgumentError: bad value for range', expr: '(expression)'}
             ]
 
             # We asked to not create a snapshot
-            expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
           end
         end
 
@@ -204,13 +204,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             payload = builder.build_snapshot(context)
             expect(payload).to be_a(Hash)
             expect(payload[:message]).to eq "hello[evaluation error][evaluation error]hello"
-            expect(payload[:"debugger.snapshot"][:evaluationErrors]).to eq [
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:evaluationErrors)).to eq [
               {message: 'ArgumentError: bad value for range', expr: '(bar baz 3)'},
               {message: 'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: String', expr: '(bar baz)'},
             ]
 
             # We asked to not create a snapshot
-            expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
           end
         end
 
@@ -232,7 +232,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             expect(payload[:message]).to eq 'hellonil'
 
             # We asked to not create a snapshot
-            expect(payload.fetch(:"debugger.snapshot").fetch(:captures)).to be nil
+            expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)).to eq({})
           end
         end
       end

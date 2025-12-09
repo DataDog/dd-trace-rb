@@ -333,6 +333,9 @@ target :datadog do
   ignore 'lib/datadog/tracing/contrib/karafka/integration.rb'
   ignore 'lib/datadog/tracing/contrib/karafka/monitor.rb'
   ignore 'lib/datadog/tracing/contrib/karafka/patcher.rb'
+  ignore 'lib/datadog/tracing/contrib/karafka/framework.rb' # Steep has issues with block parameter type inference
+  ignore 'lib/datadog/tracing/contrib/waterdrop/producer.rb' # Steep can't handle define_method metaprogramming pattern
+  ignore 'lib/datadog/tracing/contrib/waterdrop/middleware.rb' # Steep has issues with union type method calls
   ignore 'lib/datadog/tracing/contrib/patcher.rb'
   ignore 'lib/datadog/tracing/contrib/configuration/resolver.rb'
   ignore 'lib/datadog/tracing/contrib/propagation/sql_comment/comment.rb'

@@ -15,9 +15,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:metric_values) { {"cpu-time" => 123, "cpu-samples" => 456, "wall-time" => 789} }
   let(:labels) { {"label_a" => "value_a", "label_b" => "value_b", "state" => "unknown"}.to_a }
 
-  let(:raw_reference_stack) { stacks.fetch(:reference) }
-  let(:reference_stack) { convert_reference_stack(raw_reference_stack) }
-  let(:gathered_stack) { stacks.fetch(:gathered) }
+  let(:raw_reference_stack) { stacks.fetch(:reference).freeze }
+  let(:reference_stack) { convert_reference_stack(raw_reference_stack).freeze }
+  let(:gathered_stack) { stacks.fetch(:gathered).freeze }
   let(:native_filenames_enabled) { false }
 
   def sample(thread, recorder_instance, metric_values_hash, labels_array, **options)
@@ -220,7 +220,35 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       # I opted to join these two expects to avoid running the `load` above more than once
       it "matches the Ruby backtrace API AND has a sleeping frame at the top of the stack" do
-        expect(gathered_stack).to eq reference_stack
+        if RUBY_VERSION.start_with?("4.")
+          # In Ruby 4, due to https://bugs.ruby-lang.org/issues/20968 while internally Integer#times has the path
+          # `<internal:numeric>` (and this is what the profiler observes), Ruby actually hides this and "blames" it
+          # on the last ruby file/line that was on the stack.
+          #
+          # @ivoanjo: At this point I'm not sure we want to match that behavior as we don't match it either when
+          # using the "native filenames" feature. So for now we adjust the assertions to account for that
+          unmatched_indexes =
+            reference_stack.each_with_index.select { |frame, index| frame.base_label == "times" }.map(&:last)
+          expect(unmatched_indexes).to_not be_empty
+
+          gathered_stack_without_unmatched = gathered_stack.dup
+          reference_stack_without_unmatched = reference_stack.dup
+
+          # Check the expected frames are different -- and remove them from the match
+          unmatched_indexes.sort.reverse_each do |index|
+            expect(gathered_stack[index].path).to eq "<internal:numeric>"
+            expect(reference_stack[index].path).to end_with "/interesting_backtrace_helper.rb"
+
+            gathered_stack_without_unmatched.delete_at(index)
+            reference_stack_without_unmatched.delete_at(index)
+          end
+
+          # ...match the rest of the frames
+          expect(gathered_stack_without_unmatched).to eq reference_stack_without_unmatched
+        else
+          expect(gathered_stack).to eq reference_stack
+        end
+
         expect(reference_stack.first.base_label).to eq "sleep"
       end
     end

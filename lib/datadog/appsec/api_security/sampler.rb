@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require 'zlib'
-require_relative 'lru_cache'
 require_relative 'route_extractor'
 require_relative '../../core/utils/time'
+require_relative '../../core/utils/lru_cache'
 
 module Datadog
   module AppSec
@@ -37,7 +37,7 @@ module Datadog
         def initialize(sample_delay)
           raise ArgumentError, 'sample_delay must be an Integer' unless sample_delay.is_a?(Integer)
 
-          @cache = LRUCache.new(MAX_CACHE_SIZE)
+          @cache = Core::Utils::LRUCache.new(MAX_CACHE_SIZE)
           @sample_delay_seconds = sample_delay
         end
 
@@ -45,13 +45,15 @@ module Datadog
           return true if @sample_delay_seconds.zero?
           return false if response.status == 404
 
-          key = Zlib.crc32("#{request.request_method}#{RouteExtractor.route_pattern(request)}#{response.status}")
+          route_pattern = RouteExtractor.route_pattern(request).to_s
+
+          key = Zlib.crc32("#{request.request_method}#{route_pattern}#{response.status}")
           current_timestamp = Core::Utils::Time.now.to_i
           cached_timestamp = @cache[key] || 0
 
           return false if current_timestamp - cached_timestamp <= @sample_delay_seconds
 
-          @cache.store(key, current_timestamp)
+          @cache[key] = current_timestamp
           true
         end
       end

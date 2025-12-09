@@ -15,7 +15,7 @@ end
 
 begin
   require_relative 'auto_instrument'
-  Datadog::SingleStepInstrument::LOADED = true
+  Datadog::SingleStepInstrument.const_set(:LOADED, true)
 rescue StandardError, LoadError => e
   warn "Single step instrumentation failed: #{e.class}:#{e.message}\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
 end

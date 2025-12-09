@@ -1,0 +1,8 @@
+module WaterDrop
+  class Producer
+    def id: () -> String
+  end
+
+  def self.instrumentation: () -> untyped
+end
+

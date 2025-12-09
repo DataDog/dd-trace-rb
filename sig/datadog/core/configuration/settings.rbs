@@ -118,6 +118,10 @@ module Datadog
           def text: () -> ::String
         end
 
+        interface _OpenFeature
+          def enabled: () -> bool
+        end
+
         def initialize: (*untyped _) -> untyped
 
         def env: -> String?
@@ -139,6 +143,12 @@ module Datadog
         def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
 
         def error_tracking: () -> Datadog::Core::Configuration::Settings::_ErrorTracking
+
+        def open_feature: () -> _OpenFeature
+
+        def tracing: () -> untyped
+
+        def opentelemetry: () -> OpenTelemetry::Configuration::Settings::_OpenTelemetry
       end
     end
   end

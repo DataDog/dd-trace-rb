@@ -1,0 +1,64 @@
+module Datadog
+  module OpenFeature
+    class Provider
+      NAME: ::String
+
+      attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
+
+      def initialize: () -> void
+
+      def init: () -> void
+
+      def shutdown: () -> void
+
+      def fetch_boolean_value: (
+        flag_key: ::String,
+        default_value: bool,
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      def fetch_string_value: (
+        flag_key: ::String,
+        default_value: ::String,
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      def fetch_number_value: (
+        flag_key: ::String,
+        default_value: ::Numeric,
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      def fetch_integer_value: (
+        flag_key: ::String,
+        default_value: ::Integer,
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      def fetch_float_value: (
+        flag_key: ::String,
+        default_value: ::Float,
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      def fetch_object_value: (
+        flag_key: ::String,
+        default_value: ::Array[untyped] | ::Hash[untyped, untyped],
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      private
+
+      def evaluate: (
+        ::String flag_key,
+        default_value: ::OpenFeature::SDK::Provider::ResolutionDetails::value_t,
+        expected_type: ::Symbol,
+        evaluation_context: ::OpenFeature::SDK::EvaluationContext?
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      def component_not_configured_default: (
+        ::OpenFeature::SDK::Provider::ResolutionDetails::value_t value
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+    end
+  end
+end
