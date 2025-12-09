@@ -3,14 +3,14 @@ GIT
   revision: 7b95302a593c42b16d4f1e97c993de001a18a3b5
   ref: 7b95302a593c42b16d4f1e97c993de001a18a3b5
   specs:
-    datadog-ruby_core_source (3.4.1)
+    datadog-ruby_core_source (3.4.2)
 
 PATH
   remote: ..
   specs:
     datadog (2.23.0)
       cgi
-      datadog-ruby_core_source (~> 3.4, >= 3.4.1)
+      datadog-ruby_core_source (~> 3.4, >= 3.4.2)
       libdatadog (~> 24.0.1.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
