@@ -3,6 +3,10 @@ module Datadog
     module Telemetry
       module Event
         class AppStarted < Base
+          @configuration: Array[Hash[Symbol, untyped]]
+          @install_signature: Hash[Symbol, Object]
+          @products: Hash[Symbol, Hash[Symbol, Hash[Symbol, String | Integer] | bool | nil]]
+
           def initialize: (components: Datadog::Core::Configuration::Components) -> void
 
           def type: () -> "app-started"
