@@ -305,7 +305,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 
   if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate ||
       #ifdef NO_IMEMO_OBJECT_ID
-        // On Ruby 3.5, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
+        // On Ruby 4, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
         RB_BUILTIN_TYPE(new_obj) == RUBY_T_IMEMO
       #else
         false
