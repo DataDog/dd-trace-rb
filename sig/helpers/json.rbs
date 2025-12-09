@@ -1,0 +1,4 @@
+module Helpers
+  type json = ::String | ::Integer | ::Float | bool | nil | ::Array[json] | ::Hash[::String, json]
+  type json_symbolized = ::String | ::Integer | ::Float | bool | nil | ::Array[json_symbolized] | ::Hash[::Symbol, json_symbolized]
+end

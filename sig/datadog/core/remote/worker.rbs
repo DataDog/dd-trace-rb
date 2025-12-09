@@ -2,16 +2,16 @@ module Datadog
   module Core
     module Remote
       class Worker
-        attr_reader starting: bool
-        attr_reader stopping: bool
-        attr_reader started: bool
-        attr_reader thr: Thread?
-        attr_reader interval: ::Float
-        attr_reader mutex: ::Thread::Mutex
-        attr_reader block: (^() -> void)
         attr_reader logger: ::Logger
 
         @logger: ::Logger
+        @starting: bool
+        @started: bool
+        @stopped: bool
+        @thr: Thread?
+        @interval: ::Float
+        @mutex: ::Thread::Mutex
+        @block: (^() -> void)
 
         def initialize: (interval: ::Float, logger: ::Logger) { () -> void } -> void
 

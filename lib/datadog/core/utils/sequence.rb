@@ -12,7 +12,8 @@ module Datadog
         end
 
         def next
-          next_item = @next_item ? @next_item.call(@current) : @current
+          # Steep: https://github.com/soutaro/steep/issues/477
+          next_item = @next_item ? @next_item.call(@current) : @current # steep:ignore NoMethod
           @current += 1
           next_item
         end
