@@ -63,7 +63,7 @@ module Datadog
         #   For the entry `0:cpu:/docker/abc123`,
         #   we read `stat -c '%i' /sys/fs/cgroup/cpu/docker/abc123`
         def inode_for(controllers, path)
-          return nil if !(controllers || path)
+          return nil if controllers.nil? || path.nil?
 
           # In cgroup v1, when multiple controllers are co-mounted, the controllers
           # becomes part of the directory name (with commas preserved).
