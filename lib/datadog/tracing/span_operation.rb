@@ -286,7 +286,8 @@ module Datadog
       end
 
       def duration
-        return @duration_end - @duration_start if @duration_start && @duration_end
+        # Steep: https://github.com/soutaro/steep/issues/477
+        return @duration_end - @duration_start if @duration_start && @duration_end # steep:ignore NoMethod
 
         # Steep: https://github.com/soutaro/steep/issues/477
         @end_time - @start_time if @start_time && @end_time # steep:ignore NoMethod
@@ -465,7 +466,7 @@ module Datadog
               @handler.call(*args)
             rescue => e
               logger.debug do
-                "Error in on_error handler '#{@default}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
+                "Error in on_error handler '#{@handler}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
               end
             end
 
