@@ -14,6 +14,8 @@ lib/datadog/opentelemetry.rb @DataDog/apm-sdk-capabilities-ruby
 lib-injection/ @DataDog/lang-platform-ruby
 lib/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 lib/datadog/profiling.rb @DataDog/profiling-rb @DataDog/ruby-guild
+lib/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
+lib/datadog/data_streams.rb @DataDog/data-streams-monitoring @DataDog/ruby-guild
 ext/ @DataDog/profiling-rb @DataDog/ruby-guild
 
 # RBS signatures
@@ -25,6 +27,8 @@ sig/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guil
 sig/datadog/opentelemetry.rbs @DataDog/apm-sdk-capabilities-ruby @DataDog/ruby-guild
 sig/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 sig/datadog/profiling.rbs @DataDog/profiling-rb @DataDog/ruby-guild
+sig/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
+sig/datadog/data_streams.rbs @DataDog/data-streams-monitoring @DataDog/ruby-guild
 
 # Specs
 spec/datadog/appsec/ @DataDog/asm-ruby
@@ -34,3 +38,4 @@ spec/datadog/opentelemetry/ @DataDog/apm-sdk-capabilities-ruby
 spec/datadog/opentelemetry_spec.rb @DataDog/apm-sdk-capabilities-ruby
 spec/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 spec/datadog/profiling_spec.rb @DataDog/profiling-rb @DataDog/ruby-guild
+spec/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
