@@ -58,19 +58,38 @@ module Datadog
           Datadog.configuration.container.external_env
         end
 
-        # The container platform, e.g., "docker", "kubepods", "fargate"
+        # The container orchestration platform or runtime environment.
+        #
+        # Examples: Docker, Kubernetes, AWS Fargate, LXC, etc.
+        #
+        # @return [String, nil] The platform name (e.g., "docker", "kubepods", "fargate"), or nil if not containerized
         def platform
           entry.platform
         end
 
+        # The unique identifier of the current container in the container environment.
+        #
+        # @return [String, nil] The container ID, or nil if not running in a containerized environment
         def container_id
           entry.container_id
         end
 
+        # The unique identifier of the task or pod containing this container.
+        #
+        # In Kubernetes, this is the Pod UID; in AWS ECS/Fargate, the task ID.
+        # Used to identify higher-level workloads beyond this container,
+        # enabling correlation across container restarts and multi-container applications.
+        #
+        # @return [String, nil] The task/pod UID, or nil if not available in the current environment
         def task_uid
           entry.task_uid
         end
 
+        # A unique identifier for the execution context (container or host namespace).
+        #
+        # Used as a fallback identifier when {#container_id} is unavailable.
+        #
+        # @return [Integer, nil] The namespace inode, or nil if unavailable
         def inode
           entry.inode
         end
@@ -135,7 +154,7 @@ module Datadog
             end
 
             # container_id is a better container identifier than inode.
-            # We MUST only populate one of them, to avoid ambiguity.
+            # We MUST only populate one of them, to avoid container identification ambiguity.
             if container_id
               return @entry = Entry.new(platform, task_uid, container_id)
             elsif entry_obj.inode && !running_on_host?

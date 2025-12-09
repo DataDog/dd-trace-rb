@@ -68,8 +68,8 @@ module Datadog
           # In cgroup v1, when multiple controllers are co-mounted, the controllers
           # becomes part of the directory name (with commas preserved).
           # Example entry:
-          #   For controllers "cpu,cpuacct",
-          #   the path is "/sys/fs/cgroup/cpu,cpuacct/docker/abc123"
+          #   For the line "10:cpu,cpuacct:/docker/abc123", the path is
+          #   "/sys/fs/cgroup/cpu,cpuacct/docker/abc123"
           inode_path = File.join('/sys/fs/cgroup', controllers, path)
 
           File.stat(inode_path).ino if File.exist?(inode_path)
