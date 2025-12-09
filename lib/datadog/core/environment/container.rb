@@ -19,7 +19,8 @@ module Datadog
         # From https://github.com/torvalds/linux/blob/5859a2b1991101d6b978f3feb5325dad39421f29/include/linux/proc_ns.h#L41-L49
         # Currently, the host namespace inode number is hardcoded.
         # We use it to determine if we're running in the host namespace.
-        # This detection approach does not work when running in "Docker-in-Docker".
+        # This detection approach does not work when running in
+        # ["Docker-in-Docker"](https://www.docker.com/resources/docker-in-docker-containerized-ci-workflows-dockercon-2023/).
         HOST_CGROUP_NAMESPACE_INODE = 0xEFFFFFFB
 
         Entry = Struct.new(
