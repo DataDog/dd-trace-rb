@@ -916,6 +916,12 @@
     "DD_TRACE_TRILOGY_SERVICE_NAME": {
       "version": ["A"]
     },
+    "DD_TRACE_VIEW_COMPONENT_ANALYTICS_ENABLED": {
+      "version": ["A"]
+    },
+    "DD_TRACE_VIEW_COMPONENT_ENABLED": {
+      "version": ["A"]
+    },
     "DD_TRACE_WATERDROP_ENABLED": {
       "version": ["A"]
     },
