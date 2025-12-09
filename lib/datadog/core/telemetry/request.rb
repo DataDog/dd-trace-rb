@@ -55,7 +55,7 @@ module Datadog
               tracer_version: tracer_version
             }
 
-            tag_process_tags!(app)
+            tag_process_tags!(app, config)
 
             app
           end
@@ -70,8 +70,8 @@ module Datadog
             }
           end
 
-          def tag_process_tags!(app)
-            return unless Datadog.configuration.experimental_propagate_process_tags_enabled
+          def tag_process_tags!(app, config)
+            return unless config.experimental_propagate_process_tags_enabled
 
             process_tags = Core::Environment::Process.serialized
             return if process_tags.empty?
