@@ -114,7 +114,10 @@
     },
     "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": {
       "version": ["A"]
-    },    
+    },
+    "DD_EXTERNAL_ENV": {
+      "version": ["A"]
+    },
     "DD_GIT_COMMIT_SHA": {
       "version": ["A"]
     },
