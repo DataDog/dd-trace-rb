@@ -677,6 +677,41 @@ RSpec.describe Datadog::Core::Remote::Client do
           end
         end
 
+        context 'process_tags' do
+          let(:client_payload) { client.send(:payload)[:client] }
+
+          context 'when process tags propagation is enabled' do
+            before do
+              allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+              if Datadog::Core::Environment::Process.instance_variable_defined?(:@tags_array)
+                Datadog::Core::Environment::Process.remove_instance_variable(:@tags_array)
+              end
+            end
+
+            it 'has process tags in the payload' do
+              process_tags = client_payload[:client_tracer][:process_tags]
+              expect(process_tags).to be_a(Array)
+              expect(process_tags).to include('entrypoint.workdir:app')
+              expect(process_tags).to include('entrypoint.name:rspec')
+              expect(process_tags).to include('entrypoint.basedir:bin')
+              expect(process_tags).to include('entrypoint.type:script')
+            end
+          end
+
+          context 'when process tags propagation is not enabled' do
+            # Current false by default
+            before do
+              if Datadog::Core::Environment::Process.instance_variable_defined?(:@tags_array)
+                Datadog::Core::Environment::Process.remove_instance_variable(:@tags_array)
+              end
+            end
+
+            it 'does not have process tags in the payload' do
+              expect(client_payload[:client_tracer]).not_to have_key(:process_tags)
+            end
+          end
+        end
+
         context 'cached_target_files' do
           it 'returns cached_target_files' do
             state = repository.state

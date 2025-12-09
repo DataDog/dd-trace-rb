@@ -30,6 +30,26 @@ module Datadog
           @serialized = tags.join(',').freeze
         end
 
+        # This method returns an array in the format ["k1:v1","k2:v2","k3:v3"]
+        # @return [Array<String>] array of normalized key:value pairs
+        def self.tags_array
+          return @tags_array if defined?(@tags_array)
+          tags = []
+
+          workdir = TagNormalizer.normalize_process_value(entrypoint_workdir.to_s)
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{workdir}" unless workdir.empty?
+
+          entry_name = TagNormalizer.normalize_process_value(entrypoint_name.to_s)
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_NAME}:#{entry_name}" unless entry_name.empty?
+
+          basedir = TagNormalizer.normalize_process_value(entrypoint_basedir.to_s)
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{basedir}" unless basedir.empty?
+
+          tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
+
+          @tags_array = tags.freeze
+        end
+
         # Returns the last segment of the working directory of the process
         # Example: /app/myapp -> myapp
         # @return [String] the last segment of the working directory

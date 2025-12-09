@@ -161,6 +161,11 @@ module Datadog
 
           client_tracer[:app_version] = app_version if app_version
 
+          if Datadog.configuration.experimental_propagate_process_tags_enabled
+            process_tags = Core::Environment::Process.tags_array
+            client_tracer[:process_tags] = process_tags if process_tags.any?
+          end
+
           {
             client: {
               state: {

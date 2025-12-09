@@ -147,4 +147,111 @@ RSpec.describe Datadog::Core::Environment::Process do
       end
     end
   end
+  describe '::tags_array' do
+    subject(:tags_array) { described_class.tags_array }
+
+    def reset_tags_array!
+      described_class.remove_instance_variable(:@tags_array) if described_class.instance_variable_defined?(:@tags_array)
+    end
+
+    shared_context 'with mocked process environment' do
+      let(:pwd) { '/app' }
+
+      around do |example|
+        @original_0 = $0
+        $0 = program_name
+        example.run
+        $0 = @original_0
+      end
+
+      before do
+        allow(Dir).to receive(:pwd).and_return(pwd)
+        allow(File).to receive(:expand_path).and_call_original
+        allow(File).to receive(:expand_path).with('.').and_return('/app')
+        reset_tags_array!
+      end
+
+      after do
+        reset_tags_array!
+      end
+    end
+
+    it { is_expected.to be_a_kind_of(Array) }
+
+    it 'is an array of strings' do
+      expect(tags_array).to all(be_a(String))
+    end
+
+    it 'returns the same object when called multiple times' do
+      # Processes are fixed so no need to recompute this on each call
+      first_call = described_class.tags_array
+      second_call = described_class.tags_array
+      expect(first_call).to equal(second_call)
+    end
+
+    context 'with /expectedbasedir/executable' do
+      include_context 'with mocked process environment'
+      let(:program_name) { '/expectedbasedir/executable' }
+
+      it 'extracts out the tag array correctly' do
+        expect(tags_array.length).to eq(4)
+        expect(described_class.tags_array).to include('entrypoint.workdir:app')
+        expect(described_class.tags_array).to include('entrypoint.name:executable')
+        expect(described_class.tags_array).to include('entrypoint.basedir:expectedbasedir')
+        expect(described_class.tags_array).to include('entrypoint.type:script')
+      end
+    end
+
+    context 'with irb' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'irb' }
+
+      it 'extracts out the tag array correctly' do
+        expect(tags_array.length).to eq(4)
+        expect(described_class.tags_array).to include('entrypoint.workdir:app')
+        expect(described_class.tags_array).to include('entrypoint.name:irb')
+        expect(described_class.tags_array).to include('entrypoint.basedir:app')
+        expect(described_class.tags_array).to include('entrypoint.type:script')
+      end
+    end
+
+    context 'with my/path/rubyapp.rb' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'my/path/rubyapp.rb' }
+
+      it 'extracts out the tag array correctly' do
+        expect(tags_array.length).to eq(4)
+        expect(described_class.tags_array).to include('entrypoint.workdir:app')
+        expect(described_class.tags_array).to include('entrypoint.name:rubyapp.rb')
+        expect(described_class.tags_array).to include('entrypoint.basedir:path')
+        expect(described_class.tags_array).to include('entrypoint.type:script')
+      end
+    end
+
+    context 'with my/path/foo:,bar' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'my/path/foo:,bar' }
+
+      it 'extracts out the tag array correctly' do
+        expect(tags_array.length).to eq(4)
+        expect(described_class.tags_array).to include('entrypoint.workdir:app')
+        expect(described_class.tags_array).to include('entrypoint.name:foo_bar')
+        expect(described_class.tags_array).to include('entrypoint.basedir:path')
+        expect(described_class.tags_array).to include('entrypoint.type:script')
+      end
+    end
+
+    context 'with bin/rails' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'bin/rails' }
+
+      it 'extracts out the tags array correctly' do
+        expect(tags_array.length).to eq(4)
+        expect(described_class.tags_array).to include('entrypoint.workdir:app')
+        expect(described_class.tags_array).to include('entrypoint.name:rails')
+        expect(described_class.tags_array).to include('entrypoint.basedir:bin')
+        expect(described_class.tags_array).to include('entrypoint.type:script')
+      end
+    end
+  end
 end
