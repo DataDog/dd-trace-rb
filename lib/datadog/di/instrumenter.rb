@@ -114,7 +114,9 @@ module Datadog
         settings = self.settings
 
         mod = Module.new do
-          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore
+          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+            # Steep: Unsure why it cannot detect kwargs in this block. Workaround:
+            # @type var kwargs: ::Hash[::Symbol, untyped]
             continue = true
             if condition = probe.condition
               begin
