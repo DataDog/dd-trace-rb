@@ -170,6 +170,20 @@ module Datadog
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
         end
 
+        # Configuration for container environments. For internal use only.
+        # @!visibility private
+        settings :container do
+          # Data supplied by the container runner to assist in uniquely identifying this process.
+          # Used in [Origin Detection](https://docs.datadoghq.com/developers/dogstatsd/unix_socket/?tab=host#origin-detection)
+          #
+          # @default `DD_EXTERNAL_ENV` environment variable, otherwise `nil`
+          # @return [String,nil]
+          option :external_env do |o|
+            o.type :string, nilable: true
+            o.env Core::Environment::Ext::ENV_EXTERNAL_ENV
+          end
+        end
+
         # Internal {Datadog::Statsd} metrics collection.
         #
         # @public_api

@@ -57,10 +57,9 @@ module Datadog
             Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
               Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
           }.tap do |headers|
-            # Add container ID, if present.
-            if (container_id = Datadog::Core::Environment::Container.container_id)
-              headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id
-            end
+            # Add application container info
+            headers.merge!(Datadog::Core::Environment::Container.to_headers)
+
             # TODO: inject configuration rather than reading from global here
             unless Datadog.configuration.apm.tracing.enabled
               # Sending this header to the agent will disable metrics computation (and billing) on the agent side
