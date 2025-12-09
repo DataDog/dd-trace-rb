@@ -1,0 +1,23 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class AIGuardAbortError < StandardError
+        @reason: ::String
+
+        def initialize: (::String reason) -> void
+
+        def to_s: () -> ::String
+      end
+
+      class UnexpectedResponseError < StandardError
+        @details: ::String
+
+        def initialize: (::String details) -> void
+
+        def to_s: () -> ::String
+      end
+
+      def self.perform: (::Array[Message] messages, ?allow_raise: bool) -> Response
+    end
+  end
+end

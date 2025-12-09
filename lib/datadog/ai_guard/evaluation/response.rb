@@ -2,7 +2,7 @@
 
 module Datadog
   module AIGuard
-    class Evaluation
+    module Evaluation
       # Wrapper class for evaluation API response
       class Response
         ALLOW_ACTION = 'ALLOW'
@@ -18,7 +18,7 @@ module Datadog
           @reason = attributes.fetch('reason')
           @tags = attributes.fetch('tags')
         rescue KeyError => e
-          raise InvalidResponseError, "Missing key: \"#{e.key}\""
+          raise UnexpectedResponseError, "Missing key: \"#{e.key}\""
         end
 
         def allow?

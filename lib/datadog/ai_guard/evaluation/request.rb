@@ -2,7 +2,7 @@
 
 module Datadog
   module AIGuard
-    class Evaluation
+    module Evaluation
       # Request builds the request body from an array of messages and processes the response
       class Request
         REQUEST_PATH = '/evaluate'
@@ -74,6 +74,8 @@ module Datadog
         end
 
         def truncate_content(content)
+          return unless content
+
           content.byteslice(0, Datadog.configuration.ai_guard.max_content_size_bytes)
         end
       end

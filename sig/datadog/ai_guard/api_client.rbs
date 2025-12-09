@@ -1,0 +1,46 @@
+module Datadog
+  module AIGuard
+    class APIClient
+      DEFAULT_SITE: ::String
+
+      class UnexpectedRedirectError < StandardError
+      end
+
+      class UnexpectedResponseError < StandardError
+      end
+
+      class ResponseBodyParsingError < StandardError
+      end
+
+      class ClientError < StandardError
+      end
+
+      class NotFoundError < StandardError
+      end
+
+      class TooManyRequestsError < ClientError
+      end
+
+      class UnauthorizedError < ClientError
+      end
+
+      class ForbiddenError < ClientError
+      end
+
+      class ServerError < StandardError
+      end
+
+      def initialize: (endpoint: ::String, api_key: ::String?, application_key: ::String?, timeout: ::Integer) -> void
+
+      def post: (path: ::String, request_body: ::Hash[::String, ::String]) -> ::Hash[::String, ::String]
+
+      private
+
+      def perform_request: (::Net::HTTPRequest request, http: ::Net::HTTP) -> Net::HTTPResponse
+
+      def parse_response_body: (::String) -> Evaluation::Response::raw_response_body
+
+      def headers: () -> ::Hash[::Symbol, ::String?]
+    end
+  end
+end

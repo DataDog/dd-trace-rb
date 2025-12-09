@@ -12,6 +12,9 @@ module Datadog
       DEFAULT_SITE = 'app.datadoghq.com'
 
       class UnexpectedRedirectError < StandardError; end
+      class UnexpectedResponseError < StandardError; end
+      class ResponseBodyParsingError < StandardError; end
+
       class ClientError < StandardError; end
       class NotFoundError < StandardError; end
       class TooManyRequestsError < ClientError; end
@@ -52,7 +55,7 @@ module Datadog
           raise UnexpectedRedirectError, 'Redirects for AI Guard API are not supported'
         when Net::HTTPNotFound
           raise NotFoundError, response.body
-        when Net::HTTPTooManyRequestsError
+        when Net::HTTPTooManyRequests
           raise TooManyRequestsError, response.body
         when Net::HTTPServerError
           raise ServerError, response.body
@@ -62,6 +65,8 @@ module Datadog
           raise UnauthorizedError, response.body
         when Net::HTTPForbidden
           raise ForbiddenError, response.body
+        else
+          raise UnexpectedResponseError, response.body
         end
       end
 

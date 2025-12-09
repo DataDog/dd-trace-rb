@@ -2,7 +2,7 @@
 
 module Datadog
   module AIGuard
-    class Evaluation
+    module Evaluation
       # Message class for AI Guard
       class Message
         class InvalidRoleError < ArgumentError; end

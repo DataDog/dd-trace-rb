@@ -39,7 +39,7 @@ module Datadog
                 o.default "/api/v2/ai-guard"
 
                 o.setter do |value|
-                  value.delete_suffix('/')
+                  value.to_s.delete_suffix('/')
                 end
               end
 

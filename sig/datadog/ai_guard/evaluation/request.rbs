@@ -1,0 +1,38 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class Request
+        REQUEST_PATH: ::String
+
+        type serialized_message = {
+          role: ::String,
+          ?content: ::String?,
+          ?tool_calls: ::Array[{
+            id: ::String,
+            function: {
+              name: ::String,
+              arguments: ::String
+            }
+          }],
+          ?tool_call_id: ::String?
+        }
+
+        attr_reader serialized_messages: ::Array[serialized_message]
+
+        def initialize: (::Array[Message] messages) -> void
+
+        def perform: () -> Response
+
+        private
+
+        def build_request_body: () -> ::Hash[::Symbol, untyped]
+
+        def serialize_messages: (::Array[Message] messages) -> ::Array[serialized_message]
+
+        def serialize_message: (Message message) -> serialized_message
+
+        def truncate_content: (::String? content) -> ::String?
+      end
+    end
+  end
+end

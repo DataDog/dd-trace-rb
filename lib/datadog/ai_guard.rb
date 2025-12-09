@@ -8,33 +8,35 @@ module Datadog
   module AIGuard
     Core::Configuration::Settings.extend(Configuration::Settings)
 
-    module_function
+    class << self
+      def enabled?
+        Datadog.configuration.ai_guard.enabled
+      end
 
-    def enabled?
-      Datadog.configuration.ai_guard.enabled
-    end
+      def api_client
+        Datadog.send(:components).ai_guard&.api_client
+      end
 
-    def api_client
-      Datadog.send(:components).ai_guard&.api_client
-    end
+      def evaluate(*messages, allow_raise: false)
+        # TODO: skip evaluation when AI Guard is disabled?
 
-    def evaluate(*messages, allow_raise: false)
-      Evaluation.new(messages).perform(allow_raise: allow_raise)
-    end
+        Evaluation.perform(messages, allow_raise: allow_raise)
+      end
 
-    def message(role:, content:)
-      Evaluation::Message.new(role: role, content: content)
-    end
+      def message(role:, content:)
+        Evaluation::Message.new(role: role, content: content)
+      end
 
-    def tool_call(tool_name, id:, arguments:)
-      Evaluation::Message.new(
-        role: :assistant,
-        tool_call: Evaluation::ToolCall.new(tool_name, id: id, arguments: arguments)
-      )
-    end
+      def tool_call(tool_name, id:, arguments:)
+        Evaluation::Message.new(
+          role: :assistant,
+          tool_call: Evaluation::ToolCall.new(tool_name, id: id.to_s, arguments: arguments)
+        )
+      end
 
-    def tool_output(tool_call_id:, content:)
-      Evaluation::Message.new(role: :tool, tool_call_id: tool_call_id, content: content)
+      def tool_output(tool_call_id:, content:)
+        Evaluation::Message.new(role: :tool, tool_call_id: tool_call_id.to_s, content: content)
+      end
     end
   end
 end
