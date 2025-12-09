@@ -3,7 +3,7 @@ PATH
   specs:
     datadog (2.23.0)
       cgi
-      datadog-ruby_core_source (~> 3.4, >= 3.4.1)
+      datadog-ruby_core_source (~> 3.4, >= 3.4.2)
       libdatadog (~> 24.0.1.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
@@ -49,7 +49,7 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.4.1)
+    datadog-ruby_core_source (3.4.2)
     devise (3.2.1)
       bcrypt-ruby (~> 3.0)
       orm_adapter (~> 0.1)
