@@ -470,6 +470,259 @@ RSpec.describe 'Telemetry integration tests' do
     end
   end
 
+  describe 'app-started event payloads when components are enabled' do
+    # The test cases here are more like unit tests in that they really want
+    # to assert the contents of generated events.
+    # However, the event creation logic is rather cumbersome, and there is
+    # no single point to spy on. AppStarted constructor is perhaps the best
+    # candidate, but this would assert on what is created rather than what is
+    # actually sent over the wire, which still wouldn't be a straightforward
+    # mapping from what we want to test (which are actual payloads).
+    # Therefore, these tests go through a local web server and assert on the
+    # submitted payloads.
+    #
+    # These tests are also subject to a race of sorts between when the
+    # telemetry worker performs its first iteration and when the
+    # app integrations change event is submitted to the queue.
+    # Since the tests flush the queue, if the integration change event is
+    # submitted after the initial worker iteration, each test will wait for
+    # 10 seconds for the second iteration to send out that event.
+    # To work around this we reduce metrics_aggregation_interval_seconds to
+    # 1 (second).
+    # Note that this is (sort of) not an issue in production: all of the
+    # events will be sent, but telemetry does not guarantee when any particular
+    # event will be sent - it could be delayed until the next worker iteration.
+
+    http_server do |http_server|
+      http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
+    end
+
+    after do
+      Datadog.configuration.reset!
+    end
+
+    let(:settings) do
+      Datadog.configuration
+    end
+
+    let(:component) { Datadog.send(:components).telemetry }
+
+    # Helper function to not copy/paste all of these settings for each
+    # test case, and also to not call Datadog.configure twice for each test.
+    def common_configuration(c)
+      c.agent.port = http_server_port
+      c.telemetry.enabled = true
+      c.telemetry.metrics_aggregation_interval_seconds = 1
+    end
+
+    def assert_remaining_events
+      # For sanity checking verify that the remaining events are as we
+      # expect them to be.
+      payload = sent_payloads[1]
+      expect(payload.fetch(:payload)).to include(
+        'request_type' => 'app-dependencies-loaded',
+      )
+
+      payload = sent_payloads[2]
+      expect(payload.fetch(:payload)).to include(
+        'request_type' => 'message-batch',
+      )
+      expect(payload.fetch(:payload).fetch('payload').first).to include(
+        'request_type' => 'app-integrations-change',
+      )
+    end
+
+    context 'when profiling is fully enabled' do
+      before do
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.profiling.enabled = true
+        end
+      end
+
+      it 'reports profiling as being enabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'profiling.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'profiler' => {'enabled' => true},
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when profiling is requested to be enabled but fails prerequisites' do
+      before do
+        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return('fake not supported reason')
+
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.profiling.enabled = true
+        end
+      end
+
+      it 'reports profiling as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'profiling.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'profiler' => {
+            'enabled' => false,
+            'error' => {
+              'code' => 1,
+              'message' => 'fake not supported reason',
+            },
+          },
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when dynamic instrumentation is fully enabled' do
+      before do
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.dynamic_instrumentation.enabled = true
+          c.dynamic_instrumentation.internal.development = true
+          c.remote.enabled = true
+        end
+      end
+
+      it 'reports dynamic instrumentation as being enabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'dynamic_instrumentation.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'dynamic_instrumentation' => {'enabled' => true},
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when dynamic instrumentation is requested to be enabled but fails prerequisites' do
+      before do
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.dynamic_instrumentation.enabled = true
+          # Disable remote config which is a prerequisite for DI
+          c.remote.enabled = false
+        end
+      end
+
+      it 'reports dynamic instrumentation as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'dynamic_instrumentation.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'dynamic_instrumentation' => {
+            'enabled' => false,
+            # DI currently does not provide the reason why it's not enabled.
+          },
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when appsec is fully enabled' do
+      before do
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.appsec.enabled = true
+        end
+      end
+
+      it 'reports appsec as being enabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'appsec.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'appsec' => {'enabled' => true},
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when appsec is requested to be enabled but fails initialization' do
+      before do
+        # AppSec has very modest prerequisites, it's easier to fail
+        # its initialization than to make the prerequisites not fulfilled.
+        expect(Datadog::AppSec::SecurityEngine::Engine).to receive(:new).and_raise("fake exception")
+
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.appsec.enabled = true
+        end
+      end
+
+      it 'reports appsec as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'appsec.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'appsec' => {
+            'enabled' => false,
+            # AppSec currently does not provide the reason why it's not enabled.
+          },
+        )
+
+        assert_remaining_events
+      end
+    end
+  end
+
   context 'when process forks' do
     skip_unless_fork_supported
 
