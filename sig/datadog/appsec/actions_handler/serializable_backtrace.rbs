@@ -4,6 +4,9 @@ module Datadog
       class SerializableBacktrace
         CLASS_AND_FUNCTION_NAME_REGEX: ::Regexp
 
+        @stack_id: String
+        @locations: ::Array[::Thread::Backtrace::Location]
+
         def initialize: (locations: ::Array[::Thread::Backtrace::Location], stack_id: String) -> void
         def to_msgpack: (?untyped? packer) -> void
 
