@@ -28,36 +28,13 @@ module Datadog
         # and app-closing events.
         class SynthAppClientConfigurationChange < AppStarted
           def type
-            if reset?
-              super
-            else
-              'app-client-configuration-change'
-            end
+            'app-client-configuration-change'
           end
 
           def payload
-            if reset?
-              super
-            else
-              {
-                configuration: @configuration,
-              }
-            end
-          end
-
-          def app_started?
-            reset?
-          end
-
-          # Revert this event to a "regular" AppStarted event.
-          #
-          # Used in after_fork to send the AppStarted event in child processes.
-          def reset!
-            @reset = true
-          end
-
-          def reset?
-            !!@reset
+            {
+              configuration: @configuration,
+            }
           end
         end
       end

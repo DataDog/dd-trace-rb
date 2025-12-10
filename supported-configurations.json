@@ -1,984 +1,2311 @@
 {
   "__comment": "See docs/AccessEnvironmentVariables.md. Also PLEASE KEEP THE KEYS SORTED :)",
+  "version": "2",
   "supportedConfigurations": {
-    "DD_AGENT_HOST": {
-      "version": ["A"]
-    },
-    "DD_API_KEY": {
-      "version": ["A"]
-    },
-    "DD_API_SECURITY_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_API_SECURITY_REQUEST_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_API_SECURITY_SAMPLE_DELAY": {
-      "version": ["A"]
-    },
-    "DD_APM_TRACING_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_MAX_STACK_TRACES": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_MAX_STACK_TRACE_DEPTH": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_RASP_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_RULES": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_SCA_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_STACK_TRACE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_TRACE_RATE_LIMIT": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_WAF_DEBUG": {
-      "version": ["A"]
-    },
-    "DD_APPSEC_WAF_TIMEOUT": {
-      "version": ["A"]
-    },
-    "DD_CRASHTRACKING_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_DATA_STREAMS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_DBM_PROPAGATION_MODE": {
-      "version": ["A"]
-    },
-    "DD_DISABLE_DATADOG_RAILS": {
-      "version": ["A"]
-    },
-    "DD_DYNAMIC_INSTRUMENTATION_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": {
-      "version": ["A"]
-    },
-    "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS": {
-      "version": ["A"]
-    },
-    "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES": {
-      "version": ["A"]
-    },
-    "DD_ENV": {
-      "version": ["A"]
-    },
-    "DD_ERROR_TRACKING_HANDLED_ERRORS": {
-      "version": ["A"]
-    },
-    "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE": {
-      "version": ["A"]
-    },
-    "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": {
-      "version": ["A"]
-    },    
-    "DD_GIT_COMMIT_SHA": {
-      "version": ["A"]
-    },
-    "DD_GIT_REPOSITORY_URL": {
-      "version": ["A"]
-    },
-    "DD_HEALTH_METRICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_INJECTION_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_INJECT_FORCE": {
-      "version": ["A"]
-    },
-    "DD_INSTRUMENTATION_INSTALL_ID": {
-      "version": ["A"]
-    },
-    "DD_INSTRUMENTATION_INSTALL_TIME": {
-      "version": ["A"]
-    },
-    "DD_INSTRUMENTATION_INSTALL_TYPE": {
-      "version": ["A"]
-    },
-    "DD_INSTRUMENTATION_TELEMETRY_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_INTEGRATION_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_LOGS_INJECTION": {
-      "version": ["A"]
-    },
-    "DD_METRIC_AGENT_PORT": {
-      "version": ["A"]
-    },
-    "DD_METRICS_OTEL_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_ALLOCATION_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_ENDPOINT_COLLECTION_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_GC_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_GVL_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_MAX_FRAMES": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_NATIVE_FILENAMES_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_SKIP_MYSQL2_CHECK": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_TIMELINE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_UPLOAD_PERIOD": {
-      "version": ["A"]
-    },
-    "DD_PROFILING_UPLOAD_TIMEOUT": {
-      "version": ["A"]
-    },
-    "DD_REDIS_COMMAND_ARGS": {
-      "version": ["A"]
-    },
-    "DD_REMOTE_CONFIGURATION_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_REMOTE_CONFIG_BOOT_TIMEOUT_SECONDS": {
-      "version": ["A"]
-    },
-    "DD_REMOTE_CONFIG_POLL_INTERVAL_SECONDS": {
-      "version": ["A"]
-    },
-    "DD_RODA_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_RODA_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_RUNTIME_METRICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_SERVICE": {
-      "version": ["B"]
-    },
-    "DD_SITE": {
-      "version": ["A"]
-    },
-    "DD_SPAN_SAMPLING_RULES": {
-      "version": ["A"]
-    },
-    "DD_SPAN_SAMPLING_RULES_FILE": {
-      "version": ["A"]
-    },
-    "DD_TAGS": {
-      "version": ["B"]
-    },
-    "DD_TELEMETRY_AGENTLESS_URL": {
-      "version": ["A"]
-    },
-    "DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TELEMETRY_HEARTBEAT_INTERVAL": {
-      "version": ["A"]
-    },
-    "DD_TELEMETRY_LOG_COLLECTION_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL": {
-      "version": ["A"]
-    },
-    "DD_TELEMETRY_METRICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_CABLE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_MAILER_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_MAILER_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_PACK_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_PACK_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTION_VIEW_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_JOB_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_JOB_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_JOB_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_RECORD_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_RECORD_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_RECORD_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ACTIVE_SUPPORT_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_AGENT_PORT": {
-      "version": ["A"]
-    },
-    "DD_TRACE_AGENT_TIMEOUT_SECONDS": {
-      "version": ["A"]
-    },
-    "DD_TRACE_AGENT_URL": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_AWS_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_AWS_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_AWS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_AWS_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_AWS_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_BAGGAGE_TAG_KEYS": {
-      "version": ["A"]
-    },
-    "DD_TRACE_CLIENT_IP_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_CLIENT_IP_HEADER": {
-      "version": ["A"]
-    },
-    "DD_TRACE_CONCURRENT_RUBY_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_DALLI_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_DALLI_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_DALLI_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_DALLI_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_DALLI_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_DEBUG": {
-      "version": ["B"]
-    },
-    "DD_TRACE_DELAYED_JOB_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_DELAYED_JOB_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_DELAYED_JOB_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ELASTICSEARCH_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ELASTICSEARCH_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ELASTICSEARCH_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ELASTICSEARCH_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ELASTICSEARCH_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ENABLED": {
-      "version": ["B"]
-    },
-    "DD_TRACE_ETHON_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ETHON_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ETHON_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ETHON_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_ETHON_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_EXCON_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_EXCON_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_EXCON_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_EXCON_ERROR_STATUS_CODES": {
-      "version": ["A"]
-    },
-    "DD_TRACE_EXCON_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_EXCON_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_FARADAY_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_FARADAY_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_FARADAY_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_FARADAY_ERROR_STATUS_CODES": {
-      "version": ["A"]
-    },
-    "DD_TRACE_FARADAY_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_FARADAY_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPE_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPE_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPE_ERROR_STATUS_CODES": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPHQL_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPHQL_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPHQL_ERROR_EXTENSIONS": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPHQL_ERROR_TRACKING": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRPC_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRPC_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRPC_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_GRPC_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HANAMI_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HEADER_TAGS": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPCLIENT_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPCLIENT_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPCLIENT_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPCLIENT_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPCLIENT_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPRB_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPRB_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPRB_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPRB_ERROR_STATUS_CODES": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPRB_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTPRB_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTP_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTP_CLIENT_ERROR_STATUSES": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTP_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTP_ERROR_STATUS_CODES": {
-      "version": ["A"]
-    },
-    "DD_TRACE_HTTP_SERVER_ERROR_STATUSES": {
-      "version": ["A"]
-    },
-    "DD_TRACE_KAFKA_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_KAFKA_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_KAFKA_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_KARAFKA_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_LOGRAGE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MEMCACHED_COMMAND_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MONGO_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MONGO_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MONGO_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MONGO_JSON_COMMAND": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MONGO_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MONGO_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MYSQL2_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MYSQL2_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MYSQL2_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MYSQL2_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_MYSQL2_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_NATIVE_SPAN_EVENTS": {
-      "version": ["A"]
-    },
-    "DD_TRACE_NET_HTTP_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_NET_HTTP_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_OPENSEARCH_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_OPENSEARCH_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_OPENSEARCH_RESOURCE_PATTERN": {
-      "version": ["A"]
-    },
-    "DD_TRACE_OPENSEARCH_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PEER_SERVICE_MAPPING": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PG_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PG_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PG_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PG_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PG_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PRESTO_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PRESTO_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PRESTO_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PRESTO_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PRESTO_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PROPAGATION_EXTRACT_FIRST": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PROPAGATION_STYLE": {
-      "version": ["B"]
-    },
-    "DD_TRACE_PROPAGATION_STYLE_EXTRACT": {
-      "version": ["A"]
-    },
-    "DD_TRACE_PROPAGATION_STYLE_INJECT": {
-      "version": ["A"]
-    },
-    "DD_TRACE_QUE_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_QUE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_QUE_TAG_ARGS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_QUE_TAG_DATA_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RACECAR_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RACECAR_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RACECAR_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RACK_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RACK_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RACK_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RAILS_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RAILS_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RAILS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RAKE_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RAKE_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RAKE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RATE_LIMIT": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REDIS_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REDIS_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REDIS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REDIS_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REDIS_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REPORT_HOSTNAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RESOURCE_RENAMING_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RESQUE_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RESQUE_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RESQUE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REST_CLIENT_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REST_CLIENT_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REST_CLIENT_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REST_CLIENT_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_REST_CLIENT_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_RODA_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SAMPLE_RATE": {
-      "version": ["B"]
-    },
-    "DD_TRACE_SAMPLING_RULES": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SEMANTIC_LOGGER_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SEQUEL_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SEQUEL_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SEQUEL_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SHORYUKEN_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SHORYUKEN_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SHORYUKEN_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SIDEKIQ_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SINATRA_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SINATRA_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SINATRA_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SNEAKERS_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SNEAKERS_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SNEAKERS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_STARTUP_LOGS": {
-      "version": ["A"]
-    },
-    "DD_TRACE_STRIPE_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_STRIPE_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_STRIPE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SUCKER_PUNCH_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_SUCKER_PUNCH_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_TEST_MODE_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_TRILOGY_ANALYTICS_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_TRILOGY_ANALYTICS_SAMPLE_RATE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_TRILOGY_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_TRILOGY_PEER_SERVICE": {
-      "version": ["A"]
-    },
-    "DD_TRACE_TRILOGY_SERVICE_NAME": {
-      "version": ["A"]
-    },
-    "DD_TRACE_WATERDROP_ENABLED": {
-      "version": ["A"]
-    },
-    "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH": {
-      "version": ["A"]
-    },
-    "DD_VERSION": {
-      "version": ["A"]
-    },
-    "OTEL_EXPORTER_OTLP_ENDPOINT": {
-      "version": ["A"]
-    },
-    "OTEL_EXPORTER_OTLP_HEADERS": {
-      "version": ["A"]
-    },
-    "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": {
-      "version": ["A"]
-    },
-    "OTEL_EXPORTER_OTLP_METRICS_HEADERS": {
-      "version": ["A"]
-    },
-    "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": {
-      "version": ["A"]
-    },
-    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": {
-      "version": ["A"]
-    },
-    "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": {
-      "version": ["A"]
-    },
-    "OTEL_EXPORTER_OTLP_PROTOCOL": {
-      "version": ["A"]
-    },
-    "OTEL_EXPORTER_OTLP_TIMEOUT": {
-      "version": ["A"]
-    },
-    "OTEL_METRIC_EXPORT_INTERVAL": {
-      "version": ["A"]
-    },
-    "OTEL_METRIC_EXPORT_TIMEOUT": {
-      "version": ["A"]
-    },
-    "OTEL_METRICS_EXPORTER": {
-      "version": ["A"]
-    },
-    "OTEL_TRACES_SAMPLER_ARG": {
-      "version": ["A"]
-    }
-  },
-  "aliases": {
-    "DD_DISABLE_DATADOG_RAILS": ["DISABLE_DATADOG_RAILS"],
-    "DD_PROFILING_GVL_ENABLED": ["DD_PROFILING_PREVIEW_GVL_ENABLED"],
-    "DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED": [
-      "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED"
+    "DD_AGENT_HOST": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "127.0.0.1"
+      }
     ],
-    "DD_SERVICE": ["OTEL_SERVICE_NAME"],
-    "DD_TAGS": ["OTEL_RESOURCE_ATTRIBUTES"],
-    "DD_TRACE_DEBUG": ["OTEL_LOG_LEVEL"],
-    "DD_TRACE_ENABLED": ["OTEL_TRACES_EXPORTER"],
-    "DD_TRACE_PROPAGATION_STYLE": ["OTEL_PROPAGATORS"],
-    "DD_TRACE_SAMPLE_RATE": ["OTEL_TRACES_SAMPLER"]
-  },
-  "deprecations": {
-    "DD_PROFILING_PREVIEW_GVL_ENABLED": "(This doesn't need a deprecation message since there's an alias for it)"
+    "DD_API_KEY": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_API_SECURITY_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_API_SECURITY_REQUEST_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "0.1"
+      }
+    ],
+    "DD_API_SECURITY_SAMPLE_DELAY": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "30"
+      }
+    ],
+    "DD_APM_TRACING_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "safe"
+      }
+    ],
+    "DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "identification"
+      }
+    ],
+    "DD_APPSEC_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_APPSEC_MAX_STACK_TRACES": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "2"
+      }
+    ],
+    "DD_APPSEC_MAX_STACK_TRACE_DEPTH": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "32"
+      }
+    ],
+    "DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "75"
+      }
+    ],
+    "DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "(?i)pass|pw(?:or)?d|secret|(?:api|private|public|access)[_-]?key|token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)|bearer|authorization|jsessionid|phpsessid|asp\\.net[_-]sessionid|sid|jwt"
+      }
+    ],
+    "DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "(?i)(?:p(?:ass)?w(?:or)?d|pass(?:[_-]?phrase)?|secret(?:[_-]?key)?|(?:(?:api|private|public|access)[_-]?)key(?:[_-]?id)?|(?:(?:auth|access|id|refresh)[_-]?)?token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?|jsessionid|phpsessid|asp\\.net(?:[_-]|-)sessionid|sid|jwt)(?:\\s*=[^;]|\"\\s*:\\s*\"[^\"]+\")|bearer\\s+[a-z0-9\\._\\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\\w=-]+\\.ey[I-L][\\w=-]+(?:\\.[\\w.+\\/=-]+)?|[\\-]{5}BEGIN[a-z\\s]+PRIVATE\\sKEY[\\-]{5}[^\\-]+[\\-]{5}END[a-z\\s]+PRIVATE\\sKEY|ssh-rsa\\s*[a-z0-9\\/\\.+]{100,}"
+      }
+    ],
+    "DD_APPSEC_RASP_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_APPSEC_RULES": [
+      {
+        "__comment": "The environment variable is coerced to string type, although internally it can also be a Symbol, File, StringIO, or Hash. Default is :recommended, not settable via environment variable",
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_APPSEC_SCA_ENABLED": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_APPSEC_STACK_TRACE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_APPSEC_TRACE_RATE_LIMIT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "100"
+      }
+    ],
+    "DD_APPSEC_WAF_DEBUG": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_APPSEC_WAF_TIMEOUT": [
+      {
+        "__comment": "Can contain a suffix (ms, ns, m...)",
+        "version": "A",
+        "type": "string",
+        "default": "5000"
+      }
+    ],
+    "DD_CRASHTRACKING_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_DATA_STREAMS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_DBM_PROPAGATION_MODE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "disabled"
+      }
+    ],
+    "DD_DISABLE_DATADOG_RAILS": [
+      {
+        "version": "A",
+        "type": "string",
+        "aliases": ["DISABLE_DATADOG_RAILS"],
+        "default": null
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "false"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": ""
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": ""
+      }
+    ],
+    "DD_ENV": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_ERROR_TRACKING_HANDLED_ERRORS": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": ""
+      }
+    ],
+    "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_GIT_COMMIT_SHA": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_GIT_REPOSITORY_URL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_HEALTH_METRICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_INJECTION_ENABLED": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "tracer"
+      }
+    ],
+    "DD_INJECT_FORCE": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_INSTRUMENTATION_INSTALL_ID": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_INSTRUMENTATION_INSTALL_TIME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_INSTRUMENTATION_INSTALL_TYPE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_INSTRUMENTATION_TELEMETRY_ENABLED": [
+      {
+        "__comment": "Default is false in development mode",
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_LOGS_INJECTION": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_METRIC_AGENT_PORT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "8125"
+      }
+    ],
+    "DD_METRICS_OTEL_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_PROFILING_ALLOCATION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_PROFILING_ENDPOINT_COLLECTION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "1"
+      }
+    ],
+    "DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_GC_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_GVL_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true",
+        "aliases": ["DD_PROFILING_PREVIEW_GVL_ENABLED"]
+      }
+    ],
+    "DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_MAX_FRAMES": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "400"
+      }
+    ],
+    "DD_PROFILING_NATIVE_FILENAMES_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": [
+      {
+        "__comment": "Default value is :auto, not settable via environment variable",
+        "version": "A",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "2.0"
+      }
+    ],
+    "DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED": [
+      {
+        "__comment": "Can be 'true', 'false', 'only' or 'both'",
+        "version": "A",
+        "type": "string",
+        "default": "false"
+      }
+    ],
+    "DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED": [
+      {
+        "__comment": "Default is true on Ruby 3.2.5+ / Ruby 3.3.4+, false on older Rubies",
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_SKIP_MYSQL2_CHECK": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_PROFILING_TIMELINE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_UPLOAD_PERIOD": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "60"
+      }
+    ],
+    "DD_PROFILING_UPLOAD_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "30.0"
+      }
+    ],
+    "DD_REDIS_COMMAND_ARGS": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_REMOTE_CONFIGURATION_ENABLED": [
+      {
+        "__comment": "Default is false in development mode",
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_REMOTE_CONFIG_BOOT_TIMEOUT_SECONDS": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_REMOTE_CONFIG_POLL_INTERVAL_SECONDS": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "5.0"
+      }
+    ],
+    "DD_RODA_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_RODA_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_RUNTIME_METRICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false",
+        "aliases": ["DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED"]
+      }
+    ],
+    "DD_SERVICE": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "ruby",
+        "aliases": ["OTEL_SERVICE_NAME"]
+      }
+    ],
+    "DD_SITE": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_SPAN_SAMPLING_RULES": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_SPAN_SAMPLING_RULES_FILE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TAGS": [
+      {
+        "version": "B",
+        "type": "map",
+        "aliases": ["OTEL_RESOURCE_ATTRIBUTES"],
+        "default": ""
+      }
+    ],
+    "DD_TELEMETRY_AGENTLESS_URL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TELEMETRY_HEARTBEAT_INTERVAL": [
+      {
+        "version": "B",
+        "type": "decimal",
+        "default": "60.0"
+      }
+    ],
+    "DD_TELEMETRY_LOG_COLLECTION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "10.0"
+      }
+    ],
+    "DD_TELEMETRY_METRICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTION_CABLE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTION_MAILER_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTION_MAILER_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTION_PACK_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTION_PACK_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTION_VIEW_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTIVE_JOB_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ACTIVE_JOB_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTIVE_JOB_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTIVE_RECORD_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ACTIVE_RECORD_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTIVE_RECORD_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTIVE_SUPPORT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_AGENT_PORT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "8126"
+      }
+    ],
+    "DD_TRACE_AGENT_TIMEOUT_SECONDS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "30"
+      }
+    ],
+    "DD_TRACE_AGENT_URL": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_TRACE_AWS_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_AWS_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_AWS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_AWS_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_AWS_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "aws"
+      }
+    ],
+    "DD_TRACE_BAGGAGE_TAG_KEYS": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": "user.id, session.id, account.id"
+      }
+    ],
+    "DD_TRACE_CLIENT_IP_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_CLIENT_IP_HEADER": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_CONCURRENT_RUBY_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_DALLI_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_DALLI_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_DALLI_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_DALLI_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_DALLI_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "memcached"
+      }
+    ],
+    "DD_TRACE_DEBUG": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": "false",
+        "aliases": ["OTEL_LOG_LEVEL"]
+      }
+    ],
+    "DD_TRACE_DELAYED_JOB_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_DELAYED_JOB_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_DELAYED_JOB_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ELASTICSEARCH_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ELASTICSEARCH_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ELASTICSEARCH_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ELASTICSEARCH_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_ELASTICSEARCH_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "elasticsearch"
+      }
+    ],
+    "DD_TRACE_ENABLED": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": "true",
+        "aliases": ["OTEL_TRACES_EXPORTER"]
+      }
+    ],
+    "DD_TRACE_ETHON_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ETHON_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ETHON_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ETHON_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_ETHON_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "ethon"
+      }
+    ],
+    "DD_TRACE_EXCON_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_EXCON_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_EXCON_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_EXCON_ERROR_STATUS_CODES": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": "400-599"
+      }
+    ],
+    "DD_TRACE_EXCON_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_EXCON_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "excon"
+      }
+    ],
+    "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_FARADAY_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_FARADAY_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_FARADAY_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_FARADAY_ERROR_STATUS_CODES": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": "400-599"
+      }
+    ],
+    "DD_TRACE_FARADAY_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_FARADAY_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "faraday"
+      }
+    ],
+    "DD_TRACE_GRAPE_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_TRACE_GRAPE_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_GRAPE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_GRAPE_ERROR_STATUS_CODES": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": "500-599"
+      }
+    ],
+    "DD_TRACE_GRAPHQL_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_GRAPHQL_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_GRAPHQL_ERROR_EXTENSIONS": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": ""
+      }
+    ],
+    "DD_TRACE_GRAPHQL_ERROR_TRACKING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_GRPC_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_GRPC_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_GRPC_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_GRPC_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "grpc"
+      }
+    ],
+    "DD_TRACE_HANAMI_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_HEADER_TAGS": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": ""
+      }
+    ],
+    "DD_TRACE_HTTPCLIENT_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_HTTPCLIENT_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_HTTPCLIENT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": "400-599"
+      }
+    ],
+    "DD_TRACE_HTTPCLIENT_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_HTTPCLIENT_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "httpclient"
+      }
+    ],
+    "DD_TRACE_HTTPRB_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_HTTPRB_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_HTTPRB_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_HTTPRB_ERROR_STATUS_CODES": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "400-599"
+      }
+    ],
+    "DD_TRACE_HTTPRB_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_HTTPRB_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "httprb"
+      }
+    ],
+    "DD_TRACE_HTTP_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_HTTP_CLIENT_ERROR_STATUSES": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "400-499"
+      }
+    ],
+    "DD_TRACE_HTTP_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_HTTP_ERROR_STATUS_CODES": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "400-599"
+      }
+    ],
+    "DD_TRACE_HTTP_SERVER_ERROR_STATUSES": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "500-599"
+      }
+    ],
+    "DD_TRACE_KAFKA_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_KAFKA_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_KAFKA_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_KARAFKA_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_LOGRAGE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_MEMCACHED_COMMAND_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_MONGO_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_MONGO_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_MONGO_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_MONGO_JSON_COMMAND": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_MONGO_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_MONGO_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "mongodb"
+      }
+    ],
+    "DD_TRACE_MYSQL2_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_MYSQL2_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_MYSQL2_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_MYSQL2_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_MYSQL2_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "mysql2"
+      }
+    ],
+    "DD_TRACE_NATIVE_SPAN_EVENTS": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_TRACE_NET_HTTP_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_NET_HTTP_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "net/http"
+      }
+    ],
+    "DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_OPENSEARCH_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_OPENSEARCH_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_OPENSEARCH_RESOURCE_PATTERN": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "absolute"
+      }
+    ],
+    "DD_TRACE_OPENSEARCH_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "opensearch"
+      }
+    ],
+    "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_PEER_SERVICE_MAPPING": [
+      {
+        "version": "A",
+        "type": "map",
+        "default": ""
+      }
+    ],
+    "DD_TRACE_PG_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_PG_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_PG_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_PG_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_PG_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "pg"
+      }
+    ],
+    "DD_TRACE_PRESTO_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_PRESTO_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_PRESTO_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_PRESTO_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_PRESTO_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "presto"
+      }
+    ],
+    "DD_TRACE_PROPAGATION_EXTRACT_FIRST": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_PROPAGATION_STYLE": [
+      {
+        "version": "B",
+        "type": "array",
+        "default": "",
+        "aliases": ["OTEL_PROPAGATORS"]
+      }
+    ],
+    "DD_TRACE_PROPAGATION_STYLE_EXTRACT": [
+      {
+        "version": "B",
+        "type": "array",
+        "default": "datadog, tracecontext, baggage"
+      }
+    ],
+    "DD_TRACE_PROPAGATION_STYLE_INJECT": [
+      {
+        "version": "B",
+        "type": "array",
+        "default": "datadog, tracecontext, baggage"
+      }
+    ],
+    "DD_TRACE_QUE_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_QUE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_QUE_TAG_ARGS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_QUE_TAG_DATA_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RACECAR_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RACECAR_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_RACECAR_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_RACK_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_TRACE_RACK_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_RACK_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_RAILS_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_TRACE_RAILS_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_RAILS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_RAKE_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RAKE_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_RAKE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_RATE_LIMIT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "100"
+      }
+    ],
+    "DD_TRACE_REDIS_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_REDIS_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_REDIS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_REDIS_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_REDIS_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "redis"
+      }
+    ],
+    "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_REPORT_HOSTNAME": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RESOURCE_RENAMING_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RESQUE_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RESQUE_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_RESQUE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_REST_CLIENT_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_REST_CLIENT_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_REST_CLIENT_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_REST_CLIENT_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_REST_CLIENT_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "rest_client"
+      }
+    ],
+    "DD_TRACE_RODA_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_SAMPLE_RATE": [
+      {
+        "version": "B",
+        "type": "decimal",
+        "aliases": ["OTEL_TRACES_SAMPLER"],
+        "default": null
+      }
+    ],
+    "DD_TRACE_SAMPLING_RULES": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_SEMANTIC_LOGGER_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_SEQUEL_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_SEQUEL_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_SEQUEL_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_SHORYUKEN_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_SHORYUKEN_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_SHORYUKEN_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_SIDEKIQ_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_SINATRA_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_TRACE_SINATRA_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_SINATRA_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_SNEAKERS_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_SNEAKERS_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_SNEAKERS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_STARTUP_LOGS": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": null
+      }
+    ],
+    "DD_TRACE_STRIPE_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_STRIPE_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_STRIPE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_SUCKER_PUNCH_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_SUCKER_PUNCH_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_TEST_MODE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_TRILOGY_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_TRILOGY_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_TRILOGY_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_TRILOGY_PEER_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_TRILOGY_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "trilogy"
+      }
+    ],
+    "DD_TRACE_WATERDROP_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "512"
+      }
+    ],
+    "DD_VERSION": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_ENDPOINT": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_HEADERS": [
+      {
+        "version": "A",
+        "type": "map",
+        "default": ""
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_HEADERS": [
+      {
+        "version": "A",
+        "type": "map",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "delta"
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_PROTOCOL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "http/protobuf"
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10000"
+      }
+    ],
+    "OTEL_LOG_LEVEL": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "OTEL_METRIC_EXPORT_INTERVAL": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10000"
+      }
+    ],
+    "OTEL_METRIC_EXPORT_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "7500"
+      }
+    ],
+    "OTEL_METRICS_EXPORTER": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "otlp"
+      }
+    ],
+    "OTEL_PROPAGATORS": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": ""
+      }
+    ],
+    "OTEL_RESOURCE_ATTRIBUTES": [
+      {
+        "version": "A",
+        "type": "map",
+        "default": ""
+      }
+    ],
+    "OTEL_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "ruby"
+      }
+    ],
+    "OTEL_TRACES_EXPORTER": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "OTEL_TRACES_SAMPLER": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": null
+      }
+    ],
+    "OTEL_TRACES_SAMPLER_ARG": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ]
   }
 }
