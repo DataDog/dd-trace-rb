@@ -8,7 +8,7 @@ require 'set'
 module Datadog
   module Core
     module Configuration
-      SUPPORTED_CONFIGURATIONS =
+      SUPPORTED_CONFIGURATION_NAMES =
         Set["DD_AGENT_HOST",
           "DD_API_KEY",
           "DD_API_SECURITY_ENABLED",
