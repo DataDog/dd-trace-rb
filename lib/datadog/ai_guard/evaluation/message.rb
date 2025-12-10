@@ -18,7 +18,7 @@ module Datadog
           @tool_call_id = tool_call_id
 
           unless VALID_ROLES.include?(@role)
-            raise ArgumentError, %Q{Invalid role "#{role}", valid roles are: #{VALID_ROLES.join(", ")}}
+            raise ArgumentError, "Invalid role \"#{role}\", valid roles are: #{VALID_ROLES.join(", ")}"
           end
         end
 

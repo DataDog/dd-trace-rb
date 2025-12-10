@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require 'uri'
-require 'net/http'
-require 'json'
+require "uri"
+require "net/http"
+require "json"
 
 module Datadog
   module AIGuard
     # API Client for AI Guard API.
     # Uses net/http to perform request. Raises on client and server errors.
     class APIClient
-      DEFAULT_SITE = 'app.datadoghq.com'
+      DEFAULT_SITE = "app.datadoghq.com"
 
       class UnexpectedRedirectError < StandardError; end
       class UnexpectedResponseError < StandardError; end
@@ -52,7 +52,7 @@ module Datadog
         when Net::HTTPSuccess
           response
         when Net::HTTPRedirection
-          raise UnexpectedRedirectError, 'Redirects for AI Guard API are not supported'
+          raise UnexpectedRedirectError, "Redirects for AI Guard API are not supported"
         when Net::HTTPNotFound
           raise NotFoundError, response.body
         when Net::HTTPTooManyRequests
@@ -78,12 +78,12 @@ module Datadog
 
       def headers
         {
-          'DD-API-KEY': @api_key,
-          'DD-APPLICATION-KEY': @application_key,
-          'DD-AI-GUARD-VERSION': Datadog::VERSION::STRING,
-          'DD-AI-GUARD-SOURCE': 'SDK',
-          'DD-AI-GUARD-LANGUAGE': 'ruby',
-          'content-type': 'application/json'
+          "DD-API-KEY": @api_key,
+          "DD-APPLICATION-KEY": @application_key,
+          "DD-AI-GUARD-VERSION": Datadog::VERSION::STRING,
+          "DD-AI-GUARD-SOURCE": "SDK",
+          "DD-AI-GUARD-LANGUAGE": "ruby",
+          "content-type": "application/json"
         }
       end
     end
