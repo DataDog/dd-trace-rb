@@ -95,12 +95,17 @@ jobs:
             .gitlab-ci.yml
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/update-system-tests.yml)_
-            The PR updates the system tests (Updated to commit: ${{ steps.system-test-ref.outputs.commit }})
+            The PR updates the system tests reference (Updated to commit: [${{ steps.system-test-ref.outputs.commit }}](https://github.com/DataDog/system-tests/commit/${{ steps.system-test-ref.outputs.commit }}))
+            
+            You can trigger this workflow manually from [here](https://github.com/DataDog/dd-trace-rb/actions/workflows/system-tests.yml).
 
             **Trigger Information:**
             - Event: ${{ github.event_name }}
             - Triggered by: ${{ github.event.client_payload.triggered_by || 'Manual/Scheduled' }}
             - Source repo: ${{ github.event.client_payload.source_repo || 'N/A' }}
             - Source commit: ${{ github.event.client_payload.source_commit || 'N/A' }}
+            
+            **Change log entry**
+            None
 
-            Please review the changes and merge when ready
+            Please review the changes and merge when ready.
