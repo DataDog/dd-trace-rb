@@ -9,10 +9,7 @@ require_relative '../workers/queue'
 module Datadog
   module Core
     module Telemetry
-      # Accumulates events and sends them to the API at a regular interval,
-      # including heartbeat event.
-      #
-      # @api private
+      # Accumulates events and sends them to the API at a regular interval, including heartbeat event.
       class Worker
         include Core::Workers::Queue
         include Core::Workers::Polling
@@ -43,15 +40,11 @@ module Datadog
           self.enabled = enabled
           # Workers::IntervalLoop settings
           self.loop_base_interval = metrics_aggregation_interval_seconds
-          self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
+          self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
 
           @shutdown_timeout = shutdown_timeout
           @buffer_size = buffer_size
 
-          initialize_state
-        end
-
-        private def initialize_state
           self.buffer = buffer_klass.new(@buffer_size)
 
           @initial_event_once = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
@@ -60,13 +53,12 @@ module Datadog
         attr_reader :logger
         attr_reader :initial_event_once
         attr_reader :initial_event
-        attr_reader :emitter
 
         # Returns true if worker thread is successfully started,
         # false if worker thread was not started but telemetry is enabled,
         # nil if telemetry is disabled.
         def start(initial_event)
-          return unless enabled?
+          return if !enabled? || forked?
 
           @initial_event = initial_event
 
@@ -87,21 +79,7 @@ module Datadog
         # for not enqueueing event (presently) is that telemetry is disabled
         # altogether, and in this case other methods return nil.
         def enqueue(event)
-          return unless enabled?
-
-          # Start the worker if needed, including in forked children.
-          # Needs to be done before pushing to buffer since perform
-          # may invoke after_fork handler which resets the buffer.
-          #
-          # Telemetry is special in that it permits events to be submitted
-          # to the worker with the worker not running, and the worker is
-          # explicitly started later (to maintain proper initialization order).
-          # Thus here we can't just call perform unconditionally and must
-          # check if the worker is supposed to be running, and only call
-          # perform in that case.
-          if worker && !worker.alive?
-            perform
-          end
+          return if !enabled? || forked?
 
           buffer.push(event)
           true
@@ -155,7 +133,7 @@ module Datadog
         private
 
         def perform(*events)
-          return unless enabled?
+          return if !enabled? || forked?
 
           if need_initial_event?
             started!
@@ -211,9 +189,7 @@ module Datadog
               # dependencies and send the new ones.
               # System tests demand only one instance of this event per
               # dependency.
-              if @dependency_collection && initial_event.app_started?
-                send_event(Event::AppDependenciesLoaded.new)
-              end
+              send_event(Event::AppDependenciesLoaded.new) if @dependency_collection && initial_event.class.eql?(Telemetry::Event::AppStarted) # standard:disable Style/ClassEqualityComparison:
 
               true
             else
@@ -262,27 +238,6 @@ module Datadog
 
           logger.debug('Agent does not support telemetry; disabling future telemetry events.')
           disable!
-        end
-
-        # Stop the worker after fork without sending closing event.
-        # The closing event will be (or should be) sent by the worker
-        # in the parent process.
-        # Also, discard any accumulated events since they will be sent by
-        # the parent.
-        def after_fork
-          # If telemetry is disabled, we still reset the state to avoid
-          # having wrong state. It is possible that in the future telemetry
-          # will be re-enabled after errors.
-          initialize_state
-          # In the child process, we get a new runtime_id.
-          # As such we need to send AppStarted event.
-          # In the parent process, the event may have been the
-          # SynthAppClientConfigurationChange instead of AppStarted,
-          # and in that case we need to convert it to the "regular"
-          # AppStarted event.
-          if @initial_event.is_a?(Event::SynthAppClientConfigurationChange)
-            @initial_event.reset! # steep:ignore
-          end
         end
 
         # Deduplicate logs by counting the number of repeated occurrences of the same log

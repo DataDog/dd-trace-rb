@@ -843,6 +843,7 @@ module Datadog
 
           # Overrides agentless telemetry URL. To be used internally for testing purposes only.
           #
+          # @default `DD_TELEMETRY_AGENTLESS_URL` environment variable, otherwise `nil`.
           # @return [String]
           # @!visibility private
           option :agentless_url_override do |o|
