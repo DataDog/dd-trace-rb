@@ -9,7 +9,6 @@
 #include "helpers.h"
 #include "private_vm_api_access.h"
 #include "ruby_helpers.h"
-#include "crashtracking_runtime_stacks.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 #include "unsafe_api_calls_check.h"
@@ -24,6 +23,7 @@ void collectors_thread_context_init(VALUE profiling_module);
 void encoded_profile_init(VALUE profiling_module);
 void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
+void crashtracking_runtime_stacks_init(VALUE datadog_module);
 
 static VALUE native_working_p(VALUE self);
 static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl);

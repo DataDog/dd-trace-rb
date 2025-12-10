@@ -9,14 +9,6 @@ require_relative '../utils/at_fork_monkey_patch'
 module Datadog
   module Core
     module Crashtracking
-      RUNTIME_STACKS_FAILURE =
-        begin
-          require_relative 'crashtracking_runtime_stacks'
-          nil
-        rescue LoadError => e
-          e.message
-        end
-
       # Used to report Ruby VM crashes.
       #
       # NOTE: The crashtracker native state is a singleton;
@@ -93,10 +85,13 @@ module Datadog
         private
 
         def register_runtime_stack_callback
-          return unless runtime_stacks_supported?
+          unless runtime_stacks_supported?
+            logger.debug("Skipping runtime stack callback registration: #{@runtime_stacks_failure}")
+            return
+          end
 
           # Even if runtime stacks callback registration fails, we shouldn't block crashtracker
-          success = Crashtracking::RuntimeStacks._native_register_runtime_stack_callback
+          success = self.class._native_register_runtime_stack_callback
 
           return if success
 
@@ -123,18 +118,17 @@ module Datadog
         end
 
         def runtime_stacks_supported?
-          # Check if runtime_stacks extension loaded successfully
-          if (failure = Crashtracking::RUNTIME_STACKS_FAILURE)
-            logger.debug("Skipping runtime stack callback registration: #{failure}")
-            return false
+          @runtime_stacks_failure ||= begin
+            require 'datadog/profiling'
+            Datadog::Profiling.supported? ? nil : "profiling not supported: #{Datadog::Profiling.unsupported_reason}"
+          rescue => e
+            e.message
           end
 
-          unless Crashtracking.const_defined?(:RuntimeStacks, false)
-            logger.debug('Skipping runtime stack callback registration: Crashtracking::RuntimeStacks not defined')
-            return false
-          end
+          return true unless @runtime_stacks_failure
 
-          true
+          logger.debug("Skipping runtime stack callback registration: #{@runtime_stacks_failure}")
+          false
         end
       end
     end

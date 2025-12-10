@@ -41,13 +41,6 @@ static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   return char_slice;
 }
 
-static inline ddog_CharSlice char_slice_from_cstr(const char *cstr) {
-  if (cstr == NULL) {
-    return (ddog_CharSlice){.ptr = NULL, .len = 0};
-  }
-  return (ddog_CharSlice){.ptr = cstr, .len = strlen(cstr)};
-}
-
 static inline VALUE log_warning(VALUE warning) {
   VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
   VALUE logger = rb_funcall(datadog_module, rb_intern("logger"), 0);

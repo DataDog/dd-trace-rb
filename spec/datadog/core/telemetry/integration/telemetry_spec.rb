@@ -89,7 +89,7 @@ RSpec.describe 'Telemetry integration tests' do
         # The most common unsupported reason is failure to load profiling
         # C extension due to it not having been compiled - we get that in
         # some CI configurations.
-        expect(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
+        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return(nil)
       end
     end
 

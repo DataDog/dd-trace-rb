@@ -38,7 +38,6 @@
   #endif
 #endif
 
-#include "crashtracking_runtime_stacks.h"
 #include <datadog/crashtracker.h>
 #include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
@@ -48,7 +47,6 @@
 #include <string.h>
 
 static VALUE _native_register_runtime_stack_callback(VALUE _self);
-static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self);
 static const rb_data_type_t *crashtracker_thread_data_type = NULL;
 
 static void ruby_runtime_stack_callback(
@@ -108,6 +106,13 @@ static inline bool is_pointer_readable(const void *ptr, size_t size) {
       // Unknown errno, we assume mapped to avoid cascading faults in crash path
       return true;
   }
+}
+
+static inline ddog_CharSlice char_slice_from_cstr(const char *cstr) {
+  if (cstr == NULL) {
+    return (ddog_CharSlice){.ptr = NULL, .len = 0};
+  }
+  return (ddog_CharSlice){.ptr = cstr, .len = strlen(cstr)};
 }
 
 // Heuristically validate a Ruby string VALUE before dereferencing it from crash context:
@@ -478,25 +483,14 @@ static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self)
   }
 }
 
-static VALUE _native_is_runtime_callback_registered(DDTRACE_UNUSED VALUE _self) {
-  return ddog_crasht_is_runtime_callback_registered() ? Qtrue : Qfalse;
-}
-
 void crashtracking_runtime_stacks_init(VALUE datadog_module) {
   VALUE core_module = rb_define_module_under(datadog_module, "Core");
   VALUE crashtracking_module = rb_define_module_under(core_module, "Crashtracking");
-  VALUE runtime_stacks_class = rb_define_class_under(crashtracking_module, "RuntimeStacks", rb_cObject);
-
+  VALUE component_class = rb_define_class_under(crashtracking_module, "Component", rb_cObject);
   rb_define_singleton_method(
-    runtime_stacks_class,
+    component_class,
     "_native_register_runtime_stack_callback",
     _native_register_runtime_stack_callback,
-    0
-  );
-  rb_define_singleton_method(
-    runtime_stacks_class,
-    "_native_is_runtime_callback_registered",
-    _native_is_runtime_callback_registered,
     0
   );
 }
