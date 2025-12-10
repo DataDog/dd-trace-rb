@@ -3,12 +3,13 @@ require 'datadog/core/environment/process'
 require 'open3'
 
 RSpec.describe Datadog::Core::Environment::Process do
+  def reset_memoized_variables!
+    described_class.remove_instance_variable(:@serialized) if described_class.instance_variable_defined?(:@serialized)
+    described_class.remove_instance_variable(:@tags_array) if described_class.instance_variable_defined?(:@tags_array)
+  end
+
   describe '::serialized' do
     subject(:serialized) { described_class.serialized }
-
-    def reset_serialized!
-      described_class.remove_instance_variable(:@serialized) if described_class.instance_variable_defined?(:@serialized)
-    end
 
     shared_context 'with mocked process environment' do
       let(:pwd) { '/app' }
@@ -24,11 +25,11 @@ RSpec.describe Datadog::Core::Environment::Process do
         allow(Dir).to receive(:pwd).and_return(pwd)
         allow(File).to receive(:expand_path).and_call_original
         allow(File).to receive(:expand_path).with('.').and_return('/app')
-        reset_serialized!
+        reset_memoized_variables!
       end
 
       after do
-        reset_serialized!
+        reset_memoized_variables!
       end
     end
 
@@ -150,10 +151,6 @@ RSpec.describe Datadog::Core::Environment::Process do
   describe '::tags_array' do
     subject(:tags_array) { described_class.tags_array }
 
-    def reset_tags_array!
-      described_class.remove_instance_variable(:@tags_array) if described_class.instance_variable_defined?(:@tags_array)
-    end
-
     shared_context 'with mocked process environment' do
       let(:pwd) { '/app' }
 
@@ -168,11 +165,11 @@ RSpec.describe Datadog::Core::Environment::Process do
         allow(Dir).to receive(:pwd).and_return(pwd)
         allow(File).to receive(:expand_path).and_call_original
         allow(File).to receive(:expand_path).with('.').and_return('/app')
-        reset_tags_array!
+        reset_memoized_variables!
       end
 
       after do
-        reset_tags_array!
+        reset_memoized_variables!
       end
     end
 

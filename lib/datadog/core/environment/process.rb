@@ -14,20 +14,8 @@ module Datadog
         # @return [String] comma-separated normalized key:value pairs
         def self.serialized
           return @serialized if defined?(@serialized)
-          tags = []
 
-          workdir = TagNormalizer.normalize_process_value(entrypoint_workdir.to_s)
-          tags << "#{Environment::Ext::TAG_ENTRYPOINT_WORKDIR}:#{workdir}" unless workdir.empty?
-
-          entry_name = TagNormalizer.normalize_process_value(entrypoint_name.to_s)
-          tags << "#{Environment::Ext::TAG_ENTRYPOINT_NAME}:#{entry_name}" unless entry_name.empty?
-
-          basedir = TagNormalizer.normalize_process_value(entrypoint_basedir.to_s)
-          tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{basedir}" unless basedir.empty?
-
-          tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
-
-          @serialized = tags.join(',').freeze
+          @serialized = tags_array.join(',').freeze
         end
 
         # This method returns an array in the format ["k1:v1","k2:v2","k3:v3"]
