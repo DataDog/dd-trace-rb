@@ -344,7 +344,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           end
 
           frames = runtime_stack[:frames]
-          puts "frames: #{frames}"
+          puts "frames: #{frames.to_json}"
           # Check that the crashing function is captured
           expect(frames).to include(
             hash_including(
