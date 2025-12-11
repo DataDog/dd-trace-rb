@@ -34,10 +34,6 @@ module Datadog
 
         def start_or_update_on_fork: (action: :start | :update_on_fork, tags: ::Hash[::String, ::String]) -> void
 
-        def register_runtime_stack_callback: -> void
-
-        def runtime_stacks_supported?: -> bool
-
         def self._native_start_or_update_on_fork: (
           action: :start | :update_on_fork,
           agent_base_url: ::String,
@@ -48,8 +44,6 @@ module Datadog
         ) -> void
 
         def self._native_stop: -> void
-
-        def self._native_register_runtime_stack_callback: -> bool
       end
     end
   end

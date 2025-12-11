@@ -56,7 +56,6 @@ module Datadog
         def start
           Utils::AtForkMonkeyPatch.apply!
 
-          register_runtime_stack_callback
           start_or_update_on_fork(action: :start, tags: tags)
 
           ONLY_ONCE.run do
@@ -84,22 +83,6 @@ module Datadog
 
         private
 
-        def register_runtime_stack_callback
-          unless runtime_stacks_supported?
-            logger.debug("Skipping runtime stack callback registration: #{@runtime_stacks_failure}")
-            return
-          end
-
-          # Even if runtime stacks callback registration fails, we shouldn't block crashtracker
-          success = self.class._native_register_runtime_stack_callback
-
-          return if success
-
-          logger.debug('Failed to register runtime stack callback: registration returned false')
-        rescue => e
-          logger.debug("Failed to register runtime stack callback: #{e.message}")
-        end
-
         attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger
 
         def start_or_update_on_fork(action:, tags:)
@@ -115,20 +98,6 @@ module Datadog
           logger.debug("Crash tracking action: #{action} successful")
         rescue => e
           logger.error("Failed to #{action} crash tracking: #{e.message}")
-        end
-
-        def runtime_stacks_supported?
-          @runtime_stacks_failure ||= begin
-            require 'datadog/profiling'
-            Datadog::Profiling.supported? ? nil : "profiling not supported: #{Datadog::Profiling.unsupported_reason}"
-          rescue => e
-            e.message
-          end
-
-          return true unless @runtime_stacks_failure
-
-          logger.debug("Skipping runtime stack callback registration: #{@runtime_stacks_failure}")
-          false
         end
       end
     end

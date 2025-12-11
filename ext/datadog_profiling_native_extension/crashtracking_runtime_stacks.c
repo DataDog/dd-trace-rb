@@ -66,6 +66,8 @@ static inline uintptr_t align_down(uintptr_t x, uintptr_t align) {
   return x & ~(align - 1u);
 }
 
+// This function is not necessarily Ruby specific. This will be moved to
+// `libdatadog` in the future as a shared utility function.
 static inline bool is_pointer_readable(const void *ptr, size_t size) {
   if (!ptr || size == 0) return false;
 
@@ -483,15 +485,18 @@ static VALUE _native_register_runtime_stack_callback(DDTRACE_UNUSED VALUE _self)
   }
 }
 
-void crashtracking_runtime_stacks_init(VALUE datadog_module) {
-  VALUE core_module = rb_define_module_under(datadog_module, "Core");
-  VALUE crashtracking_module = rb_define_module_under(core_module, "Crashtracking");
-  VALUE component_class = rb_define_class_under(crashtracking_module, "Component", rb_cObject);
-  rb_define_singleton_method(
-    component_class,
-    "_native_register_runtime_stack_callback",
-    _native_register_runtime_stack_callback,
-    0
-  );
+void crashtracking_runtime_stacks_init(void) {
+  if (crashtracker_thread_data_type == NULL) {
+    VALUE current_thread = rb_thread_current();
+    if (current_thread == Qnil) return;
+
+    const rb_data_type_t *thread_data_type = RTYPEDDATA_TYPE(current_thread);
+    if (!thread_data_type) return;
+
+    crashtracker_thread_data_type = thread_data_type;
+  }
+
+  // Register immediately so Ruby doesn't need to manage this explicitly.
+  ddog_crasht_register_runtime_frame_callback(ruby_runtime_stack_callback);
 }
 
