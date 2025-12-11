@@ -55,6 +55,12 @@ module Datadog
         :sampled,
         :service
 
+      # Creates a new TraceOperation.
+      #
+      # @param auto_finish [Boolean] when true, automatically finishes the trace when the local root span finishes.
+      #   When false, the trace remains unfinished until {#finish!} is called.
+      #   This is useful when this {TraceOperation} represents the continuation of a remote {TraceDigest},
+      #   in which case local root spans in this {TraceOperation} are children of the {TraceDigest}'s last active span.
       def initialize(
         logger: Datadog.logger,
         agent_sample_rate: nil,
@@ -80,7 +86,8 @@ module Datadog
         trace_state_unknown_fields: nil,
         remote_parent: false,
         tracer: nil, # DEV-3.0: deprecated, remove in 3.0
-        baggage: nil
+        baggage: nil,
+        auto_finish: true
       )
         @logger = logger
 
@@ -119,6 +126,7 @@ module Datadog
         @events = events || Events.new
         @finished = false
         @spans = []
+        @auto_finish = !!auto_finish
       end
 
       def full?
@@ -318,6 +326,29 @@ module Datadog
         build_trace(spans, !finished)
       end
 
+      # When automatic context management is disabled (@auto_finish is false),
+      # this method finishes the trace, marking it as completed.
+      #
+      # The trace will **not** automatically finish when its local root span
+      # when @auto_finish is false, thus calling this method is mandatory
+      # in such scenario.
+      #
+      # Unfinished spans are discarded.
+      #
+      # This method is idempotent and safe to call after the trace is finished.
+      # It is also a no-op when @auto_finish is true, to prevent misuse.
+      #
+      # @!visibility private
+      def finish!
+        return if @auto_finish || finished?
+
+        @finished = true
+        @active_span = nil
+        @active_span_count = 0
+
+        events.trace_finished.publish(self)
+      end
+
       # Returns a set of trace headers used for continuing traces.
       # Used for propagation across execution contexts.
       # Data should reflect the active state of the trace.
@@ -460,7 +491,7 @@ module Datadog
 
         @active_span = span_op
 
-        set_root_span!(span_op) unless root_span
+        set_local_root_span!(span_op)
       end
 
       def deactivate_span!(span_op)
@@ -483,6 +514,12 @@ module Datadog
         logger.debug { "Error starting span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
 
+      # For traces with automatic context management (auto_finish),
+      # when the local root span finishes, the trace also finishes.
+      # The trace cannot receive new spans after finished.
+      #
+      # Without auto_finish, the trace can still receive spans
+      # until explicitly finished.
       def finish_span(span, span_op, parent)
         # Save finished span & root span
         @spans << span unless span.nil?
@@ -490,8 +527,9 @@ module Datadog
         # Deactivate the span, re-activate parent.
         deactivate_span!(span_op)
 
-        # Set finished, to signal root span has completed.
-        @finished = true if span_op == root_span
+        # Finish if the local root span is finished and automatic
+        # context management is enabled.
+        @finished = true if span_op == root_span && @auto_finish
 
         # Update active span count
         @active_span_count -= 1
@@ -505,8 +543,8 @@ module Datadog
         logger.debug { "Error finishing span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
 
-      # Track the root span
-      def set_root_span!(span)
+      # Track the root {SpanOperation} object from the current execution context.
+      def set_local_root_span!(span)
         return if span.nil? || root_span
 
         @root_span = span
