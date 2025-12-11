@@ -32,7 +32,6 @@
 * Profiling: Fix profiler support for Ruby 4.0.0-preview2 ([#5091][])
 * Profiling: Fix profiler sleep and wait states not being categorized in timeline ([#5000][])
 * Profiling: Fix profiler not identifying executables with gems they belong to ([#4999][])
-* Live Debugger/Dynamic Instrumentation: Fix Live Debugger and Dynamic Instrumentation UI issues in forking web servers ([#5074][])
 * Stable Config: Fix potential segfault during configuration file parsing ([#5073][])
 * AppSec: Fix route extraction error for Rails 8.1.1+. ([#5042][])
 
@@ -5035,7 +5034,6 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5054]: https://github.com/DataDog/dd-trace-rb/issues/5054
 [#5058]: https://github.com/DataDog/dd-trace-rb/issues/5058
 [#5073]: https://github.com/DataDog/dd-trace-rb/issues/5073
-[#5074]: https://github.com/DataDog/dd-trace-rb/issues/5074
 [#5086]: https://github.com/DataDog/dd-trace-rb/issues/5086
 [#5091]: https://github.com/DataDog/dd-trace-rb/issues/5091
 [#5122]: https://github.com/DataDog/dd-trace-rb/issues/5122
