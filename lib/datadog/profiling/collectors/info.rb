@@ -15,7 +15,15 @@ module Datadog
       # gathering and easily support more flexible/dynamic info collection in the future.
       class Info
         def initialize(settings)
-          @profiler_info = nil
+          # Steep: This one is weird, we set it to nil here but it is always set
+          # to type `profiler_info` in the collect_profiler_info method.
+          # We type it as `profiler_info` in the .rbs file, but set it to `profiler_info?` here
+          # to satisfy the type checker.
+          # Because we type it as `profiler_info` in the .rbs file, the type checker will
+          # complain that the branch in the collect_profiler_info method is unreachable.
+          # But it is just :information level, so we can ignore it.
+          @profiler_info = nil # @type ivar @profiler_info: profiler_info?
+
           # Steep: https://github.com/soutaro/steep/issues/363
           @info = { # steep:ignore IncompatibleAssignment
             platform: collect_platform_info,

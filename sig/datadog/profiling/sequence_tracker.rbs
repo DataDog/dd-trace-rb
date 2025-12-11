@@ -1,7 +1,7 @@
 module Datadog
   module Profiling
     module SequenceTracker
-      @sequence_number: Integer
+      self.@sequence_number: Integer
 
       extend Core::Utils::Forking
 
