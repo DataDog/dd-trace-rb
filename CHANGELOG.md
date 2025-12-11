@@ -9,11 +9,10 @@
 * Tracing: Add process tags to trace payloads with `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable ([#5033][])
 * Tracing: Integrations: Add Data Streams Monitoring (DSM) instrumentation to Waterdrop producers ([#5031][])
 * Tracing: Open Telemetry: Add OpenTelemetry metrics support with OTLP exporters using `DD_METRICS_OTEL_ENABLED` and standard OpenTelemetry environment variables ([#5021][])
-* Tracing: Add `http.endpoint` tag which contains the route whenever routing info is available, and falls back to route inferred from the request path 
+* Tracing: Add `http.endpoint` tag which contains the route whenever routing info is available, and falls back to route inferred from the request path ([#4995][])
 * Tracing: Add configuration of HTTP client and server error ranges via `DD_TRACE_HTTP_CLIENT_ERROR_STATUSES` and `DD_TRACE_HTTP_SERVER_ERROR_STATUSES` ([#4991][])
 * Tracing: Integrations: Add Data Streams Monitoring for `ruby-kafka` and `karafka` consumers with optional manual instrumentation ([#4901][])
 * Dynamic Instrumentation: Add support for Hash length operations in expression language ([#5019][])
-([#4995][])
 * AppSec: Add unique security response identifier in the response body for blocked requests ([#5049][])
 * AppSec: Add support for processor overrides and custom data scanners ([#5044][])
 * Feature Flags: Add new component to support Open Feature SDK ([#5054][], [#5024][])
@@ -26,7 +25,7 @@
 
 ### Fixed
 
-* Tracing: Dynamic Instrumentation: Fix issues delivering large quantities of snapshots ([#5086][])
+* Live Debugger / Dynamic Instrumentation: Fix issues delivering large quantities of snapshots ([#5086][])
 * Tracing: Integrations: Fix `NoMethodError` in GraphQL integration when error has no `locations`. ([#5025][])
 * Tracing: Integrations: Fix `http.route` tag for Rack applications mounted inside Rails. ([#4988][])
 * Profiling: Fix profiler support for Ruby 4.0.0-preview2 ([#5091][])
