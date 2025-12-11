@@ -4,7 +4,7 @@
 
 ## [2.23.0] - 2025-12-11
 
-###Added
+### Added
 
 * Core: Tracing: Add process tags to trace payloads with `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable ([#5033][])
 * Core: Tracing: Integrations: Add Data Streams Monitoring (DSM) instrumentation to Waterdrop producers ([#5031][])
@@ -17,13 +17,13 @@
 * AppSec: Add support for processor overrides and custom data scanners ([#5044][])
 * Feature Flags: Add new component to support Open Feature SDK ([#5054][], [#5024][])
 
-###Changed
+### Changed
 
 * Core: Update minimum `datadog-ruby_core_source` dependency to 3.4.2 ([#5122][])
 * Core: Update `libdatadog` dependency to version 24.0.1 ([#5058][], [#5045][], [#5020][])
 * Core: Tracing: Treat IPs from `100.65.0.0/10` range as private. ([#4975][])
 
-###Fixed
+### Fixed
 
 * Core: Tracing: Dynamic Instrumentation: Fix issues delivering large quantities of snapshots ([#5086][])
 * Core: Dynamic Instrumentation: Live Debugger: Fix Live Debugger and Dynamic Instrumentation UI issues in forking web servers ([#5074][])
