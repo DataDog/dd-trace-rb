@@ -74,8 +74,9 @@ module Datadog
         metrics_config = @settings.opentelemetry.metrics
         exporter_config = @settings.opentelemetry.exporter
 
-        return metrics_config.endpoint if metrics_config.endpoint
-        return exporter_config.endpoint if exporter_config.endpoint
+        # Steep: https://github.com/soutaro/steep/issues/477 (type narrowing issue)
+        return metrics_config.endpoint if metrics_config.endpoint # steep:ignore ReturnTypeMismatch
+        return exporter_config.endpoint if exporter_config.endpoint # steep:ignore ReturnTypeMismatch
         "#{@agent_ssl ? "https" : "http"}://#{@agent_host}:4318/v1/metrics"
       end
 

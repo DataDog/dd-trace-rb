@@ -26,7 +26,7 @@ module Datadog
         interface _Exporter
           def protocol: () -> ::String
 
-          def timeout: () -> ::Integer
+          def timeout_millis: () -> ::Integer
 
           def headers: () -> ::Hash[untyped, untyped]
 
@@ -38,9 +38,9 @@ module Datadog
 
           def exporter: () -> ::String
 
-          def export_interval: () -> ::Integer
+          def export_interval_millis: () -> ::Integer
 
-          def export_timeout: () -> ::Integer
+          def export_timeout_millis: () -> ::Integer
 
           def temporality_preference: () -> ::String
 
@@ -48,7 +48,7 @@ module Datadog
 
           def headers: () -> ::Hash[untyped, untyped]?
 
-          def timeout: () -> ::Integer?
+          def timeout_millis: () -> ::Integer?
 
           def protocol: () -> ::String?
         end
