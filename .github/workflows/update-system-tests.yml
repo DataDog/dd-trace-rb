@@ -106,6 +106,6 @@ jobs:
             - Source commit: ${{ github.event.client_payload.source_commit || 'N/A' }}
 
             **Change log entry**
-            None
+            None.
 
             Please review the changes and merge when ready.
