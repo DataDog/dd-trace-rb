@@ -178,15 +178,6 @@ module Datadog
               end
             end
 
-            # Remote transport HTTP client
-            class Client < Core::Transport::HTTP::Client
-              def send_config_payload(request)
-                send_request(request) do |api, env|
-                  api.send_config(env)
-                end
-              end
-            end
-
             module API
               # Extensions for HTTP API Spec
               module Spec

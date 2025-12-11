@@ -43,15 +43,6 @@ module Datadog
               attr_reader :version, :endpoints, :config, :span_events
             end
 
-            # Remote negotiation HTTP client
-            class Client < Core::Transport::HTTP::Client
-              def send_info_payload(request)
-                send_request(request) do |api, env|
-                  api.send_info(env)
-                end
-              end
-            end
-
             module API
               # Extensions for HTTP API Spec
               module Spec
