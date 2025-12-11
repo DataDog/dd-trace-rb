@@ -13,7 +13,7 @@ module Datadog
         def initialize: (Worker worker, telemetry: Core::Telemetry::Component, logger: Core::Logger) -> void
 
         def report: (
-          ResolutionDetails result,
+          ResolutionDetails | Core::FeatureFlags::ResolutionDetails result,
           flag_key: ::String,
           context: ::OpenFeature::SDK::EvaluationContext?
         ) -> bool

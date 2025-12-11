@@ -16,7 +16,10 @@ module Datadog
 
         DEFAULT_BUFFER_LIMIT: ::Integer
 
-        attr_reader logger: Core::Logger
+        @logger: Core::Logger
+        @transport: Transport::HTTP
+        @telemetry: Core::Telemetry::Component
+        @batch_builder: BatchBuilder
 
         def initialize: (
           settings: Core::Configuration::Settings,
