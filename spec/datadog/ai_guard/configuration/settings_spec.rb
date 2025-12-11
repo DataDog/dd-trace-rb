@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
 require 'datadog/ai_guard/configuration'
 
 RSpec.describe Datadog::AIGuard::Configuration::Settings do
