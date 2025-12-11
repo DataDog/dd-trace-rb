@@ -11,6 +11,8 @@ module Datadog
 
       @engine: EvaluationEngine
 
+      @worker: Exposures::Worker
+
       attr_reader telemetry: Core::Telemetry::Component
 
       attr_reader engine: EvaluationEngine
