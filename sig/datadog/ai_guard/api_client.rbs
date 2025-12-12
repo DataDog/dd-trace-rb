@@ -43,7 +43,7 @@ module Datadog
 
       def parse_response_body: (::String) -> Evaluation::Result::raw_response_body
 
-      def headers: () -> ::Hash[::Symbol, ::String?]
+      def headers: () -> ::Hash[::Symbol, ::String]
     end
   end
 end

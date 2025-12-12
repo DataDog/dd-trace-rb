@@ -7,6 +7,12 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
     let(:configuration) { Datadog::Core::Configuration::Settings.new }
     let(:api_client_double) { instance_double(Datadog::AIGuard::APIClient) }
 
+    let(:messages) do
+      [
+        Datadog::AIGuard::Evaluation::Message.new(role: :user, content: "Hello there")
+      ]
+    end
+
     let(:raw_response_mock) do
       {
         "data" => {
@@ -41,8 +47,16 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
         }
       ).and_return(raw_response_mock)
 
-      response = described_class.new([Datadog::AIGuard.message(role: :user, content: "Hello there")]).perform
+      response = described_class.new(messages).perform
       expect(response).to be_a(Datadog::AIGuard::Evaluation::Result)
+    end
+
+    it "raises RuntimeError when AIGuard.api_client returns nil" do
+      allow(Datadog::AIGuard).to receive(:api_client).and_return(nil)
+
+      expect { described_class.new(messages).perform }.to raise_error(
+        RuntimeError, "AI Guard API Client not initialized"
+      )
     end
   end
 

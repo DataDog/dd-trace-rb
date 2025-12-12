@@ -82,8 +82,8 @@ module Datadog
 
       def headers
         {
-          "DD-API-KEY": @api_key,
-          "DD-APPLICATION-KEY": @application_key,
+          "DD-API-KEY": @api_key.to_s,
+          "DD-APPLICATION-KEY": @application_key.to_s,
           "DD-AI-GUARD-VERSION": Datadog::VERSION::STRING,
           "DD-AI-GUARD-SOURCE": "SDK",
           "DD-AI-GUARD-LANGUAGE": "ruby",
