@@ -30,6 +30,9 @@ module Datadog
       class ServerError < StandardError
       end
 
+      class ReadTimeout < StandardError
+      end
+
       def initialize: (endpoint: ::String, api_key: ::String?, application_key: ::String?, timeout: ::Integer) -> void
 
       def post: (path: ::String, request_body: ::Hash[::String, ::String]) -> ::Hash[::String, ::String]

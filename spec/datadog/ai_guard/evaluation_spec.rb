@@ -6,8 +6,6 @@ require 'datadog/ai_guard/evaluation'
 
 RSpec.describe Datadog::AIGuard::Evaluation do
   describe '.perform' do
-    let(:api_client_double) { instance_double(Datadog::AIGuard::APIClient) }
-
     let(:raw_response) do
       {
         'data' => {
@@ -21,8 +19,21 @@ RSpec.describe Datadog::AIGuard::Evaluation do
     end
 
     before do
-      allow(Datadog::AIGuard).to receive(:api_client).and_return(api_client_double)
-      allow(api_client_double).to receive(:post).and_return(raw_response)
+      WebMock.enable!
+
+      stub_request(:post, 'https://app.datadoghq.com/api/v2/ai-guard/evaluate')
+        .to_return do |request|
+          {
+            status: 200,
+            body: raw_response.to_json,
+            headers: {'Content-Type' => 'application/json'}
+          }
+        end
+    end
+
+    after do
+      WebMock.reset!
+      WebMock.disable!
     end
 
     let(:ai_guard_span) { spans.find { |span| span.name == 'ai_guard' } }

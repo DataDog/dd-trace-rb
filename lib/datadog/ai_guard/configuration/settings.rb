@@ -47,7 +47,7 @@ module Datadog
               #
               # @default `DD_AI_GUARD_TIMEOUT`, otherwise 10 000 ms
               # @return [Integer]
-              option :timeout do |o|
+              option :timeout_ms do |o|
                 o.type :int
                 o.env Ext::ENV_AI_GUARD_TIMEOUT
                 o.default 10_000

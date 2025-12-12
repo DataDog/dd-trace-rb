@@ -22,6 +22,8 @@ module Datadog
       class ForbiddenError < ClientError; end
       class ServerError < StandardError; end
 
+      class ReadTimeout < StandardError; end
+
       def initialize(endpoint:, api_key:, application_key:, timeout:)
         @api_key = api_key
         @application_key = application_key
@@ -33,7 +35,7 @@ module Datadog
       def post(path:, request_body:)
         uri = URI::HTTPS.build(host: @site, path: @endpoint + path)
 
-        Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+        Net::HTTP.start(uri.host, uri.port, use_ssl: true, read_timeout: @timeout) do |http|
           request = Net::HTTP::Post.new(uri.request_uri, headers)
           request.body = request_body.to_json
 
@@ -59,15 +61,17 @@ module Datadog
           raise TooManyRequestsError, response.body
         when Net::HTTPServerError
           raise ServerError, response.body
-        when Net::HTTPClientError
-          raise ClientError, response.body
         when Net::HTTPUnauthorized
           raise UnauthorizedError, response.body
         when Net::HTTPForbidden
           raise ForbiddenError, response.body
+        when Net::HTTPClientError
+          raise ClientError, response.body
         else
           raise UnexpectedResponseError, response.body
         end
+      rescue Net::ReadTimeout
+        raise ReadTimeout, "Request to AI Guard timed out"
       end
 
       def parse_response_body(response_body)

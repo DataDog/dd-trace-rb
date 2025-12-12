@@ -75,9 +75,9 @@ module Datadog
 
           def endpoint=: (String) -> void
 
-          def timeout: () -> Integer
+          def timeout_ms: () -> Integer
 
-          def timeout=: () -> void
+          def timeout_ms=: () -> void
 
           def max_content_size_bytes: () -> Integer
 

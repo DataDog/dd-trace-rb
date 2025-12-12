@@ -78,13 +78,13 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
       end
     end
 
-    describe '#timeout' do
+    describe '#timeout_ms' do
       context 'when DD_AI_GUARD_TIMEOUT is not defined' do
         around do |example|
           ClimateControl.modify('DD_AI_GUARD_TIMEOUT' => nil) { example.run }
         end
 
-        it { expect(settings.ai_guard.timeout).to eq(10_000) }
+        it { expect(settings.ai_guard.timeout_ms).to eq(10_000) }
       end
 
       context 'when DD_AI_GUARD_TIMEOUT is defined' do
@@ -92,14 +92,14 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
           ClimateControl.modify('DD_AI_GUARD_TIMEOUT' => '20000') { example.run }
         end
 
-        it { expect(settings.ai_guard.timeout).to eq(20_000) }
+        it { expect(settings.ai_guard.timeout_ms).to eq(20_000) }
       end
     end
 
-    describe '#timeout=' do
+    describe '#timeout_ms=' do
       it 'changes timeout value' do
-        expect { settings.ai_guard.timeout = 30_000 }
-          .to change { settings.ai_guard.timeout }.to(30_000)
+        expect { settings.ai_guard.timeout_ms = 30_000 }
+          .to change { settings.ai_guard.timeout_ms }.to(30_000)
       end
     end
 
