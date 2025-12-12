@@ -228,6 +228,50 @@ RSpec.describe 'Instrumentation integration' do
               captures: {},
             )
           end
+
+          context 'when the class is a derived class' do
+            let(:probe) do
+              Datadog::DI::Probe.new(id: "1234", type: :log,
+                type_name: 'InstrumentationDelayedDerivedTestClass', method_name: 'test_method',
+                capture_snapshot: false,)
+            end
+
+            it 'invokes probe and creates expected snapshot' do
+              expect(diagnostics_transport).to receive(:send_diagnostics)
+              # add_snapshot expectation replaces assertion on send_input
+              expect(probe_manager.add_probe(probe)).to be false
+
+              class InstrumentationDelayedBaseClass # rubocop:disable Lint/ConstantDefinitionInBlock
+              end
+
+              class InstrumentationDelayedDerivedTestClass < InstrumentationDelayedBaseClass # rubocop:disable Lint/ConstantDefinitionInBlock
+                def test_method
+                  43
+                end
+              end
+
+              payload = nil
+              expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+                payload = payload_
+              end
+
+              expect(InstrumentationDelayedDerivedTestClass.new.test_method).to eq(43)
+              component.probe_notifier_worker.flush
+
+              snapshot = payload.fetch(:debugger).fetch(:snapshot)
+              expect(snapshot).to match(
+                id: String,
+                timestamp: Integer,
+                evaluationErrors: [],
+                probe: {id: '1234', version: 0, location: {
+                  method: 'test_method', type: 'InstrumentationDelayedDerivedTestClass',
+                }},
+                language: 'ruby',
+                stack: Array,
+                captures: {},
+              )
+            end
+          end
         end
 
         context 'when class exists without target method and method is defined after probe is added to probe manager' do
