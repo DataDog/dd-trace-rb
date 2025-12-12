@@ -683,9 +683,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "records allocated objects" do
-        # TODO: Ruby 3.5 - Remove this skip after investigation.
-        pending('Allocation profiling call not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('preview')
-
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 
         start
@@ -700,9 +697,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             .find { |s| s.labels[:"allocation class"] == "CpuAndWallTimeWorkerSpec::TestStruct" }
 
         expect(allocation_sample.values).to include("alloc-samples": test_num_allocated_object)
-        # For Ruby 3.5 onwards, new is inlined into the bytecode of the caller and there's no "new"
+        # For Ruby 4 onwards, new is inlined into the bytecode of the caller and there's no "new"
         # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
-        expect((RUBY_VERSION >= "3.5.0") ? allocation_sample.locations[0] : allocation_sample.locations[1])
+        expect((RUBY_VERSION >= "4.0.0") ? allocation_sample.locations[0] : allocation_sample.locations[1])
           .to match(have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: allocation_line))
       end
 
@@ -868,6 +865,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       before do
         skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+        skip "Heap profiling is buggy on 4.0.0preview2 (https://bugs.ruby-lang.org/issues/21710) but fixed in master" if RUBY_DESCRIPTION.include?("4.0.0preview2")
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
@@ -884,9 +882,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "records live heap objects" do
-        # TODO: Ruby 3.5 - Remove this skip after investigation.
-        skip('Heap profiling not working correctly on Ruby 3.5.0-preview1') if RUBY_DESCRIPTION.include?('preview')
-
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 
         start
@@ -908,9 +903,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # if a gc happens to run in the middle of this test. Thus, we'll have to sum up
         # together the values of all matching samples.
         relevant_samples = samples_from_pprof(recorder.serialize!).select do |sample|
-          # From Ruby 3.5 onwards, new is inlined into the bytecode of the caller and there's no "new"
+          # From Ruby 4 onwards, new is inlined into the bytecode of the caller and there's no "new"
           # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
-          allocation_trigger_frame = (RUBY_VERSION >= "3.5.0") ? sample.locations[0] : sample.locations[1]
+          allocation_trigger_frame = (RUBY_VERSION >= "4.0.0") ? sample.locations[0] : sample.locations[1]
           next unless allocation_trigger_frame
 
           allocation_trigger_frame.lineno == allocation_line &&
@@ -926,14 +921,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(total_samples).to eq test_num_allocated_object
 
         expected_size_of_object = 40 # 40 is the size of a basic object and we have test_num_allocated_object of them
-
-        # Starting with Ruby 3.5, the object_id counts towards the object's size
-        if RUBY_VERSION >= "3.5.0"
-          expected_size_of_object = 104
-
-          expect(ObjectSpace.memsize_of(CpuAndWallTimeWorkerSpec::TestStruct.new.tap(&:object_id)))
-            .to be expected_size_of_object
-        end
 
         expect(total_size).to eq test_num_allocated_object * expected_size_of_object
       end
@@ -1183,7 +1170,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal
-              end.take
+              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
             end
           )
       end
@@ -1195,7 +1182,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_sample_from_postponed_job
-              end.take
+              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
             end
           )
       end

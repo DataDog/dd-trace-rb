@@ -177,6 +177,8 @@ module Datadog
         def open_feature: () -> _OpenFeature
 
         def tracing: () -> untyped
+
+        def opentelemetry: () -> OpenTelemetry::Configuration::Settings::_OpenTelemetry
       end
     end
   end

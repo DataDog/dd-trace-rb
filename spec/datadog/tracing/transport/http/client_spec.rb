@@ -1,6 +1,5 @@
 require 'spec_helper'
 
-require 'datadog'
 require 'datadog/tracing/transport/http/client'
 
 RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
@@ -13,11 +12,15 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
     it { is_expected.to have_attributes(api: api) }
   end
 
-  describe '#send_request' do
-    subject(:send_request) { client.send_request(request, &block) }
+  describe '#send_request_impl' do
+    subject(:send_request_impl) { client.send(:send_request_impl, request, &block) }
 
     let(:request) { instance_double(Datadog::Core::Transport::Request) }
-    let(:response_class) { stub_const('TestResponse', Class.new { include Datadog::Core::Transport::HTTP::Response }) }
+    let(:response_class) do
+      stub_const('TestResponse', Class.new do
+        include Datadog::Core::Transport::HTTP::Response
+      end)
+    end
     let(:response) { instance_double(response_class, code: double('status code')) }
 
     before { allow(Datadog.health_metrics).to receive(:send_metrics) }
@@ -44,6 +47,9 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
           allow(response).to receive(:not_found?).and_return(false)
           allow(response).to receive(:unsupported?).and_return(false)
 
+          # This test is very similar to the core client test;
+          # one difference is the expectation here on
+          # update_stats_from_response!.
           expect(client).to receive(:update_stats_from_response!)
             .with(response)
         end
@@ -59,30 +65,37 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
         let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
         let(:logger) { instance_double(Datadog::Core::Logger) }
 
-        before do
-          allow(handler).to receive(:response).and_raise(error_class)
-          allow(Datadog).to receive(:logger).and_return(logger)
-          allow(logger).to receive(:debug)
-          allow(logger).to receive(:error)
-        end
+        context 'once' do
+          before do
+            expect(handler).to receive(:response).and_raise(error_class)
+            allow(logger).to receive(:debug)
+            allow(logger).to receive(:error)
+          end
 
-        it 'makes only one attempt and returns an internal error response' do
-          expect(client).to receive(:update_stats_from_exception!)
-            .with(kind_of(error_class))
+          it 'makes only one attempt and returns an internal error response' do
+            expect(client).to receive(:update_stats_from_exception!)
+              .with(kind_of(error_class))
 
-          is_expected.to be_a_kind_of(Datadog::Core::Transport::InternalErrorResponse)
-          expect(send_request.error).to be_a_kind_of(error_class)
-          expect(handler).to have_received(:api).with(api).once
+            is_expected.to be_a_kind_of(Datadog::Core::Transport::InternalErrorResponse)
+            expect(send_request_impl.error).to be_a_kind_of(error_class)
+            expect(handler).to have_received(:api).with(api).once
 
-          # Check log was written to appropriately
-          expect(logger).to have_received(:error).once
-          expect(logger).to_not have_received(:debug)
+            # Check log was written to appropriately
+            expect(logger).to have_received(:error).once
+            expect(logger).to_not have_received(:debug)
+          end
         end
 
         context 'twice consecutively' do
-          subject(:send_request) do
-            client.send_request(request, &block)
-            client.send_request(request, &block)
+          before do
+            expect(handler).to receive(:response).twice.and_raise(error_class)
+            allow(logger).to receive(:debug)
+            allow(logger).to receive(:error)
+          end
+
+          subject(:send_request_impl) do
+            client.send(:send_request_impl, request, &block)
+            client.send(:send_request_impl, request, &block)
           end
 
           before do
@@ -98,7 +111,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
 
           it 'makes only one attempt per request and returns an internal error response' do
             is_expected.to be_a_kind_of(Datadog::Core::Transport::InternalErrorResponse)
-            expect(send_request.error).to be_a_kind_of(error_class)
+            expect(send_request_impl.error).to be_a_kind_of(error_class)
             expect(handler).to have_received(:api).with(api).twice
 
             # Check log was written to appropriately
@@ -107,17 +120,6 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
           end
         end
       end
-    end
-  end
-
-  describe '#build_env' do
-    subject(:env) { client.build_env(request) }
-
-    let(:request) { instance_double(Datadog::Core::Transport::Request) }
-
-    it 'returns a Datadog::Core::Transport::HTTP::Env' do
-      is_expected.to be_a_kind_of(Datadog::Core::Transport::HTTP::Env)
-      expect(env.request).to be request
     end
   end
 end

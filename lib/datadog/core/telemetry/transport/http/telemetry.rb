@@ -3,8 +3,8 @@
 require_relative '../../../transport/http/api/endpoint'
 require_relative '../../../transport/http/api/instance'
 require_relative '../../../transport/http/api/spec'
+require_relative '../../../transport/http/client'
 require_relative '../../../transport/request'
-require_relative 'client'
 
 module Datadog
   module Core
@@ -12,14 +12,6 @@ module Datadog
       module Transport
         module HTTP
           module Telemetry
-            module Client
-              def send_telemetry_payload(request)
-                send_request(request) do |api, env| # steep:ignore
-                  api.send_telemetry(env)
-                end
-              end
-            end
-
             module API
               class Instance < Core::Transport::HTTP::API::Instance
                 def send_telemetry(env)
@@ -83,8 +75,6 @@ module Datadog
               end
             end
           end
-
-          HTTP::Client.include(Telemetry::Client)
         end
       end
     end

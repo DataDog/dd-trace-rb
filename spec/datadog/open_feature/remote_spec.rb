@@ -115,6 +115,9 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
     context 'when change type is update' do
       before do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new)
+          .and_return(instance_double(Datadog::OpenFeature::NativeEvaluator))
+
         txn = repository.transaction { |_, t| t.insert(content.path, target, content) }
         receiver.call(repository, txn)
       end
@@ -202,6 +205,12 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
         receiver.call(repository, changes)
       end
+    end
+
+    context 'when engine is unavailable' do
+      let(:engine) { nil }
+
+      it { expect { receiver.call(repository, []) }.not_to raise_error }
     end
   end
 end

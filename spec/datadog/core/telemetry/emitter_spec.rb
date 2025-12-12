@@ -7,7 +7,8 @@ require 'datadog/core/transport/response'
 RSpec.describe Datadog::Core::Telemetry::Emitter do
   subject(:emitter) { described_class.new(transport, logger: logger) }
   let(:logger) { logger_allowing_debug }
-  let(:transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
+  # TODO Why is a Client instance assigned to a transport?
+  let(:transport) { double(Datadog::Core::Transport::HTTP::Client) }
   let(:response) do
     double(Datadog::Core::Transport::HTTP::Adapters::Net::Response,
       ok?: response_ok)

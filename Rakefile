@@ -26,6 +26,7 @@ CORE_WITH_LIBDATADOG_API = [
   'spec/datadog/core/crashtracking/**/*_spec.rb',
   'spec/datadog/core/process_discovery_spec.rb',
   'spec/datadog/core/configuration/stable_config_spec.rb',
+  'spec/datadog/core/feature_flags_spec.rb',
   'spec/datadog/core/ddsketch_spec.rb',
   'spec/datadog/data_streams/**/*_spec.rb',
   'spec/datadog/open_feature_spec.rb',
@@ -86,13 +87,13 @@ namespace :spec do
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :core_with_libdatadog_api, :error_tracking, :open_feature, :ai_guard]
+    :profiling, :core_with_libdatadog_api, :error_tracking, :open_feature, :core_with_rails, :ai_guard]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,ai_guard,profiling,crashtracking,error_tracking,rubocop,data_streams}/**/*_spec.rb,' \
-                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch,open_feature,ai_guard}_spec.rb,' \
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,crashtracking,error_tracking,rubocop,data_streams}/**/*_spec.rb,' \
+                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch,open_feature,feature_flags,process,ai_guard}_spec.rb,' \
                         ' spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
@@ -238,6 +239,12 @@ namespace :spec do
     Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
   end
   # rubocop:enable Style/MultilineBlockChain
+
+  desc '' # "Explicitly hiding from `rake -T`"
+  RSpec::Core::RakeTask.new(:core_with_rails) do |t, args|
+    t.pattern = 'spec/datadog/core/environment/process_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:error_tracking) do |t, args|

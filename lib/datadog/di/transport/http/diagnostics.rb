@@ -2,21 +2,12 @@
 
 require_relative '../../../core/transport/http/api/instance'
 require_relative '../../../core/transport/http/api/spec'
-require_relative 'client'
 
 module Datadog
   module DI
     module Transport
       module HTTP
         module Diagnostics
-          module Client
-            def send_diagnostics_payload(request)
-              send_request(request) do |api, env|
-                api.send_diagnostics(env)
-              end
-            end
-          end
-
           module API
             class Instance < Core::Transport::HTTP::API::Instance
               def send_diagnostics(env)
@@ -57,8 +48,6 @@ module Datadog
             end
           end
         end
-
-        HTTP::Client.include(Diagnostics::Client)
       end
     end
   end

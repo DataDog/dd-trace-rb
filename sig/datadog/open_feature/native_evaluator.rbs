@@ -1,0 +1,16 @@
+module Datadog
+  module OpenFeature
+    class NativeEvaluator
+      @configuration: Core::FeatureFlags::Configuration
+
+      def initialize: (::String configuration) -> void
+
+      def get_assignment: (
+        ::String flag_key,
+        default_value: untyped,
+        context: ::OpenFeature::SDK::EvaluationContext::fields_t,
+        expected_type: ::Symbol
+      ) -> Core::FeatureFlags::ResolutionDetails
+    end
+  end
+end

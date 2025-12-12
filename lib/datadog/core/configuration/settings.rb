@@ -12,6 +12,7 @@ require_relative '../remote/ext'
 require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
+require_relative '../../opentelemetry/configuration/settings'
 
 module Datadog
   module Core
@@ -841,6 +842,7 @@ module Datadog
 
           # Overrides agentless telemetry URL. To be used internally for testing purposes only.
           #
+          # @default `DD_TELEMETRY_AGENTLESS_URL` environment variable, otherwise `nil`.
           # @return [String]
           # @!visibility private
           option :agentless_url_override do |o|
@@ -1016,6 +1018,16 @@ module Datadog
           end
         end
 
+        # Enable experimental process tags propagation such that payloads like spans contain the process tag.
+        #
+        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `false`
+        # @return [Boolean]
+        option :experimental_propagate_process_tags_enabled do |o|
+          o.env 'DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED'
+          o.default false
+          o.type :bool
+        end
+
         # Tracer specific configuration starting with APM (e.g. DD_APM_TRACING_ENABLED).
         # @public_api
         settings :apm do
@@ -1043,6 +1055,8 @@ module Datadog
         # TODO: Tracing should manage its own settings.
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings
+
+        extend Datadog::OpenTelemetry::Configuration::Settings
       end
       # standard:enable Metrics/BlockLength
     end

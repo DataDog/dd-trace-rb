@@ -38,8 +38,7 @@ module Datadog
               end
             end
 
-            # Extensions for HTTP client
-            module Client : HTTP::Client
+            class Client < Core::Transport::HTTP::Client
               def send_config_payload: (untyped request) -> untyped
             end
 

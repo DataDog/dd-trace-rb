@@ -475,7 +475,7 @@ module Datadog
         @consumer_stats.map do |stat|
           {
             'Tags' => [
-              'type:kafka_consume',
+              'type:kafka_commit',
               "topic:#{stat[:topic]}",
               "partition:#{stat[:partition]}"
             ],

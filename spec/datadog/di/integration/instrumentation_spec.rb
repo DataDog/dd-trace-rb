@@ -140,12 +140,11 @@ RSpec.describe 'Instrumentation integration' do
 
   context 'log probe' do
     before do
-      allow(agent_settings).to receive(:hostname)
-      allow(agent_settings).to receive(:port)
-      allow(agent_settings).to receive(:timeout_seconds).and_return(1)
-      allow(agent_settings).to receive(:ssl)
-
       allow(Datadog::DI).to receive(:current_component).and_return(component)
+    end
+
+    let(:agent_settings) do
+      instance_double_agent_settings_with_stubs
     end
 
     context 'method probe' do
@@ -179,9 +178,9 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           expect(payload).to be_a(Hash)
-          expect(payload).to include(:"debugger.snapshot")
-          snapshot = payload.fetch(:"debugger.snapshot")
-          expect(snapshot[:captures]).to be nil
+          expect(payload).to include(:debugger)
+          snapshot = payload.fetch(:debugger).fetch(:snapshot)
+          expect(snapshot.fetch(:captures)).to eq({})
         end
 
         it 'assembles expected notification payload which does not include captures' do
@@ -216,7 +215,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationDelayedTestClass.new.test_method).to eq(43)
             component.probe_notifier_worker.flush
 
-            snapshot = payload.fetch(:"debugger.snapshot")
+            snapshot = payload.fetch(:debugger).fetch(:snapshot)
             expect(snapshot).to match(
               id: String,
               timestamp: Integer,
@@ -226,8 +225,52 @@ RSpec.describe 'Instrumentation integration' do
               }},
               language: 'ruby',
               stack: Array,
-              captures: nil,
+              captures: {},
             )
+          end
+
+          context 'when the class is a derived class' do
+            let(:probe) do
+              Datadog::DI::Probe.new(id: "1234", type: :log,
+                type_name: 'InstrumentationDelayedDerivedTestClass', method_name: 'test_method',
+                capture_snapshot: false,)
+            end
+
+            it 'invokes probe and creates expected snapshot' do
+              expect(diagnostics_transport).to receive(:send_diagnostics)
+              # add_snapshot expectation replaces assertion on send_input
+              expect(probe_manager.add_probe(probe)).to be false
+
+              class InstrumentationDelayedBaseClass # rubocop:disable Lint/ConstantDefinitionInBlock
+              end
+
+              class InstrumentationDelayedDerivedTestClass < InstrumentationDelayedBaseClass # rubocop:disable Lint/ConstantDefinitionInBlock
+                def test_method
+                  43
+                end
+              end
+
+              payload = nil
+              expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+                payload = payload_
+              end
+
+              expect(InstrumentationDelayedDerivedTestClass.new.test_method).to eq(43)
+              component.probe_notifier_worker.flush
+
+              snapshot = payload.fetch(:debugger).fetch(:snapshot)
+              expect(snapshot).to match(
+                id: String,
+                timestamp: Integer,
+                evaluationErrors: [],
+                probe: {id: '1234', version: 0, location: {
+                  method: 'test_method', type: 'InstrumentationDelayedDerivedTestClass',
+                }},
+                language: 'ruby',
+                stack: Array,
+                captures: {},
+              )
+            end
           end
         end
 
@@ -261,7 +304,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationDelayedPartialTestClass.new.test_method).to eq(43)
             component.probe_notifier_worker.flush
 
-            snapshot = payload.fetch(:"debugger.snapshot")
+            snapshot = payload.fetch(:debugger).fetch(:snapshot)
             expect(snapshot).to match(
               id: String,
               timestamp: Integer,
@@ -273,7 +316,7 @@ RSpec.describe 'Instrumentation integration' do
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
-              captures: nil,
+              captures: {},
             )
           end
         end
@@ -304,7 +347,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationVirtualTestClass.new.test_method).to eq(:test_method)
             component.probe_notifier_worker.flush
 
-            snapshot = payload.fetch(:"debugger.snapshot")
+            snapshot = payload.fetch(:debugger).fetch(:snapshot)
             expect(snapshot).to match(
               id: String,
               timestamp: Integer,
@@ -316,7 +359,7 @@ RSpec.describe 'Instrumentation integration' do
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
-              captures: nil,
+              captures: {},
             )
           end
         end
@@ -374,7 +417,7 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
 
           expect(payload).to be_a(Hash)
-          captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
           expect(captures).to eq(expected_captures)
         end
 
@@ -546,10 +589,17 @@ RSpec.describe 'Instrumentation integration' do
               expect(snapshot.fetch(:message)).to match(/\Ahello (\d+\.\d+) ms\z/)
               snapshot.fetch(:message) =~ /\Ahello (\d+\.\d+) ms\z/
               value = Float($1)
-              # Actual execution time will change but it should be under
-              # a second and it should be positive.
+              # Actual execution time varies greatly in CI.
+              # A method that returns an integer will ordinarily report a
+              # duration on the order of 1 millisecond.
+              # However, one time the duration reported was exactly zero.
+              # After the test method was made longer to definitely take
+              # a non-zero amount of time to execute, on one CI run it took
+              # 1.8 seconds.
+              # Therefore, the current brackets are strictly greater than
+              # zero seconds and under 4 seconds.
               expect(value).to be > 0
-              expect(value).to be < 1
+              expect(value).to be < 4
             end
             expect(InstrumentationSpecTestClass.new.long_test_method).to eq(42)
             component.probe_notifier_worker.flush
@@ -672,13 +722,13 @@ RSpec.describe 'Instrumentation integration' do
             end
 
             let(:snapshot) do
-              payload.fetch(:"debugger.snapshot")
+              payload.fetch(:debugger).fetch(:snapshot)
             end
 
             it 'does not have captures' do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
-              expect(snapshot.fetch(:captures)).to be nil
+              expect(snapshot.fetch(:captures)).to eq({})
             end
 
             let(:stack) do
@@ -741,13 +791,13 @@ RSpec.describe 'Instrumentation integration' do
             end
 
             let(:snapshot) do
-              payload.fetch(:"debugger.snapshot")
+              payload.fetch(:debugger).fetch(:snapshot)
             end
 
             it 'does not have captures' do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
-              expect(snapshot.fetch(:captures)).to be nil
+              expect(snapshot.fetch(:captures)).to eq({})
             end
 
             let(:stack) do
@@ -910,7 +960,7 @@ RSpec.describe 'Instrumentation integration' do
             component.probe_notifier_worker.flush
 
             expect(payload).to be_a(Hash)
-            captures = payload.fetch(:"debugger.snapshot").fetch(:captures)
+            captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
             expect(captures).to eq(expected_captures)
           end
         end
