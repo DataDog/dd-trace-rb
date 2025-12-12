@@ -12,7 +12,7 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
           ClimateControl.modify("DD_AI_GUARD_ENABLED" => nil) { example.run }
         end
 
-        it { expect(settings.ai_guard.enabled).to be(true) }
+        it { expect(settings.ai_guard.enabled).to be(false) }
       end
 
       context "when DD_AI_GUARD_ENABLED is defined as true" do

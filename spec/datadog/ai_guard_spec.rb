@@ -6,10 +6,11 @@ require 'datadog/ai_guard'
 RSpec.describe Datadog::AIGuard do
   describe '.enabled?' do
     context 'when AI Guard is enabled' do
-      around do |example|
+      before do
         Datadog.configure { |c| c.ai_guard.enabled = true }
-        example.run
-      ensure
+      end
+
+      after do
         Datadog.configuration.reset!
       end
 
@@ -17,10 +18,11 @@ RSpec.describe Datadog::AIGuard do
     end
 
     context 'when AI Guard is disabled' do
-      around do |example|
+      before do
         Datadog.configure { |c| c.ai_guard.enabled = false }
-        example.run
-      ensure
+      end
+
+      after do
         Datadog.configuration.reset!
       end
 

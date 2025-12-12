@@ -19,6 +19,8 @@ RSpec.describe Datadog::AIGuard::Evaluation do
     end
 
     before do
+      Datadog.configuration.ai_guard.enabled = true
+
       WebMock.enable!
 
       stub_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")
@@ -32,6 +34,8 @@ RSpec.describe Datadog::AIGuard::Evaluation do
     end
 
     after do
+      Datadog.configuration.reset!
+
       WebMock.reset!
       WebMock.disable!
     end

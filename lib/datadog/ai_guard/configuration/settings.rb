@@ -21,12 +21,12 @@ module Datadog
               #
               # You can use this option to skip calls to AI Guard API without having to remove library as a whole.
               #
-              # @default `DD_AI_GUARD_ENABLED`, otherwise `true`
+              # @default `DD_AI_GUARD_ENABLED`, otherwise `false`
               # @return [Boolean]
               option :enabled do |o|
                 o.type :bool
                 o.env Ext::ENV_AI_GUARD_ENABLED
-                o.default true
+                o.default false
               end
 
               # AI Guard API endpoint path.
