@@ -8,38 +8,6 @@
 
 #if defined(__linux__)
 
-#ifdef RUBY_MJIT_HEADER
-  // Pick up internal structures from the private Ruby MJIT header file
-  #include RUBY_MJIT_HEADER
-#else
-  // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  // the datadog-ruby_core_source gem to get access to private VM headers.
-
-  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
-  // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wunused-parameter"
-  #pragma GCC diagnostic ignored "-Wattributes"
-  #pragma GCC diagnostic ignored "-Wpragmas"
-  #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
-    #include <vm_core.h>
-  #pragma GCC diagnostic pop
-
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #include <iseq.h>
-  #pragma GCC diagnostic pop
-
-  #include <ruby.h>
-
-  #ifndef NO_RACTOR_HEADER_INCLUDE
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-parameter"
-      #include <ractor_core.h>
-    #pragma GCC diagnostic pop
-  #endif
-#endif
-
 #include <datadog/crashtracker.h>
 #include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
@@ -72,16 +40,14 @@ static inline uintptr_t align_down(uintptr_t x, uintptr_t align) {
   return x & ~(align - 1u);
 }
 
+static uintptr_t cached_page_size = 0;
+
 // TODO: This function is not necessarily Ruby specific. This will be moved to
 // `libdatadog` in the future as a shared utility function.
 static inline bool is_pointer_readable(const void *ptr, size_t size) {
   if (!ptr || size == 0) return false;
 
-  uintptr_t page_size = (uintptr_t)sysconf(_SC_PAGESIZE);
-  // fallback for weird value; 0 or not a power of two
-  if (page_size == 0 || (page_size & (page_size - 1u))) {
-      page_size = 4096;
-  }
+  uintptr_t page_size = cached_page_size;
 
   const uintptr_t start = align_down((uintptr_t)ptr, page_size);
   const uintptr_t end   = ((uintptr_t)ptr + size - 1u);
@@ -200,13 +166,13 @@ static void ruby_runtime_stack_callback(
     frame_info *info = &runtime_stack_buffer[i];
 
     if (info->is_ruby_frame) {
-      const rb_iseq_t *iseq = (const rb_iseq_t *)info->as.ruby_frame.iseq;
+      const void *iseq = (const void *)info->as.ruby_frame.iseq;
       ddog_CharSlice function_slice = DDOG_CHARSLICE_C("<unknown>");
       ddog_CharSlice file_slice = DDOG_CHARSLICE_C("<unknown>");
 
-      if (iseq && is_pointer_readable(iseq, sizeof(rb_iseq_t))) {
-        function_slice = safe_string_value(rb_iseq_base_label(iseq));
-        file_slice = safe_string_value(rb_iseq_path(iseq));
+      if (iseq && is_pointer_readable(iseq, sizeof_rb_iseq_t())) {
+        function_slice = safe_string_value(ddtrace_iseq_base_label(iseq));
+        file_slice = safe_string_value(ddtrace_iseq_path(iseq));
       }
 
       ddog_crasht_RuntimeStackFrame frame = {
@@ -246,6 +212,11 @@ static void ruby_runtime_stack_callback(
 }
 
 void crashtracking_runtime_stacks_init(void) {
+  cached_page_size = (uintptr_t)sysconf(_SC_PAGESIZE);
+  if (cached_page_size == 0 || (cached_page_size & (cached_page_size - 1u))) {
+    cached_page_size = 4096;
+  }
+
   if (crashtracker_thread_data_type == NULL) {
     VALUE current_thread = rb_thread_current();
     if (current_thread == Qnil) return;
