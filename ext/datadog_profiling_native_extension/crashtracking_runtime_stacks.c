@@ -144,6 +144,20 @@ static ddog_CharSlice safe_string_value(VALUE str) {
   return (ddog_CharSlice){.ptr = ptr, .len = (size_t)len};
 }
 
+static void emit_placeholder_frame(
+  void (*emit_frame)(const ddog_crasht_RuntimeStackFrame*),
+  const char *label
+) {
+  ddog_crasht_RuntimeStackFrame frame = {
+    .type_name = DDOG_CHARSLICE_C(""),
+    .function = char_slice_from_cstr(label),
+    .file = DDOG_CHARSLICE_C("<unknown>"),
+    .line = 0,
+    .column = 0
+  };
+  emit_frame(&frame);
+}
+
 // Collect the crashing thread's frames via ddtrace_rb_profile_frames into a static buffer, then emit
 // them newest-first. If corruption is detected, emit placeholder frames so the crash report still
 // completes. We lean on the Ruby VM helpers we already use for profiling and rely on crashtracker's
@@ -168,9 +182,19 @@ static void ruby_runtime_stack_callback(
     runtime_stack_buffer
   );
 
-  if (frame_count <= 0) return;
+  if (frame_count <= 0) {
+    emit_placeholder_frame(emit_frame, "<runtime stack not found>");
+    return;
+  }
+
+  bool truncated = frame_count >= RUNTIME_STACK_MAX_FRAMES;
 
   for (int i = frame_count - 1; i >= 0; i--) {
+    if (truncated && i == 0) {
+      emit_placeholder_frame(emit_frame, "<truncated frames>");
+      return;
+    }
+
     frame_info *info = &runtime_stack_buffer[i];
 
     if (info->is_ruby_frame) {
