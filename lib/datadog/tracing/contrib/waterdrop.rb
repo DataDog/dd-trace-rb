@@ -12,13 +12,15 @@ module Datadog
         def self.inject(digest, data)
           raise 'Please invoke Datadog.configure at least once before calling this method' unless @propagation
 
-          @propagation.inject!(digest, data)
+          # Steep: https://github.com/soutaro/steep/issues/477
+          @propagation.inject!(digest, data) # steep:ignore NoMethod
         end
 
         def self.extract(data)
           raise 'Please invoke Datadog.configure at least once before calling this method' unless @propagation
 
-          @propagation.extract(data)
+          # Steep: https://github.com/soutaro/steep/issues/477
+          @propagation.extract(data) # steep:ignore NoMethod
         end
 
         Contrib::Component.register('waterdrop') do |config|

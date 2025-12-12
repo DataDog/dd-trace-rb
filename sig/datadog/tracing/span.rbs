@@ -3,6 +3,8 @@ module Datadog
     class Span
       include Metadata
 
+      @service_entry: bool?
+
       attr_accessor end_time: (Time | nil)
       attr_accessor id: Integer
       attr_accessor meta: Hash[String, String]
