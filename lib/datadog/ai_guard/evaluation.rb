@@ -35,6 +35,8 @@ module Datadog
 
       class << self
         def perform(messages, allow_raise: false)
+          raise ArgumentError, "Messages must not be empty" if messages&.empty?
+
           Tracing.trace(Ext::SPAN_NAME) do |span, trace|
             if (last_message = messages.last)
               if last_message.tool_call?
