@@ -20,7 +20,6 @@ target :datadog do
     #   or `rake 'typecheck[--severity-level=hint]'`
 
     # These checks are a bit harder, because they represent the lack of sufficient type information.
-    hash[Ruby::FallbackAny] = :information
     hash[Ruby::UnknownInstanceVariable] = :information
     hash[Ruby::UnknownRecordKey] = :information
 
