@@ -6,6 +6,8 @@
 // patterns, and keeps the overall install/build surface area smaller.
 #include "extconf.h"
 
+#if defined(__linux__)
+
 #ifdef RUBY_MJIT_HEADER
   // Pick up internal structures from the private Ruby MJIT header file
   #include RUBY_MJIT_HEADER
@@ -54,8 +56,8 @@ static void ruby_runtime_stack_callback(
 
 // Use a fixed, preallocated buffer for crash-time runtime stacks to avoid
 // heap allocation in the signal/crash path.
-static const int RUNTIME_STACK_MAX_FRAMES = 512;
-static frame_info runtime_stack_buffer[512];
+#define RUNTIME_STACK_MAX_FRAMES 512
+static frame_info runtime_stack_buffer[RUNTIME_STACK_MAX_FRAMES];
 
 #if defined(__x86_64__)
 #  define SYS_MINCORE 0x1B
@@ -70,7 +72,7 @@ static inline uintptr_t align_down(uintptr_t x, uintptr_t align) {
   return x & ~(align - 1u);
 }
 
-// This function is not necessarily Ruby specific. This will be moved to
+// TODO: This function is not necessarily Ruby specific. This will be moved to
 // `libdatadog` in the future as a shared utility function.
 static inline bool is_pointer_readable(const void *ptr, size_t size) {
   if (!ptr || size == 0) return false;
@@ -121,45 +123,25 @@ static inline ddog_CharSlice char_slice_from_cstr(const char *cstr) {
   return (ddog_CharSlice){.ptr = cstr, .len = strlen(cstr)};
 }
 
-// Heuristically validate a Ruby string VALUE before dereferencing it from crash context:
-// 1) ensure it is actually a String heap object (no immediates/symbols)
-// 2) confirm both the common header (RBasic) and the string payload (RString) live in
-//    readable pages to avoid faulting while inspecting potentially corrupted memory
-// 3) enforce upper bound for lengths we expect to emit (file names, function names)
-static bool is_reasonable_string_size(VALUE str) {
-  if (str == Qnil) return false;
+static ddog_CharSlice safe_string_value(VALUE str) {
+  if (str == Qnil) return DDOG_CHARSLICE_C("<nil>");
 
-  // After RB_TYPE_P confirms this VALUE is a heap string, the tagged VALUE is
-  // guaranteed to be an aligned pointer, so casting to void* is equivalent to
-  // RBASIC(str); we verify the object header is readable before touching it.
-  if (!is_pointer_readable((const void *)str, sizeof(struct RBasic))) return false;
+  // Validate object header readability before touching it
+  if (!is_pointer_readable((const void *)str, sizeof(struct RBasic))) return DDOG_CHARSLICE_C("<corrupted>");
+  if (!RB_TYPE_P(str, T_STRING)) return DDOG_CHARSLICE_C("<not_string>");
 
-  // For strings, we need to check the full RString structure
-  if (!is_pointer_readable((const void *)str, sizeof(struct RString))) return false;
+  // Validate payload readability
+  if (!is_pointer_readable((const void *)str, sizeof(struct RString))) return DDOG_CHARSLICE_C("<corrupted>");
 
   long len = RSTRING_LEN(str);
+  if (len < 0 || len > 1024) return DDOG_CHARSLICE_C("<corrupted>");
 
-  if (len < 0) return false;  // Negative length, probably corrupted
-  if (len > 1024) return false;  // > 1KB path/function name, sus
-
-  return true;
-}
-
-static const char* safe_string_ptr(VALUE str) {
-  if (str == Qnil) return "<nil>";
-  if (!RB_TYPE_P(str, T_STRING)) return "<not_string>";
-
-  // Validate the VALUE first before touching any of its internals
-  if (!is_reasonable_string_size(str)) return "<corrupted>";
-
-  long len = RSTRING_LEN(str);
   const char *ptr = RSTRING_PTR(str);
+  if (!ptr) return DDOG_CHARSLICE_C("<null>");
 
-  if (!ptr) return "<null>";
+  if (!is_pointer_readable(ptr, len > 0 ? len : 1)) return DDOG_CHARSLICE_C("<unreadable>");
 
-  if (!is_pointer_readable(ptr, len > 0 ? len : 1)) return "<unreadable>";
-
-  return ptr;
+  return (ddog_CharSlice){.ptr = ptr, .len = (size_t)len};
 }
 
 // Collect the crashing thread's frames via ddtrace_rb_profile_frames into a static buffer, then emit
@@ -193,48 +175,41 @@ static void ruby_runtime_stack_callback(
 
     if (info->is_ruby_frame) {
       const rb_iseq_t *iseq = (const rb_iseq_t *)info->as.ruby_frame.iseq;
-      const char *function_name = "<unknown>";
-      const char *file_name = "<unknown>";
+      ddog_CharSlice function_slice = DDOG_CHARSLICE_C("<unknown>");
+      ddog_CharSlice file_slice = DDOG_CHARSLICE_C("<unknown>");
 
       if (iseq && is_pointer_readable(iseq, sizeof(rb_iseq_t))) {
-        VALUE name = rb_iseq_base_label(iseq);
-        if (name != Qnil) {
-          function_name = safe_string_ptr(name);
-        }
-
-        VALUE filename = rb_iseq_path(iseq);
-        if (filename != Qnil) {
-          file_name = safe_string_ptr(filename);
-        }
+        function_slice = safe_string_value(rb_iseq_base_label(iseq));
+        file_slice = safe_string_value(rb_iseq_path(iseq));
       }
 
       ddog_crasht_RuntimeStackFrame frame = {
-        .type_name = char_slice_from_cstr(NULL),
-        .function = char_slice_from_cstr(function_name),
-        .file = char_slice_from_cstr(file_name),
+        .type_name = DDOG_CHARSLICE_C(""),
+        .function = function_slice,
+        .file = file_slice,
         .line = info->as.ruby_frame.line,
         .column = 0
       };
 
       emit_frame(&frame);
     } else {
-      const char *function_name = "<C method>";
-      const char *file_name = "<C extension>";
+      ddog_CharSlice function_slice = DDOG_CHARSLICE_C("<C method>");
+      ddog_CharSlice file_slice = DDOG_CHARSLICE_C("<C extension>");
 
       if (info->as.native_frame.method_id) {
         const char *method_name = rb_id2name(info->as.native_frame.method_id);
         if (is_pointer_readable(method_name, 256)) {
           size_t method_name_len = strnlen(method_name, 256);
           if (method_name_len > 0 && method_name_len < 256) {
-            function_name = method_name;
+            function_slice = char_slice_from_cstr(method_name);
           }
         }
       }
 
       ddog_crasht_RuntimeStackFrame frame = {
-        .type_name = char_slice_from_cstr(NULL),
-        .function = char_slice_from_cstr(function_name),
-        .file = char_slice_from_cstr(file_name),
+        .type_name = DDOG_CHARSLICE_C(""),
+        .function = function_slice,
+        .file = file_slice,
         .line = 0,
         .column = 0
       };
@@ -258,4 +233,9 @@ void crashtracking_runtime_stacks_init(void) {
   // Register immediately so Ruby doesn't need to manage this explicitly.
   ddog_crasht_register_runtime_frame_callback(ruby_runtime_stack_callback);
 }
+
+#else
+// Keep init symbol to satisfy linkage on non linux platforms, but do nothing
+void crashtracking_runtime_stacks_init(void) {}
+#endif
 
