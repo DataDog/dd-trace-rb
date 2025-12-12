@@ -213,7 +213,7 @@ module Datadog
           appsec&.shutdown!
 
           # Shutdown AIGuard component
-          ai_guard.shutdown!
+          ai_guard&.shutdown!
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
