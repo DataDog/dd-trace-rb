@@ -171,8 +171,10 @@ static void ruby_runtime_stack_callback(
 
   if (crashtracker_thread_data_type == NULL) return;
 
-  rb_thread_t *th = (rb_thread_t *) rb_check_typeddata(current_thread, crashtracker_thread_data_type);
-  if (!th || !is_pointer_readable(th, sizeof(*th))) return;
+  if (!rb_typeddata_is_kind_of(current_thread, crashtracker_thread_data_type)) {
+    emit_placeholder_frame(emit_frame, "<runtime stack not found>");
+    return;
+  }
 
   // Use the profiling helper to gather frames into our static buffer.
   int frame_count = ddtrace_rb_profile_frames(
