@@ -42,7 +42,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
       ).and_return(raw_response_mock)
 
       response = described_class.new([Datadog::AIGuard.message(role: :user, content: "Hello there")]).perform
-      expect(response).to be_a(Datadog::AIGuard::Evaluation::Response)
+      expect(response).to be_a(Datadog::AIGuard::Evaluation::Result)
     end
   end
 
@@ -61,9 +61,9 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
 
     it "correctly serializes tool call messages" do
       request = described_class.new([
-        Datadog::AIGuard.tool_call("date", id: "call-1", arguments: ""),
+        Datadog::AIGuard.assistant(tool_name: "date", id: "call-1", arguments: ""),
         Datadog::AIGuard.message(role: :user, content: "List files under home"),
-        Datadog::AIGuard.tool_call("ls", id: "call-2", arguments: "~")
+        Datadog::AIGuard.assistant(tool_name: "ls", id: "call-2", arguments: "~")
       ])
 
       expect(request.serialized_messages).to eq([
@@ -76,8 +76,8 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
     it "collapses multiple subsequent tool calls into one message" do
       request = described_class.new([
         Datadog::AIGuard.message(role: :user, content: "List files under home"),
-        Datadog::AIGuard.tool_call("whoami", id: "call-1", arguments: ""),
-        Datadog::AIGuard.tool_call("ls", id: "call-2", arguments: "/Users/bot")
+        Datadog::AIGuard.assistant(tool_name: "whoami", id: "call-1", arguments: ""),
+        Datadog::AIGuard.assistant(tool_name: "ls", id: "call-2", arguments: "/Users/bot")
       ])
 
       expect(request.serialized_messages).to eq([
@@ -94,7 +94,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
 
     it "correctly serializes tool output messages" do
       request = described_class.new([
-        Datadog::AIGuard.tool_output(tool_call_id: "call-1", content: "Some output")
+        Datadog::AIGuard.tool(tool_call_id: "call-1", content: "Some output")
       ])
 
       expect(request.serialized_messages).to eq([{role: :tool, tool_call_id: "call-1", content: "Some output"}])
@@ -120,7 +120,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
 
       request = described_class.new([
         Datadog::AIGuard.message(role: :user, content: "Some message"),
-        Datadog::AIGuard.tool_output(tool_call_id: "call-1", content: "Some output")
+        Datadog::AIGuard.tool(tool_call_id: "call-1", content: "Some output")
       ])
 
       expect(request.serialized_messages).to eq([

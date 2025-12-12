@@ -3,7 +3,7 @@
 require_relative 'api_client'
 require_relative 'evaluation'
 require_relative 'evaluation/request'
-require_relative 'evaluation/response'
+require_relative 'evaluation/result'
 require_relative 'evaluation/message'
 require_relative 'evaluation/tool_call'
 require_relative 'ext'

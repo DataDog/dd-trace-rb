@@ -4,7 +4,7 @@ module Datadog
   module AIGuard
     module Evaluation
       # Wrapper class for evaluation API response
-      class Response
+      class Result
         ALLOW_ACTION = 'ALLOW'
         DENY_ACTION = 'DENY'
         ABORT_ACTION = 'ABORT'

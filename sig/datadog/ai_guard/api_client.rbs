@@ -41,7 +41,7 @@ module Datadog
 
       def perform_request: (::Net::HTTPRequest request, http: ::Net::HTTP) -> Net::HTTPResponse
 
-      def parse_response_body: (::String) -> Evaluation::Response::raw_response_body
+      def parse_response_body: (::String) -> Evaluation::Result::raw_response_body
 
       def headers: () -> ::Hash[::Symbol, ::String?]
     end

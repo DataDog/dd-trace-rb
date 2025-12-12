@@ -21,7 +21,7 @@ module Datadog
 
         def initialize: (::Array[Message] messages) -> void
 
-        def perform: () -> Response
+        def perform: () -> Result
 
         private
 

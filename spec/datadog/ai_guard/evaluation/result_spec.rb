@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "datadog/ai_guard/evaluation/response"
+require "datadog/ai_guard/evaluation/result"
 
-RSpec.describe Datadog::AIGuard::Evaluation::Response do
+RSpec.describe Datadog::AIGuard::Evaluation::Result do
   describe ".new" do
     it "raises UnexpectedResponseError when some key is missing" do
       expect { described_class.new({}) }.to raise_error(

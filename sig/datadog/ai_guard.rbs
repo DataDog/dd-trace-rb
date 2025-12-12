@@ -4,12 +4,12 @@ module Datadog
 
     def self.api_client: () -> APIClient?
 
-    def self.evaluate: (*Evaluation::Message messages, ?allow_raise: bool) -> Evaluation::Response
+    def self.evaluate: (*Evaluation::Message messages, ?allow_raise: bool) -> Evaluation::Result
 
     def self.message: (role: ::String | ::Symbol, content: ::String) -> Evaluation::Message
 
-    def self.tool_call: (::String tool_name, id: ::String | ::Numeric, arguments: ::String) -> Evaluation::Message
+    def self.assistant: (tool_name: ::String, id: ::String | ::Numeric, arguments: ::String) -> Evaluation::Message
 
-    def self.tool_output: (tool_call_id: ::String | ::Numeric, content: ::String) -> Evaluation::Message
+    def self.tool: (tool_call_id: ::String | ::Numeric, content: ::String) -> Evaluation::Message
   end
 end

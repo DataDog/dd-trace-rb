@@ -18,23 +18,25 @@ module Datadog
       end
 
       def evaluate(*messages, allow_raise: false)
-        # TODO: skip evaluation when AI Guard is disabled?
-
-        Evaluation.perform(messages, allow_raise: allow_raise)
+        if enabled?
+          Evaluation.perform(messages, allow_raise: allow_raise)
+        else
+          Evaluation.perform_no_op
+        end
       end
 
       def message(role:, content:)
         Evaluation::Message.new(role: role, content: content)
       end
 
-      def tool_call(tool_name, id:, arguments:)
+      def assistant(tool_name:, id:, arguments:)
         Evaluation::Message.new(
           role: :assistant,
           tool_call: Evaluation::ToolCall.new(tool_name, id: id.to_s, arguments: arguments)
         )
       end
 
-      def tool_output(tool_call_id:, content:)
+      def tool(tool_call_id:, content:)
         Evaluation::Message.new(role: :tool, tool_call_id: tool_call_id.to_s, content: content)
       end
     end

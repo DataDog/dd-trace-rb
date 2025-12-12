@@ -16,7 +16,7 @@ module Datadog
         def perform
           raw_response = AIGuard.api_client.post(path: REQUEST_PATH, request_body: build_request_body)
 
-          Response.new(raw_response)
+          Result.new(raw_response)
         end
 
         private

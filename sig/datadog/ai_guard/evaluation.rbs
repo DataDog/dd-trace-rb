@@ -17,7 +17,7 @@ module Datadog
         def to_s: () -> ::String
       end
 
-      def self.perform: (::Array[Message] messages, ?allow_raise: bool) -> Response
+      def self.perform: (::Array[Message] messages, ?allow_raise: bool) -> Result
     end
   end
 end
