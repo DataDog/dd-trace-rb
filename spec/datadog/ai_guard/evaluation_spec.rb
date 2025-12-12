@@ -79,6 +79,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
       expect(ai_guard_span.tags).not_to have_key('ai_guard.tool_name')
     end
 
+    # TODO: decide what to do
     xcontext 'when empty messages array is passed' do
     end
 
