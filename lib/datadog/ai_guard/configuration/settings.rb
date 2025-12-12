@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
+require_relative "ext"
 
 module Datadog
   module AIGuard
@@ -39,7 +39,7 @@ module Datadog
                 o.default "/api/v2/ai-guard"
 
                 o.setter do |value|
-                  value.to_s.delete_suffix('/')
+                  value.to_s.delete_suffix("/")
                 end
               end
 

@@ -5,18 +5,18 @@ module Datadog
     module Evaluation
       # Wrapper class for evaluation API response
       class Result
-        ALLOW_ACTION = 'ALLOW'
-        DENY_ACTION = 'DENY'
-        ABORT_ACTION = 'ABORT'
+        ALLOW_ACTION = "ALLOW"
+        DENY_ACTION = "DENY"
+        ABORT_ACTION = "ABORT"
 
         attr_reader :action, :reason, :tags
 
         def initialize(raw_response)
-          attributes = raw_response.fetch('data').fetch('attributes')
+          attributes = raw_response.fetch("data").fetch("attributes")
 
-          @action = attributes.fetch('action')
-          @reason = attributes.fetch('reason')
-          @tags = attributes.fetch('tags')
+          @action = attributes.fetch("action")
+          @reason = attributes.fetch("reason")
+          @tags = attributes.fetch("tags")
         rescue KeyError => e
           raise UnexpectedResponseError, "Missing key: \"#{e.key}\""
         end

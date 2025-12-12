@@ -5,7 +5,7 @@ module Datadog
     module Evaluation
       # Request builds the request body from an array of messages and processes the response
       class Request
-        REQUEST_PATH = '/evaluate'
+        REQUEST_PATH = "/evaluate"
 
         attr_reader :serialized_messages
 

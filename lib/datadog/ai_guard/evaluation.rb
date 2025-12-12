@@ -40,37 +40,43 @@ module Datadog
           Tracing.trace(Ext::SPAN_NAME) do |span, trace|
             if (last_message = messages.last)
               if last_message.tool_call?
-                span.set_tag(Ext::TARGET_TAG, 'tool')
+                span.set_tag(Ext::TARGET_TAG, "tool")
                 span.set_tag(Ext::TOOL_NAME_TAG, last_message.tool_call.tool_name)
               elsif last_message.tool_output?
-                span.set_tag(Ext::TARGET_TAG, 'tool')
+                span.set_tag(Ext::TARGET_TAG, "tool")
 
                 if (tool_call_message = messages.find { |m| m.tool_call&.id == last_message.tool_call_id })
                   span.set_tag(Ext::TOOL_NAME_TAG, tool_call_message.tool_call.tool_name)
                 end
               else
-                span.set_tag(Ext::TARGET_TAG, 'prompt')
+                span.set_tag(Ext::TARGET_TAG, "prompt")
               end
             end
 
             request = Request.new(messages)
-            response = request.perform
+            result = request.perform
 
-            span.set_tag(Ext::ACTION_TAG, response.action)
-            span.set_tag(Ext::REASON_TAG, response.reason)
+            span.set_tag(Ext::ACTION_TAG, result.action)
+            span.set_tag(Ext::REASON_TAG, result.reason)
 
             span.set_metastruct_tag(
               Ext::METASTRUCT_TAG,
-              {messages: request.serialized_messages, attack_categories: response.tags}
+              {messages: request.serialized_messages, attack_categories: result.tags}
             )
 
-            if allow_raise && (response.deny? || response.abort?)
+            if allow_raise && (result.deny? || result.abort?)
               span.set_tag(Ext::BLOCKED_TAG, true)
-              raise Evaluation::AIGuardAbortError, response.reason
+              raise Evaluation::AIGuardAbortError, result.reason
             end
 
-            response
+            result
           end
+        end
+
+        def perform_no_op
+          AIGuard.logger&.warn("AI Guard is disabled, messages were not evaluated")
+
+          NoOpResult.new
         end
       end
     end

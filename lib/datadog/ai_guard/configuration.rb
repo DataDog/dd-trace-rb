@@ -8,4 +8,4 @@ module Datadog
   end
 end
 
-require_relative 'configuration/settings'
+require_relative "configuration/settings"

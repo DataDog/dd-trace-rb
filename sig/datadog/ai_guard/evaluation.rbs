@@ -18,6 +18,8 @@ module Datadog
       end
 
       def self.perform: (::Array[Message] messages, ?allow_raise: bool) -> Result
+
+      def self.perform_no_op: () -> NoOpResult
     end
   end
 end

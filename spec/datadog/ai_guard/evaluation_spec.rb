@@ -1,4 +1,4 @@
-# frozen_string_literal: 'true
+# frozen_string_literal: true
 
 require "datadog/tracing/contrib/support/spec_helper"
 
@@ -241,6 +241,25 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           end
         end
       end
+    end
+  end
+
+  describe ".perform_no_op" do
+    let(:logger) { instance_double(Datadog::Core::Logger) }
+
+    before do
+      allow(Datadog::AIGuard).to receive(:logger).and_return(logger)
+      allow(logger).to receive(:warn)
+    end
+
+    it "returns an instance of NoOpResult" do
+      expect(described_class.perform_no_op).to be_a(Datadog::AIGuard::Evaluation::NoOpResult)
+    end
+
+    it "logs a warning" do
+      expect(logger).to receive(:warn).with("AI Guard is disabled, messages were not evaluated")
+
+      described_class.perform_no_op
     end
   end
 end

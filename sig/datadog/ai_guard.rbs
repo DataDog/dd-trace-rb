@@ -4,7 +4,9 @@ module Datadog
 
     def self.api_client: () -> APIClient?
 
-    def self.evaluate: (*Evaluation::Message messages, ?allow_raise: bool) -> Evaluation::Result
+    def self.logger: () -> CoreLogger?
+
+    def self.evaluate: (*Evaluation::Message messages, ?allow_raise: bool) -> (Evaluation::Result | Evaluation::NoOpResult)
 
     def self.message: (role: ::String | ::Symbol, content: ::String) -> Evaluation::Message
 

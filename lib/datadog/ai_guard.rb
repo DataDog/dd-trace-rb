@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'core/configuration'
-require_relative 'ai_guard/configuration'
+require_relative "core/configuration"
+require_relative "ai_guard/configuration"
 
 module Datadog
   # A namespace for the AI Guard component.
@@ -15,6 +15,10 @@ module Datadog
 
       def api_client
         Datadog.send(:components).ai_guard&.api_client
+      end
+
+      def logger
+        Datadog.send(:components).ai_guard&.logger
       end
 
       def evaluate(*messages, allow_raise: false)
