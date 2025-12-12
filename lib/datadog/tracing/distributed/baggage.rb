@@ -171,11 +171,14 @@ module Datadog
           return {} if baggage_tag_keys.empty?
 
           # If wildcard is specified, use all baggage keys
-          baggage_tag_keys = baggage if baggage_tag_keys == BAGGAGE_TAG_KEYS_MATCH_ALL
+          baggage_tag_keys = baggage.keys if baggage_tag_keys == BAGGAGE_TAG_KEYS_MATCH_ALL
 
           tags = {}
 
-          baggage_tag_keys.each do |key, _| # rubocop:disable Style/HashEachMethods
+          # Steep: Weird, doing `each do |key, _|` on (Array | Hash)
+          # does not type `key` correctly (`[::String, ::String] | ::String`) but separately it works.
+          # Fixed it by replacing `baggage_tag_keys = baggage` to `baggage_tag_keys = baggage.keys`.
+          baggage_tag_keys.each do |key, _|
             value = baggage[key]
             next if value.nil? || value.empty?
 

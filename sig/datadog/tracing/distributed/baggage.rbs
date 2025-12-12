@@ -9,12 +9,16 @@ module Datadog
         SAFE_CHARACTERS_KEY : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'*+-.^_`|~"
         SAFE_CHARACTERS_VALUE : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'()*+-./:<>?@[]^_`{|}~"
 
-        def initialize: (fetcher: untyped, ?baggage_key: string, ?baggage_tag_keys: untyped) -> void
+        @baggage_key: String
+        @fetcher: singleton(Distributed::Fetcher)
+        @baggage_tag_keys: Array[String]
+
+        def initialize: (fetcher: untyped, ?baggage_key: String, ?baggage_tag_keys: untyped) -> void
 
         def inject!: (untyped digest, untyped data) -> (nil | untyped)
 
         def extract: (untyped data) -> (nil | untyped)
-          
+
 
         private
 

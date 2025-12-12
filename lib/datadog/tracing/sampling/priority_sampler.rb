@@ -60,7 +60,9 @@ module Datadog
         ensure
           if trace.sampling_priority && trace.sampling_priority > 0
             # Don't modify decision if priority was set upstream.
-            if !distributed_sampling_priority && !trace.has_tag?(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
+            # Steep: https://github.com/soutaro/steep/issues/1971
+            if !distributed_sampling_priority && # steep:ignore FallbackAny
+                !trace.has_tag?(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
               # If no sampling priority being assigned at this point, a custom
               # sampler implementation is configured: this means the user has
               # full control over the sampling decision.
