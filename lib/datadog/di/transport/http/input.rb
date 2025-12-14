@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/transport/http/api/instance'
-require_relative '../../../core/transport/http/api/spec'
+require_relative '../../../core/transport/http/api/endpoint'
 
 module Datadog
   module DI
@@ -9,26 +8,6 @@ module Datadog
       module HTTP
         module Input
           module API
-            class Instance < Core::Transport::HTTP::API::Instance
-              def send_input(env)
-                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new('input', self) unless spec.is_a?(Input::API::Spec)
-
-                spec.send_input(env) do |request_env|
-                  call(request_env)
-                end
-              end
-            end
-
-            class Spec < Core::Transport::HTTP::API::Spec
-              attr_accessor :input
-
-              def send_input(env, &block)
-                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('input', self) if input.nil?
-
-                input.call(env, &block)
-              end
-            end
-
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               HEADER_CONTENT_TYPE = 'Content-Type'
 

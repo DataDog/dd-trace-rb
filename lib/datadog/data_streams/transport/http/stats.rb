@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../stats'
-require_relative '../../../core/transport/http/response'
 require_relative '../../../core/transport/http/api/endpoint'
-require_relative '../../../core/transport/http/api/spec'
-require_relative '../../../core/transport/http/api/instance'
+require_relative '../../../core/transport/http/response'
 
 module Datadog
   module DataStreams
@@ -22,38 +20,6 @@ module Datadog
           end
 
           module API
-            # HTTP API Spec for DSM
-            class Spec < Core::Transport::HTTP::API::Spec
-              attr_accessor :stats
-
-              def send_stats(env, &block)
-                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('stats', self) if stats.nil?
-
-                stats.call(env, &block)
-              end
-
-              def encoder
-                # DSM handles encoding in the transport layer (MessagePack + gzip)
-                # so we don't need an encoder at the API level
-                nil
-              end
-            end
-
-            # HTTP API Instance for DSM
-            class Instance < Core::Transport::HTTP::API::Instance
-              def send_stats(env)
-                unless spec.is_a?(Stats::API::Spec)
-                  raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-                    'stats', self
-                  )
-                end
-
-                spec.send_stats(env) do |request_env|
-                  call(request_env)
-                end
-              end
-            end
-
             # Endpoint for submitting DSM stats data
             class Endpoint < Core::Transport::HTTP::API::Endpoint
               def initialize(path)

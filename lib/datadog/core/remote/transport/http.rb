@@ -40,7 +40,6 @@ module Datadog
             headers: nil
           )
             Core::Transport::HTTP.build(
-              api_instance_class: API::Instance,
               agent_settings: agent_settings,
               logger: logger,
               api_version: api_version,
@@ -64,7 +63,6 @@ module Datadog
             headers: nil
           )
             Core::Transport::HTTP.build(
-              api_instance_class: API::Instance,
               agent_settings: agent_settings,
               logger: logger,
               api_version: api_version,
