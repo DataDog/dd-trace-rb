@@ -159,12 +159,15 @@ module Datadog
             start
           rescue => e
             logger.debug { "Failed to start span: #{e}" }
+          ensure
+            # We should yield to the provided block when possible, as this
+            # block is application code that we don't want to hinder.
+            # * We don't yield during a fatal error, as the application is likely trying to
+            #   end its execution (either due to a system error or graceful shutdown).
+            # @type var e: Exception?
+            # Steep: https://github.com/soutaro/steep/issues/919
+            return_value = yield(self) unless e && !e.is_a?(StandardError) # steep:ignore FallbackAny
           end
-          # We should yield to the provided block when possible, as this
-          # block is application code that we don't want to hinder.
-          # * We don't yield during a fatal error, as the application is likely trying to
-          #   end its execution (either due to a system error or graceful shutdown).
-          return_value = yield(self) unless e && !e.is_a?(StandardError)
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
         # as we really have no clue of what is in the block,
