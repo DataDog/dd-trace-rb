@@ -13,7 +13,8 @@ module Datadog
 
         def next
           # Steep: https://github.com/soutaro/steep/issues/477
-          next_item = @next_item ? @next_item.call(@current) : @current # steep:ignore NoMethod
+          # @type ivar @next_item: ^(::Integer) -> Integer
+          next_item = @next_item ? @next_item.call(@current) : @current
           @current += 1
           next_item
         end

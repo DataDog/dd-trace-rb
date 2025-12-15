@@ -4,9 +4,9 @@ module Datadog
       module Multipart
         module Post
           class CompositeReadIO
-            @ios: ::Array[untyped]
+            @ios: ::Array[StringIO]
             @index: ::Integer
-            def initialize: (*untyped ios) -> void
+            def initialize: (*StringIO ios) -> void
             def read: (?untyped? length, ?untyped? outbuf) -> untyped
 
             def rewind: () -> untyped
