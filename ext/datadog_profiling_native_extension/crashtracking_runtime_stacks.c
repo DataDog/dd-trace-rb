@@ -92,12 +92,9 @@ static inline ddog_CharSlice char_slice_from_cstr(const char *cstr) {
 static ddog_CharSlice safe_string_value(VALUE str) {
   if (str == Qnil) return DDOG_CHARSLICE_C("<nil>");
 
-  // Validate object header readability before touching it
-  if (!is_pointer_readable((const void *)str, sizeof(struct RBasic))) return DDOG_CHARSLICE_C("<corrupted>");
-  if (!RB_TYPE_P(str, T_STRING)) return DDOG_CHARSLICE_C("<not_string>");
-
-  // Validate payload readability
+  // Validate object and payload readability in one check
   if (!is_pointer_readable((const void *)str, sizeof(struct RString))) return DDOG_CHARSLICE_C("<corrupted>");
+  if (!RB_TYPE_P(str, T_STRING)) return DDOG_CHARSLICE_C("<not_string>");
 
   long len = RSTRING_LEN(str);
   if (len < 0 || len > 1024) return DDOG_CHARSLICE_C("<corrupted>");
