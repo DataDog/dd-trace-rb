@@ -128,6 +128,8 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
       context 'when an exception gets raised' do
         before do
+          code_provenance # Trigger initialization
+
           allow(Bundler).to receive(:root).and_raise(Exception.new("test exception"))
         end
 
