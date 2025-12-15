@@ -38,6 +38,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   let(:diagnostics_payloads) { [] }
   let(:input_payloads) { [] }
   let(:missing_endpoint_payloads) { [] }
+  let(:unused_endpoint_requests) { [] }
 
   def define_diagnostics_endpoint(http_server)
     http_server.mount_proc('/debugger/v1/diagnostics') do |req, res|
@@ -79,6 +80,21 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     end
   end
 
+  def define_unused_endpoint(http_server, path)
+    http_server.mount_proc(path) do |req, res|
+      # We cannot simply raise an exception here because that will be
+      # caught by webrick and converted to error code, and most transports
+      # do not require requests to agent to succeed.
+      # Hence we need to have a different way to verify that this
+      # endpoint is not called.
+      unused_endpoint_requests << req
+
+      # But, for good measure, let's also raise an exception and fail
+      # the request.
+      raise "This endpoint should not be invoked: #{path}"
+    end
+  end
+
   after do
     worker.stop
   end
@@ -86,6 +102,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   context 'probe status' do
     http_server do |http_server|
       define_diagnostics_endpoint(http_server)
+    end
+
+    after do
+      expect(unused_endpoint_requests).to be_empty
     end
 
     let(:installed_payload) do
@@ -124,6 +144,10 @@ Content-Transfer-Encoding: binary
   end
 
   context 'probe snapshot' do
+    after do
+      expect(unused_endpoint_requests).to be_empty
+    end
+
     let(:snapshot_payload) do
       # Not a real snapshot payload.
       # We specify the payload as argument to probe notifier worker,
@@ -142,7 +166,11 @@ Content-Transfer-Encoding: binary
         # In practice, an agent implementing v2 endpoint will also implement
         # the v1 endpoint. We set v1 endpoint as missing to receive the
         # payload into a different variable for assertions.
-        define_missing_endpoint(http_server, '/debugger/v1/input')
+        define_missing_endpoint(http_server, '/debugger/v1/diagnostics')
+        # Also define /debugger/v1/input as missing.
+        # We should not be using this endpoint for anything going forward,
+        # assert this.
+        define_unused_endpoint(http_server, '/debugger/v1/input')
       end
 
       it 'sends expected payload to v2 endpoint only' do
@@ -185,8 +213,12 @@ Content-Transfer-Encoding: binary
     context 'when /debugger/v2/input endpoint is not available' do
       http_server do |http_server|
         define_diagnostics_endpoint(http_server)
-        define_input_endpoint(http_server, '/debugger/v1/input')
+        define_input_endpoint(http_server, '/debugger/v1/diagnostics')
         define_missing_endpoint(http_server, '/debugger/v2/input')
+        # Also define /debugger/v1/input as missing.
+        # We should not be using this endpoint for anything going forward,
+        # assert this.
+        define_unused_endpoint(http_server, '/debugger/v1/input')
       end
 
       it 'sends expected payload to v2 then v1 endpoint' do

@@ -13,9 +13,9 @@ module Datadog
         # Namespace for API components
         module API
           # Default API versions
-          DIAGNOSTICS = '/debugger/v1/diagnostics'
-          INPUT = '/debugger/v2/input'
-          LEGACY_INPUT = 'legacy:/debugger/v1/diagnostics'
+          DIAGNOSTICS = 'diagnostics'
+          INPUT = 'input'
+          LEGACY_INPUT = 'legacy_input'
 
           module_function
 
@@ -30,9 +30,10 @@ module Datadog
                 Core::Encoding::JSONEncoder,
               ),
               LEGACY_INPUT => Input::API::Endpoint.new(
-                # TODO is this really supposed to be diagnostics?
-                #'/debugger/v1/diagnostics',
-                '/debugger/v1/input',
+                # We used to use /debugger/v1/input, but now input
+                # payloads should be going to the diagnostics endpoint
+                # which I gather performs data redaction.
+                '/debugger/v1/diagnostics',
                 Core::Encoding::JSONEncoder,
               ),
             # This fallbacks definition seems to be doing nothing,
