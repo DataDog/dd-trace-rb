@@ -6,6 +6,11 @@ require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/client'
 
 RSpec.describe Datadog::Core::Remote::Client do
+  def reset_memoized_variables!
+    Datadog::Core::Environment::Process.remove_instance_variable(:@serialized) if Datadog::Core::Environment::Process.instance_variable_defined?(:@serialized)
+    Datadog::Core::Environment::Process.remove_instance_variable(:@tags_array) if Datadog::Core::Environment::Process.instance_variable_defined?(:@tags_array)
+  end
+
   shared_context 'HTTP connection stub' do
     before do
       request_class = ::Net::HTTP::Post
@@ -34,6 +39,29 @@ RSpec.describe Datadog::Core::Remote::Client do
         instance_of(Datadog::Core::Remote::Configuration::Repository::ChangeSet),
         client.repository
       ).at_least(:once)
+    end
+  end
+
+  shared_context 'with mocked process environment' do
+    let(:program_name) { 'bin/rspec' }
+    let(:pwd) { '/app' }
+
+    around do |example|
+      @original_0 = $0
+      $0 = program_name
+      example.run
+      $0 = @original_0
+    end
+
+    before do
+      allow(Dir).to receive(:pwd).and_return(pwd)
+      allow(File).to receive(:expand_path).and_call_original
+      allow(File).to receive(:expand_path).with('.').and_return('/app')
+      reset_memoized_variables!
+    end
+
+    after do
+      reset_memoized_variables!
     end
   end
 
@@ -681,11 +709,9 @@ RSpec.describe Datadog::Core::Remote::Client do
           let(:client_payload) { client.send(:payload)[:client] }
 
           context 'when process tags propagation is enabled' do
+            include_context 'with mocked process environment'
             before do
               allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
-              if Datadog::Core::Environment::Process.instance_variable_defined?(:@tags_array)
-                Datadog::Core::Environment::Process.remove_instance_variable(:@tags_array)
-              end
             end
 
             it 'has process tags in the payload' do
@@ -699,13 +725,7 @@ RSpec.describe Datadog::Core::Remote::Client do
           end
 
           context 'when process tags propagation is not enabled' do
-            # Current false by default
-            before do
-              if Datadog::Core::Environment::Process.instance_variable_defined?(:@tags_array)
-                Datadog::Core::Environment::Process.remove_instance_variable(:@tags_array)
-              end
-            end
-
+            # Currently false by default
             it 'does not have process tags in the payload' do
               expect(client_payload[:client_tracer]).not_to have_key(:process_tags)
             end
