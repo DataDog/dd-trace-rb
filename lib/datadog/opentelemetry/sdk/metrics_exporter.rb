@@ -12,7 +12,7 @@ module Datadog
 
         def initialize(endpoint:, timeout:, headers:, protocol:)
           super(endpoint: endpoint, timeout: timeout, headers: headers)
-          @telemetry_tags = {'protocol' => protocol, 'encoding' => 'protobuf'}
+          @telemetry_tags = {'protocol' => "http", 'encoding' => 'protobuf'}
         end
 
         def export(metrics, timeout: nil)

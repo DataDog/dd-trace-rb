@@ -2184,8 +2184,8 @@
     "OTEL_EXPORTER_OTLP_HEADERS": [
       {
         "version": "A",
-        "type": "map",
-        "default": ""
+        "type": "string",
+        "default": null
       }
     ],
     "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": [
@@ -2198,7 +2198,7 @@
     "OTEL_EXPORTER_OTLP_METRICS_HEADERS": [
       {
         "version": "A",
-        "type": "map",
+        "type": "string",
         "default": null
       }
     ],
@@ -2220,7 +2220,7 @@
       {
         "version": "A",
         "type": "int",
-        "default": null
+        "default": "10000"
       }
     ],
     "OTEL_EXPORTER_OTLP_PROTOCOL": [

@@ -162,13 +162,13 @@ module Datadog
             # OpenTelemetry configuration options (using environment variable names)
             list.push(
               conf_value('OTEL_EXPORTER_OTLP_ENDPOINT', settings.opentelemetry.exporter.endpoint, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.endpoint')),
-              conf_value('OTEL_EXPORTER_OTLP_HEADERS', to_value(settings.opentelemetry.exporter.headers), seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.headers')),
+              conf_value('OTEL_EXPORTER_OTLP_HEADERS', DATADOG_ENV['OTEL_EXPORTER_OTLP_HEADERS'] || '', seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.headers')),
               conf_value('OTEL_EXPORTER_OTLP_PROTOCOL', settings.opentelemetry.exporter.protocol, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.protocol')),
               conf_value('OTEL_EXPORTER_OTLP_TIMEOUT', settings.opentelemetry.exporter.timeout_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.timeout_millis')),
               conf_value('DD_METRICS_OTEL_ENABLED', settings.opentelemetry.metrics.enabled, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.enabled')),
               conf_value('OTEL_METRICS_EXPORTER', settings.opentelemetry.metrics.exporter, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.exporter')),
               conf_value('OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', settings.opentelemetry.metrics.endpoint, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.endpoint')),
-              conf_value('OTEL_EXPORTER_OTLP_METRICS_HEADERS', to_value(settings.opentelemetry.metrics.headers), seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.headers')),
+              conf_value('OTEL_EXPORTER_OTLP_METRICS_HEADERS', DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_HEADERS'] || '', seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.headers')),
               conf_value('OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', settings.opentelemetry.metrics.protocol, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.protocol')),
               conf_value('OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', settings.opentelemetry.metrics.timeout_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.timeout_millis')),
               conf_value('OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', settings.opentelemetry.metrics.temporality_preference, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.temporality_preference')),
