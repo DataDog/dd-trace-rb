@@ -3,7 +3,10 @@ module Datadog
     module AppSec
       module Events
         module V2
-          type attributes = ::Hash[::Symbol, ::String | nil]
+          type attributes = {
+            ?login: ::String?,
+            ?id: ::String?
+          }
 
           type user_or_id = nil | ::String | attributes
 

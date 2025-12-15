@@ -1,6 +1,8 @@
 module Datadog
   module DI
     class Logger
+      extend Forwardable
+
       @settings: untyped
 
       @target: ::Logger
