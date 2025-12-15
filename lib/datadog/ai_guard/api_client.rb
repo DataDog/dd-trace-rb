@@ -12,14 +12,21 @@ module Datadog
       DEFAULT_SITE = "app.datadoghq.com"
 
       class UnexpectedRedirectError < StandardError; end
+
       class UnexpectedResponseError < StandardError; end
+
       class ResponseBodyParsingError < StandardError; end
 
       class ClientError < StandardError; end
+
       class NotFoundError < StandardError; end
+
       class TooManyRequestsError < ClientError; end
+
       class UnauthorizedError < ClientError; end
+
       class ForbiddenError < ClientError; end
+
       class ServerError < StandardError; end
 
       class ReadTimeout < StandardError; end
