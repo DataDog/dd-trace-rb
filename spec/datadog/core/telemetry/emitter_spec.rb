@@ -7,7 +7,7 @@ require 'datadog/core/transport/response'
 RSpec.describe Datadog::Core::Telemetry::Emitter do
   subject(:emitter) { described_class.new(transport, logger: logger) }
   let(:logger) { logger_allowing_debug }
-  let(:transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
+  let(:transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Telemetry::Client) }
   let(:response) do
     double(Datadog::Core::Transport::HTTP::Adapters::Net::Response,
       ok?: response_ok)

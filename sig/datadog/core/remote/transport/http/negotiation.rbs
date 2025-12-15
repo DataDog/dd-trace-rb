@@ -20,7 +20,7 @@ module Datadog
               def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
             end
 
-            module Client : Remote::Transport::HTTP::Client
+            class Client < Core::Transport::HTTP::Client
               def send_info_payload: (untyped request) -> untyped
             end
 

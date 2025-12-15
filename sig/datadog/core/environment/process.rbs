@@ -1,0 +1,21 @@
+module Datadog
+  module Core
+    module Environment
+      module Process
+        @serialized: ::String
+
+        def self.serialized: () -> ::String
+
+        private
+
+        def self.entrypoint_workdir: () -> ::String
+
+        def self.entrypoint_type: () -> ::String
+
+        def self.entrypoint_name: () -> ::String
+
+        def self.entrypoint_basedir: () -> ::String
+      end
+    end
+  end
+end

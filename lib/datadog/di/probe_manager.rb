@@ -101,7 +101,7 @@ module Datadog
           end
 
           begin
-            instrumenter.hook(probe, &method(:probe_executed_callback))
+            instrumenter.hook(probe, self)
 
             @installed_probes[probe.id] = probe
             payload = probe_notification_builder.build_installed(probe)
@@ -184,7 +184,7 @@ module Datadog
                 begin
                   # TODO is it OK to hook from trace point handler?
                   # TODO the class is now defined, but can hooking still fail?
-                  instrumenter.hook(probe, &method(:probe_executed_callback))
+                  instrumenter.hook(probe, self)
                   @pending_probes.delete(probe.id)
                   break
                 rescue Error::DITargetNotDefined
@@ -240,6 +240,14 @@ module Datadog
 
         payload = probe_notification_builder.build_executed(context)
         probe_notifier_worker.add_snapshot(payload)
+      end
+
+      def probe_condition_evaluation_failed_callback(context, expr, exc)
+        probe = context.probe
+        if probe.condition_evaluation_failed_rate_limiter&.allow?
+          payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
+          probe_notifier_worker.add_snapshot(payload)
+        end
       end
 
       # Class/module definition trace point (:end type).

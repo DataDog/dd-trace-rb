@@ -39,9 +39,13 @@ module Datadog
 
             option :error_status_codes do |o|
               o.env Ext::ENV_ERROR_STATUS_CODES
-              o.default 500...600
-              o.setter do |v|
-                Tracing::Contrib::StatusRangeMatcher.new(v) if v
+              o.setter do |value|
+                if value.nil?
+                  # Fallback to global config, which is defaulted to server (500..599)
+                  Datadog.configuration.tracing.http_error_statuses.server
+                else
+                  Tracing::Contrib::StatusRangeMatcher.new(value)
+                end
               end
               o.env_parser do |v|
                 Tracing::Contrib::StatusRangeEnvParser.call(v) if v

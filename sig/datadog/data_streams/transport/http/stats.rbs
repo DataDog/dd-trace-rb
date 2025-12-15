@@ -1,0 +1,37 @@
+module Datadog
+  module DataStreams
+    module Transport
+      module HTTP
+        module Stats
+          class Response
+            include Core::Transport::HTTP::Response
+
+            def initialize: (Core::Transport::HTTP::Response http_response) -> void
+          end
+
+          module API
+            class Spec < Core::Transport::HTTP::API::Spec
+              attr_accessor stats: Endpoint?
+
+              def send_stats: (Core::Transport::HTTP::Env env) { (Core::Transport::HTTP::Env) -> Core::Transport::HTTP::Response } -> Core::Transport::HTTP::Response
+
+              def encoder: () -> nil
+            end
+
+            class Instance < Core::Transport::HTTP::API::Instance
+              def send_stats: (Core::Transport::HTTP::Env env) -> Core::Transport::HTTP::Response
+            end
+
+            class Endpoint < Core::Transport::HTTP::API::Endpoint
+              def initialize: (::String path) -> void
+
+              def call: (Core::Transport::HTTP::Env env) { (Core::Transport::HTTP::Env) -> Core::Transport::HTTP::Response } -> Response
+
+              def encoder: () -> nil
+            end
+          end
+        end
+      end
+    end
+  end
+end

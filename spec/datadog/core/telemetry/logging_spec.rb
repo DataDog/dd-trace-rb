@@ -26,6 +26,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
             logs: [{message: 'RuntimeError', level: 'ERROR', count: 1,
                     stack_trace: a_string_including("\n/spec/")}]
           )
+          expect(event.payload[:logs].map { |log| log[:message] }).not_to include('p@ssw0rd')
         end
 
         begin
@@ -46,6 +47,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
               logs: [{message: 'RuntimeError: Must not contain PII', level: 'ERROR', count: 1,
                       stack_trace: a_string_including("\n/spec/")}]
             )
+            expect(event.payload[:logs].map { |log| log[:message] }).not_to include('p@ssw0rd')
           end
 
           begin
@@ -68,6 +70,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
             logs: [{message: /#<Class:/, level: 'ERROR', count: 1,
                     stack_trace: a_string_including("\n/spec/")}]
           )
+          expect(event.payload[:logs].map { |log| log[:message] }).not_to include('p@ssw0rd')
         end
 
         customer_exception = Class.new(StandardError)
@@ -76,35 +79,6 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           raise customer_exception, 'Invalid token: p@ssw0rd'
         rescue => e
           component.report(e, level: :error)
-        end
-      end
-    end
-
-    context 'when pii_safe is true' do
-      it 'sends a log event to via telemetry including the exception message' do
-        expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
-          expect(event.message).to eq('StandardError: (Test exception message without pii)')
-        end
-
-        component.report(
-          StandardError.new('Test exception message without pii'),
-          level: :error,
-          pii_safe: true,
-        )
-      end
-
-      context 'when a description is provided' do
-        it 'sends a log event to via telemetry including the description' do
-          expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
-            expect(event.message).to eq('StandardError: Test description (Test exception message without pii)')
-          end
-
-          component.report(
-            StandardError.new('Test exception message without pii'),
-            description: 'Test description',
-            level: :error,
-            pii_safe: true,
-          )
         end
       end
     end

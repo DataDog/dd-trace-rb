@@ -1,0 +1,41 @@
+# External OpenTelemetry types not available in RBS
+module OpenTelemetry
+  def self.meter_provider: () -> untyped
+
+  def self.meter_provider=: (untyped provider) -> void
+
+  module SDK
+    module Resources
+      class Resource
+        def self.create: (::Hash[::String, untyped] attributes) -> untyped
+      end
+    end
+
+    module Metrics
+      class MeterProvider
+        def initialize: (?resource: untyped) -> void
+
+        def add_metric_reader: (untyped reader) -> void
+
+        def shutdown: () -> void
+      end
+
+      module Export
+        class PeriodicMetricReader
+          def initialize: (exporter: untyped, export_interval_millis: ::Integer, export_timeout_millis: ::Integer) -> void
+        end
+      end
+    end
+  end
+
+  module Exporter
+    module OTLP
+      module Metrics
+        class MetricsExporter
+          def initialize: (endpoint: ::String, timeout: ::Float, headers: ::Hash[untyped, untyped]) -> void
+        end
+      end
+    end
+  end
+end
+

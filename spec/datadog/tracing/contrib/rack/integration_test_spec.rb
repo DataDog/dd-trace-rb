@@ -18,6 +18,7 @@ RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
 
   let(:rack_options) { {} }
+  let(:server_error_statuses) { nil }
   let(:instrument_http) { false }
   let(:remote_enabled) { false }
   let(:apm_tracing_enabled) { true }
@@ -62,6 +63,7 @@ RSpec.describe 'Rack integration tests' do
         c.tracing.instrument :rack, rack_options
         # Required for APM disablement tests with distributed tracing as rack can extract but not inject headers
         c.tracing.instrument :http if instrument_http
+        c.tracing.http_error_statuses.server = server_error_statuses if server_error_statuses
       end
     end
   end
@@ -881,6 +883,33 @@ RSpec.describe 'Rack integration tests' do
             .to eq('request')
           expect(span.get_tag('span.kind'))
             .to eq('server')
+        end
+      end
+
+      context 'when the server error statuses are configured to include 400' do
+        let(:server_error_statuses) { 400..599 }
+
+        describe 'GET request' do
+          subject(:response) { get '/failure/' }
+
+          it do
+            expect(span.name).to eq('rack.request')
+            expect(span.type).to eq('web')
+            expect(span.service).to eq(Datadog.configuration.service)
+            expect(span.resource).to eq('GET 400')
+            expect(span.get_tag('http.method')).to eq('GET')
+            expect(span.get_tag('http.status_code')).to eq('400')
+            expect(span.get_tag('http.url')).to eq('/failure/')
+            expect(span.get_tag('http.base_url')).to eq('http://example.org')
+            expect(span.status).to eq(1)
+            expect(span).to be_root_span
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+              .to eq('rack')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+              .to eq('request')
+            expect(span.get_tag('span.kind'))
+              .to eq('server')
+          end
         end
       end
     end

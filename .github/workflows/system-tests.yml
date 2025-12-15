@@ -27,7 +27,7 @@ jobs:
       changes: ${{ steps.changes.outputs.src }}
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
       - name: Changes
@@ -58,14 +58,14 @@ jobs:
       forced_tests: ${{ steps.compute_forced_tests.outputs.forced_tests }}
     steps:
       - name: Checkout DataDog/dd-trace-rb
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           repository: DataDog/dd-trace-rb
           fetch-depth: 2
           persist-credentials: false
           path: packaged/dd-trace-rb
       - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: dd-trace-rb  # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
           path: packaged
@@ -75,44 +75,12 @@ jobs:
           echo "forced_tests=$value" >> "$GITHUB_OUTPUT"
 
   test:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - weblogs: ""  # All of them
-            scenarios: DEFAULT,EVERYTHING_DISABLED,APPSEC_BLOCKING_FULL_DENYLIST,APPSEC_BLOCKING,GRAPHQL_APPSEC,PARAMETRIC
-          - weblogs: rack,rails72
-            scenarios: |
-              APPSEC_API_SECURITY,
-              APPSEC_API_SECURITY_RC,
-              APPSEC_AUTO_EVENTS_EXTENDED,
-              APPSEC_CORRUPTED_RULES,
-              APPSEC_CUSTOM_OBFUSCATION,
-              APPSEC_CUSTOM_RULES,
-              APPSEC_LOW_WAF_TIMEOUT,
-              APPSEC_MISSING_RULES,
-              APPSEC_RATE_LIMITER,
-              APPSEC_RULES_MONITORING_WITH_ERRORS,
-              APPSEC_STANDALONE,
-              CROSSED_TRACING_LIBRARIES,
-              DEBUGGER_PII_REDACTION,
-              DEBUGGER_PROBES_SNAPSHOT,
-              DEBUGGER_PROBES_STATUS,
-              INTEGRATIONS,
-              PROFILING,
-              REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD,
-              REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES,
-              REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE,
-              SAMPLING,
-              SCA_STANDALONE,
-              TELEMETRY_APP_STARTED_PRODUCTS_DISABLED,
-              TELEMETRY_DEPENDENCY_LOADED_TEST_FOR_DEPENDENCY_COLLECTION_DISABLED,
-              TELEMETRY_LOG_GENERATION_DISABLED,
-              TELEMETRY_METRIC_GENERATION_DISABLED
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@2cbe759487228ade311550caa67a9131659a8f0b  # Automated: This reference is automatically updated.
-    secrets: inherit  # zizmor: ignore[secrets-inherit]
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@c8d5bd017a341100fcc0e116220c6a15af3cf580  # Automated: This reference is automatically updated.
+    secrets:
+      TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}  # key used to pushed test results to test optim
+      DD_API_KEY: ${{ secrets.DD_API_KEY }}  # key used in tests runs
     permissions:
       contents: read
       id-token: write
@@ -121,12 +89,12 @@ jobs:
       library: ruby
       binaries_artifact: dd-trace-rb
       desired_execution_time: 300  # 5 minutes
-      scenarios: ${{ matrix.scenarios }}
-      weblogs: ${{ matrix.weblogs }}
+      scenarios_groups: tracer_release
       skip_empty_scenarios: true
-      ref: 2cbe759487228ade311550caa67a9131659a8f0b  # Automated: This reference is automatically updated.
+      ref: c8d5bd017a341100fcc0e116220c6a15af3cf580  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
+      push_to_test_optimization: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
   complete:
     name: System Tests (complete)

@@ -7,7 +7,7 @@ variables:
   GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
   BASE_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:dd-trace-rb
 
-.benchmarks:
+.macrobenchmarks:
   stage: macrobenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
   needs: []
@@ -15,7 +15,9 @@ variables:
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
       when: always
+      interruptible: false
     - when: manual
+      interruptible: true
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
@@ -70,25 +72,25 @@ variables:
   allow_failure: true
 
 baseline:
-  extends: .benchmarks
+  extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: baseline
 
 only-tracing:
-  extends: .benchmarks
+  extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-tracing
     DD_TRACE_ENABLED: "true"
 
 only-profiling:
-  extends: .benchmarks
+  extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 only-profiling-alloc:
-  extends: .benchmarks
+  extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
@@ -96,7 +98,7 @@ only-profiling-alloc:
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 only-profiling-heap:
-  extends: .benchmarks
+  extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
@@ -105,21 +107,21 @@ only-profiling-heap:
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 profiling-and-tracing:
-  extends: .benchmarks
+  extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing
     DD_TRACE_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
 
 tracing-and-appsec:
-  extends: .benchmarks
+  extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec
     DD_TRACE_ENABLED: "true"
     DD_APPSEC_ENABLED: "true"
 
 profiling-and-tracing-and-appsec:
-  extends: .benchmarks
+  extends: .macrobenchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
     DD_TRACE_ENABLED: "true"
@@ -129,6 +131,7 @@ profiling-and-tracing-and-appsec:
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd
 # -----------------------------------------------------
+
 ddprof-benchmark:
   stage: microbenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
@@ -151,13 +154,17 @@ ddprof-benchmark:
     FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true" # Important tweak for stability of benchmarks
     LATEST_COMMIT_ID: $CI_COMMIT_SHA
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
-benchmarks:
-  stage: benchmarks
+
+microbenchmarks:
+  stage: microbenchmarks
   when: always
   needs: []
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
-  interruptible: true
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      interruptible: false
+    - interruptible: true
   timeout: 1h
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)

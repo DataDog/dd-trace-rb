@@ -20,7 +20,7 @@ module Datadog
 
         def start: -> void
 
-        def update_on_fork: (settings: Datadog::Core::Configuration::Settings) -> void
+        def update_on_fork: (?settings: Datadog::Core::Configuration::Settings) -> void
 
         def stop: -> void
 

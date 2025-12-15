@@ -33,7 +33,7 @@ module Datadog
 
           def payload
             {
-              configuration: configuration,
+              configuration: @configuration,
             }
           end
         end

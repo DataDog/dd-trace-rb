@@ -1,0 +1,40 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+## Ruby usage
+
+- We use Ruby 2.5 syntax
+- Use exceptions for exceptional cases, not for control flow.
+- Implement proper error logging and user-friendly messages.
+
+## Type checking
+
+- RBS is used for static type checking
+- Type definitions are in the `sig/` directory
+- Update type definitions when modifying code
+- Run `bundle exec rake steep:check` to verify type correctness
+- Always run `bundle exec rake steep:check` after any update to RBS files
+- When deleting Ruby files, delete corresponding RBS file. Run `bundle exec rake rbs:clean` to make sure that there are no unnecessary RBS files.
+- Avoid using `untyped` type, use it only when it is not feasible to derive the correct type
+- Do not write types like `(nil | Type)`, use `Type?` instead
+- See [StaticTypingGuide.md](mdc:docs/StaticTypingGuide.md) for details
+
+## Code Quality
+
+- @standardrb is used for code style enforcement
+- Run `bundle exec standardrb` to check code quality
+- Ensure all code passes style checks before submitting
+
+## Commands
+
+- %steep run `bundle exec rake steep:check`. If there are typechecking errors, examine and fix them.
+- %rbs for the files the current context examine the current changes and fix (or create) corresponding rbs files
+
+## Commits and Pull Requests
+
+When creating a pull request and committing code, follow the [PULL_REQUEST_TEMPLATE.md](mdc:.github/PULL_REQUEST_TEMPLATE.md) template.
+
+When submitting a pull request that includes a significant amount of AI-generated code, this must be disclosed using the specific repository label "AI Generated" and at the top of the description.

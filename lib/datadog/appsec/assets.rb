@@ -21,7 +21,7 @@ module Datadog
       end
 
       def blocked(format: :html)
-        (@blocked ||= {})[format] ||= read("blocked.#{format}")
+        (@blocked ||= {})[format] ||= read("blocked.#{format}").freeze
       end
 
       def path

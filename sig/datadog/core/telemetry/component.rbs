@@ -26,7 +26,7 @@ module Datadog
 
         def disable!: () -> void
 
-        def start: (?bool initial_event_is_change) -> void
+        def start: (?bool initial_event_is_change, components: Datadog::Core::Configuration::Components) -> void
 
         def shutdown!: () -> void
 
@@ -38,7 +38,7 @@ module Datadog
 
         def integrations_change!: () -> void
 
-        def app_endpoints_loaded: (Event::AppEndpointsLoaded::endpoints endpoints, page_size: Integer) -> void
+        def app_endpoints_loaded: (Event::AppEndpointsLoaded::endpoints endpoints, ?page_size: Integer) -> void
 
         def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 

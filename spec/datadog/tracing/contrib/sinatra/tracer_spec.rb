@@ -21,6 +21,7 @@ RSpec.describe 'Sinatra instrumentation', skip: PlatformHelpers.jruby_100? do
   subject(:response) { get url }
 
   let(:configuration_options) { {} }
+  let(:server_error_statuses) { nil }
   let(:url) { '/' }
   let(:http_method) { 'GET' }
   let(:resource) { "#{http_method} #{url}" }
@@ -72,6 +73,7 @@ RSpec.describe 'Sinatra instrumentation', skip: PlatformHelpers.jruby_100? do
   before do
     Datadog.configure do |c|
       c.tracing.instrument :sinatra, configuration_options
+      c.tracing.http_error_statuses.server = server_error_statuses if server_error_statuses
     end
   end
 
@@ -272,6 +274,15 @@ RSpec.describe 'Sinatra instrumentation', skip: PlatformHelpers.jruby_100? do
           it do
             is_expected.to be_bad_request
             expect(span).to_not have_error
+          end
+
+          context 'when the server error statuses are configured to include 400' do
+            let(:server_error_statuses) { 400..599 }
+
+            it 'has error set' do
+              is_expected.to be_bad_request
+              expect(span).to have_error
+            end
           end
         end
 

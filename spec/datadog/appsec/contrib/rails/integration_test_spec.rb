@@ -39,7 +39,6 @@ RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >=
   let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
   let(:api_security_enabled) { false }
-  let(:api_security_sample) { 0 }
 
   let(:crs_942_100) do
     {
@@ -157,8 +156,11 @@ RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >=
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
       c.appsec.api_security.enabled = api_security_enabled
-      c.appsec.api_security.sample_delay = api_security_sample.to_i
+      c.appsec.api_security.sample_delay = 0.0
     end
+
+    allow(Datadog::AppSec::APISecurity).to receive(:sample_trace?).and_return(true)
+    allow(Datadog::AppSec::APISecurity).to receive(:sample?).and_return(true)
 
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)

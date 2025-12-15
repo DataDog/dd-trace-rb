@@ -2,6 +2,8 @@
 
 require_relative '../../tracing/configuration/ext'
 require_relative '../../core/environment/variable_helpers'
+require_relative '../contrib/status_range_matcher'
+require_relative '../contrib/status_range_env_parser'
 require_relative 'http'
 
 module Datadog
@@ -272,6 +274,38 @@ module Datadog
                 o.type :bool
               end
 
+              settings :resource_renaming do
+                # Whether resource renaming is enabled. When enabled, http.endpoint tag
+                # containing a route will be reported in traces. If AppSec is enabled,
+                # this feature will be enabled by default.
+                #
+                # For web applications built with instrumented frameworks, http.endpoint tag
+                # will contain the route as it is defined in the application.
+                # For basic Rack applications, or applications that are mounted and are not instrumented,
+                # the route will be inferred from the request path.
+                #
+                # @default `DD_TRACE_RESOURCE_RENAMING_ENABLED` environment variable, otherwise `false`.
+                # @return [Boolean]
+                option :enabled do |o|
+                  o.type :bool, nilable: false
+                  o.env Configuration::Ext::ENV_RESOURCE_RENAMING_ENABLED
+                  o.default false
+                end
+
+                # When set to true, http.endoint is always inferred from path,
+                # instead of using http.route value when it is set.
+                #
+                # This is useful for testing purposes.
+                #
+                # @default false
+                # @return [Boolean]
+                option :always_simplified_endpoint do |o|
+                  o.type :bool, nilable: false
+                  o.env Configuration::Ext::ENV_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT
+                  o.default false
+                end
+              end
+
               # Forces the tracer to always send span events with the native span events format
               # regardless of the agent support. This is useful in agent-less setups.
               #
@@ -489,6 +523,46 @@ module Datadog
                 o.type :int
                 o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
+              end
+
+              # HTTP error statuses configuration
+              # @public_api
+              settings :http_error_statuses do
+                # Defines the range of status codes to be considered errors on http.server span kinds.
+                # Once set, only the values within the specified range are considered errors.
+                #
+                # Format of env var: comma-separated list of values like 500,501,502 or ranges like 500-599 (e.g. `500,502,504-510`)
+                #
+                # @default `DD_TRACE_HTTP_SERVER_ERROR_STATUSES` environment variable, otherwise `500..599`.
+                # @return [Tracing::Contrib::StatusRangeMatcher]
+                option :server do |o|
+                  o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_SERVER_ERROR_STATUSES
+                  o.default 500..599
+                  o.setter do |v|
+                    Tracing::Contrib::StatusRangeMatcher.new(v) if v
+                  end
+                  o.env_parser do |values|
+                    Tracing::Contrib::StatusRangeEnvParser.call(values)
+                  end
+                end
+
+                # Defines the range of status codes to be considered errors on http.client span kinds.
+                # Once set, only the values within the specified range are considered errors.
+                #
+                # Format of env var: comma-separated list of values like 400,401,402 or ranges like 400-499 (e.g. `400,402,404-410`)
+                #
+                # @default `DD_TRACE_HTTP_CLIENT_ERROR_STATUSES` environment variable, otherwise `400..499`.
+                # @return [Tracing::Contrib::StatusRangeMatcher]
+                option :client do |o|
+                  o.env Tracing::Configuration::Ext::HTTPErrorStatuses::ENV_CLIENT_ERROR_STATUSES
+                  o.default 400..499
+                  o.setter do |v|
+                    Tracing::Contrib::StatusRangeMatcher.new(v) if v
+                  end
+                  o.env_parser do |values|
+                    Tracing::Contrib::StatusRangeEnvParser.call(values)
+                  end
+                end
               end
             end
           end

@@ -1,10 +1,11 @@
 PATH
   remote: ..
   specs:
-    datadog (2.22.0)
-      datadog-ruby_core_source (~> 3.4, >= 3.4.1)
-      libdatadog (~> 22.0.1.1.0)
-      libddwaf (~> 1.25.1.1.0)
+    datadog (2.23.0)
+      cgi
+      datadog-ruby_core_source (~> 3.4, >= 3.4.2)
+      libdatadog (~> 24.0.1.1.0)
+      libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
 
@@ -18,13 +19,14 @@ GEM
       memory_profiler (~> 0.9)
     bigdecimal (3.1.9)
     byebug (11.1.3)
+    cgi (0.5.0)
     climate_control (1.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.3.5)
     crack (1.0.0)
       bigdecimal
       rexml
-    datadog-ruby_core_source (3.4.1)
+    datadog-ruby_core_source (3.4.2)
     date (3.4.1)
     debug (1.10.0)
       irb (~> 1.10)
@@ -32,13 +34,12 @@ GEM
     diff-lcs (1.6.0)
     docile (1.4.1)
     dogstatsd-ruby (5.6.5)
-    extlz4 (0.3.4)
     faraday (2.14.0)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
-    faraday-net_http (3.4.1)
-      net-http (>= 0.5.0)
+    faraday-net_http (3.4.2)
+      net-http (~> 0.5)
     ffi (1.17.2)
     ffi (1.17.2-aarch64-linux-gnu)
     ffi (1.17.2-aarch64-linux-musl)
@@ -62,28 +63,28 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.15.0)
+    json (2.17.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (22.0.1.1.0)
-    libdatadog (22.0.1.1.0-aarch64-linux)
-    libdatadog (22.0.1.1.0-x86_64-linux)
-    libddwaf (1.25.1.1.0)
+    libdatadog (24.0.1.1.0)
+    libdatadog (24.0.1.1.0-aarch64-linux)
+    libdatadog (24.0.1.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0)
       ffi (~> 1.0)
-    libddwaf (1.25.1.1.0-aarch64-linux)
+    libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.25.1.1.0-arm64-darwin)
+    libddwaf (1.30.0.0.0-arm64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.25.1.1.0-x86_64-darwin)
+    libddwaf (1.30.0.0.0-x86_64-darwin)
       ffi (~> 1.0)
-    libddwaf (1.25.1.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
     msgpack (1.8.0)
-    net-http (0.6.0)
-      uri
+    net-http (0.8.0)
+      uri (>= 0.11.1)
     os (1.1.4)
     pp (0.6.2)
       prettyprint
@@ -129,13 +130,14 @@ GEM
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
     stringio (3.1.3)
-    uri (1.0.3)
+    uri (1.1.1)
     warning (1.5.0)
     webmock (3.25.0)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.1)
+    zstd-ruby (2.0.3)
 
 PLATFORMS
   aarch64-linux
@@ -162,7 +164,6 @@ DEPENDENCIES
   datadog!
   debug
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
-  extlz4 (~> 0.3, >= 0.3.3)
   faraday
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
   json-schema (< 3)
@@ -179,6 +180,7 @@ DEPENDENCIES
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.7.0)
+  zstd-ruby
 
 BUNDLED WITH
    2.7.2

@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module WaterDrop
+        module Producer
+          # Takes array of message hashes for batch operations
+          def produce_many_sync: (::Array[::Hash[::Symbol, untyped]] messages) -> untyped
+
+          def produce_many_async: (::Array[::Hash[::Symbol, untyped]] messages) -> untyped
+
+          # Takes either a single message hash or array of message hashes
+          def produce_sync: (::Hash[::Symbol, untyped] | ::Array[::Hash[::Symbol, untyped]] messages) -> untyped
+
+          def produce_async: (::Hash[::Symbol, untyped] | ::Array[::Hash[::Symbol, untyped]] messages) -> untyped
+
+          private
+
+          # Extracts tags from messages (single hash or array of hashes)
+          def extract_span_tags: (::Hash[::Symbol, untyped] | ::Array[::Hash[::Symbol, untyped]] messages) -> void
+        end
+      end
+    end
+  end
+end

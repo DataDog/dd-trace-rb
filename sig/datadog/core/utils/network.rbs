@@ -4,6 +4,8 @@ module Datadog
       module Network
         DEFAULT_IP_HEADERS_NAMES: ::Array[::String]
 
+        CGNAT_IP_RANGE: ::IPAddr
+
         def self.stripped_ip_from_request_headers: (Datadog::Core::HeaderCollection headers, ?::Array[::String] ip_headers_to_check) -> ::String?
         def self.stripped_ip: (::String ip) -> String?
 

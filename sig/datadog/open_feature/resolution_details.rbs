@@ -1,0 +1,45 @@
+module Datadog
+  module OpenFeature
+    class ResolutionDetails < ::Struct[untyped]
+      attr_accessor value: untyped
+
+      attr_accessor reason: ::String?
+
+      attr_accessor variant: ::String?
+
+      attr_accessor error_code: ::String?
+
+      attr_accessor error_message: ::String?
+
+      attr_accessor flag_metadata: ::Hash[::String, untyped]?
+
+      attr_accessor allocation_key: ::String?
+
+      attr_accessor extra_logging: ::Hash[::String, untyped]?
+
+      attr_accessor log?: bool?
+
+      attr_accessor error?: bool?
+
+      def self.new: (
+        ?value: untyped,
+        ?reason: ::String?,
+        ?variant: ::String?,
+        ?error_code: ::String?,
+        ?error_message: ::String?,
+        ?flag_metadata: ::Hash[::String, untyped]?,
+        ?allocation_key: ::String?,
+        ?extra_logging: ::Hash[::String, untyped]?,
+        ?log?: bool?,
+        ?error?: bool?
+      ) -> instance
+
+      def self.build_error: (
+        value: untyped,
+        error_code: ::String,
+        error_message: ::String,
+        ?reason: ::String
+      ) -> instance
+    end
+  end
+end

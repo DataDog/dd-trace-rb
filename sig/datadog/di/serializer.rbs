@@ -3,11 +3,11 @@ module Datadog
     class Serializer
       MAX_MESSAGE_COLLECTION_SIZE: Integer
       MAX_MESSAGE_ATTRIBUTE_COUNT: Integer
-      
+
       @settings: untyped
 
       @redactor: untyped
-      
+
       @telemetry: Core::Telemetry::Component
 
       def initialize: (untyped settings, untyped redactor, ?telemetry: Core::Telemetry::Component) -> void
@@ -15,16 +15,16 @@ module Datadog
       attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader redactor: Datadog::DI::Redactor
-      
+
       attr_reader telemetry: Core::Telemetry::Component
-      
+
       def combine_args: (untyped args, untyped kwargs, untyped target_self) -> untyped
       def serialize_args: (untyped args, untyped kwargs, untyped instance_vars, ?depth: Integer, ?attribute_count: Integer?) -> untyped
       def serialize_vars: (untyped vars, ?depth: Integer, ?attribute_count: Integer?) -> untyped
-      def serialize_value: (untyped value, ?name: String, ?depth: Integer, ?attribute_count: Integer?) -> untyped
+      def serialize_value: (untyped value, ?name: String?, ?depth: Integer, ?attribute_count: Integer?, ?type: Class?) -> untyped
       def serialize_value_for_message: (untyped value, ?::Integer depth) -> untyped
-      
-      def self.register: (?condition: Proc) { 
+
+      def self.register: (?condition: Proc) {
         (serializer: Serializer, value: untyped, name: Symbol, depth: Integer, ?attribute_count: Integer?) -> untyped } -> void
 
       private

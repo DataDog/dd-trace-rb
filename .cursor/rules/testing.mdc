@@ -1,0 +1,28 @@
+---
+description: when editing or running tests
+globs:
+alwaysApply: false
+---
+# Testing Guidelines
+
+## Writing Tests
+
+- Tests are written using [RSpec](mdc:https:/rspec.info)
+- Test files should mirror the structure of `lib`
+- All changes should be covered by corresponding tests
+- If new files in the repository are created, run `git add -A` before running tests (otherwise `release_gem_spec.rb` will fail)
+- Do not use `instance_variable_set` and `instance_variable_get` in tests, use mocking when needed
+- Do not make changes to `release_gem_spec.rb` if not asked
+- Do not use focused tests feature (fit, fdescribe)
+
+## Running Tests
+
+- Run core library tests: `bundle exec rake test:main`
+- Run a specific test/file from core library tests: `bundle exec rspec <relative path to the file>`
+
+## Appraisal Groups
+
+- Dependency configurations are managed with [Appraisal](mdc:https:/github.com/thoughtbot/appraisal)
+- Group definitions are in `Appraisals`
+- Generate gemfiles with `bundle exec appraisal generate`
+- Install dependencies with `bundle exec appraisal install`

@@ -61,7 +61,9 @@ module Datadog
               # Adds status code to the resource name once the resource comes back
               span.resource = "#{request_method} #{status_code}"
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, status_code)
-              span.status = 1 if status_code.to_s.start_with?('5')
+              if Datadog.configuration.tracing.http_error_statuses.server.include?(status_code)
+                span.status = Tracing::Metadata::Ext::Errors::STATUS
+              end
               response
             end
           end

@@ -9,7 +9,7 @@ module Datadog
 
       def signal: () -> void
 
-      def wait: (Numeric|nil timeout) -> void
+      def wait: (?Numeric? timeout) -> void
 
       private
 
