@@ -97,7 +97,7 @@ static ddog_CharSlice safe_string_value(VALUE str) {
   if (!RB_TYPE_P(str, T_STRING)) return DDOG_CHARSLICE_C("<not_string>");
 
   long len = RSTRING_LEN(str);
-  if (len < 0 || len > 1024) return DDOG_CHARSLICE_C("<corrupted>");
+  if (len < 0 || len > 1024) return DDOG_CHARSLICE_C("<length_over_limit>");
 
   const char *ptr = RSTRING_PTR(str);
   if (!ptr) return DDOG_CHARSLICE_C("<null>");
