@@ -249,12 +249,12 @@ module Datadog
           @lock.synchronize do
             batch = instance_variable_get("@#{event_type}_queue")
             instance_variable_set("@#{event_type}_queue", [])
-            @io_in_progress = batch.any? # steep:ignore
+            @io_in_progress = batch.any?
           end
-          logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" } # steep:ignore
-          if batch.any? # steep:ignore
+          logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" }
+          if batch.any?
             begin
-              logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" } # steep:ignore
+              logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" }
               send("do_send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do
@@ -268,7 +268,7 @@ module Datadog
               # telemetry message would also fail.
             end
           end
-          batch.any? # steep:ignore
+          batch.any?
         rescue ThreadError => exc
           # Normally the queue should only be consumed in this method,
           # however if anyone consumes it elsewhere we don't want to block
