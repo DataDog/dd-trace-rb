@@ -321,6 +321,10 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       describe 'Ruby and C method runtime stack capture' do
         let(:runtime_stack) { crash_report_experimental[:runtime_stack] }
 
+        before do
+          raise 'This spec requires profiling (native extension not available)' unless Datadog::Profiling.supported?
+        end
+
         it 'captures both Ruby and C method frames in mixed stacks' do
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
             crash_stack_helper_class = Class.new do
@@ -367,13 +371,13 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
           expect(frames).to include(
             hash_including(
-              function: 'gsub'
+              function: 'each'
             )
           )
 
           expect(frames).to include(
             hash_including(
-              function: 'each'
+              function: 'gsub'
             )
           )
         end

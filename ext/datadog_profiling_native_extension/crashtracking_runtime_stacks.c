@@ -4,6 +4,9 @@
 // plumbing required to safely poke at internal structures. Sharing that setup
 // avoids duplicating another native extension with the same (fragile) access
 // patterns, and keeps the overall install/build surface area smaller.
+//
+// This also means that this functionality is depend on the profiling native extension
+// being available and built
 #include "extconf.h"
 
 #if defined(__linux__)
@@ -152,14 +155,7 @@ static void ruby_runtime_stack_callback(
     return;
   }
 
-  bool truncated = frame_count >= RUNTIME_STACK_MAX_FRAMES;
-
   for (int i = frame_count - 1; i >= 0; i--) {
-    if (truncated && i == 0) {
-      emit_placeholder_frame(emit_frame, "<truncated frames>");
-      return;
-    }
-
     frame_info *info = &runtime_stack_buffer[i];
 
     if (info->is_ruby_frame) {
@@ -205,6 +201,10 @@ static void ruby_runtime_stack_callback(
 
       emit_frame(&frame);
     }
+  }
+
+  if (frame_count == RUNTIME_STACK_MAX_FRAMES) {
+    emit_placeholder_frame(emit_frame, "<truncated frames>");
   }
 }
 
