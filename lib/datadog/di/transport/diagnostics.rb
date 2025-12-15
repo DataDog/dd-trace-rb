@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
+require 'json'
+
 require_relative '../../core/transport/parcel'
+require_relative '../../core/transport/request'
+require_relative '../../core/transport/transport'
 require_relative 'http/diagnostics'
 
 module Datadog
@@ -14,26 +18,14 @@ module Datadog
         class Request < Datadog::Core::Transport::Request
         end
 
-        class Transport
-          attr_reader :client, :apis, :default_api, :current_api_id, :logger
-
-          def initialize(apis, default_api, logger:)
-            @apis = apis
-            @logger = logger
-
-            @client = DI::Transport::HTTP::Diagnostics::Client.new(current_api, logger: logger)
-          end
-
-          def current_api
-            @apis[HTTP::API::DIAGNOSTICS]
-          end
-
+        class Transport < Core::Transport::Transport
           def send_diagnostics(payload)
+            # TODO use transport encoder functionality?
             json = JSON.dump(payload)
             parcel = EncodedParcel.new(json)
             request = Request.new(parcel)
 
-            response = @client.send_diagnostics_payload(request)
+            response = @client.send_request(:diagnostics, request)
             unless response.ok?
               # TODO Datadog::Core::Transport::InternalErrorResponse
               # does not have +code+ method, what is the actual API of

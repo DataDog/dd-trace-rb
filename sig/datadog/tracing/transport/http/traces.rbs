@@ -15,20 +15,9 @@ module Datadog
             def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
           end
           class Client < Core::Transport::HTTP::Client
-            def send_traces_payload: (untyped request) -> untyped
           end
 
           module API
-            class Spec < Core::Transport::HTTP::API::Spec
-              attr_accessor traces: untyped
-
-              def send_traces: (untyped env) { (?) -> untyped } -> untyped
-
-              def encoder: () -> untyped
-            end
-            class Instance < Core::Transport::HTTP::API::Instance
-              def send_traces: (untyped env) -> untyped
-            end
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               @encoder: untyped
 

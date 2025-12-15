@@ -62,7 +62,7 @@ module Datadog
             # return `nil` with IO transport
             return unless transport.respond_to?(:client)
 
-            adapter = transport.client.api.adapter
+            adapter = transport.client.instance.adapter
             adapter.url
           end
 
