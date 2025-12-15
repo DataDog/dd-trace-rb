@@ -15,9 +15,11 @@ module Datadog
 
       def configure_metric_reader: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
 
-      def resolve_metrics_endpoint: () -> ::String
+      def default_metrics_endpoint: () -> ::String
 
       def configure_otlp_exporter: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
+
+      def get_metrics_config_with_fallback: (any metrics_config, any exporter_config, ::Symbol option_name, ?any computed_default) -> any
     end
   end
 end
