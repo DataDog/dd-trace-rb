@@ -39,9 +39,8 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
 
     it 'configures the transport with correct API endpoint' do
       api = default.apis[Datadog::DataStreams::Transport::HTTP::API::V01]
-      expect(api).to be_a_kind_of(Datadog::DataStreams::Transport::HTTP::Stats::API::Instance)
-      expect(api.spec).to be_a_kind_of(Datadog::DataStreams::Transport::HTTP::Stats::API::Spec)
-      expect(api.spec.stats.path).to eq('/v0.1/pipeline_stats')
+      expect(api).to be_a_kind_of(Datadog::Core::Transport::HTTP::API::Instance)
+      expect(api.endpoint.path).to eq('/v0.1/pipeline_stats')
     end
 
     it 'configures the transport with correct headers' do

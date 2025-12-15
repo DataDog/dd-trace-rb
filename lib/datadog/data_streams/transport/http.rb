@@ -18,7 +18,6 @@ module Datadog
           logger:
         )
           Core::Transport::HTTP.build(
-            api_instance_class: Stats::API::Instance,
             agent_settings: agent_settings,
             logger: logger,
             headers: {

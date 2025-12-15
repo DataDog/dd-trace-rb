@@ -21,11 +21,12 @@ module Datadog
             api_version: nil,
             headers: nil
           )
-            Core::Transport::HTTP.build(api_instance_class: Telemetry::API::Instance,
+            Core::Transport::HTTP.build(
               logger: logger,
               agent_settings: agent_settings,
               api_version: api_version,
-              headers: headers) do |transport|
+              headers: headers
+            ) do |transport|
               apis = API.defaults
 
               transport.api API::AGENTLESS_TELEMETRY, apis[API::AGENTLESS_TELEMETRY]
@@ -45,9 +46,10 @@ module Datadog
             api_version: nil,
             headers: nil
           )
-            Core::Transport::HTTP.build(api_instance_class: Telemetry::API::Instance,
+            Core::Transport::HTTP.build(
               logger: logger,
-              agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
+              agent_settings: agent_settings, api_version: api_version, headers: headers
+            ) do |transport|
               apis = API.defaults
 
               transport.api API::AGENT_TELEMETRY, apis[API::AGENT_TELEMETRY]
