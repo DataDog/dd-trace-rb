@@ -21,7 +21,7 @@ module Datadog
         api_client = APIClient.new(
           endpoint: settings.ai_guard.endpoint,
           api_key: settings.api_key,
-          application_key: settings.app_key,
+          application_key: settings.ai_guard.app_key,
           timeout: settings.ai_guard.timeout_ms / 1000
         )
 

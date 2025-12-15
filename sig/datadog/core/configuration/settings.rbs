@@ -75,6 +75,10 @@ module Datadog
 
           def endpoint=: (String) -> void
 
+          def app_key: () -> String
+
+          def app_key=: (String) -> void
+
           def timeout_ms: () -> Integer
 
           def timeout_ms=: () -> void
@@ -149,8 +153,6 @@ module Datadog
         def env: -> String?
 
         def api_key: -> String?
-
-        def app_key: -> String?
 
         def service: -> String?
 

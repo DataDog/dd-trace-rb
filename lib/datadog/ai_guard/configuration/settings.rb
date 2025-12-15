@@ -43,6 +43,15 @@ module Datadog
                 end
               end
 
+              # Datadog Application key.
+              #
+              # @default `DD_AI_GUARD_APP_KEY` environment variable, otherwise `nil`
+              # @return [String, nil]
+              option :app_key do |o|
+                o.type :string, nilable: true
+                o.env Ext::ENV_AI_GUARD_APP_KEY
+              end
+
               # Request timeout in milliseconds.
               #
               # @default `DD_AI_GUARD_TIMEOUT`, otherwise 10 000 ms
