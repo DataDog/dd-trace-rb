@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
+require 'json'
+
 require_relative '../../core/transport/parcel'
+require_relative '../../core/transport/request'
 require_relative '../../core/transport/transport'
 require_relative 'http/diagnostics'
 
@@ -17,6 +20,7 @@ module Datadog
 
         class Transport < Core::Transport::Transport
           def send_diagnostics(payload)
+            # TODO use transport encoder functionality?
             json = JSON.dump(payload)
             parcel = EncodedParcel.new(json)
             request = Request.new(parcel)
