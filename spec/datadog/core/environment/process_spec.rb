@@ -121,19 +121,19 @@ RSpec.describe Datadog::Core::Environment::Process do
       end
     end
   end
-  describe '::tags_array' do
-    subject(:tags_array) { described_class.tags_array }
+  describe '::tags' do
+    subject(:tags) { described_class.tags }
 
     it { is_expected.to be_a_kind_of(Array) }
 
     it 'is an array of strings' do
-      expect(tags_array).to all(be_a(String))
+      expect(tags).to all(be_a(String))
     end
 
     it 'returns the same object when called multiple times' do
       # Processes are fixed so no need to recompute this on each call
-      first_call = described_class.tags_array
-      second_call = described_class.tags_array
+      first_call = described_class.tags
+      second_call = described_class.tags
       expect(first_call).to equal(second_call)
     end
 
@@ -142,11 +142,11 @@ RSpec.describe Datadog::Core::Environment::Process do
       let(:program_name) { '/expectedbasedir/executable' }
 
       it 'extracts out the tag array correctly' do
-        expect(tags_array.length).to eq(4)
-        expect(described_class.tags_array).to include('entrypoint.workdir:app')
-        expect(described_class.tags_array).to include('entrypoint.name:executable')
-        expect(described_class.tags_array).to include('entrypoint.basedir:expectedbasedir')
-        expect(described_class.tags_array).to include('entrypoint.type:script')
+        expect(tags.length).to eq(4)
+        expect(described_class.tags).to include('entrypoint.workdir:app')
+        expect(described_class.tags).to include('entrypoint.name:executable')
+        expect(described_class.tags).to include('entrypoint.basedir:expectedbasedir')
+        expect(described_class.tags).to include('entrypoint.type:script')
       end
     end
 
@@ -155,11 +155,11 @@ RSpec.describe Datadog::Core::Environment::Process do
       let(:program_name) { 'irb' }
 
       it 'extracts out the tag array correctly' do
-        expect(tags_array.length).to eq(4)
-        expect(described_class.tags_array).to include('entrypoint.workdir:app')
-        expect(described_class.tags_array).to include('entrypoint.name:irb')
-        expect(described_class.tags_array).to include('entrypoint.basedir:app')
-        expect(described_class.tags_array).to include('entrypoint.type:script')
+        expect(tags.length).to eq(4)
+        expect(described_class.tags).to include('entrypoint.workdir:app')
+        expect(described_class.tags).to include('entrypoint.name:irb')
+        expect(described_class.tags).to include('entrypoint.basedir:app')
+        expect(described_class.tags).to include('entrypoint.type:script')
       end
     end
 
@@ -168,11 +168,11 @@ RSpec.describe Datadog::Core::Environment::Process do
       let(:program_name) { 'my/path/rubyapp.rb' }
 
       it 'extracts out the tag array correctly' do
-        expect(tags_array.length).to eq(4)
-        expect(described_class.tags_array).to include('entrypoint.workdir:app')
-        expect(described_class.tags_array).to include('entrypoint.name:rubyapp.rb')
-        expect(described_class.tags_array).to include('entrypoint.basedir:path')
-        expect(described_class.tags_array).to include('entrypoint.type:script')
+        expect(tags.length).to eq(4)
+        expect(described_class.tags).to include('entrypoint.workdir:app')
+        expect(described_class.tags).to include('entrypoint.name:rubyapp.rb')
+        expect(described_class.tags).to include('entrypoint.basedir:path')
+        expect(described_class.tags).to include('entrypoint.type:script')
       end
     end
 
@@ -181,11 +181,11 @@ RSpec.describe Datadog::Core::Environment::Process do
       let(:program_name) { 'my/path/foo:,bar' }
 
       it 'extracts out the tag array correctly' do
-        expect(tags_array.length).to eq(4)
-        expect(described_class.tags_array).to include('entrypoint.workdir:app')
-        expect(described_class.tags_array).to include('entrypoint.name:foo_bar')
-        expect(described_class.tags_array).to include('entrypoint.basedir:path')
-        expect(described_class.tags_array).to include('entrypoint.type:script')
+        expect(tags.length).to eq(4)
+        expect(described_class.tags).to include('entrypoint.workdir:app')
+        expect(described_class.tags).to include('entrypoint.name:foo_bar')
+        expect(described_class.tags).to include('entrypoint.basedir:path')
+        expect(described_class.tags).to include('entrypoint.type:script')
       end
     end
 
@@ -194,11 +194,11 @@ RSpec.describe Datadog::Core::Environment::Process do
       let(:program_name) { 'bin/rails' }
 
       it 'extracts out the tags array correctly' do
-        expect(tags_array.length).to eq(4)
-        expect(described_class.tags_array).to include('entrypoint.workdir:app')
-        expect(described_class.tags_array).to include('entrypoint.name:rails')
-        expect(described_class.tags_array).to include('entrypoint.basedir:bin')
-        expect(described_class.tags_array).to include('entrypoint.type:script')
+        expect(tags.length).to eq(4)
+        expect(described_class.tags).to include('entrypoint.workdir:app')
+        expect(described_class.tags).to include('entrypoint.name:rails')
+        expect(described_class.tags).to include('entrypoint.basedir:bin')
+        expect(described_class.tags).to include('entrypoint.type:script')
       end
     end
   end

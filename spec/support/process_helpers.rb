@@ -2,7 +2,7 @@
 
 RSpec.shared_context 'with mocked process environment' do
   def reset_memoized_variables!
-    [:@serialized, :@tags_array].each do |variable|
+    [:@serialized, :@tags].each do |variable|
       Datadog::Core::Environment::Process.remove_instance_variable(variable) if
         Datadog::Core::Environment::Process.instance_variable_defined?(variable)
     end
