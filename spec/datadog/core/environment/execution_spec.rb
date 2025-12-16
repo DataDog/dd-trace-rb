@@ -257,7 +257,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
     context 'when given WebMock', skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new('2') do
       it do
-        out, _err, status = Bundler.with_unbundled_env do
+        out, err, status = Bundler.with_unbundled_env do
           Open3.capture3('ruby', stdin_data: <<-RUBY
             require 'bundler/inline'
 
@@ -278,6 +278,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
           )
         end
 
+        expect(err).to be_empty
         expect(out).to end_with('ACTUAL:true')
         expect(status.exitstatus).to eq(0)
       end
