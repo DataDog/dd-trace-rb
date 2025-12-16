@@ -27,7 +27,7 @@
       {
         "version": "A",
         "type": "int",
-        "default": "524228"
+        "default": "524288"
       }
     ],
     "DD_AI_GUARD_MAX_MESSAGES_LENGTH": [
