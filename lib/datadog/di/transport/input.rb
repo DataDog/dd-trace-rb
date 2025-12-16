@@ -89,27 +89,12 @@ module Datadog
             parcel = EncodedParcel.new(chunked_payload)
             request = Request.new(parcel, serialized_tags)
 
-            response = @client.send_request(:input, request)
-            unless response.ok?
-              # TODO Datadog::Core::Transport::InternalErrorResponse
-              # does not have +code+ method, what is the actual API of
-              # these response objects?
-              raise Error::AgentCommunicationError, "send_input failed: #{begin
-                response.code
-              rescue
-                "???"
-              end}: #{response.payload}"
+            client.send_request(:input, request).tap do |response|
+              if downgrade?(response)
+                downgrade!
+                return send_input_chunk(chunked_payload, serialized_tags)
+              end
             end
-          rescue Error::AgentCommunicationError
-            raise
-          # Datadog::Core::Transport does not perform any exception mapping,
-          # therefore we could have any exception here from failure to parse
-          # agent URI for example.
-          # If we ever implement retries for network errors, we should distinguish
-          # actual network errors from non-network errors that are raised by
-          # transport code.
-          rescue => exc
-            raise Error::AgentCommunicationError, "send_input failed: #{exc.class}: #{exc}"
           end
         end
       end
