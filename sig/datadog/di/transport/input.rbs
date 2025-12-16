@@ -14,29 +14,10 @@ module Datadog
           def initialize: (untyped parcel, untyped serialized_tags) -> void
         end
 
-        class Transport
-          @apis: untyped
-
-          @logger: untyped
-
-          @client: untyped
-
-          attr_reader client: untyped
-
-          attr_reader apis: untyped
-
-          attr_reader default_api: untyped
-
-          attr_reader current_api_id: untyped
-
-          attr_reader logger: untyped
+        class Transport < Core::Transport::Transport
           MAX_SERIALIZED_SNAPSHOT_SIZE: ::Integer
           MAX_CHUNK_SIZE: ::Integer
           DEFAULT_CHUNK_SIZE: ::Integer
-
-          def initialize: (untyped apis, untyped default_api, logger: untyped) -> void
-
-          def current_api: () -> untyped
 
           def send_input: (untyped payload, untyped tags) -> untyped
 

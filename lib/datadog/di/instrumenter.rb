@@ -166,7 +166,10 @@ module Datadog
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
-              start_time = Core::Utils::Time.get_time
+              # We intentionally do not use Core::Utils::Time.get_time
+              # here because the time provider may be overridden by the
+              # customer, and DI is not allowed to invoke customer code.
+              start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
               rv = nil
               begin
@@ -190,7 +193,7 @@ module Datadog
                 # the instrumentation callback runs.
               end
 
-              duration = Core::Utils::Time.get_time - start_time
+              duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.

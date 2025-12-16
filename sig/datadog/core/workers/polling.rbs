@@ -10,7 +10,7 @@ module Datadog
           def perform: (*untyped args) -> untyped
         end
 
-        def stop: (?bool force_stop, ?::Integer timeout) -> untyped
+        def stop: (?bool force_stop, ?::Integer | ::Float timeout) -> untyped
 
         def enabled?: () -> bool
 

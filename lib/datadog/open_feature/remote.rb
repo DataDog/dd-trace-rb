@@ -6,7 +6,8 @@ module Datadog
   module OpenFeature
     # This module contains the remote configuration functionality for OpenFeature
     module Remote
-      ReadError = Class.new(StandardError)
+      # Steep: https://github.com/soutaro/steep/issues/1880
+      ReadError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
 
       class << self
         FFE_FLAG_CONFIGURATION_RULES = 1 << 46
