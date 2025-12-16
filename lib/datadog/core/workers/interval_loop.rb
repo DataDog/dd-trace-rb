@@ -58,6 +58,15 @@ module Datadog
             shutdown.signal
           end
 
+          # Previously, this method would return false (and do nothing)
+          # if the worker was not running the loop. However, this was racy -
+          # see https://github.com/DataDog/ruby-guild/issues/279.
+          # stop_loop now always sets the state to "stop requested" and,
+          # correspondingly, always returns true.
+          #
+          # There is some test code that returns false when mocking this
+          # method - most likely this method should be treated as a void one
+          # and the caller should assume that the stop was always requested.
           true
         end
 
