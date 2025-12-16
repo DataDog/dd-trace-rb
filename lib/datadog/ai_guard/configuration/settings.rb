@@ -60,9 +60,6 @@ module Datadog
                 o.type :int
                 o.env Ext::ENV_AI_GUARD_TIMEOUT
                 o.default 10_000
-                o.setter do |v|
-                  Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
-                end
               end
 
               # Maximum content size in bytes.

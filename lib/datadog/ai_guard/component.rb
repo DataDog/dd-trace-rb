@@ -22,7 +22,7 @@ module Datadog
           endpoint: settings.ai_guard.endpoint,
           api_key: settings.api_key,
           application_key: settings.ai_guard.app_key,
-          timeout: settings.ai_guard.timeout_ms / 1000
+          timeout: settings.ai_guard.timeout_ms / 1_000
         )
 
         new(api_client, logger: logger, telemetry: telemetry)
