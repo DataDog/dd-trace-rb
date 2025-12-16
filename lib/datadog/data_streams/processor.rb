@@ -242,7 +242,7 @@ module Datadog
         current_context = get_current_context
         tags = tags.sort
 
-        direction = nil
+        direction = nil #: ::String?
         tags.each do |tag|
           if tag.start_with?('direction:')
             direction = tag
