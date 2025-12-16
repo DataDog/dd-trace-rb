@@ -45,7 +45,7 @@ module Datadog
 
               # Datadog Application key.
               #
-              # @default `DD_AI_GUARD_APP_KEY` environment variable, otherwise `nil`
+              # @default `DD_APP_KEY` environment variable, otherwise `nil`
               # @return [String, nil]
               option :app_key do |o|
                 o.type :string, nilable: true
