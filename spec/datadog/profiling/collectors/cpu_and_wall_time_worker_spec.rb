@@ -1102,7 +1102,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         all_samples = try_wait_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples_for_thread(samples, process_waiter_thread).any?
+          samples if samples_for_thread(samples, process_waiter_thread)&.first&.locations&.any?
         end
 
         cpu_and_wall_time_worker.stop
