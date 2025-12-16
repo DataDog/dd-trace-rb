@@ -23,6 +23,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         allow(settings).to receive(:env).and_return('fake env')
         allow(settings).to receive(:version).and_return('fake version')
         allow(settings).to receive(:tags).and_return({})
+        allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
       end
     end
 

@@ -85,7 +85,8 @@ RSpec.describe Datadog::Core::Telemetry::Request do
             ci: double('ci', enabled: true),
             env: env,
             service: service_name,
-            version: service_version
+            version: service_version,
+            experimental_propagate_process_tags_enabled: false
           )
         )
       end
