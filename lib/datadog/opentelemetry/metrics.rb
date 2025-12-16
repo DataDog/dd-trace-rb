@@ -104,9 +104,9 @@ module Datadog
       # Returns metrics config value if explicitly set, otherwise falls back to exporter config or computed default value.
       def get_metrics_config_with_fallback(metrics_config, exporter_config, option_name, computed_default = nil)
         if metrics_config.using_default?(option_name)
-          exporter_config.send(option_name) || computed_default
+          exporter_config.public_send(option_name) || computed_default
         else
-          metrics_config.send(option_name)
+          metrics_config.public_send(option_name)
         end
       end
     end
