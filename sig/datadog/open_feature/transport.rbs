@@ -11,18 +11,12 @@ module Datadog
         class Spec
           @endpoint: Core::Transport::HTTP::API::Endpoint
 
-          attr_accessor endpoint: Core::Transport::HTTP::API::Endpoint
-
           def initialize: () -> void
 
           def call: (Core::Transport::HTTP::Env) { (Core::Transport::HTTP::Env) -> Core::Transport::Response } -> Core::Transport::Response
         end
 
-        class Instance < Core::Transport::HTTP::API::Instance
-          def send_exposures: (Core::Transport::HTTP::Env) -> Core::Transport::Response
-        end
-
-        @api: HTTP::Instance
+        @api: Core::Transport::HTTP::API::Instance
 
         @logger: Core::Logger
 
