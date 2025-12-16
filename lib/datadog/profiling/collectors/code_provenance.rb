@@ -22,7 +22,7 @@ module Datadog
           @libraries_by_path = {}
           @seen_files = Set.new
           @seen_libraries = Set.new
-          @executable_paths = [Gem.bindir, (Bundler.bin_path.to_s if defined?(Bundler))].uniq.compact.freeze
+          @executable_paths = [Gem.bindir, bundler_bin_path].uniq.compact.freeze
 
           record_library(
             Library.new(
@@ -114,6 +114,30 @@ module Datadog
               seen_libraries << library if file_path.start_with?(library_path)
             end
           end
+        end
+
+        # This is intended to mirror bundler's `Bundler.bin_path` with one key difference: the bundler version of the
+        # method **tries to create the path** if it doesn't exist, whereas our version doesn't.
+        #
+        # This "try to create the path" is annoying because creating the path can fail if e.g. the app doesn't have
+        # permissions to do that, see https://github.com/DataDog/dd-trace-rb/issues/5137.
+        # Thus we have our own version that a) Avoids creating the path, and b) Rescues exceptions to avoid any
+        # bundler complaints here impacting the application. (Bundler tends to go "something is wrong, raise!" which
+        # I think makes a lot of sense given how bundler is intended to be used, but for this our kind of "ask a few
+        # questions usage" it's not what we want.)
+        def bundler_bin_path
+          return unless defined?(Bundler)
+
+          path = Bundler.settings[:bin] || "bin"
+          root = Bundler.root
+          result = Pathname.new(path).expand_path(root).expand_path
+          result.to_s
+        rescue Exception => e # rubocop:disable Lint/RescueException
+          Datadog.logger.debug(
+            "CodeProvenance#bundler_bin_path failed. " \
+            "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+          )
+          nil
         end
 
         # Represents metadata we have for a ruby gem

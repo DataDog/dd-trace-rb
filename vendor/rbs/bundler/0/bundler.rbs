@@ -1,3 +1,5 @@
 module Bundler
   def self.bin_path: () -> Pathname
+  def self.settings: () -> untyped
+  def self.root: () -> untyped
 end
