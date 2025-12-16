@@ -54,7 +54,7 @@ module Datadog
           request.body = body.to_json
 
           response = http.request(request)
-          handle_response!(response)
+          raise_on_http_error!(response)
 
           parse_response_body(response.body)
         end
@@ -64,10 +64,10 @@ module Datadog
 
       private
 
-      def handle_response!(response)
+      def raise_on_http_error!(response)
         case response
         when Net::HTTPSuccess
-          response
+          # do nothing
         when Net::HTTPRedirection
           raise UnexpectedRedirectError, "Redirects for AI Guard API are not supported"
         when Net::HTTPNotFound

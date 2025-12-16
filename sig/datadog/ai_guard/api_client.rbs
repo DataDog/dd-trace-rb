@@ -39,7 +39,7 @@ module Datadog
 
       private
 
-      def handle_response!: (::Net::HTTPResponse response) -> void
+      def raise_on_http_error!: (::Net::HTTPResponse response) -> void
 
       def parse_response_body: (::String) -> Evaluation::Result::raw_response_body
 
