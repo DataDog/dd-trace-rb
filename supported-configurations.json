@@ -9,13 +9,6 @@
         "default": "127.0.0.1"
       }
     ],
-    "DD_AI_GUARD_APP_KEY": [
-      {
-        "version": "A",
-        "type": "string",
-        "default": null
-      }
-    ],
     "DD_AI_GUARD_ENABLED": [
       {
         "version": "A",
@@ -91,6 +84,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_APP_KEY": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [

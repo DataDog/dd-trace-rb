@@ -49,7 +49,7 @@ module Datadog
               # @return [String, nil]
               option :app_key do |o|
                 o.type :string, nilable: true
-                o.env Ext::ENV_AI_GUARD_APP_KEY
+                o.env Ext::ENV_APP_KEY
               end
 
               # Request timeout in milliseconds.

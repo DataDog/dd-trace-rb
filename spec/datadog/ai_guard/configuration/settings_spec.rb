@@ -79,16 +79,16 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
     end
 
     describe "#app_key" do
-      context "when DD_AI_GUARD_APP_KEY is not defined" do
+      context "when DD_APP_KEY is not defined" do
         around do |example|
-          ClimateControl.modify("DD_AI_GUARD_APP_KEY" => nil) { example.run }
+          ClimateControl.modify("DD_APP_KEY" => nil) { example.run }
         end
 
         it { expect(settings.ai_guard.app_key).to be nil }
 
-        context "when DD_AI_GUARD_APP_KEY is defined" do
+        context "when DD_APP_KEY is defined" do
           around do |example|
-            ClimateControl.modify("DD_AI_GUARD_APP_KEY" => "some-app-key") { example.run }
+            ClimateControl.modify("DD_APP_KEY" => "some-app-key") { example.run }
           end
 
           it { expect(settings.ai_guard.app_key).to eq("some-app-key") }
