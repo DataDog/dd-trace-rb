@@ -4,32 +4,19 @@ module Datadog
       module HTTP
         module API
           class Instance
-            @spec: untyped
+            @endpoint: untyped
 
             @adapter: untyped
 
             @headers: untyped
-            class EndpointNotSupportedError < StandardError
-              @spec: untyped
-
-              @endpoint_name: untyped
-
-              attr_reader spec: untyped
-
-              attr_reader endpoint_name: untyped
-
-              def initialize: (untyped endpoint_name, untyped spec) -> void
-
-              def message: () -> ::String
-            end
 
             attr_reader adapter: untyped
 
             attr_reader headers: untyped
 
-            attr_reader spec: untyped
+            attr_reader endpoint: untyped
 
-            def initialize: (untyped spec, untyped adapter, ?::Hash[untyped, untyped] options) -> void
+            def initialize: (untyped endpoint, untyped adapter, ?::Hash[untyped, untyped] options) -> void
 
             def encoder: () -> untyped
 

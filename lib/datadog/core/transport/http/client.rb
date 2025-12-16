@@ -11,27 +11,22 @@ module Datadog
         #
         # @api private
         class Client
-          attr_reader :api, :logger
+          attr_reader :instance, :logger
 
-          def initialize(api, logger:)
-            @api = api
+          def initialize(instance, logger:)
+            @instance = instance
             @logger = logger
           end
 
-          def send_request(action, request, &block)
-            send_request_impl(request) do |api, env|
-              api.public_send("send_#{action}", env)
-            end
-          end
-
-          private
-
-          def send_request_impl(request, &block)
+          def send_request(action, request)
             # Build request into env
             env = build_env(request)
 
-            # Get responses from API
-            yield(api, env).tap do |response|
+            # Get responses from API.
+            # All of our APIs send only one type of request each.
+            instance.endpoint.call(env) do |request_env|
+              instance.call(request_env)
+            end.tap do |response|
               on_response(response)
             end
           rescue => exception

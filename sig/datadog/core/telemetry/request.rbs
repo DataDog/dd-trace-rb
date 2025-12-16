@@ -8,6 +8,7 @@ module Datadog
 
         def self.application: -> ::Hash[Symbol, untyped]
         def self.host: -> ::Hash[Symbol, untyped]
+        def self.tag_process_tags!: (Hash[Symbol, untyped] app, Core::Configuration::Settings config) -> void
       end
     end
   end

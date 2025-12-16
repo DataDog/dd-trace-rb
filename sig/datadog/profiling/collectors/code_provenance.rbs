@@ -18,6 +18,7 @@ module Datadog
         def sort_libraries_by_longest_path_first: () -> void
         def record_loaded_specs: (Array[Gem::Specification]) -> void
         def record_loaded_files: (Array[String]) -> void
+        def bundler_bin_path: () -> String?
 
         class Library
           @kind: String

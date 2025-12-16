@@ -32,6 +32,8 @@ module Datadog
 
       def evaluate_template: (untyped template, Context context) -> [String, Array[String]]
 
+      def tag_process_tags!: (Hash[Symbol | String, untyped] payload, Core::Configuration::Settings settings) -> void
+
       def timestamp_now: () -> Integer
 
       def get_local_variables: (TracePoint trace_point) -> Hash[Symbol,untyped]
