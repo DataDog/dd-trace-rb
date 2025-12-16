@@ -120,7 +120,7 @@ module Datadog
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             after_set(&options[:after_set]) if options.key?(:after_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
-            # Steep: https://github.com/soutaro/steep/issues/477
+            # Steep: https://github.com/soutaro/steep/issues/1979
             setter(&options[:setter]) if options.key?(:setter) # steep:ignore BlockTypeMismatch
             type(options[:type], **(options[:type_options] || {})) if options.key?(:type)
           end
