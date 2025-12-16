@@ -92,7 +92,7 @@ namespace :spec do
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,crashtracking,error_tracking,rubocop,data_streams}/**/*_spec.rb,' \
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,crashtracking,error_tracking,rubocop,data_streams,ai_guard}/**/*_spec.rb,' \
                         ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch,open_feature,feature_flags,process,ai_guard}_spec.rb,' \
                         ' spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
