@@ -19,7 +19,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
       }
     end
 
-    subject(:post) { api_client.post(path: "/evaluate", request_body: {}) }
+    subject(:post) { api_client.post("/evaluate", body: {}) }
 
     before do
       WebMock.enable!

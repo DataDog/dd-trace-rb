@@ -20,7 +20,7 @@ module Datadog
           # Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug
           raise "AI Guard API Client not initialized" unless AIGuard.api_client
 
-          raw_response = AIGuard.api_client.post(path: REQUEST_PATH, request_body: build_request_body) # steep:ignore
+          raw_response = AIGuard.api_client.post(REQUEST_PATH, body: build_request_body) # steep:ignore
 
           Result.new(raw_response)
         end

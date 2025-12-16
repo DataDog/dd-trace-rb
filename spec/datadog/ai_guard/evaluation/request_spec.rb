@@ -31,8 +31,8 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
 
     it "calls api_client.post with correct response body" do
       expect(api_client_double).to receive(:post).with(
-        path: "/evaluate",
-        request_body: {
+        "/evaluate",
+        body: {
           data: {
             attributes: {
               messages: [

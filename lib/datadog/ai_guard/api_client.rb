@@ -32,31 +32,39 @@ module Datadog
       class ReadTimeout < StandardError; end
 
       def initialize(endpoint:, api_key:, application_key:, timeout:)
-        @api_key = api_key
-        @application_key = application_key
         @timeout = timeout
         @site = Datadog.configuration.site || DEFAULT_SITE
         @endpoint = endpoint
+
+        @headers = {
+          "DD-API-KEY": api_key.to_s,
+          "DD-APPLICATION-KEY": application_key.to_s,
+          "DD-AI-GUARD-VERSION": Datadog::VERSION::STRING,
+          "DD-AI-GUARD-SOURCE": "SDK",
+          "DD-AI-GUARD-LANGUAGE": "ruby",
+          "content-type": "application/json"
+        }.freeze
       end
 
-      def post(path:, request_body:)
+      def post(path, body:)
         uri = URI::HTTPS.build(host: @site, path: @endpoint + path)
 
         Net::HTTP.start(uri.host, uri.port, use_ssl: true, read_timeout: @timeout) do |http|
-          request = Net::HTTP::Post.new(uri.request_uri, headers)
-          request.body = request_body.to_json
+          request = Net::HTTP::Post.new(uri.request_uri, @headers)
+          request.body = body.to_json
 
-          response = perform_request(request, http: http)
+          response = http.request(request)
+          handle_response!(response)
 
           parse_response_body(response.body)
         end
+      rescue Net::ReadTimeout
+        raise ReadTimeout, "Request to AI Guard timed out"
       end
 
       private
 
-      def perform_request(request, http:)
-        response = http.request(request)
-
+      def handle_response!(response)
         case response
         when Net::HTTPSuccess
           response
@@ -77,25 +85,12 @@ module Datadog
         else
           raise UnexpectedResponseError, response.body
         end
-      rescue Net::ReadTimeout
-        raise ReadTimeout, "Request to AI Guard timed out"
       end
 
-      def parse_response_body(response_body)
-        JSON.parse(response_body)
+      def parse_response_body(body)
+        JSON.parse(body)
       rescue JSON::ParserError
         raise ResponseBodyParsingError, "Could not parse response body"
-      end
-
-      def headers
-        {
-          "DD-API-KEY": @api_key.to_s,
-          "DD-APPLICATION-KEY": @application_key.to_s,
-          "DD-AI-GUARD-VERSION": Datadog::VERSION::STRING,
-          "DD-AI-GUARD-SOURCE": "SDK",
-          "DD-AI-GUARD-LANGUAGE": "ruby",
-          "content-type": "application/json"
-        }
       end
     end
   end
