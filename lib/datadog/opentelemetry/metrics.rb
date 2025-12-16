@@ -79,11 +79,13 @@ module Datadog
         require_relative 'sdk/metrics_exporter'
 
         metrics_config = @settings.opentelemetry.metrics
-        exporter_config = @settings.opentelemetry.exporter
-        endpoint = get_metrics_config_with_fallback(metrics_config, exporter_config, :endpoint, default_metrics_endpoint)
-        timeout = get_metrics_config_with_fallback(metrics_config, exporter_config, :timeout_millis)
-        headers = get_metrics_config_with_fallback(metrics_config, exporter_config, :headers)
-        protocol = get_metrics_config_with_fallback(metrics_config, exporter_config, :protocol)
+        endpoint = get_metrics_config_with_fallback(
+          option_name: :endpoint,
+          computed_default: default_metrics_endpoint
+        )
+        timeout = get_metrics_config_with_fallback(option_name: :timeout_millis)
+        headers = get_metrics_config_with_fallback(option_name: :headers)
+        protocol = get_metrics_config_with_fallback(option_name: :protocol)
         exporter = Datadog::OpenTelemetry::SDK::MetricsExporter.new(
           endpoint: endpoint,
           timeout: timeout / 1000.0,
@@ -102,11 +104,11 @@ module Datadog
       end
 
       # Returns metrics config value if explicitly set, otherwise falls back to exporter config or computed default value.
-      def get_metrics_config_with_fallback(metrics_config, exporter_config, option_name, computed_default = nil)
-        if metrics_config.using_default?(option_name)
-          exporter_config.public_send(option_name) || computed_default
+      def get_metrics_config_with_fallback(option_name:, computed_default: nil)
+        if @settings.opentelemetry.metrics.using_default?(option_name)
+          @settings.opentelemetry.exporter.public_send(option_name) || computed_default
         else
-          metrics_config.public_send(option_name)
+          @settings.opentelemetry.metrics.public_send(option_name)
         end
       end
     end

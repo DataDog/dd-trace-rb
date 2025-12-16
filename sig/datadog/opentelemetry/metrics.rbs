@@ -19,7 +19,7 @@ module Datadog
 
       def configure_otlp_exporter: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
 
-      def get_metrics_config_with_fallback: (any metrics_config, any exporter_config, ::Symbol option_name, ?any computed_default) -> any
+      def get_metrics_config_with_fallback: (option_name: ::Symbol, ?computed_default: any) -> any
     end
   end
 end
