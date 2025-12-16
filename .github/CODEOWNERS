@@ -43,4 +43,4 @@ spec/datadog/opentelemetry_spec.rb @DataDog/apm-sdk-capabilities-ruby
 spec/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
 spec/datadog/profiling_spec.rb @DataDog/profiling-rb @DataDog/ruby-guild
 spec/datadog/data_streams/ @DataDog/data-streams-monitoring @DataDog/ruby-guild
-sig/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
+spec/datadog/open_feature/ @DataDog/feature-flagging-and-experimentation-sdk
