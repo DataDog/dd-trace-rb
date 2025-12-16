@@ -14,13 +14,15 @@ module Datadog
         end
 
         def perform
+          api_client = AIGuard.api_client
+
           # This should never happen, as we are only calling this method when AI Guard is enabled,
           # and this means the API Client was initialized properly.
           #
           # Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug
-          raise "AI Guard API Client not initialized" unless AIGuard.api_client
+          raise "AI Guard API Client not initialized" unless api_client
 
-          raw_response = AIGuard.api_client.post(REQUEST_PATH, body: build_request_body) # steep:ignore
+          raw_response = api_client.post(REQUEST_PATH, body: build_request_body)
 
           Result.new(raw_response)
         end

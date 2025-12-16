@@ -49,7 +49,7 @@ module Datadog
       def post(path, body:)
         uri = URI::HTTPS.build(host: @site, path: @endpoint + path)
 
-        Net::HTTP.start(uri.host, uri.port, use_ssl: true, read_timeout: @timeout) do |http|
+        Net::HTTP.start(uri.host.to_s, uri.port, use_ssl: true, read_timeout: @timeout) do |http|
           request = Net::HTTP::Post.new(uri.request_uri, @headers)
           request.body = body.to_json
 

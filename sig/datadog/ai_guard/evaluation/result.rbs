@@ -10,17 +10,7 @@ module Datadog
         attr_reader reason: ::String
         attr_reader tags: ::Array[::String]
 
-        type raw_response_body = {
-          'data' => {
-            'attributes' => {
-              'action' => ::String,
-              'reason' => ::String,
-              'tags' => ::Array[::String]
-            }
-          }
-        }
-
-        def initialize: (raw_response_body raw_response) -> void
+        def initialize: (::Hash[::String, untyped] raw_response_body) -> void
 
         def allow?: () -> bool
 

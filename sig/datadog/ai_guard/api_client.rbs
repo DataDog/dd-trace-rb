@@ -35,13 +35,13 @@ module Datadog
 
       def initialize: (endpoint: ::String, api_key: ::String?, application_key: ::String?, timeout: ::Integer) -> void
 
-      def post: (::String path, body: ::Hash[::String, ::String]) -> ::Hash[::String, ::String]
+      def post: (::String path, body: ::Hash[::String | ::Symbol, untyped]) -> ::Hash[::String, ::String]
 
       private
 
       def raise_on_http_error!: (::Net::HTTPResponse response) -> void
 
-      def parse_response_body: (::String) -> Evaluation::Result::raw_response_body
+      def parse_response_body: (::String) -> ::Hash[::String, untyped]
 
       def headers: () -> ::Hash[::Symbol, ::String]
     end
