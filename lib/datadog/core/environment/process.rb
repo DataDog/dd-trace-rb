@@ -14,6 +14,14 @@ module Datadog
         # @return [String] comma-separated normalized key:value pairs
         def self.serialized
           return @serialized if defined?(@serialized)
+
+          @serialized = tags.join(',').freeze
+        end
+
+        # This method returns an array in the format ["k1:v1","k2:v2","k3:v3"]
+        # @return [Array<String>] array of normalized key:value pairs
+        def self.tags
+          return @tags if defined?(@tags)
           tags = []
 
           workdir = TagNormalizer.normalize_process_value(entrypoint_workdir.to_s)
@@ -27,7 +35,7 @@ module Datadog
 
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
 
-          @serialized = tags.join(',').freeze
+          @tags = tags.freeze
         end
 
         # Returns the last segment of the working directory of the process
