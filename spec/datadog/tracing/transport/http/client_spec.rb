@@ -28,6 +28,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
 
     context 'which returns an OK response' do
       before do
+        allow(response).to receive(:ok?).and_return(true)
         allow(response).to receive(:not_found?).and_return(false)
         allow(response).to receive(:unsupported?).and_return(false)
 
