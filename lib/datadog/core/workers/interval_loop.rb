@@ -5,6 +5,11 @@ module Datadog
     module Workers
       # Adds looping behavior to workers, with a sleep
       # interval between each loop.
+      #
+      # This module is included in Polling module, and has no other
+      # direct users.
+      #
+      # @api private
       module IntervalLoop
         BACK_OFF_RATIO = 1.2
         BACK_OFF_MAX = 5
@@ -38,9 +43,18 @@ module Datadog
 
         def stop_loop
           mutex.synchronize do
-            return false unless run_loop?
-
+            # Do not call run_loop? from this method to see if the loop
+            # is running, because @run_loop is normally initialized by
+            # the background thread and if the stop is requested right
+            # after the worker starts, the background thread may be created
+            # (and scheduled) but hasn't run yet, thus skipping the
+            # write to @run_loop here would leave the thread running forever.
             @run_loop = false
+
+            # It is possible that we don't need to signal shutdown if
+            # @run_loop was not initialized (i.e. we changed it from not
+            # defined to false above). But let's be safe and signal the
+            # shutdown anyway, I don't see what harm it can cause.
             shutdown.signal
           end
 
@@ -104,7 +118,19 @@ module Datadog
 
         def perform_loop
           mutex.synchronize do
-            @run_loop = true
+            unless defined?(@run_loop)
+              # This write must only happen if @run_loop is not defined
+              # (i.e., not initialized). In the case when the worker is
+              # asked to stop right after it is created, the thread may not
+              # have run yet by the time +stop_loop+ is invoked and
+              # we need to preserve the stop-requested state from
+              # +stop_loop+ to +perform_loop+.
+              #
+              # If the workers are refactored to use classes and inheritance
+              # and their state, such as @run_loop, is initialized in
+              # constructors, the write can be made unconditional.
+              @run_loop = true
+            end
 
             shutdown.wait(mutex, loop_wait_time) if loop_wait_before_first_iteration?
           end

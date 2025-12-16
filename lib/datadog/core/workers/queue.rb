@@ -5,6 +5,12 @@ module Datadog
     module Workers
       # Adds queue behavior to workers, with a buffer
       # to which items can be queued then dequeued.
+      #
+      # This module is included in some but not all workers.
+      # Notably, Data Streams Processor uses a queue but implements it
+      # inline rather than using this module.
+      #
+      # @api private
       module Queue
         def self.included(base)
           base.prepend(PrependedMethods)
@@ -18,6 +24,8 @@ module Datadog
         end
 
         def buffer
+          # Why is this an unsynchronized Array and not a Core::Buffer
+          # instance?
           @buffer ||= []
         end
 
