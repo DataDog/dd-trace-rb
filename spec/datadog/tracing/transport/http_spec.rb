@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       )
 
       default.apis.each_value do |api|
-        expect(api).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Traces::API::Instance)
+        expect(api).to be_a_kind_of(Datadog::Core::Transport::HTTP::API::Instance)
         expect(api.headers).to include(Datadog::Core::Transport::HTTP.default_headers)
 
         case default_agent_settings.adapter

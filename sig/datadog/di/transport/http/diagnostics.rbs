@@ -8,15 +8,6 @@ module Datadog
           end
 
           module API
-            class Instance < Core::Transport::HTTP::API::Instance
-              def send_diagnostics: (untyped env) -> untyped
-            end
-
-            class Spec < Core::Transport::HTTP::API::Spec
-              attr_accessor diagnostics: untyped
-
-              def send_diagnostics: (untyped env) { (?) -> untyped } -> untyped
-            end
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               @encoder: untyped
 

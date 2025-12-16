@@ -47,6 +47,10 @@ VALUE thread_name_for(VALUE thread);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
 
+size_t sizeof_rb_iseq_t(void);
+VALUE ddtrace_iseq_base_label(const void *iseq);
+VALUE ddtrace_iseq_path(const void *iseq);
+
 // Returns true if the current thread belongs to the main Ractor or if Ruby has no Ractor support
 bool ddtrace_rb_ractor_main_p(void);
 

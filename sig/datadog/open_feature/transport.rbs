@@ -8,7 +8,7 @@ module Datadog
       end
 
       class HTTP
-        class Spec < Core::Transport::HTTP::API::Spec
+        class Spec
           @endpoint: Core::Transport::HTTP::API::Endpoint
 
           attr_accessor endpoint: Core::Transport::HTTP::API::Endpoint

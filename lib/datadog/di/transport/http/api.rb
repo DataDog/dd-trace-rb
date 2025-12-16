@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../../../core/encoding'
+require_relative '../../../core/transport/http/api/endpoint'
 require_relative '../../../core/transport/http/api/map'
-require_relative '../../../core/transport/http/api/instance'
-require_relative '../../../core/transport/http/api/spec'
 require_relative 'diagnostics'
 require_relative 'input'
 
@@ -21,18 +20,14 @@ module Datadog
 
           def defaults
             Datadog::Core::Transport::HTTP::API::Map[
-              DIAGNOSTICS => Diagnostics::API::Spec.new do |s|
-                s.diagnostics = Diagnostics::API::Endpoint.new(
-                  '/debugger/v1/diagnostics',
-                  Core::Encoding::JSONEncoder,
-                )
-              end,
-              INPUT => Input::API::Spec.new do |s|
-                s.input = Input::API::Endpoint.new(
-                  '/debugger/v1/input',
-                  Core::Encoding::JSONEncoder,
-                )
-              end,
+              DIAGNOSTICS => Diagnostics::API::Endpoint.new(
+                '/debugger/v1/diagnostics',
+                Core::Encoding::JSONEncoder,
+              ),
+              INPUT => Input::API::Endpoint.new(
+                '/debugger/v1/input',
+                Core::Encoding::JSONEncoder,
+              ),
             ]
           end
         end
