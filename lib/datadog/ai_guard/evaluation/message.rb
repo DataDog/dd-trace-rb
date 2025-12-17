@@ -12,7 +12,7 @@ module Datadog
         attr_reader :role, :content, :tool_call, :tool_call_id
 
         def initialize(role:, content: nil, tool_call: nil, tool_call_id: nil)
-          @role = role&.to_sym
+          @role = role&.to_sym # steep:ignore
           @content = content
           @tool_call = tool_call
           @tool_call_id = tool_call_id

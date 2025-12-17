@@ -5,7 +5,7 @@ module Datadog
         REQUEST_PATH: ::String
 
         type serialized_message = {
-          role: ::String,
+          role: ::Symbol,
           ?content: ::String?,
           ?tool_calls: ::Array[{
             id: ::String,
