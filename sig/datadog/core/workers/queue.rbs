@@ -15,6 +15,12 @@ module Datadog
         def work_pending?: () -> untyped
 
         attr_writer buffer: untyped
+
+	def flush: (?Numeric? timeout) -> bool
+	
+	private
+	
+	def idle?: () -> bool
       end
     end
   end

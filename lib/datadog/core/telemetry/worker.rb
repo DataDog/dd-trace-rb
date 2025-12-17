@@ -102,32 +102,10 @@ module Datadog
         # been flushed.
         #
         # @api private
-        def flush
-          return true unless enabled? || !run_loop?
-
-          started = Utils::Time.get_time
-          loop do
-            # The AppStarted event is triggered by the worker itself,
-            # from the worker thread. As such the main thread has no way
-            # to delay itself until that event is queued and we need some
-            # way to wait until that event is sent out to assert on it in
-            # the test suite. Check the run once flag which *should*
-            # indicate the event has been queued (at which point our queue
-            # depth check should waint until it's sent).
-            # This is still a hack because the flag can be overridden
-            # either way with or without the event being sent out.
-            # Note that if the AppStarted sending fails, this check
-            # will return false and flushing will be blocked until the
-            # 15 second timeout.
-            # Note that the first wait interval between telemetry event
-            # sending is 10 seconds, the timeout needs to be strictly
-            # greater than that.
-            return true if buffer.empty? && !in_iteration? && sent_initial_event?
-
-            sleep 0.5
-
-            return false if Utils::Time.get_time - started > 15
-          end
+        def flush(timeout = nil)
+          # Increase default timeout to 15 seconds - see the comment in
+          # +idle?+ for more details.
+          super(timeout || 15)
         end
 
         private
@@ -269,6 +247,25 @@ module Datadog
           end
 
           other_events + uniq_logs
+        end
+
+        def idle?
+          # The AppStarted event is triggered by the worker itself,
+          # from the worker thread. As such the main thread has no way
+          # to delay itself until that event is queued and we need some
+          # way to wait until that event is sent out to assert on it in
+          # the test suite. Check the run once flag which *should*
+          # indicate the event has been queued (at which point our queue
+          # depth check should wait until it's sent).
+          # This is still a hack because the flag can be overridden
+          # either way with or without the event being sent out.
+          # Note that if the AppStarted sending fails, this check
+          # will return false and flushing will be blocked until the
+          # 15 second timeout.
+          # Note that the first wait interval between telemetry event
+          # sending is 10 seconds, the timeout needs to be strictly
+          # greater than that.
+          super && sent_initial_event?
         end
       end
     end

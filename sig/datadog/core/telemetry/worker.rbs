@@ -39,7 +39,7 @@ module Datadog
 
         def dequeue: () -> Array[Event::Base]
 
-	def flush: () -> (true | false)
+	def flush: (?Numeric? timeout) -> bool
 
         private
 
@@ -58,6 +58,8 @@ module Datadog
         def disable_on_not_found!: ((Core::Transport::HTTP::Adapters::Net::Response | Core::Transport::InternalErrorResponse) response) -> void
 
         def buffer_klass: () -> untyped
+	
+	def idle?: () -> bool
       end
     end
   end
