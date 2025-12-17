@@ -43,8 +43,8 @@ module Datadog
           # log is not useful.
           #
           # Note that payload can be nil here.
-          if payload && payload.length > 2000
-            payload = Utils::Truncation.truncate_in_middle(payload, 1500, 500)
+          if payload && payload.length > 2000 # steep:ignore
+            payload = Utils::Truncation.truncate_in_middle(payload, 1500, 500) # steep:ignore
           end
           "#{self.class} ok?:#{ok?},#{maybe_code} unsupported?:#{unsupported?}, " \
             "not_found?:#{not_found?}, client_error?:#{client_error?}, " \
