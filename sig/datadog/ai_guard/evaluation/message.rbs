@@ -5,9 +5,9 @@ module Datadog
         class InvalidRoleError < ArgumentError
         end
 
-        VALID_ROLES: ::Array[::String]
+        VALID_ROLES: ::Array[::Symbol]
 
-        attr_reader role: ::String
+        attr_reader role: ::Symbol
         attr_reader content: ::String?
         attr_reader tool_call: ToolCall?
         attr_reader tool_call_id: ::String?
