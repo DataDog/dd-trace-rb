@@ -32,6 +32,7 @@ module Datadog
         @native_platform: ::String
         @ruby_engine_version: ::String
         @tracer_version: ::String
+	@settings: untyped
 	@logger: Core::Logger
 
         def payload: () ->  ::Hash[Symbol, untyped]
