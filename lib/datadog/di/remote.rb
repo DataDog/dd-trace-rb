@@ -12,8 +12,6 @@ module Datadog
     #
     # @api private
     module Remote
-      class ReadError < StandardError; end
-
       class << self
         PRODUCT = 'LIVE_DEBUGGING'
 

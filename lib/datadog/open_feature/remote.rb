@@ -6,9 +6,6 @@ module Datadog
   module OpenFeature
     # This module contains the remote configuration functionality for OpenFeature
     module Remote
-      # Steep: https://github.com/soutaro/steep/issues/1880
-      ReadError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
-
       class << self
         FFE_FLAG_CONFIGURATION_RULES = 1 << 46
         FFE_PRODUCTS = ['FFE_FLAGS'].freeze
@@ -43,8 +40,6 @@ module Datadog
                   # @type var content: Core::Remote::Configuration::Content
                   engine.reconfigure!(read_content(content))
                   content.applied
-                rescue ReadError => e
-                  content.errored("Error reading Remote Configuration content: #{e.message}")
                 rescue EvaluationEngine::ReconfigurationError => e
                   content.errored("Error applying OpenFeature configuration: #{e.message}")
                 end

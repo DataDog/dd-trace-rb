@@ -7,8 +7,6 @@ module Datadog
   module AppSec
     # Remote
     module Remote
-      class ReadError < StandardError; end
-
       class NoRulesError < StandardError; end
 
       class << self

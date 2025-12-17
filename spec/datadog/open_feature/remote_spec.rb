@@ -171,20 +171,6 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
     end
 
-    context 'when content data cannot be read' do
-      before { allow(content.data).to receive(:read).and_return(nil) }
-
-      let(:transaction) do
-        repository.transaction { |_, t| t.insert(content.path, target, content) }
-      end
-
-      it 'marks content as errored' do
-        receiver.call(repository, transaction)
-
-        expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR)
-      end
-    end
-
     context 'when content is missing' do
       let(:changes) do
         [

@@ -7,8 +7,6 @@ module Datadog
   module Tracing
     # Remote configuration declaration
     module Remote
-      class ReadError < StandardError; end
-
       class << self
         PRODUCT = 'APM_TRACING'
 
