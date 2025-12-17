@@ -18,7 +18,7 @@ module Datadog
           @reason = attributes.fetch("reason")
           @tags = attributes.fetch("tags")
         rescue KeyError => e
-          raise UnexpectedResponseError, "Missing key: \"#{e.key}\""
+          raise APIClient::InvalidResponseBodyError, "Missing key: \"#{e.key}\""
         end
 
         def allow?

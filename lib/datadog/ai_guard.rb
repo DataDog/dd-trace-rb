@@ -42,7 +42,7 @@ module Datadog
       #
       # @return [Datadog::AIGuard::Evaluation::Result]
       #   The result of AI Guard evaluation.
-      # @raise [ErrorClass]
+      # @raise [Datadog::AIGuard::Evaluation::Interrupt]
       #   If the evaluation results in DENY or ABORT action and `allow_raise` is set to true
       # @public_api
       def evaluate(*messages, allow_raise: false)

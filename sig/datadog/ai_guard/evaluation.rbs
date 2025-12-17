@@ -1,18 +1,10 @@
 module Datadog
   module AIGuard
     module Evaluation
-      class AIGuardAbortError < StandardError
+      class Interrupt < StandardError
         @reason: ::String
 
         def initialize: (::String reason) -> void
-
-        def to_s: () -> ::String
-      end
-
-      class UnexpectedResponseError < StandardError
-        @details: ::String
-
-        def initialize: (::String details) -> void
 
         def to_s: () -> ::String
       end

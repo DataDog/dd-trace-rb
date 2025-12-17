@@ -4,10 +4,10 @@ require "datadog/ai_guard/evaluation/result"
 
 RSpec.describe Datadog::AIGuard::Evaluation::Result do
   describe ".new" do
-    it "raises UnexpectedResponseError when some key is missing" do
+    it "raises APIClient::InvalidResponseBodyError when some key is missing" do
       expect { described_class.new({}) }.to raise_error(
-        Datadog::AIGuard::Evaluation::UnexpectedResponseError,
-        "Invalid AI Guard API response. Missing key: \"data\""
+        Datadog::AIGuard::APIClient::InvalidResponseBodyError,
+        "Missing key: \"data\""
       )
     end
   end

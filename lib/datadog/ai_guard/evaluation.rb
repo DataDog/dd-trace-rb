@@ -7,7 +7,7 @@ module Datadog
     module Evaluation
       # This error is raised when user passes `allow_raise: true` to Evaluation.perform.
       # It is intended to be rescued by the user.
-      class AIGuardAbortError < StandardError
+      class Interrupt < StandardError
         attr_reader :reason
 
         def initialize(reason)
@@ -17,19 +17,7 @@ module Datadog
         end
 
         def to_s
-          "Request aborted. #{@reason}"
-        end
-      end
-
-      class UnexpectedResponseError < StandardError
-        def initialize(details)
-          super()
-
-          @details = details
-        end
-
-        def to_s
-          "Invalid AI Guard API response. #{@details}"
+          "Request interrupted. #{@reason}"
         end
       end
 
@@ -66,7 +54,7 @@ module Datadog
 
             if allow_raise && (result.deny? || result.abort?)
               span.set_tag(Ext::BLOCKED_TAG, true)
-              raise Evaluation::AIGuardAbortError, result.reason
+              raise Evaluation::Interrupt, result.reason
             end
 
             result

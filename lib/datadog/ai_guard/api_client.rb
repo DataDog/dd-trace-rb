@@ -11,25 +11,29 @@ module Datadog
     class APIClient
       DEFAULT_SITE = "app.datadoghq.com"
 
-      class UnexpectedRedirectError < StandardError; end
+      class HTTPError < StandardError; end
 
-      class UnexpectedResponseError < StandardError; end
+      class UnexpectedRedirectError < HTTPError; end
 
-      class ResponseBodyParsingError < StandardError; end
+      class UnexpectedResponseError < HTTPError; end
 
-      class ClientError < StandardError; end
+      class ResponseBodyParsingError < HTTPError; end
 
-      class NotFoundError < StandardError; end
+      class ClientError < HTTPError; end
 
-      class TooManyRequestsError < ClientError; end
+      class NotFoundError < HTTPError; end
 
-      class UnauthorizedError < ClientError; end
+      class TooManyRequestsError < HTTPError; end
 
-      class ForbiddenError < ClientError; end
+      class UnauthorizedError < HTTPError; end
 
-      class ServerError < StandardError; end
+      class ForbiddenError < HTTPError; end
 
-      class ReadTimeout < StandardError; end
+      class ServerError < HTTPError; end
+
+      class ReadTimeout < HTTPError; end
+
+      class InvalidResponseBodyError < HTTPError; end
 
       def initialize(endpoint:, api_key:, application_key:, timeout:)
         @timeout = timeout

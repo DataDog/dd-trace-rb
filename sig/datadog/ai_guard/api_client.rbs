@@ -3,19 +3,22 @@ module Datadog
     class APIClient
       DEFAULT_SITE: ::String
 
-      class UnexpectedRedirectError < StandardError
+      class HTTPError < StandardError
       end
 
-      class UnexpectedResponseError < StandardError
+      class UnexpectedRedirectError < HTTPError
       end
 
-      class ResponseBodyParsingError < StandardError
+      class UnexpectedResponseError < HTTPError
       end
 
-      class ClientError < StandardError
+      class ResponseBodyParsingError < HTTPError
       end
 
-      class NotFoundError < StandardError
+      class ClientError < HTTPError
+      end
+
+      class NotFoundError < HTTPError
       end
 
       class TooManyRequestsError < ClientError
@@ -27,10 +30,13 @@ module Datadog
       class ForbiddenError < ClientError
       end
 
-      class ServerError < StandardError
+      class ServerError < HTTPError
       end
 
-      class ReadTimeout < StandardError
+      class ReadTimeout < HTTPError
+      end
+
+      class InvalidResponseBodyError < HTTPError
       end
 
       def initialize: (endpoint: ::String, api_key: ::String?, application_key: ::String?, timeout: ::Integer) -> void
