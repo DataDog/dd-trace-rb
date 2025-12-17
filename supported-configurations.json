@@ -18,7 +18,7 @@
     ],
     "DD_AI_GUARD_ENDPOINT": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "default": "/api/v2/ai-guard"
       }
