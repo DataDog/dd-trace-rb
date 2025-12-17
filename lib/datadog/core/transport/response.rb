@@ -43,7 +43,7 @@ module Datadog
           # log is not useful.
           #
           # Note that payload can be nil here.
-          if payload&.length > 5000
+          if payload && payload.length > 5000
             payload = Utils::Truncation.truncate_in_middle(payload, 3500, 1500)
           end
           "#{self.class} ok?:#{ok?},#{maybe_code} unsupported?:#{unsupported?}, " \
