@@ -37,6 +37,13 @@ module Datadog
           maybe_code = if respond_to?(:code)
             " code:#{code}," # steep:ignore
           end
+          payload = self.payload
+          # Truncation thresholds are arbitrary but we need to truncate the
+          # payload here because outputting multi-MB request body to the
+          # log is not useful.
+          if payload.length > 5000
+            payload = Utils::Truncation.truncate_in_middle(payload, 3500, 1500)
+          end
           "#{self.class} ok?:#{ok?},#{maybe_code} unsupported?:#{unsupported?}, " \
             "not_found?:#{not_found?}, client_error?:#{client_error?}, " \
             "server_error?:#{server_error?}, internal_error?:#{internal_error?}, " \
