@@ -2,7 +2,6 @@
 
 require_relative '../../../transport/http/api/endpoint'
 require_relative '../../../transport/http/api/instance'
-require_relative '../../../transport/http/api/spec'
 require_relative '../../../transport/http/client'
 require_relative '../../../transport/request'
 
@@ -12,36 +11,7 @@ module Datadog
       module Transport
         module HTTP
           module Telemetry
-            class Client < Core::Transport::HTTP::Client
-              def send_telemetry_payload(request)
-                send_request(request) do |api, env|
-                  # TODO how to make api have the derived type for steep?
-                  api.send_telemetry(env) # steep:ignore
-                end
-              end
-            end
-
             module API
-              class Instance < Core::Transport::HTTP::API::Instance
-                def send_telemetry(env)
-                  raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new('telemetry', self) unless spec.is_a?(Telemetry::API::Spec)
-
-                  spec.send_telemetry(env) do |request_env|
-                    call(request_env)
-                  end
-                end
-              end
-
-              class Spec < Core::Transport::HTTP::API::Spec
-                attr_accessor :telemetry
-
-                def send_telemetry(env, &block)
-                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('telemetry', self) if telemetry.nil?
-
-                  telemetry.call(env, &block)
-                end
-              end
-
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
                 HEADER_CONTENT_TYPE = 'Content-Type'
 

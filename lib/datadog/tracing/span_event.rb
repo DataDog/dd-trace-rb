@@ -69,8 +69,8 @@ module Datadog
 
       private
 
-      MIN_INT64_SIGNED = -2**63
-      MAX_INT64_SIGNED = 2 << 63 - 1
+      MIN_INT64_SIGNED = -2 << 62
+      MAX_INT64_SIGNED = (2 << 62) - 1
 
       # Checks the attributes hash to ensure it only contains serializable values.
       # Invalid values are removed from the hash.

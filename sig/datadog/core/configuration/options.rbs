@@ -41,9 +41,9 @@ module Datadog
 
           private
 
-          def default_helpers: (Symbol | String name) -> Hash[Symbol, OptionDefinition::helper_proc]
+          def default_helpers: (Symbol | String name) -> Hash[Symbol, OptionDefinition::generic_proc]
 
-          def define_helpers: (Hash[Symbol, OptionDefinition::helper_proc] helpers) -> void
+          def define_helpers: (Hash[Symbol, OptionDefinition::generic_proc] helpers) -> void
 
           # Fake methods to make it work with RBS. RBS cannot understand that this module is only used in a class context.
           def superclass: () -> singleton(Options)

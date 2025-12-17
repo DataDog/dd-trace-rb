@@ -21,12 +21,12 @@ module Datadog
         end
 
         private_class_method def self.log_deprecated_environment_variables(logger, source_env, source_name, deprecations, alias_to_canonical)
-          deprecations.each do |deprecated_env_var, message|
+          deprecations.each do |deprecated_env_var|
             next unless source_env.key?(deprecated_env_var)
 
             Datadog::Core.log_deprecation(disallowed_next_major: false, logger: logger) do
               "#{deprecated_env_var} #{source_name} variable is deprecated" +
-                (alias_to_canonical[deprecated_env_var] ? ", use #{alias_to_canonical[deprecated_env_var]} instead." : ". #{message}.")
+                (alias_to_canonical[deprecated_env_var] ? ", use #{alias_to_canonical[deprecated_env_var]} instead." : ".")
             end
           end
         end

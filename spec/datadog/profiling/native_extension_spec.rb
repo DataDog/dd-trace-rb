@@ -83,16 +83,24 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
 
       context "on a background Ractor", ractors: true do
-        # @ivoanjo: When we initially added this test, our test suite kept deadlocking in CI in a later test (not on
-        # this one).
-        #
-        # It turns out that Ruby 3.0 Ractors seem to have some bug that even running `Ractor.new { 'hello' }.take` will
-        # cause a later spec to fail, usually with a (native C) stack with `gc_finalize_deferred`.
-        #
-        # I was able to see this even on both Linux with 3.0.3 and macOS with 3.0.4. Thus, I decided to skip this
-        # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
-        # coverage on 3.1+ anyway.
-        before { skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.") }
+        before do
+          # @ivoanjo: When we initially added this test, our test suite kept deadlocking in CI in a later test (not on
+          # this one).
+          #
+          # It turns out that Ruby 3.0 Ractors seem to have some bug that even running `Ractor.new { 'hello' }.take` will
+          # cause a later spec to fail, usually with a (native C) stack with `gc_finalize_deferred`.
+          #
+          # I was able to see this even on both Linux with 3.0.3 and macOS with 3.0.4. Thus, I decided to skip this
+          # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
+          # coverage on 3.1+ anyway.
+          skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.")
+
+          # We also saw weird segfaults inside regular Ruby code **after** this spec ran in 4.0.0preview2. For now
+          # let's skip for this Ruby, and we can re-examine it if the issue shows up on a later 4.0.0 release.
+          #
+          # If you see this skip being around after the stable Ruby 4.0 was released and added to CI, do get rid of it ;)
+          skip "Ruby 4.0.0-preview2 Ractors are too buggy to run this spec" if RUBY_DESCRIPTION.include?("4.0.0preview2")
+        end
 
         subject(:ddtrace_rb_ractor_main_p) do
           Ractor.new do

@@ -9,7 +9,8 @@ module Datadog
   module OpenFeature
     # This class performs the evaluation of the feature flag
     class EvaluationEngine
-      ReconfigurationError = Class.new(StandardError)
+      # Steep: https://github.com/soutaro/steep/issues/1880
+      ReconfigurationError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
 
       ALLOWED_TYPES = %i[boolean string number float integer object].freeze
 

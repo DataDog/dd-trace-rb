@@ -2,7 +2,6 @@
 
 require_relative '../../core/transport/http'
 require_relative 'http/api'
-require_relative 'http/client'
 require_relative 'http/stats'
 require_relative 'stats'
 
@@ -19,7 +18,6 @@ module Datadog
           logger:
         )
           Core::Transport::HTTP.build(
-            api_instance_class: Stats::API::Instance,
             agent_settings: agent_settings,
             logger: logger,
             headers: {

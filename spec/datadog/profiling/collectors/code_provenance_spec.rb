@@ -119,6 +119,34 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
       )
     end
 
+    context "#bundler_bin_path" do
+      let(:bundler_bin_path) { code_provenance.send(:bundler_bin_path) }
+
+      it 'matches Bundler.bin_path' do
+        expect(bundler_bin_path).to eq(Bundler.bin_path.to_s)
+      end
+
+      context 'when an exception gets raised' do
+        before do
+          code_provenance # Trigger initialization
+
+          allow(Bundler).to receive(:root).and_raise(Exception.new("test exception"))
+        end
+
+        it 'logs a debug message' do
+          expect(Datadog.logger).to receive(:debug).with(/CodeProvenance#bundler_bin_path failed/)
+
+          bundler_bin_path
+        end
+
+        it 'returns nil' do
+          allow(Datadog.logger).to receive(:debug)
+
+          expect(bundler_bin_path).to be_nil
+        end
+      end
+    end
+
     context "when a native ruby filename is provided" do
       let(:ruby_native_filename) { "/some/path/to/libruby.so.1.2.3" }
 

@@ -91,7 +91,7 @@ module Datadog
 
           private
 
-          def trace: (Proc callable, String trace_key, (String | nil) resource, ?^(SpanOperation) -> void before, ?^(SpanOperation) -> void after, **untyped kwargs) ?{ (SpanOperation) -> void } -> untyped
+          def trace: (Proc callable, String trace_key, (String | nil) resource, ?(^(SpanOperation) -> void)? before, ?(^(SpanOperation) -> void)? after, **untyped kwargs) ?{ (SpanOperation) -> void } -> untyped
 
           def multiplex_resource: (GraphQL::Execution::Multiplex? multiplex) -> String?
 

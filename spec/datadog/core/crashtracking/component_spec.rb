@@ -198,14 +198,15 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       let(:parsed_request) { JSON.parse(request.body, symbolize_names: true) }
       let(:crash_report) { parsed_request.fetch(:payload).first }
       let(:crash_report_message) { JSON.parse(crash_report.fetch(:message), symbolize_names: true) }
+      let(:crash_report_experimental) { crash_report_message.fetch(:experimental) }
       let(:stack_trace) { crash_report_message.fetch(:error).fetch(:stack).fetch(:frames) }
 
       # NOTE: If any of these tests seem flaky, the `upload_timeout_seconds` may need to be raised (or otherwise
       # we need to tweak libdatadog to not need such high timeouts).
 
       [
-        [:fiddle, "rb_fiddle_free", proc { Fiddle.free(42) }],
-        [:signal, "rb_f_kill", proc { Process.kill("SEGV", Process.pid) }],
+        [:fiddle, 'rb_fiddle_free', proc { Fiddle.free(42) }],
+        [:signal, 'rb_f_kill', proc { Process.kill('SEGV', Process.pid) }],
       ].each do |trigger_name, function, trigger|
         it "reports crashes via http when app crashes with #{trigger_name}" do
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
@@ -213,10 +214,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             crash_tracker.start
             trigger.call
           end
-
           expect(stack_trace).to match(array_including(hash_including(function: function)))
           expect(stack_trace.size).to be > 10
-
           expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
 
           expect(crash_report_message[:metadata]).to include(
@@ -316,6 +315,71 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
               )
             )
           end
+        end
+      end
+
+      describe 'Ruby and C method runtime stack capture' do
+        let(:runtime_stack) { crash_report_experimental[:runtime_stack] }
+
+        before do
+          raise 'This spec requires profiling (native extension not available)' unless Datadog::Profiling.supported?
+        end
+
+        it 'captures both Ruby and C method frames in mixed stacks' do
+          expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
+            crash_stack_helper_class = Class.new do
+              def top_level_ruby_method
+                ruby_method_with_c_calls
+              end
+
+              def ruby_method_with_c_calls
+                'hello world'.gsub('world') do |_match|
+                  {a: 1, b: 2}.each do |_key, _value|
+                    Fiddle.free(42)
+                  end
+                end
+              end
+            end
+
+            crash_tracker = build_crashtracker(agent_base_url: agent_base_url)
+            crash_tracker.start
+
+            crash_stack_helper_class.new.top_level_ruby_method
+          end
+
+          frames = runtime_stack[:frames]
+
+          # Check that the crashing function is captured
+          expect(frames).to include(
+            hash_including(
+              function: 'free'
+            )
+          )
+
+          # Sanity check some frames
+          expect(frames).to include(
+            hash_including(
+              function: 'ruby_method_with_c_calls'
+            )
+          )
+
+          expect(frames).to include(
+            hash_including(
+              function: 'top_level_ruby_method'
+            )
+          )
+
+          expect(frames).to include(
+            hash_including(
+              function: 'each'
+            )
+          )
+
+          expect(frames).to include(
+            hash_including(
+              function: 'gsub'
+            )
+          )
         end
       end
     end

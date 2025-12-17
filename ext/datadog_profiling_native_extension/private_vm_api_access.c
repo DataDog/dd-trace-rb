@@ -76,6 +76,18 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #endif
 }
 
+size_t sizeof_rb_iseq_t(void) {
+  return sizeof(rb_iseq_t);
+}
+
+VALUE ddtrace_iseq_base_label(const void *iseq) {
+  return rb_iseq_base_label((const rb_iseq_t *)iseq);
+}
+
+VALUE ddtrace_iseq_path(const void *iseq) {
+  return rb_iseq_path((const rb_iseq_t *)iseq);
+}
+
 // Queries if the current thread is the owner of the global VM lock.
 //
 // @ivoanjo: Ruby has a similarly-named `ruby_thread_has_gvl_p` but that API is insufficient for our needs because it can
