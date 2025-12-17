@@ -73,7 +73,7 @@ RSpec.describe Datadog::Core::Transport::Response do
         it 'includes truncated payload' do
           # We truncate the payload to approximately 5000 bytes and
           # then there are the other fields.
-          expect(inspect.length).to be < 5_200
+          expect(inspect.length).to be < 2_200
           expect(inspect).to match(/payload:hello aaaa.*aaaaa world/)
         end
       end
