@@ -85,12 +85,13 @@ module Datadog
         )
         timeout = get_metrics_config_with_fallback(option_name: :timeout_millis)
         headers = get_metrics_config_with_fallback(option_name: :headers)
-        protocol = get_metrics_config_with_fallback(option_name: :protocol)
+        # OpenTelemetry SDK only supports http/protobuf protocol.
+        # TODO: Add support for http/json and grpc.
+        # protocol = get_metrics_config_with_fallback(option_name: :protocol)
         exporter = Datadog::OpenTelemetry::SDK::MetricsExporter.new(
           endpoint: endpoint,
           timeout: timeout / 1000.0,
-          headers: headers,
-          protocol: protocol
+          headers: headers
         )
 
         reader = ::OpenTelemetry::SDK::Metrics::Export::PeriodicMetricReader.new(
