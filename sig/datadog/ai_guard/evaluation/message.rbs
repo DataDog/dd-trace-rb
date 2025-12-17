@@ -14,9 +14,9 @@ module Datadog
 
         def initialize: (
           role: ::String | ::Symbol,
-          ?content: ::String,
-          ?tool_call: ToolCall,
-          ?tool_call_id: ::String
+          ?content: ::String?,
+          ?tool_call: ToolCall?,
+          ?tool_call_id: ::String?
         ) -> void
 
         def tool_call?: () -> bool
