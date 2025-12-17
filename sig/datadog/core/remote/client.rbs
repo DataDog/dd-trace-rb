@@ -18,9 +18,11 @@ module Datadog
 
         attr_reader capabilities: Capabilities
 
+	attr_reader settings: untyped
+
 	attr_reader logger: Core::Logger
 
-        def initialize: (Datadog::Core::Remote::Transport::Config::Transport transport, Capabilities capabilities, ?logger: Core::Logger, ?repository: Configuration::Repository) -> void
+        def initialize: (Datadog::Core::Remote::Transport::Config::Transport transport, Capabilities capabilities, settings: untyped, logger: Core::Logger, ?repository: Configuration::Repository) -> void
 
         def sync: () -> void
 
