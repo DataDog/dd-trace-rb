@@ -41,7 +41,9 @@ module Datadog
           # Truncation thresholds are arbitrary but we need to truncate the
           # payload here because outputting multi-MB request body to the
           # log is not useful.
-          if payload.length > 5000
+          #
+          # Note that payload can be nil here.
+          if payload&.length > 5000
             payload = Utils::Truncation.truncate_in_middle(payload, 3500, 1500)
           end
           "#{self.class} ok?:#{ok?},#{maybe_code} unsupported?:#{unsupported?}, " \
