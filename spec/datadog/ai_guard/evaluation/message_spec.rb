@@ -26,26 +26,4 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
       )
     end
   end
-
-  describe "#tool_call?" do
-    it "returns true when @tool_call attribute is set" do
-      tool_call = Datadog::AIGuard::Evaluation::ToolCall.new("ls", id: "1", arguments: "-la")
-
-      expect(described_class.new(role: :assistant, tool_call: tool_call)).to be_tool_call
-    end
-
-    it "returns false when @tool_call attribute is not set" do
-      expect(described_class.new(role: :assistant)).not_to be_tool_call
-    end
-  end
-
-  describe "#tool_output?" do
-    it "returns true when @tool_call_id attribute is set" do
-      expect(described_class.new(role: :assistant, tool_call_id: "1")).to be_tool_output
-    end
-
-    it "returns false when @tool_call_id attribute is not set" do
-      expect(described_class.new(role: :assistant)).not_to be_tool_output
-    end
-  end
 end

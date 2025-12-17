@@ -27,14 +27,14 @@ module Datadog
 
           Tracing.trace(Ext::SPAN_NAME) do |span, trace|
             if (last_message = messages.last)
-              if last_message.tool_call?
+              if last_message.tool_call
                 span.set_tag(Ext::TARGET_TAG, "tool")
                 span.set_tag(Ext::TOOL_NAME_TAG, last_message.tool_call.tool_name)
-              elsif last_message.tool_output?
+              elsif last_message.tool_call_id
                 span.set_tag(Ext::TARGET_TAG, "tool")
 
                 if (tool_call_message = messages.find { |m| m.tool_call&.id == last_message.tool_call_id })
-                  span.set_tag(Ext::TOOL_NAME_TAG, tool_call_message.tool_call.tool_name)
+                  span.set_tag(Ext::TOOL_NAME_TAG, tool_call_message.tool_call.tool_name) # steep:ignore
                 end
               else
                 span.set_tag(Ext::TARGET_TAG, "prompt")

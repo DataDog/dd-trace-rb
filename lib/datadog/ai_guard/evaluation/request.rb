@@ -47,7 +47,7 @@ module Datadog
           serialized_messages = []
 
           messages.each do |message|
-            if serialized_messages.last&.key?(:tool_calls) && message.tool_call?
+            if serialized_messages.last&.key?(:tool_calls) && message.tool_call
               # collapse subsequent tool calls
               serialized_messages.last.fetch(:tool_calls) << serialize_message(message).fetch(:tool_calls).first
             else
@@ -61,7 +61,7 @@ module Datadog
         end
 
         def serialize_message(message)
-          if message.tool_call?
+          if message.tool_call
             {
               role: message.role,
               tool_calls: [
@@ -74,7 +74,7 @@ module Datadog
                 }
               ]
             }
-          elsif message.tool_output?
+          elsif message.tool_call_id
             {role: message.role, tool_call_id: message.tool_call_id, content: truncate_content(message.content)}
           else
             {role: message.role, content: truncate_content(message.content)}

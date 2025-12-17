@@ -25,14 +25,6 @@ module Datadog
             raise ArgumentError, "Invalid role \"#{role}\", valid roles are: #{VALID_ROLES.join(", ")}"
           end
         end
-
-        def tool_call?
-          !!@tool_call
-        end
-
-        def tool_output?
-          !!@tool_call_id
-        end
       end
     end
   end

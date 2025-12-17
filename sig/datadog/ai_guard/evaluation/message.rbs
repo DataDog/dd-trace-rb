@@ -8,9 +8,9 @@ module Datadog
         VALID_ROLES: ::Array[::String]
 
         attr_reader role: ::String
-        attr_reader content: ::String
-        attr_reader tool_call: ToolCall
-        attr_reader tool_call_id: ::String
+        attr_reader content: ::String?
+        attr_reader tool_call: ToolCall?
+        attr_reader tool_call_id: ::String?
 
         def initialize: (
           role: ::String | ::Symbol,
@@ -18,10 +18,6 @@ module Datadog
           ?tool_call: ToolCall?,
           ?tool_call_id: ::String?
         ) -> void
-
-        def tool_call?: () -> bool
-
-        def tool_output?: () -> bool
       end
     end
   end
