@@ -49,7 +49,7 @@ module Datadog
               validate_kind!(kind)
               @instrumented_count[kind] || 0
             else
-              @instrumented_count.inject(0) do |sum, (kind, count)|
+              @instrumented_count.inject(0) do |sum, (_kind, count)|
                 sum + count
               end
             end
