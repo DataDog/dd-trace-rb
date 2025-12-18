@@ -8,6 +8,8 @@ require 'datadog/di/spec_helper'
 # +integration+ subdirectory do.
 
 RSpec.describe 'DI remote config' do
+  di_test
+
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   let(:settings) do
