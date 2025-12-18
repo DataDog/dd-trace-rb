@@ -96,6 +96,9 @@ env = {
 ].each do |gem|
   version = gem_version_mapping.delete(gem)
 
+  # This hardcoded dependency list actually depends on the lockfile contents,
+  # which is per-version. The better solution is of course to refactor this to
+  # not hardcode the list and use solely what was locked.
   next if version.nil?
 
   gem_install_cmd = "gem install #{gem} "\
