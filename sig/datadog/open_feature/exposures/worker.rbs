@@ -20,6 +20,7 @@ module Datadog
         @transport: Transport::HTTP
         @telemetry: Core::Telemetry::Component
         @batch_builder: BatchBuilder
+        @buffer_limit: ::Integer
 
         def initialize: (
           settings: Core::Configuration::Settings,
