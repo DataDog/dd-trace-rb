@@ -25,8 +25,8 @@ Datadog.configure do |c|
   end
 end
 
-require_relative './basic'
-require_relative './health'
+require_relative 'basic'
+require_relative 'health'
 
 class Acme < Sinatra::Base
   # # Use Sinatra App as middleware
