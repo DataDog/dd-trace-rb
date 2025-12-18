@@ -23,16 +23,16 @@ module Datadog
         :agent_settings
 
       # @param [Datadog::Tracing::Transport::Traces::Transport] transport a custom transport instance.
-      #   If provided, overrides `transport_options` and `agent_settings`.
-      # @param [Hash<Symbol,Object>] transport_options options for the default transport instance.
+      #   If provided, overrides `agent_settings`.
+      # @param [Hash<Symbol,Object>] Accepted for backward compatibility, but deprecated and ignored.
       # @param [Datadog::Tracing::Configuration::AgentSettings] agent_settings agent options for
       #   the default transport instance.
-      def initialize(transport: nil, transport_options: {}, agent_settings: nil, logger: Datadog.logger)
+      def initialize(transport: nil, transport_options: nil, agent_settings: nil, logger: Datadog.logger)
         @logger = logger
         @agent_settings = agent_settings
 
         @transport = transport || begin
-          Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
+          Transport::HTTP.default(agent_settings: agent_settings, logger: logger)
         end
 
         @events = Writer::Events.new

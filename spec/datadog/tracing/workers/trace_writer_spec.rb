@@ -25,20 +25,6 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
       it { expect(writer.transport).to be transport }
     end
 
-    context 'given :transport_options' do
-      let(:options) { {transport_options: transport_options} }
-
-      let(:transport_options) { {api_version: 42} }
-
-      before do
-        expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-          .with(transport_options.merge(agent_settings: test_agent_settings, logger: Datadog.logger))
-          .and_return(transport)
-      end
-
-      it { expect(writer.transport).to be transport }
-    end
-
     context 'given :agent_settings' do
       let(:options) { {agent_settings: agent_settings} }
       let(:agent_settings) { double('AgentSettings') }
@@ -49,20 +35,6 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
           .and_return(transport)
 
         expect(writer.transport).to be transport
-      end
-
-      context 'and also :transport_options' do
-        let(:options) { {**super(), transport_options: transport_options} }
-
-        let(:transport_options) { {api_version: 42} }
-
-        before do
-          expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-            .with(agent_settings: agent_settings, logger: Datadog.logger, api_version: 42)
-            .and_return(transport)
-        end
-
-        it { expect(writer.transport).to be transport }
       end
     end
   end
