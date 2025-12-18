@@ -94,6 +94,19 @@ module Datadog
       # matches.
       def add_probe(probe)
         @lock.synchronize do
+          if @installed_probes[probe.id]
+            # Either this probe was already installed, or another probe was
+            # installed with the same id (previous version perhaps?).
+            # Since our state tracking is keyed by probe id, we cannot
+            # install this probe since we won't have a way of removing the
+            # instrumentation for the probe with the same id which is already
+            # installed.
+            #
+            # The exception raised here will be caught below and logged and
+            # reported to telemetry.
+            raise Error::AlreadyInstrumented, "Probe with id #{probe.id} is already in installed probes"
+          end
+
           # Probe failed to install previously, do not try to install it again.
           if msg = @failed_probes[probe.id]
             # TODO test this path
