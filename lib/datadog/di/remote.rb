@@ -12,8 +12,6 @@ module Datadog
     #
     # @api private
     module Remote
-      class ReadError < StandardError; end
-
       class << self
         PRODUCT = 'LIVE_DEBUGGING'
 
@@ -131,13 +129,7 @@ module Datadog
         private
 
         def parse_content(content)
-          data = content.data.read
-
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          JSON.parse(data)
+          JSON.parse(content.data)
         end
       end
     end

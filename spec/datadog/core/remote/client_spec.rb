@@ -324,15 +324,15 @@ RSpec.describe Datadog::Core::Remote::Client do
               [
                 {
                   path: 'datadog/603646/ASM_DATA/blocked_ips/config',
-                  content: StringIO.new(new_blocked_ips)
+                  content: new_blocked_ips,
                 },
                 {
                   path: 'datadog/603646/ASM/exclusion_filters/config',
-                  content: StringIO.new(exclusions)
+                  content: exclusions,
                 },
                 {
                   path: 'datadog/603646/ASM_DD/latest/config',
-                  content: StringIO.new(rules_data)
+                  content: rules_data,
                 }
               ]
             )
