@@ -11,8 +11,9 @@ module Datadog
         class TargetMap < Hash
           class << self
             def parse(hash)
-              opaque_backend_state = hash['signed']['custom']['opaque_backend_state']
-              version = hash['signed']['version']
+              signed = hash.fetch('signed')
+              opaque_backend_state = signed.dig('custom', 'opaque_backend_state')
+              version = signed.fetch('version')
 
               map = new
 
@@ -21,7 +22,7 @@ module Datadog
                 @version = version
               end
 
-              hash['signed']['targets'].each_with_object(map) do |(p, t), m|
+              signed.fetch('targets').each_with_object(map) do |(p, t), m|
                 path = Configuration::Path.parse(p)
                 target = Configuration::Target.parse(t)
 
@@ -46,9 +47,9 @@ module Datadog
         class Target
           class << self
             def parse(hash)
-              length = Integer(hash['length'])
-              digests = Configuration::DigestList.parse(hash['hashes'])
-              version = Integer(hash['custom']['v'])
+              length = Integer(hash.fetch('length'))
+              digests = Configuration::DigestList.parse(hash.fetch('hashes'))
+              version = Integer(hash.dig('custom', 'v'))
 
               new(digests: digests, length: length, version: version)
             end
