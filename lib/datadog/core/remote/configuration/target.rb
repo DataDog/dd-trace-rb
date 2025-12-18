@@ -12,6 +12,10 @@ module Datadog
           class << self
             def parse(hash)
               signed = hash.fetch('signed')
+              # Note that the +dig+ call permits +hash['signed']+ to be
+              # missing the +custom+ subtree entirely.
+              # Previously the subtree was required but +opaque_backend_state+
+              # could still be missing (and obtained here as nil).
               opaque_backend_state = signed.dig('custom', 'opaque_backend_state')
               version = signed.fetch('version')
 
