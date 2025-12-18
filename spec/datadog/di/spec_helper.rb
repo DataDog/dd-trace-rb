@@ -64,6 +64,7 @@ module DIHelpers
             [rc_key_for_probe_id(k), target_payload_for_value(v)]
           end.to_h,
           'version' => 0,
+          'custom' => {},
         },
       }
     end
