@@ -2,11 +2,10 @@
 
 require 'json'
 
-require_relative '../traces'
 require_relative '../../../core/transport/http/response'
 require_relative '../../../core/transport/http/api/endpoint'
-require_relative '../../../core/transport/http/api/spec'
 require_relative '../../../core/transport/http/api/instance'
+require_relative '../traces'
 
 module Datadog
   module Tracing
@@ -27,48 +26,14 @@ module Datadog
           end
 
           module API
-            # HTTP API Spec
-            class Spec < Core::Transport::HTTP::API::Spec
-              attr_accessor :traces
-
-              def send_traces(env, &block)
-                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('traces', self) if traces.nil?
-
-                traces.call(env, &block)
-              end
-
-              def encoder
-                traces.encoder
-              end
-            end
-
-            # HTTP API Instance
-            class Instance < Core::Transport::HTTP::API::Instance
-              def send_traces(env)
-                unless spec.is_a?(Traces::API::Spec)
-                  raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-                    'traces', self
-                  )
-                end
-
-                spec.send_traces(env) do |request_env|
-                  call(request_env)
-                end
-              end
-            end
-
             # Endpoint for submitting trace data
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               HEADER_CONTENT_TYPE = 'Content-Type'
               HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'
               SERVICE_RATE_KEY = 'rate_by_service'
 
-              attr_reader \
-                :encoder
-
               def initialize(path, encoder, options = {})
-                super(:post, path)
-                @encoder = encoder
+                super(:post, path, encoder: encoder)
                 @service_rates = options.fetch(:service_rates, false)
               end
 

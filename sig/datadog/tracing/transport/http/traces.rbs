@@ -18,19 +18,7 @@ module Datadog
           end
 
           module API
-            class Spec < Core::Transport::HTTP::API::Spec
-              attr_accessor traces: untyped
-
-              def send_traces: (untyped env) { (?) -> untyped } -> untyped
-
-              def encoder: () -> untyped
-            end
-            class Instance < Core::Transport::HTTP::API::Instance
-              def send_traces: (untyped env) -> untyped
-            end
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-              @encoder: untyped
-
               @service_rates: untyped
 
               HEADER_CONTENT_TYPE: "Content-Type"
@@ -38,8 +26,6 @@ module Datadog
               HEADER_TRACE_COUNT: "X-Datadog-Trace-Count"
 
               SERVICE_RATE_KEY: "rate_by_service"
-
-              attr_reader encoder: untyped
 
               def initialize: (untyped path, untyped encoder, ?::Hash[untyped, untyped] options) -> void
 

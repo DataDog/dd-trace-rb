@@ -590,16 +590,15 @@ RSpec.describe 'Instrumentation integration' do
               snapshot.fetch(:message) =~ /\Ahello (\d+\.\d+) ms\z/
               value = Float($1)
               # Actual execution time varies greatly in CI.
-              # A method that returns an integer will ordinarily report a
-              # duration on the order of 1 millisecond.
-              # However, one time the duration reported was exactly zero.
-              # After the test method was made longer to definitely take
-              # a non-zero amount of time to execute, on one CI run it took
-              # 1.8 seconds.
-              # Therefore, the current brackets are strictly greater than
-              # zero seconds and under 4 seconds.
+              # We had a test run where the method was reported to take
+              # exactly zero seconds, and also 26 and 40 seconds.
+              # The current version calls Process.clock_gettime directly
+              # instead of using our helper which could invoke customer code
+              # and also be mocked.
+              # Go back to requiring the runtime to be under one second.
+              # The reported duration in local test runs is about 0.03 seconds.
               expect(value).to be > 0
-              expect(value).to be < 4
+              expect(value).to be < 1
             end
             expect(InstrumentationSpecTestClass.new.long_test_method).to eq(42)
             component.probe_notifier_worker.flush

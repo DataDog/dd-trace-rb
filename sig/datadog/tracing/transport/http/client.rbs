@@ -3,6 +3,7 @@ module Datadog
     module Transport
       module HTTP
         class Client < Core::Transport::HTTP::Client
+          include Datadog::Tracing::Transport::Statistics
           include Datadog::Tracing::Transport::HTTP::Statistics
         end
       end

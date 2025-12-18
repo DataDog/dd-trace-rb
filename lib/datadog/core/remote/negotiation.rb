@@ -9,7 +9,7 @@ module Datadog
       class Negotiation
         attr_reader :logger
 
-        def initialize(_settings, agent_settings, logger: Datadog.logger, suppress_logging: {})
+        def initialize(_settings, agent_settings, logger:, suppress_logging: {})
           @logger = logger
           @transport_root = Datadog::Core::Remote::Transport::HTTP.root(agent_settings: agent_settings, logger: logger)
           @logged = suppress_logging

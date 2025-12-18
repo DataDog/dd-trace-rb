@@ -16,24 +16,10 @@ module Datadog
             attr_reader span_events: bool
           end
 
-          class Transport
-            attr_reader client: untyped
-
-            attr_reader apis: untyped
-
-            attr_reader default_api: untyped
-
-            attr_reader current_api_id: untyped
-
-            attr_reader logger: untyped
-
-            def initialize: (untyped apis, untyped default_api, ?logger: Core::Logger) -> void
-
+          class Transport < Core::Transport::Transport
             type send_info_return = HTTP::Negotiation::Response & Core::Transport::InternalErrorResponse
 
             def send_info: () -> send_info_return
-
-            def current_api: () -> untyped
           end
         end
       end
