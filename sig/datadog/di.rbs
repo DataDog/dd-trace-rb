@@ -4,7 +4,7 @@ module Datadog
 
     def self.enabled?: () -> bool
     def self.component: () -> Component
-    def self.instrumented_count: (?Symbol kind) -> Integer
+    def self.instrumented_count: (?Symbol? kind) -> Integer
 
     def self.instrumented_count_inc: (Symbol kind) -> void
 
