@@ -80,7 +80,7 @@ module Datadog
       end
 
       private def validate_kind!(kind)
-        unless %i(line method).include?(kind)
+        unless %i[line method].include?(kind)
           raise ArgumentError, "Invalid kind: #{kind}"
         end
       end

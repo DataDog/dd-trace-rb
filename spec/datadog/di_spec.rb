@@ -3,7 +3,9 @@ require 'spec_helper'
 RSpec.describe(Datadog::DI) do
   describe 'instrumentation counters' do
     before do
-      described_class.remove_instance_variable('@instrumented_count') rescue nil
+      described_class.remove_instance_variable('@instrumented_count')
+    rescue
+      nil
     end
 
     # The retrieval of kind-scoped count is tested in the inc/dec blocks.
