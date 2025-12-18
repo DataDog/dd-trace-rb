@@ -14,7 +14,7 @@ fi
 ## Obtain injector source
 
 injector_repo="https://github.com/DataDog/datadog-injector-rb.git"
-injector_ref="v1.1.0"
+injector_ref="v1.1.1"
 injector_path="${HOME}/datadog-injector-rb"
 
 git clone "${injector_repo}" --branch "${injector_ref}" "${injector_path}"
