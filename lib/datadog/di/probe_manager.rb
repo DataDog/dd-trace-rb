@@ -185,6 +185,7 @@ module Datadog
                   # TODO is it OK to hook from trace point handler?
                   # TODO the class is now defined, but can hooking still fail?
                   instrumenter.hook(probe, self)
+                  @installed_probes[probe.id] = probe
                   @pending_probes.delete(probe.id)
                   break
                 rescue Error::DITargetNotDefined
