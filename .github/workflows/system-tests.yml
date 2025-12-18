@@ -77,7 +77,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@1ac4f3f8cfb95d879d61ac6aaee883793e8540aa  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@badfb645e23d93d0fa7931d20fc34890164f01c1  # Automated: This reference is automatically updated.
     secrets:
       TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}  # key used to pushed test results to test optim
       DD_API_KEY: ${{ secrets.DD_API_KEY }}  # key used in tests runs
@@ -91,7 +91,7 @@ jobs:
       desired_execution_time: 300  # 5 minutes
       scenarios_groups: tracer_release
       skip_empty_scenarios: true
-      ref: 1ac4f3f8cfb95d879d61ac6aaee883793e8540aa  # Automated: This reference is automatically updated.
+      ref: badfb645e23d93d0fa7931d20fc34890164f01c1  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
       push_to_test_optimization: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
