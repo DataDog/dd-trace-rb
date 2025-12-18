@@ -125,7 +125,7 @@ module Datadog
           # To do this, we {Enumerable#partition} the list between v1 and v2,
           # with a `true` predicate for v2 entries, making v2 first
           # partition returned.
-          # 
+          #
           # All v2 entries have the `hierarchy` set to zero.
           # v1 entries have a non-zero `hierarchy`.
           entries = Cgroup.entries.partition { |d| d.hierarchy == '0' }.flatten(1)
