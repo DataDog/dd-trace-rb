@@ -17,7 +17,9 @@ module Datadog
               # Previously the subtree was required but +opaque_backend_state+
               # could still be missing (and obtained here as nil).
               opaque_backend_state = signed.dig('custom', 'opaque_backend_state')
-              version = signed.fetch('version')
+              # The version appears to be optional to the rest of this class,
+              # and we have tests that do not provide it.
+              version = signed['version']
 
               map = new
 
