@@ -1,7 +1,17 @@
 module Datadog
   module DI
-    def self.component: () -> Component?
+    INSTRUMENTED_COUNTERS_LOCK: Mutex
+
     def self.enabled?: () -> bool
-    
+    def self.component: () -> Component
+    def self.instrumented_count: (?Symbol kind) -> Integer
+
+    def self.instrumented_count_inc: (Symbol kind) -> void
+
+    def self.instrumented_count_dec: (Symbol kind) -> void
+
+    private
+
+    def self.validate_kind!: (Symbol kind) -> void
   end
 end
