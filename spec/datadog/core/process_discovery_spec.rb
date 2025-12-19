@@ -115,8 +115,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       double(Datadog::Core::Configuration::Settings,
         service: 'dummy',
         env: 'dummy',
-        version: 'dummy',
-      )
+        version: 'dummy',)
     end
 
     it 'updates the process discovery file descriptor' do
