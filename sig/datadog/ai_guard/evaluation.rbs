@@ -4,6 +4,10 @@ module Datadog
       def self.perform: (::Array[Message] messages, ?allow_raise: bool) -> Result
 
       def self.perform_no_op: () -> NoOpResult
+
+      private
+
+      def self.truncate_content: (::Array[Request::serialized_message]) -> ::Array[Request::serialized_message]
     end
   end
 end

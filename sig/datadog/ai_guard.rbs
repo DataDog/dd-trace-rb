@@ -1,9 +1,11 @@
 module Datadog
   module AIGuard
     class Interrupt < StandardError
+      @action: ::String
       @reason: ::String
+      @tags: ::Array[::String]
 
-      def initialize: (::String reason) -> void
+      def initialize: (action: ::String, reason: ::String, tags: ::Array[::String]) -> void
 
       def to_s: () -> ::String
     end

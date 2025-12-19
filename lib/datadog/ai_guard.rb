@@ -11,12 +11,14 @@ module Datadog
     # This error is raised when user passes `allow_raise: true` to Evaluation.perform
     # and AI Guard considers the messages not safe. Intended to be rescued by the user.
     class Interrupt < StandardError
-      attr_reader :reason
+      attr_reader :action, :reason, :tags
 
-      def initialize(reason)
+      def initialize(action:, reason:, tags:)
         super()
 
+        @action = action
         @reason = reason
+        @tags = tags
       end
 
       def to_s

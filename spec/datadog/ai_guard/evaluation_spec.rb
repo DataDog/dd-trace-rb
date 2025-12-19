@@ -141,6 +141,16 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         )
       end
 
+      it "truncates metastruct messages content" do
+        allow(Datadog.configuration.ai_guard).to receive(:max_content_size_bytes).and_return(8)
+
+        perform
+
+        expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)).to eq(
+          [{content: "Do somet", role: :user}]
+        )
+      end
+
       it "sets ai_guard metastruct tag with empty attack categories" do
         perform
 

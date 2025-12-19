@@ -33,12 +33,15 @@ module Datadog
 
             span.set_metastruct_tag(
               Ext::METASTRUCT_TAG,
-              {messages: request.serialized_messages, attack_categories: result.tags}
+              {
+                messages: truncate_content(request.serialized_messages),
+                attack_categories: result.tags
+              }
             )
 
             if allow_raise && (result.deny? || result.abort?) && result.blocking_enabled?
               span.set_tag(Ext::BLOCKED_TAG, true)
-              raise Interrupt, result.reason
+              raise Interrupt.new(action: result.action, reason: result.reason, tags: result.tags)
             end
 
             result
@@ -49,6 +52,19 @@ module Datadog
           AIGuard.logger&.warn("AI Guard is disabled, messages were not evaluated")
 
           NoOpResult.new
+        end
+
+        private
+
+        def truncate_content(serialized_messages)
+          serialized_messages.map do |message| # steep:ignore
+            next message unless message[:content]
+
+            {
+              **message,
+              content: message[:content].byteslice(0, Datadog.configuration.ai_guard.max_content_size_bytes)
+            }
+          end
         end
       end
     end

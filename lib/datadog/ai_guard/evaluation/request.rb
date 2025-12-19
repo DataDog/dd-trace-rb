@@ -70,16 +70,10 @@ module Datadog
               ]
             }
           elsif message.tool_call_id
-            {role: message.role, tool_call_id: message.tool_call_id, content: truncate_content(message.content)}
+            {role: message.role, tool_call_id: message.tool_call_id, content: message.content}
           else
-            {role: message.role, content: truncate_content(message.content)}
+            {role: message.role, content: message.content}
           end
-        end
-
-        def truncate_content(content)
-          return unless content
-
-          content.byteslice(0, Datadog.configuration.ai_guard.max_content_size_bytes)
         end
       end
     end

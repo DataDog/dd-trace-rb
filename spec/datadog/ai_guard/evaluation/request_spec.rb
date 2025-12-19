@@ -110,29 +110,5 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
         {role: :user, content: "Message 2"}
       ])
     end
-
-    it "truncates large content" do
-      allow(Datadog.configuration.ai_guard).to receive(:max_content_size_bytes).and_return(8)
-
-      request = described_class.new([
-        Datadog::AIGuard.message(role: :user, content: "Some message"),
-        Datadog::AIGuard.tool(tool_call_id: "call-1", content: "Some output")
-      ])
-
-      expect(request.serialized_messages).to eq([
-        {role: :user, content: "Some mes"},
-        {role: :tool, tool_call_id: "call-1", content: "Some out"}
-      ])
-    end
-
-    it "correctly truncates UTF-8 content" do
-      allow(Datadog.configuration.ai_guard).to receive(:max_content_size_bytes).and_return(8)
-
-      request = described_class.new([
-        Datadog::AIGuard.message(role: :user, content: "Привет")
-      ])
-
-      expect(request.serialized_messages).to eq([{role: :user, content: "Прив"}])
-    end
   end
 end
