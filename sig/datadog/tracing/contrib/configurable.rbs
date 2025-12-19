@@ -4,6 +4,9 @@ module Datadog
       module Configurable
         def self.included: (untyped base) -> untyped
         module InstanceMethods
+          @default_configuration: Contrib::Configuration::Settings?
+          @resolver: Contrib::Configuration::Resolver?
+
           def configuration: (?::Symbol matcher) -> untyped
           def resolve: (untyped value) -> untyped
           def configurations: () -> untyped

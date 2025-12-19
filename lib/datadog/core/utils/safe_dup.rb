@@ -6,7 +6,9 @@ module Datadog
       # Helper methods for safer dup
       module SafeDup
         # String#+@ was introduced in Ruby 2.3
-        def self.frozen_or_dup(v)
+        #
+        # Steep: https://github.com/soutaro/steep/issues/2001
+        def self.frozen_or_dup(v) # steep:ignore MethodBodyTypeMismatch
           # For the case of a String we use the methods +@ and -@.
           # Those methods are only for String objects
           # they are faster and chepaer on the memory side.
