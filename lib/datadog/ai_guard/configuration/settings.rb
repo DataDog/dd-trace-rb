@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'uri'
 require_relative "ext"
 
 module Datadog
@@ -31,15 +32,19 @@ module Datadog
 
               # AI Guard API endpoint path.
               #
-              # @default `DD_AI_GUARD_ENDPOINT`, otherwise /api/v2/ai-guard
+              # @default `DD_AI_GUARD_ENDPOINT`, otherwise `nil`
               # @return [String, nil]
               option :endpoint do |o|
                 o.type :string, nilable: true
                 o.env Ext::ENV_AI_GUARD_ENDPOINT
-                o.default "/api/v2/ai-guard"
 
                 o.setter do |value|
-                  value.to_s.delete_suffix("/")
+                  next unless value
+
+                  uri = URI(value.to_s)
+                  raise ArgumentError, "Please provide an absolute URI that includes a protocol" unless uri.absolute?
+
+                  uri.to_s.delete_suffix("/")
                 end
               end
 

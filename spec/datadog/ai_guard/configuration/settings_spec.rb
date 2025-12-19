@@ -52,29 +52,41 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
           ClimateControl.modify("DD_AI_GUARD_ENDPOINT" => nil) { example.run }
         end
 
-        it { expect(settings.ai_guard.endpoint).to eq("/api/v2/ai-guard") }
+        it { expect(settings.ai_guard.endpoint).to be_nil }
       end
 
       context "when DD_AI_GUARD_ENDPOINT is defined" do
         around do |example|
-          ClimateControl.modify("DD_AI_GUARD_ENDPOINT" => "/api/v2/ai-guard") do
+          ClimateControl.modify("DD_AI_GUARD_ENDPOINT" => "https://ap.datadoghq.com/api/v2/ai-guard") do
             example.run
           end
         end
 
-        it { expect(settings.ai_guard.endpoint).to eq("/api/v2/ai-guard") }
+        it { expect(settings.ai_guard.endpoint).to eq("https://ap.datadoghq.com/api/v2/ai-guard") }
       end
     end
 
     describe "#endpoint=" do
       it "changes endpoint value" do
-        expect { settings.ai_guard.endpoint = "/path/to/ai-guard" }
-          .to change { settings.ai_guard.endpoint }.to("/path/to/ai-guard")
+        expect { settings.ai_guard.endpoint = "https://app.datad0g.com/api/v2/ai-guard" }
+          .to change { settings.ai_guard.endpoint }.to("https://app.datad0g.com/api/v2/ai-guard")
       end
 
       it "removes '/' suffix" do
-        expect { settings.ai_guard.endpoint = "/path/to/ai-guard/" }
-          .to change { settings.ai_guard.endpoint }.to("/path/to/ai-guard")
+        expect { settings.ai_guard.endpoint = "https://app.datad0g.com/api/v2/ai-guard/" }
+          .to change { settings.ai_guard.endpoint }.to("https://app.datad0g.com/api/v2/ai-guard")
+      end
+
+      it "raises when a relative URI is provided" do
+        expect { settings.ai_guard.endpoint = "/api/v2/ai-guard" }.to raise_error(
+          ArgumentError, "Please provide an absolute URI that includes a protocol"
+        )
+      end
+
+      it "raises when a URI without a protocol is provided" do
+        expect { settings.ai_guard.endpoint = "app.datadog.com/api/v2/ai-guard" }.to raise_error(
+          ArgumentError, "Please provide an absolute URI that includes a protocol"
+        )
       end
     end
 

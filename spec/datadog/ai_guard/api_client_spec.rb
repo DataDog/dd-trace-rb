@@ -6,7 +6,7 @@ RSpec.describe Datadog::AIGuard::APIClient do
   describe "#post" do
     let(:api_client) do
       described_class.new(
-        endpoint: "/api/v2/ai-guard",
+        endpoint: "https://app.datadoghq.com/api/v2/ai-guard",
         api_key: "api-key",
         application_key: "application-key",
         timeout: 10000

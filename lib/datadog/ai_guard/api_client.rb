@@ -10,6 +10,7 @@ module Datadog
     # Uses net/http to perform request. Raises on client and server errors.
     class APIClient
       DEFAULT_SITE = "app.datadoghq.com"
+      DEFAULT_PATH = "/api/v2/ai-guard"
 
       class HTTPError < StandardError; end
 
@@ -37,8 +38,15 @@ module Datadog
 
       def initialize(endpoint:, api_key:, application_key:, timeout:)
         @timeout = timeout
-        @site = Datadog.configuration.site || DEFAULT_SITE
-        @endpoint = endpoint
+
+        @endpoint_uri = if endpoint
+          URI(endpoint)
+        else
+          URI::HTTPS.build(
+            host: Datadog.configuration.site || DEFAULT_SITE,
+            path: DEFAULT_PATH
+          )
+        end
 
         @headers = {
           "DD-API-KEY": api_key.to_s,
@@ -51,10 +59,8 @@ module Datadog
       end
 
       def post(path, body:)
-        uri = URI::HTTPS.build(host: @site, path: @endpoint + path)
-
-        Net::HTTP.start(uri.host.to_s, uri.port, use_ssl: true, read_timeout: @timeout) do |http|
-          request = Net::HTTP::Post.new(uri.request_uri, @headers)
+        Net::HTTP.start(@endpoint_uri.host.to_s, @endpoint_uri.port, use_ssl: true, read_timeout: @timeout) do |http|
+          request = Net::HTTP::Post.new(@endpoint_uri.request_uri + path, @headers)
           request.body = body.to_json
 
           response = http.request(request)

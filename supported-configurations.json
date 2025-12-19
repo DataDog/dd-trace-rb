@@ -18,9 +18,9 @@
     ],
     "DD_AI_GUARD_ENDPOINT": [
       {
-        "version": "B",
+        "version": "A",
         "type": "string",
-        "default": "/api/v2/ai-guard"
+        "default": ""
       }
     ],
     "DD_AI_GUARD_MAX_CONTENT_SIZE": [
