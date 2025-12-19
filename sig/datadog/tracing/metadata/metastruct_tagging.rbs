@@ -2,6 +2,8 @@ module Datadog
   module Tracing
     module Metadata
       module MetastructTagging
+        @metastruct: Datadog::Tracing::Metadata::Metastruct
+
         def set_metastruct_tag: (String | Symbol key, untyped value) -> untyped
         def get_metastruct_tag: (String | Symbol key) -> untyped
         private def metastruct: () -> Datadog::Tracing::Metadata::Metastruct

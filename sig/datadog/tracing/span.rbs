@@ -20,7 +20,7 @@ module Datadog
       attr_accessor status: Integer
       attr_accessor trace_id: Integer
       attr_writer duration: (Float | nil)
-      attr_reader metastruct: Hash[String | Symbol, untyped]
+      attr_reader metastruct: Datadog::Tracing::Metadata::Metastruct
 
       def initialize: (
           String name,
@@ -29,7 +29,7 @@ module Datadog
           ?id: (Integer | nil),
           ?meta: (Hash[String, String] | nil),
           ?metrics: (Hash[String, Float] | nil),
-          ?metastruct: Hash[String | Symbol, untyped]?,
+          ?metastruct: Datadog::Tracing::Metadata::Metastruct?,
           ?parent_id: Integer,
           ?resource: String,
           ?service: (String | nil),

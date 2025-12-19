@@ -14,7 +14,15 @@ module Datadog
 
         FARGATE_14_CONTAINER_REGEX: untyped
 
-        Descriptor: untyped
+        class Descriptor < ::Struct[[String, String, String]]
+          def self.new: (?String? platform, ?String? container_id, ?String? task_uid) -> instance
+
+          attr_accessor platform: String
+          attr_accessor container_id: String
+          attr_accessor task_uid: String
+        end
+
+        @descriptor: Descriptor?
 
         def self?.platform: () -> untyped
 
