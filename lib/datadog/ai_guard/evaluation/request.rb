@@ -47,12 +47,7 @@ module Datadog
           serialized_messages = []
 
           messages.each do |message|
-            if serialized_messages.last&.key?(:tool_calls) && message.tool_call
-              # collapse subsequent tool calls
-              serialized_messages.last.fetch(:tool_calls) << serialize_message(message).fetch(:tool_calls).first
-            else
-              serialized_messages << serialize_message(message)
-            end
+            serialized_messages << serialize_message(message)
 
             break if serialized_messages.count == Datadog.configuration.ai_guard.max_messages_length
           end

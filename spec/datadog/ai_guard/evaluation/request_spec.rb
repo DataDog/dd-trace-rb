@@ -88,25 +88,6 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
       ])
     end
 
-    it "collapses multiple subsequent tool calls into one message" do
-      request = described_class.new([
-        Datadog::AIGuard.message(role: :user, content: "List files under home"),
-        Datadog::AIGuard.assistant(tool_name: "whoami", id: "call-1", arguments: ""),
-        Datadog::AIGuard.assistant(tool_name: "ls", id: "call-2", arguments: "/Users/bot")
-      ])
-
-      expect(request.serialized_messages).to eq([
-        {role: :user, content: "List files under home"},
-        {
-          role: :assistant,
-          tool_calls: [
-            {id: "call-1", function: {name: "whoami", arguments: ""}},
-            {id: "call-2", function: {name: "ls", arguments: "/Users/bot"}}
-          ]
-        },
-      ])
-    end
-
     it "correctly serializes tool output messages" do
       request = described_class.new([
         Datadog::AIGuard.tool(tool_call_id: "call-1", content: "Some output")
