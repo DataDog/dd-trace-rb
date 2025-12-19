@@ -3,14 +3,6 @@ require 'datadog/statsd'
 
 RSpec.describe 'Datadog integration' do
   context 'graceful shutdown', :integration do
-    before do
-      # TODO: This test is flaky, and the flakiness affects JRuby really often.
-      # Until we can investigate it, let's skip it as the constant failures impact unrelated development.
-      if PlatformHelpers.jruby?
-        skip('TODO: This test is flaky, and triggers very often on JRuby. Requires further investigation.')
-      end
-    end
-
     subject(:shutdown) { Datadog.shutdown! }
 
     let(:start_tracer) do
