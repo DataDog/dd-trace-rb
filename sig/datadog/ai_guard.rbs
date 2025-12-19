@@ -1,5 +1,13 @@
 module Datadog
   module AIGuard
+    class Interrupt < StandardError
+      @reason: ::String
+
+      def initialize: (::String reason) -> void
+
+      def to_s: () -> ::String
+    end
+
     def self.enabled?: () -> bool
 
     def self.api_client: () -> APIClient?

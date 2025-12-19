@@ -1,14 +1,6 @@
 module Datadog
   module AIGuard
     module Evaluation
-      class Interrupt < StandardError
-        @reason: ::String
-
-        def initialize: (::String reason) -> void
-
-        def to_s: () -> ::String
-      end
-
       def self.perform: (::Array[Message] messages, ?allow_raise: bool) -> Result
 
       def self.perform_no_op: () -> NoOpResult

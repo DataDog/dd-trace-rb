@@ -8,6 +8,22 @@ module Datadog
   module AIGuard
     Core::Configuration::Settings.extend(Configuration::Settings)
 
+    # This error is raised when user passes `allow_raise: true` to Evaluation.perform
+    # and AI Guard considers the messages not safe. Intended to be rescued by the user.
+    class Interrupt < StandardError
+      attr_reader :reason
+
+      def initialize(reason)
+        super()
+
+        @reason = reason
+      end
+
+      def to_s
+        "Request interrupted. #{@reason}"
+      end
+    end
+
     class << self
       def enabled?
         Datadog.configuration.ai_guard.enabled
@@ -42,7 +58,7 @@ module Datadog
       #
       # @return [Datadog::AIGuard::Evaluation::Result]
       #   The result of AI Guard evaluation.
-      # @raise [Datadog::AIGuard::Evaluation::Interrupt]
+      # @raise [Datadog::AIGuard::Interrupt]
       #   If the evaluation results in DENY or ABORT action and `allow_raise` is set to true
       # @public_api
       def evaluate(*messages, allow_raise: false)

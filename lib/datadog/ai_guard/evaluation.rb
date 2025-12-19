@@ -5,22 +5,6 @@ module Datadog
     # module that contains a function for performing AI Guard Evaluation request
     # and creating `ai_guard` span with required tags
     module Evaluation
-      # This error is raised when user passes `allow_raise: true` to Evaluation.perform.
-      # It is intended to be rescued by the user.
-      class Interrupt < StandardError
-        attr_reader :reason
-
-        def initialize(reason)
-          super()
-
-          @reason = reason
-        end
-
-        def to_s
-          "Request interrupted. #{@reason}"
-        end
-      end
-
       class << self
         def perform(messages, allow_raise: false)
           raise ArgumentError, "Messages must not be empty" if messages&.empty?
@@ -54,7 +38,7 @@ module Datadog
 
             if allow_raise && (result.deny? || result.abort?)
               span.set_tag(Ext::BLOCKED_TAG, true)
-              raise Evaluation::Interrupt, result.reason
+              raise Interrupt, result.reason
             end
 
             result

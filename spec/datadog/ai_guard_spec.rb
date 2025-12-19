@@ -126,9 +126,9 @@ RSpec.describe Datadog::AIGuard do
           }
         end
 
-        it "raises Datadog::AIGuard::Evaluation::Interrupt when allow_raise is set to true" do
+        it "raises Datadog::AIGuard::Interrupt when allow_raise is set to true" do
           expect { described_class.evaluate(*messages, allow_raise: true) }.to raise_error(
-            Datadog::AIGuard::Evaluation::Interrupt
+            Datadog::AIGuard::Interrupt
           )
         end
 
