@@ -17,7 +17,7 @@ module Datadog
           api_client = AIGuard.api_client
 
           # This should never happen, as we are only calling this method when AI Guard is enabled,
-          # and this means the API Client was initialized properly.
+          # and this means the API Client was not initialized properly.
           #
           # Please report this at https://github.com/datadog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug
           raise "AI Guard API Client not initialized" unless api_client

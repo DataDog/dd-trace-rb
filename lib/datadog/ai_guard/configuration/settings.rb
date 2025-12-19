@@ -63,7 +63,8 @@ module Datadog
               end
 
               # Maximum content size in bytes.
-              # Content that exceeds the maximum allowed size is truncated before being sent to the AI Guard API.
+              # Content that exceeds the maximum allowed size is truncated before
+              # being stored in the current span context.
               #
               # @default `DD_AI_GUARD_MAX_CONTENT_SIZE`, otherwise 524 228 bytes
               # @return [Integer]
@@ -73,8 +74,8 @@ module Datadog
                 o.default 512 * 1024
               end
 
-              # Maximum amount of messages.
-              # Older messages are omitted once the maximum message limit is reached.
+              # Maximum number of messages.
+              # Older messages are omitted once the message limit is reached.
               #
               # @default `DD_AI_GUARD_MAX_MESSAGES_LENGTH`, otherwise 16 messages
               # @return [Integer]
