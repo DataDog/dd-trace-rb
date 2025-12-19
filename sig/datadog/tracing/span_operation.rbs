@@ -2,7 +2,6 @@ module Datadog
   module Tracing
     class SpanOperation
       include Metadata
-      include Metadata::Tagging
       include Metadata::Errors
       prepend Metadata::Analytics
 
@@ -11,6 +10,8 @@ module Datadog
       @duration_start: ::Time?
 
       @duration_end: ::Time?
+
+      @collector: Datadog::ErrorTracking::Collector
 
       attr_reader logger: Core::Logger
 
@@ -102,7 +103,9 @@ module Datadog
 
         DEFAULT_ON_ERROR: on_error
 
-	attr_reader logger: Core::Logger
+        @on_error: OnError
+
+	      attr_reader logger: Core::Logger
 
         attr_reader after_finish: untyped
 
