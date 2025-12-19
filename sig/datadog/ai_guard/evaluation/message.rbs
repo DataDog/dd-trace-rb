@@ -2,11 +2,6 @@ module Datadog
   module AIGuard
     module Evaluation
       class Message
-        class InvalidRoleError < ArgumentError
-        end
-
-        VALID_ROLES: ::Array[::Symbol]
-
         attr_reader role: ::Symbol
         attr_reader content: ::String?
         attr_reader tool_call: ToolCall?

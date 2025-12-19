@@ -9,15 +9,11 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
     end
 
     it "raises an ArgumentError when nil role is passed" do
-      expect { described_class.new(role: nil) }.to raise_error(
-        ArgumentError, "Invalid role \"\", valid roles are: #{described_class::VALID_ROLES.join(", ")}"
-      )
+      expect { described_class.new(role: nil) }.to raise_error(ArgumentError, "Role must be set to a non-empty value")
     end
 
-    it "raises an ArgumentError when invalid role is passed" do
-      expect { described_class.new(role: :foo) }.to raise_error(
-        ArgumentError, "Invalid role \"foo\", valid roles are: #{described_class::VALID_ROLES.join(", ")}"
-      )
+    it "raises an ArgumentError when an empty role is passed" do
+      expect { described_class.new(role: '') }.to raise_error(ArgumentError, "Role must be set to a non-empty value")
     end
 
     it "raises an ArgumentError when :tool_call is not a ToolCall" do
