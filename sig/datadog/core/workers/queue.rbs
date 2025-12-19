@@ -16,7 +16,7 @@ module Datadog
 
         attr_writer buffer: untyped
 
-	def flush: (?Numeric? timeout) -> bool
+	def flush: (?timeout: Numeric?) -> bool
 	
 	private
 	

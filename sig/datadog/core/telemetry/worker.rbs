@@ -39,7 +39,7 @@ module Datadog
 
         def dequeue: () -> Array[Event::Base]
 
-	def flush: (?Numeric? timeout) -> bool
+	def flush: (?timeout: Numeric?) -> bool
 
         private
 

@@ -102,10 +102,10 @@ module Datadog
         # been flushed.
         #
         # @api private
-        def flush(timeout = nil)
+        def flush(timeout: nil)
           # Increase default timeout to 15 seconds - see the comment in
           # +idle?+ for more details.
-          super(timeout || 15)
+          super(timeout: timeout || 15)
         end
 
         private

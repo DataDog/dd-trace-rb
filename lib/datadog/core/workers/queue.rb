@@ -55,7 +55,7 @@ module Datadog
         # submitted at the same or higher rate than it is processed.
         # Flushing can also fail if the worker thread is not running -
         # this method will not flush from the calling thread.
-        def flush(timeout = nil)
+        def flush(timeout: nil)
           # Default timeout is 5 seconds.
           # Specific workers can override it to be more or less
           timeout ||= 5
