@@ -19,10 +19,6 @@ target :datadog do
     # * `:information`, `:hint`: To see these, run `rake 'typecheck[--severity-level=information]'`
     #   or `rake 'typecheck[--severity-level=hint]'`
 
-    # These checks are a bit harder, because they represent the lack of sufficient type information.
-    hash[Ruby::UnknownInstanceVariable] = :information
-    hash[Ruby::UnknownRecordKey] = :information
-
     # This check asks you to type every empty collection used in
     # local variables with an inline type annotation (e.g. `ret = {} #: Hash[Symbol,untyped]`).
     # This pollutes the code base, and demands seemingly unnecessary typing of internal variables.
