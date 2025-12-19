@@ -12,7 +12,8 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           "attributes" => {
             "action" => "ALLOW",
             "reason" => "Because why not",
-            "tags" => []
+            "tags" => [],
+            "is_blocking_enabled" => false
           }
         }
       }
@@ -107,7 +108,8 @@ RSpec.describe Datadog::AIGuard::Evaluation do
             "attributes" => {
               "action" => "ALLOW",
               "reason" => "Because why not",
-              "tags" => []
+              "tags" => [],
+              "is_blocking_enabled" => false
             }
           }
         }
@@ -154,13 +156,15 @@ RSpec.describe Datadog::AIGuard::Evaluation do
               "attributes" => {
                 "action" => blocking_action,
                 "reason" => "Rule matches: indirect-prompt-injection, instruction-override",
-                "tags" => ["indirect-prompt-injection", "instruction-override"]
+                "tags" => ["indirect-prompt-injection", "instruction-override"],
+                "is_blocking_enabled" => blocking_enabled
               }
             }
           }
         end
 
         let(:allow_raise) { false }
+        let(:blocking_enabled) { false }
 
         subject(:perform) do
           described_class.perform(
@@ -221,8 +225,27 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           expect(response.action).to eq(blocking_action)
         end
 
-        context "when allow_raise is set to true" do
+        context "when allow_raise is set to true and result.blocking_enabled? is false" do
           let(:allow_raise) { true }
+          let(:blocking_enabled) { false }
+
+          it "returns AIGuard::Result" do
+            response = perform
+
+            expect(response).to be_a(Datadog::AIGuard::Evaluation::Result)
+            expect(response.action).to eq(blocking_action)
+          end
+
+          it "does not set blocked tag" do
+            perform
+
+            expect(ai_guard_span.tags).not_to have_key("ai_guard.blocked")
+          end
+        end
+
+        context "when allow_raise is set to true and result.blocking_enabled? is true" do
+          let(:allow_raise) { true }
+          let(:blocking_enabled) { true }
 
           it "raises AIGuard::Interrupt" do
             expect { perform }.to raise_error(

@@ -17,6 +17,7 @@ module Datadog
           @action = attributes.fetch("action")
           @reason = attributes.fetch("reason")
           @tags = attributes.fetch("tags")
+          @is_blocking_enabled = attributes.fetch("is_blocking_enabled")
         rescue KeyError => e
           raise APIClient::InvalidResponseBodyError, "Missing key: \"#{e.key}\""
         end
@@ -31,6 +32,10 @@ module Datadog
 
         def abort?
           action == ABORT_ACTION
+        end
+
+        def blocking_enabled?
+          !!@is_blocking_enabled
         end
       end
     end

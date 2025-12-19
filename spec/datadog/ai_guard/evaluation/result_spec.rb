@@ -18,13 +18,15 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
         "attributes" => {
           "action" => action,
           "reason" => "Some reason",
-          "tags" => ["some", "tags"]
+          "tags" => ["some", "tags"],
+          "is_blocking_enabled" => is_blocking_enabled
         }
       }
     }
   end
 
   let(:action) { "DENY" }
+  let(:is_blocking_enabled) { false }
 
   describe "#action" do
     it "returns the action from the response body" do
@@ -41,6 +43,14 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
   describe "#tags" do
     it "returns the tags from the response body" do
       expect(described_class.new(raw_response).tags).to eq(raw_response.dig("data", "attributes", "tags"))
+    end
+  end
+
+  describe "#blocking_enabled?" do
+    it "returns a boolean is_blocking_enabled from the response body" do
+      expect(described_class.new(raw_response).blocking_enabled?).to eq(
+        raw_response.dig("data", "attributes", "is_blocking_enabled")
+      )
     end
   end
 

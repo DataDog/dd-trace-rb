@@ -36,7 +36,7 @@ module Datadog
               {messages: request.serialized_messages, attack_categories: result.tags}
             )
 
-            if allow_raise && (result.deny? || result.abort?)
+            if allow_raise && (result.deny? || result.abort?) && result.blocking_enabled?
               span.set_tag(Ext::BLOCKED_TAG, true)
               raise Interrupt, result.reason
             end

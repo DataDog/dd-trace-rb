@@ -95,7 +95,8 @@ RSpec.describe Datadog::AIGuard do
               "attributes" => {
                 "action" => "ALLOW",
                 "reason" => "No rule match",
-                "tags" => []
+                "tags" => [],
+                "is_blocking_enabled": false
               }
             }
           }
@@ -113,14 +114,15 @@ RSpec.describe Datadog::AIGuard do
         end
       end
 
-      context "when result is DENY" do
+      context "when result is DENY and is_blocking_enabled is set to true in the response" do
         let(:raw_response) do
           {
             "data" => {
               "attributes" => {
                 "action" => "DENY",
                 "reason" => "Rule match",
-                "tags" => ["indirect-prompt-injection"]
+                "tags" => ["indirect-prompt-injection"],
+                "is_blocking_enabled": true
               }
             }
           }
