@@ -261,6 +261,13 @@ module Datadog
           # and in that case we need to convert it to the "regular"
           # AppStarted event.
           if @initial_event.is_a?(Event::SynthAppClientConfigurationChange)
+            # It would be great to just replace the initial event in
+            # +initialize_state+ method. Unfortunately this event requires
+            # the entire component tree to build its payload, which we
+            # 1) don't currently have in telemetry and
+            # 2) don't want to keep a permanent reference to in any case.
+            # Therefore we have this +reset!+ method that changes the
+            # event type while keeping the payload.
             @initial_event.reset! # steep:ignore
           end
         end
