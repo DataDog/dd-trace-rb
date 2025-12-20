@@ -21,12 +21,15 @@ module Datadog
       class Component
         ENDPOINT_COLLECTION_MESSAGE_LIMIT = 300
 
+        ONLY_ONCE = Utils::OnlyOnce.new
+
         attr_reader :enabled
         attr_reader :logger
         attr_reader :transport
         attr_reader :worker
         attr_reader :settings
         attr_reader :agent_settings
+        attr_reader :metrics_manager
 
         # Alias for consistency with other components.
         # TODO Remove +enabled+ method
@@ -59,6 +62,17 @@ module Datadog
           logger:,
           enabled:
         )
+          ONLY_ONCE.run do
+            Utils::AtForkMonkeyPatch.apply!
+
+            # All of the other at fork monkey patch callbacks reference
+            # globals, follow that pattern here to avoid having the component
+            # referenced via the at fork callbacks.
+            Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
+              Datadog.send(:components, allow_initialization: false)&.telemetry&.after_fork
+            end
+          end
+
           @enabled = enabled
           @log_collection_enabled = settings.telemetry.log_collection_enabled
           @logger = logger
@@ -167,10 +181,10 @@ module Datadog
         # been flushed, or nil if telemetry is disabled.
         #
         # @api private
-        def flush
+        def flush(timeout: nil)
           return unless enabled?
 
-          @worker.flush
+          @worker.flush(timeout: timeout)
         end
 
         # Report configuration changes caused by Remote Configuration.
@@ -212,6 +226,15 @@ module Datadog
         # Tracks distribution metric.
         def distribution(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.distribution(namespace, metric_name, value, tags: tags, common: common)
+        end
+
+        def after_fork
+          worker&.send(:initialize_state)
+
+          # We cannot simply create a new instance of metrics manager because
+          # it is referenced from other objects (e.g. the worker).
+          # We must reset the existing instance.
+          @metrics_manager.clear
         end
       end
     end
