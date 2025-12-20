@@ -185,7 +185,7 @@ module Datadog
               end
             end
 
-            # Update existimng repository's contents
+            # Update existing repository's contents
             class Update
               attr_reader :path, :target, :content
 

@@ -358,8 +358,8 @@ RSpec.describe Datadog::Tracing::Component do
             context 'and :async' do
               context 'is set' do
                 let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
-                let(:writer_options) { {transport_options: :bar} }
-                let(:writer_options_test_mode) { {transport_options: :baz} }
+                let(:writer_options) { {foo: :bar} }
+                let(:writer_options_test_mode) { {foo: :baz} }
 
                 before do
                   allow(settings.tracing.test_mode)

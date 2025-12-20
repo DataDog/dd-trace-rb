@@ -13,6 +13,8 @@ module Datadog
       end
       class ProbePreviouslyFailed < Error
       end
+      class AlreadyInstrumented < Error
+      end
       class MultiplePathsMatch < Error
       end
       class InvalidExpression < Error

@@ -103,9 +103,7 @@ class DISnapshotBenchmark
       x.compare!
     end
 
-    # DI does not provide an API to remove a specific probe because
-    # this functionality is currently not needed by the product.
-    probe_manager.remove_other_probes([])
+    probe_manager.clear_hooks
 
     puts "Received #{@received_snapshot_count} snapshots, #{@received_snapshot_bytes} bytes total"
 
@@ -144,7 +142,7 @@ class DISnapshotBenchmark
       x.compare!
     end
 
-    probe_manager.remove_other_probes([])
+    probe_manager.clear_hooks
 
     puts "Received #{@received_snapshot_count} snapshots, #{@received_snapshot_bytes} bytes total"
 
@@ -179,7 +177,7 @@ class DISnapshotBenchmark
       x.compare!
     end
 
-    probe_manager.remove_other_probes([])
+    probe_manager.clear_hooks
 
     puts "Received #{@received_snapshot_count} snapshots, #{@received_snapshot_bytes} bytes total"
 
@@ -214,7 +212,7 @@ class DISnapshotBenchmark
       x.compare!
     end
 
-    probe_manager.remove_other_probes([])
+    probe_manager.clear_hooks
 
     puts "Received #{@received_snapshot_count} snapshots, #{@received_snapshot_bytes} bytes total"
   end

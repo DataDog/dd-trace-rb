@@ -259,6 +259,8 @@ module Datadog
 
           probe.instrumentation_module = mod
           cls.send(:prepend, mod)
+
+          DI.instrumented_count_inc(:method)
         end
       end
 
@@ -271,6 +273,8 @@ module Datadog
           if mod = probe.instrumentation_module
             mod.send(:remove_method, probe.method_name)
             probe.instrumentation_module = nil
+
+            DI.instrumented_count_dec(:method)
           end
         end
       end
@@ -473,12 +477,16 @@ module Datadog
           # actual_path could be nil if we don't use targeted trace points.
           probe.instrumented_path = actual_path
 
-          if iseq
+          # TracePoint#enable returns false when it succeeds.
+          rv = if iseq
             tp.enable(target: iseq, target_line: line_no)
           else
             tp.enable
           end
-          # TracePoint#enable returns false when it succeeds.
+
+          DI.instrumented_count_inc(:line)
+
+          rv
         end
         true
       end
@@ -488,6 +496,8 @@ module Datadog
           if tp = probe.instrumentation_trace_point
             tp.disable
             probe.instrumentation_trace_point = nil
+
+            DI.instrumented_count_dec(:line)
           end
         end
       end

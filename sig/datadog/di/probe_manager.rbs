@@ -45,7 +45,7 @@ module Datadog
       def pending_probes: () -> untyped
       def failed_probes: () -> untyped
       def add_probe: (untyped probe) -> untyped
-      def remove_other_probes: (untyped probe_ids) -> untyped
+      def remove_probe: (untyped probe_id) -> untyped
 
       private
       def install_pending_method_probes: (untyped cls) -> untyped

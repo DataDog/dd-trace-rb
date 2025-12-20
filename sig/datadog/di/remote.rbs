@@ -14,6 +14,9 @@ module Datadog
       private
 
       def self.parse_content: (untyped content) -> untyped
+      
+      def self.add_probe: (untyped content, untyped component) -> void
+      def self.remove_probe: (untyped previous_content, untyped component) -> void
     end
   end
 end

@@ -117,13 +117,34 @@ RSpec.describe Datadog::DI::ProbeManager do
           expect(manager.failed_probes[probe.id]).to match(/Instrumentation error/)
         end
       end
+
+      context 'when the probe is requested to be added the second time' do
+        it 'does not instrument the second time' do
+          expect(manager.installed_probes).to be_empty
+
+          # First call
+          expect(instrumenter).to receive(:hook)
+          expect(probe_notification_builder).to receive(:build_installed)
+          expect(probe_notifier_worker).to receive(:add_status)
+          manager.add_probe(probe)
+
+          # Second call
+          expect(instrumenter).not_to receive(:hook)
+          expect(probe_notification_builder).not_to receive(:build_installed)
+          expect(probe_notifier_worker).not_to receive(:add_status)
+          expect_lazy_log(logger, :debug, /AlreadyInstrumented: Probe with id .* is already in installed probes/)
+          expect do
+            manager.add_probe(probe)
+          end.to raise_error(Datadog::DI::Error::AlreadyInstrumented, /Probe with id .* is already in installed probes/)
+        end
+      end
     end
   end
 
-  describe '#remove_other_probes' do
+  describe '#remove_probe' do
     let(:probe) do
       Datadog::DI::Probe.new(
-        id: '3ecfd456-2d7c-4359-a51f-d4cc44141ffe', type: :log, file: 'xx', line_no: 123,
+        id: '123', type: :log, file: 'xx', line_no: 123,
       )
     end
 
@@ -132,19 +153,19 @@ RSpec.describe Datadog::DI::ProbeManager do
         manager.pending_probes[probe.id] = probe
       end
 
-      context 'when pending probe id is in probe ids' do
-        it 'does not remove pending probe' do
-          manager.remove_other_probes([probe.id])
+      context 'when id matches a pending probe' do
+        it 'removes pending probe' do
+          manager.remove_probe('123')
 
-          expect(manager.pending_probes).to eq(probe.id => probe)
+          expect(manager.pending_probes).to eq({})
         end
       end
 
-      context 'when pending probe id is not in probe ids' do
-        it 'removes pending probe' do
-          manager.remove_other_probes(['123'])
+      context 'when id does not match a pending probe' do
+        it 'does not remove the pending probe' do
+          manager.remove_probe('555')
 
-          expect(manager.pending_probes).to eq({})
+          expect(manager.pending_probes).to eq(probe.id => probe)
         end
       end
     end
@@ -154,21 +175,23 @@ RSpec.describe Datadog::DI::ProbeManager do
         manager.installed_probes[probe.id] = probe
       end
 
-      context 'when installed probe id is in probe ids' do
-        it 'does not remove installed probe' do
-          manager.remove_other_probes([probe.id])
+      context 'when id matches an installed probe' do
+        it 'removes pending probe' do
+          expect(instrumenter).to receive(:unhook).with(probe)
 
-          expect(manager.installed_probes).to eq(probe.id => probe)
+          manager.remove_probe('123')
+
+          expect(manager.installed_probes).to eq({})
         end
       end
 
-      context 'when installed probe id is not in probe ids' do
-        it 'removes installed probe' do
-          expect(instrumenter).to receive(:unhook).with(probe)
+      context 'when id does not match an installed probe' do
+        it 'does not remove the pending probe' do
+          expect(instrumenter).not_to receive(:unhook)
 
-          manager.remove_other_probes(['123'])
+          manager.remove_probe('555')
 
-          expect(manager.installed_probes).to eq({})
+          expect(manager.installed_probes).to eq(probe.id => probe)
         end
       end
 
@@ -178,37 +201,34 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           expect_lazy_log(logger, :debug, /error removing log probe.*Deinstrumentation error/)
 
-          manager.remove_other_probes(['123'])
+          manager.remove_probe('123')
 
           expect(manager.pending_probes.length).to eq 0
 
           expect(manager.installed_probes.length).to eq 1
         end
+      end
 
-        context 'when there are two probes to be unhooked' do
-          let(:probe2) do
-            Datadog::DI::Probe.new(
-              id: '3ecfd456-2d7c-ffff-a51f-d4cc44141ffe', type: :log, file: 'xx', line_no: 123,
-            )
-          end
+      context 'when there are two probes to be unhooked' do
+        let(:probe2) do
+          Datadog::DI::Probe.new(
+            id: '456', type: :log, file: 'xx', line_no: 123,
+          )
+        end
 
-          before do
-            manager.installed_probes[probe2.id] = probe2
-            expect(manager.installed_probes.length).to eq 2
-          end
+        before do
+          manager.installed_probes[probe2.id] = probe2
+          expect(manager.installed_probes.length).to eq 2
+        end
 
-          it 'logs warning and unhooks the second probe' do
-            expect(instrumenter).to receive(:unhook).with(probe).and_raise("Deinstrumentation error")
-            expect(instrumenter).to receive(:unhook).with(probe2)
+        it 'leaves the second probe installed' do
+          expect(instrumenter).to receive(:unhook).with(probe)
 
-            expect_lazy_log(logger, :debug, /error removing log probe.*Deinstrumentation error/)
+          manager.remove_probe('123')
 
-            manager.remove_other_probes(['123'])
+          expect(manager.pending_probes.length).to eq 0
 
-            expect(manager.pending_probes.length).to eq 0
-
-            expect(manager.installed_probes.length).to eq 1
-          end
+          expect(manager.installed_probes).to eq('456' => probe2)
         end
       end
     end
