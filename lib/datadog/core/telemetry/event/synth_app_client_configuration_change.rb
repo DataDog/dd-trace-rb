@@ -57,7 +57,7 @@ module Datadog
           end
 
           def reset?
-            !!@reset
+            defined?(@reset) && !!@reset
           end
         end
       end
