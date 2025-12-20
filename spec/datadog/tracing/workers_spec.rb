@@ -69,6 +69,8 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
   end
 
   describe '#stop' do
+    skip_any_instance_on_buggy_jruby
+
     it 'stops underlying thread with default timeout' do
       expect_any_instance_of(Thread).to receive(:join).with(
         Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
