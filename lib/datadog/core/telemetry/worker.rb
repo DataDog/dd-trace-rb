@@ -190,6 +190,8 @@ module Datadog
           res
         end
 
+        # This method overrides Queue's dequeue method and does LIFO instead
+        # of FIFO that Queue implements. Why?
         def dequeue
           buffer.pop
         end
