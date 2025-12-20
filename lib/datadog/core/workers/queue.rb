@@ -48,7 +48,10 @@ module Datadog
         end
 
         # Wait for the worker to finish handling all work that has already
-        # been submitted to it. Returns whether, at the point of return,
+        # been submitted to it.
+        #
+        # If the worker is not enabled, returns nil.
+        # If the worker is enabled, returns whether, at the point of return,
         # there was no pending or in progress work.
         #
         # Flushing can time out because there is a constant stream of work
@@ -61,7 +64,7 @@ module Datadog
           timeout ||= 5
 
           # Nothing needs to be done if the worker is not enabled.
-          return true unless enabled?
+          return nil unless enabled?
 
           unless running?
             unless buffer.empty?
