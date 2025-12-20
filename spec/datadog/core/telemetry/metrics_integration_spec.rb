@@ -85,15 +85,21 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     it 'emits metrics' do
       expect(Datadog::Core::Telemetry::Event::AppStarted).to receive(:new).and_return(initial_event)
       expect(component.worker).to receive(:send_event).twice do |event|
+      p event
         events << event
         response
       end.ordered
       component.start(components: components)
+      p 'inc'
       component.inc('ns', 'hello', 1)
+      # unlocked access
+      p component.instance_variable_get('@metrics_manager').instance_variable_get('@collections')['ns'].instance_variable_get('@metrics')
+      p 'expect 3'
       # Assert that the flush succeeded, because we were sometimes not
       # getting both of the events.
       expect(component.flush).to be true
 
+pp events
       assert_events(events)
     end
   end
