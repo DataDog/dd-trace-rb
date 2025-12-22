@@ -14,8 +14,6 @@ module Datadog
 
         TELEMETRY_TAGS: {'protocol' => "http", 'encoding' => 'protobuf'}
 
-        def initialize: (endpoint: ::String, timeout: ::Float, headers: ::Hash[::String, any]) -> void
-
         def export: (untyped metrics, ?timeout: ::Float?) -> Integer
 
         private
