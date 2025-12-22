@@ -65,7 +65,7 @@ RSpec.describe 'Datadog integration' do
         anon_inode:[eventfd]
       ).freeze
 
-      it 'closes tracer file descriptors (known flaky test)' do
+      it 'closes tracer file descriptors' do
         before_open_file_descriptors = open_file_descriptors
 
         start_tracer
