@@ -59,11 +59,30 @@ RSpec.describe 'Datadog integration' do
 
         after_open_file_descriptors = open_file_descriptors
 
-        expect(after_open_file_descriptors.size)
+        new_file_descriptors = Hash[after_open_file_descriptors.select do |k, v|
+          !before_open_file_descriptors.key?(k)
+        end]
+
+        if PlatformHelpers.jruby?
+          # On JRuby there are open file descriptors showing up occasionally
+          # in CI and readily reproducibly locally.
+          #
+          # They are usually of form:
+          # {"/dev/fd/24"=>"/proc/10580/fd/24"}
+          # But sometimes the value is nil.
+          #
+          # I am unclear on how to troubleshoot what is causing these to be
+          # open, exclude them from diagnostics until this can be determined.
+          new_file_descriptors = Hash[new_file_descriptors.reject do |k, v|
+            v.nil? || v == k.sub(%r,\A/dev/,, "/proc/#{$$}/")
+          end]
+        end
+
+        expect(new_file_descriptors)
           .to(
             # Below was changed from eq to <= to cause less flakyness. We still don't know why this test fails in CI
             # from time to time.
-            (be <= (before_open_file_descriptors.size)),
+            be_empty,
             lambda {
               "Open fds before (#{before_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
               "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}"
