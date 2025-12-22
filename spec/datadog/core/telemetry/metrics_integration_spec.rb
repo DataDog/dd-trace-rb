@@ -98,6 +98,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       # Assert that the flush succeeded, because we were sometimes not
       # getting both of the events.
       expect(component.flush).to be true
+      p component.instance_variable_get('@metrics_manager').instance_variable_get('@collections')['ns'].instance_variable_get('@metrics')
+      p 'expect 4'
 
 pp events
       assert_events(events)
