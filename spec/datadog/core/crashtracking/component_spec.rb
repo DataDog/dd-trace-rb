@@ -292,6 +292,27 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           end
         end
 
+        before do
+          # Unit tests for at fork monkey patch module reset its state,
+          # including the defined handlers.
+          # We need to make sure that our handler is added to the list,
+          # because normally it would be added during library initialization
+          # and if the fork monkey patch test runs before this test,
+          # the handler would get cleared out.
+          described_class.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+
+          # We also need to clear out the handlers because we could have
+          # our own handler registered from the library initialization time,
+          # if the at fork monkey patch did not run before this test.
+          # In this case the handler would be executed twice which is
+          # 1) probably not good and 2) would fail our assertions.
+          Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+        end
+
+        after do
+          Datadog.configuration.reset!
+        end
+
         it 'ensures the latest configuration applied' do
           allow(described_class).to receive(:_native_start_or_update_on_fork)
 
