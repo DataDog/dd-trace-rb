@@ -94,7 +94,7 @@ RSpec.describe 'Datadog integration' do
           new_file_descriptors = new_file_descriptors.reject do |k, v|
             v.nil? or
               v == k.sub(%r{\A/dev/}, "/proc/#{$$}/") &&
-              IGNORE_JRUBY_FDS.include?(soft_readlink(v))
+                IGNORE_JRUBY_FDS.include?(soft_readlink(v))
           end.to_h
         end
 
