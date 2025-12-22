@@ -49,6 +49,22 @@ RSpec.describe 'Datadog integration' do
         end
       end
 
+      def soft_readlink(path)
+        File.readlink(path)
+      rescue SystemCallError
+        nil
+      end
+
+      # On JRuby, there are file descriptors opened that resolve to these
+      # paths via File.readlink.
+      #
+      # The file descriptor leakage check was meant primarily for
+      # network sockets and these are not - ignore them.
+      IGNORE_JRUBY_FDS = %w(
+        anon_inode:[eventpoll]
+        anon_inode:[eventfd]
+      ).freeze
+
       it 'closes tracer file descriptors (known flaky test)' do
         before_open_file_descriptors = open_file_descriptors
 
@@ -74,7 +90,9 @@ RSpec.describe 'Datadog integration' do
           # I am unclear on how to troubleshoot what is causing these to be
           # open, exclude them from diagnostics until this can be determined.
           new_file_descriptors = new_file_descriptors.reject do |k, v|
-            v.nil? || v == k.sub(%r{\A/dev/}, "/proc/#{$$}/")
+            v.nil? or
+              v == k.sub(%r{\A/dev/}, "/proc/#{$$}/") &&
+              IGNORE_JRUBY_FDS.include?(soft_readlink(v))
           end.to_h
         end
 
