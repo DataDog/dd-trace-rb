@@ -152,13 +152,13 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       it 'reports OpenTelemetry configurations with environment variable names' do
         expect(event.payload[:configuration]).to include(
           {name: 'OTEL_EXPORTER_OTLP_ENDPOINT', origin: 'env_var', seq_id: id, value: 'http://otel:4317'},
-          {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'env_var', seq_id: id, value: {'key1' => 'value1', 'key2' => 'value2'}},
+          {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'env_var', seq_id: id, value: 'key1=value1,key2=value2'},
           {name: 'OTEL_EXPORTER_OTLP_PROTOCOL', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_TIMEOUT', origin: 'env_var', seq_id: id, value: 5000},
           {name: 'DD_METRICS_OTEL_ENABLED', origin: 'env_var', seq_id: id, value: true},
           {name: 'OTEL_METRICS_EXPORTER', origin: 'env_var', seq_id: id, value: 'otlp'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', origin: 'env_var', seq_id: id, value: 'http://metrics:4318'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'env_var', seq_id: id, value: {'metrics_key' => 'metrics_value'}},
+          {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'env_var', seq_id: id, value: 'metrics_key=metrics_value'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', origin: 'env_var', seq_id: id, value: 3000},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', origin: 'env_var', seq_id: id, value: 'cumulative'},
