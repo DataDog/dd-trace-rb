@@ -24,8 +24,6 @@ module Datadog
           class InvalidHashTypeError < StandardError; end
           attr_reader :type, :hexdigest
 
-          DIGEST_CHUNK = 1024
-
           class << self
             def hexdigest(type, data)
               d = case type
@@ -37,13 +35,9 @@ module Datadog
                 raise InvalidHashTypeError, type
               end
 
-              while (buf = data.read(DIGEST_CHUNK))
-                d.update(buf)
-              end
+              d.update(data)
 
               d.hexdigest
-            ensure
-              data.rewind
             end
           end
 

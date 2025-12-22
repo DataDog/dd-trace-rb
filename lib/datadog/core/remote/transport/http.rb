@@ -35,7 +35,7 @@ module Datadog
           # Pass a block to override any settings.
           def root(
             agent_settings:,
-            logger: Datadog.logger,
+            logger:,
             api_version: nil,
             headers: nil
           )
@@ -58,7 +58,7 @@ module Datadog
           # Pass a block to override any settings.
           def v7(
             agent_settings:,
-            logger: Datadog.logger,
+            logger:,
             api_version: nil,
             headers: nil
           )
