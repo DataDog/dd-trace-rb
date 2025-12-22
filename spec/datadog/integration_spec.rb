@@ -59,9 +59,9 @@ RSpec.describe 'Datadog integration' do
 
         after_open_file_descriptors = open_file_descriptors
 
-        new_file_descriptors = Hash[after_open_file_descriptors.select do |k, v|
+        new_file_descriptors = after_open_file_descriptors.select do |k, v|
           !before_open_file_descriptors.key?(k)
-        end]
+        end.to_h
 
         if PlatformHelpers.jruby?
           # On JRuby there are open file descriptors showing up occasionally
@@ -73,9 +73,9 @@ RSpec.describe 'Datadog integration' do
           #
           # I am unclear on how to troubleshoot what is causing these to be
           # open, exclude them from diagnostics until this can be determined.
-          new_file_descriptors = Hash[new_file_descriptors.reject do |k, v|
+          new_file_descriptors = new_file_descriptors.reject do |k, v|
             v.nil? || v == k.sub(%r{\A/dev/}, "/proc/#{$$}/")
-          end]
+          end.to_h
         end
 
         expect(new_file_descriptors)
