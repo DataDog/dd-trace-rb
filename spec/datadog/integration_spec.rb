@@ -60,10 +60,12 @@ RSpec.describe 'Datadog integration' do
       #
       # The file descriptor leakage check was meant primarily for
       # network sockets and these are not - ignore them.
+      # standard:disable Lint/ConstantDefinitionInBlock:
       IGNORE_JRUBY_FDS = %w(
         anon_inode:[eventpoll]
         anon_inode:[eventfd]
       ).freeze
+      # standard:enable Lint/ConstantDefinitionInBlock:
 
       it 'closes tracer file descriptors' do
         before_open_file_descriptors = open_file_descriptors
@@ -92,7 +94,7 @@ RSpec.describe 'Datadog integration' do
           new_file_descriptors = new_file_descriptors.reject do |k, v|
             v.nil? or
               v == k.sub(%r{\A/dev/}, "/proc/#{$$}/") &&
-                IGNORE_JRUBY_FDS.include?(soft_readlink(v))
+              IGNORE_JRUBY_FDS.include?(soft_readlink(v))
           end.to_h
         end
 
