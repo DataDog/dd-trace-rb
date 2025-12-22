@@ -74,7 +74,7 @@ RSpec.describe 'Datadog integration' do
           # I am unclear on how to troubleshoot what is causing these to be
           # open, exclude them from diagnostics until this can be determined.
           new_file_descriptors = Hash[new_file_descriptors.reject do |k, v|
-            v.nil? || v == k.sub(%r,\A/dev/,, "/proc/#{$$}/")
+            v.nil? || v == k.sub(%r{\A/dev/}, "/proc/#{$$}/")
           end]
         end
 
