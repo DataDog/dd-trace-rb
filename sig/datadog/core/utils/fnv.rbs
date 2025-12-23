@@ -1,0 +1,9 @@
+module Datadog
+    module Core
+        module Utils
+            module FNV
+                def self.fnv1_64: (::String data) -> ::Integer
+            end
+        end
+    end
+end
