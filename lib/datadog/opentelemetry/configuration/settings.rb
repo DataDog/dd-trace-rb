@@ -140,7 +140,7 @@ module Datadog
                 option :timeout_millis do |o|
                   o.type :int, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT'
-                  o.default nil
+                  o.default 10000
                 end
 
                 option :protocol do |o|
