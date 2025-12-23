@@ -117,6 +117,27 @@ RSpec.describe Datadog::DI::ProbeManager do
           expect(manager.failed_probes[probe.id]).to match(/Instrumentation error/)
         end
       end
+
+      context 'when the probe is requested to be added the second time' do
+        it 'does not instrument the second time' do
+          expect(manager.installed_probes).to be_empty
+
+          # First call
+          expect(instrumenter).to receive(:hook)
+          expect(probe_notification_builder).to receive(:build_installed)
+          expect(probe_notifier_worker).to receive(:add_status)
+          manager.add_probe(probe)
+
+          # Second call
+          expect(instrumenter).not_to receive(:hook)
+          expect(probe_notification_builder).not_to receive(:build_installed)
+          expect(probe_notifier_worker).not_to receive(:add_status)
+          expect_lazy_log(logger, :debug, /AlreadyInstrumented: Probe with id .* is already in installed probes/)
+          expect do
+            manager.add_probe(probe)
+          end.to raise_error(Datadog::DI::Error::AlreadyInstrumented, /Probe with id .* is already in installed probes/)
+        end
+      end
     end
   end
 
