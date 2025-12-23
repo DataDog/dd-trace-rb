@@ -7,36 +7,19 @@ module Datadog
         module API
           # An API configured with adapter and routes
           class Instance
-            # Raised when an endpoint is invoked on an API that is not the
-            # of expected API class for that endpoint.
-            class EndpointNotSupportedError < StandardError
-              attr_reader :spec, :endpoint_name
-
-              def initialize(endpoint_name, spec)
-                @spec = spec
-                @endpoint_name = endpoint_name
-
-                super(message)
-              end
-
-              def message
-                "#{endpoint_name} not supported for this API!"
-              end
-            end
-
             attr_reader \
               :adapter,
               :headers,
-              :spec
+              :endpoint
 
-            def initialize(spec, adapter, options = {})
-              @spec = spec
+            def initialize(endpoint, adapter, options = {})
+              @endpoint = endpoint
               @adapter = adapter
               @headers = options.fetch(:headers, {})
             end
 
             def encoder
-              spec.encoder
+              endpoint.encoder
             end
 
             def call(env)

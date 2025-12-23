@@ -3,9 +3,9 @@ module Datadog
     module Transport
       module HTTP
         module API
-          DIAGNOSTICS: "diagnostics"
-
-          INPUT: "input"
+          DIAGNOSTICS: String
+          INPUT: String
+          LEGACY_INPUT: String
 
           def self?.defaults: () -> untyped
         end

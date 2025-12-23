@@ -67,7 +67,9 @@ module Datadog
 
         private
 
+        # Use this method only after checking that limit is not nil.
         def check_limit!
+          # @type ivar @limit: Integer
           if @retries >= @limit
             @failed = true
             @ran_once = true

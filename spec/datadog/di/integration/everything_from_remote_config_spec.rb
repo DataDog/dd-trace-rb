@@ -46,7 +46,7 @@ RSpec.describe 'DI integration from remote config' do
         content = Datadog::Core::Remote::Configuration::Content.parse(
           {
             path: key,
-            content: StringIO.new(value_json),
+            content: value_json,
           }
         )
 

@@ -14,10 +14,11 @@ module Datadog
 
         class SyncError < StandardError; end
 
-        attr_reader :transport, :repository, :id, :dispatcher, :logger
+        attr_reader :transport, :repository, :id, :dispatcher, :settings, :logger
 
-        def initialize(transport, capabilities, logger: Datadog.logger, repository: Configuration::Repository.new)
+        def initialize(transport, capabilities, settings:, logger:, repository: Configuration::Repository.new)
           @transport = transport
+          @settings = settings
           @logger = logger
 
           @repository = repository
@@ -153,13 +154,18 @@ module Datadog
             language: Core::Environment::Identity.lang,
             tracer_version: tracer_version,
             service: service_name,
-            env: Datadog.configuration.env,
+            env: settings.env,
             tags: client_tracer_tags,
           }
 
-          app_version = Datadog.configuration.version
+          app_version = settings.version
 
           client_tracer[:app_version] = app_version if app_version
+
+          if settings.experimental_propagate_process_tags_enabled
+            process_tags = Core::Environment::Process.tags
+            client_tracer[:process_tags] = process_tags if process_tags.any?
+          end
 
           {
             client: {
@@ -184,7 +190,7 @@ module Datadog
         end
 
         def service_name
-          Datadog.configuration.remote.service || Datadog.configuration.service
+          settings.remote.service || settings.service
         end
 
         def tracer_version

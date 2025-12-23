@@ -1,9 +1,6 @@
 module Datadog
   module DI
     module Remote
-      class ReadError < StandardError
-      end
-
       PRODUCT: "LIVE_DEBUGGING"
 
       def self.products: () -> ::Array[untyped]

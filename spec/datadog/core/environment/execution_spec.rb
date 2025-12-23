@@ -174,7 +174,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
               source 'https://rubygems.org'
 
               gem 'cucumber', '>= 3', '<= 9.2.1'
-              gem 'logger' # Required for Ruby 3.5+ where logger is no longer a default gem
+              gem 'logger' # Required for Ruby 4+ where logger is no longer a default gem
             end
 
             load Gem.bin_path('cucumber', 'cucumber')
@@ -257,7 +257,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
     context 'when given WebMock', skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new('2') do
       it do
-        out, _err, status = Bundler.with_unbundled_env do
+        out, err, status = Bundler.with_unbundled_env do
           Open3.capture3('ruby', stdin_data: <<-RUBY
             require 'bundler/inline'
 
@@ -278,6 +278,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
           )
         end
 
+        expect(err).to be_empty
         expect(out).to end_with('ACTUAL:true')
         expect(status.exitstatus).to eq(0)
       end
