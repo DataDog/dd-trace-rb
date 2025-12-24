@@ -6,7 +6,7 @@
 #include <datadog/common.h>
 
 // Must be called once during initialization
-void datadog_ruby_common_init(VALUE datadog_module);
+void datadog_ruby_common_init(void);
 
 // Used to mark symbols to be exported to the outside of the extension.
 // Consider very carefully before tagging a function with this.
@@ -35,10 +35,39 @@ void datadog_ruby_common_init(VALUE datadog_module);
 
 NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name));
 
-// Helper to raise errors with formatted messages
-NORETURN(void raise_error(VALUE error_class, const char *fmt, ...)) __attribute__ ((format (gnu_printf, 2, 3)));
+// Raises an exception of the specified class with the formatted string as its message.
+// This macro ensures that the literal string is sent for telemetry, while the formatted
+// message is the default `Exception#message`.
+// *Ruby exceptions not raised through this function will not be reported via telemetry.*
+#define raise_error(exception_class, fmt, ...) \
+  private_raise_error(exception_class, "" fmt, ##__VA_ARGS__)
 
+NORETURN(
+  void private_raise_error(VALUE exception_class, const char *fmt, ...)
+  __attribute__ ((format (printf, 2, 3)));
+);
 
+// Internal helper for raising pre-formatted exceptions
+NORETURN(
+  void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message)
+);
+
+// Raises an exception with separate telemetry-safe and detailed messages.
+// Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
+// NOTE: Raising the exception acquires the GVL (unsafe), but it also aborts the current execution flow.
+// @see debug_enter_unsafe_context
+NORETURN(
+  void private_raise_exception(VALUE exception, const char *static_message)
+);
+
+#define MAX_RAISE_MESSAGE_SIZE 256
+
+#define FORMAT_VA_ERROR_MESSAGE(buf, fmt) \
+  char buf[MAX_RAISE_MESSAGE_SIZE]; \
+  va_list buf##_args; \
+  va_start(buf##_args, fmt); \
+  vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
+  va_end(buf##_args);
 
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);

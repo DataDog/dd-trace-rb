@@ -3,7 +3,7 @@
 
 // IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
-
+static ID telemetry_message_id;
 
 void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char *function_name) {
   rb_exc_raise(
@@ -21,12 +21,25 @@ void raise_unexpected_type(VALUE value, const char *value_name, const char *type
   );
 }
 
-void raise_error(VALUE error_class, const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  VALUE message = rb_vsprintf(fmt, args);
-  va_end(args);
-  rb_raise(error_class, "%"PRIsVALUE, message);
+// Raises an exception with separate telemetry-safe and detailed messages.
+// Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
+// NOTE: Raising the exception acquires the GVL (unsafe), but it also aborts the current execution flow.
+// @see debug_enter_unsafe_context
+void private_raise_exception(VALUE exception, const char *static_message) {
+  rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
+  rb_exc_raise(exception);
+}
+
+// Helper for raising pre-formatted exceptions
+void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message) {
+  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
+  private_raise_exception(exception, static_message);
+}
+
+// Use `raise_error` the macro instead, as it provides additional argument checks.
+void private_raise_error(VALUE exception_class, const char *fmt, ...) {
+  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
+  private_raise_error_formatted(exception_class, detailed_message, fmt);
 }
 
 VALUE datadog_gem_version(void) {
@@ -90,7 +103,6 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
   return tags;
 }
 
-void datadog_ruby_common_init(VALUE datadog_module) {
-  // No longer needed - using Ruby's built-in exception classes
-  (void)datadog_module;
+void datadog_ruby_common_init(void) {
+  telemetry_message_id = rb_intern("@telemetry_message");
 }

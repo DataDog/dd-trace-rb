@@ -25,42 +25,10 @@ void ruby_helpers_init(void) {
   telemetry_message_id = rb_intern("@telemetry_message");
 }
 
-#define MAX_RAISE_MESSAGE_SIZE 256
-
-#define FORMAT_VA_ERROR_MESSAGE(buf, fmt) \
-  char buf[MAX_RAISE_MESSAGE_SIZE]; \
-  va_list buf##_args; \
-  va_start(buf##_args, fmt); \
-  vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
-  va_end(buf##_args);
-
-
-
-// Raises an exception with separate telemetry-safe and detailed messages.
-// Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
-// NOTE: Raising the exception acquires the GVL (unsafe), but it also aborts the current execution flow.
-// @see debug_enter_unsafe_context
-static NORETURN(void private_raise_exception(VALUE exception, const char *static_message)) {
-  rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
-  rb_exc_raise(exception);
-}
-
-// Internal helper for raising pre-formatted exceptions
-static NORETURN(void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message)) {
-  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
-  private_raise_exception(exception, static_message);
-}
-
 // Internal helper for raising pre-formatted syserr exceptions
 static NORETURN(void private_raise_syserr_formatted(int syserr_errno, const char *detailed_message, const char *static_message)) {
   VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
   private_raise_exception(exception, static_message);
-}
-
-// Use `raise_error` the macro instead, as it provides additional argument checks.
-void private_raise_error(VALUE exception_class, const char *fmt, ...) {
-  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
-  private_raise_error_formatted(exception_class, detailed_message, fmt);
 }
 
 // Use `raise_syserr` the macro instead, as it provides additional argument checks.

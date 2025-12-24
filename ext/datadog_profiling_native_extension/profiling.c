@@ -53,7 +53,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
 
   // MUST be called before all other initialization
-  datadog_ruby_common_init(datadog_module);
+  datadog_ruby_common_init();
 
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE native_extension_module = rb_define_module_under(profiling_module, "NativeExtension");
