@@ -102,6 +102,26 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
   return tags;
 }
 
+size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capacity) {
+  if (capacity == 0 || string == NULL) {
+    // short-circuit, we can't write anything
+    ddog_Error_drop(error);
+    return 0;
+  }
+
+  ddog_CharSlice error_msg_slice = ddog_Error_message(error);
+  size_t error_msg_size = error_msg_slice.len;
+  // Account for extra null char for proper cstring
+  if (error_msg_size >= capacity) {
+    // Error message too big, lets truncate it to capacity - 1 to allow for extra null at end
+    error_msg_size = capacity - 1;
+  }
+  strncpy(string, error_msg_slice.ptr, error_msg_size);
+  string[error_msg_size] = '\0';
+  ddog_Error_drop(error);
+  return error_msg_size;
+}
+
 void datadog_ruby_common_init(void) {
   telemetry_message_id = rb_intern("@telemetry_message");
 }

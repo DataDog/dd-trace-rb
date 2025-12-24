@@ -20,6 +20,8 @@
 // @param[in] message (const char *) The error message
 // @param[in] result (struct { ddog_Error res; ... }) Any type of result
 #define raise_lib_error(message, result)                                        \
-  do {                                                                         \
-    raise_error(rb_eRuntimeError, message ": %" PRIsVALUE, get_error_details_and_drop(&result.err)); \
+  do { \
+    char error_msg[MAX_RAISE_MESSAGE_SIZE];  \
+    read_ddogerr_string_and_drop(&result.err, error_msg, MAX_RAISE_MESSAGE_SIZE); \
+    raise_error(rb_eRuntimeError, message ": %s", error_msg); \
   } while (0)
