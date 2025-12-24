@@ -10,18 +10,6 @@ module Datadog
       # about the current Linux container identity.
       # @see https://man7.org/linux/man-pages/man7/cgroups.7.html
       module Cgroup
-        # A regex to parse each cgroup entry from /proc/<pid>/cgroup.
-        # Files can have cgroup v1 and v2 entries mixed. Their format is the same.
-        #
-        # Each entry has 3 colon-separated fields:
-        #   hierarchy-ID:controllers:path
-        # Examples:
-        #   10:memory:/docker/1234567890abcdef (cgroup v1)
-        #   0::/docker/1234567890abcdef (cgroup v2)
-        #
-        # @see https://man7.org/linux/man-pages/man7/cgroups.7.html#:~:text=%2Fproc%2Fpid%2Fcgroup
-        ENTRY_REGEX = /^(?<hierarchy_id>\d+):(?<controllers>[^:]*):(?<path>.+)$/.freeze
-
         # A parsed cgroup entry from /proc/<pid>/cgroup
         Entry = Struct.new(
           :hierarchy,
@@ -35,7 +23,7 @@ module Datadog
         # Parses the /proc/self/cgroup file,
         # @return [Array<Entry>] one entry for each valid cgroup line
         def entries
-          filepath = "/proc/self/cgroup"
+          filepath = '/proc/self/cgroup'
           return [] unless File.exist?(filepath)
 
           ret = []
@@ -46,9 +34,19 @@ module Datadog
         end
 
         # Parses a single cgroup entry from /proc/<pid>/cgroup.
+        #
+        # Files can have cgroup v1 and v2 entries mixed. Their format is the same.
+        #
+        # Each entry has 3 colon-separated fields:
+        #   hierarchy-ID:controllers:path
+        # Examples:
+        #   10:memory:/docker/1234567890abcdef (cgroup v1)
+        #   0::/docker/1234567890abcdef (cgroup v2)
+        #
+        # @see https://man7.org/linux/man-pages/man7/cgroups.7.html#:~:text=%2Fproc%2Fpid%2Fcgroup
         # @return [Entry]
         def parse(entry_line)
-          hierarchy, controllers, path = ENTRY_REGEX.match(entry_line)&.captures
+          hierarchy, controllers, path = entry_line.split(':', 3)
 
           Entry.new(
             hierarchy,

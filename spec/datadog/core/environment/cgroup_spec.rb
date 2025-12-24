@@ -192,6 +192,18 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
         end
       end
 
+      context 'with ":" in the path' do
+        let(:entry_line) { '5:rdma:/docker/abc:def:ghi' }
+        it { is_expected.to be_a_kind_of(described_class::Entry) }
+        it do
+          is_expected.to have_attributes(
+            hierarchy: '5',
+            controllers: 'rdma',
+            path: '/docker/abc:def:ghi',
+          )
+        end
+      end
+
       context 'with no group' do
         let(:entry_line) { '0::/user.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service' }
 
