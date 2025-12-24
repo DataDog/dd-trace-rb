@@ -31,9 +31,9 @@ RSpec.describe 'Supported configurations' do
         Please refer to `docs/AccessEnvironmentVariables.md` for more information.
       ERROR_MESSAGE
 
-      expect(supported_configurations.sort).to eq(Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.sort), error_message
+      expect(supported_configurations.sort).to eq(Datadog::Core::Configuration::SUPPORTED_CONFIGURATION_NAMES.sort), error_message
       # check order of the keys
-      expect(supported_configurations).to eq(Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS),
+      expect(supported_configurations).to eq(Datadog::Core::Configuration::SUPPORTED_CONFIGURATION_NAMES),
         "The keys in supported-configurations.json are not correctly sorted. Please keep the keys sorted alphabetically."
 
       # no need to check the order for these as they don't appear in the JSON file

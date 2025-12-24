@@ -9,7 +9,7 @@ module Datadog
       class ConfigHelper
         def initialize(
           source_env: ENV,
-          supported_configurations: SUPPORTED_CONFIGURATIONS,
+          supported_configurations: SUPPORTED_CONFIGURATION_NAMES,
           aliases: ALIASES,
           alias_to_canonical: ALIAS_TO_CANONICAL,
           raise_on_unknown_env_var: false

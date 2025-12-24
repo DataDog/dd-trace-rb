@@ -88,7 +88,7 @@ The `CustomCops::EnvStringValidationCop` validates environment variable strings 
 
 ### Purpose
 
-This cop helps ensure that all environment variable strings (literal strings that look like Datadog or OpenTelemetry environment variables) are valid and documented. It validates against `SUPPORTED_CONFIGURATIONS`, `ALIASES` and `DEPRECATIONS` from `lib/datadog/core/configuration/supported_configurations.rb`, which contains all officially supported environment variables and their aliases.
+This cop helps ensure that all environment variable strings (literal strings that look like Datadog or OpenTelemetry environment variables) are valid and documented. It validates against `SUPPORTED_CONFIGURATION_NAMES`, `ALIASES` and `DEPRECATIONS` from `lib/datadog/core/configuration/supported_configurations.rb`, which contains all officially supported environment variables and their aliases.
 
 The cop may produce false positives for strings that are not actually used as environment variables but follow the naming pattern (e.g., telemetry keys, log messages). In such cases, you can disable the cop for specific lines with `# rubocop:disable CustomCops/EnvStringValidationCop`
 
