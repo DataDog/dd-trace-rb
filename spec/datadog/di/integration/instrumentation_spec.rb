@@ -595,10 +595,12 @@ RSpec.describe 'Instrumentation integration' do
               # The current version calls Process.clock_gettime directly
               # instead of using our helper which could invoke customer code
               # and also be mocked.
-              # Go back to requiring the runtime to be under one second.
               # The reported duration in local test runs is about 0.03 seconds.
               expect(value).to be > 0
-              expect(value).to be < 1
+              # Set upper bound at 1000 seconds... should be safe given the
+              # highest value seen so far was 40 seconds (for a method that
+              # compares length of an array with an integer).
+              expect(value).to be < 1000
             end
             expect(InstrumentationSpecTestClass.new.long_test_method).to eq(42)
             component.probe_notifier_worker.flush
