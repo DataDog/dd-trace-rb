@@ -4,6 +4,7 @@ module Datadog
       type trace = Tracing::TraceSegment | Tracing::TraceOperation
 
       def self.set_user: (?trace trace, ?Tracing::SpanOperation span, id: ::String, ?email: ::String?, ?name: ::String?, ?session_id: ::String?, ?role: ::String?, ?scope: ::String?, **::Hash[::Symbol, ::String | nil] others) -> void
+                       | (?trace trace, ?Tracing::SpanOperation span, Kit::AppSec::Events::V2::attributes user_attributes) -> void
     end
   end
 end

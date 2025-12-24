@@ -164,7 +164,9 @@ module Datadog
             # block is application code that we don't want to hinder.
             # * We don't yield during a fatal error, as the application is likely trying to
             #   end its execution (either due to a system error or graceful shutdown).
-            return_value = yield(self) unless e && !e.is_a?(StandardError)
+            # @type var e: Exception?
+            # Steep: https://github.com/soutaro/steep/issues/919
+            return_value = yield(self) unless e && !e.is_a?(StandardError) # steep:ignore FallbackAny
           end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -214,9 +216,6 @@ module Datadog
       end
 
       # Mark the span stopped at the current time
-      #
-      # steep:ignore:start
-      # Steep issue fixed in https://github.com/soutaro/steep/pull/1467
       def stop(stop_time = nil, exception: nil)
         # A span should not be stopped twice. Note that this is not thread-safe,
         # stop is called from multiple threads, a given span might be stopped
@@ -239,7 +238,6 @@ module Datadog
 
         self
       end
-      # steep:ignore:end
 
       # Return whether the duration is started or not
       def started?
@@ -287,10 +285,15 @@ module Datadog
       end
 
       def duration
+        # Steep: https://github.com/soutaro/steep/issues/477
+        # @type ivar @duration_end: Time
+        # @type ivar @duration_start: Time
         return @duration_end - @duration_start if @duration_start && @duration_end
 
         # Steep: https://github.com/soutaro/steep/issues/477
-        @end_time - @start_time if @start_time && @end_time # steep:ignore NoMethod
+        # @type ivar @end_time: Time
+        # @type ivar @start_time: Time
+        @end_time - @start_time if @start_time && @end_time
       end
 
       def set_error(e)
@@ -317,7 +320,9 @@ module Datadog
           'exception.stacktrace' => exc.backtrace,
         }
 
-        @span_events << SpanEvent.new('exception', attributes: event_attributes.merge!(attributes)) # steep:ignore
+        # Steep: Caused by wrong declaration, should be the same parameters as `merge`
+        # https://github.com/ruby/rbs/blob/3d0fb3a7fdde60af7120e875fe3bd7237b5b6a88/core/hash.rbs#L1468
+        @span_events << SpanEvent.new('exception', attributes: event_attributes.merge!(attributes)) # steep:ignore ArgumentTypeMismatch
       end
 
       # Return a string representation of the span.
@@ -466,7 +471,7 @@ module Datadog
               @handler.call(*args)
             rescue => e
               logger.debug do
-                "Error in on_error handler '#{@default}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
+                "Error in on_error handler '#{@handler}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
               end
             end
 
@@ -553,7 +558,8 @@ module Datadog
         return 0 if @start_time.nil?
 
         # Steep: https://github.com/soutaro/steep/issues/477
-        @start_time.to_i * 1000000000 + @start_time.nsec # steep:ignore NoMethod
+        # @type ivar @start_time: Time
+        @start_time.to_i * 1000000000 + @start_time.nsec
       end
 
       # Used for serialization

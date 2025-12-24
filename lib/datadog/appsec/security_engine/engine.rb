@@ -54,17 +54,17 @@ module Datadog
         end
 
         def add_or_update_config(config, path:)
-          @is_ruleset_update = path.include?('ASM_DD')
+          is_ruleset_update = path.include?('ASM_DD')
 
           # default config has to be removed when adding an ASM_DD config
-          remove_config_at_path(DEFAULT_RULES_CONFIG_PATH) if @is_ruleset_update
+          remove_config_at_path(DEFAULT_RULES_CONFIG_PATH) if is_ruleset_update
 
           diagnostics = @waf_builder.add_or_update_config(config, path: path)
           @reconfigured_ruleset_version = diagnostics['ruleset_version'] if diagnostics.key?('ruleset_version')
           report_configuration_diagnostics(diagnostics, action: 'update', telemetry: AppSec.telemetry)
 
           # we need to load default config if diagnostics contains top-level error for rules or processors
-          if @is_ruleset_update &&
+          if is_ruleset_update &&
               (diagnostics.key?('error') ||
               diagnostics.dig('rules', 'error') ||
               diagnostics.dig('processors', 'errors'))

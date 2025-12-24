@@ -24,6 +24,10 @@ module Datadog
 
       @executed_on_line: bool?
 
+      @rate_limit: Integer
+
+      @emitting_notified: bool
+
       def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?template_segments: Array[untyped]?, ?capture_snapshot: bool,
 	?condition: DI::EL::Expression?,
 	?max_capture_depth: Integer?, ?max_capture_attribute_count: Integer?, ?rate_limit: Integer?) -> void

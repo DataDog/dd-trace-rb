@@ -2,6 +2,8 @@ module Datadog
   module Tracing
     module Distributed
       class Fetcher
+        @data: ::Hash[::String, any]
+
         def initialize: (untyped data) -> void
 
         def []: (untyped key) -> untyped

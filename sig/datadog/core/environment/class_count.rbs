@@ -2,6 +2,8 @@ module Datadog
   module Core
     module Environment
       module ClassCount
+        self.@class_count_available: bool
+
         def self?.value: () -> untyped
 
         def self?.available?: () -> untyped

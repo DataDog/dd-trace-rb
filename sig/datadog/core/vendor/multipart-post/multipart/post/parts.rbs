@@ -5,6 +5,9 @@ module Datadog
         module Post
           module Parts
             module Part
+              @part: ::String
+              @io: ::StringIO | CompositeReadIO
+
               def self.new: (untyped boundary, untyped name, untyped value, ?::Hash[untyped, untyped] headers) -> untyped
 
               def self.file?: (untyped value) -> untyped
@@ -24,6 +27,10 @@ module Datadog
               include Part
 
               attr_reader length: untyped
+
+              @head: ::String
+              @foot: ::String
+
               def initialize: (untyped boundary, untyped name, untyped io, ?::Hash[untyped, untyped] headers) -> void
               def build_head: (untyped boundary, untyped name, untyped filename, untyped `type`, untyped content_len, ?::Hash[untyped, untyped] opts) -> untyped
             end

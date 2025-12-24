@@ -27,6 +27,10 @@ module Datadog
 
         @agent_settings: Core::Configuration::AgentSettings
 
+        @latest_consumer_offsets: ::Hash[::String, ::Integer]
+
+        @consumer_lag_events: ::Array[consumer_lag_event]
+
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
 
@@ -81,6 +85,7 @@ module Datadog
         type bucket_type = { pathway_stats: ::Hash[::Array[untyped], pathway_stats_type], latest_produce_offsets: ::Hash[::String, ::Integer], latest_commit_offsets: ::Hash[::String, ::Integer] }
         type pathway_stats_type = { edge_latency: Core::DDSketch, full_pathway_latency: Core::DDSketch, payload_size_sum: ::Integer, payload_size_count: ::Integer }
         type consumer_stat_type = { topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time, timestamp_sec: ::Float }
+        type consumer_lag_event = { topic: ::String, partition: ::Integer, expected_offset: ::Integer, actual_offset: ::Integer, gap_size: ::Integer, timestamp_sec: ::Float }
       end
     end
   end
