@@ -3,7 +3,7 @@
 
 // IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
-static ID telemetry_message_id = 0;
+
 
 void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char *function_name) {
   rb_exc_raise(
@@ -26,13 +26,7 @@ void raise_error(VALUE error_class, const char *fmt, ...) {
   va_start(args, fmt);
   VALUE message = rb_vsprintf(fmt, args);
   va_end(args);
-  VALUE exception = rb_exc_new_str(error_class, message);
-
-  if (telemetry_message_id != 0) {
-    rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(fmt));
-  }
-
-  rb_exc_raise(exception);
+  rb_raise(error_class, "%"PRIsVALUE, message);
 }
 
 VALUE datadog_gem_version(void) {
@@ -97,6 +91,6 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
 }
 
 void datadog_ruby_common_init(VALUE datadog_module) {
+  // No longer needed - using Ruby's built-in exception classes
   (void)datadog_module;
-  telemetry_message_id = rb_intern("@telemetry_message");
 }
