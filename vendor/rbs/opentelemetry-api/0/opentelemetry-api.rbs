@@ -1,6 +1,6 @@
 module OpenTelemetry
   class Context
-    def self.current: () -> self
+    def self.current: () -> instance
     def ensure_trace: () -> Datadog::Tracing::TraceOperation?
     def set_values: (Hash[Symbol, Hash[String, String] | String]) -> self
   end
