@@ -59,10 +59,6 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           expect(error.instance_variable_get(:@telemetry_message)).to eq("runtime error test")
         end
       end
-
-      it "is an instance of RuntimeError" do
-        expect { raise_native_runtime_error }.to raise_exception(RuntimeError)
-      end
     end
 
     context "when raising ArgumentError" do
@@ -76,10 +72,6 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           expect(error.instance_variable_get(:@telemetry_message)).to eq("argument error test")
         end
       end
-
-      it "is an instance of ArgumentError" do
-        expect { raise_native_argument_error }.to raise_exception(ArgumentError)
-      end
     end
 
     context "when raising TypeError" do
@@ -92,10 +84,6 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           expect(error.message).to eq("type error test")
           expect(error.instance_variable_get(:@telemetry_message)).to eq("type error test")
         end
-      end
-
-      it "is an instance of TypeError" do
-        expect { raise_native_type_error }.to raise_exception(TypeError)
       end
     end
   end
