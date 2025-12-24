@@ -157,7 +157,16 @@ RSpec.describe Datadog::Core::Workers::Polling do
           # an issue in CI (large test runtime) if for some reason the
           # scheduling is such that our desired state sequence literally
           # never happens.
-          let(:iterations) { 1000 }
+          let(:iterations) do
+            if PlatformHelpers.ci?
+              # 1000 is not enough
+              10000
+            else
+              # Don't want to get the local environment stuck on this test
+              # if it is not working. Maybe even reduce from 1000.
+              1000
+            end
+          end
 
           it 'stops the worker on each iteration' do
             expected_state_met = false
