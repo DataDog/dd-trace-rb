@@ -1,4 +1,95 @@
 module DIHelpers
+  class TestRemoteConfigGenerator
+    def initialize(probe_configs)
+      @probe_configs = probe_configs
+    end
+
+    attr_reader :probe_configs
+
+    def insert_transaction(repository)
+      repository.transaction do |_repository, transaction|
+        probe_configs.each do |key, value|
+          value_json = value.to_json
+
+          target = Datadog::Core::Remote::Configuration::Target.parse(
+            target_payload_for_value(value_json)
+          )
+
+          content = Datadog::Core::Remote::Configuration::Content.parse(
+            {
+              path: key,
+              content: value_json,
+            }
+          )
+
+          transaction.insert(content.path, target, content)
+        end
+      end
+    end
+
+    def mock_response
+      RSpec::Mocks::Double.new(Datadog::Core::Remote::Transport::HTTP::Config::Response,
+        ok?: true,
+        empty?: false,
+        roots: [],
+        targets: targets,
+        target_files: target_files,
+        client_configs: client_configs,)
+    end
+
+    private
+
+    def target_payload_for_value(value)
+      encoded = encode_obj(value)
+      {
+        'custom' => {
+          'v' => 1,
+        },
+        'hashes' => {'sha256' => Digest::SHA256.hexdigest(encoded)},
+        'length' => encoded.length
+      }
+    end
+
+    def client_configs
+      probe_configs.keys.map do |k|
+        rc_key_for_probe_id(k)
+      end
+    end
+
+    def targets
+      {
+        'signed' => {
+          'expires' => '2022-09-22T09:01:04Z',
+          'targets' => probe_configs.map do |k, v|
+            [rc_key_for_probe_id(k), target_payload_for_value(v)]
+          end.to_h,
+          'version' => 0,
+          'custom' => {},
+        },
+      }
+    end
+
+    def rc_key_for_probe_id(id)
+      #"datadog/2/LIVE_DEBUGGING/#{id}/hash"
+      id
+    end
+
+    def target_files
+      probe_configs.map do |k, v|
+        {path: k, content: encode_obj(v)}
+      end
+    end
+
+    def encode_str(v)
+      Datadog::Core::Utils::Base64.strict_encode64(v).chomp
+    end
+
+    def encode_obj(v)
+      JSON.dump(v)
+      #encode_str(JSON.dump(v))
+    end
+  end
+
   module ClassMethods
     def deactivate_code_tracking
       before(:all) do

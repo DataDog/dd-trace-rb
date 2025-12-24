@@ -29,30 +29,7 @@ RSpec.describe 'DI integration from remote config' do
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
   let(:transaction) do
-    repository.transaction do |_repository, transaction|
-      probe_configs.each do |key, value|
-        value_json = value.to_json
-
-        target = Datadog::Core::Remote::Configuration::Target.parse(
-          {
-            'custom' => {
-              'v' => 1,
-            },
-            'hashes' => {'sha256' => Digest::SHA256.hexdigest(value_json.to_json)},
-            'length' => value_json.length
-          }
-        )
-
-        content = Datadog::Core::Remote::Configuration::Content.parse(
-          {
-            path: key,
-            content: value_json,
-          }
-        )
-
-        transaction.insert(content.path, target, content)
-      end
-    end
+    DIHelpers::TestRemoteConfigGenerator.new(probe_configs).insert_transaction(repository)
   end
 
   let(:probe_configs) do
