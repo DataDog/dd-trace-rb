@@ -53,8 +53,7 @@ NORETURN(
 );
 
 // Raises an exception with separate telemetry-safe and detailed messages.
-// Make sure to *not* invoke Ruby code as this function can run in unsafe contexts.
-// NOTE: Raising the exception acquires the GVL (unsafe), but it also aborts the current execution flow.
+// NOTE: Raising an exception always invokes Ruby code so it requires the GVL and is not compatible with "debug_enter_unsafe_context".
 // @see debug_enter_unsafe_context
 NORETURN(
   void private_raise_exception(VALUE exception, const char *static_message)
