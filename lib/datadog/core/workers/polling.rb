@@ -7,6 +7,8 @@ module Datadog
   module Core
     module Workers
       # Adds polling (async looping) behavior to workers
+      #
+      # @api private
       module Polling
         DEFAULT_SHUTDOWN_TIMEOUT = 1
 

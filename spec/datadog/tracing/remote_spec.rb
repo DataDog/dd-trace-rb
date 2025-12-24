@@ -27,7 +27,7 @@ RSpec.describe Datadog::Tracing::Remote do
   describe '#process_config' do
     subject(:process_config) { remote.process_config(config, content) }
     let(:config) { nil }
-    let(:content) { Datadog::Core::Remote::Configuration::Content.parse({path: path, content: nil}) }
+    let(:content) { Datadog::Core::Remote::Configuration::Content.parse({path: path, content: ''}) }
 
     context 'with an empty content' do
       let(:config) { {} }

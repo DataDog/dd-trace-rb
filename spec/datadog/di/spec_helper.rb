@@ -99,14 +99,6 @@ module DIHelpers
       end
     end
 
-    def ruby_2_only
-      if RUBY_VERSION >= '3'
-        before(:all) do
-          skip "Test is only for Ruby 2"
-        end
-      end
-    end
-
     def di_test
       if PlatformHelpers.jruby?
         before(:all) do
@@ -116,6 +108,27 @@ module DIHelpers
       if RUBY_VERSION < "2.6"
         before(:all) do
           skip "Dynamic instrumentation requires Ruby 2.6 or higher"
+        end
+      end
+
+      around do |example|
+        check = true
+        if Datadog::DI.instrumented_count > 0
+          # Leaking instrumentations is a serious problem, but we want the
+          # diagnostics to point to the root cause. If there are outstanding
+          # instrumentations at the start of the test, the value at the end
+          # is likely to be meaningless. But just in case the report that
+          # is attached to the "root cause" test somehow disappears, warn
+          # that there are outstanding instrumentations here.
+          # They just produce noise in logs but not meaningless test failures.
+          warn "DI: #{Datadog::DI.instrumented_count} outstanding instrumentations detected before test: #{Datadog::DI.instrumented_count(:method)} method instrumentations active, #{Datadog::DI.instrumented_count(:line)} line instrumentations active"
+          check = false
+        end
+
+        example.run
+
+        if check && Datadog::DI.instrumented_count > 0
+          raise "DI: #{Datadog::DI.instrumented_count} outstanding instrumentations detected after test: #{Datadog::DI.instrumented_count(:method)} method instrumentations active, #{Datadog::DI.instrumented_count(:line)} line instrumentations active"
         end
       end
     end

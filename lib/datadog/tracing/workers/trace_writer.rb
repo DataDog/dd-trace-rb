@@ -21,15 +21,19 @@ module Datadog
           :transport,
           :agent_settings
 
+        # This method used to have the +:transport_options+ option, but
+        # it now does nothing and is ignored (but can still be passed in).
+        #
+        # DEV-3.0: change to keyword arguments?
+        #
         # rubocop:disable Lint/MissingSuper
         def initialize(options = {})
           @logger = options[:logger] || Datadog.logger
 
-          transport_options = options.fetch(:transport_options, {})
           @agent_settings = options[:agent_settings]
 
           @transport = options.fetch(:transport) do
-            Datadog::Tracing::Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
+            Datadog::Tracing::Transport::HTTP.default(agent_settings: agent_settings, logger: logger)
           end
         end
         # rubocop:enable Lint/MissingSuper
@@ -143,6 +147,9 @@ module Datadog
 
         # Are there more traces to be processed next?
         def work_pending?
+          # This is the same implementation as in Queue, but it was
+          # overwritten by IntervalLoop on its way to this worker class.
+          # See the comments in those two methods for more info.
           !buffer.empty?
         end
 

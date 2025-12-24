@@ -378,4 +378,66 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       try_wait_until { events_received == events_sent }
     end
   end
+
+  describe '#perform' do
+    context 'when worker is started and immediately stopped' do
+      # The test now is passing locally for me without modifications to
+      # the worker class. I'll leave this code here in case the
+      # modification is necessary in CI.
+      let(:worker_class) do
+        Class.new(described_class) do
+          # With the unmodified telemetry worker class, this test never
+          # encounters the problematic sequence of states.
+          # Reproduce the issue by adding a delay to the mutex method -
+          # this makes the worker thread effectively start running later,
+          # making more prominent the race with the main thread asking for
+          # the worker to stop.
+          def mutex
+            sleep 0.5
+            super
+          end
+        end
+      end
+
+      let(:worker_class) { described_class }
+
+      let(:iterations) { 100 }
+
+      before do
+        allow(emitter).to receive(:request).and_return(response)
+      end
+
+      it 'stops the worker and does not hang' do
+        conditions_met = false
+        iterations.times do |i|
+          # We need a new worker instance for each iteration, and also
+          # we need to use our modified worker class.
+          worker = worker_class.new(
+            enabled: enabled,
+            heartbeat_interval_seconds: heartbeat_interval_seconds,
+            metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
+            emitter: emitter,
+            metrics_manager: metrics_manager,
+            dependency_collection: dependency_collection,
+            logger: logger,
+          )
+
+          worker.perform
+          if worker.running? && !worker.run_loop? && worker.instance_variable_get('@run_loop').nil?
+            conditions_met = true
+          end
+
+          worker.stop
+          Timeout.timeout(5) do
+            worker.join
+          end
+
+          if conditions_met
+            #warn "took #{i+1} iterations"
+            break
+          end
+        end
+      end
+    end
+  end
 end

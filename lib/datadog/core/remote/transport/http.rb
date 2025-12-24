@@ -36,13 +36,11 @@ module Datadog
           def root(
             agent_settings:,
             logger:,
-            api_version: nil,
             headers: nil
           )
             Core::Transport::HTTP.build(
               agent_settings: agent_settings,
               logger: logger,
-              api_version: api_version,
               headers: headers
             ) do |transport|
               apis = API.defaults
@@ -59,13 +57,11 @@ module Datadog
           def v7(
             agent_settings:,
             logger:,
-            api_version: nil,
             headers: nil
           )
             Core::Transport::HTTP.build(
               agent_settings: agent_settings,
               logger: logger,
-              api_version: api_version,
               headers: headers
             ) do |transport|
               apis = API.defaults

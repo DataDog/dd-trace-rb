@@ -93,10 +93,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       let(:response) { nil }
 
       it 'logs debug message' do
+        expect_lazy_log(logger, :debug, /Resolution details upload response was not OK/)
+
         worker.enqueue(event)
         try_wait_until { worker.running? }
 
-        expect_lazy_log(logger, :debug, /Resolution details upload response was not OK/)
+        worker.flush
       end
     end
 
@@ -106,10 +108,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: false) }
 
       it 'logs debug message' do
+        expect_lazy_log(logger, :debug, /Resolution details upload response was not OK/)
+
         worker.enqueue(event)
         try_wait_until { worker.running? }
 
-        expect_lazy_log(logger, :debug, /Resolution details upload response was not OK/)
+        worker.flush
       end
     end
 
@@ -120,12 +124,14 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
 
       it 'logs debug message and swallows the error' do
         expect(telemetry).to receive(:report).with(error, description: /Failed to flush resolution details events/)
+        expect_lazy_log(logger, :debug, /Failed to flush resolution details events/)
 
         worker.enqueue(event)
         try_wait_until { worker.running? }
 
-        expect_lazy_log(logger, :debug, /Failed to flush resolution details events/)
         expect { worker.perform }.not_to raise_error
+
+        worker.flush
       end
     end
   end

@@ -3,14 +3,6 @@ require 'datadog/statsd'
 
 RSpec.describe 'Datadog integration' do
   context 'graceful shutdown', :integration do
-    before do
-      # TODO: This test is flaky, and the flakiness affects JRuby really often.
-      # Until we can investigate it, let's skip it as the constant failures impact unrelated development.
-      if PlatformHelpers.jruby?
-        skip('TODO: This test is flaky, and triggers very often on JRuby. Requires further investigation.')
-      end
-    end
-
     subject(:shutdown) { Datadog.shutdown! }
 
     let(:start_tracer) do
@@ -67,11 +59,30 @@ RSpec.describe 'Datadog integration' do
 
         after_open_file_descriptors = open_file_descriptors
 
-        expect(after_open_file_descriptors.size)
+        new_file_descriptors = after_open_file_descriptors.select do |k, v|
+          !before_open_file_descriptors.key?(k)
+        end.to_h
+
+        if PlatformHelpers.jruby?
+          # On JRuby there are open file descriptors showing up occasionally
+          # in CI and readily reproducibly locally.
+          #
+          # They are usually of form:
+          # {"/dev/fd/24"=>"/proc/10580/fd/24"}
+          # But sometimes the value is nil.
+          #
+          # I am unclear on how to troubleshoot what is causing these to be
+          # open, exclude them from diagnostics until this can be determined.
+          new_file_descriptors = new_file_descriptors.reject do |k, v|
+            v.nil? || v == k.sub(%r{\A/dev/}, "/proc/#{$$}/")
+          end.to_h
+        end
+
+        expect(new_file_descriptors)
           .to(
             # Below was changed from eq to <= to cause less flakyness. We still don't know why this test fails in CI
             # from time to time.
-            (be <= (before_open_file_descriptors.size)),
+            be_empty,
             lambda {
               "Open fds before (#{before_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
               "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}"

@@ -27,6 +27,8 @@ module Datadog
         def flush!: () -> Array[Datadog::Core::Telemetry::Event::Base]
 
         def disable!: () -> void
+        
+        def clear: () -> void
 
         private
 

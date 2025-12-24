@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Transport
       module HTTP
-        def self?.build: (agent_settings: untyped, ?logger: untyped, ?api_version: untyped?, ?headers: untyped?) { (untyped) -> untyped } -> HTTP::Builder
+        def self?.build: (agent_settings: untyped, ?logger: untyped, ?headers: untyped?) { (untyped) -> untyped } -> HTTP::Builder
 
         def self?.default_headers: () -> untyped
       end

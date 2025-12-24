@@ -98,7 +98,9 @@ module Datadog
               content = contents.find_content(path, target)
 
               # abort entirely if matching content not found
-              raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
+              if content.nil?
+                raise SyncError, "no valid content for target at path '#{path}'"
+              end
 
               # to be added or updated << config
               # TODO: metadata (hash, version, etc...)
