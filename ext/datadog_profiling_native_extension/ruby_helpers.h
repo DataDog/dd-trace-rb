@@ -40,13 +40,6 @@ static inline int check_if_pending_exception(void) {
 
 #define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
 
-// Raises an exception of the specified class with the formatted string as its message.
-// This macro ensures that the literal string is sent for telemetry, while the formatted
-// message is the default `Exception#message`.
-// *Ruby exceptions not raised through this function will not be reported via telemetry.*
-#define raise_error(exception_class, fmt, ...) \
-  private_raise_error(exception_class, "" fmt, ##__VA_ARGS__)
-
 // Raises a SysErr exception with the formatted string as its message.
 // See `raise_error` for details about telemetry messages.
 #define raise_syserr(syserr_errno, fmt, ...) \
