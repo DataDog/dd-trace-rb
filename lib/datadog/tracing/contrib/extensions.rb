@@ -221,10 +221,10 @@ module Datadog
             # @!visibility private
             def instrumented_integrations
               INSTRUMENTED_INTEGRATIONS_LOCK.synchronize do
-                if defined?(@instrumented_integrations)
+                (if defined?(@instrumented_integrations)
                   @instrumented_integrations&.dup
-                end || {}
-              end.freeze
+                end || {}).freeze
+              end
             end
 
             # @!visibility private
