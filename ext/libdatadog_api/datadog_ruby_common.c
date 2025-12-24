@@ -21,13 +21,6 @@ void raise_unexpected_type(VALUE value, const char *value_name, const char *type
   );
 }
 
-void raise_error(VALUE error_class, const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  VALUE message = rb_vsprintf(fmt, args);
-  va_end(args);
-  rb_raise(error_class, "%"PRIsVALUE, message);
-}
 
 VALUE datadog_gem_version(void) {
   VALUE ddtrace_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
