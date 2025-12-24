@@ -155,7 +155,7 @@ module Datadog
 
         # Wait for the worker to send out all events that have already
         # been queued, up to 15 seconds. Returns whether all events have
-        # been flushed.
+        # been flushed, or nil if telemetry is disabled.
         #
         # @api private
         def flush
