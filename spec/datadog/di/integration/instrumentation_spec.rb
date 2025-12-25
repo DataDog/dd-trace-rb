@@ -196,16 +196,25 @@ RSpec.describe 'Instrumentation integration' do
               capture_snapshot: false,)
           end
 
-          it 'invokes probe and creates expected snapshot' do
+          it 'installs probe which then is invoked and creates expected snapshot' do
             expect(diagnostics_transport).to receive(:send_diagnostics)
             # add_snapshot expectation replaces assertion on send_input
             expect(probe_manager.add_probe(probe)).to be false
+
+            # Probe should be pending
+            expect(probe_manager.pending_probes).to eq(probe.id => probe)
+            expect(probe_manager.installed_probes).to be_empty
 
             class InstrumentationDelayedTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
               def test_method
                 43
               end
             end
+
+            # Probe should now be installed, verify it was moved in the
+            # accounting collections correctly.
+            expect(probe_manager.pending_probes).to be_empty
+            expect(probe_manager.installed_probes).to eq(probe.id => probe)
 
             payload = nil
             expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
