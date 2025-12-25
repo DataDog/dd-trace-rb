@@ -134,6 +134,40 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       end
     end
 
+    context 'with OpenTelemetry environment variables' do
+      with_env 'OTEL_EXPORTER_OTLP_ENDPOINT' => 'http://otel:4317',
+        'OTEL_EXPORTER_OTLP_HEADERS' => 'key1=value1,key2=value2',
+        'OTEL_EXPORTER_OTLP_PROTOCOL' => 'http/protobuf',
+        'OTEL_EXPORTER_OTLP_TIMEOUT' => '5000',
+        'DD_METRICS_OTEL_ENABLED' => 'true',
+        'OTEL_METRICS_EXPORTER' => 'otlp',
+        'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT' => 'http://metrics:4318',
+        'OTEL_EXPORTER_OTLP_METRICS_HEADERS' => 'metrics_key=metrics_value',
+        'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL' => 'http/protobuf',
+        'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT' => '3000',
+        'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE' => 'cumulative',
+        'OTEL_METRIC_EXPORT_INTERVAL' => '4000',
+        'OTEL_METRIC_EXPORT_TIMEOUT' => '2000'
+
+      it 'reports OpenTelemetry configurations with environment variable names' do
+        expect(event.payload[:configuration]).to include(
+          {name: 'OTEL_EXPORTER_OTLP_ENDPOINT', origin: 'env_var', seq_id: id, value: 'http://otel:4317'},
+          {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'env_var', seq_id: id, value: 'key1=value1,key2=value2'},
+          {name: 'OTEL_EXPORTER_OTLP_PROTOCOL', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
+          {name: 'OTEL_EXPORTER_OTLP_TIMEOUT', origin: 'env_var', seq_id: id, value: 5000},
+          {name: 'DD_METRICS_OTEL_ENABLED', origin: 'env_var', seq_id: id, value: true},
+          {name: 'OTEL_METRICS_EXPORTER', origin: 'env_var', seq_id: id, value: 'otlp'},
+          {name: 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', origin: 'env_var', seq_id: id, value: 'http://metrics:4318'},
+          {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'env_var', seq_id: id, value: 'metrics_key=metrics_value'},
+          {name: 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
+          {name: 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', origin: 'env_var', seq_id: id, value: 3000},
+          {name: 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', origin: 'env_var', seq_id: id, value: 'cumulative'},
+          {name: 'OTEL_METRIC_EXPORT_INTERVAL', origin: 'env_var', seq_id: id, value: 4000},
+          {name: 'OTEL_METRIC_EXPORT_TIMEOUT', origin: 'env_var', seq_id: id, value: 2000},
+        )
+      end
+    end
+
     context 'with default configuration' do
       it 'reports default configuration' do
         expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| {name: name, origin: 'default', seq_id: id, value: value} })
