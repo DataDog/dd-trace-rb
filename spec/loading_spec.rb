@@ -4,6 +4,7 @@ require 'open3'
 REQUIRES = [
   {require: 'datadog', check: 'Datadog::Core'},
   {require: 'datadog/appsec', check: 'Datadog::AppSec'},
+  {require: 'datadog/ai_guard', check: 'Datadog::AIGuard'},
   {require: 'datadog/core', check: 'Datadog::Core'},
   {require: 'datadog/data_streams', check: 'Datadog::DataStreams'},
   {require: 'datadog/error_tracking', check: 'Datadog::ErrorTracking'},
