@@ -18,13 +18,11 @@ module Datadog
             agent_settings:,
             logger:,
             api_key: nil,
-            api_version: nil,
             headers: nil
           )
             Core::Transport::HTTP.build(
               logger: logger,
               agent_settings: agent_settings,
-              api_version: api_version,
               headers: headers
             ) do |transport|
               apis = API.defaults
@@ -43,12 +41,12 @@ module Datadog
           def agent_telemetry(
             agent_settings:,
             logger:,
-            api_version: nil,
             headers: nil
           )
             Core::Transport::HTTP.build(
               logger: logger,
-              agent_settings: agent_settings, api_version: api_version, headers: headers
+              agent_settings: agent_settings,
+              headers: headers
             ) do |transport|
               apis = API.defaults
 
