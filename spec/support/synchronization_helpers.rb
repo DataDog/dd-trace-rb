@@ -80,7 +80,7 @@ module SynchronizationHelpers
     pid = fork do
       yield
     end
-    exit_code, status = Process.wait2(pid)
+    _, status = Process.wait2(pid)
     fork_expectations.call(status: status, stdout: '', stderr: '')
   end
 
