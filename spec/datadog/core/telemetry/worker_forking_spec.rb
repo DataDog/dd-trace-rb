@@ -1,6 +1,8 @@
 require 'spec_helper'
 
 RSpec.describe Datadog::Core::Telemetry::Component do
+  forking_platform_only
+
   before(:all) do
     # We need to ensure the patch is present.
     # There is a unit test for the patcher itself which clears the callbacks,
