@@ -29,6 +29,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |settings|
       settings.telemetry.enabled = true
+      # Host may be overridden by environment variables
+      settings.agent.host = 'localhost'
       settings.agent.port = http_server_port
       # In this test we want to assert on dependency events
       settings.telemetry.dependency_collection = true
@@ -61,7 +63,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       # global component tree.
       crashtracker: nil,
       profiler: nil,
-      dynamic_instrumentation: nil,)
+      dynamic_instrumentation: nil,
+      )
   end
 
   after do
@@ -227,4 +230,5 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
   end
+
 end
