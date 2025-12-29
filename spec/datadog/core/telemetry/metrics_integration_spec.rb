@@ -116,7 +116,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
 
     # Submitting metrics in parent with the worker running is racy - we
-    # don't know if the worker will flush the events.
+    # don't know if the worker in the parent will flush the events before
+    # the fork executes.
     # Only test the forking case when worker is started after the fork
     # (in the forked child).
     context 'in forked child' do

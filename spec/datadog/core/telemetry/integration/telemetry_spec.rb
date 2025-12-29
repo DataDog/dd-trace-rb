@@ -526,6 +526,14 @@ RSpec.describe 'Telemetry integration tests' do
   context 'when process forks' do
     skip_unless_fork_supported
 
+    before(:all) do
+      # We need to ensure the patch is present.
+      # There is a unit test for the patcher itself which clears the callbacks,
+      # we need to reinstall our callback if the callback got installed before
+      # that test is run and this test is run even later.
+      Datadog::Core::Telemetry::Component::ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+    end
+
     # The mode is irrelevant but we need settings from the context.
     include_context 'agent mode'
 
@@ -570,16 +578,16 @@ RSpec.describe 'Telemetry integration tests' do
           component.worker.start(initial_event)
         end
 
-        it 'restarts worker when event is enqueued' do
+        it 'restarts worker after fork' do
           expect(component.enabled?).to be true
           expect(component.worker).to be_a(Datadog::Core::Telemetry::Worker)
           expect(component.worker.enabled?).to be true
           expect(component.worker.running?).to be true
 
-          expect_in_fork do
+          expect_in_fork(debug: true) do
             expect(component.enabled?).to be true
             expect(component.worker.enabled?).to be true
-            expect(component.worker.running?).to be false
+            expect(component.worker.running?).to be true
 
             # Queueing an event will restart the worker in the forked child.
             component.worker.enqueue(Datadog::Core::Telemetry::Event::AppHeartbeat.new)

@@ -228,13 +228,20 @@ module Datadog
           @metrics_manager.distribution(namespace, metric_name, value, tags: tags, common: common)
         end
 
+        # When a fork happens, we generally need to do two things inside the
+        # child proess:
+        # 1. Restart the worker.
+        # 2. Discard any events and metrics that were submitted in the
+        #    parent process (because they will be sent out in the parent
+        #    process, sending them in the child would cause duplicate
+        #    submission).
         def after_fork
-          worker&.send(:initialize_state)
-
           # We cannot simply create a new instance of metrics manager because
           # it is referenced from other objects (e.g. the worker).
           # We must reset the existing instance.
           @metrics_manager.clear
+
+          worker&.send(:after_fork)
         end
       end
     end
