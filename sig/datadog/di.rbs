@@ -1,17 +1,20 @@
 module Datadog
   module DI
+    type instrumentation_kind = :line | :method
     INSTRUMENTED_COUNTERS_LOCK: Mutex
 
     def self.enabled?: () -> bool
+
     def self.component: () -> Component
-    def self.instrumented_count: (?Symbol? kind) -> Integer
 
-    def self.instrumented_count_inc: (Symbol kind) -> void
+    def self.instrumented_count: (?instrumentation_kind? kind) -> Integer
 
-    def self.instrumented_count_dec: (Symbol kind) -> void
+    def self.instrumented_count_inc: (instrumentation_kind kind) -> void
+
+    def self.instrumented_count_dec: (instrumentation_kind kind) -> void
 
     private
 
-    def self.validate_kind!: (Symbol kind) -> void
+    def self.validate_kind!: (instrumentation_kind kind) -> void
   end
 end
