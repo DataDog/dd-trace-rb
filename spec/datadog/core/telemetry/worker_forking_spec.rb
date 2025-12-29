@@ -61,8 +61,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       # global component tree.
       crashtracker: nil,
       profiler: nil,
-      dynamic_instrumentation: nil,
-      )
+      dynamic_instrumentation: nil,)
   end
 
   after do
@@ -228,5 +227,4 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
   end
-
 end
