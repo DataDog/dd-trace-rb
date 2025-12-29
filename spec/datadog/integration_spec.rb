@@ -98,6 +98,22 @@ RSpec.describe 'Datadog integration' do
           end.to_h
         end
 
+        new_file_descriptors.each do |k, v|
+          if v
+            begin
+              resolved = File.readlink(v)
+              if resolved != v
+                new_file_descriptors[k] = {
+                  original: v,
+                  resolved: resolved,
+                }
+              end
+            rescue SystemCallError
+              # Nothing
+            end
+          end
+        end
+
         expect(new_file_descriptors)
           .to(
             # Below was changed from eq to <= to cause less flakyness. We still don't know why this test fails in CI
@@ -105,7 +121,8 @@ RSpec.describe 'Datadog integration' do
             be_empty,
             lambda {
               "Open fds before (#{before_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
-              "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}"
+              "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}\n" \
+              "New fds (#{new_file_descriptors.size}): #{new_file_descriptors}"
             }
           )
       end
