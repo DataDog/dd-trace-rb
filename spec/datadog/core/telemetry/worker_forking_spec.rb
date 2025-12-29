@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   let(:logger) { logger_allowing_debug }
 
   # Uncomment for debugging to see the log entries.
-  #let(:logger) { Logger.new(STDERR) }
+  let(:logger) { Logger.new(STDERR) }
 
   let(:components) do
     double(Datadog::Core::Configuration::Components,
