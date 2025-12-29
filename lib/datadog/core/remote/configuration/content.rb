@@ -30,6 +30,9 @@ module Datadog
               # when developing tests, for example.
               raise ArgumentError, 'data must not be nil'
             end
+            unless String === data
+              raise ArgumentError, "Invalid type for data: #{data.class}: expected String"
+            end
 
             @path = path
             @data = data
