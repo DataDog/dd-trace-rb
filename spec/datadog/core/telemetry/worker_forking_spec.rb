@@ -61,7 +61,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       # global component tree.
       crashtracker: nil,
       profiler: nil,
-      dynamic_instrumentation: nil,)
+      dynamic_instrumentation: nil,
+      )
   end
 
   after do
@@ -150,7 +151,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       def fork_and_assert
         sent_payloads.clear
 
-        expect_in_fork(debug: true) do
+        expect_in_fork do
           component.worker.enqueue(Datadog::Core::Telemetry::Event::AppHeartbeat.new)
 
           component.flush
@@ -227,4 +228,5 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
   end
+
 end
