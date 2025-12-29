@@ -43,6 +43,10 @@ module Datadog
           self.enabled = enabled
           # Workers::IntervalLoop settings
           self.loop_base_interval = metrics_aggregation_interval_seconds
+          # We actually restart the worker after fork, but this is done
+          # via the AtForkMonkeyPatch rather than the worker fork policy
+          # because we also need to reset state outside of the worker
+          # (e.g. the metrics).
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
           @shutdown_timeout = shutdown_timeout
@@ -51,6 +55,10 @@ module Datadog
           initialize_state
         end
 
+        # To make the method calls clear, the initialization code is in this
+        # method called +initialize_state+ which is called from +after_fork+.
+        # This way users of this class (e.g. telemetry Component) do not
+        # need to invoke +initialize_state+ directly, which can be confusing.
         private def initialize_state
           self.buffer = buffer_klass.new(@buffer_size)
 
@@ -88,20 +96,6 @@ module Datadog
         # altogether, and in this case other methods return nil.
         def enqueue(event)
           return unless enabled?
-
-          # Start the worker if needed, including in forked children.
-          # Needs to be done before pushing to buffer since perform
-          # may invoke after_fork handler which resets the buffer.
-          #
-          # Telemetry is special in that it permits events to be submitted
-          # to the worker with the worker not running, and the worker is
-          # explicitly started later (to maintain proper initialization order).
-          # Thus here we can't just call perform unconditionally and must
-          # check if the worker is supposed to be running, and only call
-          # perform in that case.
-          if worker && !worker.alive?
-            perform
-          end
 
           buffer.push(event)
           true
@@ -244,12 +238,16 @@ module Datadog
           disable!
         end
 
-        # Stop the worker after fork without sending closing event.
-        # The closing event will be (or should be) sent by the worker
-        # in the parent process.
-        # Also, discard any accumulated events since they will be sent by
+        # Call this method in a forked child to reset the state of this worker.
+        #
+        # Discard any accumulated events since they will be sent by
         # the parent.
-        def after_fork
+        # Discard any accumulated metrics.
+        # Restart the worker thread, if it was running in the parent process.
+        #
+        # This method cannot be called +after_fork+ because workers define
+        # and call +after_fork+ which is supposed to do different things.
+        def after_fork_monkey_patched
           # If telemetry is disabled, we still reset the state to avoid
           # having wrong state. It is possible that in the future telemetry
           # will be re-enabled after errors.
@@ -269,6 +267,13 @@ module Datadog
             # Therefore we have this +reset!+ method that changes the
             # event type while keeping the payload.
             @initial_event.reset! # steep:ignore
+          end
+
+          if enabled? && !worker.nil?
+            # Start the background thread if it was started in the parent
+            # process (which requires telemetry to be enabled).
+            # This should be done after all of the state resets.
+            perform
           end
         end
 

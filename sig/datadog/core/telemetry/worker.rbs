@@ -61,6 +61,8 @@ module Datadog
         def buffer_klass: () -> untyped
 	
 	def idle?: () -> bool
+	
+	def after_fork_monkey_patched: () -> void
       end
     end
   end
