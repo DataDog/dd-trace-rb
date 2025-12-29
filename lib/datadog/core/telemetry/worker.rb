@@ -55,11 +55,6 @@ module Datadog
           initialize_state
         end
 
-        # Call this method in a forked child to reset the state of this worker.
-        def after_fork
-          initialize_state
-        end
-
         # To make the method calls clear, the initialization code is in this
         # method called +initialize_state+ which is called from +after_fork+.
         # This way users of this class (e.g. telemetry Component) do not
@@ -243,11 +238,12 @@ module Datadog
           disable!
         end
 
-        # Stop the worker after fork without sending closing event.
-        # The closing event will be (or should be) sent by the worker
-        # in the parent process.
-        # Also, discard any accumulated events since they will be sent by
+        # Call this method in a forked child to reset the state of this worker.
+        #
+        # Discard any accumulated events since they will be sent by
         # the parent.
+        # Discard any accumulated metrics.
+        # Restart the worker thread, if it was running in the parent process.
         def after_fork
           # If telemetry is disabled, we still reset the state to avoid
           # having wrong state. It is possible that in the future telemetry
