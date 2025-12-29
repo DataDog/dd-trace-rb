@@ -241,7 +241,7 @@ module Datadog
           # We must reset the existing instance.
           @metrics_manager.clear
 
-          worker&.send(:after_fork)
+          worker&.send(:after_fork_monkey_patched)
         end
       end
     end

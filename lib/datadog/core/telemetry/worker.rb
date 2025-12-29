@@ -47,7 +47,7 @@ module Datadog
           # via the AtForkMonkeyPatch rather than the worker fork policy
           # because we also need to reset state outside of the worker
           # (e.g. the metrics).
-          self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
+          self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
           @shutdown_timeout = shutdown_timeout
           @buffer_size = buffer_size
@@ -244,7 +244,10 @@ module Datadog
         # the parent.
         # Discard any accumulated metrics.
         # Restart the worker thread, if it was running in the parent process.
-        def after_fork
+        #
+        # This method cannot be called +after_fork+ because workers define
+        # and call +after_fork+ which is supposed to do different things.
+        def after_fork_monkey_patched
           # If telemetry is disabled, we still reset the state to avoid
           # having wrong state. It is possible that in the future telemetry
           # will be re-enabled after errors.
