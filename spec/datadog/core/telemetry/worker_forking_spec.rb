@@ -159,6 +159,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
 
     describe 'events generated in forked child' do
+      before do
+        # Reduce interval between event submissions in worker
+        # to make the test run faster.
+        expect(component.worker).to receive(:loop_wait_time).at_least(:once).and_return(1)
+      end
+
       # Behavior in the child should be the same regardless of what
       # was sent in the parent, because the child is a new application
       # (process) from the backend's perspective.
