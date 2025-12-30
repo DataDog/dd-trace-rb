@@ -34,6 +34,10 @@ module SynchronizationHelpers
       stdout = File.read(fork_stdout.path)
       stderr = File.read(fork_stderr.path)
 
+      puts 'in child:'
+      puts stdout
+      puts stderr
+
       # Capture forked execution information
       result = {status: status, stdout: stdout, stderr: stderr}
 
