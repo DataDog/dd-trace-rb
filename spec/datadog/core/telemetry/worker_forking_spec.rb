@@ -157,6 +157,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         sent_payloads.clear
 
         expect_in_fork do
+          expect(component.worker).to be_running
+
           component.worker.enqueue(Datadog::Core::Telemetry::Event::AppHeartbeat.new)
 
           component.flush
