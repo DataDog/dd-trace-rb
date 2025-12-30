@@ -130,6 +130,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
     context 'when worker is running' do
       before do
+        # Reduce interval between event submissions in worker
+        # to make the test run faster.
+        expect(component.worker).to receive(:loop_wait_time).at_least(:once).and_return(1)
+      end
+
+      before do
         component.worker.start(initial_event)
       end
 
@@ -187,12 +193,6 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         expect(payload.fetch('payload').first).to include(
           'request_type' => 'app-heartbeat',
         )
-      end
-
-      before do
-        # Reduce interval between event submissions in worker
-        # to make the test run faster.
-        expect(component.worker).to receive(:loop_wait_time).at_least(:once).and_return(1)
       end
 
       context 'when initial event is AppStarted' do
