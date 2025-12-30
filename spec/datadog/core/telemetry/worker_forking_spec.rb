@@ -36,6 +36,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       settings.agent.port = http_server_port
       # In this test we want to assert on dependency events
       settings.telemetry.dependency_collection = true
+      # In CI tests can take a long time to run, avoid extra heartbeat events
+      settings.telemetry.heartbeat_interval_seconds = 1_000
     end
   end
 
