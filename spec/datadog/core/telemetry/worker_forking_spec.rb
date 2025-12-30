@@ -186,16 +186,18 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         )
       end
 
+      before do
+        # Reduce interval between event submissions in worker
+        # to make the test run faster.
+        expect(component.worker).to receive(:loop_wait_time).at_least(:once).and_return(1)
+      end
+
       context 'when initial event is AppStarted' do
         let(:initial_event) do
           Datadog::Core::Telemetry::Event::AppStarted.new(components: components)
         end
 
         it 'produces correct events in the child' do
-          # Reduce interval between event submissions in worker
-          # to make the test run faster.
-          expect(component.worker).to receive(:loop_wait_time).at_least(:once).and_return(1)
-
           component.worker.start(initial_event)
           component.flush
 
