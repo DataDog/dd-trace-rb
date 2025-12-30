@@ -65,6 +65,10 @@ RSpec.describe 'Datadog integration' do
         anon_inode:[eventpoll]
         anon_inode:[eventfd]
       ).freeze
+      # On JRuby we also get some pipes reported as leaked
+      IGNORE_JRUBY_FDS_REGEXPS = [
+        %r,\Apipe:\[\d+\]\z,,
+      ].freeze
       # standard:enable Lint/ConstantDefinitionInBlock:
 
       it 'closes tracer file descriptors' do
