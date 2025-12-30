@@ -43,6 +43,7 @@ module Datadog
           self.enabled = enabled
           # Workers::IntervalLoop settings
           self.loop_base_interval = metrics_aggregation_interval_seconds
+          p loop_base_interval
           # We actually restart the worker after fork, but this is done
           # via the AtForkMonkeyPatch rather than the worker fork policy
           # because we also need to reset state outside of the worker
