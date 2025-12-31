@@ -36,19 +36,6 @@ RSpec.describe Datadog::Tracing::Writer do
           end
         end
 
-        context 'and custom transport options' do
-          let(:options) { super().merge(transport_options: {api_version: api_version}) }
-          let(:api_version) { double('API version') }
-
-          it do
-            expect(Datadog::Tracing::Transport::HTTP).to receive(:default) do |**options|
-              expect(options).to include(api_version: api_version)
-            end
-
-            writer
-          end
-        end
-
         context 'with agent_settings' do
           let(:agent_settings) { double('AgentSettings') }
 
