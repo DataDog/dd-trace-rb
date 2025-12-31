@@ -82,6 +82,86 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         end
       end
     end
+
+    context 'with ProfilingError' do
+      before do
+        skip unless defined?(Datadog::Profiling::ProfilingError)
+      end
+
+      it 'includes the exception message in telemetry' do
+        expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+          expect(event.payload).to include(
+            logs: [{message: 'Datadog::Profiling::ProfilingError: (This is a safe profiler error)', level: 'ERROR', count: 1,
+                    stack_trace: a_string_including('REDACTED')}]
+          )
+        end
+
+        begin
+          raise Datadog::Profiling::ProfilingError, 'This is a safe profiler error'
+        rescue => e
+          component.report(e, level: :error)
+        end
+      end
+
+      context 'with description' do
+        it 'includes both description and exception message' do
+          expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+            expect(event.payload).to include(
+              logs: [{message: 'Datadog::Profiling::ProfilingError: Profiler failed to start (Failed to initialize native extension)', level: 'ERROR', count: 1,
+                      stack_trace: a_string_including('REDACTED')}]
+            )
+          end
+
+          begin
+            raise Datadog::Profiling::ProfilingError, 'Failed to initialize native extension'
+          rescue => e
+            component.report(e, level: :error, description: 'Profiler failed to start')
+          end
+        end
+      end
+    end
+
+    context 'with ProfilingInternalError' do
+      before do
+        skip unless defined?(Datadog::Profiling::ProfilingInternalError)
+      end
+
+      it 'excludes the exception message from telemetry' do
+        expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+          expect(event.payload).to include(
+            logs: [{message: 'Datadog::Profiling::ProfilingInternalError', level: 'ERROR', count: 1,
+                    stack_trace: a_string_including('REDACTED')}]
+          )
+          # Verify the dynamic content is NOT in the message
+          expect(event.payload[:logs].map { |log| log[:message] }).not_to include(/Failed to initialize.*0x[0-9a-f]+/)
+        end
+
+        begin
+          raise Datadog::Profiling::ProfilingInternalError, 'Failed to initialize string storage: Error at address 0xdeadbeef'
+        rescue => e
+          component.report(e, level: :error)
+        end
+      end
+
+      context 'with description' do
+        it 'includes description but excludes exception message' do
+          expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+            expect(event.payload).to include(
+              logs: [{message: 'Datadog::Profiling::ProfilingInternalError: libdatadog internal error', level: 'ERROR', count: 1,
+                      stack_trace: a_string_including('REDACTED')}]
+            )
+            # Verify the dynamic content is NOT in the message
+            expect(event.payload[:logs].map { |log| log[:message] }).not_to include(/memory address/)
+          end
+
+          begin
+            raise Datadog::Profiling::ProfilingInternalError, 'Failed to serialize profile: Invalid memory address 0x12345678'
+          rescue => e
+            component.report(e, level: :error, description: 'libdatadog internal error')
+          end
+        end
+      end
+    end
   end
 
   describe '.error' do
