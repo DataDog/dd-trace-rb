@@ -1,10 +1,17 @@
 require 'English'
 
 module SynchronizationHelpers
-  def expect_in_fork(fork_expectations: nil, timeout_seconds: 10, trigger_stacktrace_on_kill: false)
+  def expect_in_fork(fork_expectations: nil, timeout_seconds: 10, trigger_stacktrace_on_kill: false, debug: false)
     fork_expectations ||= proc { |status:, stdout:, stderr:|
       expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
     }
+
+    if debug
+      rv = expect_in_fork_debug(fork_expectations: fork_expectations) do
+        yield
+      end
+      return rv
+    end
 
     fork_stdout = Tempfile.new('datadog-rspec-expect-in-fork-stdout')
     fork_stderr = Tempfile.new('datadog-rspec-expect-in-fork-stderr')
@@ -64,6 +71,17 @@ module SynchronizationHelpers
       fork_stdout.unlink
       fork_stderr.unlink
     end
+  end
+
+  # Debug version of expect_in_fork that does not redirect I/O streams and
+  # has no timeout on execution. The idea is to use it for interactive
+  # debugging where you would set a break point in the fork.
+  def expect_in_fork_debug(fork_expectations:, timeout_seconds: 10, trigger_stacktrace_on_kill: false)
+    pid = fork do
+      yield
+    end
+    _, status = Process.wait2(pid)
+    fork_expectations.call(status: status, stdout: '', stderr: '')
   end
 
   # Waits for the condition provided by the block argument to return truthy.

@@ -6,8 +6,11 @@ module Datadog
   module Core
     module Telemetry
       # MetricsManager aggregates and flushes metrics and distributions
+      #
+      # @api private
       class MetricsManager
         attr_reader :enabled
+        attr_reader :collections
 
         def initialize(aggregation_interval:, enabled:)
           @interval = aggregation_interval
@@ -66,6 +69,12 @@ module Datadog
 
         def disable!
           @enabled = false
+        end
+
+        def clear
+          @mutex.synchronize do
+            @collections = {}
+          end
         end
 
         private

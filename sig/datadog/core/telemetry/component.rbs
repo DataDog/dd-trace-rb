@@ -3,6 +3,7 @@ module Datadog
     module Telemetry
       class Component
         ENDPOINT_COLLECTION_MESSAGE_LIMIT: Integer
+	ONLY_ONCE: Core::Utils::OnlyOnce
 
         @enabled: bool
         @log_collection_enabled: bool
@@ -23,6 +24,8 @@ module Datadog
         def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettings agent_settings, Datadog::Core::Logger logger) -> Component
 
         def initialize: (logger: Core::Logger, settings: untyped, agent_settings: Datadog::Core::Configuration::AgentSettings, enabled: true | false) -> void
+	
+        def enabled?: -> bool
 
         def disable!: () -> void
 
@@ -30,7 +33,7 @@ module Datadog
 
         def shutdown!: () -> void
 
-        def flush: () -> void
+        def flush: (?timeout: Numeric?) -> bool?
 
         def client_configuration_change!: (Array[[String, Numeric | bool | String]] changes) -> void
 
@@ -49,6 +52,8 @@ module Datadog
         def rate: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
         def distribution: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+        
+        def after_fork: () -> void
       end
     end
   end
