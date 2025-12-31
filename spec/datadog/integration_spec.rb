@@ -79,13 +79,13 @@ RSpec.describe 'Datadog integration' do
       # Ignore the pipes too.
       #
       # standard:disable Lint/ConstantDefinitionInBlock:
-      IGNORE_JRUBY_FDS_REGEXP = %r,
+      IGNORE_JRUBY_FDS_REGEXP = %r{
         \A (
           anon_inode:\[eventpoll\] |
           anon_inode:\[eventfd\] |
           pipe:\[\d+\]
         ) \z
-      ,x.freeze
+      }x.freeze
       # standard:enable Lint/ConstantDefinitionInBlock:
 
       it 'closes tracer file descriptors' do
