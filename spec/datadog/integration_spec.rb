@@ -56,15 +56,36 @@ RSpec.describe 'Datadog integration' do
       end
 
       # On JRuby, there are file descriptors opened that resolve to these
-      # paths via File.readlink.
+      # paths via File.readlink:
+      #
+      # anon_inode:[eventpoll]
+      # anon_inode:[eventfd]
       #
       # The file descriptor leakage check was meant primarily for
       # network sockets and these are not - ignore them.
+      #
+      # We also get some pipes reported as leaked:
+      #
+      # pipe:[20450]
+      #
+      # The pipes come in pairs (read and write end).
+      #
+      # We don't have any IO.pipe calls in the source code at the moment,
+      # just in the test suite. Still, it is possible that we call other
+      # code that creates pipes and does not clean them up.
+      # However, these leaked pipes are only reported on JRuby, which
+      # suggests that we do not actually have a resource leak.
+      #
+      # Ignore the pipes too.
+      #
       # standard:disable Lint/ConstantDefinitionInBlock:
-      IGNORE_JRUBY_FDS = %w(
-        anon_inode:[eventpoll]
-        anon_inode:[eventfd]
-      ).freeze
+      IGNORE_JRUBY_FDS_REGEXP = %r{
+        \A (
+          anon_inode:\[eventpoll\] |
+          anon_inode:\[eventfd\] |
+          pipe:\[\d+\]
+        ) \z
+      }x.freeze
       # standard:enable Lint/ConstantDefinitionInBlock:
 
       it 'closes tracer file descriptors' do
@@ -94,8 +115,24 @@ RSpec.describe 'Datadog integration' do
           new_file_descriptors = new_file_descriptors.reject do |k, v|
             v.nil? or
               v == k.sub(%r{\A/dev/}, "/proc/#{$$}/") &&
-                IGNORE_JRUBY_FDS.include?(soft_readlink(v))
+                IGNORE_JRUBY_FDS_REGEXP =~ (soft_readlink(v) || '')
           end.to_h
+        end
+
+        new_file_descriptors.each do |k, v|
+          if v
+            begin
+              resolved = File.readlink(v)
+              if resolved != v
+                new_file_descriptors[k] = {
+                  original: v,
+                  resolved: resolved,
+                }
+              end
+            rescue SystemCallError
+              # Nothing
+            end
+          end
         end
 
         expect(new_file_descriptors)
@@ -105,7 +142,8 @@ RSpec.describe 'Datadog integration' do
             be_empty,
             lambda {
               "Open fds before (#{before_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
-              "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}"
+              "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}\n" \
+              "New fds (#{new_file_descriptors.size}): #{new_file_descriptors}"
             }
           )
       end
