@@ -51,9 +51,11 @@ module ForkableExample
 
       reader.close
 
-      super
-
-      writer.close
+      begin
+        super
+      ensure
+        writer.close
+      end
     end
 
     writer.close
@@ -97,6 +99,9 @@ module ForkableExample
     reader.close
 
     status.success? # We return the status code from the forked process as the boolean for success/failure
+  ensure
+    reader&.close
+    writer&.close
   end
 
   # Patch a method in the forked process to capture its arguments.

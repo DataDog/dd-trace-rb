@@ -809,6 +809,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     after do
+      # Ensure we are not leaking file descriptors
+      ready_pipe.map(&:close)
+
       # Signal child to exit
       finish_pipe.map(&:close)
 
