@@ -95,6 +95,31 @@ module ContainerHelpers
     end
   end
 
+  RSpec.shared_context 'Docker systemd environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'system' }
+    let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
+    let(:lines) { 13 }
+
+    before do
+      cgroup_file.puts "13:name=systemd:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "12:pids:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "11:hugetlb:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "10:net_prio:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "9:perf_event:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "8:net_cls:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "7:freezer:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "6:devices:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "5:memory:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "4:blkio:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "3:cpuacct:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "2:cpu:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.puts "1:cpuset:/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.rewind
+    end
+  end
+
   RSpec.shared_context 'Kubernetes environment' do
     include_context 'cgroup file'
 
@@ -282,6 +307,102 @@ module ContainerHelpers
       cgroup_file.puts "3:cpuacct:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
       cgroup_file.puts "2:cpu:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
       cgroup_file.puts "1:blkio:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.rewind
+    end
+  end
+
+  # Cgroups v2 contexts
+  # In v2, hierarchy id is always 0 and controller list is empty
+  RSpec.shared_context 'Docker v2 environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'docker' }
+    let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
+    let(:lines) { 1 }
+
+    before do
+      cgroup_file.puts "0::/#{platform}/#{container_id}"
+      cgroup_file.rewind
+    end
+  end
+
+  RSpec.shared_context 'Docker systemd v2 environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'system' }
+    let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
+    let(:lines) { 1 }
+
+    before do
+      cgroup_file.puts "0::/#{platform}.slice/docker-#{container_id}.scope"
+      cgroup_file.rewind
+    end
+  end
+
+  RSpec.shared_context 'Kubernetes v2 environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'kubepods' }
+    let(:container_id) { '3e74d3fd9db4c9dd921ae05c2502fb984d0cde1b36e581b13f79c639da4518a1' }
+    let(:pod_id) { 'pod3d274242-8ee0-11e9-a8a6-1e68d864ef1a' }
+    let(:lines) { 1 }
+
+    before do
+      cgroup_file.puts "0::/#{platform}/besteffort/#{pod_id}/#{container_id}"
+      cgroup_file.rewind
+    end
+  end
+
+  RSpec.shared_context 'Kubernetes burstable v2 environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'kubepods' }
+    let(:container_id) { '7b8952daecf4c0e44bbcefe1b5c5ebc7b4839d4eefeccefe694709d3809b6199' }
+    let(:pod_id) { 'pod2d3da189_6407_48e3_9ab6_78188d75e609' }
+    let(:lines) { 1 }
+
+    before do
+      cgroup_file.puts "0::/#{platform}.slice/kubepods-burstable.slice/kubepods-burstable-#{pod_id}.slice/cri-containerd-#{container_id}.scope"
+      cgroup_file.rewind
+    end
+  end
+
+  RSpec.shared_context 'ECS v2 environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'ecs' }
+    let(:container_id) { '38fac3e99302b3622be089dd41e7ccf38aff368a86cc339972075136ee2710ce' }
+    let(:task_arn) { '5a0d5ceddf6c44c1928d367a815d890f' }
+    let(:lines) { 1 }
+
+    before do
+      cgroup_file.puts "0::/#{platform}/#{task_arn}/#{container_id}"
+      cgroup_file.rewind
+    end
+  end
+
+  RSpec.shared_context 'Fargate 1.4+ v2 environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'ecs' }
+    let(:container_id_with_random) { "#{container_id_without_random}-1234567890" }
+    let(:container_id_without_random) { '34dc0b5e626f2c5c4c5170e34b10e765' }
+    let(:lines) { 1 }
+
+    before do
+      cgroup_file.puts "0::/#{platform}/#{container_id_with_random}"
+      cgroup_file.rewind
+    end
+  end
+
+  RSpec.shared_context 'non-containerized v2 environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { nil }
+    let(:lines) { 1 }
+
+    before do
+      cgroup_file.puts "0::/user.slice/user-1000.slice/user@1000.service/app.slice"
       cgroup_file.rewind
     end
   end

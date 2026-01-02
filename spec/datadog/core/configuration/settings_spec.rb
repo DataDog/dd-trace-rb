@@ -217,6 +217,52 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
+  describe '#container' do
+    describe '#external_env' do
+      subject(:external_env) { settings.container.external_env }
+
+      context "when #{Datadog::Core::Environment::Ext::ENV_EXTERNAL_ENV}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_EXTERNAL_ENV => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be nil }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'provided-by-container-runner' }
+
+          it { is_expected.to eq(environment) }
+        end
+      end
+    end
+
+    describe '#external_env=' do
+      subject(:set_external_env) { settings.container.external_env = external_env }
+
+      context 'when given a value' do
+        let(:external_env) { 'provided-by-container-runner' }
+
+        before { set_external_env }
+
+        it { expect(settings.container.external_env).to eq(external_env) }
+      end
+
+      context 'when given `nil`' do
+        let(:external_env) { nil }
+
+        before { set_external_env }
+
+        it { expect(settings.container.external_env).to be_nil }
+      end
+    end
+  end
+
   describe '#health_metrics' do
     describe '#enabled' do
       subject(:enabled) { settings.health_metrics.enabled }
