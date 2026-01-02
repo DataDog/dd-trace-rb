@@ -1,0 +1,19 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class Message
+        attr_reader role: ::Symbol
+        attr_reader content: ::String?
+        attr_reader tool_call: ToolCall?
+        attr_reader tool_call_id: ::String?
+
+        def initialize: (
+          role: ::String | ::Symbol,
+          ?content: ::String?,
+          ?tool_call: ToolCall?,
+          ?tool_call_id: ::String?
+        ) -> void
+      end
+    end
+  end
+end

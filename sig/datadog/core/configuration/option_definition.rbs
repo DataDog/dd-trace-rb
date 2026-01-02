@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Configuration
       class OptionDefinition
-        type option_type = String | Integer | Float | Rational | Symbol | bool | Array[untyped] | Hash[untyped, untyped] | nil
+        type option_type = String | Numeric | Rational | Symbol | bool | Array[untyped] | Hash[untyped, untyped] | nil
 
         type option_proc = (^(Options::GenericSettingsClass settings) [self: Options::GenericSettingsClass] -> option_type)
 
