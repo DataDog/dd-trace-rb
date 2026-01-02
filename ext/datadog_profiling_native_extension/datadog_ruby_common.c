@@ -1,8 +1,11 @@
 #include "datadog_ruby_common.h"
+#include <stdarg.h>
 
 // IMPORTANT: Currently this file is copy-pasted between extensions. Make sure to update all versions when doing any change!
 
-void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name) {
+static ID telemetry_message_id;
+
+void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char *function_name) {
   rb_exc_raise(
     rb_exc_new_str(
       rb_eTypeError,
@@ -16,6 +19,26 @@ void raise_unexpected_type(VALUE value, const char *value_name, const char *type
       )
     )
   );
+}
+
+// Raises an exception with separate telemetry-safe and detailed messages.
+// NOTE: Raising an exception always invokes Ruby code so it requires the GVL and is not compatible with "debug_enter_unsafe_context".
+// @see debug_enter_unsafe_context
+void private_raise_exception(VALUE exception, const char *static_message) {
+  rb_ivar_set(exception, telemetry_message_id, rb_str_new_cstr(static_message));
+  rb_exc_raise(exception);
+}
+
+// Helper for raising pre-formatted exceptions
+void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message) {
+  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
+  private_raise_exception(exception, static_message);
+}
+
+// Use `raise_error` the macro instead, as it provides additional argument checks.
+void private_raise_error(VALUE exception_class, const char *fmt, ...) {
+  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
+  private_raise_error_formatted(exception_class, detailed_message, fmt);
 }
 
 VALUE datadog_gem_version(void) {
@@ -77,4 +100,28 @@ ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
   }
 
   return tags;
+}
+
+size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capacity) {
+  if (capacity == 0 || string == NULL) {
+    // short-circuit, we can't write anything
+    ddog_Error_drop(error);
+    return 0;
+  }
+
+  ddog_CharSlice error_msg_slice = ddog_Error_message(error);
+  size_t error_msg_size = error_msg_slice.len;
+  // Account for extra null char for proper cstring
+  if (error_msg_size >= capacity) {
+    // Error message too big, lets truncate it to capacity - 1 to allow for extra null at end
+    error_msg_size = capacity - 1;
+  }
+  strncpy(string, error_msg_slice.ptr, error_msg_size);
+  string[error_msg_size] = '\0';
+  ddog_Error_drop(error);
+  return error_msg_size;
+}
+
+void datadog_ruby_common_init(void) {
+  telemetry_message_id = rb_intern("@telemetry_message");
 }

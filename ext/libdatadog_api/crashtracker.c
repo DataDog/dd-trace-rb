@@ -2,6 +2,7 @@
 #include <datadog/crashtracker.h>
 
 #include "datadog_ruby_common.h"
+#include "helpers.h"
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
@@ -41,7 +42,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ENFORCE_TYPE(action, T_SYMBOL);
   ENFORCE_TYPE(upload_timeout_seconds, T_FIXNUM);
 
-  if (action != start_action && action != update_on_fork_action) rb_raise(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
+  if (action != start_action && action != update_on_fork_action) raise_error(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
 
   VALUE version = datadog_gem_version();
 
@@ -49,7 +50,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   // Start of exception-free zone to prevent leaks {{
   ddog_Endpoint *endpoint = ddog_endpoint_from_url(char_slice_from_ruby_string(agent_base_url));
   if (endpoint == NULL) {
-    rb_raise(rb_eRuntimeError, "Failed to create endpoint from agent_base_url: %"PRIsVALUE, agent_base_url);
+    raise_error(rb_eRuntimeError, "Failed to create endpoint from agent_base_url: %"PRIsVALUE, agent_base_url);
   }
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
@@ -107,9 +108,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ddog_endpoint_drop(endpoint);
   // }} End of exception-free zone to prevent leaks
 
-  if (result.tag == DDOG_VOID_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to start/update the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
+  CHECK_VOID_RESULT("Failed to start/update the crash tracker", result);
 
   return Qtrue;
 }
@@ -117,9 +116,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
   ddog_VoidResult result = ddog_crasht_disable();
 
-  if (result.tag == DDOG_VOID_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to stop the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
+  CHECK_VOID_RESULT("Failed to stop the crash tracker", result);
 
   return Qtrue;
 }

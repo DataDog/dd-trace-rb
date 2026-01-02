@@ -217,12 +217,12 @@ void crashtracking_runtime_stacks_init(void) {
   if (crashtracker_thread_data_type == NULL) {
     VALUE current_thread = rb_thread_current();
     if (current_thread == Qnil) {
-      rb_raise(rb_eRuntimeError, "crashtracking_runtime_stacks_init: rb_thread_current returned Qnil");
+      raise_error(rb_eRuntimeError, "crashtracking_runtime_stacks_init: rb_thread_current returned Qnil");
     }
 
     const rb_data_type_t *thread_data_type = RTYPEDDATA_TYPE(current_thread);
     if (!thread_data_type) {
-      rb_raise(rb_eRuntimeError, "crashtracking_runtime_stacks_init: RTYPEDDATA_TYPE returned NULL");
+      raise_error(rb_eRuntimeError, "crashtracking_runtime_stacks_init: RTYPEDDATA_TYPE returned NULL");
     }
 
     crashtracker_thread_data_type = thread_data_type;
