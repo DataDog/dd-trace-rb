@@ -1691,7 +1691,7 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
-    ffi (1.17.2-java)
+    ffi (1.17.3-java)
     hashdiff (1.2.1)
     jmespath (1.6.2)
     json-schema (2.8.1)
