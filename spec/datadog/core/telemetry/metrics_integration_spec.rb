@@ -2,6 +2,15 @@ require 'spec_helper'
 
 RSpec.describe Datadog::Core::Telemetry::Component do
   before(:all) do
+    if RUBY_VERSION < '2.6'
+      # The tests here are flaking in CI on Ruby 2.5.
+      # Once I add diagnostics to investigate why they are failing, they
+      # stop failing.
+      # After 3 weeks of trying to figure this out I am skipping
+      # the failing runtimes.
+      skip 'flaky in CI'
+    end
+
     # We need to ensure the patch is present.
     # There is a unit test for the patcher itself which clears the callbacks,
     # we need to reinstall our callback if the callback got installed before
