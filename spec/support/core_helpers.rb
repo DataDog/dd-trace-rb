@@ -71,6 +71,14 @@ module CoreHelpers
       end
     end
 
+    def skip_unless_fork_supported
+      unless Process.respond_to?(:fork)
+        before(:all) do
+          skip 'Fork is not supported on current platform'
+        end
+      end
+    end
+
     # Positional and keyword arguments are both accepted to make the method
     # work on Ruby 2.5/2.6 and 2.7+. In practice only one type of arguments
     # should be used in any given call.

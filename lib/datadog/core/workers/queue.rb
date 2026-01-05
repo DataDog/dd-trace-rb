@@ -104,6 +104,7 @@ module Datadog
             return true if idle?
 
             return false if Utils::Time.get_time - started > timeout
+            p ['flushing',buffer.empty?,buffer,in_iteration?]
 
             sleep 0.5
           end

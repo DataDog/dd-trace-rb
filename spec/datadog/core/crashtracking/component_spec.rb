@@ -368,6 +368,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             crash_stack_helper_class.new.top_level_ruby_method
           end
 
+          expect(runtime_stack).to be_a(Hash)
           frames = runtime_stack[:frames]
 
           # Check that the crashing function is captured
