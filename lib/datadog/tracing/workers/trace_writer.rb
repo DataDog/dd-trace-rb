@@ -21,6 +21,8 @@ module Datadog
           :transport,
           :agent_settings
 
+        # DEV-3.0: change to keyword arguments
+        #
         # rubocop:disable Lint/MissingSuper
         def initialize(options = {})
           @logger = options[:logger] || Datadog.logger
