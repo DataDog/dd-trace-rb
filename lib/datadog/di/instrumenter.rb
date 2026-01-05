@@ -166,7 +166,10 @@ module Datadog
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
-              start_time = Core::Utils::Time.get_time
+              # We intentionally do not use Core::Utils::Time.get_time
+              # here because the time provider may be overridden by the
+              # customer, and DI is not allowed to invoke customer code.
+              start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
               rv = nil
               begin
@@ -190,7 +193,7 @@ module Datadog
                 # the instrumentation callback runs.
               end
 
-              duration = Core::Utils::Time.get_time - start_time
+              duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
@@ -256,6 +259,8 @@ module Datadog
 
           probe.instrumentation_module = mod
           cls.send(:prepend, mod)
+
+          DI.instrumented_count_inc(:method)
         end
       end
 
@@ -268,6 +273,8 @@ module Datadog
           if mod = probe.instrumentation_module
             mod.send(:remove_method, probe.method_name)
             probe.instrumentation_module = nil
+
+            DI.instrumented_count_dec(:method)
           end
         end
       end
@@ -470,12 +477,16 @@ module Datadog
           # actual_path could be nil if we don't use targeted trace points.
           probe.instrumented_path = actual_path
 
-          if iseq
+          # TracePoint#enable returns false when it succeeds.
+          rv = if iseq
             tp.enable(target: iseq, target_line: line_no)
           else
             tp.enable
           end
-          # TracePoint#enable returns false when it succeeds.
+
+          DI.instrumented_count_inc(:line)
+
+          rv
         end
         true
       end
@@ -485,6 +496,8 @@ module Datadog
           if tp = probe.instrumentation_trace_point
             tp.disable
             probe.instrumentation_trace_point = nil
+
+            DI.instrumented_count_dec(:line)
           end
         end
       end

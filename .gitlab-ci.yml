@@ -146,8 +146,9 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: de7effbf9d2afa744933e4366e7a9a3b3c627722 # Automated: This reference is automatically updated.
-    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
+    SYSTEM_TESTS_REF: c03ea1e25c39dfb4be1d1e0da8d1fb1ef12af442 # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection,docker_ssi"
+    SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
 save_versions:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
@@ -197,16 +198,18 @@ vaccine:
     - dd-octo-sts revoke -t $(cat token.txt)
 
 # Config inversion CI steps
-validate_supported_configurations_local_file:
+validate_supported_configurations_v2_local_file:
   rules:
     - when: on_success
-  extends: .validate_supported_configurations_local_file
+  extends: .validate_supported_configurations_v2_local_file
   variables:
     LOCAL_JSON_PATH: "supported-configurations.json"
+    BACKFILLED: "true"
 
-update_central_configurations_version_range:
-  extends: .update_central_configurations_version_range
+update_central_configurations_version_range_v2:
+  extends: .update_central_configurations_version_range_v2
   variables:
     LOCAL_JSON_PATH: "supported-configurations.json"
     LANGUAGE_NAME: "ruby"
     MULTIPLE_RELEASE_LINES: "false"
+    SEND_ALIASES: "true"

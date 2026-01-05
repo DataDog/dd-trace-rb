@@ -222,7 +222,7 @@ module Datadog
           return false
         elsif RUBY_VERSION.start_with?("4.")
           logger.warn(
-            "Heap profiling is not supported in current Ruby version (#{RUBY_VERSION}) due to https://bugs.ruby-lang.org/issues/21710. " \
+            "Datadog Ruby heap profiler is currently incompatible with Ruby 4. " \
             "Heap profiling has been disabled."
           )
           return false

@@ -132,6 +132,10 @@ module Datadog
 
         def tags: -> ::Hash[::String, ::String]
 
+        def experimental_propagate_process_tags_enabled: () -> bool
+
+        def experimental_propagate_process_tags_enabled=: (bool value) -> bool
+
         def logger=: (untyped logger) -> untyped
 
         def runtime_metrics: (?untyped? options) -> untyped
@@ -147,6 +151,8 @@ module Datadog
         def open_feature: () -> _OpenFeature
 
         def tracing: () -> untyped
+
+        def opentelemetry: () -> OpenTelemetry::Configuration::Settings::_OpenTelemetry
       end
     end
   end

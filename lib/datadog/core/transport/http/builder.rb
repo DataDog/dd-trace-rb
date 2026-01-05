@@ -13,7 +13,6 @@ module Datadog
           REGISTRY = Datadog::Core::Transport::HTTP::Adapters::Registry.new
 
           attr_reader \
-            :api_instance_class,
             :apis,
             :api_options,
             :default_adapter,
@@ -21,7 +20,7 @@ module Datadog
             :default_headers,
             :logger
 
-          def initialize(api_instance_class:, logger: Datadog.logger)
+          def initialize(logger: Datadog.logger)
             # Global settings
             @default_adapter = nil
             @default_headers = {}
@@ -33,7 +32,6 @@ module Datadog
             # API settings
             @api_options = {}
 
-            @api_instance_class = api_instance_class
             @logger = logger
 
             yield(self) if block_given?
@@ -73,6 +71,12 @@ module Datadog
             @apis[key] = spec
 
             # Apply as default API, if specified to do so.
+            #
+            # This code also sets the first defined API to be the default API.
+            # In APIs without fallbacks (currently, everything other than
+            # tracing's Traces, though DI Input will also have fallbacks soon)
+            # there is only one declaration of `transport.api`, and that
+            # API is set as the default API in the transport by this line.
             @default_api = key if options.delete(:default) || @default_api.nil?
 
             # Save all other settings for initialization
@@ -94,7 +98,7 @@ module Datadog
           def to_api_instances
             raise NoApisError if @apis.empty?
 
-            @apis.inject(Datadog::Core::Transport::HTTP::API::Map.new) do |instances, (key, spec)|
+            @apis.inject(API::Map.new) do |instances, (key, spec)|
               instances.tap do
                 api_options = @api_options[key].dup
 
@@ -107,7 +111,7 @@ module Datadog
                 api_options[:headers] = @default_headers.merge((api_options[:headers] || {}))
 
                 # Add API::Instance with all settings
-                instances[key] = api_instance_class.new(
+                instances[key] = API::Instance.new(
                   spec,
                   adapter,
                   api_options

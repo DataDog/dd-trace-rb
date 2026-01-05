@@ -6,8 +6,6 @@ module Datadog
   module OpenFeature
     # This module contains the remote configuration functionality for OpenFeature
     module Remote
-      ReadError = Class.new(StandardError)
-
       class << self
         FFE_FLAG_CONFIGURATION_RULES = 1 << 46
         FFE_PRODUCTS = ['FFE_FLAGS'].freeze
@@ -25,7 +23,7 @@ module Datadog
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(FFE_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
             engine = OpenFeature.engine
-            break unless engine
+            next unless engine
 
             changes.each do |change|
               content = repository[change.path]
@@ -42,8 +40,6 @@ module Datadog
                   # @type var content: Core::Remote::Configuration::Content
                   engine.reconfigure!(read_content(content))
                   content.applied
-                rescue ReadError => e
-                  content.errored("Error reading Remote Configuration content: #{e.message}")
                 rescue EvaluationEngine::ReconfigurationError => e
                   content.errored("Error applying OpenFeature configuration: #{e.message}")
                 end
@@ -61,12 +57,9 @@ module Datadog
         private
 
         def read_content(content)
-          data = content.data.read
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          data
+          # Unlike all of the other remotes, this one does not JSON-parse
+          # the data.
+          content.data
         end
       end
     end

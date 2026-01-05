@@ -14,23 +14,14 @@ require_relative '../utils/forking'
 module Datadog
   module Core
     module Telemetry
-      # Telemetry entry point, coordinates sending telemetry events at
-      # various points in application lifecycle.
+      # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
+      # Note: Telemetry does not spawn its worker thread in fork processes, thus no telemetry is sent in forked processes.
       #
       # @api private
       class Component
         ENDPOINT_COLLECTION_MESSAGE_LIMIT = 300
 
-        attr_reader :enabled
-        attr_reader :logger
-        attr_reader :transport
-        attr_reader :worker
-        attr_reader :settings
-        attr_reader :agent_settings
-
-        # Alias for consistency with other components.
-        # TODO Remove +enabled+ method
-        alias_method :enabled?, :enabled
+        attr_reader :enabled, :logger, :transport, :worker
 
         include Core::Utils::Forking
         include Telemetry::Logging
@@ -119,7 +110,7 @@ module Datadog
         end
 
         def start(initial_event_is_change = false, components:)
-          return unless enabled?
+          return if !@enabled
 
           initial_event = if initial_event_is_change
             Event::SynthAppClientConfigurationChange.new(
@@ -145,44 +136,44 @@ module Datadog
         end
 
         def emit_closing!
-          return unless enabled?
+          return if !@enabled || forked?
 
           @worker.enqueue(Event::AppClosing.new)
         end
 
         def integrations_change!
-          return unless enabled?
+          return if !@enabled || forked?
 
           @worker.enqueue(Event::AppIntegrationsChange.new)
         end
 
         def log!(event)
-          return unless enabled? && @log_collection_enabled
+          return if !@enabled || forked? || !@log_collection_enabled
 
           @worker.enqueue(event)
         end
 
         # Wait for the worker to send out all events that have already
         # been queued, up to 15 seconds. Returns whether all events have
-        # been flushed.
+        # been flushed, or nil if telemetry is disabled.
         #
         # @api private
         def flush
-          return unless enabled?
+          return if !@enabled || forked?
 
           @worker.flush
         end
 
         # Report configuration changes caused by Remote Configuration.
         def client_configuration_change!(changes)
-          return unless enabled?
+          return if !@enabled || forked?
 
           @worker.enqueue(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
         end
 
         # Report application endpoints
         def app_endpoints_loaded(endpoints, page_size: ENDPOINT_COLLECTION_MESSAGE_LIMIT)
-          return unless enabled?
+          return if !@enabled || forked?
 
           endpoints.each_slice(page_size).with_index do |endpoints_slice, i|
             @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints_slice, is_first: i.zero?))

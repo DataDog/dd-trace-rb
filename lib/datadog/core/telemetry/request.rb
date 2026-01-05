@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../environment/platform'
+require_relative '../environment/process'
 require_relative '../utils/hash'
 
 module Datadog
@@ -43,7 +44,7 @@ module Datadog
               tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}"
             end
 
-            {
+            app = {
               env: config.env,
               language_name: Core::Environment::Ext::LANG,
               language_version: Core::Environment::Ext::LANG_VERSION,
@@ -53,6 +54,10 @@ module Datadog
               service_version: config.version,
               tracer_version: tracer_version
             }
+
+            tag_process_tags!(app, config)
+
+            app
           end
 
           def host
@@ -63,6 +68,15 @@ module Datadog
               kernel_release: Core::Environment::Platform.kernel_release,
               kernel_version: Core::Environment::Platform.kernel_version
             }
+          end
+
+          def tag_process_tags!(app, config)
+            return unless config.experimental_propagate_process_tags_enabled
+
+            process_tags = Core::Environment::Process.serialized
+            return if process_tags.empty?
+
+            app[:process_tags] = process_tags
           end
         end
       end

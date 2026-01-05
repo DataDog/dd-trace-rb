@@ -143,6 +143,9 @@ module Datadog
 
         # Are there more traces to be processed next?
         def work_pending?
+          # This is the same implementation as in Queue, but it was
+          # overwritten by IntervalLoop on its way to this worker class.
+          # See the comments in those two methods for more info.
           !buffer.empty?
         end
 

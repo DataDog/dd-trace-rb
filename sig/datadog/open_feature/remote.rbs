@@ -1,9 +1,6 @@
 module Datadog
   module OpenFeature
     module Remote
-      class ReadError < ::StandardError
-      end
-
       FFE_FLAG_CONFIGURATION_RULES: ::Integer
 
       FFE_PRODUCTS: ::Array[::String]

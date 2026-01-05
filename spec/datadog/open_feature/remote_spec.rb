@@ -53,7 +53,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       Datadog::Core::Remote::Configuration::Content.parse(
         {
           path: 'datadog/1/FFE_FLAGS/latest/config',
-          content: StringIO.new(content_data)
+          content: content_data,
         }
       )
     end
@@ -115,6 +115,9 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
     context 'when change type is update' do
       before do
+        allow(Datadog::OpenFeature::NativeEvaluator).to receive(:new)
+          .and_return(instance_double(Datadog::OpenFeature::NativeEvaluator))
+
         txn = repository.transaction { |_, t| t.insert(content.path, target, content) }
         receiver.call(repository, txn)
       end
@@ -124,7 +127,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
       let(:new_content) do
         Datadog::Core::Remote::Configuration::Content.parse(
-          {path: content.path.to_s, content: StringIO.new(new_content_data)}
+          {path: content.path.to_s, content: new_content_data}
         )
       end
       let(:new_content_data) do
@@ -168,20 +171,6 @@ RSpec.describe Datadog::OpenFeature::Remote do
       end
     end
 
-    context 'when content data cannot be read' do
-      before { allow(content.data).to receive(:read).and_return(nil) }
-
-      let(:transaction) do
-        repository.transaction { |_, t| t.insert(content.path, target, content) }
-      end
-
-      it 'marks content as errored' do
-        receiver.call(repository, transaction)
-
-        expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ERROR)
-      end
-    end
-
     context 'when content is missing' do
       let(:changes) do
         [
@@ -202,6 +191,12 @@ RSpec.describe Datadog::OpenFeature::Remote do
 
         receiver.call(repository, changes)
       end
+    end
+
+    context 'when engine is unavailable' do
+      let(:engine) { nil }
+
+      it { expect { receiver.call(repository, []) }.not_to raise_error }
     end
   end
 end

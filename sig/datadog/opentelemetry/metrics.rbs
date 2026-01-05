@@ -1,0 +1,25 @@
+module Datadog
+  module OpenTelemetry
+    class Metrics
+      EXPORTER_NONE: ::String
+
+      def self.initialize!: (Core::Configuration::Components components) -> bool
+
+      def initialize: (Core::Configuration::Components components) -> void
+
+      def configure_metrics_sdk: () -> void
+
+      private
+
+      def create_resource: () -> ::OpenTelemetry::SDK::Resources::Resource
+
+      def configure_metric_reader: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
+
+      def default_metrics_endpoint: () -> ::String
+
+      def configure_otlp_exporter: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
+
+      def get_metrics_config_with_fallback: (option_name: ::Symbol, ?computed_default: any) -> any
+    end
+  end
+end

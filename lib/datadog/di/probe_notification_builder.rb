@@ -46,7 +46,7 @@ module Datadog
         build_snapshot(context)
       end
 
-      NANOSECONDS = 10**9
+      NANOSECONDS = 1_000_000_000
       MILLISECONDS = 1000
 
       def build_snapshot(context)
@@ -134,7 +134,7 @@ module Datadog
           format_caller_locations(caller_locations)
         end
 
-        {
+        payload = {
           service: settings.service,
           debugger: {
             type: 'snapshot',
@@ -189,6 +189,10 @@ module Datadog
           message: message,
           timestamp: timestamp,
         }
+
+        tag_process_tags!(payload, settings)
+
+        payload
       end
 
       def build_status(probe, message:, status:)
@@ -234,6 +238,15 @@ module Datadog
           '[evaluation error]'
         end.join
         [message, evaluation_errors]
+      end
+
+      def tag_process_tags!(payload, settings)
+        return unless settings.experimental_propagate_process_tags_enabled
+
+        process_tags = Core::Environment::Process.serialized
+        return if process_tags.empty?
+
+        payload[:process_tags] = process_tags
       end
 
       def timestamp_now
