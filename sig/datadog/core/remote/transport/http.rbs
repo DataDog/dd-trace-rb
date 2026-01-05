@@ -3,6 +3,8 @@ module Datadog
     module Remote
       module Transport
         module HTTP
+          ROOT: Negotiation::API::Endpoint
+          V7: Config::API::Endpoint
           def self?.root: (agent_settings: untyped, logger: Core::Logger, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
           def self?.v7: (agent_settings: untyped, logger: Core::Logger, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
         end

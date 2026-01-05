@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'telemetry'
-require_relative 'http/api'
+require_relative '../../encoding'
 require_relative '../../transport/http'
+require_relative 'telemetry'
 
 module Datadog
   module Core
@@ -10,6 +10,16 @@ module Datadog
       module Transport
         # Namespace for HTTP transport components
         module HTTP
+          AGENT_TELEMETRY = Telemetry::API::Endpoint.new(
+            '/telemetry/proxy/api/v2/apmtelemetry',
+            Core::Encoding::JSONEncoder,
+          )
+
+          AGENTLESS_TELEMETRY = Telemetry::API::Endpoint.new(
+            '/api/v2/apmtelemetry',
+            Core::Encoding::JSONEncoder,
+          )
+
           module_function
 
           # Builds a new Transport::HTTP::Client with default settings
@@ -25,10 +35,7 @@ module Datadog
               agent_settings: agent_settings,
               headers: headers
             ) do |transport|
-              apis = API.defaults
-
-              transport.api API::AGENTLESS_TELEMETRY, apis[API::AGENTLESS_TELEMETRY]
-
+              transport.api 'agentless_telemetry', AGENTLESS_TELEMETRY
               # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end.to_transport(Core::Telemetry::Transport::Telemetry::Transport).tap do |transport|
@@ -48,9 +55,7 @@ module Datadog
               agent_settings: agent_settings,
               headers: headers
             ) do |transport|
-              apis = API.defaults
-
-              transport.api API::AGENT_TELEMETRY, apis[API::AGENT_TELEMETRY]
+              transport.api 'agent_telemetry', AGENT_TELEMETRY
 
               # Call block to apply any customization, if provided
               yield(transport) if block_given?

@@ -28,23 +28,23 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
 
     it 'returns a DSM stats transport' do
       is_expected.to be_a_kind_of(Datadog::DataStreams::Transport::Stats::Transport)
-      expect(default.current_api_id).to eq(Datadog::DataStreams::Transport::HTTP::API::V01)
+      expect(default.current_api_id).to eq('v0.1')
 
       expect(default.apis.keys).to eq(
         [
-          Datadog::DataStreams::Transport::HTTP::API::V01,
+          'v0.1',
         ]
       )
     end
 
     it 'configures the transport with correct API endpoint' do
-      api = default.apis[Datadog::DataStreams::Transport::HTTP::API::V01]
+      api = default.apis['v0.1']
       expect(api).to be_a_kind_of(Datadog::Core::Transport::HTTP::API::Instance)
       expect(api.endpoint.path).to eq('/v0.1/pipeline_stats')
     end
 
     it 'configures the transport with correct headers' do
-      api = default.apis[Datadog::DataStreams::Transport::HTTP::API::V01]
+      api = default.apis['v0.1']
       expect(api.headers).to include(
         'Content-Type' => 'application/msgpack',
         'Content-Encoding' => 'gzip'
@@ -59,7 +59,7 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
       let(:ssl) { true }
 
       it 'configures the adapter correctly' do
-        api = default.apis[Datadog::DataStreams::Transport::HTTP::API::V01]
+        api = default.apis['v0.1']
         expect(api.adapter).to be_a_kind_of(Datadog::Core::Transport::HTTP::Adapters::Net)
         expect(api.adapter.hostname).to eq(hostname)
         expect(api.adapter.port).to eq(port)
@@ -72,7 +72,7 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
       let(:uds_path) { '/var/run/datadog/apm.socket' }
 
       it 'configures the adapter correctly' do
-        api = default.apis[Datadog::DataStreams::Transport::HTTP::API::V01]
+        api = default.apis['v0.1']
         expect(api.adapter).to be_a_kind_of(Datadog::Core::Transport::HTTP::Adapters::UnixSocket)
         expect(api.adapter.filepath).to eq(uds_path)
       end
