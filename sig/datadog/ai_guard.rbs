@@ -1,6 +1,6 @@
 module Datadog
   module AIGuard
-    class Interrupt < StandardError
+    class AIGuardAbortError < StandardError
       @action: ::String
       @reason: ::String
       @tags: ::Array[::String]

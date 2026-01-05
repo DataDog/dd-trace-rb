@@ -59,7 +59,7 @@ module Datadog
       end
 
       def post(path, body:)
-        Net::HTTP.start(@endpoint_uri.host.to_s, @endpoint_uri.port, use_ssl: true, read_timeout: @timeout) do |http|
+        Net::HTTP.start(@endpoint_uri.host.to_s, @endpoint_uri.port, use_ssl: use_ssl?, read_timeout: @timeout) do |http|
           request = Net::HTTP::Post.new(@endpoint_uri.request_uri + path, @headers)
           request.body = body.to_json
 
@@ -101,6 +101,10 @@ module Datadog
         JSON.parse(body)
       rescue JSON::ParserError
         raise ResponseBodyParsingError, "Could not parse response body"
+      end
+
+      def use_ssl?
+        @endpoint_uri.scheme == 'https'
       end
     end
   end

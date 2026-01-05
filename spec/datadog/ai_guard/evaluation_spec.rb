@@ -257,9 +257,9 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           let(:allow_raise) { true }
           let(:blocking_enabled) { true }
 
-          it "raises AIGuard::Interrupt" do
+          it "raises Datadog::AIGuard::AIGuardAbortError" do
             expect { perform }.to raise_error(
-              Datadog::AIGuard::Interrupt,
+              Datadog::AIGuard::AIGuardAbortError,
               "Request interrupted. Rule matches: indirect-prompt-injection, instruction-override"
             )
           end
@@ -267,7 +267,7 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           it "sets blocked tag to true" do
             begin
               perform
-            rescue Datadog::AIGuard::Interrupt
+            rescue Datadog::AIGuard::AIGuardAbortError
             end
 
             expect(ai_guard_span.tags.fetch("ai_guard.blocked")).to eq("true")

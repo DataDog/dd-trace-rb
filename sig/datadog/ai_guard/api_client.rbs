@@ -50,7 +50,7 @@ module Datadog
 
       def parse_response_body: (::String) -> ::Hash[::String, untyped]
 
-      def headers: () -> ::Hash[::Symbol, ::String]
+      def use_ssl?: () -> bool
     end
   end
 end
