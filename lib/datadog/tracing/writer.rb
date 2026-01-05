@@ -19,21 +19,18 @@ module Datadog
         :events,
         :agent_settings
 
-      # This method used to have the +:transport_options+ option, but
-      # it now does nothing and is ignored (but can still be passed in).
-      #
-      # DEV-3.0: change to keyword arguments?
       def initialize(options = {})
         @logger = options[:logger] || Datadog.logger
 
         # writer and transport parameters
         @buff_size = options.fetch(:buffer_size, Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE)
         @flush_interval = options.fetch(:flush_interval, Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL)
+        transport_options = options.fetch(:transport_options, {})
         @agent_settings = options[:agent_settings]
 
         # transport and buffers
         @transport = options.fetch(:transport) do
-          Transport::HTTP.default(agent_settings: agent_settings, logger: logger)
+          Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
         end
 
         @shutdown_timeout = options.fetch(:shutdown_timeout, Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT)

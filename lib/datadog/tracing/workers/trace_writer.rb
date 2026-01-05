@@ -21,19 +21,15 @@ module Datadog
           :transport,
           :agent_settings
 
-        # This method used to have the +:transport_options+ option, but
-        # it now does nothing and is ignored (but can still be passed in).
-        #
-        # DEV-3.0: change to keyword arguments?
-        #
         # rubocop:disable Lint/MissingSuper
         def initialize(options = {})
           @logger = options[:logger] || Datadog.logger
 
+          transport_options = options.fetch(:transport_options, {})
           @agent_settings = options[:agent_settings]
 
           @transport = options.fetch(:transport) do
-            Datadog::Tracing::Transport::HTTP.default(agent_settings: agent_settings, logger: logger)
+            Datadog::Tracing::Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
           end
         end
         # rubocop:enable Lint/MissingSuper
