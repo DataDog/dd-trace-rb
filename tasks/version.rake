@@ -18,7 +18,7 @@ namespace :version do
   end
 
   task :bump do |_t, args|
-    input = args.extras.first || raise(ArgumentError, 'Please provide a version to bump')
+    input = args.extras.first || raise(ArgumentError, 'Please provide a version to bump to')
     next_version = Gem::Version.new(input)
 
     major, minor, patch, pre = next_version.to_s.split(".")
