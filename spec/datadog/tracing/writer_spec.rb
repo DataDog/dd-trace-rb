@@ -39,15 +39,28 @@ RSpec.describe Datadog::Tracing::Writer do
         end
 
         context 'and custom transport options' do
-          let(:options) { super().merge(transport_options: {api_version: api_version}) }
-          let(:api_version) { double('API version') }
+          let(:options) do
+            super().merge(transport_options: {headers: {foo: 'bar'}})
+          end
 
           it do
             expect(Datadog::Tracing::Transport::HTTP).to receive(:default) do |**options|
-              expect(options).to include(api_version: api_version)
+              expect(options).to include(headers: {foo: 'bar'})
             end
 
             writer
+          end
+        end
+
+        context 'when transport options include headers' do
+          let(:options) do
+            super().merge(transport_options: {headers: {foo: 'bar'}})
+          end
+
+          it 'passes the headers into transport' do
+            expect(writer.transport.apis.length).to eq 2
+            expect(writer.transport.apis['v0.4'].headers).to include(foo: 'bar')
+            expect(writer.transport.apis['v0.3'].headers).to include(foo: 'bar')
           end
         end
 

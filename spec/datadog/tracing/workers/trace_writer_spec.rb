@@ -32,15 +32,27 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     context 'given :transport_options' do
       let(:options) { {transport_options: transport_options} }
 
-      let(:transport_options) { {api_version: 42} }
+      let(:transport_options) { {headers: {foo: 'bar'}} }
 
       before do
         expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-          .with(transport_options.merge(agent_settings: test_agent_settings, logger: Datadog.logger))
+          .with(transport_options.merge(agent_settings: test_agent_settings, logger: logger))
           .and_return(transport)
       end
 
       it { expect(writer.transport).to be transport }
+    end
+
+    context 'when transport options include headers' do
+      let(:options) { {transport_options: transport_options} }
+
+      let(:transport_options) { {headers: {foo: 'bar'}} }
+
+      it 'passes the headers into transport' do
+        expect(writer.transport.apis.length).to eq 2
+        expect(writer.transport.apis['v0.4'].headers).to include(foo: 'bar')
+        expect(writer.transport.apis['v0.3'].headers).to include(foo: 'bar')
+      end
     end
 
     context 'given :agent_settings' do
@@ -58,15 +70,27 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
       context 'and also :transport_options' do
         let(:options) { {**super(), transport_options: transport_options} }
 
-        let(:transport_options) { {api_version: 42} }
+        let(:transport_options) { {headers: {foo: 'bar'}} }
 
         before do
           expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-            .with(agent_settings: agent_settings, logger: Datadog.logger, api_version: 42)
+            .with(agent_settings: agent_settings, logger: logger, headers: {foo: 'bar'})
             .and_return(transport)
         end
 
         it { expect(writer.transport).to be transport }
+      end
+
+      context 'when transport options include headers' do
+        let(:options) { {**super(), transport_options: transport_options} }
+
+        let(:transport_options) { {headers: {foo: 'bar'}} }
+
+        it 'passes the headers into transport' do
+          expect(writer.transport.apis.length).to eq 2
+          expect(writer.transport.apis['v0.4'].headers).to include(foo: 'bar')
+          expect(writer.transport.apis['v0.3'].headers).to include(foo: 'bar')
+        end
       end
     end
   end
