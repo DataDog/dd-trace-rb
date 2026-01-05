@@ -70,7 +70,8 @@ module Datadog
 
           def initialize(duration_ext_ns:, input_truncated:)
             @events = []
-            @actions = @attributes = {}
+            @actions = {}.freeze
+            @attributes = {}.freeze
             @duration_ns = 0
             @duration_ext_ns = duration_ext_ns
             @input_truncated = !!input_truncated

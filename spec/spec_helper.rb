@@ -36,6 +36,7 @@ require 'support/log_helpers'
 require 'support/network_helpers'
 require 'support/object_space_helper'
 require 'support/platform_helpers'
+require 'support/process_helpers'
 require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
@@ -188,6 +189,8 @@ RSpec.configure do |config|
           t == Timeout.instance_exec { @timeout_thread if defined?(@timeout_thread) } ||
           # Internal JRuby thread
           defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
+          # JRuby 10 JIT threads
+          defined?(JRuby) && JRuby.reference(t).native_thread.name =~ /Ruby-\d+-JIT-\d+/ ||
           # WEBrick singleton thread for handling timeouts
           backtrace.find { |b| b.include?('/webrick/utils.rb') } ||
           # WEBrick server thread

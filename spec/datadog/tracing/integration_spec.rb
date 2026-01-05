@@ -660,6 +660,11 @@ RSpec.describe 'Tracer integration tests' do
       let(:graceful_signal) { 'graceful' }
 
       it { expect(terminated_process).to eq(graceful_signal) }
+
+      after do
+        # Ensure we are not leaking file descriptors
+        pipe.map(&:close)
+      end
     end
   end
 

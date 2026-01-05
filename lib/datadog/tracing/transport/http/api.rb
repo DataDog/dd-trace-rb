@@ -29,6 +29,8 @@ module Datadog
                 '/v0.3/traces',
                 Core::Encoding::MsgpackEncoder,
               ),
+            # This fallbacks definition is likely doing nothing.
+            # It's duplicated in Transport::HTTP module. # standard:disable Layout/CommentIndentation
             ].with_fallbacks(V4 => V3)
           end
         end

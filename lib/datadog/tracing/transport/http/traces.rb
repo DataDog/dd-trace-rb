@@ -32,12 +32,8 @@ module Datadog
               HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'
               SERVICE_RATE_KEY = 'rate_by_service'
 
-              attr_reader \
-                :encoder
-
               def initialize(path, encoder, options = {})
-                super(:post, path)
-                @encoder = encoder
+                super(:post, path, encoder: encoder)
                 @service_rates = options.fetch(:service_rates, false)
               end
 

@@ -89,13 +89,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
       rules_override: []
     }
   end
-  let(:string_io_content) { StringIO.new(raw.to_json) }
+  let(:string_io_content) { raw.to_json }
 
   let(:content) do
     Datadog::Core::Remote::Configuration::Content.parse({path: path.to_s, content: string_io_content})
   end
 
-  let(:new_content_string_io_content) { StringIO.new('hello world') }
+  let(:new_content_string_io_content) { 'hello world' }
 
   let(:new_content) do
     Datadog::Core::Remote::Configuration::Content.parse(
@@ -186,7 +186,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
 
         new_content = Datadog::Core::Remote::Configuration::Content.parse(
           {path: path.to_s,
-           content: StringIO.new('hello world')}
+           content: 'hello world'}
         )
 
         updated_changes = repository.transaction do |_repository, transaction|
@@ -209,7 +209,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         new_path = Datadog::Core::Remote::Configuration::Path.parse('employee/ASM/exclusion_filters/config')
         new_content = Datadog::Core::Remote::Configuration::Content.parse(
           {path: new_path.to_s,
-           content: StringIO.new('hello world')}
+           content: 'hello world'}
         )
 
         changes = repository.transaction do |_repository, transaction|

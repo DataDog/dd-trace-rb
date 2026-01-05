@@ -42,6 +42,11 @@ module Datadog
       class ProbePreviouslyFailed < Error
       end
 
+      # Raised when trying to instrument a probe when there is existing
+      # instrumentation for the same probe id.
+      class AlreadyInstrumented < Error
+      end
+
       # Raised when installing a line probe and multiple files match the
       # specified path suffix.
       # A probe must be installed into one file only, since UI only

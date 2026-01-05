@@ -1102,7 +1102,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         all_samples = try_wait_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples_for_thread(samples, process_waiter_thread).any?
+          samples if samples_for_thread(samples, process_waiter_thread)&.first&.locations&.any?
         end
 
         cpu_and_wall_time_worker.stop
@@ -1163,6 +1163,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:gc_profiling_enabled) { false }
       # ...same thing for the tracepoint for allocation counting/profiling :(
       let(:allocation_profiling_enabled) { false }
+
+      before do
+        # We also saw weird segfaults inside regular Ruby code **after** this spec ran in 4.0.0preview2. For now
+        # let's skip for this Ruby, and we can re-examine it if the issue shows up on a later 4.0.0 release.
+        #
+        # If you see this skip being around after the stable Ruby 4.0 was released and added to CI, do get rid of it ;)
+        skip "Ruby 4.0.0-preview2 Ractors are too buggy to run this spec" if RUBY_DESCRIPTION.include?("4.0.0preview2")
+      end
 
       describe "handle_sampling_signal" do
         include_examples "does not trigger a sample",

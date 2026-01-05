@@ -69,7 +69,7 @@ module Datadog
 
           @current_api_id = api_id
           client_class = self.class.http_client_class || Core::Transport::HTTP::Client
-          @client = client_class.new(current_api, logger: logger)
+          @client = client_class.new(current_api, logger: logger) # steep:ignore
         end
 
         def downgrade?(response)
