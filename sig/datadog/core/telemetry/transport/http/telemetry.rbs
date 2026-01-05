@@ -20,7 +20,7 @@ module Datadog
 
                 def call: (untyped env) { (?) -> untyped } -> untyped
 
-                def headers: (request_type: untyped, api_key: untyped, ?api_version: ::String) -> untyped
+                def headers: (request_type: untyped, api_key: untyped) -> untyped
               end
             end
           end
