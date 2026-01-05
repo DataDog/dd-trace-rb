@@ -5,7 +5,7 @@ require 'datadog/core/remote/configuration/digest'
 require 'datadog/core/remote/configuration/content'
 
 RSpec.describe Datadog::Core::Remote::Configuration::Digest do
-  let(:data) { StringIO.new('Hello World') }
+  let(:data) { 'Hello World' }
   let(:content) do
     Datadog::Core::Remote::Configuration::Content.parse(
       {
@@ -20,12 +20,6 @@ RSpec.describe Datadog::Core::Remote::Configuration::Digest do
       it 'returns hexdigest' do
         hexdigest = 'a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e'
         expect(described_class.hexdigest(:sha256, data)).to eq(hexdigest)
-      end
-
-      it 'ensures data is rewinded' do
-        expect(data.eof?).to eq(false)
-        described_class.hexdigest(:sha256, data)
-        expect(data.eof?).to eq(false)
       end
     end
 

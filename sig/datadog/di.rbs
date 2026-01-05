@@ -1,10 +1,23 @@
 module Datadog
   module DI
-    def self.component: () -> Component?
+    type instrumentation_kind = :line | :method
+    INSTRUMENTED_COUNTERS_LOCK: Mutex
+
     def self.enabled?: () -> bool
     
     def self.all_iseqs: () -> Array[RubyVM::InstructionSequence]
     def self.file_iseqs: () -> Array[RubyVM::InstructionSequence]
     
+    def self.component: () -> Component
+
+    def self.instrumented_count: (?instrumentation_kind? kind) -> Integer
+
+    def self.instrumented_count_inc: (instrumentation_kind kind) -> void
+
+    def self.instrumented_count_dec: (instrumentation_kind kind) -> void
+
+    private
+
+    def self.validate_kind!: (instrumentation_kind kind) -> void
   end
 end

@@ -3,9 +3,9 @@ require 'spec_helper'
 require 'datadog/core/transport/http/api/instance'
 
 RSpec.describe Datadog::Core::Transport::HTTP::API::Instance do
-  subject(:instance) { described_class.new(spec, adapter, options) }
+  subject(:instance) { described_class.new(endpoint, adapter, options) }
 
-  let(:spec) { double(Datadog::Core::Transport::HTTP::API::Spec, encoder: encoder) }
+  let(:endpoint) { double(Datadog::Core::Transport::HTTP::API::Endpoint, encoder: encoder) }
   let(:encoder) { double }
   let(:adapter) { spy('adapter') }
   let(:options) { {} }
@@ -13,7 +13,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Instance do
   describe '#initialize' do
     it do
       is_expected.to have_attributes(
-        spec: spec,
+        endpoint: endpoint,
         adapter: adapter,
         headers: {}
       )

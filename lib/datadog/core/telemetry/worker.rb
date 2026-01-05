@@ -43,6 +43,10 @@ module Datadog
           self.enabled = enabled
           # Workers::IntervalLoop settings
           self.loop_base_interval = metrics_aggregation_interval_seconds
+          # We actually restart the worker after fork, but this is done
+          # via the AtForkMonkeyPatch rather than the worker fork policy
+          # because we also need to reset state outside of the worker
+          # (e.g. the metrics).
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
 
           @shutdown_timeout = shutdown_timeout
@@ -51,6 +55,10 @@ module Datadog
           initialize_state
         end
 
+        # To make the method calls clear, the initialization code is in this
+        # method called +initialize_state+ which is called from +after_fork+.
+        # This way users of this class (e.g. telemetry Component) do not
+        # need to invoke +initialize_state+ directly, which can be confusing.
         private def initialize_state
           self.buffer = buffer_klass.new(@buffer_size)
 
@@ -89,20 +97,6 @@ module Datadog
         def enqueue(event)
           return unless enabled?
 
-          # Start the worker if needed, including in forked children.
-          # Needs to be done before pushing to buffer since perform
-          # may invoke after_fork handler which resets the buffer.
-          #
-          # Telemetry is special in that it permits events to be submitted
-          # to the worker with the worker not running, and the worker is
-          # explicitly started later (to maintain proper initialization order).
-          # Thus here we can't just call perform unconditionally and must
-          # check if the worker is supposed to be running, and only call
-          # perform in that case.
-          if worker && !worker.alive?
-            perform
-          end
-
           buffer.push(event)
           true
         end
@@ -124,32 +118,10 @@ module Datadog
         # been flushed.
         #
         # @api private
-        def flush
-          return true unless enabled? || !run_loop?
-
-          started = Utils::Time.get_time
-          loop do
-            # The AppStarted event is triggered by the worker itself,
-            # from the worker thread. As such the main thread has no way
-            # to delay itself until that event is queued and we need some
-            # way to wait until that event is sent out to assert on it in
-            # the test suite. Check the run once flag which *should*
-            # indicate the event has been queued (at which point our queue
-            # depth check should waint until it's sent).
-            # This is still a hack because the flag can be overridden
-            # either way with or without the event being sent out.
-            # Note that if the AppStarted sending fails, this check
-            # will return false and flushing will be blocked until the
-            # 15 second timeout.
-            # Note that the first wait interval between telemetry event
-            # sending is 10 seconds, the timeout needs to be strictly
-            # greater than that.
-            return true if buffer.empty? && !in_iteration? && sent_initial_event?
-
-            sleep 0.5
-
-            return false if Utils::Time.get_time - started > 15
-          end
+        def flush(timeout: nil)
+          # Increase default timeout to 15 seconds - see the comment in
+          # +idle?+ for more details.
+          super(timeout: timeout || 15)
         end
 
         private
@@ -236,6 +208,8 @@ module Datadog
           res
         end
 
+        # This method overrides Queue's dequeue method and does LIFO instead
+        # of FIFO that Queue implements. Why?
         def dequeue
           buffer.pop
         end
@@ -264,12 +238,16 @@ module Datadog
           disable!
         end
 
-        # Stop the worker after fork without sending closing event.
-        # The closing event will be (or should be) sent by the worker
-        # in the parent process.
-        # Also, discard any accumulated events since they will be sent by
+        # Call this method in a forked child to reset the state of this worker.
+        #
+        # Discard any accumulated events since they will be sent by
         # the parent.
-        def after_fork
+        # Discard any accumulated metrics.
+        # Restart the worker thread, if it was running in the parent process.
+        #
+        # This method cannot be called +after_fork+ because workers define
+        # and call +after_fork+ which is supposed to do different things.
+        def after_fork_monkey_patched
           # If telemetry is disabled, we still reset the state to avoid
           # having wrong state. It is possible that in the future telemetry
           # will be re-enabled after errors.
@@ -280,8 +258,22 @@ module Datadog
           # SynthAppClientConfigurationChange instead of AppStarted,
           # and in that case we need to convert it to the "regular"
           # AppStarted event.
-          if @initial_event.is_a?(Event::SynthAppClientConfigurationChange)
-            @initial_event.reset! # steep:ignore
+          if defined?(@initial_event) && @initial_event.is_a?(Event::SynthAppClientConfigurationChange)
+            # It would be great to just replace the initial event in
+            # +initialize_state+ method. Unfortunately this event requires
+            # the entire component tree to build its payload, which we
+            # 1) don't currently have in telemetry and
+            # 2) don't want to keep a permanent reference to in any case.
+            # Therefore we have this +reset!+ method that changes the
+            # event type while keeping the payload.
+            @initial_event.reset! # steep:ignore NoMethod
+          end
+
+          if enabled? && !worker.nil?
+            # Start the background thread if it was started in the parent
+            # process (which requires telemetry to be enabled).
+            # This should be done after all of the state resets.
+            perform
           end
         end
 
@@ -314,6 +306,25 @@ module Datadog
           end
 
           other_events + uniq_logs
+        end
+
+        def idle?
+          # The AppStarted event is triggered by the worker itself,
+          # from the worker thread. As such the main thread has no way
+          # to delay itself until that event is queued and we need some
+          # way to wait until that event is sent out to assert on it in
+          # the test suite. Check the run once flag which *should*
+          # indicate the event has been queued (at which point our queue
+          # depth check should wait until it's sent).
+          # This is still a hack because the flag can be overridden
+          # either way with or without the event being sent out.
+          # Note that if the AppStarted sending fails, this check
+          # will return false and flushing will be blocked until the
+          # 15 second timeout.
+          # Note that the first wait interval between telemetry event
+          # sending is 10 seconds, the timeout needs to be strictly
+          # greater than that.
+          super && sent_initial_event?
         end
       end
     end

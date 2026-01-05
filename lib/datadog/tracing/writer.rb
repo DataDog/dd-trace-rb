@@ -19,6 +19,7 @@ module Datadog
         :events,
         :agent_settings
 
+      # DEV-3.0: change to keyword arguments
       def initialize(options = {})
         @logger = options[:logger] || Datadog.logger
 

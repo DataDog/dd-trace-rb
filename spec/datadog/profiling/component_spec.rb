@@ -342,7 +342,7 @@ RSpec.describe Datadog::Profiling::Component do
                 .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
                 .and_call_original
 
-              expect(logger).to receive(:warn).with(/Heap profiling is not supported.*21710/)
+              expect(logger).to receive(:warn).with(/Datadog Ruby heap profiler is currently incompatible with Ruby 4/)
 
               build_profiler_component
             end

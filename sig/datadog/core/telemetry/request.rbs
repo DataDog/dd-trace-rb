@@ -2,12 +2,13 @@ module Datadog
   module Core
     module Telemetry
       module Request
-        def self.build_payload: (Event::Base event, int seq_id, ?api_version: String, ?debug: bool) -> ::Hash[Symbol, untyped]
+        def self.build_payload: (Event::Base event, int seq_id, ?debug: bool) -> ::Hash[Symbol, untyped]
 
         private
 
         def self.application: -> ::Hash[Symbol, untyped]
         def self.host: -> ::Hash[Symbol, untyped]
+        def self.tag_process_tags!: (Hash[Symbol, untyped] app, Core::Configuration::Settings config) -> void
       end
     end
   end

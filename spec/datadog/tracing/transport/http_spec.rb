@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       )
 
       default.apis.each_value do |api|
-        expect(api).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Traces::API::Instance)
+        expect(api).to be_a_kind_of(Datadog::Core::Transport::HTTP::API::Instance)
         expect(api.headers).to include(Datadog::Core::Transport::HTTP.default_headers)
 
         case default_agent_settings.adapter
@@ -90,22 +90,6 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
 
     context 'when given options' do
       subject(:default) { described_class.default(agent_settings: default_agent_settings, logger: logger, **options) }
-
-      context 'that specify an API version' do
-        let(:options) { {api_version: api_version} }
-
-        context 'that is defined' do
-          let(:api_version) { Datadog::Tracing::Transport::HTTP::API::V4 }
-
-          it { expect(default.current_api_id).to eq(api_version) }
-        end
-
-        context 'that is not defined' do
-          let(:api_version) { double('non-existent API') }
-
-          it { expect { default }.to raise_error(Datadog::Core::Transport::HTTP::Builder::UnknownApiError) }
-        end
-      end
 
       context 'that specify headers' do
         let(:options) { {headers: headers} }
