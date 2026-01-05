@@ -135,7 +135,8 @@ module Datadog
 
             # To ease handling, remove the emtpy leading "",
             # as `path` starts with a "/".
-            parts = path.delete_prefix('/').split('/')
+            path.delete_prefix!('/')
+            parts = path.split('/')
 
             # With not path information, we can still use the inode
             if parts.empty? && entry_obj.inode && !running_on_host?
