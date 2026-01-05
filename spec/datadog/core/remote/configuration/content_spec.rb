@@ -89,7 +89,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
       rules_override: []
     }
   end
-  let(:string_io_content) { StringIO.new(raw.to_json) }
+  let(:string_io_content) { raw.to_json }
   subject(:content_list) do
     described_class.parse(
       [{
@@ -172,7 +172,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
   end
 
   describe '#[]=' do
-    let(:updated_string_io) { StringIO.new('Hello World') }
+    let(:updated_string_io) { 'Hello World' }
     let(:updated_content) do
       Datadog::Core::Remote::Configuration::Content.parse(
         {

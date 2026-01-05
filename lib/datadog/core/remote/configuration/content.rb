@@ -22,6 +22,18 @@ module Datadog
           attr_accessor :version
 
           def initialize(path:, data:)
+            if data.nil?
+              # +data+ is passed to Digest calculation and also is
+              # unconditionally taken length of by +length+ method.
+              # As such, the class is not written to expect +data+ to be nil.
+              # Detect bad incoming values here to provide earlier diagnostics
+              # when developing tests, for example.
+              raise ArgumentError, 'data must not be nil'
+            end
+            unless String === data
+              raise ArgumentError, "Invalid type for data: #{data.class}: expected String"
+            end
+
             @path = path
             @data = data
             @apply_state = ApplyState::UNACKNOWLEDGED
@@ -72,8 +84,9 @@ module Datadog
           private_class_method :new
         end
 
-        # ContentList stores a list of Conetnt instances
-        # It provides convinient methods for finding content base on Configuration::Path and Configuration::Target
+        # ContentList stores a list of Content instances.
+        # It provides convenient methods for finding content based on
+        # Configuration::Path and Configuration::Target.
         class ContentList < Array
           class << self
             def parse(array)

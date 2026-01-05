@@ -20,6 +20,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       allow(settings).to receive(:env).and_return('test env')
       allow(settings).to receive(:version).and_return('test version')
       allow(settings).to receive(:tags).and_return({})
+      allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
     end
   end
 
@@ -381,6 +382,41 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       it 'substitutes correctly' do
         expect(builder.send(:evaluate_template, template_segments, context)).to eq([expected, []])
+      end
+    end
+  end
+
+  describe 'process tags' do
+    let(:probe) do
+      Datadog::DI::Probe.new(id: '123', type: :log, file: 'X', line_no: 1)
+    end
+
+    let(:context) do
+      Datadog::DI::Context.new(
+        settings: settings, serializer: serializer,
+        probe: probe
+      )
+    end
+
+    context 'when process tags propagation is enabled' do
+      before do
+        allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+      end
+
+      it 'includes process tags in the payload' do
+        payload = builder.build_executed(context)
+        expect(payload[:process_tags]).to eq(Datadog::Core::Environment::Process.serialized)
+        expect(payload[:process_tags]).to include('entrypoint.workdir')
+        expect(payload[:process_tags]).to include('entrypoint.name')
+        expect(payload[:process_tags]).to include('entrypoint.basedir')
+        expect(payload[:process_tags]).to include('entrypoint.type')
+      end
+    end
+
+    context 'when process tags propagation is not enabled' do
+      it 'excludes process tags in the payload' do
+        payload = builder.build_executed(context)
+        expect(payload).not_to include(:process_tags)
       end
     end
   end

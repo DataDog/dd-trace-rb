@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../core/transport/request'
+require_relative '../../../core/transport/transport'
 require_relative 'http/negotiation'
 
 # TODO: Resolve conceptual conundrum
@@ -32,24 +33,14 @@ module Datadog
           end
 
           # Negotiation transport
-          class Transport
-            attr_reader :client, :apis, :default_api, :current_api_id, :logger
-
-            def initialize(apis, default_api, logger: Datadog.logger)
-              @apis = apis
-              @logger = logger
-
-              @client = Remote::Transport::HTTP::Negotiation::Client.new(current_api, logger: logger)
-            end
-
-            def send_info
+          class Transport < Core::Transport::Transport
+            # TODO steep is complaining about this method, I tried to make
+            # it work but between module inclusions and steep diagnostics
+            # I don't understand what the problem is or what the steep wants.
+            def send_info # steep:ignore
               request = Request.new
 
-              @client.send_info_payload(request)
-            end
-
-            def current_api
-              @apis[HTTP::API::ROOT]
+              @client.send_request(:info, request)
             end
           end
         end

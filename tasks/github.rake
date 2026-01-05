@@ -125,7 +125,7 @@ namespace :github do
 
     tasks.each do |task|
       env = {'BUNDLE_GEMFILE' => task['gemfile']}
-      cmd = "bundle exec rake spec:#{task["task"]}['--seed #{rng.rand(0xFFFF)}']"
+      cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
       Bundler.with_unbundled_env { sh(env, cmd) }
     end

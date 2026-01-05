@@ -4,11 +4,11 @@ module Datadog
       module Deprecations
         LOG_DEPRECATIONS_ONLY_ONCE: Datadog::Core::Utils::OnlyOnce
 
-        def self.log_deprecations_from_all_sources: (Datadog::Core::Logger logger, ?deprecations: Hash[String, String], ?alias_to_canonical: Hash[String, String]) -> void
+        def self.log_deprecations_from_all_sources: (Datadog::Core::Logger logger, ?deprecations: Set[String], ?alias_to_canonical: Hash[String, String]) -> void
 
         private
 
-        def self.log_deprecated_environment_variables: (Datadog::Core::Logger logger, ConfigHelper::env_hash source_env, String source_name, Hash[String, String] deprecations, Hash[String, String] alias_to_canonical) -> void
+        def self.log_deprecated_environment_variables: (Datadog::Core::Logger logger, ConfigHelper::env_hash source_env, String source_name, Set[String] deprecations, Hash[String, String] alias_to_canonical) -> void
       end
     end
   end

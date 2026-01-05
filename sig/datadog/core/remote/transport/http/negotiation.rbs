@@ -5,6 +5,9 @@ module Datadog
         module HTTP
           module Negotiation
             class Response
+              include Core::Transport::HTTP::Response
+              include Core::Remote::Transport::Negotiation::Response
+              
               @version: untyped
 
               @endpoints: untyped
@@ -12,10 +15,6 @@ module Datadog
               @config: untyped
 
               @span_events: untyped
-
-              include Datadog::Core::Transport::HTTP::Response
-
-              include Core::Remote::Transport::Negotiation::Response
 
               def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
             end

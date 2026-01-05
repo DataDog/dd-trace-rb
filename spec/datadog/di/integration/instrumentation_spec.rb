@@ -196,16 +196,25 @@ RSpec.describe 'Instrumentation integration' do
               capture_snapshot: false,)
           end
 
-          it 'invokes probe and creates expected snapshot' do
+          it 'installs probe which then is invoked and creates expected snapshot' do
             expect(diagnostics_transport).to receive(:send_diagnostics)
             # add_snapshot expectation replaces assertion on send_input
             expect(probe_manager.add_probe(probe)).to be false
+
+            # Probe should be pending
+            expect(probe_manager.pending_probes).to eq(probe.id => probe)
+            expect(probe_manager.installed_probes).to be_empty
 
             class InstrumentationDelayedTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
               def test_method
                 43
               end
             end
+
+            # Probe should now be installed, verify it was moved in the
+            # accounting collections correctly.
+            expect(probe_manager.pending_probes).to be_empty
+            expect(probe_manager.installed_probes).to eq(probe.id => probe)
 
             payload = nil
             expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
@@ -227,6 +236,50 @@ RSpec.describe 'Instrumentation integration' do
               stack: Array,
               captures: {},
             )
+          end
+
+          context 'when the class is a derived class' do
+            let(:probe) do
+              Datadog::DI::Probe.new(id: "1234", type: :log,
+                type_name: 'InstrumentationDelayedDerivedTestClass', method_name: 'test_method',
+                capture_snapshot: false,)
+            end
+
+            it 'invokes probe and creates expected snapshot' do
+              expect(diagnostics_transport).to receive(:send_diagnostics)
+              # add_snapshot expectation replaces assertion on send_input
+              expect(probe_manager.add_probe(probe)).to be false
+
+              class InstrumentationDelayedBaseClass # rubocop:disable Lint/ConstantDefinitionInBlock
+              end
+
+              class InstrumentationDelayedDerivedTestClass < InstrumentationDelayedBaseClass # rubocop:disable Lint/ConstantDefinitionInBlock
+                def test_method
+                  43
+                end
+              end
+
+              payload = nil
+              expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+                payload = payload_
+              end
+
+              expect(InstrumentationDelayedDerivedTestClass.new.test_method).to eq(43)
+              component.probe_notifier_worker.flush
+
+              snapshot = payload.fetch(:debugger).fetch(:snapshot)
+              expect(snapshot).to match(
+                id: String,
+                timestamp: Integer,
+                evaluationErrors: [],
+                probe: {id: '1234', version: 0, location: {
+                  method: 'test_method', type: 'InstrumentationDelayedDerivedTestClass',
+                }},
+                language: 'ruby',
+                stack: Array,
+                captures: {},
+              )
+            end
           end
         end
 
@@ -546,16 +599,17 @@ RSpec.describe 'Instrumentation integration' do
               snapshot.fetch(:message) =~ /\Ahello (\d+\.\d+) ms\z/
               value = Float($1)
               # Actual execution time varies greatly in CI.
-              # A method that returns an integer will ordinarily report a
-              # duration on the order of 1 millisecond.
-              # However, one time the duration reported was exactly zero.
-              # After the test method was made longer to definitely take
-              # a non-zero amount of time to execute, on one CI run it took
-              # 1.8 seconds.
-              # Therefore, the current brackets are strictly greater than
-              # zero seconds and under 4 seconds.
+              # We had a test run where the method was reported to take
+              # exactly zero seconds, and also 26 and 40 seconds.
+              # The current version calls Process.clock_gettime directly
+              # instead of using our helper which could invoke customer code
+              # and also be mocked.
+              # The reported duration in local test runs is about 0.03 seconds.
               expect(value).to be > 0
-              expect(value).to be < 4
+              # Set upper bound at 1000 seconds... should be safe given the
+              # highest value seen so far was 40 seconds (for a method that
+              # compares length of an array with an integer).
+              expect(value).to be < 1000
             end
             expect(InstrumentationSpecTestClass.new.long_test_method).to eq(42)
             component.probe_notifier_worker.flush

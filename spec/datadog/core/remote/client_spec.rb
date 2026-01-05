@@ -245,9 +245,11 @@ RSpec.describe Datadog::Core::Remote::Client do
 
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
+
   let(:capabilities) do
     capabilities = Datadog::Core::Remote::Client::Capabilities.new(
-      Datadog::Core::Configuration::Settings.new,
+      settings,
       instance_double(Datadog::Core::Telemetry::Component)
     )
     capabilities.send(:register_products, ['ASM_DATA', 'ASM_DD', 'ASM'])
@@ -255,7 +257,7 @@ RSpec.describe Datadog::Core::Remote::Client do
     capabilities
   end
 
-  subject(:client) { described_class.new(transport, capabilities, repository: repository, logger: logger) }
+  subject(:client) { described_class.new(transport, capabilities, repository: repository, settings: settings, logger: logger) }
 
   describe '#sync' do
     include_context 'HTTP connection stub'
@@ -322,15 +324,15 @@ RSpec.describe Datadog::Core::Remote::Client do
               [
                 {
                   path: 'datadog/603646/ASM_DATA/blocked_ips/config',
-                  content: StringIO.new(new_blocked_ips)
+                  content: new_blocked_ips,
                 },
                 {
                   path: 'datadog/603646/ASM/exclusion_filters/config',
-                  content: StringIO.new(exclusions)
+                  content: exclusions,
                 },
                 {
                   path: 'datadog/603646/ASM_DD/latest/config',
-                  content: StringIO.new(rules_data)
+                  content: rules_data,
                 }
               ]
             )
@@ -598,7 +600,7 @@ RSpec.describe Datadog::Core::Remote::Client do
               end
 
               it 'returns client_tracer tags' do
-                expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
+                expect(settings).to receive(:version).and_return('hello').at_least(:once)
 
                 expect(client_payload[:client_tracer][:tags]).to eq(expected_base_client_tracer_tags)
               end
@@ -619,7 +621,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 end
 
                 it 'includes SCI tags in remote config' do
-                  expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
+                  expect(settings).to receive(:version).and_return('hello').at_least(:once)
 
                   expect(client_payload[:client_tracer][:tags]).to eq(expected_base_client_tracer_tags + expected_sci_tags)
                 end
@@ -628,14 +630,14 @@ RSpec.describe Datadog::Core::Remote::Client do
 
             context 'with remote service setting' do
               it 'returns client_tracer' do
-                expect(Datadog.configuration.remote).to receive(:service).and_return('foo').at_least(:once)
+                expect(settings.remote).to receive(:service).and_return('foo').at_least(:once)
 
                 expected_client_tracer = {
                   runtime_id: Datadog::Core::Environment::Identity.id,
                   language: Datadog::Core::Environment::Identity.lang,
                   tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
-                  service: Datadog.configuration.remote.service,
-                  env: Datadog.configuration.env,
+                  service: settings.remote.service,
+                  env: settings.env,
                 }
 
                 expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
@@ -644,15 +646,15 @@ RSpec.describe Datadog::Core::Remote::Client do
 
             context 'with app_version' do
               it 'returns client_tracer' do
-                expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
+                expect(settings).to receive(:version).and_return('hello').at_least(:once)
 
                 expected_client_tracer = {
                   runtime_id: Datadog::Core::Environment::Identity.id,
                   language: Datadog::Core::Environment::Identity.lang,
                   tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
-                  service: Datadog.configuration.service,
-                  env: Datadog.configuration.env,
-                  app_version: Datadog.configuration.version,
+                  service: settings.service,
+                  env: settings.env,
+                  app_version: settings.version,
                 }
 
                 expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
@@ -661,18 +663,45 @@ RSpec.describe Datadog::Core::Remote::Client do
 
             context 'without app_version' do
               it 'returns client_tracer' do
-                expect(Datadog.configuration).to receive(:version).and_return(nil).at_least(:once)
+                expect(settings).to receive(:version).and_return(nil).at_least(:once)
 
                 expected_client_tracer = {
                   runtime_id: Datadog::Core::Environment::Identity.id,
                   language: Datadog::Core::Environment::Identity.lang,
                   tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
-                  service: Datadog.configuration.service,
-                  env: Datadog.configuration.env,
+                  service: settings.service,
+                  env: settings.env,
                 }
 
                 expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
               end
+            end
+          end
+        end
+
+        context 'process_tags' do
+          let(:client_payload) { client.send(:payload)[:client] }
+
+          context 'when process tags propagation is enabled' do
+            include_context 'with mocked process environment'
+            before do
+              allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+            end
+
+            it 'has process tags in the payload' do
+              process_tags = client_payload[:client_tracer][:process_tags]
+              expect(process_tags).to be_a(Array)
+              expect(process_tags).to include('entrypoint.workdir:app')
+              expect(process_tags).to include('entrypoint.name:rspec')
+              expect(process_tags).to include('entrypoint.basedir:bin')
+              expect(process_tags).to include('entrypoint.type:script')
+            end
+          end
+
+          context 'when process tags propagation is not enabled' do
+            # Currently false by default
+            it 'does not have process tags in the payload' do
+              expect(client_payload[:client_tracer]).not_to have_key(:process_tags)
             end
           end
         end

@@ -2,11 +2,10 @@
 
 require 'json'
 
-require_relative '../../../transport/http/client'
+require_relative '../../../transport/http/api/endpoint'
+require_relative '../../../transport/http/response'
 require_relative '../../../utils/base64'
 require_relative '../../../utils/truncation'
-require_relative '../../../transport/http/response'
-require_relative '../../../transport/http/api/endpoint'
 
 module Datadog
   module Core
@@ -17,7 +16,7 @@ module Datadog
           module Config
             # Response from HTTP transport for remote configuration
             class Response
-              include Datadog::Core::Transport::HTTP::Response
+              include Core::Transport::HTTP::Response
 
               def initialize(http_response, options = {}) # standard:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
                 super(http_response)
@@ -101,7 +100,7 @@ module Datadog
 
                   {
                     path: h[:path].freeze,
-                    content: StringIO.new(content.freeze),
+                    content: content.freeze,
                   }
                 end.freeze
 
@@ -178,46 +177,7 @@ module Datadog
               end
             end
 
-            # Remote transport HTTP client
-            class Client < Core::Transport::HTTP::Client
-              def send_config_payload(request)
-                send_request(request) do |api, env|
-                  api.send_config(env)
-                end
-              end
-            end
-
             module API
-              # Extensions for HTTP API Spec
-              module Spec
-                attr_reader :config
-
-                def config=(endpoint)
-                  @config = endpoint
-                end
-
-                def send_config(env, &block)
-                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('config', self) if config.nil?
-
-                  config.call(env, &block)
-                end
-              end
-
-              # Extensions for HTTP API Instance
-              module Instance
-                def send_config(env)
-                  unless spec.is_a?(Config::API::Spec)
-                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-                      'config', self
-                    )
-                  end
-
-                  spec.send_config(env) do |request_env|
-                    call(request_env)
-                  end
-                end
-              end
-
               # Endpoint for remote configuration
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
                 HEADER_CONTENT_TYPE = 'Content-Type'

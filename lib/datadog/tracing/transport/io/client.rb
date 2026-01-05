@@ -42,7 +42,7 @@ module Datadog
             response
           rescue => e
             message =
-              "Internal error during IO transport request. Cause: #{e.class.name} #{e.message} " \
+              "Internal error during IO transport request. Cause: #{e.class.name}: #{e.message} " \
                 "Location: #{Array(e.backtrace).first}"
 
             # Log error

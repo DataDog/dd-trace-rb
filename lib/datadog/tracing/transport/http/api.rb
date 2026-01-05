@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../../../core/encoding'
-
+require_relative '../../../core/transport/http/api/endpoint'
 require_relative '../../../core/transport/http/api/map'
-require_relative '../../../core/transport/http/api/instance'
-require_relative '../../../core/transport/http/api/spec'
 
 require_relative 'traces'
 
@@ -22,19 +20,17 @@ module Datadog
 
           def defaults
             Core::Transport::HTTP::API::Map[
-              V4 => Traces::API::Spec.new do |s|
-                s.traces = Traces::API::Endpoint.new(
-                  '/v0.4/traces',
-                  Core::Encoding::MsgpackEncoder,
-                  service_rates: true
-                )
-              end,
-              V3 => Traces::API::Spec.new do |s|
-                s.traces = Traces::API::Endpoint.new(
-                  '/v0.3/traces',
-                  Core::Encoding::MsgpackEncoder
-                )
-              end,
+              V4 => Traces::API::Endpoint.new(
+                '/v0.4/traces',
+                Core::Encoding::MsgpackEncoder,
+                service_rates: true
+              ),
+              V3 => Traces::API::Endpoint.new(
+                '/v0.3/traces',
+                Core::Encoding::MsgpackEncoder,
+              ),
+            # This fallbacks definition is likely doing nothing.
+            # It's duplicated in Transport::HTTP module. # standard:disable Layout/CommentIndentation
             ].with_fallbacks(V4 => V3)
           end
         end

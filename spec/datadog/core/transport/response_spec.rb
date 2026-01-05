@@ -51,6 +51,33 @@ RSpec.describe Datadog::Core::Transport::Response do
 
       it { is_expected.to be nil }
     end
+
+    describe '#inspect' do
+      subject(:inspect) { response.inspect }
+
+      before do
+        expect(response).to receive(:payload).and_return(payload)
+      end
+
+      context 'small payload' do
+        let(:payload) { 'hello world' }
+
+        it 'includes the complete payload' do
+          expect(inspect).to include("payload:hello world")
+        end
+      end
+
+      context 'large payload' do
+        let(:payload) { 'hello ' + 'aaaaa' * 1_000_000 + ' world' }
+
+        it 'includes truncated payload' do
+          # We truncate the payload to approximately 2000 bytes and
+          # then there are the other fields.
+          expect(inspect.length).to be < 2_200
+          expect(inspect).to match(/payload:hello aaaa.*aaaaa world/)
+        end
+      end
+    end
   end
 end
 

@@ -5,7 +5,7 @@ module Datadog
       end
 
       class Configuration
-        def self.new: (::String json_str) -> self
+        def initialize: (::String json_str) -> void
 
         def get_assignment: (
           ::String flag_key,

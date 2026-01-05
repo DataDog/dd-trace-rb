@@ -6,15 +6,15 @@ module Datadog
       module Baggage
         def initialize: (?trace: Datadog::Tracing::TraceOperation?) -> void
 
-        def clear: (?context: untyped) -> untyped
+        def clear: (?context: OpenTelemetry::Context) -> OpenTelemetry::Context
 
-        def value: (String key, ?context: untyped) -> String?
+        def value: (String key, ?context: OpenTelemetry::Context) -> String?
 
-        def values: (?context: untyped) -> Hash[String, String]
+        def values: (?context: OpenTelemetry::Context) -> Hash[String, String]
 
-        def set_value: (String key, String value, ?metadata: String?, ?context: untyped) -> untyped
+        def set_value: (String key, String value, ?metadata: String?, ?context: OpenTelemetry::Context) -> OpenTelemetry::Context
 
-        def remove_value: (String key, ?context: untyped) -> untyped
+        def remove_value: (String key, ?context: OpenTelemetry::Context) -> OpenTelemetry::Context
       end
     end
   end
