@@ -32,7 +32,6 @@ module Datadog
         def build(
           agent_settings:,
           logger: Datadog.logger,
-          api_version: nil,
           headers: nil,
           &block
         )
@@ -44,7 +43,6 @@ module Datadog
             yield transport
 
             # Apply any settings given by options
-            transport.default_api = api_version if api_version
             transport.headers(headers) if headers
           end
         end

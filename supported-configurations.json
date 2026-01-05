@@ -2211,9 +2211,9 @@
     ],
     "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
-        "default": null
+        "default": "http/protobuf"
       }
     ],
     "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": [
@@ -2225,9 +2225,9 @@
     ],
     "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": [
       {
-        "version": "A",
+        "version": "B",
         "type": "int",
-        "default": null
+        "default": "10000"
       }
     ],
     "OTEL_EXPORTER_OTLP_PROTOCOL": [

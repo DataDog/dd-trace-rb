@@ -164,6 +164,8 @@ RSpec.describe Datadog::Core::Environment::Execution do
           unless PlatformHelpers.ci? || Gem.loaded_specs['cucumber']
             skip('cucumber gem not present. In CI, this test is never skipped.')
           end
+
+          skip "Ruby 4.0 + ffi 1.17.3 is failing this spec" if RUBY_DESCRIPTION.include?("4.0.0preview")
         end
 
         let(:script) do
