@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
     subject do
       described_class.log_deprecations_from_all_sources(
         mock_logger,
-        deprecations: {'DEPRECATED_TEST' => 'unused when there is an alias'},
+        deprecations: Set['DEPRECATED_TEST'],
         alias_to_canonical: {'DEPRECATED_TEST' => 'TEST'}
       )
     end
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
     let(:mock_logger) { Datadog::Core::Logger.new(mock_io) }
     let(:source_env) { {} }
     let(:source_name) { 'test' }
-    let(:deprecations) { {} }
+    let(:deprecations) { Set.new }
     let(:alias_to_canonical) { {} }
 
     subject do
@@ -136,7 +136,7 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
 
     context 'when the deprecated environment variable has an alias' do
       let(:source_env) { {'DD_DEPRECATED_ENV_VAR' => 'true'} }
-      let(:deprecations) { {'DD_DEPRECATED_ENV_VAR' => 'This should not appear in the output'} }
+      let(:deprecations) { Set['DD_DEPRECATED_ENV_VAR'] }
       let(:alias_to_canonical) { {'DD_DEPRECATED_ENV_VAR' => 'DD_SUPPORTED_ENV_VAR'} }
 
       it 'logs deprecation warnings for deprecated environment variables' do
@@ -147,12 +147,12 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
 
     context 'when the environment variable does not have an alias' do
       let(:source_env) { {'DD_DEPRECATED_ENV_VAR' => 'true'} }
-      let(:deprecations) { {'DD_DEPRECATED_ENV_VAR' => 'This will be removed in the next major version.'} }
+      let(:deprecations) { Set['DD_DEPRECATED_ENV_VAR'] }
       let(:alias_to_canonical) { {} }
 
       it 'logs deprecation warnings for deprecated environment variables with correct message' do
         subject
-        expect(mock_io.string).to include('DD_DEPRECATED_ENV_VAR test variable is deprecated. This will be removed in the next major version.')
+        expect(mock_io.string).to include('DD_DEPRECATED_ENV_VAR test variable is deprecated.')
       end
     end
   end

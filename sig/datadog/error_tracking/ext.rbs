@@ -11,7 +11,7 @@ module Datadog
 
       HANDLED_ERRORS_THIRD_PARTY: "third_party"
 
-      DEFAULT_HANDLED_ERRORS: ""
+      DEFAULT_HANDLED_ERRORS: nil
 
       VALID_HANDLED_ERRORS: ::Array[untyped]
 

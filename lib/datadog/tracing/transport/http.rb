@@ -23,7 +23,6 @@ module Datadog
           headers: nil
         )
           Core::Transport::HTTP.build(
-            api_instance_class: Traces::API::Instance,
             agent_settings: agent_settings,
             logger: logger,
             api_version: api_version,

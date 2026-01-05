@@ -132,7 +132,7 @@ RSpec.describe Datadog::AppSec::Remote do
           Datadog::Core::Remote::Configuration::Content.parse(
             {
               path: 'datadog/603646/ASM_DD/latest/config',
-              content: StringIO.new(rules)
+              content: rules,
             }
           )
         end

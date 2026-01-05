@@ -1,0 +1,54 @@
+module Datadog
+  module Core
+    module Transport
+      class UnknownApiVersionError < StandardError
+        @version: untyped
+
+        attr_reader version: untyped
+
+        def initialize: (untyped version) -> void
+
+        def message: () -> ::String
+      end
+      class NoDowngradeAvailableError < StandardError
+        @version: untyped
+
+        attr_reader version: untyped
+
+        def initialize: (untyped version) -> void
+
+        def message: () -> ::String
+      end
+      class Transport
+        @apis: Core::Transport::HTTP::API::Map
+        @logger: Core::Logger
+        @default_api: ::String
+        @current_api_id: ::String
+        @client: Core::Transport::HTTP::Client
+
+        attr_reader client: Core::Transport::HTTP::Client
+        attr_reader apis: Core::Transport::HTTP::API::Map
+        attr_reader current_api_id: ::String
+        attr_reader logger: Core::Logger
+
+        attr_accessor self.http_client_class: Class
+
+        def initialize: (
+          Core::Transport::HTTP::API::Map apis,
+          ::String default_api,
+          logger: Core::Logger
+        ) -> void
+
+        def current_api: () -> Core::Transport::HTTP::API::Instance
+
+        private
+
+        def set_api!: (String api_id) -> void
+
+        def downgrade?: (untyped response) -> bool
+
+        def downgrade!: () -> void
+      end
+    end
+  end
+end

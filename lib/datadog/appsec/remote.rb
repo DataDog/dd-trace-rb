@@ -7,8 +7,6 @@ module Datadog
   module AppSec
     # Remote
     module Remote
-      class ReadError < StandardError; end
-
       class NoRulesError < StandardError; end
 
       class << self
@@ -109,13 +107,7 @@ module Datadog
         end
 
         def parse_content(content)
-          data = content.data.read
-
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          JSON.parse(data)
+          JSON.parse(content.data)
         end
       end
     end

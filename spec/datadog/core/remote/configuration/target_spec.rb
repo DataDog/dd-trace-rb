@@ -191,7 +191,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
     describe '#check' do
       context 'valid content' do
         it 'returns true' do
-          string_io_content = StringIO.new(raw.to_json)
+          string_io_content = raw.to_json
 
           content_hash = {
             path: 'datadog/603646/ASM/exclusion_filters/config',
@@ -207,7 +207,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         it 'returns false' do
           content_hash = {
             path: 'datadog/603646/ASM/exclusion_filters/config',
-            content: StringIO.new('Hello World')
+            content: 'Hello World',
           }
           content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
 

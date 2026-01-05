@@ -3,7 +3,7 @@ module Datadog
     module Collectors
       class CodeProvenance
         def initialize: (?standard_library_path: String, ?ruby_native_filename: String?) -> void
-        def refresh: (?loaded_files: Array[String], ?loaded_specs: Array[Gem::Specification]) -> self
+        def refresh: (?loaded_files: Array[String], ?loaded_specs: Array[Gem::BasicSpecification]) -> self
         def generate_json: () -> ::String
 
         private
@@ -16,8 +16,9 @@ module Datadog
 
         def record_library: (Library) -> void
         def sort_libraries_by_longest_path_first: () -> void
-        def record_loaded_specs: (Array[Gem::Specification]) -> void
+        def record_loaded_specs: (Array[Gem::BasicSpecification]) -> void
         def record_loaded_files: (Array[String]) -> void
+        def bundler_bin_path: () -> String?
 
         class Library
           @kind: String
@@ -32,7 +33,7 @@ module Datadog
           def version: -> String
           def path: -> String
 
-          def to_json: (?JSON::State state) -> String
+          def to_json: (?JSON::State? state) -> String
         end
       end
     end

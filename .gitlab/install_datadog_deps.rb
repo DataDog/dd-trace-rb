@@ -24,7 +24,7 @@ current_path = Pathname.new(FileUtils.pwd)
 
 tmp_path = current_path.join('tmp', ENV["ARCH"])
 
-versioned_path = tmp_path.join(ruby_api_version)
+versioned_path = tmp_path.join(Gem.ruby_engine, RbConfig::CONFIG['ruby_version'])
 
 FileUtils.mkdir_p(versioned_path, verbose: true)
 
@@ -34,6 +34,10 @@ File.open(gemfile_file_path, 'w') do |file|
   file.write("source 'https://rubygems.org'\n")
   file.write("gem 'datadog', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'\n")
   file.write("gem 'ffi', '1.16.3'\n")
+
+  # workaround for https://github.com/ruby/ruby/blob/ruby_2_6/gem_prelude.rb#L3-L7
+  file.write("gem 'did_you_mean', '1.3.0'\n") if RUBY_VERSION.start_with?('2.6.')
+
   # Mimick outdated `msgpack` version, uncomment below line to test
   # file.write("gem 'msgpack', '1.6.0'\n")
 end
@@ -80,6 +84,7 @@ env = {
 
 # ADD NEW DEPENDENCIES HERE
 [
+  'did_you_mean',
   'datadog-ruby_core_source',
   'ffi',
   'libddwaf',
@@ -90,6 +95,11 @@ env = {
   'datadog',
 ].each do |gem|
   version = gem_version_mapping.delete(gem)
+
+  # This hardcoded dependency list actually depends on the lockfile contents,
+  # which is per-version. The better solution is of course to refactor this to
+  # not hardcode the list and use solely what was locked.
+  next if version.nil?
 
   gem_install_cmd = "gem install #{gem} "\
     "--version #{version} "\

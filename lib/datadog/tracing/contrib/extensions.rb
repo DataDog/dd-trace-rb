@@ -220,12 +220,20 @@ module Datadog
             # `@instrumented_integrations` hash.
             # @!visibility private
             def instrumented_integrations
-              INSTRUMENTED_INTEGRATIONS_LOCK.synchronize { (@instrumented_integrations&.dup || {}).freeze }
+              INSTRUMENTED_INTEGRATIONS_LOCK.synchronize do
+                (if defined?(@instrumented_integrations)
+                   @instrumented_integrations&.dup
+                 end || {}).freeze
+              end
             end
 
             # @!visibility private
             def reset!
-              INSTRUMENTED_INTEGRATIONS_LOCK.synchronize { @instrumented_integrations&.clear }
+              INSTRUMENTED_INTEGRATIONS_LOCK.synchronize do
+                if defined?(@instrumented_integrations)
+                  @instrumented_integrations&.clear
+                end
+              end
               super
             end
 

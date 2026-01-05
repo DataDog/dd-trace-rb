@@ -11,12 +11,6 @@ module Datadog
           def initialize(components:)
             # To not hold a reference to the component tree, generate
             # the event payload here in the constructor.
-            #
-            # Important: do not store data that contains (or is derived from)
-            # the runtime_id or sequence numbers.
-            # This event is reused when a process forks, but in the
-            # child process the runtime_id would be different and sequence
-            # number is reset.
             @configuration = configuration(components.settings, components.agent_settings)
             @install_signature = install_signature(components.settings)
             @products = products(components)
@@ -34,15 +28,6 @@ module Datadog
               # DEV: Not implemented yet
               # error: error, # Start-up errors
             }
-          end
-
-          # Whether the event is actually the app-started event.
-          # For the app-started event we follow up by sending
-          # app-dependencies-loaded, if the event is
-          # app-client-configuration-change we don't send
-          # app-dependencies-loaded.
-          def app_started?
-            true
           end
 
           private
@@ -172,6 +157,25 @@ module Datadog
               peer_service_mapping_str,
               seq_id,
               get_telemetry_origin(settings, 'tracing.contrib.peer_service_mapping')
+            )
+
+            # OpenTelemetry configuration options (using environment variable names)
+            otel_exporter_headers_string = settings.opentelemetry.exporter.headers&.map { |key, value| "#{key}=#{value}" }&.join(',')
+            otel_exporter_metrics_headers_string = settings.opentelemetry.metrics.headers&.map { |key, value| "#{key}=#{value}" }&.join(',')
+            list.push(
+              conf_value('OTEL_EXPORTER_OTLP_ENDPOINT', settings.opentelemetry.exporter.endpoint, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.endpoint')),
+              conf_value('OTEL_EXPORTER_OTLP_HEADERS', otel_exporter_headers_string, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.headers')),
+              conf_value('OTEL_EXPORTER_OTLP_PROTOCOL', settings.opentelemetry.exporter.protocol, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.protocol')),
+              conf_value('OTEL_EXPORTER_OTLP_TIMEOUT', settings.opentelemetry.exporter.timeout_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.timeout_millis')),
+              conf_value('DD_METRICS_OTEL_ENABLED', settings.opentelemetry.metrics.enabled, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.enabled')),
+              conf_value('OTEL_METRICS_EXPORTER', settings.opentelemetry.metrics.exporter, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.exporter')),
+              conf_value('OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', settings.opentelemetry.metrics.endpoint, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.endpoint')),
+              conf_value('OTEL_EXPORTER_OTLP_METRICS_HEADERS', otel_exporter_metrics_headers_string, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.headers')),
+              conf_value('OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', settings.opentelemetry.metrics.protocol, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.protocol')),
+              conf_value('OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', settings.opentelemetry.metrics.timeout_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.timeout_millis')),
+              conf_value('OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', settings.opentelemetry.metrics.temporality_preference, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.temporality_preference')),
+              conf_value('OTEL_METRIC_EXPORT_INTERVAL', settings.opentelemetry.metrics.export_interval_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.export_interval_millis')),
+              conf_value('OTEL_METRIC_EXPORT_TIMEOUT', settings.opentelemetry.metrics.export_timeout_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.export_timeout_millis')),
             )
 
             # Whitelist of configuration options to send in additional payload object
