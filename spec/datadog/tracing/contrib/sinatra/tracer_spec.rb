@@ -523,6 +523,8 @@ RSpec.describe 'Sinatra instrumentation', skip: PlatformHelpers.jruby_100? do
     let(:sinatra_app) do
       sinatra_routes = self.sinatra_routes
       Class.new(Sinatra::Application) do
+        # Newer versions of sinatra have a host restriction by default
+        set :host_authorization, permitted_hosts: []
         instance_exec(&sinatra_routes)
       end
     end
@@ -535,6 +537,8 @@ RSpec.describe 'Sinatra instrumentation', skip: PlatformHelpers.jruby_100? do
       stub_const(
         'NestedApp',
         Class.new(Sinatra::Base) do
+          # Newer versions of sinatra have a host restriction by default
+          set :host_authorization, permitted_hosts: []
           get '/nested' do
             headers['X-Request-ID'] = 'test id'
             'nested ok'
@@ -546,6 +550,9 @@ RSpec.describe 'Sinatra instrumentation', skip: PlatformHelpers.jruby_100? do
       stub_const(
         'App',
         Class.new(Sinatra::Base) do
+          # Newer versions of sinatra have a host restriction by default
+          set :host_authorization, permitted_hosts: []
+
           use NestedApp
 
           instance_exec(&sinatra_routes)

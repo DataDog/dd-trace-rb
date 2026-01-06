@@ -190,6 +190,8 @@ RSpec.describe 'Sinatra integration tests', skip: PlatformHelpers.jruby_100? do
       app_middlewares = middlewares
 
       Class.new(Sinatra::Application) do
+        # Newer versions of sinatra have a host restriction by default
+        set :host_authorization, permitted_hosts: []
         app_middlewares.each { |m| use m }
         instance_exec(&app_routes)
       end

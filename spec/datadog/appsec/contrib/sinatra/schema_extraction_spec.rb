@@ -149,6 +149,8 @@ RSpec.describe 'Schema extraction for API security in Sinatra', skip: PlatformHe
     klass = Class.new(Sinatra::Base) do
       set :show_exceptions, false
       set :raise_errors, true
+      # Newer versions of sinatra have a host restriction by default
+      set :host_authorization, permitted_hosts: []
 
       get '/product' do
         json(id: 1, name: 'Widget', price: 29.99)
