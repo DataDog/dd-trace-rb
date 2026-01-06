@@ -19,12 +19,12 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     # ensures that we are matching the default environment settings.
     it 'returns a transport with default configuration' do
       is_expected.to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
-      expect(default.current_api_id).to eq(Datadog::Tracing::Transport::HTTP::API::V4)
+      expect(default.current_api_id).to eq('v0.4')
 
       expect(default.apis.keys).to eq(
         [
-          Datadog::Tracing::Transport::HTTP::API::V4,
-          Datadog::Tracing::Transport::HTTP::API::V3,
+          'v0.4',
+          'v0.3',
         ]
       )
 
