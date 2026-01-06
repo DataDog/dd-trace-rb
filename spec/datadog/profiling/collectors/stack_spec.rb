@@ -377,6 +377,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     describe "approximate thread state categorization based on current stack" do
       before do
+        if RUBY_DESCRIPTION.include?("4.0.0preview2")
+          skip "Some of this behavior changed between 4.0.0preview2 and 4.0.0 stable. Remove this skip once CI is on 4.0.0 or above."
+        end
         wait_for { background_thread.backtrace_locations.first.base_label }.to eq(expected_method_name)
       end
 
