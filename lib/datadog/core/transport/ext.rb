@@ -8,6 +8,7 @@ module Datadog
       module Ext
         module HTTP
           HEADER_CONTAINER_ID = 'Datadog-Container-ID'
+          HEADER_CONTAINER_TAGS_HASH = 'Datadog-Container-Tags-Hash'
           HEADER_DD_API_KEY = 'DD-API-KEY'
           # Tells agent that `_dd.top_level` metrics have been set by the tracer.
           # The agent will not calculate top-level spans but instead trust the tracer tagging.

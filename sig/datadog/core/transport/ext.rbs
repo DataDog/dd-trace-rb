@@ -11,6 +11,8 @@ module Datadog
 
           HEADER_CONTAINER_ID: ::String
 
+          HEADER_CONTAINER_TAGS_HASH: ::String
+
           HEADER_DD_API_KEY: ::String
 
           HEADER_CLIENT_COMPUTED_TOP_LEVEL: ::String

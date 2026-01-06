@@ -51,26 +51,38 @@ module Datadog
       #
       # @see https://github.com/DataDog/datadog-agent/blob/f07df0a3c1fca0c83b5a15f553bd994091b0c8ac/pkg/trace/api/info.go#L20
       class AgentInfo
-        attr_reader :agent_settings, :logger
+        attr_reader :agent_settings, :logger, :container_tags_hash
 
         def initialize(agent_settings, logger: Datadog.logger)
           @agent_settings = agent_settings
           @logger = logger
           @client = Remote::Transport::HTTP.root(agent_settings: agent_settings, logger: logger)
+          @container_tags_hash = nil
         end
 
         # Fetches the information from the agent.
+        # Extracts container tags hash from response headers
         # @return [Datadog::Core::Remote::Transport::HTTP::Negotiation::Response] the response from the agent
         # @return [nil] if an error occurred while fetching the information
         def fetch
           res = @client.send_info
           return unless res.ok?
 
+          extract_container_tags_hash(res)
           res
         end
 
         def ==(other)
           other.is_a?(self.class) && other.agent_settings == agent_settings
+        end
+
+        private
+
+        def extract_container_tags_hash(res)
+          return unless res.respond_to?(:headers)
+
+          header_value = res.headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_TAGS_HASH]
+          @container_tags_hash = header_value if header_value && !header_value.empty?
         end
       end
     end

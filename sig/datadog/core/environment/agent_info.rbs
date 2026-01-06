@@ -3,10 +3,15 @@ module Datadog
     module Environment
       class AgentInfo
         attr_reader agent_settings: Configuration::AgentSettings
+        attr_reader container_tags_hash: ::String?
 
         def initialize: (Configuration::AgentSettings agent_settings, ?logger: Core::Logger) -> void
 
         def fetch: -> Remote::Transport::HTTP::Negotiation::Response?
+
+        private
+
+        def extract_container_tags_hash: (Remote::Transport::HTTP::Negotiation::Response res) -> ::String?
       end
     end
   end
