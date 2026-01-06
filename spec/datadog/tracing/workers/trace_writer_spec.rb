@@ -12,7 +12,11 @@ require 'datadog/core/transport/http/response'
 require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Tracing::Workers::TraceWriter do
-  subject(:writer) { described_class.new({agent_settings: test_agent_settings}.update(options)) }
+  subject(:writer) do
+    described_class.new({logger: logger, agent_settings: test_agent_settings}.update(options))
+  end
+
+  let(:logger) { double(Datadog::Core::Logger) }
 
   let(:options) { {} }
 
@@ -28,15 +32,27 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     context 'given :transport_options' do
       let(:options) { {transport_options: transport_options} }
 
-      let(:transport_options) { {api_version: 42} }
+      let(:transport_options) { {headers: {foo: 'bar'}} }
 
       before do
         expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-          .with(transport_options.merge(agent_settings: test_agent_settings, logger: Datadog.logger))
+          .with(transport_options.merge(agent_settings: test_agent_settings, logger: logger))
           .and_return(transport)
       end
 
       it { expect(writer.transport).to be transport }
+    end
+
+    context 'when transport options include headers' do
+      let(:options) { {transport_options: transport_options} }
+
+      let(:transport_options) { {headers: {foo: 'bar'}} }
+
+      it 'passes the headers into transport' do
+        expect(writer.transport.apis.length).to eq 2
+        expect(writer.transport.apis['v0.4'].headers).to include(foo: 'bar')
+        expect(writer.transport.apis['v0.3'].headers).to include(foo: 'bar')
+      end
     end
 
     context 'given :agent_settings' do
@@ -45,7 +61,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 
       it 'configures a transport with the agent_settings' do
         expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-          .with(agent_settings: agent_settings, logger: Datadog.logger)
+          .with(agent_settings: agent_settings, logger: logger)
           .and_return(transport)
 
         expect(writer.transport).to be transport
@@ -54,15 +70,27 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
       context 'and also :transport_options' do
         let(:options) { {**super(), transport_options: transport_options} }
 
-        let(:transport_options) { {api_version: 42} }
+        let(:transport_options) { {headers: {foo: 'bar'}} }
 
         before do
           expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-            .with(agent_settings: agent_settings, logger: Datadog.logger, api_version: 42)
+            .with(agent_settings: agent_settings, logger: logger, headers: {foo: 'bar'})
             .and_return(transport)
         end
 
         it { expect(writer.transport).to be transport }
+      end
+
+      context 'when transport options include headers' do
+        let(:options) { {**super(), transport_options: transport_options} }
+
+        let(:transport_options) { {headers: {foo: 'bar'}} }
+
+        it 'passes the headers into transport' do
+          expect(writer.transport.apis.length).to eq 2
+          expect(writer.transport.apis['v0.4'].headers).to include(foo: 'bar')
+          expect(writer.transport.apis['v0.3'].headers).to include(foo: 'bar')
+        end
       end
     end
   end
@@ -168,7 +196,11 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 end
 
 RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
-  subject(:writer) { described_class.new({agent_settings: test_agent_settings}.update(options)) }
+  subject(:writer) do
+    described_class.new({logger: logger, agent_settings: test_agent_settings}.update(options))
+  end
+
+  let(:logger) { logger_allowing_debug }
 
   let(:options) { {} }
 
@@ -558,7 +590,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
   describe 'integration tests' do
     let(:options) { {transport: transport, fork_policy: fork_policy} }
     let(:transport) do
-      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: Datadog.logger) do |t|
+      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
         t.adapter :test, output
       end
     end

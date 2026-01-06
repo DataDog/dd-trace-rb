@@ -97,7 +97,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     describe 'priority' do
-      let(:with_transport_options) { nil }
       let(:with_agent_host) { nil }
       let(:with_agent_port) { nil }
       let(:with_trace_agent_url) { nil }

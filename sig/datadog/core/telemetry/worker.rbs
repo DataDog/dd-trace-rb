@@ -22,10 +22,11 @@ module Datadog
         @logger: ::Logger
 
         attr_reader logger: ::Logger
-        attr_reader initial_event: Telemetry::Event::Base
+        attr_reader initial_event: Telemetry::Event::AppStarted
 	attr_reader initial_event_once: Datadog::Core::Utils::OnlyOnceSuccessful
 
         def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?shutdown_timeout: Float | Integer, ?buffer_size: Integer, dependency_collection: bool, logger: ::Logger) -> void
+        def initialize_state: -> void
 
         def start: (Telemetry::Event::AppStarted initial_event) -> void
 
@@ -60,6 +61,8 @@ module Datadog
         def buffer_klass: () -> untyped
 	
 	def idle?: () -> bool
+	
+	def after_fork_monkey_patched: () -> void
       end
     end
   end
