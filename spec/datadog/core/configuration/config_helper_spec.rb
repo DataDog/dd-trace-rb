@@ -90,12 +90,12 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     context 'when using default supported_configurations' do
       subject do
         described_class.new(
-          source_env: Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.map { |env_var_name| [env_var_name, 'true'] }.to_h
+          source_env: Datadog::Core::Configuration::SUPPORTED_CONFIGURATION_NAMES.map { |env_var_name| [env_var_name, 'true'] }.to_h
         )
       end
 
       it 'returns the environment variable value' do
-        Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.each do |env_var_name|
+        Datadog::Core::Configuration::SUPPORTED_CONFIGURATION_NAMES.each do |env_var_name|
           expect(subject.get_environment_variable(env_var_name)).to eq('true')
         end
       end
