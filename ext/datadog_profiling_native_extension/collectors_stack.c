@@ -347,8 +347,10 @@ void sample_thread(
         } else if (CHARSLICE_EQUALS("select", name_slice)) { // Expected to be Kernel.select
           state_label->str  = DDOG_CHARSLICE_C("waiting");
         } else if (
-            CHARSLICE_EQUALS("synchronize", name_slice) || // Expected to be Monitor/Mutex#synchronize
-            CHARSLICE_EQUALS("lock", name_slice) ||        // Expected to be Mutex#lock
+            CHARSLICE_EQUALS("synchronize", name_slice) || // Expected to be Monitor/Mutex#synchronize on Ruby 2 & 3, and Monitor#synchronize on 4 (Mutex becomes <internal:thread_sync>)
+            #ifdef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby < 4
+              CHARSLICE_EQUALS("lock", name_slice) ||        // Expected to be Mutex#lock
+            #endif
             CHARSLICE_EQUALS("join", name_slice)           // Expected to be Thread#join
         ) {
           state_label->str  = DDOG_CHARSLICE_C("blocked");
@@ -370,6 +372,11 @@ void sample_thread(
             if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
               state_label->str  = DDOG_CHARSLICE_C("waiting");
             }
+            #ifndef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby >= 4
+              else if (CHARSLICE_EQUALS("synchronize", name_slice) || CHARSLICE_EQUALS("lock", name_slice)) {
+                state_label->str  = DDOG_CHARSLICE_C("blocked");
+              }
+            #endif
           }
         #endif
       }
