@@ -16,6 +16,7 @@
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "heap_recorder.h"
 
 // Used to trigger the execution of Collectors::ThreadContext, which implements all of the sampling logic
 // itself; this class only implements the "when to do it" part.
@@ -87,6 +88,9 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
   static rb_postponed_job_handle_t sample_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gvl_running_from_postponed_job_handle;
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+    static rb_postponed_job_handle_t finalize_heap_allocation_from_postponed_job_handle;
+  #endif
 #endif
 
 // Contains state for a single CpuAndWallTimeWorker instance
@@ -246,6 +250,9 @@ static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instan
 static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
+#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+static void finalize_heap_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused);
+#endif
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -293,11 +300,17 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
     after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
     after_gvl_running_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gvl_running_from_postponed_job, NULL);
+    #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+    finalize_heap_allocation_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, finalize_heap_allocation_from_postponed_job, NULL);
+    #endif
 
     if (
       sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
+      #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+      || finalize_heap_allocation_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
+      #endif
     ) {
       raise_error(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
@@ -1263,6 +1276,12 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   state->stats.allocation_sampled++;
 
   during_sample_exit(state);
+
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  // On Ruby 4+, we need to trigger a postponed job to finalize the heap allocation recording.
+  // During on_newobj_event, we can't safely call rb_obj_id(), so we defer it until the event completes.
+  rb_postponed_job_trigger(finalize_heap_allocation_from_postponed_job_handle);
+  #endif
 }
 
 static void disable_tracepoints(cpu_and_wall_time_worker_state *state) {
@@ -1474,6 +1493,27 @@ static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_jo
   stop(self_instance, exception, "rescued_after_gvl_running_from_postponed_job");
   return Qnil;
 }
+
+#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+// This postponed job callback is used to finalize heap allocation recordings on Ruby 4+.
+// During on_newobj_event, calling rb_obj_id() is unsafe because it mutates the object.
+// So we defer getting the object_id until after the event completes.
+static void finalize_heap_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+  cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
+
+  if (state == NULL) return;
+
+  if (!ddtrace_rb_ractor_main_p()) {
+    return;
+  }
+
+  // Get the heap_recorder from the thread_context_collector
+  heap_recorder *recorder = thread_context_collector_get_heap_recorder(state->thread_context_collector_instance);
+  if (recorder == NULL) return;
+
+  heap_recorder_finalize_pending_recordings(recorder);
+}
+#endif
 
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {
   // Tell the compiler it's not allowed to reorder the `during_sample` flag with anything that happens after.

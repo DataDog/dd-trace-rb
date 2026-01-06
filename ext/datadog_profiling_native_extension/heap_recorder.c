@@ -79,6 +79,18 @@ static void object_record_free(heap_recorder*, object_record*);
 static VALUE object_record_inspect(heap_recorder*, object_record*);
 static object_record SKIPPED_RECORD = {0};
 
+#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+// A pending recording is used to defer the object_id call on Ruby 4+
+// where calling rb_obj_id during on_newobj_event is unsafe.
+typedef struct {
+  VALUE object_ref;
+  heap_record *heap_record;
+  live_object_data object_data;
+} pending_recording;
+
+#define MAX_PENDING_RECORDINGS 64
+#endif
+
 struct heap_recorder {
   // Config
   // Whether the recorder should try to determine approximate sizes for tracked objects.
@@ -129,6 +141,17 @@ struct heap_recorder {
 
   // Data for a heap recording that was started but not yet ended
   object_record *active_recording;
+
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  // Pending recordings that need to be finalized after on_newobj_event completes.
+  // On Ruby 4+, we can't call rb_obj_id during the newobj event, so we store the
+  // VALUE reference here and finalize it via a postponed job.
+  pending_recording pending_recordings[MAX_PENDING_RECORDINGS];
+  uint pending_recordings_count;
+  // Temporary storage for the recording in progress, used between start and end
+  VALUE active_deferred_object;
+  live_object_data active_deferred_object_data;
+  #endif
 
   // Reusable arrays, implementing a flyweight pattern for things like iteration
   #define REUSABLE_LOCATIONS_SIZE MAX_FRAMES_LIMIT
@@ -210,6 +233,9 @@ heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) 
   recorder->size_enabled = true;
   recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
   recorder->string_storage = string_storage;
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  recorder->active_deferred_object = Qnil;
+  #endif
 
   return recorder;
 }
@@ -294,6 +320,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   heap_recorder->stats_lifetime = (struct stats_lifetime) {0};
 }
 
+
 void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class) {
   if (heap_recorder == NULL) {
     return;
@@ -314,6 +341,11 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
       // directly OR because the GVL got released in the middle of an update), let's skip this sample as well.
       // See notes on `heap_recorder_update` for details.
       || heap_recorder->updating
+      #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+      // Skip if we've hit the pending recordings limit or if there's already a deferred object being recorded
+      || heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS
+      || heap_recorder->active_deferred_object != Qnil
+      #endif
     ) {
     heap_recorder->active_recording = &SKIPPED_RECORD;
     return;
@@ -321,6 +353,17 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 
   heap_recorder->num_recordings_skipped = 0;
 
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  // On Ruby 4+, we can't call rb_obj_id during on_newobj_event as it mutates the object.
+  // Instead, we store the VALUE reference and will get the object_id later via a postponed job.
+  // active_deferred_object != Qnil indicates we're in deferred mode.
+  heap_recorder->active_deferred_object = new_obj;
+  heap_recorder->active_deferred_object_data = (live_object_data) {
+    .weight = weight * heap_recorder->sample_rate,
+    .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
+    .alloc_gen = rb_gc_count(),
+  };
+  #else
   VALUE ruby_obj_id = rb_obj_id(new_obj);
   if (!FIXNUM_P(ruby_obj_id)) {
     raise_error(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
@@ -335,6 +378,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
       .alloc_gen = rb_gc_count(),
     }
   );
+  #endif
 }
 
 // end_heap_allocation_recording_with_rb_protect gets called while the stack_recorder is holding one of the profile
@@ -367,6 +411,24 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
   heap_recorder *heap_recorder = args->heap_recorder;
   ddog_prof_Slice_Location locations = args->locations;
 
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  // On Ruby 4+, active_deferred_object != Qnil indicates deferred mode
+  if (heap_recorder->active_deferred_object != Qnil) {
+    // Store the recording in the pending list for later finalization
+    if (heap_recorder->pending_recordings_count < MAX_PENDING_RECORDINGS) {
+      heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
+      heap_record->num_tracked_objects++; // Pre-increment since we're going to commit this later
+
+      pending_recording *pending = &heap_recorder->pending_recordings[heap_recorder->pending_recordings_count++];
+      pending->object_ref = heap_recorder->active_deferred_object;
+      pending->heap_record = heap_record;
+      pending->object_data = heap_recorder->active_deferred_object_data;
+    }
+    heap_recorder->active_deferred_object = Qnil;
+    return Qnil;
+  }
+  #endif
+
   object_record *active_recording = heap_recorder->active_recording;
 
   if (active_recording == NULL) {
@@ -398,6 +460,89 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
 
   heap_recorder_update(heap_recorder, /* full_update: */ false);
 }
+
+#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+bool heap_recorder_has_pending_recordings(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return false;
+  }
+  return heap_recorder->pending_recordings_count > 0;
+}
+
+bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return false;
+  }
+
+  uint count = heap_recorder->pending_recordings_count;
+  if (count == 0) {
+    return false;
+  }
+
+  for (uint i = 0; i < count; i++) {
+    pending_recording *pending = &heap_recorder->pending_recordings[i];
+
+    VALUE obj = pending->object_ref;
+
+    // Check if the object is still valid (it might have been GC'd between
+    // the allocation and this finalization)
+    if (obj == Qnil || !RTEST(obj)) {
+      // Object is gone, decrement the pre-incremented count and cleanup
+      pending->heap_record->num_tracked_objects--;
+      cleanup_heap_record_if_unused(heap_recorder, pending->heap_record);
+      unintern_or_raise(heap_recorder, pending->object_data.class);
+      continue;
+    }
+
+    // Now it's safe to get the object_id
+    VALUE ruby_obj_id = rb_obj_id(obj);
+    if (!FIXNUM_P(ruby_obj_id)) {
+      // Bignum object id - not supported, skip this recording
+      pending->heap_record->num_tracked_objects--;
+      cleanup_heap_record_if_unused(heap_recorder, pending->heap_record);
+      unintern_or_raise(heap_recorder, pending->object_data.class);
+      continue;
+    }
+
+    long obj_id = FIX2LONG(ruby_obj_id);
+
+    // Create the object record now that we have the object_id
+    object_record *record = object_record_new(obj_id, pending->heap_record, pending->object_data);
+
+    // Commit the recording
+    int existing_error = st_update(heap_recorder->object_records, record->obj_id, update_object_record_entry, (st_data_t) record);
+    if (existing_error) {
+      // Duplicate object_id - this shouldn't happen normally, but handle it gracefully
+      pending->heap_record->num_tracked_objects--;
+      cleanup_heap_record_if_unused(heap_recorder, pending->heap_record);
+      object_record_free(heap_recorder, record);
+    }
+  }
+
+  heap_recorder->pending_recordings_count = 0;
+  return true;
+}
+
+// Mark pending recordings to prevent GC from collecting the objects
+// while they're waiting to be finalized
+void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return;
+  }
+
+  for (uint i = 0; i < heap_recorder->pending_recordings_count; i++) {
+    VALUE obj = heap_recorder->pending_recordings[i].object_ref;
+    if (obj != Qnil) {
+      rb_gc_mark(obj);
+    }
+  }
+
+  // Also mark the active deferred object if it's set
+  if (heap_recorder->active_deferred_object != Qnil) {
+    rb_gc_mark(heap_recorder->active_deferred_object);
+  }
+}
+#endif
 
 // NOTE: This function needs and assumes it gets called with the GVL being held.
 //       But importantly **some of the operations inside `st_object_record_update` may cause a thread switch**,

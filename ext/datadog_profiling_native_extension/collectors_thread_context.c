@@ -1339,6 +1339,14 @@ VALUE enforce_thread_context_collector_instance(VALUE object) {
   return object;
 }
 
+#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+heap_recorder* thread_context_collector_get_heap_recorder(VALUE self_instance) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+  return get_heap_recorder_from_stack_recorder(state->recorder_instance);
+}
+#endif
+
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_stats(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {

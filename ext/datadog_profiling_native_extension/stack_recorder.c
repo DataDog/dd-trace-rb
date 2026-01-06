@@ -243,6 +243,7 @@ typedef struct {
 static VALUE _native_new(VALUE klass);
 static void initialize_slot_concurrency_control(stack_recorder_state *state);
 static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types);
+static void stack_recorder_typed_data_mark(void *data);
 static void stack_recorder_typed_data_free(void *data);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
@@ -271,6 +272,8 @@ static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self,
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
 static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self);
+static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_has_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -307,6 +310,8 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_recorder_after_gc_step", _native_recorder_after_gc_step, 1);
   rb_define_singleton_method(testing_module, "_native_benchmark_intern", _native_benchmark_intern, 4);
   rb_define_singleton_method(testing_module, "_native_test_managed_string_storage_produces_valid_profiles", _native_test_managed_string_storage_produces_valid_profiles, 0);
+  rb_define_singleton_method(testing_module, "_native_finalize_pending_heap_recordings", _native_finalize_pending_heap_recordings, 1);
+  rb_define_singleton_method(testing_module, "_native_has_pending_heap_recordings?", _native_has_pending_heap_recordings, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -317,9 +322,9 @@ void stack_recorder_init(VALUE profiling_module) {
 static const rb_data_type_t stack_recorder_typed_data = {
   .wrap_struct_name = "Datadog::Profiling::StackRecorder",
   .function = {
+    .dmark = stack_recorder_typed_data_mark,
     .dfree = stack_recorder_typed_data_free,
     .dsize = NULL, // We don't track profile memory usage (although it'd be cool if we did!)
-    // No need to provide dmark nor dcompact because we don't directly reference Ruby VALUEs from inside this object
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
@@ -397,6 +402,14 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
   }
 
   state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_result.ok, .start_timestamp = start_timestamp };
+}
+
+static void stack_recorder_typed_data_mark(void *state_ptr) {
+  stack_recorder_state *state = (stack_recorder_state *) state_ptr;
+
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  heap_recorder_mark_pending_recordings(state->heap_recorder);
+  #endif
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -692,6 +705,14 @@ void recorder_after_gc_step(VALUE recorder_instance) {
 
   if (state->heap_clean_after_gc_enabled) heap_recorder_update_young_objects(state->heap_recorder);
 }
+
+#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+heap_recorder* get_heap_recorder_from_stack_recorder(VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+  return state->heap_recorder;
+}
+#endif
 
 #define MAX_LEN_HEAP_ITERATION_ERROR_MSG 256
 
@@ -1142,4 +1163,26 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
   ddog_prof_ManagedStringStorage_drop(string_storage.ok);
 
   return rb_ary_new_from_args(2, encoded_pprof_1, encoded_pprof_2);
+}
+
+static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  heap_recorder_finalize_pending_recordings(state->heap_recorder);
+  #endif
+
+  return Qtrue;
+}
+
+static VALUE _native_has_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  return heap_recorder_has_pending_recordings(state->heap_recorder) ? Qtrue : Qfalse;
+  #else
+  return Qfalse;
+  #endif
 }
