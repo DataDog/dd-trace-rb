@@ -377,6 +377,8 @@ void sample_thread(
                 state_label->str  = DDOG_CHARSLICE_C("blocked");
               } else if (CHARSLICE_EQUALS("sleep", name_slice)) { // Expected to be Mutex#sleep
                 state_label->str  = DDOG_CHARSLICE_C("sleeping");
+              } else if (CHARSLICE_EQUALS("wait", name_slice)) { // Expected to be ConditionVariable#wait
+                state_label->str  = DDOG_CHARSLICE_C("waiting");
               }
             #endif
           }
