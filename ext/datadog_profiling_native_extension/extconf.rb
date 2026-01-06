@@ -144,6 +144,11 @@ $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
 # On Ruby 4, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
 $defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "4"
 
+# On Ruby 4, we need to defer calling rb_obj_id during heap allocation recording
+# because it's not safe to mutate objects during the newobj tracepoint
+# (see https://bugs.ruby-lang.org/issues/21710)
+$defs << "-DDEFERRED_HEAP_ALLOCATION_RECORDING" unless RUBY_VERSION < "4"
+
 # This symbol is exclusively visible on certain Ruby versions: 2.6 to 3.2, as well as 3.4 (but not 4.0+)
 # It's only used to get extra information about an object when a failure happens, so it's a "very nice to have" but not
 # actually required for correct behavior of the profiler.

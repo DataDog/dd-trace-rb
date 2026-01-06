@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "gvl_profiling_helper.h"
+#include "heap_recorder.h"
 
 void thread_context_collector_sample(
   VALUE self_instance,
@@ -17,6 +18,12 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance);
 void thread_context_collector_on_gc_start(VALUE self_instance);
 __attribute__((warn_unused_result)) bool thread_context_collector_on_gc_finish(VALUE self_instance);
 VALUE enforce_thread_context_collector_instance(VALUE object);
+
+#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+// Get the heap_recorder from the thread_context_collector instance.
+// Used to access pending recordings for deferred finalization.
+heap_recorder* thread_context_collector_get_heap_recorder(VALUE self_instance);
+#endif
 
 #ifndef NO_GVL_INSTRUMENTATION
   typedef enum {

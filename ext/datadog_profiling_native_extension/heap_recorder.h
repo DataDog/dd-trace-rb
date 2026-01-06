@@ -123,6 +123,20 @@ int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, 
 // these objects quicker) and hopefully reduces tail latency (because there's less objects at serialization time to check).
 void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
 
+#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+// Finalize any pending heap allocation recordings by getting their object IDs.
+// This should be called via a postponed job, after the on_newobj_event has completed.
+// Returns true if there were pending recordings that were finalized.
+bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder);
+
+// Check if there are any pending recordings waiting to be finalized.
+bool heap_recorder_has_pending_recordings(heap_recorder *heap_recorder);
+
+// Mark pending recordings to prevent GC from collecting the objects
+// while they're waiting to be finalized.
+void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder);
+#endif
+
 // Update the heap recorder to reflect the latest state of the VM and prepare internal structures
 // for efficient iteration.
 //
