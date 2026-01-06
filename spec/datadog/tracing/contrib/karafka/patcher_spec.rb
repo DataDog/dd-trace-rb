@@ -189,76 +189,76 @@ RSpec.describe 'Karafka patcher' do
       Datadog::Tracing::Contrib::WaterDrop::Integration.compatible?
     end
 
-    it 'automatically enables WaterDrop instrumentation' do
-      skip 'WaterDrop is not activated unless it is on a supported version' unless waterdrop_compatible?
-
-      Karafka::App.setup do |c|
-        c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+    context 'when WaterDrop integration is on a compatible version' do
+      before do
+        skip 'WaterDrop is not activated unless it is on a supported version' unless waterdrop_compatible?
       end
 
-      expect(Datadog.configuration.tracing[:karafka][:enabled]).to be true
-      expect(Datadog.configuration.tracing[:karafka][:distributed_tracing]).to be true
-
-      expect(Datadog.configuration.tracing[:waterdrop][:enabled]).to be true
-      expect(Datadog.configuration.tracing[:waterdrop][:distributed_tracing]).to be true
-    end
-
-    context 'when user does not supply a custom producer' do
-      it 'sets up Karafka.producer with the datadog waterdrop middleware' do
-        skip 'WaterDrop is not activated unless it is on a supported version' unless waterdrop_compatible?
-
+      it 'automatically enables WaterDrop instrumentation' do
         Karafka::App.setup do |c|
           c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
         end
 
-        expect(producer_middlewares).to eq([
-          Datadog::Tracing::Contrib::WaterDrop::Middleware
-        ])
+        expect(Datadog.configuration.tracing[:karafka][:enabled]).to be true
+        expect(Datadog.configuration.tracing[:karafka][:distributed_tracing]).to be true
+
+        expect(Datadog.configuration.tracing[:waterdrop][:enabled]).to be true
+        expect(Datadog.configuration.tracing[:waterdrop][:distributed_tracing]).to be true
       end
-    end
 
-    context 'when the user does supply a custom producer with custom middlewares' do
-      let(:custom_middleware) { ->(message) { messsage } }
-
-      it 'appends the datadog middleware at the end of the Karafka.producer middleware stack' do
-        skip 'WaterDrop is not activated unless it is on a supported version' unless waterdrop_compatible?
-
-        Karafka::App.setup do |c|
-          c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
-          c.producer = WaterDrop::Producer.new do |producer_config|
-            producer_config.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
-            producer_config.middleware.append(custom_middleware)
+      context 'when user does not supply a custom producer' do
+        it 'sets up Karafka.producer with the datadog waterdrop middleware' do
+          Karafka::App.setup do |c|
+            c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
           end
-        end
 
-        expect(producer_middlewares).to eq([
-          custom_middleware,
-          Datadog::Tracing::Contrib::WaterDrop::Middleware
-        ])
+          expect(producer_middlewares).to eq([
+            Datadog::Tracing::Contrib::WaterDrop::Middleware
+          ])
+        end
+      end
+
+      context 'when the user does supply a custom producer with custom middlewares' do
+        let(:custom_middleware) { ->(message) { messsage } }
+
+        it 'appends the datadog middleware at the end of the Karafka.producer middleware stack' do
+          Karafka::App.setup do |c|
+            c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+            c.producer = WaterDrop::Producer.new do |producer_config|
+              producer_config.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+              producer_config.middleware.append(custom_middleware)
+            end
+          end
+
+          expect(producer_middlewares).to eq([
+            custom_middleware,
+            Datadog::Tracing::Contrib::WaterDrop::Middleware
+          ])
+        end
+      end
+
+      context 'when the waterdrop integration is manually configured' do
+        it 'appends the datadog middleware to Karafka.producer only once' do
+          Datadog.configure do |c|
+            c.tracing.instrument :waterdrop, configuration_options
+          end
+          Karafka::App.setup do |c|
+            c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+          end
+
+          expect(producer_middlewares).to eq([
+            Datadog::Tracing::Contrib::WaterDrop::Middleware
+          ])
+        end
       end
     end
 
-    context 'when the waterdrop integration is manually configured' do
-      it 'appends the datadog middleware to Karafka.producer only once' do
-        skip 'WaterDrop is not activated unless it is on a supported version' unless waterdrop_compatible?
-
-        Datadog.configure do |c|
-          c.tracing.instrument :waterdrop, configuration_options
-        end
-        Karafka::App.setup do |c|
-          c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
-        end
-
-        expect(producer_middlewares).to eq([
-          Datadog::Tracing::Contrib::WaterDrop::Middleware
-        ])
+    context 'when the waterdrop integration is not on a compatible version' do
+      before do
+        skip 'WaterDrop is on a supported version' if waterdrop_compatible?
       end
-    end
 
-    context 'when the waterdrop integration is not on a compatbile version' do
       it 'does not attempt to activate waterdrop or append any producer middleware' do
-        skip 'WaterDrop is not activated unless it is on a supported version' if waterdrop_compatible?
-
         Karafka::App.setup do |c|
           c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
         end
