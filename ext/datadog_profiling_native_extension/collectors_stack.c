@@ -366,9 +366,10 @@ void sample_thread(
         #endif
       } else {
         #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
-          // Unlike the above, Ruby actually treats this one specially and gives it a nice file name we can match on!
-          if (CHARSLICE_EQUALS("pop", name_slice) && CHARSLICE_EQUALS("<internal:thread_sync>", filename_slice)) { // Expected to be Queue/SizedQueue#pop
-            state_label->str  = DDOG_CHARSLICE_C("waiting");
+          if (CHARSLICE_EQUALS("<internal:thread_sync>", filename_slice)) {
+            if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
+              state_label->str  = DDOG_CHARSLICE_C("waiting");
+            }
           }
         #endif
       }
