@@ -31,6 +31,8 @@ module Datadog
           def headers: () -> ::Hash[untyped, untyped]
 
           def endpoint: () -> ::String?
+
+          def public_send: (::Symbol option_name) -> any
         end
 
         interface _Metrics
@@ -51,6 +53,10 @@ module Datadog
           def timeout_millis: () -> ::Integer?
 
           def protocol: () -> ::String?
+
+          def using_default?: (::Symbol option_name) -> bool
+
+          def public_send: (::Symbol option_name) -> any
         end
       end
     end

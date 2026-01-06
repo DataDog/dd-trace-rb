@@ -9,7 +9,7 @@ module Datadog
 
           def payload: () -> { ?products: untyped, configuration: untyped, ?install_signature: untyped }
 
-          def reset?: -> bool
+          def reset?: -> bool?
 
           def reset!: -> void
         end
