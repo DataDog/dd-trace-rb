@@ -2,27 +2,46 @@ module Datadog
   module Core
     module Environment
       module Container
-        UUID_PATTERN: untyped
+        UUID_PATTERN: String
 
-        CONTAINER_PATTERN: untyped
+        CONTAINER_PATTERN: String
 
-        PLATFORM_REGEX: untyped
+        PLATFORM_REGEX: Regexp
 
-        POD_REGEX: untyped
+        POD_REGEX: Regexp
 
-        CONTAINER_REGEX: untyped
+        CONTAINER_REGEX: Regexp
 
-        FARGATE_14_CONTAINER_REGEX: untyped
+        FARGATE_14_CONTAINER_REGEX: Regexp
 
-        Descriptor: untyped
+        HOST_CGROUP_NAMESPACE_INODE: Integer
 
-        def self?.platform: () -> untyped
+        class Entry
+          attr_accessor platform: String?
+          attr_accessor task_uid: String?
+          attr_accessor container_id: String?
+          attr_accessor inode: Integer?
 
-        def self?.container_id: () -> untyped
+          def initialize: (?String? platform, ?String? task_uid, ?String? container_id, ?Integer? inode) -> void
+        end
 
-        def self?.task_uid: () -> untyped
+        def self?.to_headers: () -> Hash[String, String]
 
-        def self?.descriptor: () -> untyped
+        def self?.entity_id: () -> String?
+
+        def self?.external_env: () -> String?
+
+        def self?.platform: () -> String?
+
+        def self?.container_id: () -> String?
+
+        def self?.task_uid: () -> String?
+
+        def self?.inode: () -> Integer?
+
+        def self?.running_on_host?: () -> bool
+
+        def self?.entry: () -> Entry
       end
     end
   end
