@@ -12,30 +12,6 @@ module Datadog
       DEFAULT_SITE = "app.datadoghq.com"
       DEFAULT_PATH = "/api/v2/ai-guard"
 
-      class HTTPError < StandardError; end
-
-      class UnexpectedRedirectError < HTTPError; end
-
-      class UnexpectedResponseError < HTTPError; end
-
-      class ResponseBodyParsingError < HTTPError; end
-
-      class ClientError < HTTPError; end
-
-      class NotFoundError < HTTPError; end
-
-      class TooManyRequestsError < HTTPError; end
-
-      class UnauthorizedError < HTTPError; end
-
-      class ForbiddenError < HTTPError; end
-
-      class ServerError < HTTPError; end
-
-      class ReadTimeout < HTTPError; end
-
-      class InvalidResponseBodyError < HTTPError; end
-
       def initialize(endpoint:, api_key:, application_key:, timeout:)
         @timeout = timeout
 
@@ -69,7 +45,7 @@ module Datadog
           parse_response_body(response.body)
         end
       rescue Net::ReadTimeout
-        raise ReadTimeout, "Request to AI Guard timed out"
+        raise AIGuardClientError, "Request to AI Guard timed out"
       end
 
       private
@@ -79,28 +55,23 @@ module Datadog
         when Net::HTTPSuccess
           # do nothing
         when Net::HTTPRedirection
-          raise UnexpectedRedirectError, "Redirects for AI Guard API are not supported"
-        when Net::HTTPNotFound
-          raise NotFoundError, response.body
-        when Net::HTTPTooManyRequests
-          raise TooManyRequestsError, response.body
-        when Net::HTTPServerError
-          raise ServerError, response.body
-        when Net::HTTPUnauthorized
-          raise UnauthorizedError, response.body
-        when Net::HTTPForbidden
-          raise ForbiddenError, response.body
-        when Net::HTTPClientError
-          raise ClientError, response.body
+          raise AIGuardClientError, "Redirects for AI Guard API are not supported"
         else
-          raise UnexpectedResponseError, response.body
+          error_message = begin
+            parsed_body = JSON.parse(response.body)
+            Array(parsed_body.fetch('errors')).join(', ')
+          rescue JSON::ParserError, KeyError
+            response.body
+          end
+
+          raise AIGuardClientError, error_message
         end
       end
 
       def parse_response_body(body)
         JSON.parse(body)
       rescue JSON::ParserError
-        raise ResponseBodyParsingError, "Could not parse response body"
+        raise AIGuardClientError, "Could not parse response body"
       end
 
       def use_ssl?

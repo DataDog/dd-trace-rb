@@ -19,7 +19,7 @@ module Datadog
           @tags = attributes.fetch("tags")
           @is_blocking_enabled = attributes.fetch("is_blocking_enabled")
         rescue KeyError => e
-          raise APIClient::InvalidResponseBodyError, "Missing key: \"#{e.key}\""
+          raise AIGuardClientError, "Missing key: \"#{e.key}\""
         end
 
         def allow?

@@ -4,42 +4,6 @@ module Datadog
       DEFAULT_SITE: ::String
       DEFAULT_PATH: ::String
 
-      class HTTPError < StandardError
-      end
-
-      class UnexpectedRedirectError < HTTPError
-      end
-
-      class UnexpectedResponseError < HTTPError
-      end
-
-      class ResponseBodyParsingError < HTTPError
-      end
-
-      class ClientError < HTTPError
-      end
-
-      class NotFoundError < HTTPError
-      end
-
-      class TooManyRequestsError < ClientError
-      end
-
-      class UnauthorizedError < ClientError
-      end
-
-      class ForbiddenError < ClientError
-      end
-
-      class ServerError < HTTPError
-      end
-
-      class ReadTimeout < HTTPError
-      end
-
-      class InvalidResponseBodyError < HTTPError
-      end
-
       def initialize: (endpoint: ::String, api_key: ::String?, application_key: ::String?, timeout: ::Integer) -> void
 
       def post: (::String path, body: ::Hash[::String | ::Symbol, untyped]) -> ::Hash[::String, ::String]

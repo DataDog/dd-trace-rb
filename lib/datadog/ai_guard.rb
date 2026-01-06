@@ -10,6 +10,8 @@ module Datadog
 
     # This error is raised when user passes `allow_raise: true` to Evaluation.perform
     # and AI Guard considers the messages not safe. Intended to be rescued by the user.
+    #
+    # This name must not change, since front-end is using it.
     class AIGuardAbortError < StandardError
       attr_reader :action, :reason, :tags
 
@@ -24,6 +26,13 @@ module Datadog
       def to_s
         "Request interrupted. #{@reason}"
       end
+    end
+
+    # This error is raised when a request to the AIGuard API fails.
+    # This includes network timeouts, invalid response payloads, and HTTP errors.
+    #
+    # This name must not be changed, as it is used by the front end.
+    class AIGuardClientError < StandardError
     end
 
     class << self

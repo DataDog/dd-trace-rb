@@ -58,9 +58,9 @@ RSpec.describe Datadog::AIGuard::APIClient do
     context "when response is 301 Moved Permanently" do
       let(:response_status_code) { 301 }
 
-      it "raises Datadog::AIGuard::APIClient::NotFoundError" do
+      it "raises Datadog::AIGuard::AIGuardClientError" do
         expect { post }.to raise_error(
-          Datadog::AIGuard::APIClient::UnexpectedRedirectError, "Redirects for AI Guard API are not supported"
+          Datadog::AIGuard::AIGuardClientError, "Redirects for AI Guard API are not supported"
         )
       end
     end
@@ -68,56 +68,48 @@ RSpec.describe Datadog::AIGuard::APIClient do
     context "when response is 404 Not Found" do
       let(:response_status_code) { 404 }
 
-      it "raises Datadog::AIGuard::APIClient::NotFoundError" do
-        expect { post }.to raise_error(Datadog::AIGuard::APIClient::NotFoundError)
+      it "raises Datadog::AIGuard::AIGuardClientError" do
+        expect { post }.to raise_error(Datadog::AIGuard::AIGuardClientError)
       end
     end
 
     context "when response is 429 Too Many Requests" do
       let(:response_status_code) { 429 }
 
-      it "raises Datadog::AIGuard::APIClient::TooManyRequestsError" do
-        expect { post }.to raise_error(Datadog::AIGuard::APIClient::TooManyRequestsError)
+      it "raises Datadog::AIGuard::AIGuardClientError" do
+        expect { post }.to raise_error(Datadog::AIGuard::AIGuardClientError)
       end
     end
 
     context "when response is 401 Unauthorized" do
       let(:response_status_code) { 401 }
 
-      it "raises Datadog::AIGuard::APIClient::UnauthorizedError" do
-        expect { post }.to raise_error(Datadog::AIGuard::APIClient::UnauthorizedError)
+      it "raises Datadog::AIGuard::AIGuardClientError" do
+        expect { post }.to raise_error(Datadog::AIGuard::AIGuardClientError)
       end
     end
 
     context "when response is 401 Forbidden" do
       let(:response_status_code) { 403 }
 
-      it "raises Datadog::AIGuard::APIClient::ForbiddenError" do
-        expect { post }.to raise_error(Datadog::AIGuard::APIClient::ForbiddenError)
+      it "raises Datadog::AIGuard::AIGuardClientError" do
+        expect { post }.to raise_error(Datadog::AIGuard::AIGuardClientError)
       end
     end
 
     context "when response is some other 4xx" do
       let(:response_status_code) { 422 }
 
-      it "raises Datadog::AIGuard::APIClient::ClientError" do
-        expect { post }.to raise_error(Datadog::AIGuard::APIClient::ClientError)
+      it "still raises Datadog::AIGuard::AIGuardClientError, it always does" do
+        expect { post }.to raise_error(Datadog::AIGuard::AIGuardClientError)
       end
     end
 
     context "when response is 500 Server Error" do
       let(:response_status_code) { 500 }
 
-      it "raises Datadog::AIGuard::APIClient::ServerError" do
-        expect { post }.to raise_error(Datadog::AIGuard::APIClient::ServerError)
-      end
-    end
-
-    context "when response is some unexpected code" do
-      let(:response_status_code) { 100 }
-
-      it "raises Datadog::AIGuard::APIClient::UnexpectedResponseError" do
-        expect { post }.to raise_error(Datadog::AIGuard::APIClient::UnexpectedResponseError)
+      it "raises Datadog::AIGuard::AIGuardClientError" do
+        expect { post }.to raise_error(Datadog::AIGuard::AIGuardClientError)
       end
     end
 
@@ -126,8 +118,8 @@ RSpec.describe Datadog::AIGuard::APIClient do
         stub_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate").to_raise(Net::ReadTimeout)
       end
 
-      it "raises Datadog::AIGuard::APIClient::ReadTimeout" do
-        expect { post }.to raise_error(Datadog::AIGuard::APIClient::ReadTimeout)
+      it "raises Datadog::AIGuard::AIGuardClientError" do
+        expect { post }.to raise_error(Datadog::AIGuard::AIGuardClientError)
       end
     end
   end

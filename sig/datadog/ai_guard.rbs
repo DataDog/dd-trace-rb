@@ -10,6 +10,9 @@ module Datadog
       def to_s: () -> ::String
     end
 
+    class AIGuardClientError < StandardError
+    end
+
     def self.enabled?: () -> bool
 
     def self.api_client: () -> APIClient?
