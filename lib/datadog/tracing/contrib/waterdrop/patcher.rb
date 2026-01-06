@@ -25,9 +25,7 @@ module Datadog
             ::WaterDrop::Producer.prepend(Producer)
             ::WaterDrop.instrumentation.subscribe('producer.configured') do |event|
               producer = event[:producer]
-
-              included_middlewares = producer.middleware.instance_variable_get(:@steps)
-              producer.middleware.append(Middleware) unless included_middlewares.include?(Middleware)
+              add_middleware(producer)
 
               if Datadog.configuration.data_streams.enabled
                 producer.monitor.subscribe('message.acknowledged') do |ack_event|
@@ -38,6 +36,11 @@ module Datadog
                 end
               end
             end
+          end
+
+          def add_middleware(producer)
+            included_middlewares = producer.middleware.instance_variable_get(:@steps)
+            producer.middleware.append(Middleware) unless included_middlewares.include?(Middleware)
           end
         end
       end

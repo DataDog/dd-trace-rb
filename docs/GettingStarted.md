@@ -1154,6 +1154,10 @@ require 'datadog'
 
 Datadog.configure do |c|
   c.tracing.instrument :karafka, **options
+
+  # different options for different kafka topics
+  c.tracing.instrument :karafka, describes: "some-topic", distributed_tracing: false
+  c.tracing.instrument :karafka, describes: /^topic-regex-.*/, enabled: false
 end
 
 ```
@@ -1176,6 +1180,10 @@ require 'datadog'
 
 Datadog.configure do |c|
   c.tracing.instrument :waterdrop, **options
+
+  # different options for different kafka topics
+  c.tracing.instrument :waterdrop, describes: "some-topic", distributed_tracing: false
+  c.tracing.instrument :waterdrop, describes: /^topic-regex-.*/, enabled: false
 end
 
 ```
