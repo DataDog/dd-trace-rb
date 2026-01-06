@@ -373,8 +373,10 @@ void sample_thread(
               state_label->str  = DDOG_CHARSLICE_C("waiting");
             }
             #ifndef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby >= 4
-              else if (CHARSLICE_EQUALS("synchronize", name_slice) || CHARSLICE_EQUALS("lock", name_slice)) {
+              else if (CHARSLICE_EQUALS("synchronize", name_slice) || CHARSLICE_EQUALS("lock", name_slice)) { // Expected to be Mutex#lock/synchronize
                 state_label->str  = DDOG_CHARSLICE_C("blocked");
+              } else if (CHARSLICE_EQUALS("sleep", name_slice)) { // Expected to be Mutex#sleep
+                state_label->str  = DDOG_CHARSLICE_C("sleeping");
               }
             #endif
           }

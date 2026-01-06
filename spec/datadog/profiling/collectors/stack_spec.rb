@@ -554,6 +554,23 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
+      context "when sampling a thread sleeping on Mutex#sleep" do
+        let(:expected_method_name) { "sleep" }
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            mutex = Mutex.new
+            mutex.lock
+            ready_queue << true
+            mutex.sleep
+          end
+        end
+        let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: "sleeping")
+        end
+      end
+
       context "when sampling a thread waiting on a IO object" do
         let(:expected_method_name) { "wait_readable" }
         let(:server_socket) { TCPServer.new(6006) }
