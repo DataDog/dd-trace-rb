@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../core/transport/http'
-require_relative 'http/api'
 require_relative 'http/stats'
 require_relative 'stats'
 
@@ -10,6 +9,10 @@ module Datadog
     module Transport
       # HTTP transport for Data Streams Monitoring
       module HTTP
+        V01 = Stats::API::Endpoint.new(
+          '/v0.1/pipeline_stats'
+        )
+
         module_function
 
         # Builds a new Transport::HTTP::Client with default settings
@@ -25,9 +28,7 @@ module Datadog
               'Content-Encoding' => 'gzip'
             }
           ) do |transport|
-            apis = API.defaults
-
-            transport.api API::V01, apis[API::V01], default: true
+            transport.api 'v0.1', V01, default: true
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?

@@ -348,8 +348,10 @@ void sample_thread(
         } else if (CHARSLICE_EQUALS("select", name_slice)) { // Expected to be Kernel.select
           state_label->str  = DDOG_CHARSLICE_C("waiting");
         } else if (
-            CHARSLICE_EQUALS("synchronize", name_slice) || // Expected to be Monitor/Mutex#synchronize
-            CHARSLICE_EQUALS("lock", name_slice) ||        // Expected to be Mutex#lock
+            CHARSLICE_EQUALS("synchronize", name_slice) || // Expected to be Monitor/Mutex#synchronize on Ruby 2 & 3, and Monitor#synchronize on 4 (Mutex becomes <internal:thread_sync>)
+            #ifdef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby < 4
+              CHARSLICE_EQUALS("lock", name_slice) ||        // Expected to be Mutex#lock
+            #endif
             CHARSLICE_EQUALS("join", name_slice)           // Expected to be Thread#join
         ) {
           state_label->str  = DDOG_CHARSLICE_C("blocked");
@@ -367,9 +369,19 @@ void sample_thread(
         #endif
       } else {
         #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
-          // Unlike the above, Ruby actually treats this one specially and gives it a nice file name we can match on!
-          if (CHARSLICE_EQUALS("pop", name_slice) && CHARSLICE_EQUALS("<internal:thread_sync>", filename_slice)) { // Expected to be Queue/SizedQueue#pop
-            state_label->str  = DDOG_CHARSLICE_C("waiting");
+          if (CHARSLICE_EQUALS("<internal:thread_sync>", filename_slice)) {
+            if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
+              state_label->str  = DDOG_CHARSLICE_C("waiting");
+            }
+            #ifndef NO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE // Ruby >= 4
+              else if (CHARSLICE_EQUALS("synchronize", name_slice) || CHARSLICE_EQUALS("lock", name_slice)) { // Expected to be Mutex#lock/synchronize
+                state_label->str  = DDOG_CHARSLICE_C("blocked");
+              } else if (CHARSLICE_EQUALS("sleep", name_slice)) { // Expected to be Mutex#sleep
+                state_label->str  = DDOG_CHARSLICE_C("sleeping");
+              } else if (CHARSLICE_EQUALS("wait", name_slice)) { // Expected to be ConditionVariable#wait
+                state_label->str  = DDOG_CHARSLICE_C("waiting");
+              }
+            #endif
           }
         #endif
       }

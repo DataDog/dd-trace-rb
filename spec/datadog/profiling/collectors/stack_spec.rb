@@ -377,6 +377,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     describe "approximate thread state categorization based on current stack" do
       before do
+        if RUBY_DESCRIPTION.include?("4.0.0preview2")
+          skip "Some of this behavior changed between 4.0.0preview2 and 4.0.0 stable. Remove this skip once CI is on 4.0.0 or above."
+        end
         wait_for { background_thread.backtrace_locations.first.base_label }.to eq(expected_method_name)
       end
 
@@ -554,6 +557,23 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
+      context "when sampling a thread sleeping on Mutex#sleep" do
+        let(:expected_method_name) { "sleep" }
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            mutex = Mutex.new
+            mutex.lock
+            ready_queue << true
+            mutex.sleep
+          end
+        end
+        let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: "sleeping")
+        end
+      end
+
       context "when sampling a thread waiting on a IO object" do
         let(:expected_method_name) { "wait_readable" }
         let(:server_socket) { TCPServer.new(6006) }
@@ -589,6 +609,37 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: "waiting")
+        end
+      end
+
+      context "when sampling a thread waiting on a SizedQueue object" do
+        let(:expected_method_name) { "pop" }
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            ready_queue << true
+            SizedQueue.new(10).pop
+          end
+        end
+        let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: "waiting")
+        end
+      end
+
+      context "when sampling a thread waiting on a ConditionVariable object" do
+        # In Ruby 4, we can directly match on ConditionVariable; for Ruby 2 & 3, wait delegates to sleep so we can't match as directly
+        let(:expected_method_name) { RUBY_VERSION.start_with?("4.") ? "wait" : "sleep" }
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            ready_queue << true
+            ConditionVariable.new.wait(Mutex.new.tap(&:lock))
+          end
+        end
+        let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: "#{expected_method_name}ing")
         end
       end
 
@@ -809,6 +860,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     after do
+      # Ensure we are not leaking file descriptors
+      ready_pipe.map(&:close)
+
       # Signal child to exit
       finish_pipe.map(&:close)
 

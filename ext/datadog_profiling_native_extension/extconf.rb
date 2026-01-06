@@ -138,8 +138,11 @@ if have_header("dlfcn.h")
     have_func("dladdr")
 end
 
+# On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
+$defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
+
 # On Ruby 4, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
-$defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "4.0"
+$defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "4"
 
 # This symbol is exclusively visible on certain Ruby versions: 2.6 to 3.2, as well as 3.4 (but not 4.0+)
 # It's only used to get extra information about an object when a failure happens, so it's a "very nice to have" but not
