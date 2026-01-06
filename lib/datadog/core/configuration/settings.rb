@@ -293,9 +293,6 @@ module Datadog
             #       for Ruby versions 2.x, 3.1.4+, 3.2.3+ and 3.3.0+
             #       (more details in {Datadog::Profiling::Component.enable_gc_profiling?})
             #
-            # @warn Due to a VM bug in the Ractor implementation (https://bugs.ruby-lang.org/issues/19112) this feature
-            #       stops working when Ractors get garbage collected.
-            #
             # @default `DD_PROFILING_GC_ENABLED` environment variable, otherwise `true`
             option :gc_enabled do |o|
               o.type :bool
