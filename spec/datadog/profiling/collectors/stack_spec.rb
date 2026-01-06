@@ -592,6 +592,21 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
+      context "when sampling a thread waiting on a SizedQueue object" do
+        let(:expected_method_name) { "pop" }
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            ready_queue << true
+            SizedQueue.new(10).pop
+          end
+        end
+        let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 1} }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: "waiting")
+        end
+      end
+
       context "when sampling a thread in an unknown state" do
         let(:expected_method_name) { "stop" }
         let(:do_in_background_thread) do
