@@ -3,6 +3,8 @@ module Datadog
     module Telemetry
       module Transport
         module HTTP
+          AGENT_TELEMETRY: Telemetry::API::Endpoint
+          AGENTLESS_TELEMETRY: Telemetry::API::Endpoint
           def self?.agentless_telemetry: (agent_settings: untyped, logger: untyped, ?api_key: untyped?, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
           def self?.agent_telemetry: (agent_settings: untyped, logger: untyped, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
         end
