@@ -4,6 +4,7 @@ require_relative 'sql_comment/comment'
 require_relative 'sql_comment/ext'
 
 require_relative '../../distributed/trace_context'
+require_relative '../../../core/environment/base_hash'
 
 module Datadog
   module Tracing
@@ -35,6 +36,9 @@ module Datadog
               Ext::KEY_DB_NAME => span_op.get_tag(Contrib::Ext::DB::TAG_INSTANCE),
               Ext::KEY_PEER_SERVICE => peer_service,
             }
+
+            base_hash = Core::Environment::BaseHash.current
+            tags[Ext::KEY_BASE_HASH] = base_hash.to_s if base_hash
 
             db_service = peer_service || span_op.service
             if parent_service != db_service # Only set if it's different from parent_service; otherwise it's redundant

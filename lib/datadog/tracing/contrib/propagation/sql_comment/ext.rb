@@ -52,6 +52,9 @@ module Datadog
             # @see Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE
             KEY_PEER_SERVICE = 'ddprs'
 
+            # DBM base hash for back propagation
+            KEY_BASE_HASH = 'ddsh'
+
             KEY_TRACEPARENT = 'traceparent'
           end
         end

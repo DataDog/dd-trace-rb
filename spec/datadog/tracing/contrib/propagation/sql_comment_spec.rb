@@ -106,6 +106,26 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             )
           end
 
+          context 'when the base hash is present' do
+            before do
+              allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(1234567890)
+            end
+
+            it 'includes the base hash in the comment' do
+              is_expected.to include("ddsh='1234567890'")
+            end
+          end
+
+          context 'when the base hash is not present' do
+            before do
+              allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(nil)
+            end
+
+            it 'does not have the base hash in the comment' do
+              is_expected.not_to include('ddsh')
+            end
+          end
+
           context 'matching the global service' do
             let(:span_op) do
               Datadog::Tracing::SpanOperation.new(
