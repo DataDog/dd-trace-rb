@@ -17,7 +17,18 @@ module Datadog
 
           attr_accessor inputs_truncated: ::Integer
 
-          def self.new: (evals: ::Integer, matches: ::Integer, errors: ::Integer, timeouts: ::Integer, duration_ns: ::Integer, duration_ext_ns: ::Integer, inputs_truncated: ::Integer) -> Store
+          attr_accessor downstream_requests: ::Integer
+
+          def self.new: (
+            evals: ::Integer,
+            matches: ::Integer,
+            errors: ::Integer,
+            timeouts: ::Integer,
+            duration_ns: ::Integer,
+            duration_ext_ns: ::Integer,
+            inputs_truncated: ::Integer,
+            downstream_requests: ::Integer
+          ) -> Store
         end
 
         @mutex: Mutex
@@ -34,7 +45,7 @@ module Datadog
 
         def record_waf: (SecurityEngine::result result) -> void
 
-        def record_rasp: (SecurityEngine::result result) -> void
+        def record_rasp: (SecurityEngine::result result, type: Ext::rasp_rule_type) -> void
       end
     end
   end

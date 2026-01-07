@@ -116,11 +116,12 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.duration_ns).to eq(0)
         expect(collector.rasp.duration_ext_ns).to eq(0)
         expect(collector.rasp.inputs_truncated).to eq(0)
+        expect(collector.rasp.downstream_requests).to eq(0)
       end
     end
 
     context 'when a single result was recorded' do
-      before { collector.record_rasp(result) }
+      before { collector.record_rasp(result, type: 'sql_injection') }
 
       let(:result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
@@ -137,13 +138,14 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.duration_ns).to eq(100)
         expect(collector.rasp.duration_ext_ns).to eq(200)
         expect(collector.rasp.inputs_truncated).to eq(0)
+        expect(collector.rasp.downstream_requests).to eq(0)
       end
     end
 
     context 'when multiple calls were made' do
       before do
-        collector.record_rasp(result_1)
-        collector.record_rasp(result_2)
+        collector.record_rasp(result_1, type: 'sql_injection')
+        collector.record_rasp(result_2, type: 'sql_injection')
       end
 
       let(:result_1) do
@@ -168,14 +170,15 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.duration_ns).to eq(1100)
         expect(collector.rasp.duration_ext_ns).to eq(1400)
         expect(collector.rasp.inputs_truncated).to eq(0)
+        expect(collector.rasp.downstream_requests).to eq(0)
       end
     end
 
     context 'when multiple calls contain timeout' do
       before do
-        collector.record_rasp(result_1)
-        collector.record_rasp(result_2)
-        collector.record_rasp(result_3)
+        collector.record_rasp(result_1, type: 'sql_injection')
+        collector.record_rasp(result_2, type: 'sql_injection')
+        collector.record_rasp(result_3, type: 'sql_injection')
       end
 
       let(:result_1) do
@@ -204,7 +207,31 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
         expect(collector.rasp.duration_ns).to eq(500)
         expect(collector.rasp.duration_ext_ns).to eq(2000)
         expect(collector.rasp.inputs_truncated).to eq(0)
+        expect(collector.rasp.downstream_requests).to eq(0)
       end
+    end
+
+    context 'when ssrf was recorded' do
+      before do
+        collector.record_rasp(result_1, type: 'ssrf')
+        collector.record_rasp(result_2, type: 'ssrf')
+      end
+
+      let(:result_1) do
+        Datadog::AppSec::SecurityEngine::Result::Ok.new(
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 100, duration_ext_ns: 200,
+          input_truncated: false
+        )
+      end
+
+      let(:result_2) do
+        Datadog::AppSec::SecurityEngine::Result::Ok.new(
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 1000, duration_ext_ns: 1200,
+          input_truncated: false
+        )
+      end
+
+      it { expect(collector.rasp.downstream_requests).to eq(2) }
     end
   end
 end

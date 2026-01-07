@@ -6,6 +6,8 @@ module Datadog
       RASP_SQLI = 'sql_injection'
       RASP_LFI = 'lfi'
       RASP_SSRF = 'ssrf'
+      RASP_REQUEST_PHASE = 'request'
+      RASP_RESPONSE_PHASE = 'response'
 
       PRODUCT_BIT = 0b00000010
 

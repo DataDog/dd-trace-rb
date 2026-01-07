@@ -22,6 +22,10 @@ module Datadog
           span.set_tag('_dd.appsec.rasp.timeout', 1) unless metrics.timeouts.zero?
           span.set_tag('_dd.appsec.rasp.duration', convert_ns_to_us(metrics.duration_ns))
           span.set_tag('_dd.appsec.rasp.duration_ext', convert_ns_to_us(metrics.duration_ext_ns))
+
+          unless metrics.downstream_requests.zero?
+            span.set_tag('_dd.appsec.rasp.downstream_requests', metrics.downstream_requests)
+          end
         end
 
         # private

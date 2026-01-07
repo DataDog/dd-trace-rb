@@ -13,6 +13,7 @@ module Datadog
           :duration_ns,
           :duration_ext_ns,
           :inputs_truncated,
+          :downstream_requests,
           keyword_init: true
         )
 
@@ -22,10 +23,13 @@ module Datadog
           @mutex = Mutex.new
 
           @waf = Store.new(
-            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0, inputs_truncated: 0
+            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0,
+            duration_ext_ns: 0, inputs_truncated: 0, downstream_requests: 0
           )
+
           @rasp = Store.new(
-            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0, inputs_truncated: 0
+            evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0,
+            duration_ext_ns: 0, inputs_truncated: 0, downstream_requests: 0
           )
         end
 
@@ -41,7 +45,7 @@ module Datadog
           end
         end
 
-        def record_rasp(result)
+        def record_rasp(result, type:)
           @mutex.synchronize do
             @rasp.evals += 1
             @waf.matches += 1 if result.match?
@@ -50,6 +54,7 @@ module Datadog
             @rasp.duration_ns += result.duration_ns
             @rasp.duration_ext_ns += result.duration_ext_ns
             @rasp.inputs_truncated += 1 if result.input_truncated?
+            @rasp.downstream_requests += 1 if type == Ext::RASP_SSRF
           end
         end
       end

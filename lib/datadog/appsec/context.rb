@@ -52,7 +52,7 @@ module Datadog
         result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
 
         Metrics::Telemetry.report_rasp(type, result, phase: phase)
-        @metrics.record_rasp(result)
+        @metrics.record_rasp(result, type: type)
 
         result
       end
