@@ -21,7 +21,7 @@ module Datadog
               'server.io.net.request.headers' => env.request_headers
             }
 
-            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout)
+            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: 'request')
             handle(result) if result.match?
 
             response = @app.call(env)
@@ -30,7 +30,7 @@ module Datadog
               'server.io.net.response.status' => response.status.to_s,
               'server.io.net.response.headers' => response.headers
             }
-            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout)
+            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: 'response')
             handle(result) if result.match?
 
             response

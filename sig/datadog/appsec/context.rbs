@@ -33,7 +33,7 @@ module Datadog
 
       def run_waf: (input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
 
-      def run_rasp: (Ext::rasp_rule_type type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
+      def run_rasp: (Ext::rasp_rule_type type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout, ?phase: ::String?) -> SecurityEngine::result
 
       def mark_as_interrupted!: () -> void
 
