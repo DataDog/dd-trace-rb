@@ -10,33 +10,48 @@ module Datadog
       module Faraday
         # AppSec SSRF detection Middleware for Faraday
         class SSRFDetectionMiddleware < ::Faraday::Middleware
-          def call(request_env)
+          def call(env)
             context = AppSec.active_context
+            return @app.call(env) unless context && AppSec.rasp_enabled?
 
-            return @app.call(request_env) unless context && AppSec.rasp_enabled?
-
+            timeout = Datadog.configuration.appsec.waf_timeout
             ephemeral_data = {
-              'server.io.net.url' => request_env.url.to_s
+              'server.io.net.url' => env.url.to_s,
+              'server.io.net.request.method' => env.method.to_s.upcase,
+              'server.io.net.request.headers' => env.request_headers
             }
 
-            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, Datadog.configuration.appsec.waf_timeout)
+            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout)
+            handle(result) if result.match?
 
-            if result.match?
-              AppSec::Event.tag(context, result)
-              TraceKeeper.keep!(context.trace) if result.keep?
+            response = @app.call(env)
 
-              context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-              )
+            ephemeral_data = {
+              'server.io.net.response.status' => response.status.to_s,
+              'server.io.net.response.headers' => response.headers
+            }
+            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout)
+            handle(result) if result.match?
 
-              AppSec::ActionsHandler.handle(result.actions)
-            end
+            response
+          end
 
-            @app.call(request_env)
+          private
+
+          def handle(result)
+            context = AppSec.active_context
+
+            AppSec::Event.tag(context, result)
+            TraceKeeper.keep!(context.trace) if result.keep?
+
+            context.events.push(
+              AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+            )
+
+            AppSec::ActionsHandler.handle(result.actions)
           end
         end
       end
     end
   end
 end
-# rubocop:enable Naming/FileName
