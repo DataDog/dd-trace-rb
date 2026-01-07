@@ -15,6 +15,9 @@ KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
 RSpec.describe Datadog::DataStreams::Processor do
   before do
     skip_if_data_streams_not_supported(self)
+
+    # Stub BaseHash to nil for the existing tests that aren't testing this functionality
+    allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(nil)
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
@@ -330,6 +333,59 @@ RSpec.describe Datadog::DataStreams::Processor do
 
         # Should flush without errors
         expect { processor.send(:perform) }.not_to raise_error
+      end
+    end
+  end
+
+  describe '#compute_pathway_hash with base hash' do
+    after do
+      processor.stop(true)
+      Datadog::Core::Environment::BaseHash.reset!
+    end
+
+    context 'when the base hash is present' do
+      let(:base_hash) { 1234567890 }
+      before do
+        allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(base_hash)
+      end
+
+      it 'includes the base hash in the pathway hash' do
+        hash_with_base = processor.send(:compute_pathway_hash, 0, ['type:kafka', 'topic:orders'])
+        allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(nil)
+        hash_without_base = processor.send(:compute_pathway_hash, 0, ['type:kafka', 'topic:orders'])
+
+        expect(hash_with_base).not_to eq(hash_without_base)
+        expect(hash_with_base).to be_a(Integer)
+      end
+
+      it 'produces the same hash for the same input' do
+        hash1 = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+        hash2 = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+        expect(hash1).to eq(hash2)
+        expect(hash1).to be_a(Integer)
+      end
+
+      it 'produces different hashes for different base hashes' do
+        hash1 = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+        allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(9)
+        hash2 = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+        expect(hash1).not_to eq(hash2)
+      end
+    end
+
+    context 'when the base hash is not present' do
+      before do
+        allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(nil)
+      end
+
+      it 'computes the pathway hash without the base hash' do
+        hash = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+        expect(hash).to be_a(Integer)
+        expect(hash).to be > 0
       end
     end
   end

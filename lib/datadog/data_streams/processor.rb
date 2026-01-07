@@ -10,6 +10,7 @@ require_relative '../core/ddsketch'
 require_relative '../core/buffer/cruby'
 require_relative '../core/utils/time'
 require_relative '../core/utils/fnv'
+require_relative '../core/environment/base_hash'
 
 module Datadog
   module DataStreams
@@ -365,6 +366,13 @@ module Datadog
         env = @settings.env || 'none'
 
         bytes = service.bytes + env.bytes
+
+        # If there is a base hash, add it to DSM back propagation
+        base_hash = Core::Environment::BaseHash.current
+        if base_hash
+          bytes += [base_hash].pack('Q<').bytes
+        end
+
         tags.each { |tag| bytes += tag.bytes }
         byte_string = bytes.pack('C*')
 
