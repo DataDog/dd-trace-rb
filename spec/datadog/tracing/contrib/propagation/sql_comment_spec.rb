@@ -37,6 +37,32 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         expect(span_op.get_tag('_dd.dbm_trace_injected')).to eq('true')
       end
     end
+
+    context 'when the base hash is present' do
+      let(:mode) { 'service' }
+
+      before do
+        allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(1234567890)
+      end
+
+      it 'sets the propagated hash on the span metric' do
+        described_class.annotate!(span_op, propagation_mode)
+        expect(span_op.get_metric('_dd.propagated_hash')).to eq(1234567890)
+      end
+    end
+
+    context 'when the base hash is not present' do
+      let(:mode) { 'service' }
+
+      before do
+        allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(nil)
+      end
+
+      it 'does not set the propagated hash on the span metric' do
+        described_class.annotate!(span_op, propagation_mode)
+        expect(span_op.get_metric('_dd.propagated_hash')).to be_nil
+      end
+    end
   end
 
   describe '.prepend_comment' do

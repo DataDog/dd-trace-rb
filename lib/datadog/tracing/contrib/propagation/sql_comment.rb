@@ -15,6 +15,10 @@ module Datadog
           def self.annotate!(span_op, mode)
             return unless mode.enabled?
 
+            # Add base hash to the span metric
+            base_hash = Core::Environment::BaseHash.current
+            span_op.set_metric(Ext::METRIC_PROPAGATED_HASH, base_hash) if base_hash
+
             span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
           end
 

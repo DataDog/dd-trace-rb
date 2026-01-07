@@ -20,6 +20,9 @@ module Datadog
             # The value should be `true` when `full` mode
             TAG_DBM_TRACE_INJECTED = '_dd.dbm_trace_injected'
 
+            # Used for the propagated hash on span metric
+            METRIC_PROPAGATED_HASH = '_dd.propagated_hash'
+
             # Database service/sql span service (i.e. the service executing the actual query)
             #
             # If fake services are disabled:
