@@ -483,18 +483,6 @@ bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
     pending_recording *pending = &heap_recorder->pending_recordings[i];
 
     VALUE obj = pending->object_ref;
-
-    // Check if the object is still valid (it might have been GC'd between
-    // the allocation and this finalization)
-    if (obj == Qnil || !RTEST(obj)) {
-      // Object is gone, decrement the pre-incremented count and cleanup
-      pending->heap_record->num_tracked_objects--;
-      cleanup_heap_record_if_unused(heap_recorder, pending->heap_record);
-      unintern_or_raise(heap_recorder, pending->object_data.class);
-      continue;
-    }
-
-    // Now it's safe to get the object_id
     VALUE ruby_obj_id = rb_obj_id(obj);
     if (!FIXNUM_P(ruby_obj_id)) {
       // Bignum object id - not supported, skip this recording
