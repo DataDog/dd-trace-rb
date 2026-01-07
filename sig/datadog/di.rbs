@@ -4,7 +4,10 @@ module Datadog
     INSTRUMENTED_COUNTERS_LOCK: Mutex
 
     def self.enabled?: () -> bool
-
+    
+    def self.all_iseqs: () -> Array[RubyVM::InstructionSequence]
+    def self.file_iseqs: () -> Array[RubyVM::InstructionSequence]
+    
     def self.component: () -> Component
 
     def self.instrumented_count: (?instrumentation_kind? kind) -> Integer
