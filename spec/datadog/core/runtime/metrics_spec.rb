@@ -269,6 +269,24 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
     end
 
     it_behaves_like 'a flush of all runtime metrics'
+
+    context 'with process tags enabled' do
+      let(:options) { super().merge(experimental_propagate_process_tags_enabled: true) }
+      let(:statsd) { spy('statsd') }
+
+      before do
+        allow(runtime_metrics).to receive(:statsd).and_return(statsd)
+        allow(statsd).to receive(:gauge)
+        allow(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test'])
+        runtime_metrics.enabled = true
+      end
+
+      it 'sends metrics with the process tags' do
+        flush
+
+        expect(statsd).to have_received(:gauge).with(anything, anything, hash_including(tags: array_including('entrypoint.workdir:test'))).at_least(:once)
+      end
+    end
   end
 
   describe '#gc_metrics' do
@@ -336,6 +354,32 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           is_expected.to include('language:ruby')
           is_expected.to include(*services.collect { |service| "service:#{service}" })
           is_expected.to_not include(/\Aruntime-id:/o)
+        end
+      end
+
+      context 'when :experimental_propagate_process_tags_enabled is true' do
+        let(:options) { super().merge(experimental_propagate_process_tags_enabled: true) }
+
+        before do
+          allow(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script'])
+        end
+
+        it 'includes process tags when enabled' do
+          is_expected.to include('entrypoint.workdir:test')
+          is_expected.to include('entrypoint.name:test_script')
+          is_expected.to include('entrypoint.basedir:test')
+          is_expected.to include('entrypoint.type:script')
+        end
+      end
+
+      context 'when :experimental_propagate_process_tags_enabled is false' do
+        let(:options) { super().merge(experimental_propagate_process_tags_enabled: false) }
+
+        it 'does not include process tags when disabled' do
+          is_expected.to_not include('entrypoint.workdir:test')
+          is_expected.to_not include('entrypoint.name:test_script')
+          is_expected.to_not include('entrypoint.basedir:test')
+          is_expected.to_not include('entrypoint.type:script')
         end
       end
     end
