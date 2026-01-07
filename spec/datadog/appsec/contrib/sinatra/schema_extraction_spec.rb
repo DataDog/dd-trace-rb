@@ -9,8 +9,7 @@ require 'sinatra/json'
 require 'datadog/tracing'
 require 'datadog/appsec'
 
-# TODO: JRuby 10.0 - Remove this skip after investigation.
-RSpec.describe 'Schema extraction for API security in Sinatra', skip: PlatformHelpers.jruby_100? do
+RSpec.describe 'Schema extraction for API security in Sinatra' do
   include Rack::Test::Methods
 
   before do
@@ -149,6 +148,8 @@ RSpec.describe 'Schema extraction for API security in Sinatra', skip: PlatformHe
     klass = Class.new(Sinatra::Base) do
       set :show_exceptions, false
       set :raise_errors, true
+      # Newer versions of sinatra have a host restriction by default
+      set :host_authorization, permitted_hosts: []
 
       get '/product' do
         json(id: 1, name: 'Widget', price: 29.99)
