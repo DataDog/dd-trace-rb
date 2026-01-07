@@ -8,15 +8,15 @@ module Datadog
 
       @redactor: untyped
 
-      @telemetry: Core::Telemetry::Component
+      @telemetry: Core::Telemetry::Component?
 
-      def initialize: (untyped settings, untyped redactor, ?telemetry: Core::Telemetry::Component) -> void
+      def initialize: (untyped settings, untyped redactor, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader redactor: Datadog::DI::Redactor
 
-      attr_reader telemetry: Core::Telemetry::Component
+      attr_reader telemetry: Core::Telemetry::Component?
 
       def combine_args: (untyped args, untyped kwargs, untyped target_self) -> untyped
       def serialize_args: (untyped args, untyped kwargs, untyped instance_vars, ?depth: Integer, ?attribute_count: Integer?) -> untyped
@@ -24,7 +24,7 @@ module Datadog
       def serialize_value: (untyped value, ?name: String?, ?depth: Integer, ?attribute_count: Integer?, ?type: Class?) -> untyped
       def serialize_value_for_message: (untyped value, ?::Integer depth) -> untyped
 
-      def self.register: (?condition: Proc) {
+      def self.register: (?condition: Proc?) {
         (serializer: Serializer, value: untyped, name: Symbol, depth: Integer, ?attribute_count: Integer?) -> untyped } -> void
 
       private

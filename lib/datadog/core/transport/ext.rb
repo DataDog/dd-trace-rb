@@ -9,6 +9,8 @@ module Datadog
         module HTTP
           HEADER_CONTAINER_ID = 'Datadog-Container-ID'
           HEADER_CONTAINER_TAGS_HASH = 'Datadog-Container-Tags-Hash'
+          HEADER_ENTITY_ID = 'Datadog-Entity-ID'
+          HEADER_EXTERNAL_ENV = 'Datadog-External-Env'
           HEADER_DD_API_KEY = 'DD-API-KEY'
           # Tells agent that `_dd.top_level` metrics have been set by the tracer.
           # The agent will not calculate top-level spans but instead trust the tracer tagging.

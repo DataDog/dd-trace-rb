@@ -7,8 +7,6 @@ module Datadog
   module Tracing
     # Remote configuration declaration
     module Remote
-      class ReadError < StandardError; end
-
       class << self
         PRODUCT = 'APM_TRACING'
 
@@ -71,13 +69,7 @@ module Datadog
         private
 
         def parse_content(content)
-          data = content.data.read
-
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          JSON.parse(data)
+          JSON.parse(content.data)
         end
       end
     end

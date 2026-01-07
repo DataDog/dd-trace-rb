@@ -100,7 +100,7 @@ module Datadog
 
                   {
                     path: h[:path].freeze,
-                    content: StringIO.new(content.freeze),
+                    content: content.freeze,
                   }
                 end.freeze
 

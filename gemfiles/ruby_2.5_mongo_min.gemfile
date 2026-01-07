@@ -23,6 +23,7 @@ gem "rspec_junit_formatter", ">= 0.5.1"
 gem "simplecov", "~> 0.22.0"
 gem "warning", "~> 1"
 gem "webmock", ">= 3.10.0"
+gem "ffi", force_ruby_platform: true
 gem "mongo", "= 2.1.0"
 
 group :dev do

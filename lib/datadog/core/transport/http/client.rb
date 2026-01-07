@@ -27,6 +27,16 @@ module Datadog
             instance.endpoint.call(env) do |request_env|
               instance.call(request_env)
             end.tap do |response|
+              unless response.ok?
+                # This logging is on debug level.
+                # To report the failed operations on lower levels,
+                # throttling needs to be implemented because
+                # agent unavailability can produce a lot of spam that would
+                # be not desired by customers.
+                # Some transports do report failed operations on warn level
+                # with such throttling.
+                logger.debug { "send_request #{action.inspect} failed: #{response.inspect}" }
+              end
               on_response(response)
             end
           rescue => exception
