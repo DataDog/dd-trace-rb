@@ -5,6 +5,10 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
   let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append) }
   let(:append) { false }
 
+  before do
+    allow(Datadog::Core::Environment::BaseHash).to receive(:current).and_return(nil)
+  end
+
   describe '.annotate!' do
     let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'db_service') }
 
