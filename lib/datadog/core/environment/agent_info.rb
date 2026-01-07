@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'base_hash'
+
 module Datadog
   module Core
     module Environment
@@ -69,6 +71,10 @@ module Datadog
           return unless res.ok?
 
           extract_container_tags_hash(res)
+
+          # if there are container tags, compute the base hash
+          Environment::BaseHash.compute(container_tags_hash) if container_tags_hash
+
           res
         end
 

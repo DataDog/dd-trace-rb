@@ -25,6 +25,11 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         agent_info.fetch
         expect(agent_info.container_tags_hash).to be nil
       end
+
+      it 'does not compute the base hash' do
+        expect(Datadog::Core::Environment::BaseHash).not_to receive(:compute)
+        agent_info.fetch
+      end
     end
     context 'when the header is present' do
       before do
@@ -34,6 +39,11 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
       it 'grabs the containers tags hash' do
         agent_info.fetch
         expect(agent_info.container_tags_hash).to eq('testhash')
+      end
+
+      it 'computes the base hash' do
+        expect(Datadog::Core::Environment::BaseHash).to receive(:compute).with('testhash')
+        agent_info.fetch
       end
     end
   end
