@@ -361,7 +361,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         let(:options) { super().merge(experimental_propagate_process_tags_enabled: true) }
 
         before do
-          allow(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script'])
+          expect(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script'])
         end
 
         it 'includes process tags when enabled' do
