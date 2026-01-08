@@ -296,7 +296,6 @@ module Datadog
         end
 
         line_no = probe.line_no!
-        rate_limiter = probe.rate_limiter
 
         # Memoize the value to ensure this method always uses the same
         # value for the setting.
@@ -367,103 +366,7 @@ module Datadog
           [:line]
         end
         tp = TracePoint.new(*types) do |tp|
-          begin
-            # If trace point is not targeted, we must verify that the invocation
-            # is the file & line that we want, because untargeted trace points
-            # are invoked for *each* line of Ruby executed.
-            # TODO find out exactly when the path in trace point is relative.
-            # Looks like this is the case when line trace point is not targeted?
-            continue = iseq || tp.lineno == probe.line_no && (
-              probe.file == tp.path || probe.file_matches?(tp.path)
-            )
-
-            # We set the trace point on :return to be able to instrument
-            # 'end' lines. This also causes the trace point to be invoked on
-            # non-'end' lines when a line raises an exception, since the
-            # exception causes the method to stop executing and stack unwends.
-            # We do not want two invocations of the trace point.
-            # Therefore, if a trace point is invoked with a :line event,
-            # mark it as such and ignore subsequent :return events.
-            continue &&= if probe.executed_on_line?
-              tp.event == :line
-            else
-              if tp.event == :line
-                probe.executed_on_line!
-              end
-              true
-            end
-
-            if continue
-              if condition = probe.condition
-                begin
-                  context = Context.new(
-                    locals: Instrumenter.get_local_variables(tp),
-                    target_self: tp.self,
-                    probe: probe, settings: settings, serializer: serializer,
-                    path: tp.path,
-                    caller_locations: caller_locations,
-                  )
-                  continue = condition.satisfied?(context)
-                rescue => exc
-                  # Evaluation error exception can be raised for "expected"
-                  # errors, we probably need another setting to control whether
-                  # these exceptions are propagated.
-                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-                    !exc.is_a?(DI::Error::ExpressionEvaluationError)
-
-                  continue = false
-                  if context
-                    # We want to report evaluation errors for conditions
-                    # as probe snapshots. However, if we failed to create
-                    # the context, we won't be able to report anything as
-                    # the probe notifier builder requires a context.
-                    begin
-                      responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-                    rescue
-                      raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                      # TODO log / report via telemetry?
-                    end
-                  else
-                    _ = 42 # stop standard from wrecking this code
-
-                    raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                    # TODO log / report via telemetry?
-                    # If execution gets here, there is probably a bug in the tracer.
-                  end
-                end
-              end
-            end
-
-            continue &&= rate_limiter.nil? || rate_limiter.allow? # standard:disable Style/AndOr
-
-            if continue
-              # The context creation is relatively expensive and we don't
-              # want to run it if the callback won't be executed due to the
-              # rate limit.
-              # Thus the copy-paste of the creation call here.
-              context ||= Context.new(
-                locals: Instrumenter.get_local_variables(tp),
-                target_self: tp.self,
-                probe: probe, settings: settings, serializer: serializer,
-                path: tp.path,
-                caller_locations: caller_locations,
-              )
-
-              responder.probe_executed_callback(context)
-            end
-          rescue => exc
-            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-            logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
-            telemetry&.report(exc, description: "Unhandled exception in line trace point")
-            # TODO test this path
-          end
-        rescue => exc
-          raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
-          telemetry&.report(exc, description: "Unhandled exception in line trace point")
-          # TODO test this path
+          line_trace_point_callback(probe, iseq, responder, tp)
         end
 
         # Internal sanity check - untargeted trace points create a huge
@@ -550,6 +453,103 @@ module Datadog
       private
 
       attr_reader :lock
+
+      def line_trace_point_callback(probe, iseq, responder, tp)
+        # If trace point is not targeted, we must verify that the invocation
+        # is the file & line that we want, because untargeted trace points
+        # are invoked for *each* line of Ruby executed.
+        # TODO find out exactly when the path in trace point is relative.
+        # Looks like this is the case when line trace point is not targeted?
+        unless iseq
+          return unless tp.lineno == probe.line_no && (
+            probe.file == tp.path || probe.file_matches?(tp.path)
+          )
+        end
+
+        # We set the trace point on :return to be able to instrument
+        # 'end' lines. This also causes the trace point to be invoked on
+        # non-'end' lines when a line raises an exception, since the
+        # exception causes the method to stop executing and stack unwends.
+        # We do not want two invocations of the trace point.
+        # Therefore, if a trace point is invoked with a :line event,
+        # mark it as such and ignore subsequent :return events.
+        if probe.executed_on_line?
+          return unless tp.event == :line
+        else
+          if tp.event == :line
+            probe.executed_on_line!
+          end
+        end
+
+        if condition = probe.condition
+          begin
+            context = build_trace_point_context(probe, tp)
+            return unless condition.satisfied?(context)
+          rescue => exc
+            # Evaluation error exception can be raised for "expected"
+            # errors, we probably need another setting to control whether
+            # these exceptions are propagated.
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+              !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+            if context
+              # We want to report evaluation errors for conditions
+              # as probe snapshots. However, if we failed to create
+              # the context, we won't be able to report anything as
+              # the probe notifier builder requires a context.
+              begin
+                responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+              rescue
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                # TODO log / report via telemetry?
+              end
+
+              return
+            else
+              _ = 42 # stop standard from wrecking this code
+
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+              # TODO log / report via telemetry?
+              # If execution gets here, there is probably a bug in the tracer.
+            end
+          end
+        end
+
+        # In practice we should always have a rate limiter, but be safe
+        # and check that it is in fact set.
+        return if probe.rate_limiter && !probe.rate_limiter.allow?
+
+        # The context creation is relatively expensive and we don't
+        # want to run it if the callback won't be executed due to the
+        # rate limit.
+        # Thus the copy-paste of the creation call here.
+        context ||= build_trace_point_context(probe, tp)
+
+        responder.probe_executed_callback(context)
+      rescue => exc
+        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+        logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
+        telemetry&.report(exc, description: "Unhandled exception in line trace point")
+        # TODO test this path
+      end
+
+      def build_trace_point_context(probe, tp)
+        stack = caller_locations
+        # We have two helper methods being invoked from the trace point
+        # handler block, remove them from the stack.
+        stack.shift(2)
+        Context.new(
+          locals: Instrumenter.get_local_variables(tp),
+          target_self: tp.self,
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          path: tp.path,
+          caller_locations: stack,
+        )
+      end
 
       def raise_if_probe_in_loaded_features(probe)
         return unless probe.file
