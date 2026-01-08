@@ -10,7 +10,7 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
   let(:client) do
     ::Faraday.new('http://example.com') do |faraday|
       faraday.adapter(:test) do |stub|
-        stub.get('/success') { |_| [200, {}, 'OK'] }
+        stub.get('/success') { |_| [200, {'X-Response-Header' => '1'}, 'OK'] }
       end
     end
   end
@@ -24,14 +24,10 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
     allow(Datadog::AppSec).to receive(:active_context).and_return(context)
   end
 
-  after do
-    Datadog.configuration.reset!
-  end
+  after { Datadog.configuration.reset! }
 
   context 'when RASP is disabled' do
-    before do
-      allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(false)
-    end
+    before { allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(false) }
 
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
@@ -41,7 +37,9 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
   end
 
   context 'when there is no active context' do
-    let(:context) { nil }
+    before do
+      allow(Datadog::AppSec).to receive(:active_context).and_return(nil)
+    end
 
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
@@ -60,12 +58,31 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SSRF,
           {},
-          {'server.io.net.url' => 'http://example.com/success'},
-          Datadog.configuration.appsec.waf_timeout
+          hash_including(
+            'server.io.net.url' => 'http://example.com/success',
+            'server.io.net.request.method' => 'GET',
+            'server.io.net.request.headers' => hash_including(
+              'X-Request-Header' => '1'
+            )
+          ),
+          Datadog.configuration.appsec.waf_timeout,
+          phase: Datadog::AppSec::Ext::RASP_REQUEST_PHASE
+        )
+      )
+      expect(Datadog::AppSec.active_context).to(
+        receive(:run_rasp).with(
+          Datadog::AppSec::Ext::RASP_SSRF,
+          {},
+          hash_including(
+            'server.io.net.response.status' => '200',
+            'server.io.net.response.headers' => {'X-Response-Header' => '1'}
+          ),
+          Datadog.configuration.appsec.waf_timeout,
+          phase: Datadog::AppSec::Ext::RASP_RESPONSE_PHASE
         )
       )
 
-      client.get('/success')
+      client.get('/success', nil, {'X-Request-Header' => '1'})
     end
 
     it 'returns the http response' do
