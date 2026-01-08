@@ -26,7 +26,7 @@ module Datadog
         # to ::OpenTelemetry::Context.current
         # @return [Context]
         def clear(context: ::OpenTelemetry::Context.current)
-          context.ensure_trace.baggage.clear
+          context.ensure_trace&.baggage&.clear
           context
         end
 

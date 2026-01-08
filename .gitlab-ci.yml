@@ -146,8 +146,9 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: c8d5bd017a341100fcc0e116220c6a15af3cf580 # Automated: This reference is automatically updated.
-    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
+    SYSTEM_TESTS_REF: 662ed1c7c227d1186952d10255aab9f89f165ec3 # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection,docker_ssi"
+    SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
 save_versions:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2

@@ -14,7 +14,7 @@ module Datadog
 
       attr_reader span_events: untyped
 
-      attr_reader end_time: ::Time
+      attr_reader end_time: ::Time?
 
       attr_reader id: untyped
 
@@ -26,7 +26,7 @@ module Datadog
 
       attr_reader service: untyped
 
-      attr_reader start_time: ::Time
+      attr_reader start_time: ::Time?
 
       attr_reader trace_id: untyped
 
@@ -37,8 +37,8 @@ module Datadog
       def initialize: (
           String name,
           ?logger: Core::Logger,
-          ?events: Events,
-          ?on_error: on_error,
+          ?events: Events?,
+          ?on_error: on_error?,
           ?parent_id: Integer,
           ?resource: String,
           ?service: (String | nil),
@@ -106,7 +106,7 @@ module Datadog
 
         attr_reader before_start: untyped
 
-        def initialize: (?logger: Core::Logger, ?on_error: on_error) -> void
+        def initialize: (?logger: Core::Logger) -> void
 
         def on_error: () -> OnError
 

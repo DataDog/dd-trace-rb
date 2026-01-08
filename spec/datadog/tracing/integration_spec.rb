@@ -12,7 +12,6 @@ require 'datadog/tracing/sampling/rule'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
 require 'datadog/tracing/transport/http'
-require 'datadog/tracing/transport/http/api'
 require 'datadog/tracing/transport/io'
 require 'datadog/tracing/transport/io/client'
 require 'datadog/tracing/transport/traces'
@@ -660,6 +659,11 @@ RSpec.describe 'Tracer integration tests' do
       let(:graceful_signal) { 'graceful' }
 
       it { expect(terminated_process).to eq(graceful_signal) }
+
+      after do
+        # Ensure we are not leaking file descriptors
+        pipe.map(&:close)
+      end
     end
   end
 

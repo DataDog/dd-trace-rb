@@ -2,6 +2,7 @@ module Datadog
   module DataStreams
     module Transport
       module HTTP
+        V01: Stats::API::Endpoint
         def self?.default: (
           agent_settings: Core::Configuration::AgentSettings,
           logger: Core::Logger

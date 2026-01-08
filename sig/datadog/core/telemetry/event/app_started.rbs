@@ -8,6 +8,8 @@ module Datadog
           def type: () -> "app-started"
 
           def payload: () -> { products: untyped, configuration: untyped, install_signature: untyped }
+	  
+          def app_started?: -> bool
 
           private
 

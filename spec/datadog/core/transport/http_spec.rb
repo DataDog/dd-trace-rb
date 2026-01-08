@@ -19,19 +19,33 @@ RSpec.describe Datadog::Core::Transport::HTTP do
       )
     end
 
-    context 'when Core::Environment::Container.container_id' do
-      before { expect(Datadog::Core::Environment::Container).to receive(:container_id).and_return(container_id) }
-
-      context 'is not nil' do
-        let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
-
-        it { is_expected.to include(Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID => container_id) }
+    context 'when Container.to_headers returns headers' do
+      let(:container_headers) do
+        {
+          'Datadog-Container-ID' => 'abc123',
+          'Datadog-Entity-ID' => 'ci-abc123',
+          'Datadog-External-Env' => 'provided-by-container-runner'
+        }
       end
 
-      context 'is nil' do
-        let(:container_id) { nil }
+      before do
+        allow(Datadog::Core::Environment::Container).to receive(:to_headers).and_return(container_headers)
+      end
 
-        it { is_expected.to_not include(Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID) }
+      it 'merges container headers into default headers' do
+        expect(default_headers).to include(container_headers)
+      end
+    end
+
+    context 'when Container.to_headers returns empty hash' do
+      before do
+        allow(Datadog::Core::Environment::Container).to receive(:to_headers).and_return({})
+      end
+
+      it 'does not include any container headers' do
+        expect(default_headers).to_not include('Datadog-Container-ID')
+        expect(default_headers).to_not include('Datadog-Entity-ID')
+        expect(default_headers).to_not include('Datadog-External-Env')
       end
     end
 

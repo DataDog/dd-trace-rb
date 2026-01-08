@@ -14,14 +14,26 @@ require_relative '../utils/forking'
 module Datadog
   module Core
     module Telemetry
-      # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
-      # Note: Telemetry does not spawn its worker thread in fork processes, thus no telemetry is sent in forked processes.
+      # Telemetry entry point, coordinates sending telemetry events at
+      # various points in application lifecycle.
       #
       # @api private
       class Component
         ENDPOINT_COLLECTION_MESSAGE_LIMIT = 300
 
-        attr_reader :enabled, :logger, :transport, :worker
+        ONLY_ONCE = Utils::OnlyOnce.new
+
+        attr_reader :enabled
+        attr_reader :logger
+        attr_reader :transport
+        attr_reader :worker
+        attr_reader :settings
+        attr_reader :agent_settings
+        attr_reader :metrics_manager
+
+        # Alias for consistency with other components.
+        # TODO Remove +enabled+ method
+        alias_method :enabled?, :enabled
 
         include Core::Utils::Forking
         include Telemetry::Logging
@@ -50,6 +62,17 @@ module Datadog
           logger:,
           enabled:
         )
+          ONLY_ONCE.run do
+            Utils::AtForkMonkeyPatch.apply!
+
+            # All of the other at fork monkey patch callbacks reference
+            # globals, follow that pattern here to avoid having the component
+            # referenced via the at fork callbacks.
+            Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
+              Datadog.send(:components, allow_initialization: false)&.telemetry&.after_fork
+            end
+          end
+
           @enabled = enabled
           @log_collection_enabled = settings.telemetry.log_collection_enabled
           @logger = logger
@@ -110,7 +133,7 @@ module Datadog
         end
 
         def start(initial_event_is_change = false, components:)
-          return if !@enabled
+          return unless enabled?
 
           initial_event = if initial_event_is_change
             Event::SynthAppClientConfigurationChange.new(
@@ -136,44 +159,44 @@ module Datadog
         end
 
         def emit_closing!
-          return if !@enabled || forked?
+          return unless enabled?
 
           @worker.enqueue(Event::AppClosing.new)
         end
 
         def integrations_change!
-          return if !@enabled || forked?
+          return unless enabled?
 
           @worker.enqueue(Event::AppIntegrationsChange.new)
         end
 
         def log!(event)
-          return if !@enabled || forked? || !@log_collection_enabled
+          return unless enabled? && @log_collection_enabled
 
           @worker.enqueue(event)
         end
 
         # Wait for the worker to send out all events that have already
         # been queued, up to 15 seconds. Returns whether all events have
-        # been flushed.
+        # been flushed, or nil if telemetry is disabled.
         #
         # @api private
-        def flush
-          return if !@enabled || forked?
+        def flush(timeout: nil)
+          return unless enabled?
 
-          @worker.flush
+          @worker.flush(timeout: timeout)
         end
 
         # Report configuration changes caused by Remote Configuration.
         def client_configuration_change!(changes)
-          return if !@enabled || forked?
+          return unless enabled?
 
           @worker.enqueue(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
         end
 
         # Report application endpoints
         def app_endpoints_loaded(endpoints, page_size: ENDPOINT_COLLECTION_MESSAGE_LIMIT)
-          return if !@enabled || forked?
+          return unless enabled?
 
           endpoints.each_slice(page_size).with_index do |endpoints_slice, i|
             @worker.enqueue(Event::AppEndpointsLoaded.new(endpoints_slice, is_first: i.zero?))
@@ -203,6 +226,22 @@ module Datadog
         # Tracks distribution metric.
         def distribution(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.distribution(namespace, metric_name, value, tags: tags, common: common)
+        end
+
+        # When a fork happens, we generally need to do two things inside the
+        # child proess:
+        # 1. Restart the worker.
+        # 2. Discard any events and metrics that were submitted in the
+        #    parent process (because they will be sent out in the parent
+        #    process, sending them in the child would cause duplicate
+        #    submission).
+        def after_fork
+          # We cannot simply create a new instance of metrics manager because
+          # it is referenced from other objects (e.g. the worker).
+          # We must reset the existing instance.
+          @metrics_manager.clear
+
+          worker&.send(:after_fork_monkey_patched)
         end
       end
     end

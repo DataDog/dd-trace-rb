@@ -101,13 +101,13 @@ module Contrib
       config.after do
         traces = fetch_traces(tracer)
         unless traces.empty?
-          if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
-              tracer.writer.transport.client.api.adapter.hostname == agent_host
+          if tracer.respond_to?(:writer) && tracer.writer.transport.client.instance.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
+              tracer.writer.transport.client.instance.adapter.hostname == agent_host
             traces.each do |trace|
               # write traces after the test to the agent in order to not mess up assertions
               # remake syncwriter instance for each flush to prevent headers from being overrwritten
               sync_writer = Datadog::Tracing::SyncWriter.new(agent_settings: tracer.writer.agent_settings)
-              sync_writer.transport.client.api.headers['X-Datadog-Trace-Env-Variables'] = parse_tracer_config
+              sync_writer.transport.client.instance.headers['X-Datadog-Trace-Env-Variables'] = parse_tracer_config
               sync_writer.write(trace)
             end
           end

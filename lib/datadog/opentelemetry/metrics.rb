@@ -70,12 +70,7 @@ module Datadog
         @logger.warn("Failed to configure OTLP metrics exporter:  #{e.class}: #{e}")
       end
 
-      def resolve_metrics_endpoint
-        metrics_config = @settings.opentelemetry.metrics
-        exporter_config = @settings.opentelemetry.exporter
-
-        return metrics_config.endpoint if metrics_config.endpoint
-        return exporter_config.endpoint if exporter_config.endpoint
+      def default_metrics_endpoint
         "#{@agent_ssl ? "https" : "http"}://#{@agent_host}:4318/v1/metrics"
       end
 
@@ -84,16 +79,19 @@ module Datadog
         require_relative 'sdk/metrics_exporter'
 
         metrics_config = @settings.opentelemetry.metrics
-        exporter_config = @settings.opentelemetry.exporter
-        timeout = metrics_config.timeout_millis || exporter_config.timeout_millis
-        headers = metrics_config.headers || exporter_config.headers || {}
-
-        protocol = metrics_config.protocol || exporter_config.protocol
+        endpoint = get_metrics_config_with_fallback(
+          option_name: :endpoint,
+          computed_default: default_metrics_endpoint
+        )
+        timeout = get_metrics_config_with_fallback(option_name: :timeout_millis)
+        headers = get_metrics_config_with_fallback(option_name: :headers)
+        # OpenTelemetry SDK only supports http/protobuf protocol.
+        # TODO: Add support for http/json and grpc.
+        # protocol = get_metrics_config_with_fallback(option_name: :protocol)
         exporter = Datadog::OpenTelemetry::SDK::MetricsExporter.new(
-          endpoint: resolve_metrics_endpoint,
+          endpoint: endpoint,
           timeout: timeout / 1000.0,
-          headers: headers,
-          protocol: protocol
+          headers: headers
         )
 
         reader = ::OpenTelemetry::SDK::Metrics::Export::PeriodicMetricReader.new(
@@ -104,6 +102,15 @@ module Datadog
         provider.add_metric_reader(reader)
       rescue LoadError => e
         @logger.warn("Could not load OTLP metrics exporter:  #{e.class}: #{e}")
+      end
+
+      # Returns metrics config value if explicitly set, otherwise falls back to exporter config or computed default value.
+      def get_metrics_config_with_fallback(option_name:, computed_default: nil)
+        if @settings.opentelemetry.metrics.using_default?(option_name)
+          @settings.opentelemetry.exporter.public_send(option_name) || computed_default
+        else
+          @settings.opentelemetry.metrics.public_send(option_name)
+        end
       end
     end
   end

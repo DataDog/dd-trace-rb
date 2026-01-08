@@ -3,14 +3,6 @@ require 'datadog/statsd'
 
 RSpec.describe 'Datadog integration' do
   context 'graceful shutdown', :integration do
-    before do
-      # TODO: This test is flaky, and the flakiness affects JRuby really often.
-      # Until we can investigate it, let's skip it as the constant failures impact unrelated development.
-      if PlatformHelpers.jruby?
-        skip('TODO: This test is flaky, and triggers very often on JRuby. Requires further investigation.')
-      end
-    end
-
     subject(:shutdown) { Datadog.shutdown! }
 
     let(:start_tracer) do
@@ -57,7 +49,46 @@ RSpec.describe 'Datadog integration' do
         end
       end
 
-      it 'closes tracer file descriptors (known flaky test)' do
+      def soft_readlink(path)
+        File.readlink(path)
+      rescue SystemCallError
+        nil
+      end
+
+      # On JRuby, there are file descriptors opened that resolve to these
+      # paths via File.readlink:
+      #
+      # anon_inode:[eventpoll]
+      # anon_inode:[eventfd]
+      #
+      # The file descriptor leakage check was meant primarily for
+      # network sockets and these are not - ignore them.
+      #
+      # We also get some pipes reported as leaked:
+      #
+      # pipe:[20450]
+      #
+      # The pipes come in pairs (read and write end).
+      #
+      # We don't have any IO.pipe calls in the source code at the moment,
+      # just in the test suite. Still, it is possible that we call other
+      # code that creates pipes and does not clean them up.
+      # However, these leaked pipes are only reported on JRuby, which
+      # suggests that we do not actually have a resource leak.
+      #
+      # Ignore the pipes too.
+      #
+      # standard:disable Lint/ConstantDefinitionInBlock:
+      IGNORE_JRUBY_FDS_REGEXP = %r{
+        \A (
+          anon_inode:\[eventpoll\] |
+          anon_inode:\[eventfd\] |
+          pipe:\[\d+\]
+        ) \z
+      }x.freeze
+      # standard:enable Lint/ConstantDefinitionInBlock:
+
+      it 'closes tracer file descriptors' do
         before_open_file_descriptors = open_file_descriptors
 
         start_tracer
@@ -67,14 +98,52 @@ RSpec.describe 'Datadog integration' do
 
         after_open_file_descriptors = open_file_descriptors
 
-        expect(after_open_file_descriptors.size)
+        new_file_descriptors = after_open_file_descriptors.select do |k, v|
+          !before_open_file_descriptors.key?(k)
+        end.to_h
+
+        if PlatformHelpers.jruby?
+          # On JRuby there are open file descriptors showing up occasionally
+          # in CI and readily reproducibly locally.
+          #
+          # They are usually of form:
+          # {"/dev/fd/24"=>"/proc/10580/fd/24"}
+          # But sometimes the value is nil.
+          #
+          # I am unclear on how to troubleshoot what is causing these to be
+          # open, exclude them from diagnostics until this can be determined.
+          new_file_descriptors = new_file_descriptors.reject do |k, v|
+            v.nil? or
+              v == k.sub(%r{\A/dev/}, "/proc/#{$$}/") &&
+                IGNORE_JRUBY_FDS_REGEXP =~ (soft_readlink(v) || '')
+          end.to_h
+        end
+
+        new_file_descriptors.each do |k, v|
+          if v
+            begin
+              resolved = File.readlink(v)
+              if resolved != v
+                new_file_descriptors[k] = {
+                  original: v,
+                  resolved: resolved,
+                }
+              end
+            rescue SystemCallError
+              # Nothing
+            end
+          end
+        end
+
+        expect(new_file_descriptors)
           .to(
             # Below was changed from eq to <= to cause less flakyness. We still don't know why this test fails in CI
             # from time to time.
-            (be <= (before_open_file_descriptors.size)),
+            be_empty,
             lambda {
               "Open fds before (#{before_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
-              "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}"
+              "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}\n" \
+              "New fds (#{new_file_descriptors.size}): #{new_file_descriptors}"
             }
           )
       end

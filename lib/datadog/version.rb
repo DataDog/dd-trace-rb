@@ -3,7 +3,7 @@
 module Datadog
   module VERSION
     MAJOR = 2
-    MINOR = 23
+    MINOR = 24
     PATCH = 0
     PRE = nil
     BUILD = nil
@@ -21,6 +21,6 @@ module Datadog
     # To allow testing with the next unreleased version of Ruby, the version check is performed
     # as `< #{MAXIMUM_RUBY_VERSION}`, meaning prereleases of MAXIMUM_RUBY_VERSION are allowed
     # but not stable MAXIMUM_RUBY_VERSION releases.
-    MAXIMUM_RUBY_VERSION = '4.0'
+    MAXIMUM_RUBY_VERSION = '4.1'
   end
 end
