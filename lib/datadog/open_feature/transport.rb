@@ -11,14 +11,6 @@ require_relative '../core/transport/request'
 module Datadog
   module OpenFeature
     module Transport
-      class EncodedParcel
-        include Core::Transport::Parcel
-
-        def encode_with(encoder)
-          encoder.encode(data)
-        end
-      end
-
       class HTTP
         class Spec
           def initialize
@@ -52,7 +44,7 @@ module Datadog
         end
 
         def send_exposures(payload)
-          request = Core::Transport::Request.new(EncodedParcel.new(payload))
+          request = Core::Transport::Request.new(Core::Transport::Parcel.new(payload))
 
           @api.endpoint.call(Core::Transport::HTTP::Env.new(request)) do |env|
             @api.call(env)

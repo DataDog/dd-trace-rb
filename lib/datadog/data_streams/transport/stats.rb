@@ -10,17 +10,6 @@ module Datadog
   module DataStreams
     module Transport
       module Stats
-        # Parcel for encoded DSM stats payload
-        class EncodedParcel
-          include Datadog::Core::Transport::Parcel
-
-          def initialize(data)
-            @data = data
-          end
-
-          attr_reader :data
-        end
-
         # Request for DSM stats
         class Request < Datadog::Core::Transport::Request
         end
@@ -33,7 +22,7 @@ module Datadog
             compressed_data = Zlib.gzip(msgpack_data)
 
             # Create parcel and request
-            parcel = EncodedParcel.new(compressed_data)
+            parcel = Core::Transport::Parcel.new(compressed_data)
             request = Request.new(parcel)
 
             # Send to agent
