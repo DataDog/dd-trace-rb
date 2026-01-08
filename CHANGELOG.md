@@ -9,11 +9,11 @@
 * Core: Add support for installing the gem on Ruby 4.0.x stable ([#5157][])
 * Tracing: Add origin detection using extra headers and the `DD_EXTERNAL_ENV` variable. ([#5028][])
 * Dynamic Instrumentation: Add one-click enablement support ([#5150][])
+* SSI: Add support for Bundler deployment mode ([#5053][])
 * SSI: Report UI-oriented injection results ([#5053][])
 * SSI: Guard against Bundler global force_ruby_platform ([#5053][])
 * SSI: Guard against Bundler 4.0 and Bundler 2.7 in 4.0 mode ([#5053][])
 * SSI: Guard against Ruby 3.5+ ([#5053][])
-* SSI: Guard against BUNDLE_FORCE_RUBY_PLATFORM environment variable ([#5053][])
 
 ### Changed
 
