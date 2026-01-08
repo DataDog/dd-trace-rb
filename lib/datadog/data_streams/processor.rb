@@ -10,7 +10,6 @@ require_relative '../core/ddsketch'
 require_relative '../core/buffer/cruby'
 require_relative '../core/utils/time'
 require_relative '../core/utils/fnv'
-require_relative '../core/environment/base_hash'
 
 module Datadog
   module DataStreams
@@ -367,10 +366,12 @@ module Datadog
 
         bytes = service.bytes + env.bytes
 
-        # If there is a base hash, add it to DSM back propagation
-        base_hash = Core::Environment::BaseHash.current
-        if base_hash
-          bytes += [base_hash].pack('Q<').bytes
+        # If there is a propagation hash, add it to DSM back propagation
+        # Follows Python: https://github.com/DataDog/dd-trace-py/blob/8b739fe0837a22cab76116050e8b7e4b45407c6c/ddtrace/internal/datastreams/processor.py#L423
+        # bytes order is service + env + process tags + container tags
+        propagation_hash = Datadog.send(:components).agent_info.propagation_hash
+        if propagation_hash
+          bytes += [propagation_hash].pack('Q<').bytes
         end
 
         tags.each { |tag| bytes += tag.bytes }
