@@ -8,7 +8,7 @@ module Datadog
       def context: (?untyped? key) -> untyped
     end
     class FiberLocalContext
-      @key: Symbol
+      @key: ::Symbol
 
       def initialize: () -> void
       def local=: (untyped ctx) -> untyped

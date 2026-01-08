@@ -2,9 +2,9 @@ module Datadog
   module Tracing
     module Sampling
       class RateSampler < Sampler
-        @sample_rate: Float
-        @sampling_id_threshold: Float
-        @decision: String?
+        @sample_rate: ::Float
+        @sampling_id_threshold: ::Float
+        @decision: ::String?
 
         KNUTH_FACTOR: Integer
         UINT64_MODULO: Integer

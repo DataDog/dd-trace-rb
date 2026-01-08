@@ -3,7 +3,7 @@ module Datadog
     module Environment
       module Process
         self.@serialized: ::String
-        self.@tags: Array[::String]
+        self.@tags: ::Array[::String]
 
         def self.serialized: () -> ::String
 

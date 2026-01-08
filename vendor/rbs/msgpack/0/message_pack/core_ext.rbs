@@ -1,8 +1,8 @@
 module MessagePack
   interface _CoreExt
     def to_msgpack: (::MessagePack::Packer packer) -> ::MessagePack::Packer
-                  | (IO io) -> nil
-                  | () -> String
+                  | (::IO io) -> nil
+                  | () -> ::String
   end
 end
 

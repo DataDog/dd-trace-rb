@@ -1,8 +1,8 @@
 module Datadog
   module Tracing
     module Pipeline
-      self.@mutex: Mutex
-      self.@processors: Array[^(TraceSegment trace) -> TraceSegment?]
+      self.@mutex: ::Mutex
+      self.@processors: ::Array[^(TraceSegment trace) -> TraceSegment?]
 
       def self.before_flush: (*untyped processors) ?{ () -> untyped } -> untyped
 

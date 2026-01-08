@@ -24,7 +24,7 @@ module Datadog
 
       @executed_on_line: bool?
 
-      @rate_limit: Integer
+      @rate_limit: ::Integer
 
       @emitting_notified: bool
 

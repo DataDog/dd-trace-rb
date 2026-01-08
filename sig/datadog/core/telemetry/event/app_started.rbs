@@ -4,9 +4,9 @@ module Datadog
       module Event
         class AppStarted < Base
           type install_signature = {
-            install_id: String?,
-            install_type: String?,
-            install_time: String?
+            install_id: ::String?,
+            install_type: ::String?,
+            install_time: ::String?
           }
 
           type telemetry_products = {
@@ -16,8 +16,8 @@ module Datadog
             profiler: {
               enabled: bool,
               ?error: {
-                code: Integer,
-                message: String?
+                code: ::Integer,
+                message: ::String?
               }
             },
             dynamic_instrumentation: {
@@ -25,7 +25,7 @@ module Datadog
             }
           }
 
-          @configuration: Array[telemetry_configuration]
+          @configuration: ::Array[telemetry_configuration]
           @install_signature: install_signature
           @products: telemetry_products
 
@@ -38,15 +38,15 @@ module Datadog
           def app_started?: -> bool?
 
           private
-          TARGET_OPTIONS: Array[String]
+          TARGET_OPTIONS: ::Array[::String]
 
           def products: (Datadog::Core::Configuration::Components components) -> telemetry_products
 
-          def configuration: (untyped settings, Core::Configuration::AgentSettings agent_settings) -> Array[telemetry_configuration]
+          def configuration: (untyped settings, Core::Configuration::AgentSettings agent_settings) -> ::Array[telemetry_configuration]
 
           def agent_transport: (Core::Configuration::AgentSettings agent_settings) -> String
 
-          def conf_value: (String name, untyped value, Integer seq_id, String origin) -> telemetry_configuration
+          def conf_value: (::String name, untyped value, ::Integer seq_id, ::String origin) -> telemetry_configuration
 
           def to_value: (Object value) -> Object
 

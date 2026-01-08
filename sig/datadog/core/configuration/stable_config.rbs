@@ -7,12 +7,12 @@ module Datadog
         type stable_config = {
           ?logs: String?,
           ?local: {
-            config: Hash[String, String],
-            ?id: String
+            config: ::Hash[::String, ::String],
+            ?id: ::String
           },
           ?fleet: {
-            config: Hash[String, String],
-            ?id: String
+            config: ::Hash[::String, ::String],
+            ?id: ::String
           }
         }
 

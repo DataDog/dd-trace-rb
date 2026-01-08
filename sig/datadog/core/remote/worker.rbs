@@ -8,7 +8,7 @@ module Datadog
         @starting: bool
         @started: bool
         @stopped: bool
-        @thr: Thread?
+        @thr: ::Thread?
         @interval: ::Float
         @mutex: ::Thread::Mutex
         @block: (^() -> void)

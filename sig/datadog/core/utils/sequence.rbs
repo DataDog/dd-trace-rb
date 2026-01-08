@@ -4,9 +4,9 @@ module Datadog
       class Sequence
         @seed: ::Integer
         @current: ::Integer
-        @next_item: (^(::Integer) -> Integer)?
+        @next_item: (^(::Integer) -> ::Integer)?
 
-        def initialize: (?::Integer seed) ?{ (::Integer) -> Integer } -> untyped
+        def initialize: (?::Integer seed) ?{ (::Integer) -> ::Integer } -> untyped
 
         def next: () -> untyped
 
