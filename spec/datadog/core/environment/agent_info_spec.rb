@@ -30,7 +30,6 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         expect(agent_info.propagation_hash).to be nil
       end
     end
-    end
 
     context 'when the header is present' do
       before do
