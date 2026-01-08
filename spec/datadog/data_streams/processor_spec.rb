@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'datadog/core'
 require 'datadog/data_streams/processor'
-require 'datadog/core/ddsketch'
 require_relative 'spec_helper'
 
 # Expected deterministic hash values for specific pathways (with manual_checkpoint: false)
