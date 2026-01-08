@@ -18,19 +18,19 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
   describe '#container_tags_hash' do
     context 'when the header is missing' do
-      before do
-        allow(response).to receive(:headers).and_return({})
-      end
+      before { allow(response).to receive(:headers).and_return({}) }
+
       it 'returns nil' do
         agent_info.fetch
         expect(agent_info.container_tags_hash).to be nil
       end
 
       it 'does not compute the base hash' do
-        expect(Datadog::Core::Environment::BaseHash).not_to receive(:compute)
         agent_info.fetch
+        expect(agent_info.propagation_hash).to be nil
       end
     end
+
     context 'when the header is present' do
       before do
         allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'testhash'})
@@ -41,9 +41,13 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         expect(agent_info.container_tags_hash).to eq('testhash')
       end
 
-      it 'computes the base hash' do
-        expect(Datadog::Core::Environment::BaseHash).to receive(:compute).with('testhash')
+      it 'computes the propagation hash' do
+        process_tags = 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script'
+        allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
         agent_info.fetch
+
+        agent_received_hash = agent_info.propagation_hash
+        expect(agent_received_hash).to be_a(Integer)
       end
     end
   end
