@@ -1,0 +1,261 @@
+---
+library:
+- agent.use_ssl
+- agent.timeout_seconds
+- api_key
+- health_metrics.enabled
+- health_metrics.statsd
+- profiling.enabled
+- profiling.exporter.transport
+- profiling.allocation_enabled
+- profiling.advanced.max_frames
+- profiling.advanced.endpoint.collection.enabled
+- profiling.advanced.code_provenance_enabled
+- profiling.advanced.gc_enabled
+- profiling.advanced.allocation_counting_enabled
+- profiling.advanced.experimental_heap_enabled
+- profiling.advanced.experimental_heap_size_enabled
+- profiling.advanced.experimental_heap_sample_rate
+- profiling.advanced.skip_mysql2_check
+- profiling.advanced.timeline_enabled
+- profiling.advanced.no_signals_workaround_enabled
+- profiling.advanced.dir_interruption_workaround_enabled
+- profiling.advanced.overhead_target_percentage
+- profiling.advanced.upload_period_seconds
+- profiling.advanced.experimental_crash_tracking_enabled
+- profiling.advanced.preview_gvl_enabled
+- profiling.advanced.gvl_enabled
+- profiling.advanced.waiting_for_gvl_threshold_ns
+- profiling.advanced.preview_otel_context_enabled
+- profiling.advanced.heap_clean_after_gc_enabled
+- profiling.upload.timeout_seconds
+- runtime_metrics.opts
+- site
+- get_time_provider
+- telemetry.dependency_collection
+- telemetry.agentless_enabled
+- telemetry.agentless_url_override
+- telemetry.metrics_enabled
+- telemetry.heartbeat_interval_seconds
+- telemetry.metrics_aggregation_interval_seconds
+- telemetry.install_id
+- telemetry.install_type
+- telemetry.install_time
+- telemetry.shutdown_timeout_seconds
+- telemetry.log_collection_enabled
+- telemetry.debug
+- remote.enabled
+- remote.poll_interval_seconds
+- remote.boot_timeout_seconds
+- remote.service
+- crashtracking.enabled
+- tracing.analytics.enabled
+- tracing.trace_id_128_bit_logging_enabled
+- tracing.instance
+- tracing.test_mode.enabled
+- tracing.test_mode.async
+- tracing.test_mode.trace_flush
+- tracing.test_mode.writer_options
+- tracing.writer
+- tracing.writer_options
+- tracing.client_ip.enabled
+- tracing.client_ip.header_name
+- tracing.x_datadog_tags_max_length
+- tracing.contrib.peer_service_defaults
+- appsec.enabled
+- appsec.rasp_enabled
+- appsec.ruleset
+- appsec.ip_passlist
+- appsec.ip_denylist
+- appsec.user_id_denylist
+- appsec.waf_timeout
+- appsec.waf_debug
+- appsec.trace_rate_limit
+- appsec.obfuscator_key_regex
+- appsec.obfuscator_value_regex
+- appsec.block.templates.html
+- appsec.block.templates.json
+- appsec.block.templates.text
+- appsec.stack_trace.enabled
+- appsec.stack_trace.max_depth
+- appsec.stack_trace.top_percentage
+- appsec.stack_trace.max_stack_traces
+- appsec.auto_user_instrumentation.mode
+- appsec.track_user_events.enabled
+- appsec.track_user_events.mode
+- appsec.api_security.enabled
+- appsec.api_security.sample_rate
+- appsec.sca_enabled
+- dynamic_instrumentation.enabled
+- dynamic_instrumentation.redacted_identifiers
+- dynamic_instrumentation.redacted_type_names
+- dynamic_instrumentation.max_capture_depth
+- dynamic_instrumentation.max_capture_collection_size
+- dynamic_instrumentation.max_capture_string_length
+- dynamic_instrumentation.max_capture_attribute_count
+- dynamic_instrumentation.internal.untargeted_trace_points
+- dynamic_instrumentation.internal.propagate_all_exceptions
+- dynamic_instrumentation.internal.min_send_interval
+- dynamic_instrumentation.internal.snapshot_queue_capacity
+- dynamic_instrumentation.internal.development
+- dynamic_instrumentation.internal.trace_logging
+integrations:
+  action_cable:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  action_mailer:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  http: all
+  action_pack:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  action_view:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  active_model_serializers:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  active_job:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  active_record:
+  - analytics_enabled
+  - analytics_sample_rate
+  active_support:
+  - analytics_enabled
+  - analytics_sample_rate
+  - cache_key.enabled
+  aws:
+  - analytics_enabled
+  - analytics_sample_rate
+  concurrent_ruby:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  dalli:
+  - analytics_enabled
+  - analytics_sample_rate
+  delayed_job:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  - client_service_name
+  elasticsearch:
+  - analytics_enabled
+  - analytics_sample_rate
+  ethon:
+  - analytics_enabled
+  - analytics_sample_rate
+  excon:
+  - analytics_enabled
+  - analytics_sample_rate
+  faraday:
+  - analytics_enabled
+  - analytics_sample_rate
+  grape:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  - on_error
+  graphql:
+  - analytics_enabled
+  - analytics_sample_rate
+  grpc:
+  - analytics_enabled
+  - analytics_sample_rate
+  hanami:
+  - analytics_enabled
+  - analytics_sample_rate
+  httpclient:
+  - analytics_enabled
+  - analytics_sample_rate
+  httprb: all
+  kafka:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  karafka:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  lograge: all
+  mongo: all
+  mysql2:
+  - analytics_enabled
+  - analytics_sample_rate
+  opensearch:
+  - analytics_enabled
+  - analytics_sample_rate
+  pg: all
+  presto:
+  - analytics_enabled
+  - analytics_sample_rate
+  que:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  - distributed_tracing
+  racecar:
+  - analytics_enabled
+  - analytics_sample_rate
+  rack:
+  - analytics_enabled
+  - analytics_sample_rate
+  semantic_logger: all
+  rails:
+  - analytics_enabled
+  - analytics_sample_rate
+  rake:
+  - analytics_enabled
+  - analytics_sample_rate
+  redis:
+  - analytics_enabled
+  - analytics_sample_rate
+  resque:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  rest_client:
+  - analytics_enabled
+  - analytics_sample_rate
+  roda:
+  - analytics_enabled
+  - analytics_sample_rate
+  sequel:
+  - analytics_enabled
+  - analytics_sample_rate
+  shoryuken:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  sidekiq:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  - client_service_name
+  sinatra:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  sneakers:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  stripe:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  sucker_punch:
+  - analytics_enabled
+  - analytics_sample_rate
+  - service_name
+  trilogy:
+  - analytics_enabled
+  - analytics_sample_rate
