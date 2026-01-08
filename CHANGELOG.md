@@ -9,6 +9,11 @@
 * Core: Add support for installing the gem on Ruby 4.0.x stable ([#5157][])
 * Tracing: Add origin detection using extra headers and the `DD_EXTERNAL_ENV` variable. ([#5028][])
 * Dynamic Instrumentation: Add one-click enablement support ([#5150][])
+* SSI: Add support for Bundler deployment mode ([#5053][])
+* SSI: Report UI-oriented injection results ([#5053][])
+* SSI: Guard against Bundler global force_ruby_platform ([#5053][])
+* SSI: Guard against Bundler 4.0 and Bundler 2.7 in 4.0 mode ([#5053][])
+* SSI: Guard against Ruby 3.5+ ([#5053][])
 
 ### Changed
 
@@ -5059,6 +5064,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5044]: https://github.com/DataDog/dd-trace-rb/issues/5044
 [#5045]: https://github.com/DataDog/dd-trace-rb/issues/5045
 [#5049]: https://github.com/DataDog/dd-trace-rb/issues/5049
+[#5053]: https://github.com/DataDog/dd-trace-rb/issues/5053
 [#5054]: https://github.com/DataDog/dd-trace-rb/issues/5054
 [#5058]: https://github.com/DataDog/dd-trace-rb/issues/5058
 [#5073]: https://github.com/DataDog/dd-trace-rb/issues/5073
