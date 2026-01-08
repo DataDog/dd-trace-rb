@@ -461,7 +461,7 @@ module Datadog
         # TODO find out exactly when the path in trace point is relative.
         # Looks like this is the case when line trace point is not targeted?
         unless iseq
-          return unless tp.lineno == probe.line_no && (
+          return unless tp.lineno == probe.line_no && ( # standard:disable Style/UnlessLogicalOperators
             probe.file == tp.path || probe.file_matches?(tp.path)
           )
         end
@@ -476,6 +476,8 @@ module Datadog
         if probe.executed_on_line?
           return unless tp.event == :line
         else
+          _ = 42 # stop standard from changing this code
+
           if tp.event == :line
             probe.executed_on_line!
           end
