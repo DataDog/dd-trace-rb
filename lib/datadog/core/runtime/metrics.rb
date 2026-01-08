@@ -118,8 +118,7 @@ module Datadog
 
             # Add process tags when enabled
             if @process_tags_enabled
-              process_tags = Core::Environment::Process.tags
-              options[:tags].concat(process_tags) unless process_tags.empty?
+              options[:tags].concat(Core::Environment::Process.tags)
             end
           end
         end
