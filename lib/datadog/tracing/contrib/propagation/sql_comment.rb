@@ -4,7 +4,6 @@ require_relative 'sql_comment/comment'
 require_relative 'sql_comment/ext'
 
 require_relative '../../distributed/trace_context'
-require_relative '../../../core/environment/base_hash'
 
 module Datadog
   module Tracing
@@ -16,7 +15,7 @@ module Datadog
             return unless mode.enabled?
 
             # Add base hash to the span metric
-            base_hash = Core::Environment::BaseHash.current
+            base_hash = Datadog.send(:components).agent_info.propagation_hash
             span_op.set_metric(Ext::METRIC_PROPAGATED_HASH, base_hash) if base_hash
 
             span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
@@ -41,7 +40,7 @@ module Datadog
               Ext::KEY_PEER_SERVICE => peer_service,
             }
 
-            base_hash = Core::Environment::BaseHash.current
+            base_hash = Datadog.send(:components).agent_info.propagation_hash
             tags[Ext::KEY_BASE_HASH] = base_hash.to_s if base_hash
 
             db_service = peer_service || span_op.service

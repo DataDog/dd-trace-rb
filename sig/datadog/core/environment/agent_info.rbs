@@ -9,9 +9,13 @@ module Datadog
 
         def fetch: -> Remote::Transport::HTTP::Negotiation::Response?
 
+        def propagation_hash: () -> ::Integer?
+
         private
 
         def extract_container_tags_hash: (Remote::Transport::HTTP::Negotiation::Response res) -> ::String?
+
+        def update_propagation_hash: () -> void
       end
     end
   end
