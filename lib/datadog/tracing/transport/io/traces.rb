@@ -25,7 +25,7 @@ module Datadog
           module Client
             def send_traces(traces)
               # Build a request
-              req = Transport::Traces::Request.new(Parcel.new(traces))
+              req = Transport::Traces::Request.new(Core::Transport::Parcel.new(traces))
 
               [send_request(req) do |out, request|
                 # Encode trace data
@@ -75,20 +75,6 @@ module Datadog
                   end
                 end
               end
-            end
-          end
-
-          # Transfer object for list of traces
-          class Parcel
-            include Datadog::Core::Transport::Parcel
-            include Encoder
-
-            def count
-              data.length
-            end
-
-            def encode_with(encoder)
-              encode_traces(encoder, data)
             end
           end
 
