@@ -21,29 +21,6 @@ module Datadog
             end
           end
 
-          # Extensions for HTTP client
-          module Client
-            def send_traces(traces)
-              # Build a request
-              req = Transport::Traces::Request.new(Core::Transport::Parcel.new(traces))
-
-              [send_request(req) do |out, request|
-                # Encode trace data
-                data = encode_data(encoder, request)
-
-                # Write to IO
-                result = if block_given?
-                  yield(out, data)
-                else
-                  write_data(out, data)
-                end
-
-                # Generate response
-                Traces::Response.new(result)
-              end]
-            end
-          end
-
           # Encoder for IO-specific trace encoding
           # API compliant when used with {JSONEncoder}.
           module Encoder
@@ -59,8 +36,8 @@ module Datadog
                 encode_trace(trace)
               end
 
-              # Wrap traces & encode them
-              encoder.encode(traces: trace_hashes)
+              # Wrap traces
+              {traces: trace_hashes}
             end
 
             private
@@ -75,6 +52,37 @@ module Datadog
                   end
                 end
               end
+            end
+          end
+
+          # Extensions for HTTP client
+          module Client
+            include Encoder
+
+            def send_traces(traces)
+              # Build a request
+              encoded_traces = encode_traces(traces)
+              encoder = Core::Encoding::JSONEncoder
+              parcel = Core::Transport::Parcel.new(
+                encoder.encode(encoded_traces),
+                content_type: encoder.content_type,
+              )
+              req = Transport::Traces::Request.new(parcel)
+
+              [send_request(req) do |out, request|
+                # Encode trace data
+                data = encode_data(encoder, request)
+
+                # Write to IO
+                result = if block_given?
+                  yield(out, data)
+                else
+                  write_data(out, data)
+                end
+
+                # Generate response
+                Traces::Response.new(result)
+              end]
             end
           end
 

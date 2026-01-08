@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
-  subject(:parcel) { described_class.new(data, trace_count) }
+  subject(:parcel) { described_class.new(data, trace_count: trace_count) }
 
   let(:data) { instance_double(Array) }
   let(:trace_count) { 123 }
@@ -12,16 +12,6 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
 
   describe '#initialize' do
     it { is_expected.to have_attributes(data: data) }
-  end
-
-  describe '#count' do
-    subject(:count) { parcel.count }
-
-    let(:length) { double('length') }
-
-    before { expect(data).to receive(:length).and_return(length) }
-
-    it { is_expected.to be length }
   end
 
   describe '#trace_count' do

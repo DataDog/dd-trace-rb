@@ -45,7 +45,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
       let(:result) { double('IO result') }
 
       before do
-        expect_any_instance_of(Datadog::Tracing::Transport::IO::Traces::Parcel).to receive(:encode_with)
+        expect_any_instance_of(Datadog::Core::Transport::Parcel).to receive(:encode_with)
           .with(encoder)
           .and_return(encoded_traces)
 
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
       let(:target) { double('target') }
 
       before do
-        expect_any_instance_of(Datadog::Tracing::Transport::IO::Traces::Parcel).to receive(:encode_traces)
+        expect_any_instance_of(Datadog::Core::Transport::Parcel).to receive(:encode_traces)
           .with(encoder, traces)
           .and_return(encoded_traces)
 
