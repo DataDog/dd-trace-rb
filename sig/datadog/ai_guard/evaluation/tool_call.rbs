@@ -1,0 +1,13 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class ToolCall
+        attr_reader tool_name: ::String
+        attr_reader id: ::String
+        attr_reader arguments: ::String
+
+        def initialize: (::String tool_name, id: ::String, arguments: ::String) -> void
+      end
+    end
+  end
+end
