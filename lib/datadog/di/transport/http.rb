@@ -1,30 +1,46 @@
 # frozen_string_literal: true
 
+require_relative '../../core/encoding'
+require_relative '../../core/transport/http'
 require_relative 'diagnostics'
 require_relative 'input'
-require_relative 'http/api'
-require_relative '../../core/transport/http'
 
 module Datadog
   module DI
     module Transport
       # Namespace for HTTP transport components
       module HTTP
+        DIAGNOSTICS = Diagnostics::API::Endpoint.new(
+          '/debugger/v1/diagnostics',
+          Core::Encoding::JSONEncoder,
+        )
+
+        INPUT = Input::API::Endpoint.new(
+          '/debugger/v2/input',
+          Core::Encoding::JSONEncoder,
+        )
+
+        LEGACY_INPUT = Input::API::Endpoint.new(
+          # We used to use /debugger/v1/input, but now input
+          # payloads should be going to the diagnostics endpoint
+          # which I gather performs data redaction.
+          '/debugger/v1/diagnostics',
+          Core::Encoding::JSONEncoder,
+        )
+
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
         def self.diagnostics(
           agent_settings:,
           logger:,
-          api_version: nil,
           headers: nil
         )
           Core::Transport::HTTP.build(
             logger: logger,
-            agent_settings: agent_settings, api_version: api_version, headers: headers
+            agent_settings: agent_settings,
+            headers: headers,
           ) do |transport|
-            apis = API.defaults
-
-            transport.api API::DIAGNOSTICS, apis[API::DIAGNOSTICS]
+            transport.api 'diagnostics', DIAGNOSTICS
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?
@@ -36,19 +52,15 @@ module Datadog
         def self.input(
           agent_settings:,
           logger:,
-          api_version: nil,
           headers: nil
         )
           Core::Transport::HTTP.build(
             logger: logger,
             agent_settings: agent_settings,
-            api_version: api_version,
             headers: headers,
           ) do |transport|
-            apis = API.defaults
-
-            transport.api API::INPUT, apis[API::INPUT], fallback: API::LEGACY_INPUT, default: true
-            transport.api API::LEGACY_INPUT, apis[API::LEGACY_INPUT]
+            transport.api 'input', INPUT, fallback: 'legacy_input', default: true
+            transport.api 'legacy_input', LEGACY_INPUT
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?

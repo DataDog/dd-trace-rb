@@ -8,7 +8,7 @@ require 'set'
 module Datadog
   module Core
     module Configuration
-      SUPPORTED_CONFIGURATIONS =
+      SUPPORTED_CONFIGURATION_NAMES =
         Set["DD_AGENT_HOST",
           "DD_AI_GUARD_ENABLED",
           "DD_AI_GUARD_ENDPOINT",
@@ -53,6 +53,7 @@ module Datadog
           "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE",
           "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED",
           "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED",
+          "DD_EXTERNAL_ENV",
           "DD_GIT_COMMIT_SHA",
           "DD_GIT_REPOSITORY_URL",
           "DD_HEALTH_METRICS_ENABLED",

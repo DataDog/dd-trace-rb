@@ -1,8 +1,6 @@
 module Datadog
   module Profiling
     module Component
-      ALLOCATION_WITH_RACTORS_ONLY_ONCE: Datadog::Core::Utils::OnlyOnce
-
       def self.build_profiler_component: (
         settings: untyped,
         agent_settings: Datadog::Core::Configuration::AgentSettings,

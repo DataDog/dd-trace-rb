@@ -285,6 +285,13 @@
         "default": null
       }
     ],
+    "DD_EXTERNAL_ENV": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
       {
         "version": "A",

@@ -32,7 +32,6 @@ module Datadog
         def build(
           agent_settings:,
           logger: Datadog.logger,
-          api_version: nil,
           headers: nil,
           &block
         )
@@ -44,7 +43,6 @@ module Datadog
             yield transport
 
             # Apply any settings given by options
-            transport.default_api = api_version if api_version
             transport.headers(headers) if headers
           end
         end
@@ -63,10 +61,9 @@ module Datadog
             Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
               Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
           }.tap do |headers|
-            # Add container ID, if present.
-            if (container_id = Datadog::Core::Environment::Container.container_id)
-              headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id
-            end
+            # Add application container info
+            headers.merge!(Core::Environment::Container.to_headers)
+
             # TODO: inject configuration rather than reading from global here
             unless Datadog.configuration.apm.tracing.enabled
               # Sending this header to the agent will disable metrics computation (and billing) on the agent side

@@ -39,6 +39,19 @@ RSpec.describe Datadog::Tracing::SyncWriter do
 
       it { is_expected.to have_attributes(transport: transport) }
     end
+
+    context 'when transport options include headers' do
+      let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
+      let(:options) { {agent_settings: agent_settings, logger: logger, transport_options: transport_options} }
+
+      let(:transport_options) { {headers: {foo: 'bar'}} }
+
+      it 'passes the headers into transport' do
+        expect(sync_writer.transport.apis.length).to eq 2
+        expect(sync_writer.transport.apis['v0.4'].headers).to include(foo: 'bar')
+        expect(sync_writer.transport.apis['v0.3'].headers).to include(foo: 'bar')
+      end
+    end
   end
 
   describe '#write' do
