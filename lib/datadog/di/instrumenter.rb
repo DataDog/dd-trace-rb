@@ -541,7 +541,9 @@ module Datadog
         stack = caller_locations
         # We have two helper methods being invoked from the trace point
         # handler block, remove them from the stack.
-        stack.shift(2)
+        #
+        # According to steep stack may be nil.
+        stack&.shift(2)
         Context.new(
           locals: Instrumenter.get_local_variables(tp),
           target_self: tp.self,

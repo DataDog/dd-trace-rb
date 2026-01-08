@@ -50,6 +50,11 @@ module Datadog
       private
 
       attr_reader lock: untyped
+
+      def line_trace_point_callback: (untyped probe, untyped iseq, untyped responder, untyped tp) -> untyped
+
+      def build_trace_point_context: (untyped probe, untyped tp) -> untyped
+
       def symbolize_class_name: (untyped cls_name) -> untyped
       def raise_if_probe_in_loaded_features: (Probe probe) -> void
     end
