@@ -1,0 +1,19 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class NoOpResult
+        attr_reader action: ::String
+        attr_reader reason: ::String
+        attr_reader tags: ::Array[::String]
+
+        def initialize: () -> void
+
+        def allow?: () -> bool
+
+        def deny?: () -> bool
+
+        def abort?: () -> bool
+      end
+    end
+  end
+end

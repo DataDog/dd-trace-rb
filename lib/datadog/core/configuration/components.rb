@@ -14,6 +14,7 @@ require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
+require_relative '../../ai_guard/component'
 require_relative '../../di/component'
 require_relative '../../open_feature/component'
 require_relative '../../error_tracking/component'
@@ -108,6 +109,7 @@ module Datadog
           :error_tracking,
           :dynamic_instrumentation,
           :appsec,
+          :ai_guard,
           :agent_info,
           :data_streams,
           :open_feature
@@ -144,6 +146,7 @@ module Datadog
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger, telemetry)
           @health_metrics = self.class.build_health_metrics(settings, @logger, telemetry)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
+          @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
           @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
@@ -209,6 +212,9 @@ module Datadog
 
           # Decommission AppSec
           appsec&.shutdown!
+
+          # Shutdown AIGuard component
+          ai_guard&.shutdown!
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
