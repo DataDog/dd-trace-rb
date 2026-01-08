@@ -23,9 +23,12 @@ module Datadog
           Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
             settings = Datadog.configuration
             Datadog::Core::ProcessDiscovery._native_publish_otel_ctx_on_fork(
-              settings.service || '',
-              Core::Environment::Identity.id,
               settings.env || '',
+              Core::Environment::Socket.hostname,
+              Core::Environment::Identity.id,
+              settings.service || '',
+              settings.version || '',
+              Core::Environment::Identity.gem_datadog_version_semver2,
               Datadog.logger,
             )
           end
