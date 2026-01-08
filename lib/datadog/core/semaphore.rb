@@ -20,8 +20,6 @@ module Datadog
 
       def wait(timeout = nil)
         wake_lock.synchronize do
-          # Reason why _Timeout is not Numeric is because Numeric does not implement `*`
-          # Which is required for timeout. But all core classes inheriting from Numeric implement `*`.
           wake.wait(wake_lock, timeout)
         end
       end

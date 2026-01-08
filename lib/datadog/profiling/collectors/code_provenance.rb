@@ -161,7 +161,7 @@ module Datadog
           end
 
           def to_json(arg = nil)
-            # Steep: https://github.com/ruby/rbs/pull/2691 (remove after Ruby 4.0 release)
+            # Steep: https://github.com/ruby/rbs/pull/2691 (remove after RBS 4.0 release)
             {kind: @kind, name: @name, version: @version, paths: @paths}.to_json(arg) # steep:ignore ArgumentTypeMismatch
           end
 
