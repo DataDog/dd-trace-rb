@@ -2,6 +2,9 @@ module Datadog
   module DI
     module Transport
       module HTTP
+        DIAGNOSTICS: Diagnostics::API::Endpoint
+        INPUT: Input::API::Endpoint
+        LEGACY_INPUT: Input::API::Endpoint
         def self.diagnostics: (agent_settings: untyped, logger: untyped, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
         def self.input: (agent_settings: untyped, logger: untyped, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
       end

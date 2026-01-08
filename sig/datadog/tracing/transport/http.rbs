@@ -2,6 +2,8 @@ module Datadog
   module Tracing
     module Transport
       module HTTP
+        V4: Traces::API::Endpoint
+        V3: Traces::API::Endpoint
         def self?.default: (agent_settings: untyped, ?logger: untyped, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
       end
     end
