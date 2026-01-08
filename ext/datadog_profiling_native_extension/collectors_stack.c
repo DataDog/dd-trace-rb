@@ -17,6 +17,7 @@
 
 #include "datadog_ruby_common.h"
 #include "private_vm_api_access.h"
+#include "ruby_helpers.h"
 #include "stack_recorder.h"
 #include "collectors_stack.h"
 
@@ -284,11 +285,11 @@ void sample_thread(
   // here, but >= 0 makes this easier to understand/debug.
   bool only_wall_time = cpu_or_wall_sample && values.cpu_time_ns == 0 && values.wall_time_ns >= 0;
 
-  if (cpu_or_wall_sample && state_label == NULL) rb_raise(rb_eRuntimeError, "BUG: Unexpected missing state_label");
+  if (cpu_or_wall_sample && state_label == NULL) RAISE_PROFILING_TELEMETRY_SAFE("BUG: Unexpected missing state_label");
 
   if (has_cpu_time) {
     state_label->str = DDOG_CHARSLICE_C("had cpu");
-    if (labels.is_gvl_waiting_state) rb_raise(rb_eRuntimeError, "BUG: Unexpected combination of cpu-time with is_gvl_waiting");
+    if (labels.is_gvl_waiting_state) RAISE_PROFILING_TELEMETRY_SAFE("BUG: Unexpected combination of cpu-time with is_gvl_waiting");
   }
 
   int top_of_stack_position = captured_frames - 1;
