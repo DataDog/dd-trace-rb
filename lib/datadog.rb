@@ -6,6 +6,7 @@ require_relative 'datadog/tracing/contrib'
 
 # Load other products (must follow tracing)
 require_relative 'datadog/profiling'
+require_relative 'datadog/ai_guard'
 require_relative 'datadog/appsec'
 require_relative 'datadog/di'
 require_relative 'datadog/data_streams'

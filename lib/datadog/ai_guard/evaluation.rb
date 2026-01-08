@@ -1,0 +1,72 @@
+# frozen_string_literal: true
+
+module Datadog
+  module AIGuard
+    # module that contains a function for performing AI Guard Evaluation request
+    # and creating `ai_guard` span with required tags
+    module Evaluation
+      class << self
+        def perform(messages, allow_raise: false)
+          raise ArgumentError, "Messages must not be empty" if messages&.empty?
+
+          Tracing.trace(Ext::SPAN_NAME) do |span, trace|
+            if (last_message = messages.last)
+              if last_message.tool_call
+                span.set_tag(Ext::TARGET_TAG, "tool")
+                span.set_tag(Ext::TOOL_NAME_TAG, last_message.tool_call.tool_name)
+              elsif last_message.tool_call_id
+                span.set_tag(Ext::TARGET_TAG, "tool")
+
+                if (tool_call_message = messages.find { |m| m.tool_call&.id == last_message.tool_call_id })
+                  span.set_tag(Ext::TOOL_NAME_TAG, tool_call_message.tool_call.tool_name) # steep:ignore
+                end
+              else
+                span.set_tag(Ext::TARGET_TAG, "prompt")
+              end
+            end
+
+            request = Request.new(messages)
+            result = request.perform
+
+            span.set_tag(Ext::ACTION_TAG, result.action)
+            span.set_tag(Ext::REASON_TAG, result.reason)
+
+            span.set_metastruct_tag(
+              Ext::METASTRUCT_TAG,
+              {
+                messages: truncate_content(request.serialized_messages),
+                attack_categories: result.tags
+              }
+            )
+
+            if allow_raise && (result.deny? || result.abort?) && result.blocking_enabled?
+              span.set_tag(Ext::BLOCKED_TAG, true)
+              raise AIGuardAbortError.new(action: result.action, reason: result.reason, tags: result.tags)
+            end
+
+            result
+          end
+        end
+
+        def perform_no_op
+          AIGuard.logger&.warn("AI Guard is disabled, messages were not evaluated")
+
+          NoOpResult.new
+        end
+
+        private
+
+        def truncate_content(serialized_messages)
+          serialized_messages.map do |message| # steep:ignore
+            next message unless message[:content]
+
+            {
+              **message,
+              content: message[:content].byteslice(0, Datadog.configuration.ai_guard.max_content_size_bytes)
+            }
+          end
+        end
+      end
+    end
+  end
+end
