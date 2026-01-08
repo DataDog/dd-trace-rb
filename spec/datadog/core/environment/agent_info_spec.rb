@@ -18,9 +18,8 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
   describe '#container_tags_hash' do
     context 'when the header is missing' do
-      before do
-        allow(response).to receive(:headers).and_return({})
-      end
+      before { allow(response).to receive(:headers).and_return({}) }
+      
       it 'returns nil' do
         agent_info.fetch
         expect(agent_info.container_tags_hash).to be nil
