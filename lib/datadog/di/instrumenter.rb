@@ -117,46 +117,51 @@ module Datadog
           define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
             # Steep: Unsure why it cannot detect kwargs in this block. Workaround:
             # @type var kwargs: ::Hash[::Symbol, untyped]
-            continue = true
-            if condition = probe.condition
-              begin
-                # This context will be recreated later, unlike for line probes.
-                context = Context.new(
-                  locals: serializer.combine_args(args, kwargs, self),
-                  target_self: self,
-                  probe: probe, settings: settings, serializer: serializer,
-                  caller_locations: caller_locations,
-                )
-                continue = condition.satisfied?(context)
-              rescue => exc
-                # Evaluation error exception can be raised for "expected"
-                # errors, we probably need another setting to control whether
-                # these exceptions are propagated.
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-                  !exc.is_a?(DI::Error::ExpressionEvaluationError)
+            di_start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
-                if context
-                  # We want to report evaluation errors for conditions
-                  # as probe snapshots. However, if we failed to create
-                  # the context, we won't be able to report anything as
-                  # the probe notifier builder requires a context.
-                  begin
-                    responder.probe_condition_evaluation_failed_callback(context, exc)
-                  rescue
+            if continue = probe.enabled?
+              if condition = probe.condition
+                begin
+                  # This context will be recreated later, unlike for line probes.
+                  #
+                  # We do not need the stack for condition evaluation, therefore
+                  # stack is not passed to Context here.
+                  context = Context.new(
+                    locals: serializer.combine_args(args, kwargs, self),
+                    target_self: self,
+                    probe: probe, settings: settings, serializer: serializer,
+                  )
+                  continue = condition.satisfied?(context)
+                rescue => exc
+                  # Evaluation error exception can be raised for "expected"
+                  # errors, we probably need another setting to control whether
+                  # these exceptions are propagated.
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                    !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+                  if context
+                    # We want to report evaluation errors for conditions
+                    # as probe snapshots. However, if we failed to create
+                    # the context, we won't be able to report anything as
+                    # the probe notifier builder requires a context.
+                    begin
+                      responder.probe_condition_evaluation_failed_callback(context, exc)
+                    rescue
+                      raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                      # TODO log / report via telemetry?
+                    end
+                  else
+                    _ = 42 # stop standard from wrecking this code
+
                     raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
                     # TODO log / report via telemetry?
+                    # If execution gets here, there is probably a bug in the tracer.
                   end
-                else
-                  _ = 42 # stop standard from wrecking this code
 
-                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                  # TODO log / report via telemetry?
-                  # If execution gets here, there is probably a bug in the tracer.
+                  continue = false
                 end
-
-                continue = false
               end
             end
 
@@ -172,6 +177,8 @@ module Datadog
               # here because the time provider may be overridden by the
               # customer, and DI is not allowed to invoke customer code.
               start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+              di_duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - di_start_time
 
               rv = nil
               begin
@@ -195,7 +202,15 @@ module Datadog
                 # the instrumentation callback runs.
               end
 
-              duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+              end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+              duration = end_time - start_time
+
+              # Restart DI timer.
+              # The DI execution duration covers time spent in DI code before
+              # the customer method is invoked and time spent in DI code
+              # after the customer method finishes.
+              di_start_time = end_time
+
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
@@ -222,6 +237,17 @@ module Datadog
                 return_value: rv, duration: duration, exception: exc,)
 
               responder.probe_executed_callback(context)
+
+              if max_processing_time = settings.dynamic_instrumentation.internal.max_processing_time
+                di_duration += Process.clock_gettime(Process::CLOCK_MONOTONIC) - di_start_time
+                if di_duration > max_processing_time
+                  # We disable the probe here rather than remove it to
+                  # avoid a dependency on ProbeManager from Instrumenter.
+                  probe.disable!
+                  responder.probe_disabled_callback(probe, di_duration)
+                end
+              end
+
               if exc
                 raise exc
               else

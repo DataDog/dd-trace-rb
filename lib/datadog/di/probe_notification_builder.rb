@@ -40,6 +40,12 @@ module Datadog
           status: 'ERROR',)
       end
 
+      def build_disabled(probe, duration)
+        build_status(probe,
+          message: "Probe #{probe.id} was disabled because it took #{duration} seconds of DI processing",
+          status: 'ERROR',)
+      end
+
       # Duration is in seconds.
       # path is the actual path of the instrumented file.
       def build_executed(context)

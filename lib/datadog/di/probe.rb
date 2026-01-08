@@ -97,6 +97,7 @@ module Datadog
         end
 
         @emitting_notified = false
+        @enabled = true
       end
 
       attr_reader :id
@@ -219,12 +220,20 @@ module Datadog
       end
 
       def executed_on_line?
-        !!@executed_on_line
+        !!(defined?(@executed_on_line) && @executed_on_line)
       end
 
       def executed_on_line!
         # TODO lock?
         @executed_on_line = true
+      end
+
+      def enabled?
+        @enabled
+      end
+
+      def disable!
+        @enabled = false
       end
     end
   end
