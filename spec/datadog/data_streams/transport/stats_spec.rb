@@ -59,7 +59,7 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
         expect(client).to receive(:send_request) do |action, request|
           expect(action).to eq(:stats)
           expect(request).to be_a(Datadog::DataStreams::Transport::Stats::Request)
-          expect(request.parcel).to be_a(Datadog::DataStreams::Transport::Stats::EncodedParcel)
+          expect(request.parcel).to be_a(Datadog::Core::Transport::Parcel)
 
           # Verify the data is compressed MessagePack
           compressed_data = request.parcel.data

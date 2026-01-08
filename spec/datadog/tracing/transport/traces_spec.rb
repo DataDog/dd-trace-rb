@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/traces'
 
-RSpec.describe Datadog::Tracing::Transport::Traces::EncodedParcel do
+RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
   subject(:parcel) { described_class.new(data, trace_count) }
 
   let(:data) { instance_double(Array) }
