@@ -45,7 +45,7 @@ module Datadog
 
         def record_waf: (SecurityEngine::result result) -> void
 
-        def record_rasp: (SecurityEngine::result result, type: Ext::rasp_rule_type) -> void
+        def record_rasp: (SecurityEngine::result result, type: Ext::rasp_rule_type, ?phase: ::String?) -> void
       end
     end
   end

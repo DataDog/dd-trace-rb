@@ -45,7 +45,7 @@ module Datadog
           end
         end
 
-        def record_rasp(result, type:)
+        def record_rasp(result, type:, phase: nil)
           @mutex.synchronize do
             @rasp.evals += 1
             @waf.matches += 1 if result.match?
@@ -54,7 +54,7 @@ module Datadog
             @rasp.duration_ns += result.duration_ns
             @rasp.duration_ext_ns += result.duration_ext_ns
             @rasp.inputs_truncated += 1 if result.input_truncated?
-            @rasp.downstream_requests += 1 if type == Ext::RASP_SSRF
+            @rasp.downstream_requests += 1 if type == Ext::RASP_SSRF && phase == Ext::RASP_REQUEST_PHASE
           end
         end
       end

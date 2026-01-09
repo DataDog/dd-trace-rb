@@ -10,7 +10,7 @@ module Datadog
         def report_rasp(type, result, phase: nil)
           return if result.error?
 
-          tags = { rule_type: type, waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING }
+          tags = {rule_type: type, waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING}
           tags[:rule_variant] = phase if phase
 
           namespace = Ext::TELEMETRY_METRICS_NAMESPACE

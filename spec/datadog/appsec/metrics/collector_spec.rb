@@ -190,8 +190,8 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Match.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: true, duration_ns: 400, duration_ext_ns: 1200,
-          input_truncated: false
+          events: [], actions: {}, attributes: {}, keep: false, timeout: true,
+          duration_ns: 400, duration_ext_ns: 1200, input_truncated: false
         )
       end
 
@@ -211,23 +211,46 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       end
     end
 
-    context 'when ssrf was recorded' do
+    context 'when ssrf was recorded for request and response phases' do
       before do
-        collector.record_rasp(result_1, type: 'ssrf')
-        collector.record_rasp(result_2, type: 'ssrf')
+        collector.record_rasp(result_1, type: 'ssrf', phase: 'request')
+        collector.record_rasp(result_2, type: 'ssrf', phase: 'response')
       end
 
       let(:result_1) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 100, duration_ext_ns: 200,
-          input_truncated: false
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 100, duration_ext_ns: 200, input_truncated: false
         )
       end
 
       let(:result_2) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: {}, attributes: {}, keep: false, timeout: false, duration_ns: 1000, duration_ext_ns: 1200,
-          input_truncated: false
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 1000, duration_ext_ns: 1200, input_truncated: false
+        )
+      end
+
+      it { expect(collector.rasp.downstream_requests).to eq(1) }
+    end
+
+    context 'when ssrf was recorded for two request phases' do
+      before do
+        collector.record_rasp(result_1, type: 'ssrf', phase: 'request')
+        collector.record_rasp(result_2, type: 'ssrf', phase: 'request')
+      end
+
+      let(:result_1) do
+        Datadog::AppSec::SecurityEngine::Result::Ok.new(
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 100, duration_ext_ns: 200, input_truncated: false
+        )
+      end
+
+      let(:result_2) do
+        Datadog::AppSec::SecurityEngine::Result::Ok.new(
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 1000, duration_ext_ns: 1200, input_truncated: false
         )
       end
 
