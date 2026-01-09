@@ -168,6 +168,7 @@ RSpec.describe Datadog::AIGuard do
           expect(result).to be_allow
           expect(result).not_to be_deny
           expect(result).not_to be_abort
+          expect(result).not_to be_blocking_enabled
         end
       end
     end

@@ -6,8 +6,14 @@ module Datadog
 
         type stable_config = {
           ?logs: String?,
-          ?local: Hash[String, String],
-          ?fleet: Hash[String, String]
+          ?local: {
+            config: ::Hash[::String, ::String],
+            ?id: ::String
+          },
+          ?fleet: {
+            config: ::Hash[::String, ::String],
+            ?id: ::String
+          }
         }
 
         class Configurator

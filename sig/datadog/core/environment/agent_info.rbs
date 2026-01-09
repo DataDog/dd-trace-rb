@@ -4,6 +4,8 @@ module Datadog
       class AgentInfo
         attr_reader agent_settings: Configuration::AgentSettings
 
+        @client: Datadog::Core::Remote::Transport::Negotiation::Transport
+
         def initialize: (Configuration::AgentSettings agent_settings, ?logger: Core::Logger) -> void
 
         def fetch: -> Remote::Transport::HTTP::Negotiation::Response?

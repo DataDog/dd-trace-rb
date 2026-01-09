@@ -6,14 +6,23 @@ module Datadog
 
       ALLOWED_TYPES: ::Array[::Symbol]
 
-      def initialize: (Exposures::Reporter reporter, telemetry: Core::Telemetry::Component, logger: Core::Logger) -> void
+      @reporter: Exposures::Reporter
+      @telemetry: Core::Telemetry::Component
+      @logger: Core::Logger
+      @evaluator: NoopEvaluator | NativeEvaluator
+
+      def initialize: (
+        Exposures::Reporter reporter,
+        telemetry: Core::Telemetry::Component,
+        logger: Core::Logger
+      ) -> void
 
       def fetch_value: (
         ::String flag_key,
         default_value: untyped,
         expected_type: ::Symbol,
         ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
-      ) -> ResolutionDetails
+      ) -> (ResolutionDetails | Core::FeatureFlags::ResolutionDetails)
 
       def reconfigure!: (::String? configuration) -> void
     end

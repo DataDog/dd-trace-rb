@@ -8,6 +8,10 @@ module Datadog
 
       @logger: Core::Logger
 
+      @duration_start: ::Time?
+
+      @duration_end: ::Time?
+
       attr_reader logger: Core::Logger
 
       attr_reader links: untyped
@@ -65,7 +69,7 @@ module Datadog
 
       def start: (?untyped? start_time) -> self
 
-      def stop: (?Time? stop_time, ?exception: Exception) -> self?
+      def stop: (?::Time? stop_time, ?exception: ::Exception?) -> self?
 
       def started?: () -> untyped
 
@@ -123,9 +127,11 @@ module Datadog
         end
 
         class OnError
-          def initialize: (untyped default, ?logger: Core::Logger) -> void
+          @handler: ::Proc
 
           attr_reader logger: Core::Logger
+
+          def initialize: (untyped default, ?logger: Core::Logger) -> void
 
           def wrap_default: () { (untyped, untyped) -> untyped } -> untyped
 

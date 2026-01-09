@@ -158,6 +158,8 @@ module Datadog
 
         def site: -> String?
 
+        def service_without_fallback: -> ::String?
+
         def version: -> String?
 
         def tags: -> ::Hash[::String, ::String]

@@ -16,6 +16,10 @@ module Datadog
 
         HOST_CGROUP_NAMESPACE_INODE: Integer
 
+        @running_on_host: bool
+
+        @entry: Entry
+
         class Entry
           attr_accessor platform: String?
           attr_accessor task_uid: String?

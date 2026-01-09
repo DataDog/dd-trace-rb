@@ -16,7 +16,7 @@ module Datadog
         @timeout = timeout
 
         @endpoint_uri = if endpoint
-          URI(endpoint)
+          URI(endpoint) #: URI::HTTP
         else
           URI::HTTPS.build(
             host: Datadog.configuration.site || DEFAULT_SITE,

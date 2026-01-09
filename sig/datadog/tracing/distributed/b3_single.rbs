@@ -4,6 +4,9 @@ module Datadog
       class B3Single
         B3_SINGLE_HEADER_KEY: "b3"
 
+        @key: ::String
+        @fetcher: singleton(Distributed::Fetcher)
+
         def initialize: (fetcher: untyped, ?key: untyped) -> void
 
         def inject!: (untyped digest, untyped env) -> (nil | untyped)
