@@ -405,10 +405,11 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
 }
 
 static void stack_recorder_typed_data_mark(void *state_ptr) {
-  stack_recorder_state *state = (stack_recorder_state *) state_ptr;
-
   #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  stack_recorder_state *state = (stack_recorder_state *) state_ptr;
   heap_recorder_mark_pending_recordings(state->heap_recorder);
+  #else
+  (void) state_ptr;
   #endif
 }
 
@@ -1166,23 +1167,24 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
 }
 
 static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
-
-  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
   heap_recorder_finalize_pending_recordings(state->heap_recorder);
+  #else
+  (void) recorder_instance;
   #endif
 
   return Qtrue;
 }
 
 static VALUE _native_has_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
-
-  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
   return heap_recorder_has_pending_recordings(state->heap_recorder) ? Qtrue : Qfalse;
   #else
+  (void) recorder_instance;
   return Qfalse;
   #endif
 }
