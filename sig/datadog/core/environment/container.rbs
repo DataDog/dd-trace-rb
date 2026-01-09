@@ -15,6 +15,15 @@ module Datadog
         FARGATE_14_CONTAINER_REGEX: Regexp
 
         HOST_CGROUP_NAMESPACE_INODE: Integer
+        class Descriptor < ::Struct[[String, String, String]]
+          def self.new: (?String? platform, ?String? container_id, ?String? task_uid) -> instance
+
+          attr_accessor platform: String
+          attr_accessor container_id: String
+          attr_accessor task_uid: String
+        end
+
+        @descriptor: Descriptor?
 
         @running_on_host: bool
 
