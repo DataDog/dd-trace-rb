@@ -24,7 +24,7 @@ module Datadog
           span.set_tag('_dd.appsec.rasp.duration_ext', convert_ns_to_us(metrics.duration_ext_ns))
 
           unless metrics.downstream_requests.zero?
-            span.set_tag('_dd.appsec.rasp.downstream_requests', metrics.downstream_requests)
+            span.set_tag('_dd.appsec.downstream_request', metrics.downstream_requests)
           end
         end
 
