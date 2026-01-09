@@ -2,26 +2,26 @@ module Datadog
   module Tracing
     module Transport
       class SerializableTrace
+        include ::MessagePack::_Extension
+
         @native_events_supported: bool
 
         attr_reader trace: TraceSegment
 
         def initialize: (untyped trace, native_events_supported: bool) -> void
 
-        def to_msgpack: (?untyped? packer) -> untyped
-
         def to_json: (*untyped args) -> untyped
       end
 
       class SerializableSpan
+        include ::MessagePack::_Extension
+
         @native_events_supported: bool
         @trace_id: Integer
 
         attr_reader span: Span
 
         def initialize: (untyped span, native_events_supported: bool) -> void
-
-        def to_msgpack: (?untyped? packer) -> untyped
 
         def to_json: (*untyped args) -> untyped
 

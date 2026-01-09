@@ -4,13 +4,14 @@ module Datadog
       class Option
         type env_value = Hash[String, String] | Array[String] | String | Integer | Float | bool | nil
         type env_vars = Hash[String, String] | ::RBS::Unnamed::ENVClass
+        type option_value = Object? | OptionDefinition::generic_proc
 
         @context: Options::GenericSettingsClass
 
         @is_set: bool
         @value: Object?
 
-        @value_per_precedence: ::Hash[Precedence::Value, Object?]
+        @value_per_precedence: ::Hash[Precedence::Value, option_value]
 
         attr_reader definition: OptionDefinition
         attr_reader precedence_set: Precedence::Value
@@ -42,17 +43,17 @@ module Datadog
 
         def initialize: (OptionDefinition definition, Options::GenericSettingsClass context) -> void
 
-        def set: (Object? value, ?precedence: Precedence::Value) -> Object?
+        def set: (option_value value, ?precedence: Precedence::Value) -> Object?
 
         def get: () -> Object?
 
         def reset: () -> void
 
-        def default_value: () -> (OptionDefinition::option_type | Options::GenericSettingsClass)
+        def default_value: () -> (OptionDefinition::generic_proc | OptionDefinition::option_type | Options::GenericSettingsClass)
 
         def default_precedence?: () -> bool
 
-        def unset: (Precedence::Value) -> void
+        def unset: (Precedence::Value precedence) -> void
 
         private
 
@@ -61,13 +62,13 @@ module Datadog
         class InvalidDefinitionError < StandardError
         end
 
-        def validate_type: (Object? value) -> Object?
+        def validate_type: (option_value value) -> option_value
 
-        def validate: (Symbol? type, Object? value) -> bool
+        def validate: (Symbol? type, option_value value) -> bool
 
-        def internal_set: (Object? value, Precedence::Value precedence) -> Object?
+        def internal_set: (option_value value, Precedence::Value precedence) -> Object?
 
-        def context_exec: [U] (*Object? args) { (?) [self: Options::GenericSettingsClass] -> U } -> U
+        def context_exec: [U] (*option_value args) { (?) [self: Options::GenericSettingsClass] -> U } -> U
 
         def context_eval: [U] () { (Options::GenericSettingsClass settings) [self: Options::GenericSettingsClass] -> U } -> U
 

@@ -17,6 +17,8 @@ module Datadog
       class ResolutionDetails
         type metadata_t = ::Hash[::String, ::String]
 
+        @value: ::Helpers::json
+
         def flag_type: () -> ::Symbol?
 
         def raw_value: () -> untyped

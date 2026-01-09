@@ -4,6 +4,8 @@ module Datadog
   module OpenTelemetry
     module API
       module Baggage
+        @trace: Datadog::Tracing::TraceOperation?
+
         def initialize: (?trace: Datadog::Tracing::TraceOperation?) -> void
 
         def clear: (?context: OpenTelemetry::Context) -> OpenTelemetry::Context

@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-# steep thinks all of the arguments are nil here and does not know what ActiveRecord is.
-# steep:ignore:start
-
 Datadog::DI::Serializer.register(
   # This serializer uses a dynamic condition to determine its applicability
   # to a particular value. A simpler case could have been a serializer for
@@ -28,11 +25,13 @@ Datadog::DI::Serializer.register(
   # It should always be an integer.
   # Reduce it by 1 when invoking +serialize_value+ on the contents of +value+.
   # This serializer could also potentially do its own depth limiting.
+  #
+  # Steep: steep thinks all of the arguments are nil here
+  # Looks like it cannot handle kwargs in lambdas
+  # @type var depth: Integer
   value_to_serialize = {
     attributes: value.attributes,
     new_record: value.new_record?,
   }
   serializer.serialize_value(value_to_serialize, depth: depth - 1, type: value.class)
 end
-
-# steep:ignore:end
