@@ -24,6 +24,10 @@ module Datadog
         def abort?
           false
         end
+
+        def blocking_enabled?
+          false
+        end
       end
     end
   end
