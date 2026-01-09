@@ -5,9 +5,10 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
   let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append) }
   let(:append) { false }
   let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_hash: nil) }
+  let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
   before do
-    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: tracer))
   end
 
   describe '.annotate!' do
