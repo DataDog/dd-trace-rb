@@ -308,7 +308,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:default_options) do
           {enabled: settings.runtime_metrics.enabled,
            services: [settings.service],
-           experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled,}
+           experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled,
+           experimental_propagate_process_tags_enabled: settings.experimental_propagate_process_tags_enabled,}
         end
         let(:options) { {} }
 
