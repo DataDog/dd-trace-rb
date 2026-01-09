@@ -3,6 +3,9 @@ module Datadog
     module Collectors
       class Info
         @info: info
+        @platform_info: platform_info
+        @runtime_info: runtime_info
+        @application_info: application_info
         @profiler_info: profiler_info?
         @gc_tuning_info: ::Hash[::Symbol, ::String]
 

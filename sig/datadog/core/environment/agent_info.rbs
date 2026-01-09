@@ -3,6 +3,7 @@ module Datadog
     module Environment
       class AgentInfo
         attr_reader agent_settings: Configuration::AgentSettings
+        attr_reader logger: Core::Logger
 
         @client: Datadog::Core::Remote::Transport::Negotiation::Transport
 

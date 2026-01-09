@@ -44,6 +44,8 @@ module Datadog
       def onto(obj)
         unless obj.respond_to? :datadog_pin=
           obj.define_singleton_method(:datadog_pin=) do |pin|
+            # Steep: https://github.com/soutaro/steep/issues/380
+            # @type self: PinnedObject
             @datadog_pin = pin
           end
         end

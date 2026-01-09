@@ -5,7 +5,7 @@ module Datadog
         module RefineNil
         end
 
-        def self.frozen_or_dup: (untyped v) -> untyped
+        def self.frozen_or_dup: [T < Object?] (T v) -> T
 
         def self.frozen_dup: (untyped v) -> (untyped | nil)
       end
