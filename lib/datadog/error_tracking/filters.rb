@@ -18,10 +18,10 @@ module Datadog
         regex_match = regex.match(file_path)
         return unless regex_match
 
-        gem_name = regex_match[1]
+        gem_name = regex_match[1] #: String
 
         begin
-          Gem::Specification.find_by_name(gem_name) # steep:ignore
+          Gem::Specification.find_by_name(gem_name)
         rescue Gem::MissingSpecError
           nil
         end

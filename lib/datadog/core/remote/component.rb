@@ -11,9 +11,11 @@ module Datadog
   module Core
     module Remote
       # Configures the HTTP transport to communicate with the agent
-      # to fetch and sync the remote configuration
+      # to fetch and sync the remote configuration.
+      #
+      # @api private
       class Component
-        attr_reader :logger, :client, :healthy
+        attr_reader :logger, :client, :healthy, :worker
 
         def initialize(settings, capabilities, agent_settings, logger:)
           @logger = logger

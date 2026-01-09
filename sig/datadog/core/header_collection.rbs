@@ -6,6 +6,8 @@ module Datadog
     end
 
     class HashHeaderCollection < HeaderCollection
+      @hash: ::Hash[::String, ::String]
+
       def initialize: (untyped hash) -> void
 
       def get: (::String header_name) -> ::String?

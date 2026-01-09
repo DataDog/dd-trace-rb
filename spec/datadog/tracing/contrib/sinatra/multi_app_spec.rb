@@ -6,8 +6,7 @@ require 'sinatra/base'
 require 'datadog'
 require 'datadog/tracing/contrib/sinatra/tracer'
 
-# TODO: JRuby 10.0 - Remove this skip after investigation.
-RSpec.describe 'Sinatra instrumentation for multi-apps', skip: PlatformHelpers.jruby_100? do
+RSpec.describe 'Sinatra instrumentation for multi-apps' do
   include Rack::Test::Methods
 
   let(:options) { {} }
@@ -42,6 +41,9 @@ RSpec.describe 'Sinatra instrumentation for multi-apps', skip: PlatformHelpers.j
 
     let(:app_one) do
       Class.new(Sinatra::Application) do
+        # Newer versions of sinatra have a host restriction by default
+        set :host_authorization, permitted_hosts: []
+
         get '/endpoint' do
           '1'
         end
@@ -50,6 +52,9 @@ RSpec.describe 'Sinatra instrumentation for multi-apps', skip: PlatformHelpers.j
 
     let(:app_two) do
       Class.new(Sinatra::Application) do
+        # Newer versions of sinatra have a host restriction by default
+        set :host_authorization, permitted_hosts: []
+
         get '/endpoint' do
           '2'
         end

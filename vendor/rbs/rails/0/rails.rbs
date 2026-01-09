@@ -4,8 +4,14 @@ module ActionDispatch
   end
 end
 
+module ActiveRecord
+  module Base
+  end
+end
+
 module Rails
   class Railtie
+    def self.initializer: (untyped name, ?::Hash[untyped, untyped] opts) { () -> untyped } -> untyped
   end
 
   def self.env: -> String

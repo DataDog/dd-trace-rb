@@ -2,15 +2,17 @@ module Datadog
   module Tracing
     module Metadata
       class Metastruct
+        include ::MessagePack::_Extension
+
         extend Forwardable
+
+        @metastruct: ::Hash[::String | ::Symbol, ::MessagePack::serializable]
 
         def []: (String | Symbol key) -> untyped
 
         def []=: (String | Symbol key, untyped value) -> untyped
 
         def to_h: () -> ::Hash[String | Symbol, untyped]
-
-        def to_msgpack: (?::MessagePack::Packer? packer) -> void
 
         def pretty_print: (untyped q) -> void
       end

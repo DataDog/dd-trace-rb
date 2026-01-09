@@ -132,7 +132,10 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       before do
         # Reduce interval between event submissions in worker
         # to make the test run faster.
-        expect(component.worker).to receive(:loop_wait_time).at_least(:once).and_return(1)
+        # Using +expect+ instead of +allow+ here has failed in CI,
+        # presumably because it is possible for all of the payloads
+        # to be sent out "immediately" and not require any waiting.
+        allow(component.worker).to receive(:loop_wait_time).and_return(1)
       end
 
       before do

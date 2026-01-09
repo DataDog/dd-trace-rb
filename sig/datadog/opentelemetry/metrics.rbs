@@ -3,6 +3,11 @@ module Datadog
     class Metrics
       EXPORTER_NONE: ::String
 
+      @logger: Core::Logger
+      @settings: Core::Configuration::Settings
+      @agent_host: ::String?
+      @agent_ssl: bool
+
       def self.initialize!: (Core::Configuration::Components components) -> bool
 
       def initialize: (Core::Configuration::Components components) -> void

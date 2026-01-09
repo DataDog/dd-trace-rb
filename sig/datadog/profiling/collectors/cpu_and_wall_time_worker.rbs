@@ -6,6 +6,8 @@ module Datadog
         @start_stop_mutex: ::Thread::Mutex
         @failure_exception: ::Exception?
         @idle_sampling_helper: IdleSamplingHelper
+        @wait_until_running_mutex: ::Thread::Mutex
+        @wait_until_running_condition: ::Thread::ConditionVariable
 
         def initialize: (
           gc_profiling_enabled: bool,
@@ -58,7 +60,7 @@ module Datadog
 
         private
 
-        def signal_running: () -> true
+        def signal_running: () -> void
       end
     end
   end

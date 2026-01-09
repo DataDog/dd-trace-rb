@@ -1,0 +1,24 @@
+module Datadog
+  module AIGuard
+    class APIClient
+      DEFAULT_SITE: ::String
+      DEFAULT_PATH: ::String
+
+      @endpoint_uri: ::URI::HTTP
+      @timeout: ::Integer
+      @headers: ::Hash[::Symbol, ::String]
+
+      def initialize: (endpoint: ::String?, api_key: ::String?, application_key: ::String?, timeout: ::Integer) -> void
+
+      def post: (::String path, body: ::Hash[::String | ::Symbol, untyped]) -> ::Hash[::String, ::String]
+
+      private
+
+      def raise_on_http_error!: (::Net::HTTPResponse response) -> void
+
+      def parse_response_body: (::String) -> ::Hash[::String, untyped]
+
+      def use_ssl?: () -> bool
+    end
+  end
+end

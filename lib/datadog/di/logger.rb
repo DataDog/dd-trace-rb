@@ -8,7 +8,7 @@ module Datadog
     #
     # @api private
     class Logger
-      extend Forwardable # steep:ignore
+      extend Forwardable
 
       def initialize(settings, target)
         @settings = settings
@@ -18,7 +18,7 @@ module Datadog
       attr_reader :settings
       attr_reader :target
 
-      def_delegators :target, :debug # steep:ignore
+      def_delegators :target, :debug
 
       def trace(&block)
         if settings.dynamic_instrumentation.internal.trace_logging

@@ -1,0 +1,13 @@
+module Datadog
+  module AIGuard
+    module Ext
+      SPAN_NAME: ::String
+      TARGET_TAG: ::String
+      TOOL_NAME_TAG: ::String
+      ACTION_TAG: ::String
+      REASON_TAG: ::String
+      BLOCKED_TAG: ::String
+      METASTRUCT_TAG: ::String
+    end
+  end
+end

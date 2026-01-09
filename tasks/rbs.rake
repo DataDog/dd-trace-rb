@@ -6,6 +6,8 @@ namespace :rbs do
     glob = ['sig/**/*.rbs'] if glob.empty?
 
     stale = Dir[*glob].reject do |sig|
+      next true if /^sig\/helpers\//.match?(sig)
+
       next if !/^sig\//.match?(sig)
       next if !/\.rbs$/.match?(sig)
 
@@ -62,7 +64,7 @@ namespace :rbs do
         | **Hello there, fellow contributor who just triggered a type signature error**|
         |                                                                              |
         | It looks like you created a file in `lib/` that has no matching signature    |
-        | file in `sig/`. You can automatically generate missing signature files with:  
+        | file in `sig/`. You can automatically generate missing signature files with:
         |                                                                              |
         |   bundle exec rake rbs:prototype                                             |
         |                                                                              |

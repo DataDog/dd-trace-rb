@@ -311,11 +311,8 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
-            # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless PlatformHelpers.jruby_100?
-              expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
-                .to eq('/base/hard_failure')
-            end
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/hard_failure')
           end
         end
       end
@@ -444,11 +441,8 @@ RSpec.describe 'Grape instrumentation' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
           expect(span.get_tag('http.status_code')).to eq('405')
-          # TODO: JRuby 10.0 - Remove this skip after investigation.
-          unless PlatformHelpers.jruby_100?
-            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
-              .to eq('/base/soft_failure')
-          end
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/base/soft_failure')
         end
 
         context 'and error_responses' do
@@ -465,11 +459,8 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
-            # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless PlatformHelpers.jruby_100?
-              expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
-                .to eq('/base/soft_failure')
-            end
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/soft_failure')
           end
         end
 
@@ -487,11 +478,8 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
-            # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless PlatformHelpers.jruby_100?
-              expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
-                .to eq('/base/soft_failure')
-            end
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/soft_failure')
           end
         end
 
@@ -509,11 +497,8 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
-            # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless PlatformHelpers.jruby_100?
-              expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
-                .to eq('/base/soft_failure')
-            end
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/soft_failure')
           end
         end
 
@@ -531,11 +516,8 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
-            # TODO: JRuby 10.0 - Remove this skip after investigation.
-            unless PlatformHelpers.jruby_100?
-              expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
-                .to eq('/base/soft_failure')
-            end
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/soft_failure')
           end
         end
       end

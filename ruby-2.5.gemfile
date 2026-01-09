@@ -45,4 +45,4 @@ group :dev do
 end
 
 # 1.17.3 fails on Ruby 2.5: https://github.com/ffi/ffi/issues/1174
-gem 'ffi', '<1.17.3'
+gem 'ffi', force_ruby_platform: true

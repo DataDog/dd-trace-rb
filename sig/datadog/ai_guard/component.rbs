@@ -1,0 +1,20 @@
+module Datadog
+  module AIGuard
+    class Component
+      attr_reader api_client: AIGuard::APIClient
+      attr_reader logger: Core::Logger
+
+      @telemetry: Core::Telemetry::Component
+
+      def self.build: (
+        Core::Configuration::Settings settings,
+        logger: Core::Logger,
+        telemetry: Core::Telemetry::Component
+      ) -> Component?
+
+      def initialize: (APIClient api_client, logger: Core::Logger, telemetry: Core::Telemetry::Component) -> void
+
+      def shutdown!: () -> void
+    end
+  end
+end

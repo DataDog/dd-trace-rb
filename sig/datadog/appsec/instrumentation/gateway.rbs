@@ -11,6 +11,7 @@ module Datadog
         type stack_result = ::Array[nil | middleware_result | final_call_result]
 
         @middlewares: ::Hash[::String, ::Array[Middleware]]
+        @pushed_events: ::Hash[::String, bool]
 
         def initialize: () -> void
 

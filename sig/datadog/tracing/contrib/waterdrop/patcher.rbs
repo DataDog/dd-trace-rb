@@ -9,6 +9,9 @@ module Datadog
           def self?.target_version: () -> ::Gem::Version?
 
           def self?.patch: () -> void
+
+          # Adds the tracing middleware to a WaterDrop producer
+          def add_middleware: (untyped producer) -> void
         end
       end
     end

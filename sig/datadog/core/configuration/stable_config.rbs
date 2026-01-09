@@ -2,20 +2,26 @@ module Datadog
   module Core
     module Configuration
       module StableConfig
-        LOG_ONLY_ONCE: Datadog::Core::Utils::OnlyOnce
-
         type stable_config = {
           ?logs: String?,
-          ?local: Hash[String, String],
-          ?fleet: Hash[String, String]
+          ?local: {
+            config: ::Hash[::String, ::String],
+            ?id: ::String
+          },
+          ?fleet: {
+            config: ::Hash[::String, ::String],
+            ?id: ::String
+          }
         }
+
+        LOG_ONLY_ONCE: Datadog::Core::Utils::OnlyOnce
 
         class Configurator
           def initialize: -> void
           def get: -> stable_config
         end
 
-        @configuration: stable_config
+        self.@configuration: stable_config
 
         def self.extract_configuration: -> stable_config
         def self.configuration: -> stable_config

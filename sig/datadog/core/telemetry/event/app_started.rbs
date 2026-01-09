@@ -3,28 +3,54 @@ module Datadog
     module Telemetry
       module Event
         class AppStarted < Base
+          type install_signature = {
+            install_id: ::String?,
+            install_type: ::String?,
+            install_time: ::String?
+          }
+
+          type telemetry_products = {
+            appsec: {
+              enabled: bool
+            },
+            profiler: {
+              enabled: bool,
+              ?error: {
+                code: ::Integer,
+                message: ::String?
+              }
+            },
+            dynamic_instrumentation: {
+              enabled: bool
+            }
+          }
+
+          @configuration: ::Array[telemetry_configuration]
+          @install_signature: install_signature
+          @products: telemetry_products
+
           def initialize: (components: Datadog::Core::Configuration::Components) -> void
 
           def type: () -> "app-started"
 
           def payload: () -> { products: untyped, configuration: untyped, install_signature: untyped }
-	  
-          def app_started?: -> bool
+
+          def app_started?: -> bool?
 
           private
+          TARGET_OPTIONS: ::Array[::String]
 
-          def products: (Datadog::Core::Configuration::Components components) -> Hash[Symbol, Hash[Symbol, Hash[Symbol, String | Integer] | bool | nil]]
+          def products: (Datadog::Core::Configuration::Components components) -> telemetry_products
 
-          TARGET_OPTIONS: Array[String]
-          def configuration: (untyped settings, Core::Configuration::AgentSettings agent_settings) -> Array[Hash[Symbol, untyped]]
+          def configuration: (untyped settings, Core::Configuration::AgentSettings agent_settings) -> ::Array[telemetry_configuration]
 
           def agent_transport: (Core::Configuration::AgentSettings agent_settings) -> String
 
-          def conf_value: (String name, untyped value, Integer seq_id, String origin) -> Hash[Symbol, untyped]
+          def conf_value: (::String name, untyped value, ::Integer seq_id, ::String origin) -> telemetry_configuration
 
           def to_value: (Object value) -> Object
 
-          def install_signature: (untyped settings) -> Hash[Symbol, Object]
+          def install_signature: (untyped settings) -> install_signature
 
           def get_telemetry_origin: (untyped settings, String config_path) -> String
         end

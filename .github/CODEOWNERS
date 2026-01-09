@@ -5,6 +5,8 @@ docs/Compatibility.md @DataDog/documentation
 docs/GettingStarted.md @DataDog/documentation
 
 # Library
+lib/datadog/ai_guard/ @DataDog/asm-ruby
+lib/datadog/ai_guard.rb @DataDog/asm-ruby
 lib/datadog/appsec/ @DataDog/asm-ruby
 lib/datadog/appsec.rb @DataDog/asm-ruby
 lib/datadog/tracing/ @DataDog/apm-idm-ruby @DataDog/apm-sdk-capabilities-ruby
