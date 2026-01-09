@@ -10,6 +10,8 @@ module Datadog
         attr_reader reason: ::String
         attr_reader tags: ::Array[::String]
 
+        @is_blocking_enabled: bool
+
         def initialize: (::Hash[::String, untyped] raw_response_body) -> void
 
         def allow?: () -> bool

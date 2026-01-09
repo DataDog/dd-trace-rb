@@ -4,7 +4,11 @@ module Datadog
       DEFAULT_SITE: ::String
       DEFAULT_PATH: ::String
 
-      def initialize: (endpoint: ::String, api_key: ::String?, application_key: ::String?, timeout: ::Integer) -> void
+      @endpoint_uri: ::URI::HTTP
+      @timeout: ::Integer
+      @headers: ::Hash[::Symbol, ::String]
+
+      def initialize: (endpoint: ::String?, api_key: ::String?, application_key: ::String?, timeout: ::Integer) -> void
 
       def post: (::String path, body: ::Hash[::String | ::Symbol, untyped]) -> ::Hash[::String, ::String]
 
