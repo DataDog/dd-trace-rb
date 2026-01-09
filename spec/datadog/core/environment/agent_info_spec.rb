@@ -1,5 +1,7 @@
 require 'spec_helper'
 require 'datadog/core/environment/agent_info'
+require 'datadog/core/environment/process'
+require 'datadog/core/utils/fnv'
 
 RSpec.describe Datadog::Core::Environment::AgentInfo do
   # Mock agent to avoid sending to a real agent
@@ -41,13 +43,20 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         expect(agent_info.container_tags_hash).to eq('testhash')
       end
 
-      it 'computes the propagation hash' do
+      it 'computes the correct propagation hash' do
         process_tags = 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script'
         allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
+
         agent_info.fetch
 
-        agent_received_hash = agent_info.propagation_hash
-        expect(agent_received_hash).to be_a(Integer)
+        generated_hash = agent_info.propagation_hash
+
+        container_tags_hash = agent_info.container_tags_hash
+        data = process_tags + container_tags_hash
+        expected_hash = Datadog::Core::Utils::FNV.fnv1_64(data)
+
+        expect(generated_hash).to be_a(Integer)
+        expect(generated_hash).to eq(expected_hash)
       end
     end
   end

@@ -74,13 +74,7 @@ module Datadog
           res = @client.send_info
           return unless res.ok?
 
-          new_container_tags_hash = extract_container_tags_hash(res)
-
-          # if there are new container tags, regenerate the hash
-          if new_container_tags_hash && new_container_tags_hash != @container_tags_hash
-            @container_tags_hash = new_container_tags_hash
-            update_propagation_hash
-          end
+          process_container_tags_hash(res)
 
           res
         end
@@ -107,13 +101,17 @@ module Datadog
           header_value if header_value && !header_value.empty?
         end
 
-        def update_propagation_hash
-          container_tags_hash = @container_tags_hash
-          return unless container_tags_hash
+        def process_container_tags_hash(res)
+          new_container_tags_hash = extract_container_tags_hash(res)
 
-          process_tags = Process.serialized
-          data = process_tags + container_tags_hash
-          @propagation_hash = Core::Utils::FNV.fnv1_64(data)
+          # if there are new container tags from the agent, regenerate the hash
+          if new_container_tags_hash && new_container_tags_hash != @container_tags_hash
+            @container_tags_hash = new_container_tags_hash
+
+            process_tags = Process.serialized
+            data = process_tags + new_container_tags_hash
+            @propagation_hash = Core::Utils::FNV.fnv1_64(data)
+          end
         end
       end
     end
