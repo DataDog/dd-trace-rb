@@ -3,7 +3,7 @@ module Datadog
     module Collectors
       class Info
         @info: info
-        @profiler_info: profiler_info
+        @profiler_info: profiler_info?
         @gc_tuning_info: ::Hash[::Symbol, ::String]
 
         def initialize: (untyped settings) -> void

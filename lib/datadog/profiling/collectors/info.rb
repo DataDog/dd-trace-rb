@@ -15,14 +15,7 @@ module Datadog
       # gathering and easily support more flexible/dynamic info collection in the future.
       class Info
         def initialize(settings)
-          # Steep: This one is weird, we set it to nil here but it is always set
-          # to type `profiler_info` in the collect_profiler_info method.
-          # We type it as `profiler_info` in the .rbs file, but set it to `profiler_info?` here
-          # to satisfy the type checker.
-          # Because we type it as `profiler_info` in the .rbs file, the type checker will
-          # complain that the branch in the collect_profiler_info method is unreachable.
-          # But it is just :information level, so we can ignore it.
-          @profiler_info = nil # @type ivar @profiler_info: profiler_info?
+          @profiler_info = nil
 
           # Steep: https://github.com/soutaro/steep/issues/363
           @info = { # steep:ignore IncompatibleAssignment
@@ -105,7 +98,7 @@ module Datadog
         end
 
         def collect_profiler_info(settings)
-          unless @profiler_info
+          @profiler_info ||= begin
             lib_datadog_gem = ::Gem.loaded_specs["libdatadog"]
 
             libdatadog_version =
@@ -117,13 +110,12 @@ module Datadog
                 "#{Libdatadog::VERSION}-(unknown)"
               end
 
-            @profiler_info = {
+            {
               version: Datadog::Core::Environment::Identity.gem_datadog_version,
               libdatadog: libdatadog_version,
               settings: collect_settings_recursively(settings.profiling),
             }.freeze
           end
-          @profiler_info
         end
 
         # The settings/option model isn't directly serializable because
