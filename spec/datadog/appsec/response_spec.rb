@@ -143,24 +143,21 @@ RSpec.describe Datadog::AppSec::Response do
       end
 
       context 'when default template is changed to custom' do
-        around do |example|
-          RSpec::Mocks.with_temporary_scope do
-            # NOTE: Here we avoid creating real file and deleting it afterwards
-            #       instead we leverage knowledge of internals without breaking
-            #       the setter logic
-            expect(File).to receive(:exist?).with('/tmp/custom.txt').and_return(true)
-            expect(File).to receive(:binread).with('/tmp/custom.txt')
-              .and_return("Blocked, that's an ID: [security_response_id]")
+        before do
+          # NOTE: Here we avoid creating real file and deleting it afterwards
+          #       instead we leverage knowledge of internals without breaking
+          #       the setter logic
+          expect(File).to receive(:exist?).with('/tmp/custom.txt').and_return(true)
+          expect(File).to receive(:binread).with('/tmp/custom.txt')
+            .and_return("Blocked, that's an ID: [security_response_id]")
 
-            allow(File).to receive(:exist?).with(any_args).and_call_original
-            allow(File).to receive(:binread).with(any_args).and_call_original
+          allow(File).to receive(:exist?).with(any_args).and_call_original
+          allow(File).to receive(:binread).with(any_args).and_call_original
 
-            Datadog.configure { |c| c.appsec.block.templates.text = '/tmp/custom.txt' }
-            example.run
-          ensure
-            Datadog.configuration.reset!
-          end
+          Datadog.configure { |c| c.appsec.block.templates.text = '/tmp/custom.txt' }
         end
+
+        after { Datadog.configuration.reset! }
 
         let(:response) do
           described_class.from_interrupt_params(

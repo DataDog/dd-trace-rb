@@ -8,6 +8,11 @@ module Datadog
       module Async
         # Adds threading behavior to workers
         # to run tasks asynchronously.
+        #
+        # This module is included in Polling module, and has no other
+        # direct users.
+        #
+        # @api private
         module Thread
           FORK_POLICY_STOP = :stop
           FORK_POLICY_RESTART = :restart
@@ -24,7 +29,11 @@ module Datadog
           # Methods that must be prepended
           module PrependedMethods
             def perform(*args)
-              start_async { self.result = super(*args) } unless started?
+              unless started?
+                start_async do
+                  self.result = super(*args)
+                end
+              end
             end
           end
 

@@ -211,8 +211,6 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.allocation_enabled = true
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
             stub_const("RUBY_VERSION", testing_version)
-
-            described_class.const_get(:ALLOCATION_WITH_RACTORS_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
           end
 
           context "on Ruby 2.x" do
@@ -276,7 +274,7 @@ RSpec.describe Datadog::Profiling::Component do
           ["3.1.4", "3.2.3", "3.3.0"].each do |fixed_ruby|
             context "on a Ruby 3 version where https://bugs.ruby-lang.org/issues/18464 is fixed (#{fixed_ruby})" do
               let(:testing_version) { fixed_ruby }
-              it "initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support and warns" do
+              it "initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support and debug logs" do
                 expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
                   allocation_profiling_enabled: true,
                 )
@@ -284,7 +282,7 @@ RSpec.describe Datadog::Profiling::Component do
                   .with(hash_including(alloc_samples_enabled: true))
                   .and_call_original
 
-                expect(logger).to receive(:info).with(/Ractors.+stopping/)
+                expect(logger).to receive(:debug).with(/Ractors.+stopping/)
                 expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
 
                 build_profiler_component
@@ -342,7 +340,7 @@ RSpec.describe Datadog::Profiling::Component do
                 .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
                 .and_call_original
 
-              expect(logger).to receive(:warn).with(/Heap profiling is not supported.*21710/)
+              expect(logger).to receive(:warn).with(/Datadog Ruby heap profiler is currently incompatible with Ruby 4/)
 
               build_profiler_component
             end
@@ -367,8 +365,6 @@ RSpec.describe Datadog::Profiling::Component do
           context "and allocation profiling enabled and supported" do
             before do
               settings.profiling.allocation_enabled = true
-
-              described_class.const_get(:ALLOCATION_WITH_RACTORS_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
             end
 
             it "initializes StackRecorder with heap sampling support and warns" do
@@ -376,7 +372,7 @@ RSpec.describe Datadog::Profiling::Component do
                 .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
                 .and_call_original
 
-              expect(logger).to receive(:info).with(/Ractors.+stopping/)
+              expect(logger).to receive(:debug).with(/Ractors.+stopping/)
               expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
               expect(logger).to receive(:debug).with(/Enabled heap profiling/)
 
@@ -393,7 +389,7 @@ RSpec.describe Datadog::Profiling::Component do
                   .with(hash_including(heap_samples_enabled: true, heap_size_enabled: false))
                   .and_call_original
 
-                expect(logger).to receive(:info).with(/Ractors.+stopping/)
+                expect(logger).to receive(:debug).with(/Ractors.+stopping/)
                 expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
                 expect(logger).to receive(:debug).with(/Enabled heap profiling/)
 

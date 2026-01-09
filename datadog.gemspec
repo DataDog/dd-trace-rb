@@ -62,7 +62,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'msgpack'
 
   # Used by the profiler native extension to support Ruby 2.5 and > 3.2, see NativeExtensionDesign.md for details
-  spec.add_dependency 'datadog-ruby_core_source', '~> 3.4', '>= 3.4.1'
+  spec.add_dependency 'datadog-ruby_core_source', '~> 3.5', '>= 3.5.0'
 
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.30.0.0.0'

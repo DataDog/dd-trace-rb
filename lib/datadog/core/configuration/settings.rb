@@ -170,6 +170,20 @@ module Datadog
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
         end
 
+        # Configuration for container environments. For internal use only.
+        # @!visibility private
+        settings :container do
+          # Data supplied by the container runner to assist in uniquely identifying this process.
+          # Used in [Origin Detection](https://docs.datadoghq.com/developers/dogstatsd/unix_socket/?tab=host#origin-detection)
+          #
+          # @default `DD_EXTERNAL_ENV` environment variable, otherwise `nil`
+          # @return [String,nil]
+          option :external_env do |o|
+            o.type :string, nilable: true
+            o.env Core::Environment::Ext::ENV_EXTERNAL_ENV
+          end
+        end
+
         # Internal {Datadog::Statsd} metrics collection.
         #
         # @public_api
@@ -292,9 +306,6 @@ module Datadog
             # @warn To avoid https://bugs.ruby-lang.org/issues/18464 even when enabled, GC profiling is only started
             #       for Ruby versions 2.x, 3.1.4+, 3.2.3+ and 3.3.0+
             #       (more details in {Datadog::Profiling::Component.enable_gc_profiling?})
-            #
-            # @warn Due to a VM bug in the Ractor implementation (https://bugs.ruby-lang.org/issues/19112) this feature
-            #       stops working when Ractors get garbage collected.
             #
             # @default `DD_PROFILING_GC_ENABLED` environment variable, otherwise `true`
             option :gc_enabled do |o|
@@ -829,6 +840,7 @@ module Datadog
 
           # Overrides agentless telemetry URL. To be used internally for testing purposes only.
           #
+          # @default `DD_TELEMETRY_AGENTLESS_URL` environment variable, otherwise `nil`.
           # @return [String]
           # @!visibility private
           option :agentless_url_override do |o|

@@ -8,7 +8,15 @@ module Datadog
 
         @ruleset_version: ::String
 
-        @reconfigured_ruleset_version: ::String?
+        @reconfigured_ruleset_version: ::String
+
+        @default_ruleset: (::String | ::Symbol | ::File | ::StringIO | ::Hash[untyped, untyped])
+
+        @default_ip_denylist: ::Array[::String]
+
+        @default_user_id_denylist: ::Array[::String]
+
+        @default_ip_passlist: ::Array[::String]
 
         DEFAULT_RULES_CONFIG_PATH: ::String
         TELEMETRY_ACTIONS: ::Array[::String]

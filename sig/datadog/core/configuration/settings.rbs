@@ -66,6 +66,32 @@ module Datadog
           def templates: () -> _TemplatesBlock
         end
 
+        interface _AIGuard
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def endpoint: () -> String
+
+          def endpoint=: (String) -> void
+
+          def app_key: () -> String
+
+          def app_key=: (String) -> void
+
+          def timeout_ms: () -> Integer
+
+          def timeout_ms=: () -> void
+
+          def max_content_size_bytes: () -> Integer
+
+          def max_content_size_bytes=: (Integer) -> void
+
+          def max_messages_length: () -> Integer
+
+          def max_messages_length=: () -> void
+        end
+
         interface _DI
           def enabled: () -> bool
 
@@ -126,17 +152,29 @@ module Datadog
 
         def env: -> String?
 
-        def service: -> String
+        def api_key: -> String?
+
+        def service: -> String?
+
+        def site: -> String?
+
+        def service_without_fallback: -> ::String?
 
         def version: -> String?
 
         def tags: -> ::Hash[::String, ::String]
+
+        def experimental_propagate_process_tags_enabled: () -> bool
+
+        def experimental_propagate_process_tags_enabled=: (bool value) -> bool
 
         def logger=: (untyped logger) -> untyped
 
         def runtime_metrics: (?untyped? options) -> untyped
 
         def appsec: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AppSec
+
+        def ai_guard: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AIGuard
 
         def dynamic_instrumentation: (?untyped? options) -> Datadog::Core::Configuration::Settings::_DI
 

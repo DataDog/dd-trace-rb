@@ -32,6 +32,15 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
   let(:logger) { logger_allowing_debug }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
+  describe '#initialize' do
+    context 'when instantiated without logger parameter like datadog-ci gem does' do
+      it 'uses Datadog.logger as logger' do
+        negotiation = described_class.new(settings, agent_settings, suppress_logging: {no_config_endpoint: true})
+        expect(negotiation.logger).to be Datadog.logger
+      end
+    end
+  end
+
   describe '#endpoint?' do
     include_context 'HTTP connection stub'
 

@@ -11,9 +11,11 @@ module Datadog
   module Core
     module Remote
       # Configures the HTTP transport to communicate with the agent
-      # to fetch and sync the remote configuration
+      # to fetch and sync the remote configuration.
+      #
+      # @api private
       class Component
-        attr_reader :logger, :client, :healthy
+        attr_reader :logger, :client, :healthy, :worker
 
         def initialize(settings, capabilities, agent_settings, logger:)
           @logger = logger
@@ -23,7 +25,7 @@ module Datadog
 
           @barrier = Barrier.new(settings.remote.boot_timeout_seconds)
 
-          @client = Client.new(transport_v7, capabilities, logger: logger)
+          @client = Client.new(transport_v7, capabilities, settings: settings, logger: logger)
           @healthy = false
           logger.debug { "new remote configuration client: #{@client.id}" }
 
@@ -55,7 +57,7 @@ module Datadog
               end
 
               # client state is unknown, state might be corrupted
-              @client = Client.new(transport_v7, capabilities, logger: logger)
+              @client = Client.new(transport_v7, capabilities, settings: settings, logger: logger)
               @healthy = false
               logger.debug { "new remote configuration client: #{@client.id}" }
 

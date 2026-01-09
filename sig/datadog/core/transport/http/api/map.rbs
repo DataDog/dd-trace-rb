@@ -3,7 +3,7 @@ module Datadog
     module Transport
       module HTTP
         module API
-          class Map < Hash[untyped, untyped]
+          class Map < Hash[::String, Instance]
             include Fallbacks
           end
         end

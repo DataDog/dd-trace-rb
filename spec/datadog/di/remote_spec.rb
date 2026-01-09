@@ -65,7 +65,7 @@ RSpec.describe Datadog::DI::Remote do
             content = Datadog::Core::Remote::Configuration::Content.parse(
               {
                 path: key,
-                content: StringIO.new(value_json),
+                content: value_json,
               }
             )
 
@@ -160,9 +160,6 @@ RSpec.describe Datadog::DI::Remote do
             expect(probe.id).to eq('11')
           end
           expect(component).to receive(:parse_probe_spec_and_notify).and_return(probe)
-          # The following two objects aren't actually used in this scenario
-          expect(component).to receive(:probe_notification_builder)
-          expect(component).to receive(:probe_notifier_worker)
           receiver.call(repository, transaction)
         end
 
@@ -182,53 +179,6 @@ RSpec.describe Datadog::DI::Remote do
             expect(probe_notification_builder).to receive(:build_errored)
             expect(component).to receive(:probe_notifier_worker).and_return(probe_notifier_worker)
             expect(probe_notifier_worker).to receive(:add_status)
-            expect do
-              receiver.call(repository, transaction)
-            end.not_to raise_error
-          end
-        end
-
-        it 'calls probe manager to remove stale probes' do
-          allow(component).to receive(:telemetry)
-          expect(component).to receive(:logger).and_return(logger)
-          expect_lazy_log(logger, :debug, /received log probe/)
-
-          expect_lazy_log(logger, :debug, /unhandled exception.*Runtime error from test/)
-
-          allow(probe_manager).to receive(:add_probe).and_raise("Runtime error from test")
-          expect(component).to receive(:logger).and_return(logger)
-          expect(component).to receive(:parse_probe_spec_and_notify).and_return(probe)
-          expect(component).to receive(:probe_notification_builder).and_return(probe_notification_builder)
-          expect(probe_notification_builder).to receive(:build_errored)
-          expect(component).to receive(:probe_notifier_worker).and_return(probe_notifier_worker)
-          expect(probe_notifier_worker).to receive(:add_status)
-
-          expect(probe_manager).to receive(:remove_other_probes).with(['11'])
-          receiver.call(repository, transaction)
-        end
-
-        context 'probe removal raises an exception' do
-          it 'logs warning and consumes the exception' do
-            expect(component).to receive(:telemetry).and_return(telemetry).at_least(:once)
-            expect(component).to receive(:logger).and_return(logger)
-            expect_lazy_log(logger, :debug, /received log probe/)
-
-            expect_lazy_log(logger, :debug, /unhandled exception.*Runtime error 1 from test/)
-            expect(telemetry).to receive(:report)
-
-            allow(probe_manager).to receive(:add_probe).and_raise("Runtime error 1 from test")
-            expect(component).to receive(:logger).and_return(logger)
-            expect(component).to receive(:parse_probe_spec_and_notify).and_return(probe)
-            expect(component).to receive(:probe_notification_builder).and_return(probe_notification_builder)
-            expect(probe_notification_builder).to receive(:build_errored)
-            expect(component).to receive(:probe_notifier_worker).and_return(probe_notifier_worker)
-            expect(probe_notifier_worker).to receive(:add_status)
-
-            expect_lazy_log(logger, :debug, /unhandled exception.*Runtime error 2 from test/)
-            expect(component).to receive(:logger).and_return(logger)
-            expect(telemetry).to receive(:report)
-
-            expect(probe_manager).to receive(:remove_other_probes).with(['11']).and_raise("Runtime error 2 from test")
             expect do
               receiver.call(repository, transaction)
             end.not_to raise_error

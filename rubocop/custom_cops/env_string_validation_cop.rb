@@ -28,7 +28,7 @@ module CustomCops
 
     # Configuration for allowed environment variable names
     # This list should be populated with the allowed environment variable names
-    ALLOWED_ENV_VARS = Datadog::Core::Configuration::SUPPORTED_CONFIGURATIONS.keys
+    ALLOWED_ENV_VARS = Datadog::Core::Configuration::SUPPORTED_CONFIGURATION_NAMES
 
     def on_str(node)
       # Environment variable format: starts with DD_ or OTEL_

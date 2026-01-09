@@ -1,0 +1,27 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class Result
+        ALLOW_ACTION: ::String
+        DENY_ACTION: ::String
+        ABORT_ACTION: ::String
+
+        attr_reader action: ::String
+        attr_reader reason: ::String
+        attr_reader tags: ::Array[::String]
+
+        @is_blocking_enabled: bool
+
+        def initialize: (::Hash[::String, untyped] raw_response_body) -> void
+
+        def allow?: () -> bool
+
+        def deny?: () -> bool
+
+        def abort?: () -> bool
+
+        def blocking_enabled?: () -> bool
+      end
+    end
+  end
+end

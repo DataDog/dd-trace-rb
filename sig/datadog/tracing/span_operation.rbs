@@ -2,11 +2,16 @@ module Datadog
   module Tracing
     class SpanOperation
       include Metadata
-      include Metadata::Tagging
       include Metadata::Errors
       prepend Metadata::Analytics
 
       @logger: Core::Logger
+
+      @duration_start: ::Time?
+
+      @duration_end: ::Time?
+
+      @collector: Datadog::ErrorTracking::Collector
 
       attr_reader logger: Core::Logger
 
@@ -14,7 +19,7 @@ module Datadog
 
       attr_reader span_events: untyped
 
-      attr_reader end_time: ::Time
+      attr_reader end_time: ::Time?
 
       attr_reader id: untyped
 
@@ -26,7 +31,7 @@ module Datadog
 
       attr_reader service: untyped
 
-      attr_reader start_time: ::Time
+      attr_reader start_time: ::Time?
 
       attr_reader trace_id: untyped
 
@@ -37,8 +42,8 @@ module Datadog
       def initialize: (
           String name,
           ?logger: Core::Logger,
-          ?events: Events,
-          ?on_error: on_error,
+          ?events: Events?,
+          ?on_error: on_error?,
           ?parent_id: Integer,
           ?resource: String,
           ?service: (String | nil),
@@ -65,7 +70,7 @@ module Datadog
 
       def start: (?untyped? start_time) -> self
 
-      def stop: (?Time? stop_time, ?exception: Exception) -> self?
+      def stop: (?::Time? stop_time, ?exception: ::Exception?) -> self?
 
       def started?: () -> untyped
 
@@ -98,7 +103,9 @@ module Datadog
 
         DEFAULT_ON_ERROR: on_error
 
-	attr_reader logger: Core::Logger
+        @on_error: OnError
+
+	      attr_reader logger: Core::Logger
 
         attr_reader after_finish: untyped
 
@@ -106,7 +113,7 @@ module Datadog
 
         attr_reader before_start: untyped
 
-        def initialize: (?logger: Core::Logger, ?on_error: on_error) -> void
+        def initialize: (?logger: Core::Logger) -> void
 
         def on_error: () -> OnError
 
@@ -123,9 +130,11 @@ module Datadog
         end
 
         class OnError
-          def initialize: (untyped default, ?logger: Core::Logger) -> void
+          @handler: ::Proc
 
           attr_reader logger: Core::Logger
+
+          def initialize: (untyped default, ?logger: Core::Logger) -> void
 
           def wrap_default: () { (untyped, untyped) -> untyped } -> untyped
 

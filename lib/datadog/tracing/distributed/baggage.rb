@@ -175,8 +175,9 @@ module Datadog
 
           tags = {}
 
-          baggage_tag_keys.each do |key, _| # rubocop:disable Style/HashEachMethods
-            value = baggage[key]
+          baggage_tag_keys.each do |key, _|
+            # Steep: https://github.com/soutaro/steep/issues/2031
+            value = baggage[key] # steep:ignore ArgumentTypeMismatch
             next if value.nil? || value.empty?
 
             tags["baggage.#{key}"] = value

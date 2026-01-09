@@ -66,8 +66,7 @@ module Datadog
               record_event_telemetry_metric(LOGIN_SUCCESS_EVENT)
               ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', LOGIN_SUCCESS_EVENT)
 
-              # NOTE: Guard-clause will not work with Steep typechecking
-              return Kit::Identity.set_user(trace, span, **user_attributes) if user_attributes.key?(:id) # steep:ignore
+              return Kit::Identity.set_user(trace, span, **user_attributes) if user_attributes.key?(:id)
 
               # NOTE: This is a fallback for the case when we don't have an ID,
               #       but need to trigger WAF.
@@ -156,7 +155,7 @@ module Datadog
                 raise ArgumentError, 'missing required user key `:id`' unless user_or_id.key?(:id)
                 raise TypeError, 'user key `:id` must be a String' unless user_or_id[:id].is_a?(String)
 
-                user_or_id.merge(login: login)
+                user_or_id.merge(login: login) #: {login: ::String, ?id: ::String?}
               else
                 raise TypeError, '`user_or_id` argument must be either String or Hash'
               end

@@ -87,13 +87,13 @@ namespace :spec do
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :core_with_libdatadog_api, :error_tracking, :open_feature, :core_with_rails]
+    :profiling, :core_with_libdatadog_api, :error_tracking, :open_feature, :core_with_rails, :ai_guard]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,crashtracking,error_tracking,rubocop,data_streams}/**/*_spec.rb,' \
-                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch,open_feature,feature_flags,process}_spec.rb,' \
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,crashtracking,error_tracking,rubocop,data_streams,ai_guard}/**/*_spec.rb,' \
+                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch,open_feature,feature_flags,process,ai_guard}_spec.rb,' \
                         ' spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
@@ -138,6 +138,12 @@ namespace :spec do
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:open_feature) do |t, args|
     t.pattern = 'spec/datadog/open_feature/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  desc '' # "Explicitly hiding from `rake -T`"
+  RSpec::Core::RakeTask.new(:ai_guard) do |t, args|
+    t.pattern = 'spec/datadog/ai_guard/**/*_spec.rb,spec/datadog/ai_guard_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -230,7 +236,14 @@ namespace :spec do
     t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end.tap do |t|
-    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+    # Core with libdatadog is dependent on profiling because crashtracking runtime stacks logic
+    # lives in the profiling extension (they share same logic accessing Ruby internals)
+    Rake::Task[t.name].enhance(
+      [
+        "compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}",
+        "compile:datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
+      ]
+    )
   end
   # rubocop:enable Style/MultilineBlockChain
 
@@ -326,7 +339,7 @@ namespace :spec do
     rescue => e
       # Compilation failed (likely unsupported Ruby version) - tests will skip gracefully
       puts "Warning: libdatadog_api compilation failed: #{e.class}: #{e}"
-      puts "DSM tests will be skipped for this Ruby version"
+      puts 'DSM tests will be skipped for this Ruby version'
     end
 
     DSM_ENABLED_LIBRARIES.each do |task_name|
