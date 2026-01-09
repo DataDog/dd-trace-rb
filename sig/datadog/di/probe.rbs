@@ -54,7 +54,7 @@ module Datadog
       attr_reader template_segments: Array[untyped]?
       attr_reader rate_limiter: Datadog::Core::RateLimiter
 
-      attr_reader condition_evaluation_failed_rate_limiter: Datadog::Core::TokenBucket?
+      attr_reader condition_evaluation_failed_rate_limiter: Datadog::Core::RateLimiter?
 
       def capture_snapshot?: () -> bool
       def line?: () -> bool
