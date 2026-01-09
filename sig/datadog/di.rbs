@@ -3,6 +3,8 @@ module Datadog
     type instrumentation_kind = :line | :method
     INSTRUMENTED_COUNTERS_LOCK: Mutex
 
+    self.@instrumented_count: ::Hash[instrumentation_kind, ::Integer]
+
     def self.enabled?: () -> bool
 
     def self.component: () -> Component

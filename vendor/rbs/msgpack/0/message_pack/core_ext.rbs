@@ -1,0 +1,43 @@
+module MessagePack
+  interface _CoreExt
+    def to_msgpack: (::MessagePack::Packer packer) -> ::MessagePack::Packer
+                  | (::IO io) -> nil
+                  | () -> ::String
+  end
+end
+
+class NilClass
+  include MessagePack::_CoreExt
+end
+
+class TrueClass
+  include MessagePack::_CoreExt
+end
+
+class FalseClass
+  include MessagePack::_CoreExt
+end
+
+class Float
+  include MessagePack::_CoreExt
+end
+
+class String
+  include MessagePack::_CoreExt
+end
+
+class Array[unchecked out Elem]
+  include MessagePack::_CoreExt
+end
+
+class Hash[unchecked out K, unchecked out V]
+  include MessagePack::_CoreExt
+end
+
+class Symbol
+  include MessagePack::_CoreExt
+end
+
+class Integer
+  include MessagePack::_CoreExt
+end

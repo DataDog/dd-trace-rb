@@ -2,6 +2,10 @@ module Datadog
   module Profiling
     module Collectors
       class Info
+        @info: info
+        @profiler_info: profiler_info?
+        @gc_tuning_info: ::Hash[::Symbol, ::String]
+
         def initialize: (untyped settings) -> void
 
         type platform_info = ::Hash[::Symbol, untyped]
@@ -20,8 +24,6 @@ module Datadog
         private
         START_TIME: ::Time
         RUBY_GC_TUNING_ENV_VARS: ::Array[::String]
-
-        @info: info
 
         def collect_platform_info: () -> platform_info
         def collect_runtime_info: () -> runtime_info

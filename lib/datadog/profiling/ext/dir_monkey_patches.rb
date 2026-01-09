@@ -30,6 +30,10 @@ module Datadog
       if RUBY_VERSION.start_with?("2.")
         # Monkey patches for Dir.singleton_class (Ruby 2 version). See DirMonkeyPatches above for more details.
         module DirClassMonkeyPatches
+          # Steep: Workaround that defines args and block only for Ruby 2.x.
+          # @type var args: ::Array[any]
+          # @type var block: ^(?) -> any | nil
+
           def [](*args, &block)
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
             super
@@ -148,6 +152,11 @@ module Datadog
       else
         # Monkey patches for Dir.singleton_class (Ruby 3 version). See DirMonkeyPatches above for more details.
         module DirClassMonkeyPatches
+          # Steep: Workaround that defines args, kwargs and block only for Ruby 3.x.
+          # @type var args: ::Array[any]
+          # @type var kwargs: ::Hash[::Symbol, any]
+          # @type var block: ^(?) -> any | nil
+
           def [](*args, **kwargs, &block)
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
             super
@@ -263,6 +272,10 @@ module Datadog
       if RUBY_VERSION.start_with?("2.")
         # Monkey patches for Dir (Ruby 2 version). See DirMonkeyPatches above for more details.
         module DirInstanceMonkeyPatches
+          # Steep: Workaround that defines args and block only for Ruby 2.x.
+          # @type var args: ::Array[any]
+          # @type var block: ^(?) -> any | nil
+
           # See note on methods that yield above.
           def each(*args, &block)
             if block
@@ -336,6 +349,11 @@ module Datadog
       else
         # Monkey patches for Dir (Ruby 3 version). See DirMonkeyPatches above for more details.
         module DirInstanceMonkeyPatches
+          # Steep: Workaround that defines args, kwargs and block only for Ruby 3.x.
+          # @type var args: ::Array[any]
+          # @type var kwargs: ::Hash[::Symbol, any]
+          # @type var block: ^(?) -> any | nil
+
           # See note on methods that yield above.
           def each(*args, **kwargs, &block)
             if block

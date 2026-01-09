@@ -160,7 +160,7 @@ module Datadog
         # If more than 1 second has past since last window, reset
         #
         # Steep: @current_window is a Float, but for some reason annotations does not work here
-        # Once a fix will be out for nil checks on instance variables, we can remove the steep:ignore
+        # Once a fix will be out for nil checks on instance variables, we can remove the ignore comment
         # https://github.com/soutaro/steep/issues/477
         elsif now - @current_window >= 1 # steep:ignore UnresolvedOverloading
           @prev_conforming_messages = @conforming_messages
