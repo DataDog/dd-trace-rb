@@ -409,6 +409,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
+        # On Ruby 4+, heap recordings are deferred and need to be finalized after the sample is recorded
+        described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)
       end
 
       def introduce_distinct_stacktraces(i, obj)
@@ -696,6 +698,47 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(active_slot).to be 1
             expect(slot_one_mutex_locked?).to be false
             expect(slot_two_mutex_locked?).to be true
+          end
+        end
+
+        describe "pending heap recordings cleanup" do
+          def has_pending_recordings?
+            described_class::Testing.send(:_native_has_pending_heap_recordings?, stack_recorder)
+          end
+
+          def track_object_without_finalize(obj)
+            described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
+            Datadog::Profiling::Collectors::Stack::Testing
+              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
+          end
+
+          it "clears pending recordings after finalization" do
+            skip "Only applies to Ruby 4+ with deferred heap allocation recording" if RUBY_VERSION < "4"
+
+            test_object = Object.new
+
+            track_object_without_finalize(test_object)
+
+            expect(has_pending_recordings?).to be true
+
+            described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)
+
+            expect(has_pending_recordings?).to be false
+          end
+
+          it "clears pending recordings after multiple allocations" do
+            skip "Only applies to Ruby 4+ with deferred heap allocation recording" if RUBY_VERSION < "4"
+
+            3.times do
+              test_object = Object.new
+              track_object_without_finalize(test_object)
+            end
+
+            expect(has_pending_recordings?).to be true
+
+            described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)
+
+            expect(has_pending_recordings?).to be false
           end
         end
 
@@ -1010,6 +1053,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
           Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], [],
         )
+        # On Ruby 4+, heap recordings are deferred and need to be finalized after the sample is recorded
+        described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)
       end
 
       it "includes heap recorder snapshot" do
