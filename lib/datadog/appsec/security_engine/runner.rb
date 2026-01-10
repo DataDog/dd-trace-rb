@@ -33,7 +33,7 @@ module Datadog
           ephemeral_data.reject! do |_, v|
             next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
 
-            v.nil? || v.empty?
+            v.nil? || (v.respond_to?(:empty?) && v.empty?)
           end
 
           result = try_run(persistent_data, ephemeral_data, timeout)
