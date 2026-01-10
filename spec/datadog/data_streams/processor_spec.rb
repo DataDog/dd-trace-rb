@@ -13,8 +13,11 @@ KINESIS_ORDERS_PRODUCE_HASH = 14687993552271180499
 KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
 
 RSpec.describe Datadog::DataStreams::Processor do
+  let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_hash: nil) }
   before do
     skip_if_data_streams_not_supported(self)
+    # Stub agent_info to nil for the existing tests that aren't testing this functionality
+    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
@@ -330,6 +333,46 @@ RSpec.describe Datadog::DataStreams::Processor do
 
         # Should flush without errors
         expect { processor.send(:perform) }.not_to raise_error
+      end
+    end
+  end
+
+  describe '#compute_pathway_hash with base hash' do
+    after do
+      processor.stop(true)
+    end
+
+    context 'when the propagation hash is present' do
+      let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_hash: 1234567890) }
+
+      before do
+        allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+      end
+
+      it 'computes the pathway hash with the propagation hash' do
+        hash_with_propagation = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+        allow(agent_info).to receive(:propagation_hash).and_return(nil)
+        hash_without_propagation = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+        expect(hash_with_propagation).not_to eq(hash_without_propagation)
+        expect(hash_with_propagation).to be_a(Integer)
+        expect(hash_with_propagation).to be > 0
+      end
+    end
+
+    context 'when the propagation hash is not present' do
+      let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_hash: nil) }
+
+      before do
+        allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+      end
+
+      it 'computes the pathway hash without the propagation hash' do
+        hash = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+        expect(hash).to be_a(Integer)
+        expect(hash).to be > 0
       end
     end
   end

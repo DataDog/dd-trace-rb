@@ -365,6 +365,15 @@ module Datadog
         env = @settings.env || 'none'
 
         bytes = service.bytes + env.bytes
+
+        # If there is a propagation hash, add it to DSM back propagation
+        # Follows Python: https://github.com/DataDog/dd-trace-py/blob/8b739fe0837a22cab76116050e8b7e4b45407c6c/ddtrace/internal/datastreams/processor.py#L423
+        # bytes order is service + env + process tags + container tags
+        propagation_hash = Datadog.send(:components).agent_info.propagation_hash
+        if propagation_hash
+          bytes += [propagation_hash].pack('Q<').bytes
+        end
+
         tags.each { |tag| bytes += tag.bytes }
         byte_string = bytes.pack('C*')
 
