@@ -8,6 +8,7 @@ module Datadog
       module Ext
         module HTTP
           HEADER_CONTAINER_ID = 'Datadog-Container-ID'
+          HEADER_CONTAINER_TAGS_HASH = 'Datadog-Container-Tags-Hash'
           HEADER_ENTITY_ID = 'Datadog-Entity-ID'
           HEADER_EXTERNAL_ENV = 'Datadog-External-Env'
           HEADER_DD_API_KEY = 'DD-API-KEY'

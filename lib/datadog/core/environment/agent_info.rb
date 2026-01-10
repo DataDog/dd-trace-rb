@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative '../utils/fnv'
+require_relative 'process'
+
 module Datadog
   module Core
     module Environment
@@ -52,25 +55,63 @@ module Datadog
       # @see https://github.com/DataDog/datadog-agent/blob/f07df0a3c1fca0c83b5a15f553bd994091b0c8ac/pkg/trace/api/info.go#L20
       class AgentInfo
         attr_reader :agent_settings, :logger
+        # Container tags hash originally set to nil, but gets populated from #fetch when available
+        attr_reader :container_tags_hash
 
         def initialize(agent_settings, logger: Datadog.logger)
           @agent_settings = agent_settings
           @logger = logger
           @client = Remote::Transport::HTTP.root(agent_settings: agent_settings, logger: logger)
+          @container_tags_hash = nil
+          @propagation_hash = nil
         end
 
         # Fetches the information from the agent.
+        # Extracts container tags hash from response headers
         # @return [Datadog::Core::Remote::Transport::HTTP::Negotiation::Response] the response from the agent
         # @return [nil] if an error occurred while fetching the information
         def fetch
           res = @client.send_info
           return unless res.ok?
 
+          process_container_tags_hash(res)
+
           res
         end
 
         def ==(other)
           other.is_a?(self.class) && other.agent_settings == agent_settings
+        end
+
+        # Returns the propagation hash from the Agent if not previously cached
+        # @return [Integer, nil] the FNV hash based on the container and process tags or nil
+        def propagation_hash
+          return @propagation_hash if @propagation_hash
+          fetch if @container_tags_hash.nil?
+
+          @propagation_hash
+        end
+
+        private
+
+        def extract_container_tags_hash(res)
+          return unless res.respond_to?(:headers)
+
+          header_value = res.headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_TAGS_HASH]
+          header_value if header_value && !header_value.empty?
+        end
+
+        def process_container_tags_hash(res)
+          new_container_tags_hash = extract_container_tags_hash(res)
+
+          # if there are new container tags from the agent, regenerate the hash
+          if new_container_tags_hash && new_container_tags_hash != @container_tags_hash
+            @container_tags_hash = new_container_tags_hash
+
+            process_tags = Process.serialized
+            data = process_tags + new_container_tags_hash
+            @propagation_hash = Core::Utils::FNV.fnv1_64(data)
+          end
         end
       end
     end

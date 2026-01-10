@@ -4,6 +4,12 @@ require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
   let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append) }
   let(:append) { false }
+  let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_hash: nil) }
+  let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
+
+  before do
+    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: tracer))
+  end
 
   describe '.annotate!' do
     let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'db_service') }
@@ -35,6 +41,33 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         described_class.annotate!(span_op, propagation_mode)
 
         expect(span_op.get_tag('_dd.dbm_trace_injected')).to eq('true')
+      end
+    end
+
+    context 'when the base hash is present' do
+      let(:mode) { 'service' }
+
+      before do
+        allow(Datadog.send(:components)).to receive(:agent_info).and_return(agent_info)
+        allow(agent_info).to receive(:propagation_hash).and_return(1234567890)
+      end
+
+      it 'sets the propagated hash on the span metric' do
+        described_class.annotate!(span_op, propagation_mode)
+        expect(span_op.get_metric('_dd.propagated_hash')).to eq(1234567890)
+      end
+    end
+
+    context 'when the base hash is not present' do
+      let(:mode) { 'service' }
+
+      before do
+        allow(agent_info).to receive(:propagation_hash).and_return(nil)
+      end
+
+      it 'does not set the propagated hash on the span metric' do
+        described_class.annotate!(span_op, propagation_mode)
+        expect(span_op.get_metric('_dd.propagated_hash')).to be_nil
       end
     end
   end
@@ -104,6 +137,26 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             is_expected.to eq(
               "/*dde='dev',ddps='api',ddpv='1.2',ddprs='db_peer_service',dddbs='db_peer_service'*/ #{sql_statement}"
             )
+          end
+
+          context 'when the base hash is present' do
+            before do
+              allow(agent_info).to receive(:propagation_hash).and_return(1234567890)
+            end
+
+            it 'includes the base hash in the comment' do
+              is_expected.to include("ddsh='1234567890'")
+            end
+          end
+
+          context 'when the base hash is not present' do
+            before do
+              allow(agent_info).to receive(:propagation_hash).and_return(nil)
+            end
+
+            it 'does not have the base hash in the comment' do
+              is_expected.not_to include('ddsh')
+            end
           end
 
           context 'matching the global service' do
@@ -213,6 +266,17 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           c.version = '1.2'
           c.tracing.enabled = false
         end
+
+        tracer = instance_double(Datadog::Tracing::Tracer)
+        allow(tracer).to receive(:trace) do |_name, &block|
+          span_op = Datadog::Tracing::SpanOperation.new('dummy.sql')
+          trace_op = Datadog::Tracing::TraceOperation.new
+          block&.call(span_op, trace_op)
+        end
+
+        allow(Datadog).to receive(:send).with(:components).and_return(
+          double(agent_info: agent_info, tracer: tracer)
+        )
       end
 
       let(:mode) { 'full' }
