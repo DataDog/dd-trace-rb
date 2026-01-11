@@ -95,7 +95,7 @@ GEM
       zeitwerk (~> 2.6)
     erb (5.0.3-java)
     erubi (1.13.1)
-    ffi (1.17.2-java)
+    ffi (1.17.3-java)
     grape (2.2.0)
       activesupport (>= 6)
       dry-types (>= 1.1)

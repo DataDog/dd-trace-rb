@@ -30,7 +30,7 @@ GEM
       unf (>= 0.0.5, < 1.0.0)
     ethon (0.16.0)
       ffi (>= 1.15.0)
-    ffi (1.17.2-java)
+    ffi (1.17.3-java)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
