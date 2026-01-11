@@ -30,7 +30,7 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.6.5)
     domain_name (0.6.20240107)
-    ffi (1.17.2-java)
+    ffi (1.17.3-java)
     hashdiff (1.1.2)
     http-accept (1.7.0)
     http-cookie (1.1.0)

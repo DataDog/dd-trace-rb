@@ -35,7 +35,7 @@ GEM
       logger
     faraday-net_http (3.4.2)
       net-http (~> 0.5)
-    ffi (1.17.2-java)
+    ffi (1.17.3-java)
     hashdiff (1.1.2)
     json (2.18.0-java)
     json-schema (2.8.1)
