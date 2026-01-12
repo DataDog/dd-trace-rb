@@ -959,6 +959,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_CONTEXT_SCOPE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "fiber_isolated"
+      }
+    ],
     "DD_TRACE_DALLI_ANALYTICS_ENABLED": [
       {
         "version": "A",

@@ -55,8 +55,10 @@ RSpec.describe Datadog::Tracing::Component do
           end
         end
         let(:span_sampler) { be_a(Datadog::Tracing::Sampling::Span::Sampler) }
+        let(:context_provider) { be_a(Datadog::Tracing::DefaultContextProvider) }
         let(:default_options) do
           {
+            context_provider: context_provider,
             default_service: settings.service,
             enabled: settings.tracing.enabled,
             trace_flush: trace_flush,
@@ -522,6 +524,36 @@ RSpec.describe Datadog::Tracing::Component do
           it_behaves_like 'new tracer' do
             # Ignores the writer options in favor of the writer
             let(:options) { {writer: writer} }
+          end
+        end
+      end
+
+      context 'with context_scope' do
+        context "set to 'thread'" do
+          before do
+            settings.tracing.context_scope = 'thread'
+          end
+
+          it 'builds tracer with ThreadScope-based context provider' do
+            tracer = build_tracer
+            provider = tracer.instance_variable_get(:@provider)
+
+            expect(provider).to be_a(Datadog::Tracing::DefaultContextProvider)
+            expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::ThreadScope)
+          ensure
+            tracer.shutdown!
+          end
+        end
+
+        context "set to 'fiber_isolated' (default)" do
+          it 'builds tracer with FiberIsolatedScope-based context provider' do
+            tracer = build_tracer
+            provider = tracer.instance_variable_get(:@provider)
+
+            expect(provider).to be_a(Datadog::Tracing::DefaultContextProvider)
+            expect(provider.instance_variable_get(:@context)).to be_a(Datadog::Tracing::FiberIsolatedScope)
+          ensure
+            tracer.shutdown!
           end
         end
       end

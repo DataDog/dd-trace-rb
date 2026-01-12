@@ -3,32 +3,34 @@ module Datadog
     module Component
       WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE: Core::Utils::OnlyOnce
 
-      def build_tracer: (untyped settings, untyped agent_settings) -> untyped
+      def build_tracer: (Core::Configuration::Settings settings, untyped agent_settings) -> untyped
 
-      def build_trace_flush: (untyped settings) -> untyped
-      def build_sampler: (untyped settings) -> untyped
+      def build_trace_flush: (Core::Configuration::Settings settings) -> untyped
+      def build_sampler: (Core::Configuration::Settings settings) -> untyped
 
-      def ensure_priority_sampling: (untyped sampler, untyped settings) -> untyped
-      def build_writer: (untyped settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
+      def ensure_priority_sampling: (untyped sampler, Core::Configuration::Settings settings) -> untyped
+      def build_writer: (Core::Configuration::Settings settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
 
-      def subscribe_to_writer_events!: (untyped writer, untyped sampler, untyped test_mode) -> (nil | untyped)
+      def subscribe_to_writer_events!: (untyped writer, untyped sampler, bool test_mode) -> nil
 
-      WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK: untyped
-      def writer_update_priority_sampler_rates_callback: (untyped sampler) -> untyped
+      WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK: ^(untyped, untyped responses) -> void
+      def writer_update_priority_sampler_rates_callback: (untyped sampler) -> ^(untyped, untyped responses) -> void
 
-      def build_span_sampler: (untyped settings) -> untyped
+      def build_span_sampler: (Core::Configuration::Settings settings) -> untyped
+
+      def build_context_provider: (Core::Configuration::Settings settings) -> DefaultContextProvider
 
       private
 
-      def build_tracer_tags: (untyped settings) -> untyped
+      def build_tracer_tags: (Core::Configuration::Settings settings) -> Hash[String, String]
 
       def build_rate_limit_post_sampler: (seconds: Integer) -> Datadog::Tracing::Sampling::RuleSampler
 
-      def build_test_mode_trace_flush: (untyped settings) -> untyped
+      def build_test_mode_trace_flush: (Core::Configuration::Settings settings) -> untyped
 
       def build_test_mode_sampler: () -> untyped
 
-      def build_test_mode_writer: (untyped settings, untyped agent_settings) -> untyped
+      def build_test_mode_writer: (Core::Configuration::Settings settings, untyped agent_settings) -> untyped
     end
   end
 end

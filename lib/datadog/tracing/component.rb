@@ -2,6 +2,7 @@
 
 require_relative 'tracer'
 require_relative 'flush'
+require_relative 'context_provider'
 require_relative 'sync_writer'
 require_relative 'sampling/span/rule_parser'
 require_relative 'sampling/span/sampler'
@@ -39,6 +40,7 @@ module Datadog
         subscribe_to_writer_events!(writer, sampler_delegator, settings.tracing.test_mode.enabled)
 
         Tracing::Tracer.new(
+          context_provider: build_context_provider(settings),
           default_service: settings.service,
           enabled: settings.tracing.enabled,
           logger: logger,
@@ -48,6 +50,17 @@ module Datadog
           writer: writer,
           tags: build_tracer_tags(settings),
         )
+      end
+
+      def build_context_provider(settings)
+        scope = case settings.tracing.context_scope
+        when 'thread'
+          Tracing::ThreadScope.new
+        else
+          Tracing::FiberIsolatedScope.new
+        end
+
+        Tracing::DefaultContextProvider.new(scope: scope)
       end
 
       def build_trace_flush(settings)
