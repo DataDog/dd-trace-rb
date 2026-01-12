@@ -3,36 +3,38 @@ module Datadog
     module Component
       WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE: Core::Utils::OnlyOnce
 
-      def self.build_tracer: (untyped settings, untyped agent_settings, logger: untyped) -> untyped
+      def self.build_tracer: (Core::Configuration::Settings settings, untyped agent_settings, logger: untyped) -> untyped
 
       def self.bind_transport_telemetry: (untyped tracer, Core::Telemetry::Component telemetry) -> void
 
-      def self.build_trace_flush: (untyped settings) -> untyped
-      def self.build_sampler: (untyped settings) -> untyped
+      def self.build_trace_flush: (Core::Configuration::Settings settings) -> untyped
+      def self.build_sampler: (Core::Configuration::Settings settings) -> untyped
 
       def self.build_native_transport: (untyped agent_settings) -> untyped
 
-      def self.ensure_priority_sampling: (untyped sampler, untyped settings) -> untyped
-      def self.build_writer: (untyped settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
+      def self.ensure_priority_sampling: (untyped sampler, Core::Configuration::Settings settings) -> untyped
+      def self.build_writer: (Core::Configuration::Settings settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
 
-      def self.subscribe_to_writer_events!: (untyped writer, untyped sampler, untyped test_mode) -> (nil | untyped)
+      def self.subscribe_to_writer_events!: (untyped writer, untyped sampler, bool test_mode) -> nil
 
-      WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK: untyped
-      def self.writer_update_priority_sampler_rates_callback: (untyped sampler) -> untyped
+      WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK: ^(untyped, untyped responses) -> void
+      def self.writer_update_priority_sampler_rates_callback: (untyped sampler) -> ^(untyped, untyped responses) -> void
 
-      def self.build_span_sampler: (untyped settings) -> untyped
+      def self.build_span_sampler: (Core::Configuration::Settings settings) -> untyped
+
+      def self.build_context_provider: (Core::Configuration::Settings settings, OTelThreadContext? otel_thread_context) -> DefaultContextProvider
 
       private
 
-      def self.build_tracer_tags: (untyped settings) -> untyped
+      def self.build_tracer_tags: (Core::Configuration::Settings settings) -> Hash[String, String]
 
       def self.build_rate_limit_post_sampler: (seconds: Integer) -> Datadog::Tracing::Sampling::RuleSampler
 
-      def self.build_test_mode_trace_flush: (untyped settings) -> untyped
+      def self.build_test_mode_trace_flush: (Core::Configuration::Settings settings) -> untyped
 
       def self.build_test_mode_sampler: () -> untyped
 
-      def self.build_test_mode_writer: (untyped settings, untyped agent_settings) -> untyped
+      def self.build_test_mode_writer: (Core::Configuration::Settings settings, untyped agent_settings) -> untyped
 
       class SamplerDelegatorComponent
         attr_accessor sampler: untyped
