@@ -3,6 +3,7 @@
 require_relative "otel_thread_context"
 require_relative "tracer"
 require_relative "flush"
+require_relative "context_provider"
 require_relative "sync_writer"
 require_relative "sampling/span/rule_parser"
 require_relative "sampling/span/sampler"
@@ -39,17 +40,31 @@ module Datadog
 
         subscribe_to_writer_events!(writer, sampler_delegator, settings.tracing.test_mode.enabled)
 
+        otel_thread_context = OTelThreadContext.build(settings.tracing)
+
         Tracing::Tracer.new(
+          context_provider: build_context_provider(settings, otel_thread_context),
           default_service: settings.service,
           enabled: settings.tracing.enabled,
           logger: logger,
-          otel_thread_context: OTelThreadContext.build(settings.tracing),
+          otel_thread_context: otel_thread_context,
           trace_flush: trace_flush,
           sampler: sampler_delegator,
           span_sampler: build_span_sampler(settings),
           writer: writer,
           tags: build_tracer_tags(settings),
         )
+      end
+
+      def build_context_provider(settings, otel_thread_context)
+        scope = case settings.tracing.context_scope
+        when "thread"
+          Tracing::ThreadScope.new(otel_thread_context: otel_thread_context)
+        else
+          Tracing::FiberIsolatedScope.new(otel_thread_context: otel_thread_context)
+        end
+
+        Tracing::DefaultContextProvider.new(otel_thread_context: otel_thread_context, scope: scope)
       end
 
       def build_trace_flush(settings)
