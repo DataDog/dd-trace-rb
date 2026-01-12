@@ -18,7 +18,7 @@ module Datadog
             ephemeral_data = {
               'server.io.net.url' => env.url.to_s,
               'server.io.net.request.method' => env.method.to_s.upcase,
-              'server.io.net.request.headers' => env.request_headers
+              'server.io.net.request.headers' => env.request_headers.transform_keys(&:downcase)
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
@@ -28,7 +28,7 @@ module Datadog
 
             ephemeral_data = {
               'server.io.net.response.status' => response.status.to_s,
-              'server.io.net.response.headers' => response.headers
+              'server.io.net.response.headers' => response.headers.transform_keys(&:downcase)
             }
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
             handle(result) if result.match?
