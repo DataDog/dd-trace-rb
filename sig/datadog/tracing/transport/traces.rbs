@@ -51,6 +51,11 @@ module Datadog
           def send_traces: (Array[Tracing::TraceOperation] traces) -> untyped
 
           def stats: () -> untyped
+	  
+          # Traces transport overrides HTTP client
+          # Instance variable type replacement is not permitted by steep.
+          #@client: Tracing::Transport::HTTP::Client
+          def client: () -> Tracing::Transport::HTTP::Client
 
           private
 

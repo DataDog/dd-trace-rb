@@ -35,7 +35,18 @@ module Datadog
 
         def inspect
           maybe_code = if respond_to?(:code)
-            " code:#{code}," # steep:ignore
+            # Steep: `code` method may be defined by classes extending this module.
+            # There seem to be no annotation for this.
+            " code:#{code}," # steep:ignore NoMethod
+          end
+          payload = self.payload
+          # Truncation thresholds are arbitrary but we need to truncate the
+          # payload here because outputting multi-MB request body to the
+          # log is not useful.
+          #
+          # Note that payload can be nil here.
+          if payload && payload.length > 2000 # steep:ignore
+            payload = Utils::Truncation.truncate_in_middle(payload, 1500, 500) # steep:ignore
           end
           "#{self.class} ok?:#{ok?},#{maybe_code} unsupported?:#{unsupported?}, " \
             "not_found?:#{not_found?}, client_error?:#{client_error?}, " \

@@ -16,7 +16,9 @@ module Datadog
       class Info
         def initialize(settings)
           @profiler_info = nil
-          @info = {
+
+          # Steep: https://github.com/soutaro/steep/issues/363
+          @info = { # steep:ignore IncompatibleAssignment
             platform: collect_platform_info,
             runtime: collect_runtime_info,
             application: collect_application_info(settings),
@@ -96,7 +98,7 @@ module Datadog
         end
 
         def collect_profiler_info(settings)
-          unless @profiler_info
+          @profiler_info ||= begin
             lib_datadog_gem = ::Gem.loaded_specs["libdatadog"]
 
             libdatadog_version =
@@ -108,13 +110,12 @@ module Datadog
                 "#{Libdatadog::VERSION}-(unknown)"
               end
 
-            @profiler_info = {
+            {
               version: Datadog::Core::Environment::Identity.gem_datadog_version,
               libdatadog: libdatadog_version,
               settings: collect_settings_recursively(settings.profiling),
             }.freeze
           end
-          @profiler_info
         end
 
         # The settings/option model isn't directly serializable because

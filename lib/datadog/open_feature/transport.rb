@@ -39,13 +39,6 @@ module Datadog
           end
         end
 
-        # TODO remove
-        class Instance < Core::Transport::HTTP::API::Instance
-          def send_exposures(env)
-            @spec.call(env) { |request_env| call(request_env) }
-          end
-        end
-
         def self.build(agent_settings:, logger:)
           Core::Transport::HTTP.build(
             agent_settings: agent_settings,
@@ -60,7 +53,10 @@ module Datadog
 
         def send_exposures(payload)
           request = Core::Transport::Request.new(EncodedParcel.new(payload))
-          @api.send_exposures(Core::Transport::HTTP::Env.new(request))
+
+          @api.endpoint.call(Core::Transport::HTTP::Env.new(request)) do |env|
+            @api.call(env)
+          end
         rescue => e
           message = "Internal error during request. Cause: #{e.class.name} #{e.message} " \
                     "Location: #{Array(e.backtrace).first}"

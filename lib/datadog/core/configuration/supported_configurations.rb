@@ -8,8 +8,13 @@ require 'set'
 module Datadog
   module Core
     module Configuration
-      SUPPORTED_CONFIGURATIONS =
+      SUPPORTED_CONFIGURATION_NAMES =
         Set["DD_AGENT_HOST",
+          "DD_AI_GUARD_ENABLED",
+          "DD_AI_GUARD_ENDPOINT",
+          "DD_AI_GUARD_MAX_CONTENT_SIZE",
+          "DD_AI_GUARD_MAX_MESSAGES_LENGTH",
+          "DD_AI_GUARD_TIMEOUT",
           "DD_API_KEY",
           "DD_API_SECURITY_ENABLED",
           "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED",
@@ -34,6 +39,7 @@ module Datadog
           "DD_APPSEC_TRACE_RATE_LIMIT",
           "DD_APPSEC_WAF_DEBUG",
           "DD_APPSEC_WAF_TIMEOUT",
+          "DD_APP_KEY",
           "DD_CRASHTRACKING_ENABLED",
           "DD_DATA_STREAMS_ENABLED",
           "DD_DBM_PROPAGATION_MODE",
@@ -47,6 +53,7 @@ module Datadog
           "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE",
           "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED",
           "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED",
+          "DD_EXTERNAL_ENV",
           "DD_GIT_COMMIT_SHA",
           "DD_GIT_REPOSITORY_URL",
           "DD_HEALTH_METRICS_ENABLED",

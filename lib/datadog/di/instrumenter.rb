@@ -114,7 +114,9 @@ module Datadog
         settings = self.settings
 
         mod = Module.new do
-          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore
+          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+            # Steep: Unsure why it cannot detect kwargs in this block. Workaround:
+            # @type var kwargs: ::Hash[::Symbol, untyped]
             continue = true
             if condition = probe.condition
               begin
@@ -166,7 +168,10 @@ module Datadog
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
-              start_time = Core::Utils::Time.get_time
+              # We intentionally do not use Core::Utils::Time.get_time
+              # here because the time provider may be overridden by the
+              # customer, and DI is not allowed to invoke customer code.
+              start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
               rv = nil
               begin
@@ -190,7 +195,7 @@ module Datadog
                 # the instrumentation callback runs.
               end
 
-              duration = Core::Utils::Time.get_time - start_time
+              duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
@@ -206,7 +211,8 @@ module Datadog
                 # that location here.
                 []
               end
-              caller_locs = method_frame + caller_locations # steep:ignore
+              # Steep: https://github.com/ruby/rbs/pull/2745
+              caller_locs = method_frame + caller_locations # steep:ignore ArgumentTypeMismatch
               # TODO capture arguments at exit
 
               context = Context.new(locals: nil, target_self: self,
@@ -256,6 +262,8 @@ module Datadog
 
           probe.instrumentation_module = mod
           cls.send(:prepend, mod)
+
+          DI.instrumented_count_inc(:method)
         end
       end
 
@@ -268,6 +276,8 @@ module Datadog
           if mod = probe.instrumentation_module
             mod.send(:remove_method, probe.method_name)
             probe.instrumentation_module = nil
+
+            DI.instrumented_count_dec(:method)
           end
         end
       end
@@ -298,7 +308,10 @@ module Datadog
 
         iseq = nil
         if code_tracker
-          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore
+          # Steep: Complex type narrowing (before calling hook_line,
+          # we check that probe.line? is true which itself checks that probe.file is not nil)
+          # Annotation do not work here as `file` is a method on probe, not a local variable.
+          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
           unless ret
             if permit_untargeted_trace_points
               # Continue withoout targeting the trace point.
@@ -470,12 +483,16 @@ module Datadog
           # actual_path could be nil if we don't use targeted trace points.
           probe.instrumented_path = actual_path
 
-          if iseq
+          # TracePoint#enable returns false when it succeeds.
+          rv = if iseq
             tp.enable(target: iseq, target_line: line_no)
           else
             tp.enable
           end
-          # TracePoint#enable returns false when it succeeds.
+
+          DI.instrumented_count_inc(:line)
+
+          rv
         end
         true
       end
@@ -485,6 +502,8 @@ module Datadog
           if tp = probe.instrumentation_trace_point
             tp.disable
             probe.instrumentation_trace_point = nil
+
+            DI.instrumented_count_dec(:line)
           end
         end
       end

@@ -7,8 +7,6 @@ module Datadog
   module AppSec
     # Remote
     module Remote
-      class ReadError < StandardError; end
-
       class NoRulesError < StandardError; end
 
       class << self
@@ -85,11 +83,12 @@ module Datadog
 
               case change.type
               when :insert, :update
-                AppSec.security_engine.add_or_update_config(parse_content(content), path: change.path.to_s) # steep:ignore
+                # @type var content: Core::Remote::Configuration::Content
+                AppSec.security_engine.add_or_update_config(parse_content(content), path: change.path.to_s)
 
-                content.applied # steep:ignore
+                content.applied
               when :delete
-                AppSec.security_engine.remove_config_at_path(change.path.to_s) # steep:ignore
+                AppSec.security_engine.remove_config_at_path(change.path.to_s)
               end
             end
 
@@ -109,13 +108,7 @@ module Datadog
         end
 
         def parse_content(content)
-          data = content.data.read
-
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          JSON.parse(data)
+          JSON.parse(content.data)
         end
       end
     end

@@ -2,8 +2,11 @@ module Datadog
   module Tracing
     module Metadata
       module Tagging
+        @meta: ::Hash[untyped, untyped]
+        @metrics: ::Hash[untyped, untyped]
+
         NUMERIC_TAG_SIZE_RANGE: ::Range[untyped]
-        ENSURE_AGENT_TAGS: ::Hash[untyped, true]
+        ENSURE_AGENT_TAGS: ::Hash[untyped, bool]
 
         def get_tag: (untyped key) -> untyped
         def set_tag: (untyped key, ?untyped? value) -> untyped

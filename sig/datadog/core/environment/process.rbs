@@ -2,9 +2,12 @@ module Datadog
   module Core
     module Environment
       module Process
-        @serialized: ::String
+        self.@serialized: ::String
+        self.@tags: ::Array[::String]
 
         def self.serialized: () -> ::String
+
+        def self.tags: () -> ::Array[::String]
 
         private
 

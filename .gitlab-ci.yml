@@ -17,7 +17,7 @@ variables:
   REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby"
 
 default:
-  tags: ["runner:main", "size:large"]
+  tags: ["arch:amd64"]
 
 workflow:
   auto_cancel:
@@ -50,7 +50,7 @@ workflow:
 
 build-image-amd64:
   extends: .build-image-base
-  tags: ["runner:docker"]
+  tags: ["docker-in-docker:amd64"]
   variables:
     ARCHITECTURE: amd64
 
@@ -69,7 +69,7 @@ promote-image:
         - .gitlab-ci.yml         # list of images is here so it is a dependency too
       when: manual               # this one is manual, but it means that install-dependencies may be hitting the wrong <base>:current til this is run
       allow_failure: true
-  tags: ["runner:docker"]
+  tags: ["docker-in-docker:amd64"]
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
     matrix:
@@ -146,8 +146,9 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 3eba8d6de5cab3a6d925601220d5bbc55674c883 # Automated: This reference is automatically updated.
-    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection"
+    SYSTEM_TESTS_REF: 82305d7ba7bdf8092d26bc560b81e6c89abba33c # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection,docker_ssi"
+    SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
 save_versions:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2

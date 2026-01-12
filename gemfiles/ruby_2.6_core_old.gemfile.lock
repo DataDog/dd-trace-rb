@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.24.0)
+    datadog (2.25.0)
       cgi
-      datadog-ruby_core_source (~> 3.4, >= 3.4.2)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.0)
       libdatadog (~> 24.0.1.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
@@ -23,12 +23,11 @@ GEM
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    datadog-ruby_core_source (3.4.2)
+    datadog-ruby_core_source (3.5.0)
     diff-lcs (1.5.0)
     docile (1.4.1)
     dogstatsd-ruby (4.8.3)
-    ffi (1.17.2-aarch64-linux-gnu)
-    ffi (1.17.2-x86_64-linux-gnu)
+    ffi (1.17.3)
     google-protobuf (3.19.1)
     google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)

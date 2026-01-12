@@ -165,7 +165,7 @@ module Datadog
           end
 
           def stats
-            @client.stats
+            client.stats
           end
 
           private

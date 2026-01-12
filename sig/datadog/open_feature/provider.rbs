@@ -14,37 +14,37 @@ module Datadog
       def fetch_boolean_value: (
         flag_key: ::String,
         default_value: bool,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_string_value: (
         flag_key: ::String,
         default_value: ::String,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_number_value: (
         flag_key: ::String,
         default_value: ::Numeric,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_integer_value: (
         flag_key: ::String,
         default_value: ::Integer,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_float_value: (
         flag_key: ::String,
         default_value: ::Float,
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_object_value: (
         flag_key: ::String,
         default_value: ::Array[untyped] | ::Hash[untyped, untyped],
-        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext
+        ?evaluation_context: ::OpenFeature::SDK::EvaluationContext?
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       private

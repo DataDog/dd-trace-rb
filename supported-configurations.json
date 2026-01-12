@@ -9,6 +9,41 @@
         "default": "127.0.0.1"
       }
     ],
+    "DD_AI_GUARD_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_AI_GUARD_ENDPOINT": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_AI_GUARD_MAX_CONTENT_SIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "524288"
+      }
+    ],
+    "DD_AI_GUARD_MAX_MESSAGES_LENGTH": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "16"
+      }
+    ],
+    "DD_AI_GUARD_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10000"
+      }
+    ],
     "DD_API_KEY": [
       {
         "version": "A",
@@ -49,6 +84,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_APP_KEY": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
@@ -239,6 +281,13 @@
     "DD_ENV": [
       {
         "version": "B",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_EXTERNAL_ENV": [
+      {
+        "version": "A",
         "type": "string",
         "default": null
       }
@@ -2204,9 +2253,9 @@
     ],
     "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
-        "default": null
+        "default": "http/protobuf"
       }
     ],
     "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": [
@@ -2218,9 +2267,9 @@
     ],
     "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": [
       {
-        "version": "A",
+        "version": "B",
         "type": "int",
-        "default": null
+        "default": "10000"
       }
     ],
     "OTEL_EXPORTER_OTLP_PROTOCOL": [

@@ -30,27 +30,8 @@ module Datadog
           end
 
           # Config transport
-          class Transport
-            @apis: untyped
-
-            @logger: untyped
-
-            @client: untyped
-
-            attr_reader client: untyped
-
-            attr_reader apis: untyped
-
-            attr_reader default_api: untyped
-
-            attr_reader current_api_id: untyped
-
-            attr_reader logger: untyped
-
-            def initialize: (untyped apis, untyped default_api, ?logger: untyped) -> void
+          class Transport < Core::Transport::Transport
             def send_config: (untyped payload) -> untyped
-
-            def current_api: () -> untyped
           end
         end
       end

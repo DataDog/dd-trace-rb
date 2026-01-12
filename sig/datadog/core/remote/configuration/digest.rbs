@@ -12,13 +12,11 @@ module Datadog
           class InvalidHashTypeError < StandardError
           end
 
-          DIGEST_CHUNK: 1024
-
           attr_reader type: ::Symbol
 
           attr_reader hexdigest: ::String
 
-          def self.hexdigest: (Symbol type, StringIO data) -> String
+          def self.hexdigest: (Symbol type, String data) -> String
 
           def initialize: (::String type, ::String hexdigest) -> void
 

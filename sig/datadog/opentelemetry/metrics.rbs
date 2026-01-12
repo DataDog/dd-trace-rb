@@ -3,6 +3,11 @@ module Datadog
     class Metrics
       EXPORTER_NONE: ::String
 
+      @logger: Core::Logger
+      @settings: Core::Configuration::Settings
+      @agent_host: ::String?
+      @agent_ssl: bool
+
       def self.initialize!: (Core::Configuration::Components components) -> bool
 
       def initialize: (Core::Configuration::Components components) -> void
@@ -15,9 +20,11 @@ module Datadog
 
       def configure_metric_reader: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
 
-      def resolve_metrics_endpoint: () -> ::String
+      def default_metrics_endpoint: () -> ::String
 
       def configure_otlp_exporter: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
+
+      def get_metrics_config_with_fallback: (option_name: ::Symbol, ?computed_default: any) -> any
     end
   end
 end

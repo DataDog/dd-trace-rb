@@ -34,7 +34,10 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
     subject(:send_request_traces) { client.send_request(:traces, request) }
 
     let(:request) { instance_double(Datadog::Tracing::Transport::Traces::Request) }
-    let(:response) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::Response) }
+    let(:response) do
+      double(Datadog::Tracing::Transport::HTTP::Traces::Response,
+        ok?: true,)
+    end
 
     before do
       expect(client).to receive(:update_stats_from_response!)

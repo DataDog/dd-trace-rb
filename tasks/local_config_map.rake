@@ -74,7 +74,7 @@ namespace :local_config_map do
         module Datadog
           module Core
             module Configuration
-              SUPPORTED_CONFIGURATIONS =
+              SUPPORTED_CONFIGURATION_NAMES =
                 Set#{ConfigPrinter.pp(supported_configurations)}.freeze
 
               ALIASES =
