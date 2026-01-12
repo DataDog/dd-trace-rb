@@ -27,7 +27,7 @@ module Datadog
           persistent_data.reject! do |_, v|
             next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
 
-            v.nil? || v.empty?
+            v.nil? || (v.respond_to?(:empty?) && v.empty?)
           end
 
           ephemeral_data.reject! do |_, v|
