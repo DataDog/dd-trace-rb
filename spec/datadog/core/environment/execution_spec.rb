@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
-require "datadog/core/environment/execution"
-require "open3"
+require 'datadog/core/environment/execution'
+require 'open3'
 
 RSpec.describe Datadog::Core::Environment::Execution do
   around do |example|
@@ -12,18 +12,18 @@ RSpec.describe Datadog::Core::Environment::Execution do
     WebMock.disable!
   end
 
-  describe ".development?" do
+  describe '.development?' do
     subject(:development?) { described_class.development? }
 
     before do
       WebMock.disable!
     end
 
-    context "when in an RSpec test" do
+    context 'when in an RSpec test' do
       it { is_expected.to eq(true) }
     end
 
-    context "when not in an RSpec test" do
+    context 'when not in an RSpec test' do
       # RSpec is detected through the $PROGRAM_NAME.
       # Changing it will make RSpec detection to return false.
       #
@@ -32,14 +32,14 @@ RSpec.describe Datadog::Core::Environment::Execution do
       # otherwise we'll have no real test for non-RSpec cases.
       around do |example|
         original = $PROGRAM_NAME
-        $PROGRAM_NAME = "not-rspec"
+        $PROGRAM_NAME = 'not-rspec'
         example.run
       ensure
         $PROGRAM_NAME = original
       end
 
       let!(:repl_script) do
-        lib = File.expand_path("lib")
+        lib = File.expand_path('lib')
         <<-RUBY
           # Load the working directory version of `datadog`
           $LOAD_PATH.unshift("#{lib}") unless $LOAD_PATH.include?("#{lib}")
@@ -50,46 +50,46 @@ RSpec.describe Datadog::Core::Environment::Execution do
         RUBY
       end
 
-      it "ensure RSpec detection returns false" do
+      it 'ensure RSpec detection returns false' do
         is_expected.to eq(false)
       end
 
-      context "when in an IRB session" do
-        it "returns true" do
+      context 'when in an IRB session' do
+        it 'returns true' do
           # Ruby 2.6 does not have irb by default in a bundle, but has it outside of it.
           _, err, status = Bundler.with_unbundled_env do
-            Open3.capture3("irb", "--noprompt", "--noverbose", "--noecho", stdin_data: repl_script)
+            Open3.capture3('irb', '--noprompt', '--noverbose', '--noecho', stdin_data: repl_script)
           end
-          expect(err).to end_with("ACTUAL:true")
+          expect(err).to end_with('ACTUAL:true')
           expect(status.exitstatus).to eq(0)
         end
       end
 
-      context "when in a Pry session" do
-        it "returns true" do
-          Tempfile.create("test") do |f|
+      context 'when in a Pry session' do
+        it 'returns true' do
+          Tempfile.create('test') do |f|
             f.write(repl_script)
             f.close
 
-            _, err, = Open3.capture3("pry", "-f", "--noprompt", f.path)
-            expect(err).to end_with("ACTUAL:true")
+            _, err, = Open3.capture3('pry', '-f', '--noprompt', f.path)
+            expect(err).to end_with('ACTUAL:true')
           end
         end
       end
 
-      context "when in a Minitest test" do
+      context 'when in a Minitest test' do
         before do
-          skip("JRuby does not support fork") if RUBY_ENGINE == "jruby"
+          skip('JRuby does not support fork') if RUBY_ENGINE == 'jruby'
         end
 
-        it "returns true" do
+        it 'returns true' do
           expect_in_fork do
             # Minitest reads CLI arguments, but the current process has RSpec
             # arguments that are not relevant (nor compatible) with Minitest.
             # This happens inside a fork, thus we don't have to reset it.
-            Object.const_set("ARGV", [])
+            Object.const_set('ARGV', [])
 
-            require "minitest/autorun"
+            require 'minitest/autorun'
 
             # MiniTest 5.22.1 requires a test to be defined, otherwise it will fail
             # https://github.com/minitest/minitest/blob/master/History.rdoc#label-5.22.1+-2F+2024-02-06
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
       end
 
-      context "when in a Rails Spring process" do
+      context 'when in a Rails Spring process' do
         let(:script) do
           <<-RUBY
             # Load the `bin/spring` file, just like a real Spring application would.
@@ -116,39 +116,39 @@ RSpec.describe Datadog::Core::Environment::Execution do
           RUBY
         end
 
-        it "returns true" do
-          _, err, = Open3.capture3("ruby", stdin_data: script)
-          expect(err).to end_with("ACTUAL:true")
+        it 'returns true' do
+          _, err, = Open3.capture3('ruby', stdin_data: script)
+          expect(err).to end_with('ACTUAL:true')
         end
       end
 
-      context "for Rails" do
-        context "not loaded" do
+      context 'for Rails' do
+        context 'not loaded' do
           it { is_expected.to eq(false) }
         end
 
-        context "with environment" do
-          before { stub_const("Rails", rails) }
-          let(:rails) { double("Rails", env: env) }
+        context 'with environment' do
+          before { stub_const('Rails', rails) }
+          let(:rails) { double('Rails', env: env) }
 
-          context "development" do
-            let(:env) { "development" }
+          context 'development' do
+            let(:env) { 'development' }
             it { is_expected.to eq(true) }
           end
 
-          context "test" do
-            let(:env) { "test" }
+          context 'test' do
+            let(:env) { 'test' }
             it { is_expected.to eq(true) }
           end
 
-          context "production" do
-            let(:env) { "production" }
+          context 'production' do
+            let(:env) { 'production' }
             it { is_expected.to eq(false) }
           end
         end
       end
 
-      context "for Cucumber" do
+      context 'for Cucumber' do
         before do
           skip "Ruby 4.0 + ffi 1.17.3 is failing this spec" if RUBY_DESCRIPTION.include?("4.0.0preview")
         end
@@ -162,19 +162,19 @@ RSpec.describe Datadog::Core::Environment::Execution do
           RUBY
         end
 
-        it "returns true" do
+        it 'returns true' do
           Dir.mktmpdir do |dir|
             Dir.chdir(dir) do
-              FileUtils.mkdir_p("features/support")
+              FileUtils.mkdir_p('features/support')
 
               # Add our script to `env.rb`, which is always run before any feature is executed.
-              File.write("features/support/env.rb", repl_script)
+              File.write('features/support/env.rb', repl_script)
 
               _, err, status = Bundler.with_unbundled_env do
-                Open3.capture3("ruby", stdin_data: script)
+                Open3.capture3('ruby', stdin_data: script)
               end
 
-              expect(err).to include("ACTUAL:true")
+              expect(err).to include('ACTUAL:true')
               expect(status.exitstatus).to eq(0)
             end
           end
@@ -182,7 +182,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
       end
     end
 
-    context "when webmock has enabled net-http adapter" do
+    context 'when webmock has enabled net-http adapter' do
       before do
         allow(described_class).to receive(:repl?).and_return(false)
         allow(described_class).to receive(:test?).and_return(false)
@@ -195,22 +195,22 @@ RSpec.describe Datadog::Core::Environment::Execution do
     end
   end
 
-  describe ".webmock_enabled?" do
-    context "when missing constant `WebMock::HttpLibAdapters::NetHttpAdapter`" do
+  describe '.webmock_enabled?' do
+    context 'when missing constant `WebMock::HttpLibAdapters::NetHttpAdapter`' do
       it do
-        hide_const("::WebMock::HttpLibAdapters::NetHttpAdapter")
+        hide_const('::WebMock::HttpLibAdapters::NetHttpAdapter')
         expect(described_class).not_to be_webmock_enabled
       end
     end
 
-    context "when missing constant `Net::HTTP`" do
+    context 'when missing constant `Net::HTTP`' do
       it do
-        hide_const("::Net::HTTP")
+        hide_const('::Net::HTTP')
         expect(described_class).not_to be_webmock_enabled
       end
     end
 
-    context "when `WebMock::HttpLibAdapters::NetHttpAdapter` and `Net::HTTP` constants both exist" do
+    context 'when `WebMock::HttpLibAdapters::NetHttpAdapter` and `Net::HTTP` constants both exist' do
       it do
         WebMock.enable!
 
@@ -236,10 +236,10 @@ RSpec.describe Datadog::Core::Environment::Execution do
       end
     end
 
-    context "when given WebMock", skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new("2") do
+    context 'when given WebMock', skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new('2') do
       it do
         out, err, status = Bundler.with_unbundled_env do
-          Open3.capture3("ruby", stdin_data: <<-RUBY
+          Open3.capture3('ruby', stdin_data: <<-RUBY
             require 'webmock'
             WebMock.enable!
 
@@ -253,7 +253,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
 
         expect(err).to be_empty
-        expect(out).to end_with("ACTUAL:true")
+        expect(out).to end_with('ACTUAL:true')
         expect(status.exitstatus).to eq(0)
       end
     end
