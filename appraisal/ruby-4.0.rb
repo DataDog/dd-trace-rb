@@ -200,3 +200,10 @@ end
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
 end
+
+appraise 'environment' do
+  gem 'spring', '>= 2.0.2'
+  gem 'cucumber', '>= 3'
+  gem 'logger' # Not default in Ruby 4+
+  gem 'minitest'
+end
