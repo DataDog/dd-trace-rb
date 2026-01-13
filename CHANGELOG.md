@@ -14,7 +14,7 @@ Core: Bump minimum version of `datadog-ruby_core_source` dependency ([#5215][])
 
 ### Fixed
 
-AppSec: Fix processing of non-hash data for WAF and RASP checks ([#5222][])
+AppSec: Fix processing of numeric data for WAF and RASP checks ([#5222][])
 
 ## [2.24.0] - 2026-01-08
 
