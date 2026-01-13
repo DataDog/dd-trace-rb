@@ -137,7 +137,8 @@ static VALUE perform_export(
     /* files_to_export_unmodified: */ ddog_prof_Exporter_Slice_File_empty(),
     /* optional_additional_tags: */ NULL,
     &internal_metadata,
-    &info
+    &info,
+    /* optional_process_tags: */ NULL
   );
 
   if (build_result.tag == DDOG_PROF_REQUEST_RESULT_ERR_HANDLE_REQUEST) {
