@@ -1,3 +1,8 @@
+interface _StorageLike
+  def []: (Symbol) -> Datadog::Tracing::Context?
+  def []=: (Symbol, Datadog::Tracing::Context?) -> Datadog::Tracing::Context?
+end
+
 module Datadog
   module Tracing
     class DefaultContextProvider
@@ -6,7 +11,7 @@ module Datadog
 
       def initialize: (?otel_thread_context: OTelThreadContext?, ?scope: ContextScope) -> void
       def context=: (Context? ctx) -> Context?
-      def context: (?untyped? key) -> Context
+      def context: (?::Object? key) -> Context
     end
 
     class ContextScope
@@ -17,7 +22,7 @@ module Datadog
 
       def initialize: (?otel_thread_context: OTelThreadContext?) -> void
       def current=: (Context? ctx) -> Context?
-      def current: (?untyped? storage) -> Context
+      def current: (?::Object? storage) -> Context
 
       def self.unique_instance_mutex: () -> Mutex
       def self.unique_instance_generator: () -> Datadog::Core::Utils::Sequence
@@ -25,12 +30,12 @@ module Datadog
 
       private
       def get_current: () -> Context
-      def get_current_for: (untyped storage) -> Context
+      def get_current_for: (::Object storage) -> Context
     end
 
     class ThreadScope < ContextScope
       def current=: (Context? ctx) -> Context?
-      
+
       private
       def get_current: () -> Context
       def get_current_for: (Thread thread) -> Context
@@ -38,10 +43,10 @@ module Datadog
 
     class FiberIsolatedScope < ContextScope
       def current=: (Context? ctx) -> Context?
-      
+
       private
       def get_current: () -> Context
-      def get_current_for: (untyped storage) -> Context
+      def get_current_for: (_StorageLike storage) -> Context
     end
   end
 end
