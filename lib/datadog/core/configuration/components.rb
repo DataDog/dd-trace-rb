@@ -178,14 +178,13 @@ module Datadog
             end
           end
 
-          if settings.remote.enabled && old_state&.remote_started?
+          if remote && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
             # through the installed Rack middleware which started the remote).
             # If the new configuration also has remote enabled, start the
             # new remote right away.
-            # remote should always be not nil here but steep doesn't know this.
-            remote&.start
+            remote.start
           end
 
           # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
@@ -253,11 +252,15 @@ module Datadog
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          # enqueue closing event before stopping telemetry so it will be sent out on shutdown
+          Core::ProcessDiscovery.shutdown!
+
+          # Shut down telemetry last so that all other components may
+          # report shutdown errors.
+          #
+          # Enqueue closing event before stopping telemetry so it will be
+          # sent out on shutdown.
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
-
-          Core::ProcessDiscovery.shutdown!
         end
 
         # Returns the current state of various components.
