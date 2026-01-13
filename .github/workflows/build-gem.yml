@@ -19,7 +19,7 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 env:
-  GEM_HOST: 'https://rubygems.pkg.github.com/DataDog'
+  GEM_HOST: "https://rubygems.pkg.github.com/DataDog"
 
 jobs:
   build:
@@ -38,7 +38,7 @@ jobs:
           persist-credentials: false
       - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
         with:
-          ruby-version: '3.2'
+          ruby-version: "3.2"
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - name: Patch version
         if: ${{ matrix.type != 'final' }}
@@ -65,8 +65,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
-          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
-          path: 'pkg/*.gem'
+          name: "datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}"
+          path: "pkg/*.gem"
   test:
     strategy:
       fail-fast: false
@@ -82,14 +82,14 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
-          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
-          path: 'pkg'
+          name: "datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}"
+          path: "pkg"
       - name: List gem
         run: |
           find pkg
       - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
         with:
-          ruby-version: '3.2'
+          ruby-version: "3.2"
       - name: Install gem
         run: |
           gem install pkg/*.gem
@@ -108,8 +108,8 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
-          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
-          path: 'pkg'
+          name: "datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}"
+          path: "pkg"
       - name: List gem
         run: |
           find pkg
