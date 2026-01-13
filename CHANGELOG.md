@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [2.25.0] - 2026-01-13
+
+### Added
+
+AI Guard: Add SDK for evaluating the safety of user messages and assistant commands for LLM session ([#5144][])
+
+### Changed
+
+Core: Bump minimum version of `datadog-ruby_core_source` dependency ([#5215][])
+
+### Fixed
+
+AppSec: Fix processing of non-hash data for WAF and RASP checks ([#5222][])
+
 ## [2.24.0] - 2026-01-08
 
 ### Added
@@ -3423,7 +3437,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.24.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.25.0...master
+[2.25.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.24.0...v2.25.0
 [2.24.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.23.0...v2.24.0
 [2.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.22.0...v2.23.0
 [2.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.21.0...v2.22.0
@@ -5071,6 +5086,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5086]: https://github.com/DataDog/dd-trace-rb/issues/5086
 [#5091]: https://github.com/DataDog/dd-trace-rb/issues/5091
 [#5122]: https://github.com/DataDog/dd-trace-rb/issues/5122
+[#5144]: https://github.com/DataDog/dd-trace-rb/issues/5144
 [#5145]: https://github.com/DataDog/dd-trace-rb/issues/5145
 [#5146]: https://github.com/DataDog/dd-trace-rb/issues/5146
 [#5148]: https://github.com/DataDog/dd-trace-rb/issues/5148
@@ -5084,6 +5100,8 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5176]: https://github.com/DataDog/dd-trace-rb/issues/5176
 [#5194]: https://github.com/DataDog/dd-trace-rb/issues/5194
 [#5197]: https://github.com/DataDog/dd-trace-rb/issues/5197
+[#5215]: https://github.com/DataDog/dd-trace-rb/issues/5215
+[#5222]: https://github.com/DataDog/dd-trace-rb/issues/5222
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
