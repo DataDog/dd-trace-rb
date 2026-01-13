@@ -69,7 +69,7 @@ Gem::Specification.new do |spec|
 
   # When updating the version here, please also update the version in `libdatadog_extconf_helpers.rb`
   # (and yes we have a test for it)
-  spec.add_dependency 'libdatadog', '~> 24.0.1.1.0'
+  spec.add_dependency 'libdatadog', '~> 25.0.0.1.0'
 
   # Will no longer be a default gem on Ruby 3.5, see
   # https://github.com/ruby/ruby/commit/d7e558e3c48c213d0e8bedca4fb547db55613f7c and
