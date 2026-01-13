@@ -74,7 +74,7 @@ module Datadog
       end
 
       def extract_schema
-        @waf_runner.run({ 'waf.context.processor' => { 'extract-schema' => true } }, {})
+        @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
       end
 
       def export_metrics

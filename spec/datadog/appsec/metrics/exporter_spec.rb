@@ -84,9 +84,9 @@ RSpec.describe Datadog::AppSec::Metrics::Exporter do
 
       it 'sets downstream requests metric on the span' do
         expect(span).to receive(:set_tag).with('_dd.appsec.rasp.rule.eval', 3)
-        expect(span).to receive(:set_tag).with('_dd.appsec.rasp.downstream_requests', 2)
         expect(span).to receive(:set_tag).with('_dd.appsec.rasp.duration', 1.0)
         expect(span).to receive(:set_tag).with('_dd.appsec.rasp.duration_ext', 2.0)
+        expect(span).to receive(:set_tag).with('_dd.appsec.downstream_request', 2)
 
         described_class.export_rasp_metrics(rasp_store, span)
       end
