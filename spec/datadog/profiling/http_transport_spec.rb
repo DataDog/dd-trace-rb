@@ -302,7 +302,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:expected_data_in_payload) {
         {
           "attachments" => contain_exactly(pprof_file_name, code_provenance_file_name),
-          "tags_profiler" => start_with("tag_a:value_a,tag_b:value_b,runtime_platform:#{RUBY_PLATFORM.split("-").first}"),
+          "tags_profiler" => start_with("tag_a:value_a,tag_b:value_b,runtime_platform:#{RUBY_PLATFORM.split("-").first.sub('arm','aarch')}"),
           "start" => start_timestamp,
           "end" => end_timestamp,
           "family" => "ruby",
