@@ -30,6 +30,7 @@ module Datadog
               'server.io.net.response.status' => response.status.to_s,
               'server.io.net.response.headers' => response.headers.transform_keys(&:downcase)
             }
+
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
             handle(result) if result.match?
 

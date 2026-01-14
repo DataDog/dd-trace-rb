@@ -19,17 +19,21 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     WebMock.enable!(allow: agent_url)
 
     stub_request(:get, 'http://example.com/success')
-      .to_return(status: 200, body: 'OK', headers: {'Set-Cookie' => ['a=1', 'b=2']})
+      .to_return(
+        status: 200,
+        body: 'OK',
+        headers: {
+          'Set-Cookie' => ['a=1', 'b=2'],
+          'Via' => ['1.1 foo.io', '2.2 bar.io'],
+          'Age' => '1'
+        }
+      )
   end
 
-  after do
-    Datadog.configuration.reset!
-  end
+  after { Datadog.configuration.reset! }
 
   context 'when RASP is disabled' do
-    before do
-      allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(false)
-    end
+    before { allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(false) }
 
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
@@ -39,7 +43,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
   end
 
   context 'when there is no active context' do
-    let(:context) { nil }
+    before { allow(Datadog::AppSec).to receive(:active_context).and_return(nil) }
 
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
@@ -49,19 +53,21 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
   end
 
   context 'when RASP is enabled' do
-    before do
-      allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(true)
-    end
+    before { allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(true) }
 
     it 'calls waf with correct arguments when making a request' do
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
         .with(
-          Datadog::AppSec::Ext::RASP_SSRF,
+          'ssrf',
           {},
           hash_including(
             'server.io.net.url' => 'http://example.com/success',
             'server.io.net.request.method' => 'GET',
-            'server.io.net.request.headers' => hash_including('x-request-header' => '1')
+            'server.io.net.request.headers' => hash_including(
+              'cookie' => 'x=1; y=2',
+              'accept' => 'text/plain, application/json',
+              'dnt' => '1'
+            )
           ),
           kind_of(Integer),
           phase: 'request'
@@ -69,17 +75,23 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
 
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
         .with(
-          Datadog::AppSec::Ext::RASP_SSRF,
+          'ssrf',
           {},
           hash_including(
             'server.io.net.response.status' => '200',
-            'server.io.net.response.headers' => hash_including('set-cookie' => 'a=1,b=2')
+            'server.io.net.response.headers' => hash_including(
+              'set-cookie' => 'a=1, b=2',
+              'via' => '1.1 foo.io, 2.2 bar.io',
+              'age' => '1'
+            )
           ),
           kind_of(Integer),
           phase: 'response'
         )
 
-      RestClient.get('http://example.com/success', {'X-Request-Header' => '1'})
+      RestClient.get(
+        'http://example.com/success', {'Cookie' => 'x=1; y=2', 'Accept' => 'text/plain, application/json', 'DNT' => '1'}
+      )
     end
 
     it 'returns the http response' do

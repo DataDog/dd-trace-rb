@@ -43,13 +43,14 @@ module Datadog
           def lowercase_request_headers
             return @processed_headers_lowercase if defined?(@processed_headers_lowercase)
 
-            processed_headers.transform_keys { |k| k.to_s.downcase }
+            processed_headers.transform_keys(&:downcase)
           end
 
           def lowercase_response_headers(response)
-            response.net_http_res.to_hash.transform_values do |value|
-              value.is_a?(Array) ? value.join(',') : value
-            end
+            # NOTE: Headers values are always an `Array` in `Net::HTTPResponse`
+            #       but we want to avoid accidents and goint to wrap them in no-op
+            #       `Array` call in case of a breaking change in the future.
+            response.net_http_res.to_hash.transform_values! { |value| Array(value).join(', ') }
           end
 
           def handle(context, result)
