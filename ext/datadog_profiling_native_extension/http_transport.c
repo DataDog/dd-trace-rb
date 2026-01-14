@@ -128,7 +128,8 @@ static VALUE perform_export(
   ddog_prof_EncodedProfile *profile,
   ddog_prof_Exporter_Slice_File files_to_compress_and_export,
   ddog_CharSlice internal_metadata,
-  ddog_CharSlice info
+  ddog_CharSlice info,
+  ddog_CharSlice *optional_process_tags
 ) {
   ddog_prof_Request_Result build_result = ddog_prof_Exporter_Request_build(
     exporter,
@@ -136,7 +137,7 @@ static VALUE perform_export(
     files_to_compress_and_export,
     /* files_to_export_unmodified: */ ddog_prof_Exporter_Slice_File_empty(),
     /* optional_additional_tags: */ NULL,
-    /* optional_process_tags: */ NULL,
+    /* optional_process_tags: */ optional_process_tags,
     &internal_metadata,
     &info
   );
@@ -212,6 +213,7 @@ static VALUE _native_do_export(
   VALUE tags_as_array = rb_funcall(flush, rb_intern("tags_as_array"), 0);
   VALUE internal_metadata_json = rb_funcall(flush, rb_intern("internal_metadata_json"), 0);
   VALUE info_json = rb_funcall(flush, rb_intern("info_json"), 0);
+  VALUE process_tags = rb_funcall(flush, rb_intern("process_tags"), 0);
 
   ENFORCE_TYPE(upload_timeout_milliseconds, T_FIXNUM);
   enforce_encoded_profile_instance(encoded_profile);
@@ -219,6 +221,7 @@ static VALUE _native_do_export(
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
   ENFORCE_TYPE(internal_metadata_json, T_STRING);
   ENFORCE_TYPE(info_json, T_STRING);
+  if (!NIL_P(process_tags)) ENFORCE_TYPE(process_tags, T_STRING);
 
   // Code provenance can be disabled and in that case will be set to nil
   bool have_code_provenance = !NIL_P(code_provenance_data);
@@ -240,6 +243,14 @@ static VALUE _native_do_export(
   ddog_CharSlice internal_metadata = char_slice_from_ruby_string(internal_metadata_json);
   ddog_CharSlice info = char_slice_from_ruby_string(info_json);
 
+  ddog_CharSlice process_tags_slice;
+  ddog_CharSlice *optional_process_tags = NULL;
+
+  if (!NIL_P(process_tags)) {
+    process_tags_slice = char_slice_from_ruby_string(process_tags);
+    optional_process_tags = &process_tags_slice;
+  }
+
   ddog_prof_ProfileExporter_Result exporter_result = create_exporter(exporter_configuration, tags_as_array);
   // Note: Do not add anything that can raise exceptions after this line, as otherwise the exporter memory will leak
 
@@ -260,7 +271,8 @@ static VALUE _native_do_export(
     to_ddog_prof_EncodedProfile(encoded_profile),
     files_to_compress_and_export,
     internal_metadata,
-    info
+    info,
+    optional_process_tags
   );
 }
 

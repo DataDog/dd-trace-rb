@@ -13,6 +13,7 @@ module Datadog
         :code_provenance_file_name,
         :code_provenance_data,
         :tags_as_array,
+        :process_tags,
         :internal_metadata_json,
         :info_json
 
@@ -23,6 +24,7 @@ module Datadog
         code_provenance_file_name:,
         code_provenance_data:,
         tags_as_array:,
+        process_tags:,
         internal_metadata:,
         info_json:
       )
@@ -32,6 +34,7 @@ module Datadog
         @code_provenance_file_name = code_provenance_file_name
         @code_provenance_data = code_provenance_data
         @tags_as_array = tags_as_array
+        @process_tags = process_tags
         @internal_metadata_json = JSON.generate(internal_metadata)
         @info_json = info_json
       end

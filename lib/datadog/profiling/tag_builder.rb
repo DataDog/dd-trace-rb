@@ -37,7 +37,6 @@ module Datadog
           'runtime_version',
           'runtime-id',
           'process_id',
-          'process_tags',
           'profiler_version',
           'profile_seq',
         ]
@@ -52,10 +51,6 @@ module Datadog
           FORM_FIELD_TAG_PROFILER_VERSION => profiler_version,
           'profile_seq' => profile_seq.to_s,
         )
-
-        if settings.experimental_propagate_process_tags_enabled
-          hash['process_tags'] = Core::Environment::Process.serialized
-        end
 
         user_tag_keys = settings.tags.keys
         hash.keep_if { |tag| user_tag_keys.include?(tag) || ALLOWED_TAGS.include?(tag) }

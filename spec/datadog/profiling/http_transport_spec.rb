@@ -52,6 +52,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
+      process_tags: process_tags,
       internal_metadata: {no_signals_workaround_enabled: true},
       info_json: info_json,
     )
@@ -66,6 +67,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:code_provenance_file_name) { "the_code_provenance_file_name.json" }
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
+  let(:process_tags) { nil }
   let(:info_json) do
     JSON.generate(
       {
@@ -354,6 +356,21 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       http_transport.export(flush)
 
       expect(request.request_uri.to_s).to eq "http://127.0.0.1:#{port}/profiling/v1/input"
+    end
+
+    context "when process tags are enabled" do
+      let(:process_tags) { 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script' }
+
+      it "includes the process tags in the payload" do
+        success = http_transport.export(flush)
+
+        expect(success).to be true
+
+        boundary = request["content-type"][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+        event_data = JSON.parse(body.fetch("event"))
+        expect(event_data["process_tags"]).to eq(process_tags)
+      end
     end
 
     context "when code provenance data is not available" do

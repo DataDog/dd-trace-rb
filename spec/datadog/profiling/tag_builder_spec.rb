@@ -115,29 +115,5 @@ RSpec.describe Datadog::Profiling::TagBuilder do
         end
       end
     end
-
-    describe "process tags" do
-      context 'when process tags are enabled' do
-        before do
-          settings.experimental_propagate_process_tags_enabled = true
-        end
-
-        it "includes the process tags" do
-          expect(call).to include("process_tags" => Datadog::Core::Environment::Process.serialized)
-          process_tags_values = call["process_tags"]
-
-          expect(process_tags_values).to include("entrypoint.type:script")
-          expect(process_tags_values).to include("entrypoint.workdir:app")
-          expect(process_tags_values).to include("entrypoint.name:rspec")
-          expect(process_tags_values).to include("entrypoint.basedir:bin")
-        end
-      end
-      context 'when process tags are not enabled' do
-        it "excludes the process tags" do
-          # it is off by default
-          expect(call).to_not include("process_tags")
-        end
-      end
-    end
   end
 end
