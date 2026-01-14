@@ -6,6 +6,8 @@ module Datadog
 
         attr_reader dropped_count: ::Integer
 
+        @dropped: ::Integer
+
         def initialize: (?::Integer) -> void
 
         def drain!: () -> ::Array[Object]

@@ -8,6 +8,11 @@ module Datadog
 
         B3_SAMPLED_KEY: "x-b3-sampled"
 
+        @trace_id_key: ::String
+        @span_id_key: ::String
+        @sampled_key: ::String
+        @fetcher: singleton(Distributed::Fetcher)
+
         def initialize: (fetcher: untyped, ?trace_id_key: untyped, ?span_id_key: untyped, ?sampled_key: untyped) -> void
 
         def inject!: (untyped digest, ?::Hash[untyped, untyped] data) -> (nil | untyped)

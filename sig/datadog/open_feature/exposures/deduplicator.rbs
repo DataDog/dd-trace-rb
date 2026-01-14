@@ -4,6 +4,9 @@ module Datadog
       class Deduplicator
         DEFAULT_CACHE_LIMIT: ::Integer
 
+        @cache: ::Datadog::Core::Utils::LRUCache
+        @mutex: ::Mutex
+
         def initialize: (?limit: ::Integer) -> void
 
         def duplicate?: (::String, ::String) -> bool

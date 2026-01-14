@@ -10,6 +10,11 @@ module Datadog
     module Configuration
       SUPPORTED_CONFIGURATION_NAMES =
         Set["DD_AGENT_HOST",
+          "DD_AI_GUARD_ENABLED",
+          "DD_AI_GUARD_ENDPOINT",
+          "DD_AI_GUARD_MAX_CONTENT_SIZE",
+          "DD_AI_GUARD_MAX_MESSAGES_LENGTH",
+          "DD_AI_GUARD_TIMEOUT",
           "DD_API_KEY",
           "DD_API_SECURITY_ENABLED",
           "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED",
@@ -34,6 +39,7 @@ module Datadog
           "DD_APPSEC_TRACE_RATE_LIMIT",
           "DD_APPSEC_WAF_DEBUG",
           "DD_APPSEC_WAF_TIMEOUT",
+          "DD_APP_KEY",
           "DD_CRASHTRACKING_ENABLED",
           "DD_DATA_STREAMS_ENABLED",
           "DD_DBM_PROPAGATION_MODE",

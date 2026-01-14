@@ -6,11 +6,11 @@ module Datadog
 
         attr_reader transport: untyped
         attr_reader logger: Core::Logger
-        
-        def debug?: -> bool
+        attr_reader debug: bool
 
         extend Core::Utils::Forking
         def initialize: (untyped transport, ?logger: Core::Logger, ?debug: bool) -> void
+        def debug?: -> bool
         def request: (Datadog::Core::Telemetry::Event::Base event) -> (Datadog::Core::Transport::HTTP::Adapters::Net::Response | Datadog::Core::Transport::InternalErrorResponse)
         def self.sequence: () -> Datadog::Core::Utils::Sequence
       end

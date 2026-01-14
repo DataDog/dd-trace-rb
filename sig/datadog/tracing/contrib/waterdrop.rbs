@@ -2,6 +2,8 @@ module Datadog
   module Tracing
     module Contrib
       module WaterDrop
+        self.@propagation: WaterDrop::Distributed::Propagation?
+
         # Injects trace context into message headers
         def self.inject: (Tracing::TraceDigest digest, ::Hash[untyped, untyped] data) -> void
 
