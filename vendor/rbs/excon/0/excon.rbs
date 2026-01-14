@@ -3,11 +3,19 @@ module Excon
     class Base
       type datum = ::Hash[::Symbol, untyped]
 
-      @stack: ::Excon::Middleware::Base
+      interface _Stack
+        def request_call: (datum datum) -> datum
+
+        def response_call: (datum datum) -> datum
+
+        def error_call: (datum datum) -> datum
+      end
+
+      @stack: _Stack
 
       def self.valid_parameter_keys: () -> ::Array[::Symbol]
 
-      def initialize: (self stack) -> void
+      def initialize: (_Stack stack) -> void
 
       def error_call: (datum datum) -> datum
 
