@@ -2,8 +2,18 @@ module Datadog
   module AppSec
     module Contrib
       module Excon
-        class SSRFDetectionMiddleware < ::Faraday::Middleware
-          def request_call: (untyped data) -> void
+        class SSRFDetectionMiddleware
+          def request_call: (::Excon::Middleware::Base::datum data) -> Excon::Middleware::Base::datum
+
+          def response_call: (::Excon::Middleware::Base::datum data) -> ::Excon::Middleware::Base::datum
+
+          private
+
+          def request_url: (::Excon::Middleware::Base::datum data) -> ::String
+
+          def normalize_headers: (::Hash[::String, ::String | ::Array[::String]]? headers) -> ::Hash[::String, ::String]
+
+          def handle: (Context context, SecurityEngine::result result) -> void
         end
       end
     end

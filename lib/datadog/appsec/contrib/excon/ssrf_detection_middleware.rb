@@ -47,6 +47,8 @@ module Datadog
 
           private
 
+          # TODO: We have query and need to make sure it's passed into address correctly
+          #       or in other contribs do we pass it? We should/should not?
           def request_url(data)
             klass = data[:scheme] == 'https' ? URI::HTTPS : URI::HTTP
             klass.build(host: data[:host], path: data[:path], query: data[:query]).to_s
