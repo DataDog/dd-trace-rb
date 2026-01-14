@@ -18,6 +18,8 @@ module Datadog
 
         attr_reader services: untyped
 
+        attr_reader process_tags_enabled: untyped
+
         def compile_service_tags!: () -> untyped
 
         def nested_gc_metric: (untyped prefix, untyped k, untyped v) -> untyped

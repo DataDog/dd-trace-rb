@@ -74,6 +74,22 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
 
         runner.run({'addr.a' => 'a', 'addr.aa' => true}, {'addr.b' => 'b', 'addr.bb' => false}, 1_000)
       end
+
+      it 'does not remove keys with integer values' do
+        expect(waf_context).to receive(:run)
+          .with({'addr.a' => 42}, {'addr.b' => 100}, 1_000)
+          .and_return(result)
+
+        runner.run({'addr.a' => 42}, {'addr.b' => 100}, 1_000)
+      end
+
+      it 'does not remove keys with float values' do
+        expect(waf_context).to receive(:run)
+          .with({'addr.a' => 3.14}, {'addr.b' => 2.71}, 1_000)
+          .and_return(result)
+
+        runner.run({'addr.a' => 3.14}, {'addr.b' => 2.71}, 1_000)
+      end
     end
 
     context 'when run succeeded with a match result' do

@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.25.0)
+    datadog (2.26.0)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.0)
-      libdatadog (~> 24.0.1.1.0)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.1)
+      libdatadog (~> 25.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -101,7 +101,7 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.5.0)
+    datadog-ruby_core_source (3.5.1)
     date (3.4.1)
     debug (1.10.0)
       irb (~> 1.10)
@@ -112,10 +112,10 @@ GEM
     drb (2.2.1)
     erubi (1.13.1)
     extlz4 (0.3.4)
-    ffi (1.17.2-aarch64-linux-gnu)
-    ffi (1.17.2-arm-linux-gnu)
-    ffi (1.17.2-arm-linux-musl)
-    ffi (1.17.2-x86_64-linux-gnu)
+    ffi (1.17.3-aarch64-linux-gnu)
+    ffi (1.17.3-arm-linux-gnu)
+    ffi (1.17.3-arm-linux-musl)
+    ffi (1.17.3-x86_64-linux-gnu)
     globalid (1.2.1)
       activesupport (>= 6.1)
     google-protobuf (3.25.6)
@@ -129,9 +129,9 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (24.0.1.1.0)
-    libdatadog (24.0.1.1.0-aarch64-linux)
-    libdatadog (24.0.1.1.0-x86_64-linux)
+    libdatadog (25.0.0.1.0)
+    libdatadog (25.0.0.1.0-aarch64-linux)
+    libdatadog (25.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-aarch64-linux)
