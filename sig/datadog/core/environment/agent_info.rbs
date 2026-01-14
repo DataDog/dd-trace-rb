@@ -17,9 +17,7 @@ module Datadog
 
         private
 
-        def process_container_tags_hash: (Remote::Transport::HTTP::Negotiation::Response res) -> void
-
-        def extract_container_tags_hash: (Remote::Transport::HTTP::Negotiation::Response res) -> ::String?
+        def update_container_tags_hash: (Remote::Transport::HTTP::Negotiation::Response res) -> void
       end
     end
   end

@@ -62,8 +62,6 @@ module Datadog
           @agent_settings = agent_settings
           @logger = logger
           @client = Remote::Transport::HTTP.root(agent_settings: agent_settings, logger: logger)
-          @container_tags_hash = nil
-          @propagation_hash = nil
         end
 
         # Fetches the information from the agent.
@@ -74,7 +72,7 @@ module Datadog
           res = @client.send_info
           return unless res.ok?
 
-          process_container_tags_hash(res)
+          update_container_tags_hash(res)
 
           res
         end
@@ -88,29 +86,27 @@ module Datadog
         def propagation_hash
           return @propagation_hash if @propagation_hash
           fetch if @container_tags_hash.nil?
+          container_tags_hash = @container_tags_hash
+          return nil unless container_tags_hash
 
-          @propagation_hash
+          process_tags = Process.serialized
+          data = process_tags + container_tags_hash
+          @propagation_hash = Core::Utils::FNV.fnv1_64(data)
         end
 
         private
 
-        def extract_container_tags_hash(res)
+        def update_container_tags_hash(res)
           return unless res.respond_to?(:headers)
 
           header_value = res.headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_TAGS_HASH]
-          header_value if header_value && !header_value.empty?
-        end
+          new_container_tags_value = header_value if header_value && !header_value.empty?
 
-        def process_container_tags_hash(res)
-          new_container_tags_hash = extract_container_tags_hash(res)
-
-          # if there are new container tags from the agent, regenerate the hash
-          if new_container_tags_hash && new_container_tags_hash != @container_tags_hash
-            @container_tags_hash = new_container_tags_hash
-
-            process_tags = Process.serialized
-            data = process_tags + new_container_tags_hash
-            @propagation_hash = Core::Utils::FNV.fnv1_64(data)
+          # if there are new container tags from the agent,
+          # set the hash to nil so it gets recomputed the next time the hash string is created
+          if new_container_tags_value && new_container_tags_value != @container_tags_hash
+            @container_tags_hash = new_container_tags_value
+            @propagation_hash = nil
           end
         end
       end
