@@ -8,6 +8,7 @@ require_relative '../environment/gc'
 require_relative '../environment/thread_count'
 require_relative '../environment/vm_cache'
 require_relative '../environment/yjit'
+require_relative '../environment/process'
 
 module Datadog
   module Core
@@ -24,6 +25,9 @@ module Datadog
 
           # Initialize the collection of runtime-id
           @runtime_id_enabled = options.fetch(:experimental_runtime_id_enabled, false)
+
+          # Initialized process tags support
+          @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled, false)
         end
 
         # Associate service with runtime metrics
@@ -111,6 +115,11 @@ module Datadog
 
             # Add runtime-id dynamically because it might change during runtime.
             options[:tags].concat(["runtime-id:#{Core::Environment::Identity.id}"]) if @runtime_id_enabled
+
+            # Add process tags when enabled
+            if @process_tags_enabled
+              options[:tags].concat(Core::Environment::Process.tags)
+            end
           end
         end
 
@@ -119,7 +128,8 @@ module Datadog
         attr_reader \
           :service_tags,
           :services,
-          :runtime_id_enabled
+          :runtime_id_enabled,
+          :process_tags_enabled
 
         def compile_service_tags!
           @service_tags = services.to_a.collect do |service|

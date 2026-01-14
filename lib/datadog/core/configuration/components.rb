@@ -49,6 +49,7 @@ module Datadog
             options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
             options[:services] = [settings.service] unless settings.service.nil?
             options[:experimental_runtime_id_enabled] = settings.runtime_metrics.experimental_runtime_id_enabled
+            options[:experimental_propagate_process_tags_enabled] = settings.experimental_propagate_process_tags_enabled
 
             Core::Runtime::Metrics.new(logger: logger, telemetry: telemetry, **options)
           end
