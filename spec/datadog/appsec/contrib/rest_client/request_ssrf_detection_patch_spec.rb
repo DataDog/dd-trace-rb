@@ -18,7 +18,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     WebMock.disable_net_connect!(allow: agent_url)
     WebMock.enable!(allow: agent_url)
 
-    stub_request(:get, 'http://example.com/success')
+    stub_request(:get, 'http://example.com/success?z=1')
       .to_return(
         status: 200,
         body: 'OK',
@@ -38,7 +38,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      RestClient.get('http://example.com/success')
+      RestClient.get('http://example.com/success?z=1')
     end
   end
 
@@ -48,7 +48,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      RestClient.get('http://example.com/success')
+      RestClient.get('http://example.com/success?z=1')
     end
   end
 
@@ -61,7 +61,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
           'ssrf',
           {},
           hash_including(
-            'server.io.net.url' => 'http://example.com/success',
+            'server.io.net.url' => 'http://example.com/success?z=1',
             'server.io.net.request.method' => 'GET',
             'server.io.net.request.headers' => hash_including(
               'cookie' => 'x=1; y=2',
@@ -90,12 +90,12 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
         )
 
       RestClient.get(
-        'http://example.com/success', {'Cookie' => 'x=1; y=2', 'Accept' => 'text/plain, application/json', 'DNT' => '1'}
+        'http://example.com/success?z=1', {'Cookie' => 'x=1; y=2', 'Accept' => 'text/plain, application/json', 'DNT' => '1'}
       )
     end
 
     it 'returns the http response' do
-      response = RestClient.get('http://example.com/success')
+      response = RestClient.get('http://example.com/success?z=1')
 
       expect(response.code).to eq(200)
       expect(response.body).to eq('OK')

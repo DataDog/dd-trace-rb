@@ -57,7 +57,7 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
           'ssrf',
           {},
           hash_including(
-            'server.io.net.url' => 'http://example.com/success',
+            'server.io.net.url' => 'http://example.com/success?z=1',
             'server.io.net.request.method' => 'GET',
             'server.io.net.request.headers' => hash_including(
               'cookie' => 'x=1; y=2',
@@ -86,12 +86,12 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
         )
 
       client.get(
-        '/success', nil, {'Cookie' => 'x=1; y=2', 'Accept' => 'text/plain, application/json', 'DNT' => '1'}
+        '/success?z=1', nil, {'Cookie' => 'x=1; y=2', 'Accept' => 'text/plain, application/json', 'DNT' => '1'}
       )
     end
 
     it 'returns the http response' do
-      response = client.get('/success')
+      response = client.get('/success?z=1')
 
       expect(response.status).to eq(200)
       expect(response.body).to eq('OK')

@@ -10,7 +10,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
   let(:client) do
     ::Excon.new('http://example.com', mock: true).tap do
       ::Excon.stub(
-        {method: :get, path: '/success'},
+        {method: :get, path: '/success', query: 'z=1'},
         body: 'OK',
         status: 200,
         headers: {'Set-Cookie' => ['a=1', 'b=2'], 'Via' => ['1.1 foo.io', '2.2 bar.io'], 'Age' => '1'}
@@ -55,10 +55,10 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
     it 'calls waf with correct arguments when making a request' do
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
         .with(
-          Datadog::AppSec::Ext::RASP_SSRF,
+          'ssrf',
           {},
           hash_including(
-            'server.io.net.url' => 'http://example.com/success',
+            'server.io.net.url' => 'http://example.com/success?z=1',
             'server.io.net.request.method' => 'GET',
             'server.io.net.request.headers' => hash_including(
               'cookie' => 'x=1; y=2',
@@ -72,7 +72,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
 
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
         .with(
-          Datadog::AppSec::Ext::RASP_SSRF,
+          'ssrf',
           {},
           hash_including(
             'server.io.net.response.status' => '200',
@@ -88,12 +88,13 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
 
       client.get(
         path: '/success',
+        query: 'z=1',
         headers: {'Cookie' => 'x=1; y=2', 'Accept' => 'text/plain, application/json', 'DNT' => '1'}
       )
     end
 
     it 'returns the http response' do
-      response = client.get(path: '/success')
+      response = client.get(path: '/success', query: 'z=1')
 
       expect(response.status).to eq(200)
       expect(response.body).to eq('OK')
