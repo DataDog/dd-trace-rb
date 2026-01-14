@@ -12,10 +12,9 @@ module Datadog
         module RequestSSRFDetectionPatch
           def execute(&block)
             context = AppSec.active_context
-            return super unless AppSec.rasp_enabled? && context
+            return super unless context && AppSec.rasp_enabled?
 
             timeout = Datadog.configuration.appsec.waf_timeout
-
             ephemeral_data = {
               'server.io.net.url' => url,
               'server.io.net.request.method' => method.to_s.upcase,
