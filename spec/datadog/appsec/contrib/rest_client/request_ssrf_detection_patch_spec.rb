@@ -18,7 +18,8 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     WebMock.disable_net_connect!(allow: agent_url)
     WebMock.enable!(allow: agent_url)
 
-    stub_request(:get, 'http://example.com/success').to_return(status: 200, body: 'OK')
+    stub_request(:get, 'http://example.com/success')
+      .to_return(status: 200, body: 'OK', headers: {'Set-Cookie' => ['a=1', 'b=2']})
   end
 
   after do
@@ -53,16 +54,32 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     end
 
     it 'calls waf with correct arguments when making a request' do
-      expect(Datadog::AppSec.active_context).to(
-        receive(:run_rasp).with(
+      expect(Datadog::AppSec.active_context).to receive(:run_rasp)
+        .with(
           Datadog::AppSec::Ext::RASP_SSRF,
           {},
-          {'server.io.net.url' => 'http://example.com/success'},
-          Datadog.configuration.appsec.waf_timeout
+          hash_including(
+            'server.io.net.url' => 'http://example.com/success',
+            'server.io.net.request.method' => 'GET',
+            'server.io.net.request.headers' => hash_including('x-request-header' => '1')
+          ),
+          kind_of(Integer),
+          phase: 'request'
         )
-      )
 
-      RestClient.get('http://example.com/success')
+      expect(Datadog::AppSec.active_context).to receive(:run_rasp)
+        .with(
+          Datadog::AppSec::Ext::RASP_SSRF,
+          {},
+          hash_including(
+            'server.io.net.response.status' => '200',
+            'server.io.net.response.headers' => hash_including('set-cookie' => 'a=1,b=2')
+          ),
+          kind_of(Integer),
+          phase: 'response'
+        )
+
+      RestClient.get('http://example.com/success', {'X-Request-Header' => '1'})
     end
 
     it 'returns the http response' do

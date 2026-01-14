@@ -10,7 +10,7 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
   let(:client) do
     ::Faraday.new('http://example.com') do |faraday|
       faraday.adapter(:test) do |stub|
-        stub.get('/success') { |_| [200, {'X-Response-Header' => '1'}, 'OK'] }
+        stub.get('/success') { |_| [200, {'Set-Cookie' => ['a=1', 'b=2']}, 'OK'] }
       end
     end
   end
@@ -54,33 +54,30 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
     end
 
     it 'calls waf with correct arguments when making a request' do
-      expect(Datadog::AppSec.active_context).to(
-        receive(:run_rasp).with(
+      expect(Datadog::AppSec.active_context).to receive(:run_rasp)
+        .with(
           Datadog::AppSec::Ext::RASP_SSRF,
           {},
           hash_including(
             'server.io.net.url' => 'http://example.com/success',
             'server.io.net.request.method' => 'GET',
-            'server.io.net.request.headers' => hash_including(
-              'X-Request-Header' => '1'
-            )
+            'server.io.net.request.headers' => hash_including('x-request-header' => '1')
           ),
-          Datadog.configuration.appsec.waf_timeout,
-          phase: Datadog::AppSec::Ext::RASP_REQUEST_PHASE
+          kind_of(Integer),
+          phase: 'request'
         )
-      )
-      expect(Datadog::AppSec.active_context).to(
-        receive(:run_rasp).with(
+
+      expect(Datadog::AppSec.active_context).to receive(:run_rasp)
+        .with(
           Datadog::AppSec::Ext::RASP_SSRF,
           {},
           hash_including(
             'server.io.net.response.status' => '200',
-            'server.io.net.response.headers' => {'X-Response-Header' => '1'}
+            'server.io.net.response.headers' => hash_including('set-cookie' => 'a=1,b=2')
           ),
-          Datadog.configuration.appsec.waf_timeout,
-          phase: Datadog::AppSec::Ext::RASP_RESPONSE_PHASE
+          kind_of(Integer),
+          phase: 'response'
         )
-      )
 
       client.get('/success', nil, {'X-Request-Header' => '1'})
     end

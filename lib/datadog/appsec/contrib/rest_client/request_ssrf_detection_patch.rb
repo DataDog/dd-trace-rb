@@ -11,29 +11,59 @@ module Datadog
         # Module that adds SSRF detection to RestClient::Request#execute
         module RequestSSRFDetectionPatch
           def execute(&block)
-            return super unless AppSec.rasp_enabled? && AppSec.active_context
-
             context = AppSec.active_context
+            return super unless AppSec.rasp_enabled? && context
 
-            ephemeral_data = {'server.io.net.url' => url}
-            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, Datadog.configuration.appsec.waf_timeout)
+            timeout = Datadog.configuration.appsec.waf_timeout
 
-            if result.match?
-              AppSec::Event.tag(context, result)
-              TraceKeeper.keep!(context.trace) if result.keep?
+            ephemeral_data = {
+              'server.io.net.url' => url,
+              'server.io.net.request.method' => method.to_s.upcase,
+              'server.io.net.request.headers' => lowercase_request_headers
+            }
 
-              context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-              )
+            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
+            handle(context, result) if result.match?
 
-              AppSec::ActionsHandler.handle(result.actions)
+            response = super
+
+            ephemeral_data = {
+              'server.io.net.response.status' => response.code.to_s,
+              'server.io.net.response.headers' => lowercase_response_headers(response)
+            }
+
+            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
+            handle(context, result) if result.match?
+
+            response
+          end
+
+          private
+
+          def lowercase_request_headers
+            return @processed_headers_lowercase if defined?(@processed_headers_lowercase)
+
+            processed_headers.transform_keys { |k| k.to_s.downcase }
+          end
+
+          def lowercase_response_headers(response)
+            response.net_http_res.to_hash.transform_values do |value|
+              value.is_a?(Array) ? value.join(',') : value
             end
+          end
 
-            super
+          def handle(context, result)
+            AppSec::Event.tag(context, result)
+            TraceKeeper.keep!(context.trace) if result.keep?
+
+            context.events.push(
+              AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+            )
+
+            AppSec::ActionsHandler.handle(result.actions)
           end
         end
       end
     end
   end
 end
-# rubocop:enable Naming/FileName
