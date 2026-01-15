@@ -22,7 +22,11 @@ module Datadog
             compressed_data = Zlib.gzip(msgpack_data)
 
             # Create parcel and request
-            parcel = Core::Transport::Parcel.new(compressed_data)
+            parcel = Core::Transport::Parcel.new(
+              compressed_data,
+              content_type: 'application/msgpack',
+              content_encoding: 'gzip',
+            )
             request = Request.new(parcel)
 
             # Send to agent

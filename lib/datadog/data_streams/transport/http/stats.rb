@@ -31,6 +31,12 @@ module Datadog
                 env.verb = verb
                 env.path = path
                 env.body = env.request.parcel.data
+                if content_type = env.request.parcel.content_type
+                  env.headers['content-type'] = content_type
+                end
+                if content_encoding = env.request.parcel.content_encoding
+                  env.headers['content-encoding'] = content_encoding
+                end
 
                 # Send request
                 http_response = yield(env)
