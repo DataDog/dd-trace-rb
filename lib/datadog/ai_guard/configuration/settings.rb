@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'uri'
+require "uri"
 require_relative "ext"
 
 module Datadog
@@ -28,6 +28,19 @@ module Datadog
                 o.type :bool
                 o.env Ext::ENV_AI_GUARD_ENABLED
                 o.default false
+              end
+
+              define_method(:instrument) do |integration_name|
+                if enabled
+                  registered_integration = Datadog::AIGuard::Contrib::Integration.registry[integration_name]
+                  if registered_integration
+                    klass = registered_integration.klass
+                    if klass.loaded? && klass.compatible?
+                      instance = klass.new
+                      instance.patcher.patch unless instance.patcher.patched?
+                    end
+                  end
+                end
               end
 
               # AI Guard API endpoint path.
