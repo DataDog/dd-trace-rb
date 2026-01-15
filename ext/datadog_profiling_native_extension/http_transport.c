@@ -136,6 +136,7 @@ static VALUE perform_export(
     files_to_compress_and_export,
     /* files_to_export_unmodified: */ ddog_prof_Exporter_Slice_File_empty(),
     /* optional_additional_tags: */ NULL,
+    /* optional_process_tags: */ NULL,
     &internal_metadata,
     &info
   );

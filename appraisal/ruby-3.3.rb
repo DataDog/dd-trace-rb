@@ -240,6 +240,13 @@ appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
 end
 
+appraise 'environment' do
+  gem 'spring', '>= 2.0.2'
+  gem 'cucumber', '>= 3'
+  gem 'logger'
+  gem 'minitest'
+end
+
 appraise 'rails-app' do
   gem 'devise', '~> 4.9'
   gem 'faraday', '~> 2.0'
