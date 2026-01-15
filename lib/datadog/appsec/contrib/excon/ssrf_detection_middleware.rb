@@ -48,7 +48,7 @@ module Datadog
           private
 
           def request_url(data)
-            klass = data[:scheme] == 'https' ? URI::HTTPS : URI::HTTP
+            klass = (data[:scheme] == 'https') ? URI::HTTPS : URI::HTTP
             klass.build(host: data[:host], path: data[:path], query: data[:query]).to_s
           end
 
