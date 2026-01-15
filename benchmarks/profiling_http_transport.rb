@@ -50,17 +50,21 @@ class ProfilerHttpTransportBenchmark
   end
 
   def flush
-    Datadog::Profiling::Flush.new(
+    params = {
       start: @flush_finish - 60,
       finish: @flush_finish,
       encoded_profile: @stack_recorder.serialize!,
       code_provenance_file_name: 'example_code_provenance_file_name.json',
       code_provenance_data: '',
       tags_as_array: [],
-      process_tags: nil,
       internal_metadata: {no_signals_workaround_enabled: false},
       info_json: JSON.generate({profiler: {benchmarking: true}}),
-    )
+    }
+
+    flush_params = Datadog::Profiling::Flush.instance_method(:initialize).parameters
+    params[:process_tags] = nil if flush_params.any? { |type, name| name == :process_tags }
+
+    Datadog::Profiling::Flush.new(**params)
   end
 
   def start_fake_webserver
