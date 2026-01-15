@@ -723,6 +723,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#exec_workaround_enabled' do
+        subject(:exec_workaround_enabled) { settings.profiling.advanced.exec_workaround_enabled }
+
+        it_behaves_like 'a binary setting with',
+          env_variable: 'DD_PROFILING_EXEC_WORKAROUND_ENABLED',
+          default: true
+      end
+
+      describe '#exec_workaround_enabled=' do
+        it 'updates the #exec_workaround_enabled setting from its default of true' do
+          expect { settings.profiling.advanced.exec_workaround_enabled = false }
+            .to change { settings.profiling.advanced.exec_workaround_enabled }
+            .from(true)
+            .to(false)
+        end
+      end
+
       describe '#preview_gvl_enabled=' do
         it 'logs a warning informing customers this no longer does anything' do
           expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)

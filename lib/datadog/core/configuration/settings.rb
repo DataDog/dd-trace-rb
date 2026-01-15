@@ -436,6 +436,23 @@ module Datadog
               o.default true
             end
 
+            # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
+            #
+            # When using `Kernel#exec` on Linux, it can happen that a signal sent before calling `exec` arrives after
+            # the new process is running, causing it to fail with the `Profiling timer expired` error message.
+            # To avoid this, the profiler installs a monkey patch on `Kernel#exec` to stop profiling before actually
+            # calling `exec`.
+            # This monkey patch is available for Ruby 2.7+; let us know if you need it on earlier Rubies.
+            # For more details see https://github.com/DataDog/dd-trace-rb/issues/5101 .
+            #
+            # @default `DD_PROFILING_EXEC_WORKAROUND_ENABLED` environment variable as a boolean,
+            # otherwise `true`
+            option :exec_workaround_enabled do |o|
+              o.env 'DD_PROFILING_EXEC_WORKAROUND_ENABLED'
+              o.type :bool
+              o.default true
+            end
+
             # Configures how much wall-time overhead the profiler targets. The profiler will dynamically adjust the
             # interval between samples it takes so as to try and maintain the property that it spends no longer than
             # this amount of wall-clock time profiling. For example, with the default value of 2%, the profiler will

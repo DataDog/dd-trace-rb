@@ -433,6 +433,13 @@
         "default": "true"
       }
     ],
+    "DD_PROFILING_EXEC_WORKAROUND_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": [
       {
         "version": "A",
