@@ -57,6 +57,7 @@ class ProfilerHttpTransportBenchmark
       code_provenance_file_name: 'example_code_provenance_file_name.json',
       code_provenance_data: '',
       tags_as_array: [],
+      process_tags: nil,
       internal_metadata: {no_signals_workaround_enabled: false},
       info_json: JSON.generate({profiler: {benchmarking: true}}),
     )
