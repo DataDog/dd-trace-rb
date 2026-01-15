@@ -22,15 +22,14 @@ module Datadog
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
-            handle(result) if result.match?
+            handle(result, context: context) if result.match?
 
-            @app.call(env).on_complete { |response_env| on_complete(response_env) }
+            @app.call(env).on_complete { |response_env| on_complete(response_env, context: context) }
           end
 
           private
 
-          def on_complete(env)
-            context = AppSec.active_context
+          def on_complete(env, context:)
             timeout = Datadog.configuration.appsec.waf_timeout
 
             response_headers = env.response_headers || {}
@@ -40,12 +39,10 @@ module Datadog
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
-            handle(result) if result.match?
+            handle(result, context: context) if result.match?
           end
 
-          def handle(result)
-            context = AppSec.active_context
-
+          def handle(result, context:)
             AppSec::Event.tag(context, result)
             TraceKeeper.keep!(context.trace) if result.keep?
 

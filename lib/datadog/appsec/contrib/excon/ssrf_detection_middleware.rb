@@ -24,7 +24,7 @@ module Datadog
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
-            handle(context, result) if result.match?
+            handle(result, context: context) if result.match?
 
             super
           end
@@ -40,7 +40,7 @@ module Datadog
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
-            handle(context, result) if result.match?
+            handle(result, context: context) if result.match?
 
             super
           end
@@ -60,7 +60,7 @@ module Datadog
             end
           end
 
-          def handle(context, result)
+          def handle(result, context:)
             AppSec::Event.tag(context, result)
             TraceKeeper.keep!(context.trace) if result.keep?
 

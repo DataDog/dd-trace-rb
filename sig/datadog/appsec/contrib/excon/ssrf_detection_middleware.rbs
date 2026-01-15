@@ -13,7 +13,7 @@ module Datadog
 
           def normalize_headers: (::Hash[::String, ::String | ::Array[::String]]? headers) -> ::Hash[::String, ::String]
 
-          def handle: (Context context, SecurityEngine::result result) -> void
+          def handle: (SecurityEngine::result result, context: Context) -> void
         end
       end
     end

@@ -22,7 +22,7 @@ module Datadog
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
-            handle(context, result) if result.match?
+            handle(result, context: context) if result.match?
 
             response = super
 
@@ -32,7 +32,7 @@ module Datadog
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
-            handle(context, result) if result.match?
+            handle(result, context: context) if result.match?
 
             response
           end
@@ -52,7 +52,7 @@ module Datadog
             response.net_http_res.to_hash.transform_values! { |value| Array(value).join(', ') }
           end
 
-          def handle(context, result)
+          def handle(result, context:)
             AppSec::Event.tag(context, result)
             TraceKeeper.keep!(context.trace) if result.keep?
 
