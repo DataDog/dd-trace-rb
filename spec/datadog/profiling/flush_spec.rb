@@ -9,6 +9,7 @@ RSpec.describe Datadog::Profiling::Flush do
     let(:code_provenance_file_name) { "the_code_provenance_file_name.json" }
     let(:code_provenance_data) { "the_code_provenance_data" }
     let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
+    let(:process_tags) { [%w[process_tag_a value_a], %w[process_tag_b value_b]] }
     let(:internal_metadata) { {no_signals_workaround_enabled: false} }
     let(:info_json) do
       JSON.generate(
@@ -31,6 +32,7 @@ RSpec.describe Datadog::Profiling::Flush do
         code_provenance_file_name: code_provenance_file_name,
         code_provenance_data: code_provenance_data,
         tags_as_array: tags_as_array,
+        process_tags: process_tags,
         internal_metadata: internal_metadata,
         info_json: info_json,
       )
@@ -44,6 +46,7 @@ RSpec.describe Datadog::Profiling::Flush do
         code_provenance_file_name: code_provenance_file_name,
         code_provenance_data: code_provenance_data,
         tags_as_array: tags_as_array,
+        process_tags: process_tags,
         internal_metadata_json: '{"no_signals_workaround_enabled":false}',
         info_json: info_json
       )
