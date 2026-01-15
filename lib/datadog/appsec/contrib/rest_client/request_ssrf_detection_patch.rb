@@ -46,9 +46,9 @@ module Datadog
           end
 
           def lowercase_response_headers(response)
-            # NOTE: Headers values are always an `Array` in `Net::HTTPResponse`
-            #       but we want to avoid accidents and goint to wrap them in no-op
-            #       `Array` call in case of a breaking change in the future.
+            # NOTE: Headers values are always an `Array` in `Net::HTTPResponse`,
+            #       but we want to avoid accidents and will wrap them in no-op
+            #       `Array` call just in case of a breaking change in the future
             response.net_http_res.to_hash.transform_values! { |value| Array(value).join(', ') }
           end
 
