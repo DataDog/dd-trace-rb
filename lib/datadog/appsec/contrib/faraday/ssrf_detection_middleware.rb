@@ -24,20 +24,24 @@ module Datadog
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
             handle(result) if result.match?
 
-            response = @app.call(env)
+            @app.call(env).on_complete { |response_env| on_complete(response_env) }
+          end
 
+          private
+
+          def on_complete(env)
+            context = AppSec.active_context
+            timeout = Datadog.configuration.appsec.waf_timeout
+
+            response_headers = env.response_headers || {}
             ephemeral_data = {
-              'server.io.net.response.status' => response.status.to_s,
-              'server.io.net.response.headers' => response.headers.transform_keys(&:downcase)
+              'server.io.net.response.status' => env.status.to_s,
+              'server.io.net.response.headers' => response_headers.transform_keys(&:downcase)
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
             handle(result) if result.match?
-
-            response
           end
-
-          private
 
           def handle(result)
             context = AppSec.active_context
