@@ -19,6 +19,14 @@ module Datadog
       private
 
       attr_accessor options: untyped
+
+      class PinnedObject
+        @datadog_pin: Pin
+
+        def self.datadog_pin: () -> Pin
+
+        def self.datadog_pin=: (Pin pin) -> void
+      end
     end
   end
 end

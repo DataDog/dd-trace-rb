@@ -114,7 +114,9 @@ module Datadog
         settings = self.settings
 
         mod = Module.new do
-          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore
+          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+            # Steep: Unsure why it cannot detect kwargs in this block. Workaround:
+            # @type var kwargs: ::Hash[::Symbol, untyped]
             continue = true
             if condition = probe.condition
               begin
@@ -209,7 +211,8 @@ module Datadog
                 # that location here.
                 []
               end
-              caller_locs = method_frame + caller_locations # steep:ignore
+              # Steep: https://github.com/ruby/rbs/pull/2745
+              caller_locs = method_frame + caller_locations # steep:ignore ArgumentTypeMismatch
               # TODO capture arguments at exit
 
               context = Context.new(locals: nil, target_self: self,
@@ -305,7 +308,10 @@ module Datadog
 
         iseq = nil
         if code_tracker
-          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore
+          # Steep: Complex type narrowing (before calling hook_line,
+          # we check that probe.line? is true which itself checks that probe.file is not nil)
+          # Annotation do not work here as `file` is a method on probe, not a local variable.
+          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
           unless ret
             if permit_untargeted_trace_points
               # Continue withoout targeting the trace point.
