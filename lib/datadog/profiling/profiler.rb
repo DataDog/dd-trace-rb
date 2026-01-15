@@ -57,9 +57,6 @@ module Datadog
         Datadog::Core::Telemetry::Logger
           .error("Detected issue with profiler (#{failed_component} component), stopping profiling")
 
-        # We explicitly not stop the crash tracker in this situation, under the assumption that, if a component failed,
-        # we're operating in a degraded state and crash tracking may still be helpful.
-
         if failed_component == :worker
           scheduler.mark_profiler_failed
           stop_scheduler
