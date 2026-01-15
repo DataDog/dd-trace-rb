@@ -76,8 +76,6 @@
 //
 // ---
 
-#define ERR_CLOCK_FAIL "failed to get clock time"
-
 // Maximum allowed value for an allocation weight. Attempts to use higher values will result in clamping.
 // See https://docs.google.com/document/d/1lWLB714wlLBBq6T4xZyAc4a5wtWhSmr4-hgiPKeErlA/edit#heading=h.ugp0zxcj5iqh
 // (Datadog-only link) for research backing the choice of this value.
@@ -226,6 +224,7 @@ static void disable_tracepoints(cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error);
+static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
@@ -262,6 +261,7 @@ static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
 // (e.g. signal handler) where it's impossible or just awkward to pass it as an argument.
 static VALUE active_sampler_instance = Qnil;
 static cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
+static VALUE clock_failure_exception_class = Qnil;
 
 // See handle_sampling_signal for details on what this does
 #ifdef NO_POSTPONED_TRIGGER
@@ -299,6 +299,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   VALUE collectors_cpu_and_wall_time_worker_class = rb_define_class_under(collectors_module, "CpuAndWallTimeWorker", rb_cObject);
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_cpu_and_wall_time_worker_class, "Testing");
+  clock_failure_exception_class = rb_define_class_under(collectors_cpu_and_wall_time_worker_class, "ClockFailure", rb_eRuntimeError);
+  rb_gc_register_mark_object(clock_failure_exception_class);
 
   // Instances of the CpuAndWallTimeWorker class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
@@ -1119,7 +1121,7 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
 #define HANDLE_CLOCK_FAILURE(call) ({ \
     long _result = (call); \
     if (_result == 0) { \
-        delayed_error(state, ERR_CLOCK_FAIL); \
+        delayed_error_clock_failure(state); \
         return; \
     } \
     _result; \
@@ -1208,7 +1210,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   if (state->dynamic_sampling_rate_enabled) {
     long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
     if (now == 0) {
-      delayed_error(state, ERR_CLOCK_FAIL);
+      delayed_error_clock_failure(state);
       // NOTE: Not short-circuiting here to make sure cleanup happens
     }
     uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler, now);
@@ -1285,6 +1287,11 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error) {
   // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
   stop_state(state, rb_exc_new_cstr(rb_eRuntimeError, error));
+}
+
+static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state) {
+  // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
+  stop_state(state, rb_exc_new_cstr(clock_failure_exception_class, "failed to get clock time"));
 }
 
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg) {
