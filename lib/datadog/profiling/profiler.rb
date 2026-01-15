@@ -31,10 +31,11 @@ module Datadog
         scheduler.start(on_failure_proc: proc { component_failed(:scheduler) })
       end
 
-      def shutdown!
+      def shutdown!(report_last_profile: true)
         Datadog.logger.debug("Shutting down profiler")
 
         stop_worker
+        scheduler.disable_reporting unless report_last_profile
         stop_scheduler
       end
 
@@ -58,7 +59,7 @@ module Datadog
           .error("Detected issue with profiler (#{failed_component} component), stopping profiling")
 
         if failed_component == :worker
-          scheduler.mark_profiler_failed
+          scheduler.disable_reporting
           stop_scheduler
         elsif failed_component == :scheduler
           stop_worker
