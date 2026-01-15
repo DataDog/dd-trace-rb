@@ -197,7 +197,6 @@ static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static VALUE rescued_sample_from_postponed_job(VALUE self_instance);
-static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception);
 static VALUE _native_current_sigprof_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance);
 static VALUE _native_is_running(DDTRACE_UNUSED VALUE self, VALUE instance);
@@ -209,7 +208,12 @@ static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
-static VALUE safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance);
+static VALUE safely_call(
+  VALUE (*function_to_call_safely)(VALUE),
+  VALUE function_to_call_safely_arg,
+  VALUE instance,
+  VALUE (*handle_sampling_failure)(VALUE, VALUE)
+);
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
 static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance);
@@ -236,6 +240,10 @@ static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
 #endif
 static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance);
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
+static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception);
+static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception);
+static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception);
+static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
 
@@ -734,7 +742,12 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   during_sample_enter(state);
 
   // Rescue against any exceptions that happen during sampling
-  safely_call(rescued_sample_from_postponed_job, state->self_instance, state->self_instance);
+  safely_call(
+    rescued_sample_from_postponed_job,
+    state->self_instance,
+    state->self_instance,
+    handle_sampling_failure_rescued_sample_from_postponed_job
+  );
 
   during_sample_exit(state);
 }
@@ -768,11 +781,6 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   dynamic_sampling_rate_after_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_after_sample, sampling_time_ns);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
-  return Qnil;
-}
-
-static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
-  stop(self_instance, exception, "handle_sampling_failure");
   return Qnil;
 }
 
@@ -953,14 +961,24 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
   during_sample_enter(state);
 
-  safely_call(thread_context_collector_sample_after_gc, state->thread_context_collector_instance, state->self_instance);
+  safely_call(
+    thread_context_collector_sample_after_gc,
+    state->thread_context_collector_instance,
+    state->self_instance,
+    handle_sampling_failure_thread_context_collector_sample_after_gc
+  );
 
   during_sample_exit(state);
 }
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
 // exception gets raised within
-static VALUE safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance) {
+static VALUE safely_call(
+  VALUE (*function_to_call_safely)(VALUE),
+  VALUE function_to_call_safely_arg,
+  VALUE instance,
+  VALUE (*handle_sampling_failure)(VALUE, VALUE)
+) {
   VALUE exception_handler_function_arg = instance;
   return rb_rescue2(
     function_to_call_safely,
@@ -1220,7 +1238,12 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   during_sample_enter(state);
 
   // Rescue against any exceptions that happen during sampling
-  safely_call(rescued_sample_allocation, Qnil, state->self_instance);
+  safely_call(
+    rescued_sample_allocation,
+    Qnil,
+    state->self_instance,
+    handle_sampling_failure_rescued_sample_allocation
+  );
 
   if (state->dynamic_sampling_rate_enabled) {
     long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
@@ -1387,7 +1410,12 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     during_sample_enter(state);
 
     // Rescue against any exceptions that happen during sampling
-    safely_call(rescued_after_gvl_running_from_postponed_job, state->self_instance, state->self_instance);
+    safely_call(
+      rescued_after_gvl_running_from_postponed_job,
+      state->self_instance,
+      state->self_instance,
+      handle_sampling_failure_rescued_after_gvl_running_from_postponed_job
+    );
 
     during_sample_exit(state);
   }
@@ -1425,6 +1453,26 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     return Qfalse;
   }
 #endif
+
+static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "rescued_sample_from_postponed_job");
+  return Qnil;
+}
+
+static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "thread_context_collector_sample_after_gc");
+  return Qnil;
+}
+
+static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "rescued_sample_allocation");
+  return Qnil;
+}
+
+static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "rescued_after_gvl_running_from_postponed_job");
+  return Qnil;
+}
 
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {
   // Tell the compiler it's not allowed to reorder the `during_sample` flag with anything that happens after.
