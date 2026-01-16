@@ -12,6 +12,7 @@ RSpec.describe Datadog::Profiling::Component do
     if Datadog::Profiling.supported?
       allow(Datadog::Profiling::Tasks::Setup).to receive(:new).and_return(profiler_setup_task)
       allow(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!).and_return(true)
+      settings.profiling.advanced.exec_workaround_enabled = false
     end
   end
 
@@ -652,6 +653,43 @@ RSpec.describe Datadog::Profiling::Component do
         end
       end
 
+      describe "exec workaround" do
+        context "when can_apply_exec_monkey_patch? is false" do
+          before do
+            allow(described_class).to receive(:can_apply_exec_monkey_patch?).and_return(false)
+          end
+
+          it "does not apply the exec monkey patch" do
+            # Validate there's no previous leaked state
+            expect(Object.ancestors).to_not include(Datadog::Profiling::Ext::ExecMonkeyPatch::ObjectMonkeyPatch)
+
+            build_profiler_component
+
+            expect(Object.ancestors).to_not include(Datadog::Profiling::Ext::ExecMonkeyPatch::ObjectMonkeyPatch)
+          end
+        end
+
+        context "when can_apply_exec_monkey_patch? is true" do
+          let(:exec_monkey_patch) { double("Datadog::Profiling::Ext::ExecMonkeyPatch", apply!: true) }
+
+          before do
+            allow(described_class).to receive(:can_apply_exec_monkey_patch?).and_return(true)
+
+            skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.7"
+
+            require "datadog/profiling/ext/exec_monkey_patch" # Make sure it's loaded, so we can mock it cleanly
+
+            stub_const("Datadog::Profiling::Ext::ExecMonkeyPatch", exec_monkey_patch)
+          end
+
+          it "applies the exec monkey patch" do
+            expect(exec_monkey_patch).to receive(:apply!)
+
+            build_profiler_component
+          end
+        end
+      end
+
       context "when GVL profiling is requested" do
         before do
           settings.profiling.advanced.gvl_enabled = true
@@ -1049,6 +1087,46 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       include_examples "no_signals_workaround_enabled :auto behavior"
+    end
+  end
+
+  describe ".can_apply_exec_monkey_patch?" do
+    subject(:can_apply_exec_monkey_patch?) { described_class.send(:can_apply_exec_monkey_patch?, settings) }
+
+    context "on Ruby < 2.7" do
+      before { stub_const("RUBY_VERSION", "2.6.9") }
+
+      it "returns false and does not require the monkey patch" do
+        expect(described_class).to_not receive(:require)
+
+        expect(can_apply_exec_monkey_patch?).to be false
+      end
+    end
+
+    context "on Ruby >= 2.7" do
+      before do
+        stub_const("RUBY_VERSION", "2.7.0")
+      end
+
+      context "when exec workaround is disabled" do
+        before { settings.profiling.advanced.exec_workaround_enabled = false }
+
+        it "returns false but still requires the monkey patch" do
+          expect(described_class).to receive(:require).with("datadog/profiling/ext/exec_monkey_patch")
+
+          expect(can_apply_exec_monkey_patch?).to be false
+        end
+      end
+
+      context "when exec workaround is enabled" do
+        before { settings.profiling.advanced.exec_workaround_enabled = true }
+
+        it "returns true and requires the monkey patch" do
+          expect(described_class).to receive(:require).with("datadog/profiling/ext/exec_monkey_patch")
+
+          expect(can_apply_exec_monkey_patch?).to be true
+        end
+      end
     end
   end
 end

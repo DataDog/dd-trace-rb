@@ -82,6 +82,10 @@ module Datadog
           Datadog::Profiling::Ext::DirMonkeyPatches.apply!
         end
 
+        if can_apply_exec_monkey_patch?(settings)
+          Datadog::Profiling::Ext::ExecMonkeyPatch.apply!
+        end
+
         [profiler, {profiling_enabled: true}]
       end
 
@@ -432,6 +436,15 @@ module Datadog
         return false if no_signals_workaround_enabled || RUBY_VERSION >= "3.4"
 
         settings.profiling.advanced.dir_interruption_workaround_enabled
+      end
+
+      private_class_method def self.can_apply_exec_monkey_patch?(settings)
+        return false if RUBY_VERSION < "2.7"
+
+        # This file is 2.7+ only so we only require it here once we've checked the Ruby version
+        require "datadog/profiling/ext/exec_monkey_patch"
+
+        settings.profiling.advanced.exec_workaround_enabled
       end
 
       private_class_method def self.enable_gvl_profiling?(settings, logger)
