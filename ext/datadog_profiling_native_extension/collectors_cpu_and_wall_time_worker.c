@@ -685,6 +685,10 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
         // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
         // includes a check to see if it got called in the right thread
         state->stats.interrupt_thread_attempts++;
+
+        // Pick up any last-minute attempts to stop before we send the signal
+        if (!atomic_load(&state->should_run)) return NULL;
+
         pthread_kill(owner.owner, SIGPROF);
       } else {
         if (state->skip_idle_samples_for_testing) {
