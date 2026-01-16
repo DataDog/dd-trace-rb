@@ -178,6 +178,11 @@ signature_paths.each do |sig_path|
   filtered_declarations = ast_traversal(declarations)
 
   filtered_declarations[:methods].each do |method|
+    # Skip definitions with last comment line being `untyped:accept`
+    if method.comment&.string&.end_with?("untyped:accept\n")
+      typed_methods_size += 1
+      next
+    end
     # Overloading can be done inline so we cannot point to the specific overloaded method definition.
     # That's why we combine the status of all overloads to get the overall status of the method.
     # method.overload is an array of MethodDefinition::Overload
@@ -194,6 +199,11 @@ signature_paths.each do |sig_path|
   end
 
   filtered_declarations[:others].each do |declaration|
+    # Skip definitions with last comment line being `untyped:accept`
+    if declaration.comment&.string&.end_with?("untyped:accept\n")
+      typed_others_size += 1
+      next
+    end
     result = is_typed?(declaration.type)
     case result
     when :typed, nil

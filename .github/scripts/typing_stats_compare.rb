@@ -216,6 +216,6 @@ result << steep_ignore_summary if steep_ignore_summary
 result << untyped_methods_summary if untyped_methods_summary
 result << untyped_others_summary if untyped_others_summary
 if untyped_methods_added > 0 || untyped_others_added > 0
-  result << "*If you believe a method or an attribute is rightfully untyped or partially typed, you can add `# untyped:accept` to the end of the line to remove it from the stats.*\n"
+  result << "*If you believe a method or an attribute is rightfully untyped or partially typed, you can add `# untyped:accept` on the line before the definition to remove it from the stats.*\n"
 end
 print result
