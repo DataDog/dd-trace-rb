@@ -1,0 +1,15 @@
+module Datadog
+  module Profiling
+    module Ext
+      module ExecMonkeyPatch
+        def self.apply!: () -> true
+      end
+
+      module ExecMonkeyPatch
+        module ObjectMonkeyPatch
+          def exec: (?) -> untyped
+        end
+      end
+    end
+  end
+end
