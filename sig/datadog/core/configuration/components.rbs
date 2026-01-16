@@ -38,6 +38,8 @@ module Datadog
 
         attr_reader runtime_metrics: untyped
 
+        attr_reader telemetry: Core::Telemetry::Component
+
         attr_reader tracer: untyped
 
         attr_reader remote: Datadog::Core::Remote::Component
@@ -47,6 +49,8 @@ module Datadog
         attr_reader data_streams: Datadog::DataStreams::Processor?
 
         attr_reader open_feature: Datadog::OpenFeature::Component?
+
+        attr_reader appsec: AppSec::Component?
 
         def initialize: (untyped settings) -> untyped
 
