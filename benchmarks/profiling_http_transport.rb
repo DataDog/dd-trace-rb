@@ -61,6 +61,8 @@ class ProfilerHttpTransportBenchmark
       info_json: JSON.generate({profiler: {benchmarking: true}}),
     }
 
+    # This was added as a workaround to allow https://github.com/DataDog/dd-trace-rb/pull/5072 to be merged
+    # Once that PR is merged, this can be cleaned up :)
     flush_params = Datadog::Profiling::Flush.instance_method(:initialize).parameters
     params[:process_tags] = nil if flush_params.any? { |type, name| name == :process_tags }
 
