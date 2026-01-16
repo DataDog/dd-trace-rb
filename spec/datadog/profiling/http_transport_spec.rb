@@ -369,6 +369,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         boundary = request["content-type"][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
+
         expect(event_data["process_tags"]).to eq(process_tags)
       end
     end
