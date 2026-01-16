@@ -148,6 +148,11 @@ RSpec.describe Datadog::Profiling::Component do
         context "when gc_enabled is true" do
           before do
             settings.profiling.advanced.gc_enabled = true
+
+            # Since RUBY_VERSION is used to test if the ExecMonkeyPatch should be applied, mocking it below on an old
+            # Ruby would cause it to wrongly be triggered, so we avoid running these specs there.
+            skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.7"
+
             stub_const("RUBY_VERSION", testing_version)
           end
 
@@ -211,6 +216,11 @@ RSpec.describe Datadog::Profiling::Component do
           before do
             settings.profiling.allocation_enabled = true
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
+
+            # Since RUBY_VERSION is used to test if the ExecMonkeyPatch should be applied, mocking it below on an old
+            # Ruby would cause it to wrongly be triggered, so we avoid running these specs there.
+            skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.7" && testing_version >= "3"
+
             stub_const("RUBY_VERSION", testing_version)
           end
 
@@ -316,6 +326,11 @@ RSpec.describe Datadog::Profiling::Component do
           before do
             settings.profiling.advanced.experimental_heap_enabled = true
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
+
+            # Since RUBY_VERSION is used to test if the ExecMonkeyPatch should be applied, mocking it below on an old
+            # Ruby would cause it to wrongly be triggered, so we avoid running these specs there.
+            skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.7"
+
             stub_const("RUBY_VERSION", testing_version)
           end
 
@@ -654,6 +669,8 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       describe "exec workaround" do
+        let(:exec_monkey_patch_name) { "Datadog::Profiling::Ext::ExecMonkeyPatch" }
+
         context "when can_apply_exec_monkey_patch? is false" do
           before do
             allow(described_class).to receive(:can_apply_exec_monkey_patch?).and_return(false)
@@ -661,16 +678,16 @@ RSpec.describe Datadog::Profiling::Component do
 
           it "does not apply the exec monkey patch" do
             # Validate there's no previous leaked state
-            expect(Object.ancestors).to_not include(Datadog::Profiling::Ext::ExecMonkeyPatch::ObjectMonkeyPatch)
+            expect(Object.ancestors.map(&:to_s)).to_not include(exec_monkey_patch_name)
 
             build_profiler_component
 
-            expect(Object.ancestors).to_not include(Datadog::Profiling::Ext::ExecMonkeyPatch::ObjectMonkeyPatch)
+            expect(Object.ancestors.map(&:to_s)).to_not include(exec_monkey_patch_name)
           end
         end
 
         context "when can_apply_exec_monkey_patch? is true" do
-          let(:exec_monkey_patch) { double("Datadog::Profiling::Ext::ExecMonkeyPatch", apply!: true) }
+          let(:exec_monkey_patch) { class_double(exec_monkey_patch_name, apply!: true) }
 
           before do
             allow(described_class).to receive(:can_apply_exec_monkey_patch?).and_return(true)
@@ -679,7 +696,7 @@ RSpec.describe Datadog::Profiling::Component do
 
             require "datadog/profiling/ext/exec_monkey_patch" # Make sure it's loaded, so we can mock it cleanly
 
-            stub_const("Datadog::Profiling::Ext::ExecMonkeyPatch", exec_monkey_patch)
+            stub_const(exec_monkey_patch_name, exec_monkey_patch)
           end
 
           it "applies the exec monkey patch" do
