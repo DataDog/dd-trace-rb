@@ -77,12 +77,13 @@ module Datadog
               Datadog.logger.debug("CpuAndWallTimeWorker thread stopping cleanly")
             rescue Exception => e # rubocop:disable Lint/RescueException
               @failure_exception = e
+              operation_name = self.class._native_failure_exception_during_operation(self).inspect
               Datadog.logger.warn(
                 "CpuAndWallTimeWorker thread error. " \
-                "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+                "Operation: #{operation_name} Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
               )
               on_failure_proc&.call
-              Datadog::Core::Telemetry::Logger.report(e, description: "CpuAndWallTimeWorker thread error")
+              Datadog::Core::Telemetry::Logger.report(e, description: "CpuAndWallTimeWorker thread error: #{operation_name}")
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
             @worker_thread.thread_variable_set(:fork_safe, true)
