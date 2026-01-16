@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.26.0)
+    datadog (2.27.0)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.0)
-      libdatadog (~> 24.0.1.1.0)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.1)
+      libdatadog (~> 25.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -52,7 +52,7 @@ GEM
       cucumber-messages (> 19, < 28)
     cucumber-messages (22.0.0)
     cucumber-tag-expressions (6.1.2)
-    datadog-ruby_core_source (3.5.0)
+    datadog-ruby_core_source (3.5.1)
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
@@ -63,8 +63,8 @@ GEM
     io-console (0.8.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (24.0.1.1.0-aarch64-linux)
-    libdatadog (24.0.1.1.0-x86_64-linux)
+    libdatadog (25.0.0.1.0-aarch64-linux)
+    libdatadog (25.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
