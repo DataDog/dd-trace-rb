@@ -13,18 +13,17 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - id: ruby-alias
+    - name: Generate unique Ruby environment key
+      id: ruby-env-id
       shell: bash
       run: |
-        engine=$(ruby -e "puts RUBY_ENGINE")
-        alias=$(ruby -e "puts RUBY_ENGINE_VERSION")
-
-        echo "ruby-alias=$engine-$alias" >> "$GITHUB_OUTPUT"
+        id=$(ruby -e "puts RUBY_DESCRIPTION") # Includes patchlevel, os, and arch
+        echo "id=$id" >> "$GITHUB_OUTPUT"
     - name: Generate lockfile
       id: lockfile
       shell: bash
       env:
-        LOCKFILE: lockfile-${{ steps.ruby-alias.outputs.ruby-alias }}
+        LOCKFILE: lockfile-${{ steps.ruby-env-id.outputs.id }}
       run: |
         bundle lock
         echo "lockfile=$LOCKFILE" >> "$GITHUB_OUTPUT"
@@ -37,7 +36,7 @@ runs:
       uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       id: restore-cache
       with:
-        key: bundle-${{ runner.os }}-${{ runner.arch }}-${{ steps.ruby-alias.outputs.ruby-alias }}-${{ hashFiles('*.lock') }}
+        key: bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles('*.lock') }}
         path: "/usr/local/bundle"
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       shell: bash
