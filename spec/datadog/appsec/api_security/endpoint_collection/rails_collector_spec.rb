@@ -16,7 +16,7 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsCollector 
       )
 
       expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
-        .to receive(:serialize).and_call_original
+        .to receive(:serialize).with(route).once.and_call_original
 
       described_class.new([route]).to_enum.first
     end
@@ -28,7 +28,10 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsCollector 
       )
 
       expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
-        .to receive(:serialize).twice.and_call_original
+        .to receive(:serialize).with(route, method_override: 'GET').once.and_call_original
+
+      expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
+        .to receive(:serialize).with(route, method_override: 'POST').once.and_call_original
 
       described_class.new([route]).to_enum.first(2)
     end
