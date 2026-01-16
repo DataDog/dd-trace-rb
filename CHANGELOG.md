@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [2.26.0] - 2026-01-16
+
+### Added
+
+* Core: Add process tags to runtime metrics when `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` is enabled. ([#5210][])
+* SSI: Add experimental dependency injection validation.
+
+### Changed
+
+* Profiling: Improve profiler error reporting. ([#5237][])
+* SSI: Improve injection debug error reporting. ([#5238][])
+
 ## [2.25.0] - 2026-01-13
 
 ### Added
@@ -3437,7 +3449,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.25.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.26.0...master
+[2.26.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.25.0...v2.26.0
 [2.25.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.24.0...v2.25.0
 [2.24.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.23.0...v2.24.0
 [2.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.22.0...v2.23.0
@@ -5100,8 +5113,11 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5176]: https://github.com/DataDog/dd-trace-rb/issues/5176
 [#5194]: https://github.com/DataDog/dd-trace-rb/issues/5194
 [#5197]: https://github.com/DataDog/dd-trace-rb/issues/5197
+[#5210]: https://github.com/DataDog/dd-trace-rb/issues/5210
 [#5215]: https://github.com/DataDog/dd-trace-rb/issues/5215
 [#5222]: https://github.com/DataDog/dd-trace-rb/issues/5222
+[#5237]: https://github.com/DataDog/dd-trace-rb/issues/5237
+[#5238]: https://github.com/DataDog/dd-trace-rb/issues/5238
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

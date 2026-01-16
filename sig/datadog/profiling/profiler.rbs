@@ -19,7 +19,7 @@ module Datadog
 
       def start: () -> void
 
-      def shutdown!: () -> void
+      def shutdown!: (?report_last_profile: bool) -> void
 
       private
 

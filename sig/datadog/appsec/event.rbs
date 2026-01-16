@@ -24,7 +24,7 @@ module Datadog
 
       def self.record: (Context context, ?request: _RequestInterface?, ?response: _ResponseInterface?) -> void
 
-      def self.tag: (Context context, WAF::Result waf_result) -> void
+      def self.tag: (Context context, SecurityEngine::result waf_result) -> void
 
       private
 

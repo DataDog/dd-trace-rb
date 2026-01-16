@@ -16,9 +16,24 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsCollector 
       )
 
       expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
-        .to receive(:serialize).and_call_original
+        .to receive(:serialize).with(route).once.and_call_original
 
       described_class.new([route]).to_enum.first
+    end
+
+    it 'serializes Rails dispatcher routes that support multiple methods' do
+      route = instance_double(
+        'ActionDispatch::Journey::Route', dispatcher?: true, verb: 'GET|POST',
+        path: instance_double('ActionDispatch::Journey::Path::Pattern', spec: '/events')
+      )
+
+      expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
+        .to receive(:serialize).with(route, method_override: 'GET').once.and_call_original
+
+      expect(Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSerializer)
+        .to receive(:serialize).with(route, method_override: 'POST').once.and_call_original
+
+      described_class.new([route]).to_enum.first(2)
     end
 
     # Grape and Sinatra routes are tested in endpoint collection integration test,

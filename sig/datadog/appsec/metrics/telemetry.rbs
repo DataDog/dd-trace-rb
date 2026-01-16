@@ -2,7 +2,7 @@ module Datadog
   module AppSec
     module Metrics
       module Telemetry
-        def self?.report_rasp: (Ext::rasp_rule_type type, SecurityEngine::result result) -> void
+        def self?.report_rasp: (Ext::rasp_rule_type type, SecurityEngine::result result, ?phase: ::String?) -> void
       end
     end
   end
