@@ -79,7 +79,7 @@ static void object_record_free(heap_recorder*, object_record*);
 static VALUE object_record_inspect(heap_recorder*, object_record*);
 static object_record SKIPPED_RECORD = {0};
 
-#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+#ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
 // A pending recording is used to defer the object_id call on Ruby 4+
 // where calling rb_obj_id during on_newobj_event is unsafe.
 typedef struct {
@@ -142,7 +142,7 @@ struct heap_recorder {
   // Data for a heap recording that was started but not yet ended
   object_record *active_recording;
 
-  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   // Pending recordings that need to be finalized after on_newobj_event completes.
   // On Ruby 4+, we can't call rb_obj_id during the newobj event, so we store the
   // VALUE reference here and finalize it via a postponed job.
@@ -187,7 +187,7 @@ struct heap_recorder {
     double ewma_objects_dead;
     double ewma_objects_skipped;
 
-    #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+    #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
     unsigned long deferred_recordings_skipped_buffer_full;
     unsigned long deferred_recordings_finalized;
     #endif
@@ -239,7 +239,7 @@ heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) 
   recorder->size_enabled = true;
   recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
   recorder->string_storage = string_storage;
-  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   recorder->active_deferred_object = Qnil;
   #endif
 
@@ -352,7 +352,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     return;
   }
 
-  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   // Skip if we've hit the pending recordings limit or if there's already a deferred object being recorded
   if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
     heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full++;
@@ -368,7 +368,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 
   heap_recorder->num_recordings_skipped = 0;
 
-  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   // On Ruby 4+, we can't call rb_obj_id during on_newobj_event as it mutates the object.
   // Instead, we store the VALUE reference and will get the object_id later via a postponed job.
   // active_deferred_object != Qnil indicates we're in deferred mode.
@@ -426,7 +426,7 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
   heap_recorder *heap_recorder = args->heap_recorder;
   ddog_prof_Slice_Location locations = args->locations;
 
-  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   // On Ruby 4+, active_deferred_object != Qnil indicates deferred mode
   if (heap_recorder->active_deferred_object != Qnil) {
     // Invariant: active_deferred_object is only set when pending_recordings_count < MAX_PENDING_RECORDINGS
@@ -444,6 +444,7 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
     pending->object_data = heap_recorder->active_deferred_object_data;
 
     heap_recorder->active_deferred_object = Qnil;
+    heap_recorder->active_deferred_object_data = (live_object_data) {0};
     return Qnil;
   }
   #endif
@@ -480,7 +481,7 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
   heap_recorder_update(heap_recorder, /* full_update: */ false);
 }
 
-#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+#ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
 bool heap_recorder_has_pending_recordings(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     return false;
@@ -497,12 +498,12 @@ bool heap_recorder_pending_buffer_pressure(heap_recorder *heap_recorder) {
 
 bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
-    return false;
+    return true; // Nothing to do, no error
   }
 
   uint count = heap_recorder->pending_recordings_count;
   if (count == 0) {
-    return false;
+    return true; // Nothing to do, no error
   }
 
   heap_recorder->stats_lifetime.deferred_recordings_finalized += count;
@@ -513,11 +514,10 @@ bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
     VALUE obj = pending->object_ref;
     VALUE ruby_obj_id = rb_obj_id(obj);
     if (!FIXNUM_P(ruby_obj_id)) {
-      // Bignum object id - not supported, skip this recording
-      pending->heap_record->num_tracked_objects--;
-      cleanup_heap_record_if_unused(heap_recorder, pending->heap_record);
-      unintern_or_raise(heap_recorder, pending->object_data.class);
-      continue;
+      // Bignum object ids indicate the fixnum range is exhausted - all future IDs will also be bignums.
+      // Heap profiling cannot continue. Clear pending recordings and signal fatal error.
+      heap_recorder->pending_recordings_count = 0;
+      return false; // Fatal error - caller should disable heap profiling
     }
 
     long obj_id = FIX2LONG(ruby_obj_id);
@@ -536,7 +536,7 @@ bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
   }
 
   heap_recorder->pending_recordings_count = 0;
-  return true;
+  return true; // Success
 }
 
 // Mark pending recordings to prevent GC from collecting the objects
@@ -733,7 +733,7 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
   VALUE hash = rb_hash_new();
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
 
-  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   // Deferred recording stats (Ruby 4.x only)
   rb_hash_aset(hash, ID2SYM(rb_intern("lifetime_deferred_recordings_skipped_buffer_full")),
     LONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full));

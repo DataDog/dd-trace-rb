@@ -30,7 +30,7 @@ void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample
 void recorder_after_gc_step(VALUE recorder_instance);
 VALUE enforce_recorder_instance(VALUE object);
 
-#ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+#ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
 #include "heap_recorder.h"
 heap_recorder* get_heap_recorder_from_stack_recorder(VALUE recorder_instance);
 #endif
