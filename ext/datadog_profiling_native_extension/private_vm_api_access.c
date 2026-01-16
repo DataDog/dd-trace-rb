@@ -456,26 +456,27 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     // here.
     if (ec == NULL) return 0;
 
+    // Avoid sampling dead threads
+    if (th->status == THREAD_KILLED) return 0;
+
+    const rb_control_frame_t *cfp = ec->cfp;
+
+    // This happens on newly-created threads (we even had a flaky test because of it)
+    if (cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
+
     // I suspect this won't happen for ddtrace, but just-in-case we've imported a potential fix for
     // https://github.com/ruby/ruby/pull/13643 by assuming that these can be NULL/zero with the cfp being non-NULL yet.
     if (ec->vm_stack == NULL || ec->vm_stack_size == 0) return 0;
 
-    const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+    const rb_control_frame_t *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     #ifndef NO_JIT_RETURN
       const rb_control_frame_t *top = cfp;
     #endif
     const rb_callable_method_entry_t *cme;
 
-    // Avoid sampling dead threads
-    if (th->status == THREAD_KILLED) return 0;
-
     // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
     // also (not entirely sure) happen on dead threads
     if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
-
-    // This should not happen for ddtrace (it can only happen when a thread is still being created), but I've imported
-    // it from https://github.com/ruby/ruby/pull/7116 in a "just in case" kind of mindset.
-    if (cfp == NULL) return 0;
 
     // Fix: Skip dummy frame that shows up in main thread.
     //
