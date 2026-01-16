@@ -221,6 +221,14 @@ module Datadog
           return false
         end
 
+        if RUBY_VERSION.start_with?("4.") && DATADOG_ENV["DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED_RUBY4"] != "true"
+          logger.warn(
+            "Datadog Ruby heap profiler support for Ruby 4 is currently experimental. " \
+            "Set DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED_RUBY4=true to enable it. Heap profiling has been disabled."
+          )
+          return false
+        end
+
         unless allocation_profiling_enabled
           logger.warn(
             "Heap profiling was requested but allocation profiling is not enabled. " \

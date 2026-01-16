@@ -454,6 +454,13 @@
         "default": "true"
       }
     ],
+    "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED_RUBY4": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_PROFILING_GC_ENABLED": [
       {
         "version": "A",

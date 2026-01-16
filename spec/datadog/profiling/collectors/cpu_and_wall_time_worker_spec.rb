@@ -897,6 +897,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
+        # On Ruby 4.x, heap allocation recordings are deferred. Finalize them before serializing.
+        Datadog::Profiling::StackRecorder::Testing._native_finalize_pending_heap_recordings(recorder)
+
         current_method_name = caller_locations(0, 1).first.base_label
 
         # We can't just use find here because samples might have different gc age labels
@@ -936,15 +939,21 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # Force a full GC to make sure there's no incremental GC going on at this point
           GC.start
 
-          test_object = CpuAndWallTimeWorkerSpec::TestStruct.new
-          test_object_id = test_object.object_id
+          # Allocate multiple objects to ensure at least one gets sampled
+          test_objects = Array.new(100) { CpuAndWallTimeWorkerSpec::TestStruct.new }
 
-          expect(
-            Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, test_object_id)
-          ).to be true
+          # On Ruby 4.x, heap allocation recordings are deferred. Finalize them before checking.
+          Datadog::Profiling::StackRecorder::Testing._native_finalize_pending_heap_recordings(recorder)
 
-          # Let's replace the test_object reference with another object, so that the original one can be GC'd
-          test_object = Object.new # rubocop:disable Lint/UselessAssignment
+          # Find an object that was actually recorded
+          test_object_id = test_objects.map(&:object_id).find do |id|
+            Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, id)
+          end
+
+          expect(test_object_id).to_not be_nil, "Expected at least one object to be recorded"
+
+          # Clear references so the objects can be GC'd
+          test_objects.clear
 
           # Force an update to happen on the next GC
           Datadog::Profiling::StackRecorder::Testing._native_heap_recorder_reset_last_update(recorder)

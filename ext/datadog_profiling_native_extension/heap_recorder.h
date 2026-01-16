@@ -138,7 +138,7 @@ bool heap_recorder_has_pending_recordings(heap_recorder *heap_recorder);
 bool heap_recorder_pending_buffer_pressure(heap_recorder *heap_recorder);
 
 // Mark pending recordings to prevent GC from collecting the objects
-// while they're waiting to be finalized.
+// while they're waiting for the recordings to be finalized.
 void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder);
 #endif
 

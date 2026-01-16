@@ -208,6 +208,7 @@ static int st_object_record_update(st_data_t, st_data_t, st_data_t);
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
+static bool try_commit_object_record(heap_recorder *, heap_record *, object_record *, bool increment_count);
 static void commit_recording(heap_recorder *, heap_record *, object_record *active_recording);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
@@ -436,6 +437,10 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
     }
 
     heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
+    // Overflow check before pre-incrementing
+    if (heap_record->num_tracked_objects == UINT32_MAX) {
+      rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
+    }
     heap_record->num_tracked_objects++; // Pre-increment since we're going to commit this later
 
     pending_recording *pending = &heap_recorder->pending_recordings[heap_recorder->pending_recordings_count++];
@@ -524,12 +529,11 @@ bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
 
     // Create the object record now that we have the object_id
     object_record *record = object_record_new(obj_id, pending->heap_record, pending->object_data);
+    record->heap_record = pending->heap_record;
 
-    // Commit the recording
-    int existing_error = st_update(heap_recorder->object_records, record->obj_id, update_object_record_entry, (st_data_t) record);
-    if (existing_error) {
-      // Duplicate object_id - this shouldn't happen normally, but handle it gracefully
-      pending->heap_record->num_tracked_objects--;
+    // Commit the recording using shared helper (increment_count=false since we pre-incremented)
+    if (!try_commit_object_record(heap_recorder, pending->heap_record, record, false)) {
+      // Duplicate or overflow - clean up gracefully
       cleanup_heap_record_if_unused(heap_recorder, pending->heap_record);
       object_record_free(heap_recorder, record);
     }
@@ -548,9 +552,11 @@ void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder) {
 
   for (uint i = 0; i < heap_recorder->pending_recordings_count; i++) {
     VALUE obj = heap_recorder->pending_recordings[i].object_ref;
-    if (obj != Qnil) {
-      rb_gc_mark(obj);
+    // object_ref comes from an allocation tracepoint
+    if (obj == Qnil) {
+      rb_bug("heap_recorder: pending recording has Qnil object_ref - invariant violated");
     }
+    rb_gc_mark(obj);
   }
 
   // Also mark the active deferred object if it's set
@@ -898,17 +904,42 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
   return ST_CONTINUE;
 }
 
+// Shared helper for committing object records to the heap recorder.
+// If increment_count is true, increments num_tracked_objects (used by non-deferred path).
+// If increment_count is false, assumes already incremented (used by deferred path).
+// Returns true on success, false on failure (overflow or duplicate).
+// On failure, decrements num_tracked_objects to maintain consistency.
+static bool try_commit_object_record(heap_recorder *heap_recorder, heap_record *heap_record, object_record *record, bool increment_count) {
+  // Overflow check
+  if (increment_count && heap_record->num_tracked_objects == UINT32_MAX) {
+    return false;
+  }
+
+  if (increment_count) {
+    heap_record->num_tracked_objects++;
+  }
+
+  int existing_error = st_update(heap_recorder->object_records, record->obj_id, update_object_record_entry, (st_data_t) record);
+  if (existing_error) {
+    // Decrement to maintain consistency - either we just incremented or caller did
+    heap_record->num_tracked_objects--;
+    return false;
+  }
+
+  return true;
+}
+
 static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_record, object_record *active_recording) {
   // Link the object record with the corresponding heap record. This was the last remaining thing we
   // needed to fully build the object_record.
   active_recording->heap_record = heap_record;
-  if (heap_record->num_tracked_objects == UINT32_MAX) {
-    raise_error(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
-  }
-  heap_record->num_tracked_objects++;
 
-  int existing_error = st_update(heap_recorder->object_records, active_recording->obj_id, update_object_record_entry, (st_data_t) active_recording);
-  if (existing_error) {
+  if (!try_commit_object_record(heap_recorder, heap_record, active_recording, true)) {
+    // This path handles both overflow and duplicate cases
+    if (heap_record->num_tracked_objects == UINT32_MAX) {
+      rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
+    }
+    // Duplicate object_id - shouldn't happen, raise with details
     object_record *existing_record = NULL;
     st_lookup(heap_recorder->object_records, active_recording->obj_id, (st_data_t *) &existing_record);
     if (existing_record == NULL) raise_error(rb_eRuntimeError, "Unexpected NULL when reading existing record");
