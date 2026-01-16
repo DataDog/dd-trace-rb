@@ -18,7 +18,7 @@ module Datadog
             ephemeral_data = {
               'server.io.net.url' => url,
               'server.io.net.request.method' => method.to_s.upcase,
-              'server.io.net.request.headers' => lowercase_request_headers
+              'server.io.net.request.headers' => normalize_request_headers
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
@@ -28,7 +28,7 @@ module Datadog
 
             ephemeral_data = {
               'server.io.net.response.status' => response.code.to_s,
-              'server.io.net.response.headers' => lowercase_response_headers(response)
+              'server.io.net.response.headers' => normalize_response_headers(response)
             }
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
@@ -39,13 +39,16 @@ module Datadog
 
           private
 
-          def lowercase_request_headers
+          # NOTE: Starting version 2.1.0 headers are already normalized via internal
+          #       variable `@processed_headers_lowercase`. In case it's available,
+          #       we use it to avoid unnecessary transformation.
+          def normalize_request_headers
             return @processed_headers_lowercase if defined?(@processed_headers_lowercase)
 
             processed_headers.transform_keys(&:downcase)
           end
 
-          def lowercase_response_headers(response)
+          def normalize_response_headers(response)
             # NOTE: Headers values are always an `Array` in `Net::HTTPResponse`,
             #       but we want to avoid accidents and will wrap them in no-op
             #       `Array` call just in case of a breaking change in the future
