@@ -70,11 +70,8 @@ module Datadog
 
         uncompressed_code_provenance = code_provenance_collector.refresh.generate_json if code_provenance_collector
 
-        process_tags = nil
-        if Datadog.configuration.experimental_propagate_process_tags_enabled
-          value = Datadog::Core::Environment::Process.serialized
-          process_tags = value unless value.nil? || value.empty?
-        end
+        process_tags = Datadog.configuration.experimental_propagate_process_tags_enabled ?
+          Core::Environment::Process.serialized : ''
 
         Flush.new(
           start: start,
