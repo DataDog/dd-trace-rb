@@ -167,6 +167,7 @@ RSpec.describe 'Rails Endpoint Collection' do
       end
 
       match '/search', to: 'search#index', via: :all
+      match '/multi-method-route', to: 'multi_method#index', via: %i[get post]
 
       mount grape_app => '/grape'
       mount sinatra_app => '/sinatra'
@@ -352,6 +353,20 @@ RSpec.describe 'Rails Endpoint Collection' do
           operation_name: 'http.request',
           method: '*',
           path: '/search'
+        },
+        {
+          type: 'REST',
+          resource_name: 'GET /multi-method-route',
+          operation_name: 'http.request',
+          method: 'GET',
+          path: '/multi-method-route'
+        },
+        {
+          type: 'REST',
+          resource_name: 'POST /multi-method-route',
+          operation_name: 'http.request',
+          method: 'POST',
+          path: '/multi-method-route'
         },
         {
           type: 'REST',
