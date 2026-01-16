@@ -16,7 +16,6 @@
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
-#include "heap_recorder.h"
 
 // Used to trigger the execution of Collectors::ThreadContext, which implements all of the sampling logic
 // itself; this class only implements the "when to do it" part.
@@ -1280,7 +1279,18 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
   // On Ruby 4+, we need to trigger a postponed job to finalize the heap allocation recording.
   // During on_newobj_event, we can't safely call rb_obj_id(), so we defer it until the event completes.
-  rb_postponed_job_trigger(finalize_heap_allocation_from_postponed_job_handle);
+  // We batch triggers to reduce overhead that can bias the allocation sampler.
+  // Triggering after every sample causes the postponed job to run during subsequent allocations,
+  // which inflates measured sampling time and causes the dynamic sampler to skip more allocations.
+  // Batch postponed job triggers to reduce overhead that can bias the allocation sampler.
+  // Also trigger when buffer is getting full to avoid dropping recordings.
+  static uint64_t samples_since_last_trigger = 0;
+  samples_since_last_trigger++;
+  bool buffer_pressure = thread_context_collector_heap_pending_buffer_pressure(state->thread_context_collector_instance);
+  if (samples_since_last_trigger >= 128 || buffer_pressure) {
+    rb_postponed_job_trigger(finalize_heap_allocation_from_postponed_job_handle);
+    samples_since_last_trigger = 0;
+  }
   #endif
 }
 
@@ -1507,11 +1517,19 @@ static void finalize_heap_allocation_from_postponed_job(DDTRACE_UNUSED void *_un
     return;
   }
 
-  // Get the heap_recorder from the thread_context_collector
-  heap_recorder *recorder = thread_context_collector_get_heap_recorder(state->thread_context_collector_instance);
-  if (recorder == NULL) return;
+  // Protect against nested operations (e.g., if this function triggers an allocation or
+  // the VM decides to check for interrupts and calls back into us)
+  if (state->during_sample) return;
 
-  heap_recorder_finalize_pending_recordings(recorder);
+  during_sample_enter(state);
+
+  // NOTE: We're not updating discrete_dynamic_sampler_before_sample/after_sample here.
+  // This means work done in this function isn't accounted for as profiler overhead.
+  // This is acceptable because the amount of work done here is small (just iterating
+  // through pending recordings and calling rb_obj_id on each).
+  thread_context_collector_finalize_heap_recordings(state->thread_context_collector_instance);
+
+  during_sample_exit(state);
 }
 #endif
 

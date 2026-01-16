@@ -132,6 +132,10 @@ bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder);
 // Check if there are any pending recordings waiting to be finalized.
 bool heap_recorder_has_pending_recordings(heap_recorder *heap_recorder);
 
+// Check if pending recordings buffer is under pressure (>50% full).
+// Used to trigger early finalization to avoid dropping recordings.
+bool heap_recorder_pending_buffer_pressure(heap_recorder *heap_recorder);
+
 // Mark pending recordings to prevent GC from collecting the objects
 // while they're waiting to be finalized.
 void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder);

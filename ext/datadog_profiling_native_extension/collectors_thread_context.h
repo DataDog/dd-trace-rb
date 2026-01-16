@@ -4,7 +4,6 @@
 #include <stdbool.h>
 
 #include "gvl_profiling_helper.h"
-#include "heap_recorder.h"
 
 void thread_context_collector_sample(
   VALUE self_instance,
@@ -20,9 +19,13 @@ __attribute__((warn_unused_result)) bool thread_context_collector_on_gc_finish(V
 VALUE enforce_thread_context_collector_instance(VALUE object);
 
 #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
-// Get the heap_recorder from the thread_context_collector instance.
-// Used to access pending recordings for deferred finalization.
-heap_recorder* thread_context_collector_get_heap_recorder(VALUE self_instance);
+// Finalize any pending heap allocation recordings.
+// On Ruby 4+, heap allocations are recorded in two phases: during on_newobj_event we capture
+// the object reference, then later we safely call rb_obj_id() to get the object ID.
+void thread_context_collector_finalize_heap_recordings(VALUE self_instance);
+
+// Returns true if the pending heap recordings buffer is getting full and should be flushed soon.
+bool thread_context_collector_heap_pending_buffer_pressure(VALUE self_instance);
 #endif
 
 #ifndef NO_GVL_INSTRUMENTATION

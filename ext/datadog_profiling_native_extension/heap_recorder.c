@@ -88,7 +88,7 @@ typedef struct {
   live_object_data object_data;
 } pending_recording;
 
-#define MAX_PENDING_RECORDINGS 64
+#define MAX_PENDING_RECORDINGS 256
 #endif
 
 struct heap_recorder {
@@ -186,6 +186,11 @@ struct heap_recorder {
     double ewma_objects_alive;
     double ewma_objects_dead;
     double ewma_objects_skipped;
+
+    #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+    unsigned long deferred_recordings_skipped_buffer_full;
+    unsigned long deferred_recordings_finalized;
+    #endif
   } stats_lifetime;
 };
 
@@ -221,6 +226,7 @@ static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId)
 //
 // ==========================
 heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) {
+
   heap_recorder *recorder = ruby_xcalloc(1, sizeof(heap_recorder));
 
   recorder->heap_records = st_init_table(&st_hash_type_heap_record);
@@ -341,15 +347,24 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
       // directly OR because the GVL got released in the middle of an update), let's skip this sample as well.
       // See notes on `heap_recorder_update` for details.
       || heap_recorder->updating
-      #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
-      // Skip if we've hit the pending recordings limit or if there's already a deferred object being recorded
-      || heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS
-      || heap_recorder->active_deferred_object != Qnil
-      #endif
     ) {
     heap_recorder->active_recording = &SKIPPED_RECORD;
     return;
   }
+
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  // Skip if we've hit the pending recordings limit or if there's already a deferred object being recorded
+  if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
+    heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full++;
+    heap_recorder->active_recording = &SKIPPED_RECORD;
+    return;
+  }
+  if (heap_recorder->active_deferred_object != Qnil) {
+    // Nested allocation during recording - shouldn't happen but skip gracefully
+    heap_recorder->active_recording = &SKIPPED_RECORD;
+    return;
+  }
+  #endif
 
   heap_recorder->num_recordings_skipped = 0;
 
@@ -414,16 +429,20 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
   #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
   // On Ruby 4+, active_deferred_object != Qnil indicates deferred mode
   if (heap_recorder->active_deferred_object != Qnil) {
-    // Store the recording in the pending list for later finalization
-    if (heap_recorder->pending_recordings_count < MAX_PENDING_RECORDINGS) {
-      heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
-      heap_record->num_tracked_objects++; // Pre-increment since we're going to commit this later
-
-      pending_recording *pending = &heap_recorder->pending_recordings[heap_recorder->pending_recordings_count++];
-      pending->object_ref = heap_recorder->active_deferred_object;
-      pending->heap_record = heap_record;
-      pending->object_data = heap_recorder->active_deferred_object_data;
+    // Invariant: active_deferred_object is only set when pending_recordings_count < MAX_PENDING_RECORDINGS
+    // (checked in start_heap_allocation_recording). If this fails, there's a bug in our logic.
+    if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
+      rb_bug("heap_recorder: pending_recordings buffer overflow - invariant violated");
     }
+
+    heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
+    heap_record->num_tracked_objects++; // Pre-increment since we're going to commit this later
+
+    pending_recording *pending = &heap_recorder->pending_recordings[heap_recorder->pending_recordings_count++];
+    pending->object_ref = heap_recorder->active_deferred_object;
+    pending->heap_record = heap_record;
+    pending->object_data = heap_recorder->active_deferred_object_data;
+
     heap_recorder->active_deferred_object = Qnil;
     return Qnil;
   }
@@ -469,6 +488,13 @@ bool heap_recorder_has_pending_recordings(heap_recorder *heap_recorder) {
   return heap_recorder->pending_recordings_count > 0;
 }
 
+bool heap_recorder_pending_buffer_pressure(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return false;
+  }
+  return heap_recorder->pending_recordings_count > MAX_PENDING_RECORDINGS / 2;
+}
+
 bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     return false;
@@ -478,6 +504,8 @@ bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
   if (count == 0) {
     return false;
   }
+
+  heap_recorder->stats_lifetime.deferred_recordings_finalized += count;
 
   for (uint i = 0; i < count; i++) {
     pending_recording *pending = &heap_recorder->pending_recordings[i];
@@ -704,6 +732,15 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
   };
   VALUE hash = rb_hash_new();
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
+
+  #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
+  // Deferred recording stats (Ruby 4.x only)
+  rb_hash_aset(hash, ID2SYM(rb_intern("lifetime_deferred_recordings_skipped_buffer_full")),
+    LONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full));
+  rb_hash_aset(hash, ID2SYM(rb_intern("lifetime_deferred_recordings_finalized")),
+    LONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_finalized));
+  #endif
+
   return hash;
 }
 

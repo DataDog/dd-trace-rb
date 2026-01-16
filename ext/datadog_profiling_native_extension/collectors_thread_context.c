@@ -1340,10 +1340,21 @@ VALUE enforce_thread_context_collector_instance(VALUE object) {
 }
 
 #ifdef DEFERRED_HEAP_ALLOCATION_RECORDING
-heap_recorder* thread_context_collector_get_heap_recorder(VALUE self_instance) {
+void thread_context_collector_finalize_heap_recordings(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-  return get_heap_recorder_from_stack_recorder(state->recorder_instance);
+  heap_recorder *recorder = get_heap_recorder_from_stack_recorder(state->recorder_instance);
+  if (recorder != NULL) {
+    heap_recorder_finalize_pending_recordings(recorder);
+  }
+}
+
+bool thread_context_collector_heap_pending_buffer_pressure(VALUE self_instance) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+  heap_recorder *recorder = get_heap_recorder_from_stack_recorder(state->recorder_instance);
+  if (recorder == NULL) return false;
+  return heap_recorder_pending_buffer_pressure(recorder);
 }
 #endif
 
