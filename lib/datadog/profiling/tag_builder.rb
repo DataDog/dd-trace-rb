@@ -2,7 +2,6 @@
 
 require_relative '../core/tag_builder'
 require_relative '../core/utils'
-require_relative '../core/environment/ext'
 
 require 'set'
 

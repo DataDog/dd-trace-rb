@@ -67,7 +67,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:code_provenance_file_name) { "the_code_provenance_file_name.json" }
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
-  let(:process_tags) { nil }
+  let(:process_tags) { '' }
   let(:info_json) do
     JSON.generate(
       {

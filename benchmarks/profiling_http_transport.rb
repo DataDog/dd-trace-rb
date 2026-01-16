@@ -64,7 +64,7 @@ class ProfilerHttpTransportBenchmark
     # This was added as a workaround to allow https://github.com/DataDog/dd-trace-rb/pull/5072 to be merged
     # Once that PR is merged, this can be cleaned up :)
     flush_params = Datadog::Profiling::Flush.instance_method(:initialize).parameters
-    params[:process_tags] = nil if flush_params.any? { |_, name| name == :process_tags }
+    params[:process_tags] = '' if flush_params.any? { |_, name| name == :process_tags }
 
     Datadog::Profiling::Flush.new(**params)
   end
