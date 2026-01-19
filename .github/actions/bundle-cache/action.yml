@@ -28,12 +28,12 @@ runs:
         bundle lock
         echo "lockfile=$LOCKFILE" >> "$GITHUB_OUTPUT"
     - name: Upload lockfile
-      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: ${{ steps.lockfile.outputs.lockfile }}
         path: "*.lock"
     - name: Restore cache
-      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       id: restore-cache
       with:
         key: bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles('*.lock') }}
@@ -43,7 +43,7 @@ runs:
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Save cache
-      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache/save@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"

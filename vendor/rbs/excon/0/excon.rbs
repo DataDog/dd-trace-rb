@@ -1,4 +1,6 @@
 module Excon
+  def self.defaults: () -> ::Hash[::Symbol, untyped]
+
   module Middleware
     class Base
       type datum = ::Hash[::Symbol, untyped]
