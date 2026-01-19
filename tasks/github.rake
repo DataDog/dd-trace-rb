@@ -107,7 +107,7 @@ namespace :github do
     gemfiles.each_with_index do |gemfile, index|
       puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}"
 
-      env = {'BUNDLE_GEMFILE' => gemfile}
+      env = {'BUNDLE_GEMFILE' => gemfile, 'BUNDLE_FROZEN' => 'true'}
       cmd = 'bundle check || bundle install'
 
       start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
