@@ -1,17 +1,15 @@
 module Datadog
   module AppSec
     class Component
-      @processor: Processor?
+      @security_engine: SecurityEngine::Engine?
 
       @telemetry: Core::Telemetry::Component
 
-      @mutex: ::Mutex
-
-      def self.build_appsec_component: (Core::Configuration::Settings settings, Core::Telemetry::Component telemetry) -> Component?
+      def self.build_appsec_component: (Core::Configuration::Settings settings, telemetry: Core::Telemetry::Component) -> Component?
 
       private
 
-      def require_libddwaf: (telemetry: Core::Telemetry::Component) -> void
+      def self.require_libddwaf: (telemetry: Core::Telemetry::Component) -> void
 
       public
 
@@ -19,7 +17,7 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component
 
-      def initialize: (AppSec::SecurityEngine::Engine security_engine, Core::Telemetry::Component telemetry) -> void
+      def initialize: (security_engine: AppSec::SecurityEngine::Engine, telemetry: Core::Telemetry::Component) -> void
 
       def reconfigure!: () -> void
 

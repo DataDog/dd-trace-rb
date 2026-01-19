@@ -33,6 +33,8 @@ module Datadog
 
           def enabled=: (bool) -> void
 
+          def instrument: (Symbol) -> void
+
           def trace_rate_limit: () -> Integer
 
           def trace_rate_limit=: (Integer) -> void
