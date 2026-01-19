@@ -1,0 +1,176 @@
+# Test workflow for validating bundle caching locally with act
+# Mirrors the caching mechanism from _unit_test.yml with the new install_all_gemfiles task
+#
+# Run with: ./scripts/act-with-cache.sh workflow_dispatch -W .github/workflows/_test-bundle-cache.yml --container-architecture linux/amd64
+name: Test Bundle Cache
+
+on:
+  workflow_dispatch:
+    inputs:
+      ruby-version:
+        description: 'Ruby version to test (e.g., 3.4)'
+        default: '3.4'
+        type: string
+
+jobs:
+  # Mirrors the 'batch' job from _unit_test.yml
+  batch:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:${{ inputs.ruby-version || '3.4' }}-gnu-gcc
+    outputs:
+      cache-key: ${{ steps.bundle-cache.outputs.cache-primary-key }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install Node.js for actions/cache to work (not needed in real CI, only for act)
+      # Skip if using pre-built image with Node.js already installed
+      - name: Install Node.js (for act compatibility)
+        if: ${{ env.ACT }}
+        run: |
+          if [ -x /usr/bin/node ]; then
+            echo "Node.js already installed: $(/usr/bin/node --version)"
+          else
+            echo "Installing Node.js..."
+            apt-get update && apt-get install -y nodejs npm
+          fi
+
+      - name: Ruby alias
+        id: ruby-alias
+        run: |
+          engine=$(ruby -e "puts RUBY_ENGINE")
+          alias=$(ruby -e "puts RUBY_ENGINE_VERSION")
+          echo "ruby-alias=$engine-$alias" >> "$GITHUB_OUTPUT"
+
+      - name: Generate lockfile
+        run: bundle lock
+
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        id: bundle-cache
+        with:
+          key: bundle-${{ runner.os }}-${{ runner.arch }}-${{ steps.ruby-alias.outputs.ruby-alias }}-${{ hashFiles('*.lock') }}
+          path: /usr/local/bundle
+
+      # On cache miss: install base bundle
+      - name: Install base bundle (cache miss)
+        if: steps.bundle-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "=== Cache MISS - Installing base bundle ==="
+          bundle install
+
+      # On cache miss: install ALL gemfiles using new rake task
+      - name: Install all gemfiles (cache miss)
+        if: steps.bundle-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "=== Cache MISS - Installing all gemfiles ==="
+          bundle exec rake github:install_all_gemfiles
+
+      # On cache miss: save the complete cache
+      - name: Save cache (cache miss)
+        if: steps.bundle-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ steps.bundle-cache.outputs.cache-primary-key }}
+          path: /usr/local/bundle
+
+      # On cache hit: verify base bundle
+      - name: Verify base bundle (cache hit)
+        if: steps.bundle-cache.outputs.cache-hit == 'true'
+        run: |
+          echo "=== Cache HIT - Verifying base bundle ==="
+          bundle check
+
+      - name: Cache status
+        run: |
+          echo "=== Cache Status ==="
+          echo "Cache hit: ${{ steps.bundle-cache.outputs.cache-hit }}"
+          echo "Cache key: ${{ steps.bundle-cache.outputs.cache-primary-key }}"
+
+  # Mirrors the 'build-test-standard' job from _unit_test.yml
+  build-test:
+    needs: batch
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:${{ inputs.ruby-version || '3.4' }}-gnu-gcc
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install Node.js for actions/cache to work (not needed in real CI, only for act)
+      # Skip if using pre-built image with Node.js already installed
+      - name: Install Node.js (for act compatibility)
+        if: ${{ env.ACT }}
+        run: |
+          if [ -x /usr/bin/node ]; then
+            echo "Node.js already installed: $(/usr/bin/node --version)"
+          else
+            echo "Installing Node.js..."
+            apt-get update && apt-get install -y nodejs npm
+          fi
+
+      - name: Generate lockfile
+        run: bundle lock
+
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        id: bundle-cache
+        with:
+          key: ${{ needs.batch.outputs.cache-key }}
+          path: /usr/local/bundle
+
+      - name: Cache restore status
+        run: |
+          echo "=== Cache Restore Status ==="
+          echo "Cache hit: ${{ steps.bundle-cache.outputs.cache-hit }}"
+
+      # On cache hit: strictly verify ALL gemfiles are present (no installs allowed)
+      - name: Verify base bundle (cache hit - strict)
+        if: steps.bundle-cache.outputs.cache-hit == 'true'
+        run: |
+          echo "=== Cache HIT - Verifying base bundle (must not need install) ==="
+          bundle check || (echo "ERROR: Cache hit but base gems missing!" && exit 1)
+
+      - name: Verify contrib gemfile (cache hit - strict)
+        if: steps.bundle-cache.outputs.cache-hit == 'true'
+        env:
+          BUNDLE_GEMFILE: gemfiles/ruby_${{ inputs.ruby-version || '3.4' }}_contrib.gemfile
+        run: |
+          echo "=== Cache HIT - Verifying contrib gemfile (must not need install) ==="
+          bundle check || (echo "ERROR: Cache hit but contrib gems missing!" && exit 1)
+
+      - name: Verify rails71 gemfile (cache hit - strict)
+        if: steps.bundle-cache.outputs.cache-hit == 'true'
+        env:
+          BUNDLE_GEMFILE: gemfiles/ruby_${{ inputs.ruby-version || '3.4' }}_rails71.gemfile
+        run: |
+          echo "=== Cache HIT - Verifying rails71 gemfile (must not need install) ==="
+          bundle check || (echo "ERROR: Cache hit but rails71 gems missing!" && exit 1)
+
+      - name: Verify aws gemfile (cache hit - strict)
+        if: steps.bundle-cache.outputs.cache-hit == 'true'
+        env:
+          BUNDLE_GEMFILE: gemfiles/ruby_${{ inputs.ruby-version || '3.4' }}_aws.gemfile
+        run: |
+          echo "=== Cache HIT - Verifying aws gemfile (must not need install) ==="
+          bundle check || (echo "ERROR: Cache hit but aws gems missing!" && exit 1)
+
+      # On cache miss: install everything (fallback)
+      - name: Install base bundle (cache miss)
+        if: steps.bundle-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "=== Cache MISS - Installing base bundle ==="
+          bundle install
+
+      - name: Install all gemfiles (cache miss)
+        if: steps.bundle-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "=== Cache MISS - Installing all gemfiles ==="
+          bundle exec rake github:install_all_gemfiles
+
+      - name: Summary
+        run: |
+          echo "=== Build-test job complete ==="
+          echo "Cache hit: ${{ steps.bundle-cache.outputs.cache-hit }}"
+          if [ "${{ steps.bundle-cache.outputs.cache-hit }}" = "true" ]; then
+            echo "SUCCESS: All gemfiles verified from cache - no installs needed!"
+          fi

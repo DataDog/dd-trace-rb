@@ -39,13 +39,19 @@ runs:
         key: bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles('*.lock') }}
         path: "/usr/local/bundle"
     - if: steps.restore-cache.outputs.cache-hit != 'true'
+      name: Install the base Gemfile for this Ruby version
       shell: bash
       run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      name: Install all gemfiles/ for this Ruby version
+      shell: bash
+      run: bundle exec rake github:install_all_gemfiles
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Save cache
       uses: actions/cache/save@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - name: Verify base bundle
+      run: bundle check
       shell: bash

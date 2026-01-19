@@ -1,12 +1,15 @@
 require 'json'
 require_relative 'appraisal_conversion'
 
+# Tasks to support GitHub workflows
 # rubocop:disable Metrics/BlockLength
 namespace :github do
+  # Distribute {file:Matrixfile} tests into batches
   task :generate_batches do
     matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
-    # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
+    # TODO: Tasks with sidecar service dependencies, currently all bundled together in the `build-test-misc` job.
+    # TODO: Find a way to describe those service dependencies declaratively (e.g. in the Matrixfile).
     misc_candidates = [
       'mongodb',
       'elasticsearch',
@@ -93,6 +96,27 @@ namespace :github do
           </details>
         SUMMARY
       end
+    end
+  end
+
+  # Install all gemfiles for this Ruby version so they can be cached in CI.
+  task :install_all_gemfiles do
+    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern).sort
+    total = gemfiles.size
+
+    gemfiles.each_with_index do |gemfile, index|
+      puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}"
+
+      env = {'BUNDLE_GEMFILE' => gemfile}
+      cmd = 'bundle check || bundle install'
+
+      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      with_retry do
+        Bundler.with_unbundled_env { sh(env, cmd) }
+      end
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
+
+      puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}: Finished in #{elapsed.round(1)}s"
     end
   end
 
