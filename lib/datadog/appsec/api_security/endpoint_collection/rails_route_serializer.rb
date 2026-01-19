@@ -10,8 +10,15 @@ module Datadog
 
           module_function
 
-          def serialize(route)
-            method = route.verb.empty? ? "*" : route.verb
+          def serialize(route, method_override: nil)
+            method = if method_override
+              method_override
+            elsif route.verb.empty?
+              "*"
+            else
+              route.verb
+            end
+
             path = route.path.spec.to_s.delete_suffix(FORMAT_SUFFIX)
 
             {

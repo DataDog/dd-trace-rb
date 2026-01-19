@@ -33,10 +33,10 @@ jobs:
     name: Build gem (${{ matrix.type }})
     steps:
       - name: Checkout
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
+      - uses: ruby/setup-ruby@80740b3b13bf9857e28854481ca95a84e78a2bdf # v1.284.0
         with:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
@@ -63,7 +63,7 @@ jobs:
         run: |
           find pkg
       - name: Upload artifact
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg/*.gem'
@@ -80,14 +80,14 @@ jobs:
       - build
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg'
       - name: List gem
         run: |
           find pkg
-      - uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
+      - uses: ruby/setup-ruby@80740b3b13bf9857e28854481ca95a84e78a2bdf # v1.284.0
         with:
           ruby-version: '3.2'
       - name: Install gem
@@ -106,7 +106,7 @@ jobs:
     if: ${{ inputs.push }}
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg'
