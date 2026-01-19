@@ -7,7 +7,7 @@ module Datadog
 
       module ExecMonkeyPatch
         module ObjectMonkeyPatch
-          def exec: (?) -> untyped
+          def exec: (?) -> void
         end
       end
     end
