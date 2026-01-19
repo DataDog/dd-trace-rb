@@ -12,7 +12,7 @@ RSpec.describe Datadog::Profiling::Component do
     if Datadog::Profiling.supported?
       allow(Datadog::Profiling::Tasks::Setup).to receive(:new).and_return(profiler_setup_task)
       allow(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!).and_return(true)
-      settings.profiling.advanced.exec_workaround_enabled = false
+      settings.profiling.advanced.shutdown_on_exec_enabled = false
     end
   end
 
@@ -1126,7 +1126,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context "when exec workaround is disabled" do
-        before { settings.profiling.advanced.exec_workaround_enabled = false }
+        before { settings.profiling.advanced.shutdown_on_exec_enabled = false }
 
         it "returns false but still requires the monkey patch" do
           expect(described_class).to receive(:require).with("datadog/profiling/ext/exec_monkey_patch")
@@ -1136,7 +1136,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context "when exec workaround is enabled" do
-        before { settings.profiling.advanced.exec_workaround_enabled = true }
+        before { settings.profiling.advanced.shutdown_on_exec_enabled = true }
 
         it "returns true and requires the monkey patch" do
           expect(described_class).to receive(:require).with("datadog/profiling/ext/exec_monkey_patch")

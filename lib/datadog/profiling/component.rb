@@ -444,7 +444,7 @@ module Datadog
         # This file is 2.7+ only so we only require it here once we've checked the Ruby version
         require "datadog/profiling/ext/exec_monkey_patch"
 
-        settings.profiling.advanced.exec_workaround_enabled
+        settings.profiling.advanced.shutdown_on_exec_enabled
       end
 
       private_class_method def self.enable_gvl_profiling?(settings, logger)

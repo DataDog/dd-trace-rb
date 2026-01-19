@@ -433,13 +433,6 @@
         "default": "true"
       }
     ],
-    "DD_PROFILING_EXEC_WORKAROUND_ENABLED": [
-      {
-        "version": "A",
-        "type": "boolean",
-        "default": "true"
-      }
-    ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": [
       {
         "version": "A",
@@ -518,6 +511,13 @@
         "version": "A",
         "type": "string",
         "default": "false"
+      }
+    ],
+    "DD_PROFILING_SHUTDOWN_ON_EXEC_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED": [

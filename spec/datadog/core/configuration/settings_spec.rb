@@ -723,18 +723,18 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#exec_workaround_enabled' do
-        subject(:exec_workaround_enabled) { settings.profiling.advanced.exec_workaround_enabled }
+      describe '#shutdown_on_exec_enabled' do
+        subject(:shutdown_on_exec_enabled) { settings.profiling.advanced.shutdown_on_exec_enabled }
 
         it_behaves_like 'a binary setting with',
-          env_variable: 'DD_PROFILING_EXEC_WORKAROUND_ENABLED',
+          env_variable: 'DD_PROFILING_SHUTDOWN_ON_EXEC_ENABLED',
           default: true
       end
 
-      describe '#exec_workaround_enabled=' do
-        it 'updates the #exec_workaround_enabled setting from its default of true' do
-          expect { settings.profiling.advanced.exec_workaround_enabled = false }
-            .to change { settings.profiling.advanced.exec_workaround_enabled }
+      describe '#shutdown_on_exec_enabled=' do
+        it 'updates the #shutdown_on_exec_enabled setting from its default of true' do
+          expect { settings.profiling.advanced.shutdown_on_exec_enabled = false }
+            .to change { settings.profiling.advanced.shutdown_on_exec_enabled }
             .from(true)
             .to(false)
         end

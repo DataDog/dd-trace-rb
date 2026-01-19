@@ -445,10 +445,10 @@ module Datadog
             # This monkey patch is available for Ruby 2.7+; let us know if you need it on earlier Rubies.
             # For more details see https://github.com/DataDog/dd-trace-rb/issues/5101 .
             #
-            # @default `DD_PROFILING_EXEC_WORKAROUND_ENABLED` environment variable as a boolean,
+            # @default `DD_PROFILING_SHUTDOWN_ON_EXEC_ENABLED` environment variable as a boolean,
             # otherwise `true`
-            option :exec_workaround_enabled do |o|
-              o.env 'DD_PROFILING_EXEC_WORKAROUND_ENABLED'
+            option :shutdown_on_exec_enabled do |o|
+              o.env 'DD_PROFILING_SHUTDOWN_ON_EXEC_ENABLED'
               o.type :bool
               o.default true
             end
