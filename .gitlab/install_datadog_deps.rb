@@ -31,9 +31,13 @@ FileUtils.mkdir_p(versioned_path, verbose: true)
 gemfile_file_path = versioned_path.join('Gemfile')
 
 File.open(gemfile_file_path, 'w') do |file|
+  # we force ruby platform for binary gems so that resolution is always possible locally (even with added platforms in lockfile)
   file.write("source 'https://rubygems.org'\n")
   file.write("gem 'datadog', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'\n")
-  file.write("gem 'ffi', '1.16.3'\n")
+  file.write("gem 'msgpack', force_ruby_platform: true\n")
+  file.write("gem 'ffi', '1.16.3', force_ruby_platform: true\n")
+  file.write("gem 'libdatadog', force_ruby_platform: true\n")
+  file.write("gem 'libddwaf', force_ruby_platform: true\n")
 
   # workaround for https://github.com/ruby/ruby/blob/ruby_2_6/gem_prelude.rb#L3-L7
   file.write("gem 'did_you_mean', '1.3.0'\n") if RUBY_VERSION.start_with?('2.6.')
@@ -104,7 +108,8 @@ env = {
   gem_install_cmd = "gem install #{gem} "\
     "--version #{version} "\
     '--no-document '\
-    '--ignore-dependencies '
+    '--ignore-dependencies ' \
+    '--platform ruby '
 
   case gem
   when 'ffi'
@@ -138,18 +143,10 @@ end
 
 cached_gems = Dir.glob(versioned_path.join("cache/*.gem"))
 
-libdatadog_musl = versioned_path +
-  "gems" +
-  "libdatadog-#{libdatadog_version}-#{RUBY_PLATFORM}" +
-  "vendor" +
-  "libdatadog-#{libdatadog_version.split(".").take(3).join(".")}" +
-  "#{RUBY_PLATFORM}-musl"
-
 FileUtils.rm_r(
   [
     *cached_gems,
     versioned_path.join("gems/ffi-#{ffi_version}/ext"),
-    libdatadog_musl,
   ],
   verbose: true
 )
