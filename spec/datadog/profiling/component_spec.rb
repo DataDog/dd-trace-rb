@@ -145,13 +145,9 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        context "when gc_enabled is true" do
+        context "when gc_enabled is true", ruby: '>= 2.7' do
           before do
             settings.profiling.advanced.gc_enabled = true
-
-            # Since RUBY_VERSION is used to test if the ExecMonkeyPatch should be applied, mocking it below on an old
-            # Ruby would cause it to wrongly be triggered, so we avoid running these specs there.
-            skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.7"
 
             stub_const("RUBY_VERSION", testing_version)
           end
@@ -319,18 +315,13 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context "when heap profiling is enabled" do
+        context "when heap profiling is enabled", ruby: '>= 2.7' do
           # Universally supported ruby version for allocation profiling by default
           let(:testing_version) { "3.3.0" }
 
           before do
             settings.profiling.advanced.experimental_heap_enabled = true
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
-
-            # Since RUBY_VERSION is used to test if the ExecMonkeyPatch should be applied, mocking it below on an old
-            # Ruby would cause it to wrongly be triggered, so we avoid running these specs there.
-            skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.7"
-
             stub_const("RUBY_VERSION", testing_version)
           end
 
@@ -686,13 +677,11 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context "when can_apply_exec_monkey_patch? is true" do
+        context "when can_apply_exec_monkey_patch? is true", ruby: '>= 2.7' do
           let(:exec_monkey_patch) { class_double(exec_monkey_patch_name, apply!: true) }
 
           before do
             allow(described_class).to receive(:can_apply_exec_monkey_patch?).and_return(true)
-
-            skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.7"
 
             require "datadog/profiling/ext/exec_monkey_patch" # Make sure it's loaded, so we can mock it cleanly
 

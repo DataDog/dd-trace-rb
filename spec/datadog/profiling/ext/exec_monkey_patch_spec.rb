@@ -2,11 +2,10 @@
 
 require "datadog/profiling/spec_helper"
 
-RSpec.describe "Datadog::Profiling::Ext::ExecMonkeyPatch" do
+RSpec.describe "Datadog::Profiling::Ext::ExecMonkeyPatch", ruby: '>= 2.7' do
   let(:described_class) { Datadog::Profiling::Ext::ExecMonkeyPatch }
 
   subject! do
-    skip("This monkey patch is not available on Ruby 2.6 or below") if RUBY_VERSION < "2.7"
     skip("Profiling is not supported on JRuby") if PlatformHelpers.jruby?
 
     require "datadog/profiling/ext/exec_monkey_patch"
