@@ -8,10 +8,12 @@ module Datadog
   module Core
     module Configuration
       module Deprecations
-        LOG_DEPRECATIONS_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
+        # Hash of OnlyOnce, as we may call log_deprecations_from_all_sources from datadog-ci-rb too with different deprecations set
+        LOG_DEPRECATIONS_ONLY_ONCE = {}
 
         def self.log_deprecations_from_all_sources(logger, deprecations: DEPRECATIONS, alias_to_canonical: ALIAS_TO_CANONICAL)
-          LOG_DEPRECATIONS_ONLY_ONCE.run do
+          LOG_DEPRECATIONS_ONLY_ONCE[deprecations] ||= Datadog::Core::Utils::OnlyOnce.new
+          LOG_DEPRECATIONS_ONLY_ONCE[deprecations].run do
             log_deprecated_environment_variables(logger, ENV, 'environment', deprecations, alias_to_canonical)
             customer_config = StableConfig.configuration.dig(:local, :config)
             log_deprecated_environment_variables(logger, customer_config, 'local', deprecations, alias_to_canonical) if customer_config
