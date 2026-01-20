@@ -7,22 +7,32 @@ module Datadog
 
           module InternalExecQueryAdapterPatch
             def internal_exec_query: (String sql, *untyped args, **untyped rest) -> untyped
+
+            def adapter_name: () -> String
           end
 
           module ExecuteAndClearAdapterPatch
             def execute_and_clear: (String sql, *untyped args, **untyped rest) -> untyped
+
+            def adapter_name: () -> String
           end
 
           module ExecQueryAdapterPatch
             def exec_query: (String sql, *untyped args, **untyped rest) -> untyped
+
+            def adapter_name: () -> String
           end
 
           module Rails4ExecuteAndClearAdapterPatch
             def execute_and_clear: (String sql, String name, untyped binds) -> untyped
+
+            def adapter_name: () -> String
           end
 
           module Rails4ExecQueryAdapterPatch
             def exec_query: (String sql, *untyped args) -> untyped
+
+            def adapter_name: () -> String
           end
         end
       end
