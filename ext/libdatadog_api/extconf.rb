@@ -32,6 +32,11 @@ skip_building_extension!("issue setting up `libdatadog` gem: #{libdatadog_issue}
 
 require 'mkmf'
 
+Datadog::LibdatadogExtconfHelpers.add_shared_sources!(
+  extension_dir: __dir__,
+  shared_relative_dir: File.join('..', 'shared')
+)
+
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
 append_cflags '-Werror' if ENV['DATADOG_GEM_CI'] == 'true'

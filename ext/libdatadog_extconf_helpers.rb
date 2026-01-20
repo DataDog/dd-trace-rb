@@ -12,6 +12,26 @@ module Datadog
     # may see multiple libdatadog versions. See https://github.com/DataDog/dd-trace-rb/pull/2531 for the horror story.
     LIBDATADOG_VERSION = '~> 25.0.0.1.0'
 
+    # Include sources in the `shared` directory. We intentionally:
+    # * Keep every entry in $srcs to the basename so mkmf/VPATH can resolve them correctly.
+    # * Add the shared directory to $VPATH using $(srcdir) so the generated Makefile works no matter where it's run from.
+    # * Extend $INCFLAGS with the same path so headers resolve without absolute paths that would break relocation.
+    def self.add_shared_sources!(extension_dir:, shared_relative_dir:)
+      shared_absolute_dir = File.expand_path(shared_relative_dir, extension_dir)
+      shared_sources = Dir[File.join(shared_absolute_dir, '*.c')].map { |path| File.basename(path) }
+      extension_sources = Dir[File.join(extension_dir, '*.c')].map { |path| File.basename(path) }
+
+      $srcs = extension_sources + shared_sources
+      $VPATH ||= []
+
+      shared_search_dir = File.join('$(srcdir)', shared_relative_dir)
+      $VPATH << shared_search_dir unless $VPATH.include?(shared_search_dir)
+
+      $INCFLAGS ||= ''
+      include_token = " -I#{shared_search_dir}"
+      $INCFLAGS << include_token unless $INCFLAGS.include?(include_token)
+    end
+
     # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
     # libdatadog are moved after the extension gets compiled.
     #
