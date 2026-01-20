@@ -45,23 +45,27 @@ module Datadog
 
           def initialize(media_type)
             media_type_match = MEDIA_TYPE_RE.match(media_type)
-
             raise ParseError, media_type.inspect if media_type_match.nil?
 
-            @type = media_type_match['type'].downcase
-            @subtype = media_type_match['subtype'].downcase
+            @type = media_type_match['type']
+            @type.downcase!
+
+            @subtype = media_type_match['subtype']
+            @subtype.downcase!
+
             @parameters = {}
+            return if media_type_match['parameters'].nil?
 
-            parameters = media_type_match['parameters']
-            return if parameters.nil?
-
-            parameters.scan(PARAMETER_RE) do |name, unquoted_value, quoted_value|
+            media_type_match['parameters'].scan(PARAMETER_RE) do |name, unquoted_value, quoted_value|
               # NOTE: Order of unquoted_value and quoted_value does not matter,
               #       as they are mutually exclusive by the regex.
               value = unquoted_value || quoted_value
               next if name.nil? || value.nil?
 
-              @parameters[name.downcase] = value.downcase
+              name.downcase!
+              value.downcase!
+
+              @parameters[name] = value
             end
           end
 
