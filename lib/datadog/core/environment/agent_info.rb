@@ -82,7 +82,8 @@ module Datadog
         # Currently called/used by the DBM code to inject the propagation hash into the SQL comment
         # @return [Integer, nil] the FNV hash based on the container and process tags or nil
         def propagation_hash
-          return @propagation_hash if defined?(@propagation_hash)
+          # Can't use defined?(@propagation_hash) here because it will return true if @propagation_hash is nil
+          return @propagation_hash if @propagation_hash
           fetch if @container_tags_checksum.nil?
           container_tags_checksum = @container_tags_checksum
           return nil unless container_tags_checksum
@@ -114,7 +115,7 @@ module Datadog
           # if the Trace Agent returns a new value for the checksum, invalidate the cached propagation hash
           if new_container_tags_value && new_container_tags_value != @container_tags_checksum
             @container_tags_checksum = new_container_tags_value
-            remove_instance_variable(:@propagation_hash) if defined?(@propagation_hash)
+            @propagation_hash = nil
           end
         end
       end
