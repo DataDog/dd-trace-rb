@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
       it 'returns nil' do
         agent_info.fetch
-        expect(agent_info.container_tags_checksum).to be nil
+        expect(agent_info.send(:container_tags_checksum)).to be nil
       end
 
       it 'does not compute the base hash' do
@@ -40,7 +40,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
       it 'grabs the containers tags' do
         agent_info.fetch
-        expect(agent_info.container_tags_checksum).to eq('testhash')
+        expect(agent_info.send(:container_tags_checksum)).to eq('testhash')
       end
 
       it 'computes the correct propagation hash' do
@@ -51,12 +51,12 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
         generated_hash = agent_info.propagation_hash
 
-        container_tags_checksum = agent_info.container_tags_checksum
+        container_tags_checksum = agent_info.send(:container_tags_checksum)
         data = process_tags + container_tags_checksum
-        expected_hash = Datadog::Core::Utils::FNV.fnv1_64(data)
+        expected_checksum = Datadog::Core::Utils::FNV.fnv1_64(data)
 
         expect(generated_hash).to be_a(Integer)
-        expect(generated_hash).to eq(expected_hash)
+        expect(generated_hash).to eq(expected_checksum)
       end
     end
   end

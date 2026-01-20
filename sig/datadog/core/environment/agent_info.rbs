@@ -3,11 +3,11 @@ module Datadog
     module Environment
       class AgentInfo
         attr_reader agent_settings: Configuration::AgentSettings
-        attr_reader container_tags_checksum: ::String?
         attr_reader logger: Core::Logger
 
         @client: Datadog::Core::Remote::Transport::Negotiation::Transport
         @propagation_hash: ::Integer?
+        @container_tags_checksum: ::String?
 
         def initialize: (Configuration::AgentSettings agent_settings, ?logger: Core::Logger) -> void
 
