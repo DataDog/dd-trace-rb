@@ -10,8 +10,7 @@ module Datadog
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.1
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.2
         class MediaType
-          class ParseError < ::StandardError
-          end
+          ParseError = Class.new(StandardError)
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6
           TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/.freeze
@@ -67,9 +66,9 @@ module Datadog
           end
 
           def to_s
-            s = +"#{@type}/#{@subtype}"
-            s << ';' << @parameters.map { |k, v| "#{k}=#{v}" }.join(';') if @parameters.count > 0
-            s
+            return "#{@type}/#{@subtype}" if @parameters.empty?
+
+            "#{@type}/#{@subtype};#{@parameters.map { |k, v| "#{k}=#{v}" }.join(';')}"
           end
         end
       end
