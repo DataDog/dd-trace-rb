@@ -33,7 +33,6 @@ target :datadog do
     hash[Ruby::UnexpectedSuper] = :information
   end
 
-  ignore 'lib/datadog/appsec/component.rb'
   # Excluded due to https://github.com/soutaro/steep/issues/1232
   ignore 'lib/datadog/appsec/configuration/settings.rb'
   ignore 'lib/datadog/appsec/contrib/active_record/instrumentation.rb'
