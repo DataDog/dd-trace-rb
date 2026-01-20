@@ -54,9 +54,11 @@ module Datadog
             @subtype.downcase!
 
             @parameters = {}
-            return if media_type_match['parameters'].nil?
 
-            media_type_match['parameters'].scan(PARAMETER_RE) do |name, unquoted_value, quoted_value|
+            parameters = media_type_match['parameters']
+            return if parameters.nil? || parameters.empty?
+
+            parameters.scan(PARAMETER_RE) do |name, unquoted_value, quoted_value|
               # NOTE: Order of unquoted_value and quoted_value does not matter,
               #       as they are mutually exclusive by the regex.
               value = unquoted_value || quoted_value
