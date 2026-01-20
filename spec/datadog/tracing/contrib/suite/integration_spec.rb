@@ -94,6 +94,10 @@ RSpec.describe 'contrib integration testing', :integration do
       }.to_json
     end
 
+    let(:active_remote) do
+      Datadog.send(:components).remote
+    end
+
     context 'with dynamic configuration data' do
       let(:dynamic_configuration) { new_dynamic_configuration(product, data) }
       let(:data) { {'lib_config' => lib_config} }
@@ -109,7 +113,7 @@ RSpec.describe 'contrib integration testing', :integration do
       let(:tracing_header_tags) { [{'header' => 'test-header', 'tag_name' => ''}] }
 
       it 'overrides the local values' do
-        Datadog::Core::Remote.active_remote.barrier(:once)
+        active_remote.barrier(:once)
 
         expect(Datadog.configuration.tracing.sampling.default_rate).to be_nil
         expect(Datadog.configuration.tracing.log_injection).to eq(true)
@@ -128,7 +132,7 @@ RSpec.describe 'contrib integration testing', :integration do
         let(:empty_data) { {'lib_config' => {}} }
 
         it 'restore the local values' do
-          Datadog::Core::Remote.active_remote.barrier(:once)
+          active_remote.barrier(:once)
 
           update_config
 
@@ -200,7 +204,7 @@ RSpec.describe 'contrib integration testing', :integration do
 
         it 'changes default sampling rate and sampling decision' do
           # Before
-          Datadog::Core::Remote.active_remote.barrier(:once)
+          active_remote.barrier(:once)
           tracer.trace('test') {}
 
           expect(trace.rule_sample_rate).to be_nil
@@ -236,7 +240,7 @@ RSpec.describe 'contrib integration testing', :integration do
 
         it 'changes disables log injection' do
           # Before
-          Datadog::Core::Remote.active_remote.barrier(:once)
+          active_remote.barrier(:once)
           expect(Datadog.configuration.tracing.log_injection).to eq(true)
 
           tracer.trace('test') { logger.error('test-log') }
