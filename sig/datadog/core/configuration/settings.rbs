@@ -33,27 +33,27 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def instrument: (Symbol) -> void
+          def instrument: (::Symbol) -> void
 
-          def trace_rate_limit: () -> Integer
+          def trace_rate_limit: () -> ::Integer
 
-          def trace_rate_limit=: (Integer) -> void
+          def trace_rate_limit=: (::Integer) -> void
 
-          def obfuscator_key_regex: () -> String
+          def obfuscator_key_regex: () -> ::String
 
-          def obfuscator_key_regex=: (String) -> void
+          def obfuscator_key_regex=: (::String) -> void
 
-          def obfuscator_value_regex: () -> String
+          def obfuscator_value_regex: () -> ::String
 
-          def obfuscator_value_regex=: (String) -> void
+          def obfuscator_value_regex=: (::String) -> void
 
           def waf_debug: () -> bool
 
           def waf_debug=: (bool) -> void
 
-          def ruleset: () -> (String | Symbol |  File | StringIO | ::Hash[untyped, untyped])
+          def ruleset: () -> (::String | ::Symbol |  File | StringIO | ::Hash[untyped, untyped])
 
-          def ruleset=: (String | Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
+          def ruleset=: (::String | ::Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
 
           def block: () -> _AppSecBlock
 
