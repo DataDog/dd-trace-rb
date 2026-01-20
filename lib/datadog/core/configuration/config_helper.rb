@@ -44,6 +44,12 @@ module Datadog
         alias_method :include?, :key?
         alias_method :member?, :key?
 
+        # This method will be used by datadog-ci-rb once it will bump its minimum dependancy of dd-trace-rb to 2.27.0.
+        # In the meantime, it uses ConfigHelper#instance_variable_get(:@source_env) to set environment variables.
+        def []=(name, value)
+          @source_env[name] = value
+        end
+
         # Returns the environment variable value if the environment variable is a supported Datadog configuration (starts with DD_ or OTEL_)
         # or if it is not a Datadog configuration. Otherwise, it returns nil.
         #
