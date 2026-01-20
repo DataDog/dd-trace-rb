@@ -270,7 +270,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
 
-      context "when native filenames are enabled" do
+      context "when native filenames are enabled", if: PlatformHelpers.linux? do
         let(:native_filenames_enabled) { true }
 
         before do
@@ -320,7 +320,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
 
-      context "when native filenames are enabled" do
+      context "when native filenames are enabled", if: PlatformHelpers.linux? do
         let(:native_filenames_enabled) { true }
 
         before do
@@ -358,7 +358,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         it do
           expect {
             sample_and_decode(background_thread, :labels, is_gvl_waiting_state: true)
-          }.to raise_error(RuntimeError, /BUG: .* is_gvl_waiting/)
+          }.to raise_error(::RuntimeError, /BUG: .* is_gvl_waiting/)
         end
       end
 
@@ -394,7 +394,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           let(:metric_values) { {"cpu-samples" => 1} }
 
           it "raises an exception" do
-            expect { gathered_stack }.to raise_error(RuntimeError, /BUG: Unexpected missing state_label/)
+            expect { gathered_stack }.to raise_error(::RuntimeError, /BUG: Unexpected missing state_label/)
           end
         end
 
@@ -904,30 +904,18 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   describe "_native_filenames_available?" do
-    context "on linux", if: PlatformHelpers.linux? do
-      it "returns true" do
-        expect(described_class._native_filenames_available?).to be true
-      end
-    end
-
-    context "on non-linux", if: !PlatformHelpers.linux? do
-      it "returns false" do
-        expect(described_class._native_filenames_available?).to be false
-      end
+    it "returns true on linux and macOS" do
+      expect(described_class._native_filenames_available?).to be true
     end
   end
 
   describe "_native_ruby_native_filename" do
-    context "on linux", if: PlatformHelpers.linux? do
-      it "returns the correct filename" do
-        expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(include("libruby.so"))
-      end
+    it "returns the correct filename", if: PlatformHelpers.linux? do
+      expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(include("libruby.so"))
     end
 
-    context "on non-linux", if: !PlatformHelpers.linux? do
-      it "returns nil" do
-        expect(described_class._native_ruby_native_filename).to be nil
-      end
+    it "returns the correct filename on Mac", if: PlatformHelpers.mac? do
+      expect(described_class._native_ruby_native_filename).to match(/libruby[^\/]+dylib$/)
     end
   end
 

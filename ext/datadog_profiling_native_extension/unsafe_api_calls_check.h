@@ -5,8 +5,11 @@
 // Specifically, when the profiler is sampling, we're never supposed to call into Ruby code (e.g. methods
 // implemented using Ruby code) or allocate Ruby objects.
 // That's because those events introduce thread switch points, and really we don't the VM switching between threads
-// in the middle of the profiler sampling.
-// This includes raising exceptions, unless we're trying to stop the profiler, and even then we must be careful.
+// in the middle of the profiler sampling. This includes raising exceptions.
+//
+// Raising exceptions as the very last operation, to stop the profiler is ok, but comes a caveat: raising exceptions
+// will fail the unsafe check. When testing exception paths, you must disable unsafe checking for that test execution.
+// See `allow_exception` usage for how to we disable it for testing today.
 //
 // The above is especially true in situations such as GC profiling or allocation/heap profiling, as in those situations
 // we can even crash the Ruby VM if we switch away at the wrong time.

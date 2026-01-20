@@ -14,7 +14,10 @@ require "webrick"
 # We also have "integration" specs, where we exercise the Ruby code together with the C code and libdatadog to ensure
 # that things come out of libdatadog as we expected.
 RSpec.describe Datadog::Profiling::HttpTransport do
-  before { skip_if_profiling_not_supported(self) }
+  before do
+    skip "Profiling HTTP transport integration tests require Linux networking helpers" if PlatformHelpers.mac?
+    skip_if_profiling_not_supported(self)
+  end
 
   subject(:http_transport) do
     described_class.new(

@@ -130,7 +130,7 @@ void feature_flags_init(VALUE core_module) {
 static VALUE configuration_new(VALUE klass, VALUE json_str) {
   struct ddog_ffe_Result_HandleConfiguration result = ddog_ffe_configuration_new(borrow_str(json_str));
   if (result.tag == DDOG_FFE_RESULT_HANDLE_CONFIGURATION_ERR_HANDLE_CONFIGURATION) {
-    rb_raise(feature_flags_error_class, "Failed to create configuration from JSON: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    raise_error(feature_flags_error_class, "Failed to create configuration from JSON: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
   return TypedData_Wrap_Struct(klass, &configuration_data_type, result.ok);
 }
@@ -159,7 +159,7 @@ static ddog_ffe_ExpectedFlagType expected_type_from_value(VALUE expected_type) {
   } else if (id == id_float) {
     return DDOG_FFE_EXPECTED_FLAG_TYPE_FLOAT;
   } else {
-    rb_raise(feature_flags_error_class, "Internal: Unexpected flag type: %"PRIsVALUE, expected_type);
+    raise_error(feature_flags_error_class, "Internal: Unexpected flag type: %"PRIsVALUE, expected_type);
   }
 }
 
@@ -199,7 +199,7 @@ static int evaluation_context_foreach_callback(VALUE key, VALUE value, VALUE arg
   if (builder->attr_count >= builder->attr_capacity) {
     // This should never happen because evaluation_context_from_hash()
     // pre-allocates attr_capacity equal to iterated Hash size.
-    rb_raise(feature_flags_error_class, "Internal: Attribute count exceeded capacity");
+    raise_error(feature_flags_error_class, "Internal: Attribute count exceeded capacity");
   }
 
   ddog_ffe_AttributePair *attr = &builder->attrs[builder->attr_count];
@@ -354,7 +354,7 @@ static VALUE resolution_details_get_raw_value(VALUE self) {
       return Qnil;
     default:
       // This should never happen as we checked for all possible tag values.
-      rb_raise(feature_flags_error_class, "Internal: Unexpected ResolutionDetails value tag");
+      raise_error(feature_flags_error_class, "Internal: Unexpected ResolutionDetails value tag");
   }
 }
 
@@ -387,7 +387,7 @@ static VALUE resolution_details_get_flag_type(VALUE self) {
       return Qnil;
     default:
       // This should never happen as we checked for all possible tag values.
-      rb_raise(feature_flags_error_class, "Internal: Unexpected ResolutionDetails value tag");
+      raise_error(feature_flags_error_class, "Internal: Unexpected ResolutionDetails value tag");
   }
 }
 
