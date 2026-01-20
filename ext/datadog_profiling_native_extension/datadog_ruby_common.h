@@ -101,4 +101,4 @@ static inline VALUE get_error_details_and_drop(ddog_Error *error) {
 // Utility function to be able to extract an error cstring from a ddog_Error.
 // Returns the amount of characters written to string (which are necessarily
 // bounded by capacity - 1 since the string will be null-terminated).
-inline size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capacity);
+size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capacity);
