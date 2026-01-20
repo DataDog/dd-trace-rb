@@ -4,7 +4,7 @@ module Datadog
   module AppSec
     module Utils
       module HTTP
-        # Implementation of media type for content negotiation
+        # Implementation of media type for HTTP headers
         #
         # See:
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.1
@@ -12,8 +12,6 @@ module Datadog
         class MediaType
           class ParseError < ::StandardError
           end
-
-          WILDCARD = '*'
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6
           TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/.freeze
@@ -51,8 +49,8 @@ module Datadog
 
             raise ParseError, media_type.inspect if media_type_match.nil?
 
-            @type = (media_type_match['type'] || WILDCARD).downcase
-            @subtype = (media_type_match['subtype'] || WILDCARD).downcase
+            @type = media_type_match['type'].downcase
+            @subtype = media_type_match['subtype'].downcase
             @parameters = {}
 
             parameters = media_type_match['parameters']

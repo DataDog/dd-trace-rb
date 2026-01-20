@@ -6,7 +6,6 @@ module Datadog
           class ParseError < ::StandardError
           end
 
-          WILDCARD: ::String
           TOKEN_RE: ::Regexp
           PARAMETER_RE: ::Regexp
           MEDIA_TYPE_RE: ::Regexp
