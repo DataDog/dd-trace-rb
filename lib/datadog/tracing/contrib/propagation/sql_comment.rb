@@ -26,6 +26,9 @@ module Datadog
           def self.prepend_comment(sql, span_op, trace_op, mode)
             return sql unless mode.enabled?
 
+            # ensures the _dd.propagated_hash span tag is set
+            annotate!(span_op, mode)
+
             config = Datadog.configuration
 
             parent_service = config.service
