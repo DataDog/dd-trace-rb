@@ -5,13 +5,9 @@ module Datadog
     module Contrib
       # Base provides features that are shared across all integrations
       module Integration
-        @registry = {}
-
         RegisteredIntegration = Struct.new(:name, :klass, :options)
 
-        def self.included(base)
-          base.extend(ClassMethods)
-        end
+        @registry = {}
 
         # Class-level methods for Integration
         module ClassMethods
@@ -24,8 +20,12 @@ module Datadog
           end
         end
 
+        def self.included(base)
+          base.extend(ClassMethods)
+        end
+
         def self.register(integration, name, options)
-          registry[name] = RegisteredIntegration.new(name, integration, options)
+          @registry[name] = RegisteredIntegration.new(name, integration, options)
         end
 
         def self.registry

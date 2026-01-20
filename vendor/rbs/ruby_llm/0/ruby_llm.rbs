@@ -1,0 +1,25 @@
+module RubyLLM
+  class Chat
+    def messages: () -> ::Array[::RubyLLM::Message]
+  end
+
+  class Message
+    def role: () -> ::String
+
+    def content: () -> ::String
+
+    def tool_calls: () -> ::Hash[::String, ::RubyLLM::ToolCall]
+
+    def tool_call_id: () -> ::String
+
+    def tool_call?: () -> bool
+
+    def tool_result?: () -> bool
+  end
+
+  class ToolCall
+    def name: () -> ::String
+
+    def arguments: () -> ::Hash[::String | ::Symbol, untyped]
+  end
+end

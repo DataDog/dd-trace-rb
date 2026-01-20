@@ -31,14 +31,13 @@ module Datadog
               end
 
               define_method(:instrument) do |integration_name|
-                if enabled
-                  registered_integration = Datadog::AIGuard::Contrib::Integration.registry[integration_name]
-                  if registered_integration
-                    klass = registered_integration.klass
-                    if klass.loaded? && klass.compatible?
-                      instance = klass.new
-                      instance.patcher.patch unless instance.patcher.patched?
-                    end
+                return unless enabled # steep:ignore
+
+                if (registered_integration = Datadog::AIGuard::Contrib::Integration.registry[integration_name])
+                  klass = registered_integration.klass
+                  if klass.loaded? && klass.compatible?
+                    instance = klass.new
+                    instance.patcher.patch unless instance.patcher.patched?
                   end
                 end
               end

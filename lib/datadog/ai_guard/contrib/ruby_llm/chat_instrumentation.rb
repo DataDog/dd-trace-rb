@@ -20,10 +20,6 @@ module Datadog
                 end
               end
 
-              puts '=' * 80
-              puts ai_guard_messages.map(&:inspect)
-              puts '=' * 80
-
               evaluation_result = AIGuard.evaluate(*ai_guard_messages, allow_raise: true)
             end
           end

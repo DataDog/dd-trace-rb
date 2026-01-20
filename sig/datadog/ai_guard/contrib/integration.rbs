@@ -1,0 +1,52 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module Integration
+        type integration_registry = ::Hash[::Symbol, RegisteredIntegration]
+        type integration_options = ::Hash[untyped, untyped]
+
+        interface _Patcher
+          def patched?: () -> bool
+
+          def patch: () -> void
+        end
+
+        interface _IntegrationInstance
+          def patcher: () -> _Patcher
+        end
+
+        interface _IntegrationKlass
+          def new: () -> _IntegrationInstance
+
+          def loaded?: () -> bool
+
+          def compatible?: () -> bool
+        end
+
+        class RegisteredIntegration < ::Struct[[::Symbol, _IntegrationKlass, integration_options]]
+          def self.new: (::Symbol name, _IntegrationKlass klass, integration_options options) -> instance
+
+          attr_accessor name: ::Symbol
+
+          attr_accessor klass: _IntegrationKlass
+
+          attr_accessor options: integration_options
+        end
+
+        module ClassMethods
+          def register_as: (::Symbol name, ?integration_options options) -> void
+
+          def compatible?: () -> bool
+        end
+
+        self.@registry: integration_registry
+
+        def self.included: (::Module base) -> void
+
+        def self.register: (untyped integration, ::Symbol name, integration_options options) -> RegisteredIntegration
+
+        def self.registry: () -> integration_registry
+      end
+    end
+  end
+end
