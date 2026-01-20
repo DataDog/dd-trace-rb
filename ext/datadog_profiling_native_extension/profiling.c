@@ -131,7 +131,7 @@ static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   if (args->test_message_arg != NULL) {
     private_grab_gvl_and_raise(args->exception_class, 0, args->test_message, args->test_message_arg);
   } else {
-    private_grab_gvl_and_raise(args->exception_class, 0, args->test_message);
+    private_grab_gvl_and_raise(args->exception_class, 0, args->test_message, NULL);
   }
 
   return NULL;
@@ -167,7 +167,7 @@ static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
   if (args->test_message_arg != NULL) {
     private_grab_gvl_and_raise(Qnil, args->syserr_errno, args->test_message, args->test_message_arg);
   } else {
-    private_grab_gvl_and_raise(Qnil, args->syserr_errno, args->test_message);
+    private_grab_gvl_and_raise(Qnil, args->syserr_errno, args->test_message, NULL);
   }
 
   return NULL;
