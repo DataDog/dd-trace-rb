@@ -9,7 +9,7 @@ module Datadog
           module_function
 
           def patched?
-            Patcher.instance_variable_get(:@patched)
+            !!Patcher.instance_variable_get(:@patched)
           end
 
           def target_version

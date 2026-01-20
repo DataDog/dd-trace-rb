@@ -11,7 +11,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       before do
         skip_if_profiling_not_supported(self)
         if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV["LIBDATADOG_VENDOR_OVERRIDE"].nil?
-          raise "You have a libdatadog setup without macOS support. Did you forget to set LIBDATADOG_VENDOR_OVERRIDE?"
+          skip "Needs LIBDATADOG_VENDOR_OVERRIDE pointing at a valid libdatadog build on macOS"
         end
       end
 
@@ -46,7 +46,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       before do
         skip_if_profiling_not_supported(self)
         if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV["LIBDATADOG_VENDOR_OVERRIDE"].nil?
-          raise "You have a libdatadog setup without macOS support. Did you forget to set LIBDATADOG_VENDOR_OVERRIDE?"
+          skip "Needs LIBDATADOG_VENDOR_OVERRIDE pointing at a valid libdatadog build on macOS"
         end
       end
 

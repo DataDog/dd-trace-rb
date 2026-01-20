@@ -2,16 +2,16 @@ module Datadog
   module AppSec
     module Contrib
       module RestClient
-        module RequestSSRFDetectionPatch
+        module RequestSSRFDetectionPatch : ::RestClient::Request
           type headers = ::Hash[::String, ::String]
 
-          def execute: () ?{ (*untyped) -> untyped } -> untyped
+          def execute: () ?{ (*untyped) -> untyped } -> ::RestClient::Response
 
           private
 
-          def lowercase_request_headers: () -> headers
+          def normalize_request_headers: () -> headers
 
-          def lowercase_response_headers: (untyped response) -> headers
+          def normalize_response_headers: (::RestClient::Response response) -> headers
 
           def handle: (SecurityEngine::result result, context: Context) -> void
         end

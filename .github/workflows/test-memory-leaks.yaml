@@ -15,25 +15,24 @@ jobs:
   test-memcheck:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@b90be12699fdfcbee4440c2bba85f6f460446bb0 # v1.279.0
+      - uses: ruby/setup-ruby@80740b3b13bf9857e28854481ca95a84e78a2bdf # v1.284.0
         with:
           ruby-version: 3.4.1
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
           cache-version: v2 # bump this to invalidate cache
       - run: sudo apt-get update && (sudo apt-get install -y valgrind || sleep 5 && sudo apt-get install -y valgrind) && valgrind --version
-      - run: gem update --system 3.5.23 # TODO: This is a workaround for a buggy rubygems in 3.4.0-preview2; remove once stable version 3.4 is out
       - run: bundle exec rake compile spec:profiling:memcheck
   test-asan:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@b90be12699fdfcbee4440c2bba85f6f460446bb0 # v1.279.0
+      - uses: ruby/setup-ruby@80740b3b13bf9857e28854481ca95a84e78a2bdf # v1.284.0
         with:
           ruby-version: asan-release
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically

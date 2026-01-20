@@ -723,6 +723,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#shutdown_on_exec_enabled' do
+        subject(:shutdown_on_exec_enabled) { settings.profiling.advanced.shutdown_on_exec_enabled }
+
+        it_behaves_like 'a binary setting with',
+          env_variable: 'DD_PROFILING_SHUTDOWN_ON_EXEC_ENABLED',
+          default: true
+      end
+
+      describe '#shutdown_on_exec_enabled=' do
+        it 'updates the #shutdown_on_exec_enabled setting from its default of true' do
+          expect { settings.profiling.advanced.shutdown_on_exec_enabled = false }
+            .to change { settings.profiling.advanced.shutdown_on_exec_enabled }
+            .from(true)
+            .to(false)
+        end
+      end
+
       describe '#preview_gvl_enabled=' do
         it 'logs a warning informing customers this no longer does anything' do
           expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)

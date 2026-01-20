@@ -33,7 +33,6 @@ target :datadog do
     hash[Ruby::UnexpectedSuper] = :information
   end
 
-  ignore 'lib/datadog/appsec/component.rb'
   # Excluded due to https://github.com/soutaro/steep/issues/1232
   ignore 'lib/datadog/appsec/configuration/settings.rb'
   ignore 'lib/datadog/appsec/contrib/active_record/instrumentation.rb'
@@ -49,8 +48,6 @@ target :datadog do
   ignore 'lib/datadog/appsec/contrib/devise/patches/signup_tracking_patch.rb'
   ignore 'lib/datadog/appsec/contrib/devise/patches/skip_signin_tracking_patch.rb'
   ignore 'lib/datadog/appsec/contrib/devise/tracking_middleware.rb'
-  ignore 'lib/datadog/appsec/contrib/excon/integration.rb'
-  ignore 'lib/datadog/appsec/contrib/excon/patcher.rb'
   ignore 'lib/datadog/appsec/contrib/faraday/connection_patch.rb'
   ignore 'lib/datadog/appsec/contrib/faraday/integration.rb'
   ignore 'lib/datadog/appsec/contrib/faraday/patcher.rb'
@@ -61,7 +58,6 @@ target :datadog do
   ignore 'lib/datadog/appsec/contrib/graphql/gateway/watcher.rb'
   ignore 'lib/datadog/appsec/contrib/graphql/integration.rb'
   ignore 'lib/datadog/appsec/contrib/graphql/patcher.rb'
-  ignore 'lib/datadog/appsec/contrib/integration.rb'
   ignore 'lib/datadog/appsec/contrib/rack/ext.rb'
   ignore 'lib/datadog/appsec/contrib/rack/gateway/request.rb'
   ignore 'lib/datadog/appsec/contrib/rack/gateway/response.rb'
@@ -80,9 +76,6 @@ target :datadog do
   ignore 'lib/datadog/appsec/contrib/rails/patches/render_to_body_patch.rb'
   ignore 'lib/datadog/appsec/contrib/rails/request.rb'
   ignore 'lib/datadog/appsec/contrib/rails/request_middleware.rb'
-  ignore 'lib/datadog/appsec/contrib/rest_client/integration.rb'
-  ignore 'lib/datadog/appsec/contrib/rest_client/patcher.rb'
-  ignore 'lib/datadog/appsec/contrib/rest_client/request_ssrf_detection_patch.rb'
   ignore 'lib/datadog/appsec/contrib/sinatra/framework.rb'
   ignore 'lib/datadog/appsec/contrib/sinatra/gateway/request.rb'
   ignore 'lib/datadog/appsec/contrib/sinatra/gateway/route_params.rb'

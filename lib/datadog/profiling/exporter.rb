@@ -70,6 +70,9 @@ module Datadog
 
         uncompressed_code_provenance = code_provenance_collector.refresh.generate_json if code_provenance_collector
 
+        process_tags = Datadog.configuration.experimental_propagate_process_tags_enabled ?
+          Core::Environment::Process.serialized : ''
+
         Flush.new(
           start: start,
           finish: finish,
@@ -80,6 +83,7 @@ module Datadog
             settings: Datadog.configuration,
             profile_seq: sequence_tracker.get_next,
           ).to_a,
+          process_tags: process_tags,
           internal_metadata: internal_metadata.merge(
             {
               worker_stats: worker_stats,

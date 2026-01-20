@@ -27,7 +27,8 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
-    dalli (3.2.8)
+    dalli (4.0.0)
+      logger
     datadog-ruby_core_source (3.5.1)
     date (3.4.1)
     debug (1.10.0)

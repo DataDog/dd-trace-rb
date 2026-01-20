@@ -68,7 +68,7 @@ GEM
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
-    mime-types-data (3.2025.0924)
+    mime-types-data (3.2026.0113)
     msgpack (1.8.0)
     mutex_m (0.3.0)
     netrc (0.11.0)
