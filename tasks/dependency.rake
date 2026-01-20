@@ -36,32 +36,19 @@ namespace :dependency do
     end
   end
 
-  # Replacement for `bundle exec appraisal bundle lock`
-  desc "Lock dependencies for #{AppraisalConversion.runtime_identifier}"
-  task :lock do |t, args|
-    pattern = args.extras.any? ? args.extras : AppraisalConversion.gemfile_pattern
-
-    gemfiles = Dir.glob(pattern)
-
-    gemfiles.each do |gemfile|
-      Bundler.with_unbundled_env do
-        command = +'bundle lock'
-        command << ' --add-platform x86_64-linux aarch64-linux' unless RUBY_PLATFORM == 'java'
-        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, command)
-      end
-    end
-  end
-
   # Replacement for `bundle exec appraisal install`
+  # Generates lockfiles and runs dependencies gemspecs.
+  # `bundle install` is used instead of `bundle lock` because
+  # it checks each gem's gemspec requirements (e.g. required_ruby_version, required_rubygems_version).
   desc "Install dependencies for #{AppraisalConversion.runtime_identifier}"
-  task install: :lock do |t, args|
+  task :install do |t, args|
     pattern = args.extras.any? ? args.extras : AppraisalConversion.gemfile_pattern
 
     gemfiles = Dir.glob(pattern)
 
     gemfiles.each do |gemfile|
       Bundler.with_unbundled_env do
-        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, 'bundle check || bundle install')
+        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, 'bundle install')
       end
     end
   end
