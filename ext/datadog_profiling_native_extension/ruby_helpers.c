@@ -12,8 +12,6 @@ static ID _id2ref_id = Qnil;
 static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 
-static ID telemetry_message_id = Qnil;
-
 void ruby_helpers_init(void) {
   rb_global_variable(&module_object_space);
 
@@ -21,8 +19,6 @@ void ruby_helpers_init(void) {
   _id2ref_id = rb_intern("_id2ref");
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");
-
-  telemetry_message_id = rb_intern("@telemetry_message");
 }
 
 // Internal helper for raising pre-formatted syserr exceptions
