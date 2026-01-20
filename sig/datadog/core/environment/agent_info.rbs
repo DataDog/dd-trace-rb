@@ -3,7 +3,7 @@ module Datadog
     module Environment
       class AgentInfo
         attr_reader agent_settings: Configuration::AgentSettings
-        attr_reader container_tags_hash: ::String?
+        attr_reader container_tags_checksum: ::String?
         attr_reader logger: Core::Logger
 
         @client: Datadog::Core::Remote::Transport::Negotiation::Transport
@@ -17,7 +17,7 @@ module Datadog
 
         private
 
-        def update_container_tags_hash: (Remote::Transport::HTTP::Negotiation::Response res) -> void
+        def update_container_tags: (Remote::Transport::HTTP::Negotiation::Response res) -> void
       end
     end
   end

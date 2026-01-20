@@ -55,8 +55,8 @@ module Datadog
       # @see https://github.com/DataDog/datadog-agent/blob/f07df0a3c1fca0c83b5a15f553bd994091b0c8ac/pkg/trace/api/info.go#L20
       class AgentInfo
         attr_reader :agent_settings, :logger
-        # Container tags hash originally set to nil, but gets populated from #fetch when available
-        attr_reader :container_tags_hash
+        # Container tags originally set to nil, but gets populated from #fetch when available
+        attr_reader :container_tags_checksum
 
         def initialize(agent_settings, logger: Datadog.logger)
           @agent_settings = agent_settings
@@ -65,14 +65,14 @@ module Datadog
         end
 
         # Fetches the information from the agent.
-        # Extracts container tags hash from response headers
+        # Extracts container tags from response headers
         # @return [Datadog::Core::Remote::Transport::HTTP::Negotiation::Response] the response from the agent
         # @return [nil] if an error occurred while fetching the information
         def fetch
           res = @client.send_info
           return unless res.ok?
 
-          update_container_tags_hash(res)
+          update_container_tags(res)
 
           res
         end
@@ -85,18 +85,18 @@ module Datadog
         # @return [Integer, nil] the FNV hash based on the container and process tags or nil
         def propagation_hash
           return @propagation_hash if @propagation_hash
-          fetch if @container_tags_hash.nil?
-          container_tags_hash = @container_tags_hash
-          return nil unless container_tags_hash
+          fetch if @container_tags_checksum.nil?
+          container_tags_checksum = @container_tags_checksum
+          return nil unless container_tags_checksum
 
           process_tags = Process.serialized
-          data = process_tags + container_tags_hash
+          data = process_tags + container_tags_checksum
           @propagation_hash = Core::Utils::FNV.fnv1_64(data)
         end
 
         private
 
-        def update_container_tags_hash(res)
+        def update_container_tags(res)
           return unless res.respond_to?(:headers)
 
           header_value = res.headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_TAGS_HASH]
@@ -104,8 +104,8 @@ module Datadog
 
           # if there are new container tags from the agent,
           # set the hash to nil so it gets recomputed the next time the hash string is created
-          if new_container_tags_value && new_container_tags_value != @container_tags_hash
-            @container_tags_hash = new_container_tags_value
+          if new_container_tags_value && new_container_tags_value != @container_tags_checksum
+            @container_tags_checksum = new_container_tags_value
             @propagation_hash = nil
           end
         end
