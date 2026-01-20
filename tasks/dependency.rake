@@ -52,4 +52,44 @@ namespace :dependency do
       end
     end
   end
+
+  desc "Show gems not needed by any Gemfile for this Ruby version (dry-run)"
+  task :clean_unused_gems do
+    require 'set'
+    require 'open3'
+
+    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern)
+      .reject { |f| f.end_with?('.lock') }
+
+    puts "Checking #{gemfiles.size} gemfiles for stale gems..."
+
+    threads = gemfiles.filter_map do |gf|
+      next unless File.exist?("#{gf}.lock")
+
+      Thread.new(gf) do |gemfile|
+        output, _ = Open3.capture2(
+          { 'BUNDLE_GEMFILE' => gemfile },
+          'bundle', 'clean', '--dry-run'
+        )
+
+        stale = output.lines
+          .grep(/^Would have removed/)
+          .map { |line| line.sub('Would have removed ', '').strip }
+
+        Set.new(stale)
+      end
+    end
+
+    stale_per_gemfile = threads.map(&:value)
+    truly_stale = stale_per_gemfile.reduce(:&) || Set.new
+
+    puts "\nGems not needed by ANY gemfile (#{truly_stale.size}):"
+    truly_stale.sort.each { |g| puts "  #{g}" }
+
+    if truly_stale.any?
+      puts "\nTo remove, run: bundle clean (per gemfile) or delete manually"
+    else
+      puts "\nNo stale gems found - cache is optimal."
+    end
+  end
 end
