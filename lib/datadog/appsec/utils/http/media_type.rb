@@ -16,7 +16,7 @@ module Datadog
           TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/.freeze
 
           # See: https://www.rfc-editor.org/rfc/rfc7231#section-3.1.1.1
-          PARAMETER_RE = %r{ # rubocop:disable Style/RegexpLiteral
+          PARAMETER_RE = %r{
             (?:
               (?<parameter_name>#{TOKEN_RE})
               =
