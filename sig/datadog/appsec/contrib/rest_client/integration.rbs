@@ -4,10 +4,11 @@ module Datadog
       module RestClient
         class Integration
           include Datadog::AppSec::Contrib::Integration
+          extend Datadog::AppSec::Contrib::Integration::ClassMethods
 
           MINIMUM_VERSION: ::Gem::Version
 
-          def self.gem_name: () -> String
+          def self.gem_name: () -> ::String
 
           def self.version: () -> ::Gem::Version?
 
@@ -17,7 +18,7 @@ module Datadog
 
           def self.auto_instrument?: () -> bool
 
-          def patcher: () -> Datadog::AppSec::Contrib::RestClient::Patcher
+          def patcher: () -> singleton(Patcher)
         end
       end
     end
