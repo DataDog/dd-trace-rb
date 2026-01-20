@@ -54,28 +54,21 @@ module Datadog
             @parameters = {}
 
             parameters = media_type_match['parameters']
-
             return if parameters.nil?
 
-            parameters.split(';').map(&:strip).each do |parameter|
-              parameter_match = PARAMETER_RE.match(parameter)
+            parameters.scan(PARAMETER_RE) do |name, unquoted_value, quoted_value|
+              # NOTE: Order of unquoted_value and quoted_value does not matter,
+              #       as they are mutually exclusive by the regex.
+              value = unquoted_value || quoted_value
+              next if name.nil? || value.nil?
 
-              next if parameter_match.nil?
-
-              parameter_name = parameter_match['parameter_name']
-              parameter_value = parameter_match['parameter_value']
-
-              next if parameter_name.nil? || parameter_value.nil?
-
-              @parameters[parameter_name.downcase] = parameter_value.downcase
+              @parameters[name.downcase] = value.downcase
             end
           end
 
           def to_s
             s = +"#{@type}/#{@subtype}"
-
             s << ';' << @parameters.map { |k, v| "#{k}=#{v}" }.join(';') if @parameters.count > 0
-
             s
           end
         end
