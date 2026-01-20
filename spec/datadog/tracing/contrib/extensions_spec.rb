@@ -13,6 +13,10 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
         Class.new do
           include Datadog::Tracing::Contrib::Integration
           include Datadog::Tracing::Contrib::Configurable
+
+          def inspect
+            'TestIntegrationClass'
+          end
         end
       )
     end
