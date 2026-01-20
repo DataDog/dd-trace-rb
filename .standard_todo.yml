@@ -20,6 +20,8 @@ ignore:
   # This disables standardrb for third-party and generated code.
   - appraisal/**/**
   - gemfiles/**/**
-  - integration/**/**
+  - "integration/apps/*/bin/*"
+  - "integration/apps/*/Gemfile"
+  - "integration/apps/*/Rakefile"
   - lib/datadog/**/vendor/**/*
   - lib/datadog/profiling/ext/exec_monkey_patch.rb # This is Ruby 2.7+ and standard doesn't like it
