@@ -75,7 +75,8 @@ module Datadog
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
-            next unless AppSec.security_engine
+            engine = AppSec.security_engine
+            next unless engine
 
             changes.each do |change|
               content = repository[change.path]
@@ -83,11 +84,11 @@ module Datadog
 
               case change.type
               when :insert, :update
-                AppSec.security_engine.add_or_update_config(parse_content(content), path: change.path.to_s) # steep:ignore
-
-                content.applied # steep:ignore
+                # @type var content: Core::Remote::Configuration::Content
+                engine.add_or_update_config(parse_content(content), path: change.path.to_s)
+                content.applied
               when :delete
-                AppSec.security_engine.remove_config_at_path(change.path.to_s) # steep:ignore
+                engine.remove_config_at_path(change.path.to_s)
               end
             end
 

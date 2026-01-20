@@ -4,12 +4,6 @@ require "steep"
 require "parser/ruby25"
 require "json"
 
-METHOD_AND_PARAM_NAME = /(?:\w*|`[^`]+`)/
-PARAMETER = /(?:\*{1,2})?\s*(?:\??\s*untyped\s*\??\s*|\??#{METHOD_AND_PARAM_NAME}:\s*untyped\s*\??)\s*#{METHOD_AND_PARAM_NAME}/
-PARAMETERS = /\(\s*(?:\?|(?:(?:#{PARAMETER})\s*(?:,\s*(?:#{PARAMETER})\s*)*)?)\s*\)/
-PROTOTYPE_INITIALIZE = /\s*(?:public|private)?\s*def\s+initialize:\s*#{PARAMETERS}(?:\s*\??\{\s*#{PARAMETERS}\s*->\s*untyped\s*\})?\s*->\s*void/
-PROTOTYPE_METHOD = /\s*(?:public|private)?\s*def\s+(?:self\??\.)?(?:[^\s]+):\s*#{PARAMETERS}(?:\s*\??\{\s*#{PARAMETERS}\s*->\s*untyped\s*\})?\s*->\s*untyped/
-
 steepfile_path = Pathname(ENV["STEEPFILE_PATH"])
 project = Steep::Project.new(steepfile_path: steepfile_path).tap do |project|
   Steep::Project::DSL.parse(project, steepfile_path.read, filename: steepfile_path.to_s)
@@ -61,6 +55,113 @@ ignore_comments = loader.each_path_in_patterns(datadog_target.source_pattern).ea
   end
 end
 
+def ast_traversal(declarations, result = {})
+  result[:methods] ||= []
+  result[:others] ||= []
+  declarations.each do |declaration|
+    case declaration
+    when ::RBS::AST::Declarations::Module,
+         ::RBS::AST::Declarations::Class,
+         ::RBS::AST::Declarations::Interface
+      ast_traversal(declaration.members, result)
+    when ::RBS::AST::Declarations::TypeAlias,
+      ::RBS::AST::Declarations::Constant,
+      ::RBS::AST::Declarations::Global,
+      ::RBS::AST::Members::Var,
+      ::RBS::AST::Members::Attribute
+      result[:others] << declaration
+    # Only this one does not have a type field
+    when ::RBS::AST::Members::MethodDefinition
+      result[:methods] << declaration
+    end
+  end
+  result
+end
+
+def combine_two_type_results(r1, r2)
+  return r2 if r1.nil?
+  return r1 if r2.nil?
+  return :typed if r1 == :typed && r2 == :typed
+  return :untyped if r1 == :untyped && r2 == :untyped
+  :partial
+end
+
+def combine_multiple_type_results(*results)
+  results.inject(nil) do |acc, result|
+    result = combine_two_type_results(acc, result)
+    return :partial if result == :partial
+    result
+  end
+end
+
+def compute_multiple_types(types, initialize: false)
+  types.inject(nil) do |acc, type|
+    result = combine_two_type_results(acc, is_typed?(type, initialize: initialize))
+    return :partial if result == :partial
+    result
+  end
+end
+
+# Returns :typed, :untyped, :partial or nil (neutral state)
+def is_typed?(type, initialize: false)
+  return nil if type.nil?
+
+  case type
+  when ::RBS::Types::Bases::Any
+    return :untyped
+  # If function is initialize, void return type should not impact the typing.
+  when ::RBS::Types::Bases::Void
+    return initialize ? nil : :typed
+  when ::RBS::Types::Bases::Base,
+       ::RBS::Types::Literal,
+       ::RBS::Types::Variable,
+       ::RBS::Types::Alias,
+       ::RBS::Types::ClassSingleton
+    return :typed
+  when ::RBS::Types::Record
+    return compute_multiple_types(type.all_fields.values.map(&:first))
+  when ::RBS::Types::Optional,
+       ::RBS::Types::Function::Param
+    return is_typed?(type.type)
+  when ::RBS::Types::Proc,
+       ::RBS::Types::Block
+    result = combine_two_type_results(is_typed?(type.self_type), is_typed?(type.type))
+    if type.is_a?(::RBS::Types::Proc)
+      result = combine_two_type_results(result, is_typed?(type.block))
+    end
+    return result
+  when ::RBS::Types::UntypedFunction
+    return is_typed?(type.return_type)
+  when ::RBS::Types::Function
+    # each param array is an array of Param, except for rest_positionals and rest_keywords
+    return combine_multiple_type_results(
+      compute_multiple_types(type.required_positionals),
+      compute_multiple_types(type.optional_positionals),
+      is_typed?(type.rest_positionals),
+      compute_multiple_types(type.trailing_positionals),
+      compute_multiple_types(type.required_keywords.values),
+      compute_multiple_types(type.optional_keywords.values),
+      is_typed?(type.rest_keywords),
+      # We set initialize to true in the caller method if the method is initialize
+      is_typed?(type.return_type, initialize: initialize)
+    )
+  when ::RBS::Types::Intersection,
+       ::RBS::Types::Union,
+       ::RBS::Types::Tuple
+    return compute_multiple_types(type.types)
+  # A class instance or an interface is already a type. However the args can be untyped.
+  # E.g. Array[untyped]. This should be considered partially typed.
+  when ::RBS::Types::ClassInstance,
+       ::RBS::Types::Interface
+    args_result = compute_multiple_types(type.args)
+    return :partial if args_result == :partial || args_result == :untyped
+    :typed
+  # Used as the starting point:
+  when ::RBS::MethodType
+    return combine_two_type_results(is_typed?(type.type, initialize: initialize), is_typed?(type.block))
+  end
+end
+
 # sig files stats
 untyped_methods = []
 partially_typed_methods = []
@@ -69,50 +170,48 @@ typed_methods_size = 0
 untyped_others = []
 partially_typed_others = []
 typed_others_size = 0
+
 signature_paths.each do |sig_path|
   sig_file_content = sig_path.read
-  # for each line in the file, check if it matches the regex
-  sig_file_content.each_line.with_index(1) do |line, index|
-    next if line.strip.empty? || line.strip.start_with?("#") || line.strip.end_with?("# untyped:accept")
+  buffer = ::RBS::Buffer.new(name: sig_path, content: sig_file_content)
+  _, _directives, declarations = ::RBS::Parser.parse_signature(buffer)
+  filtered_declarations = ast_traversal(declarations)
 
-    case line
-    # Methods
-    when PROTOTYPE_INITIALIZE
-      untyped_methods << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when PROTOTYPE_METHOD
-      untyped_methods << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /^\s*(?:public|private)?\s*def\s.*untyped/ # Any line containing untyped
-      partially_typed_methods << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /^\s*(?:public|private)?\s*def\s.*/ # Any line containing a method definition not matched by the other regexes
+  filtered_declarations[:methods].each do |method|
+    # Skip definitions with last comment line being `untyped:accept`
+    if method.comment&.string&.end_with?("untyped:accept\n")
       typed_methods_size += 1
-    # Attributes
-    when /^\s*(?:public|private)?\s*attr_(?:reader|writer|accessor)\s.*:\s*untyped/
-      untyped_others << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /^\s*(?:public|private)?\s*attr_(?:reader|writer|accessor)\s.*untyped/
-      partially_typed_others << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /^\s*(?:public|private)?\s*attr_(?:reader|writer|accessor)\s.*/
+      next
+    end
+    # Overloading can be done inline so we cannot point to the specific overloaded method definition.
+    # That's why we combine the status of all overloads to get the overall status of the method.
+    # method.overload is an array of MethodDefinition::Overload
+    initialize = method.kind == :instance && method.name == :initialize
+    result = compute_multiple_types(method.overloads.map { |overload| overload.method_type }, initialize: initialize)
+    case result
+    when :typed
+      typed_methods_size += 1
+    when :untyped
+      untyped_methods << {path: sig_path.to_s, line: method.location.start_line, line_content: method.location.source}
+    when :partial
+      partially_typed_methods << {path: sig_path.to_s, line: method.location.start_line, line_content: method.location.source}
+    end
+  end
+
+  filtered_declarations[:others].each do |declaration|
+    # Skip definitions with last comment line being `untyped:accept`
+    if declaration.comment&.string&.end_with?("untyped:accept\n")
       typed_others_size += 1
-    # Constants
-    when /[A-Z]\w*\s*:\s*untyped/ # We don't match beginning of string as constant can have a namespace prefix
-      untyped_others << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /[A-Z]\w*\s*:[^:].*untyped/
-      partially_typed_others << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /[A-Z]\w*\s*:[^:]/
+      next
+    end
+    result = is_typed?(declaration.type)
+    case result
+    when :typed, nil
       typed_others_size += 1
-    # Globals
-    when /^\s*\$[a-zA-Z]\w+\s*:\s*untyped/
-      untyped_others << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /^\s*\$[a-zA-Z]\w+\s*:.*untyped/
-      partially_typed_others << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /^\s*\$[a-zA-Z]\w+\s*:/
-      typed_others_size += 1
-    # Class and instance variables
-    when /^\s*@?@\w+\s*:\s*untyped/
-      untyped_others << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /^\s*@?@\w+\s*:.*untyped/
-      partially_typed_others << {path: sig_path.to_s, line: index, line_content: line.strip}
-    when /^\s*@?@\w+\s*:/
-      typed_others_size += 1
+    when :untyped
+      untyped_others << {path: sig_path.to_s, line: declaration.location.start_line, line_content: declaration.location.source}
+    when :partial
+      partially_typed_others << {path: sig_path.to_s, line: declaration.location.start_line, line_content: declaration.location.source}
     end
   end
 end

@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.24.0)
+    datadog (2.27.0)
       cgi
-      datadog-ruby_core_source (~> 3.4, >= 3.4.2)
-      libdatadog (~> 24.0.1.1.0)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.1)
+      libdatadog (~> 25.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -25,7 +25,7 @@ GEM
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    datadog-ruby_core_source (3.4.3)
+    datadog-ruby_core_source (3.5.1)
     diff-lcs (1.5.0)
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
@@ -54,7 +54,7 @@ GEM
     faraday-em_synchrony (1.0.1)
     faraday-excon (1.1.0)
     faraday-httpclient (1.0.1)
-    faraday-multipart (1.1.1)
+    faraday-multipart (1.2.0)
       multipart-post (~> 2.0)
     faraday-net_http (1.0.2)
     faraday-net_http_persistent (1.2.0)
@@ -67,8 +67,8 @@ GEM
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (24.0.1.1.0-aarch64-linux)
-    libdatadog (24.0.1.1.0-x86_64-linux)
+    libdatadog (25.0.0.1.0-aarch64-linux)
+    libdatadog (25.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)

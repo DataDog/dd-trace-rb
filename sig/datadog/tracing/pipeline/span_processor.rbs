@@ -2,6 +2,8 @@ module Datadog
   module Tracing
     module Pipeline
       class SpanProcessor
+        @operation: ^(Span span) -> any
+
         def initialize: (?untyped? operation) ?{ () -> untyped } -> void
         def call: (untyped trace) -> untyped
       end

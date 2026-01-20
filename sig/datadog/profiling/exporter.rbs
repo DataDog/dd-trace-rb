@@ -3,6 +3,8 @@ module Datadog
     class Exporter
       PROFILE_DURATION_THRESHOLD_SECONDS: 1
 
+      @worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
+
       private
 
       attr_reader pprof_recorder: Datadog::Profiling::StackRecorder

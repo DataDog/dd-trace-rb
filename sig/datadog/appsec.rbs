@@ -2,11 +2,13 @@ module Datadog
   module AppSec
     def self.enabled?: () -> bool
 
+    def self.rasp_enabled?: () -> bool
+
     def self.active_context: () -> Context?
 
     def self.telemetry: () -> Core::Telemetry::Component
 
-    def self.security_engine: () -> SecurityEngine::Engine
+    def self.security_engine: () -> SecurityEngine::Engine?
 
     def self.reconfigure!: () -> void
 

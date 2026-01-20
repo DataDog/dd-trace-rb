@@ -34,6 +34,18 @@ RSpec.describe Datadog::AppSec::APISecurity::EndpointCollection::RailsRouteSeria
         expect(result.fetch(:method)).to eq('*')
       end
     end
+
+    it 'uses specified method in method_override argument' do
+      result = described_class.serialize(
+        build_route_double(method: 'GET|POST', path: '/search'),
+        method_override: 'GET'
+      )
+
+      aggregate_failures 'path attributes' do
+        expect(result.fetch(:resource_name)).to eq('GET /search')
+        expect(result.fetch(:method)).to eq('GET')
+      end
+    end
   end
 
   def build_route_double(path:, method:)

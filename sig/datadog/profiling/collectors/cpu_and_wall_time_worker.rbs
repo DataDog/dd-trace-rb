@@ -6,6 +6,8 @@ module Datadog
         @start_stop_mutex: ::Thread::Mutex
         @failure_exception: ::Exception?
         @idle_sampling_helper: IdleSamplingHelper
+        @wait_until_running_mutex: ::Thread::Mutex
+        @wait_until_running_condition: ::Thread::ConditionVariable
 
         def initialize: (
           gc_profiling_enabled: bool,
@@ -49,6 +51,7 @@ module Datadog
         def self._native_stats: (CpuAndWallTimeWorker self_instance) -> ::Hash[::Symbol, untyped]
         def self._native_stats_reset_not_thread_safe: (CpuAndWallTimeWorker self_instance) -> void
         def self._native_is_running?: (CpuAndWallTimeWorker self_instance) -> bool
+        def self._native_failure_exception_during_operation: (CpuAndWallTimeWorker self_instance) -> ::String?
         def self._native_allocation_count: () -> ::Integer?
         def self._native_sampling_loop: (CpuAndWallTimeWorker self_instance) -> void
         def self._native_hold_signals: () -> void
@@ -58,7 +61,7 @@ module Datadog
 
         private
 
-        def signal_running: () -> true
+        def signal_running: () -> void
       end
     end
   end

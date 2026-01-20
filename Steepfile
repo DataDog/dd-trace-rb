@@ -19,11 +19,6 @@ target :datadog do
     # * `:information`, `:hint`: To see these, run `rake 'typecheck[--severity-level=information]'`
     #   or `rake 'typecheck[--severity-level=hint]'`
 
-    # These checks are a bit harder, because they represent the lack of sufficient type information.
-    hash[Ruby::FallbackAny] = :information
-    hash[Ruby::UnknownInstanceVariable] = :information
-    hash[Ruby::UnknownRecordKey] = :information
-
     # This check asks you to type every empty collection used in
     # local variables with an inline type annotation (e.g. `ret = {} #: Hash[Symbol,untyped]`).
     # This pollutes the code base, and demands seemingly unnecessary typing of internal variables.
@@ -38,7 +33,6 @@ target :datadog do
     hash[Ruby::UnexpectedSuper] = :information
   end
 
-  ignore 'lib/datadog/appsec.rb'
   ignore 'lib/datadog/appsec/component.rb'
   # Excluded due to https://github.com/soutaro/steep/issues/1232
   ignore 'lib/datadog/appsec/configuration/settings.rb'
@@ -55,9 +49,6 @@ target :datadog do
   ignore 'lib/datadog/appsec/contrib/devise/patches/signup_tracking_patch.rb'
   ignore 'lib/datadog/appsec/contrib/devise/patches/skip_signin_tracking_patch.rb'
   ignore 'lib/datadog/appsec/contrib/devise/tracking_middleware.rb'
-  ignore 'lib/datadog/appsec/contrib/excon/integration.rb'
-  ignore 'lib/datadog/appsec/contrib/excon/patcher.rb'
-  ignore 'lib/datadog/appsec/contrib/excon/ssrf_detection_middleware.rb'
   ignore 'lib/datadog/appsec/contrib/faraday/connection_patch.rb'
   ignore 'lib/datadog/appsec/contrib/faraday/integration.rb'
   ignore 'lib/datadog/appsec/contrib/faraday/patcher.rb'
@@ -68,7 +59,6 @@ target :datadog do
   ignore 'lib/datadog/appsec/contrib/graphql/gateway/watcher.rb'
   ignore 'lib/datadog/appsec/contrib/graphql/integration.rb'
   ignore 'lib/datadog/appsec/contrib/graphql/patcher.rb'
-  ignore 'lib/datadog/appsec/contrib/integration.rb'
   ignore 'lib/datadog/appsec/contrib/rack/ext.rb'
   ignore 'lib/datadog/appsec/contrib/rack/gateway/request.rb'
   ignore 'lib/datadog/appsec/contrib/rack/gateway/response.rb'
@@ -604,6 +594,7 @@ target :datadog do
   library 'time'
   library 'pp'
   library 'forwardable'
+  library 'json'
 
   # Load all dependency signatures from the `vendor/rbs` directory
   repo_path 'vendor/rbs'
