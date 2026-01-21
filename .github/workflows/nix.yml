@@ -39,7 +39,7 @@ jobs:
     env:
       SKIP_SIMPLECOV: 1
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
-      DD_REMOTE_CONFIGURATION_ENABLED: true
+      DD_REMOTE_CONFIGURATION_ENABLED: false
 
     steps:
       - name: Check CPU arch
