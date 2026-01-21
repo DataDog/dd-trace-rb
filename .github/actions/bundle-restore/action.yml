@@ -21,6 +21,8 @@ runs:
     - name: Generate cache key
       id: cache-key
       uses: ./.github/actions/bundle-cache-key
+      with:
+        namespace: ${{ inputs.namespace }}
     - name: Restore cache
       uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       id: restore-cache

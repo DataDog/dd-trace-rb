@@ -13,10 +13,10 @@ inputs:
 outputs:
   cache-key:
     description: 'Cache key for the bundle'
-    value: ${{ steps.cache-key.outputs.cache-primary-key }}
-  artifact-name:
+    value: ${{ steps.restore-full-cache.outputs.cache-primary-key }}
+  lockfile:
     description: 'Name of the uploaded lockfile artifact'
-    value: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+    value: lockfile-${{ steps.restore-full-cache.outputs.cache-primary-key }}
 
 runs:
   using: composite
@@ -35,14 +35,14 @@ runs:
       shell: bash
       run: bundle install
     - name: Restore full cache
-      id: restore-cache
+      id: restore-full-cache
       uses: ./.github/actions/bundle-restore
       with:
         namespace: full
     - name: Upload lockfile
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
-        name: lockfile-${{ steps.restore-cache.outputs.cache-primary-key }}
+        name: lockfile-${{ steps.restore-full-cache.outputs.cache-primary-key }}
         path: "*.lock"
     - if: steps.restore-full-cache.outputs.cache-hit != 'true'
       name: Generate gemfiles
@@ -53,16 +53,10 @@ runs:
       shell: bash
       run: bundle exec rake dependency:install
     - if: steps.restore-full-cache.outputs.cache-hit != 'true'
-      name: Generate cache key
-      id: cache-key
-      uses: ./.github/actions/bundle-cache-key
-      with:
-        namespace: full
-    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
       name: Save cache
       uses: ./.github/actions/bundle-save
       with:
-        cache-key: ${{ steps.cache-key.outputs.cache-primary-key }}
+        cache-key: ${{ steps.restore-full-cache.outputs.cache-primary-key }}
     - if: steps.restore-full-cache.outputs.cache-hit != 'true'
       name: Upload full lockfiles
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
