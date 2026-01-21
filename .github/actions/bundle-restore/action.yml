@@ -7,7 +7,10 @@ outputs:
     description: 'Was the cache present?'
     value: ${{ steps.restore-cache.outputs.cache-hit }}
   cache-primary-key:
-    description: 'Cache key for the bundle (use with bundle-save)'
+    description: 'Cache key for the exact bundle'
+    value: ${{ steps.cache-key.outputs.cache-primary-key }}
+  cache-secondary-key:
+    description: 'Cache key for this version of Ruby+Bundler'
     value: ${{ steps.cache-key.outputs.cache-primary-key }}
 
 runs:
