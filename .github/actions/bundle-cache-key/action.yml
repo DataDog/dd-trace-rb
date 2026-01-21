@@ -4,8 +4,11 @@ description: 'Create a gem cache key for all lockfiles for the current version o
 
 outputs:
   cache-primary-key:
-    description: 'Primary cache key for the bundle'
+    description: 'Cache key for the exact bundle'
     value: ${{ steps.generate.outputs.cache-primary-key }}
+  cache-secondary-key:
+    description: 'Cache key for this version of Ruby+Bundler'
+    value: ${{ steps.cache-key.outputs.cache-secondary-key }}
 
 runs:
   using: composite
@@ -24,3 +27,4 @@ runs:
           'tasks/appraisal_conversion.rb'
         ) }}"
         echo "cache-primary-key=bundle-${ruby_env}-${hash}" >> "$GITHUB_OUTPUT"
+        echo "cache-secondary-key=bundle-${ruby_env}-" >> "$GITHUB_OUTPUT"

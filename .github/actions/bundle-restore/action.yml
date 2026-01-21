@@ -9,9 +9,6 @@ outputs:
   cache-primary-key:
     description: 'Cache key for the exact bundle'
     value: ${{ steps.cache-key.outputs.cache-primary-key }}
-  cache-secondary-key:
-    description: 'Cache key for this version of Ruby+Bundler'
-    value: ${{ steps.cache-key.outputs.cache-primary-key }}
 
 runs:
   using: composite
@@ -23,5 +20,6 @@ runs:
       uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       id: restore-cache
       with:
-        key: ${{ steps.cache-key.outputs.cache-primary-key }}
         path: "/usr/local/bundle"
+        key: ${{ steps.cache-key.outputs.cache-primary-key }}
+        restore-keys: ${{ steps.cache-key.outputs.cache-secondary-key }}
