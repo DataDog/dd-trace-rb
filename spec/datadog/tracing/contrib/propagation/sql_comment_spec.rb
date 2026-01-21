@@ -154,9 +154,12 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               is_expected.to include("ddsh='1234567890'")
             end
 
-            it 'sets the propagated hash span tag' do
-              subject
-              expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
+            context 'when annotate! is called by db integrations' do
+              it 'sets the propagated hash span tag' do
+                described_class.annotate!(span_op, propagation_mode)
+                subject
+                expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
+              end
             end
           end
 
