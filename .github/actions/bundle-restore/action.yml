@@ -1,30 +1,35 @@
 name: 'Restore bundle cache'
 
-# TODO: Improve description
 description: 'Restores bundle cache for GitHub Actions'
 
-inputs:
-  lockfile:
-    description: 'Name of the lockfile artifact to download'
-    required: true
-  cache-key:
-    description: 'Cache key for bundle'
-    required: true
+outputs:
+  cache-hit:
+    description: 'Was the cache present?'
+    value: ${{ steps.restore-cache.outputs.cache-hit }}
+  cache-primary-key:
+    description: 'Cache key for the bundle (use with bundle-save)'
+    value: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
 runs:
   using: composite
   steps:
-  - name: Download lockfile
-    uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-    with:
-      name: ${{ inputs.lockfile }}
-
+  - name: Generate unique Ruby environment key
+    id: ruby-env-id
+    shell: bash
+    run: |
+      id="$(ruby -e 'puts RUBY_DESCRIPTION')-$(bundle --version)" # Includes patchlevel, os, and arch
+      echo "id=$id" >> "$GITHUB_OUTPUT"
   - name: Restore cache
     uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
     id: restore-cache
     with:
-      key: "${{ inputs.cache-key }}"
+      key: >-
+        bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles(
+          '.github/actions/bundle-restore/action.yml',
+          'Gemfile*.lock',
+          'gemfiles/*.gemfile.lock',
+          'tasks/github.rake',
+          'tasks/dependency.rake',
+          'tasks/appraisal_conversion.rb'
+        ) }}
       path: "/usr/local/bundle"
-
-  - run: bundle check
-    shell: bash

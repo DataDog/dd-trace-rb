@@ -1,4 +1,4 @@
-name: 'Prepare bundle cache'
+name: 'Restore, install (if needed), and save gems to the bundle cache'
 
 description: 'Sets up bundle cache for GitHub Actions'
 
@@ -17,7 +17,7 @@ runs:
       id: ruby-env-id
       shell: bash
       run: |
-        id=$(ruby -e "puts RUBY_DESCRIPTION") # Includes patchlevel, os, and arch
+        id="$(ruby -e 'puts RUBY_DESCRIPTION')-$(bundle --version)" # Includes patchlevel, os, and arch
         echo "id=$id" >> "$GITHUB_OUTPUT"
     - name: Generate lockfile
       id: lockfile
@@ -33,19 +33,22 @@ runs:
         name: ${{ steps.lockfile.outputs.lockfile }}
         path: "*.lock"
     - name: Restore cache
-      uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       id: restore-cache
-      with:
-        key: bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles('*.lock') }}
-        path: "/usr/local/bundle"
+      uses: ./.github/actions/bundle-restore
     - if: steps.restore-cache.outputs.cache-hit != 'true'
+      name: Install the base Gemfile for this Ruby version
       shell: bash
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      name: Save cache
-      uses: actions/cache/save@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
-      with:
-        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
-        path: "/usr/local/bundle"
-    - run: bundle check
+      name: Install all gemfiles/ for this Ruby version
       shell: bash
+      run: bundle exec rake dependency:install[frozen]
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      name: Check for stale gems (dry-run)
+      shell: bash
+      run: bundle exec rake dependency:clean_unused_gems
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      name: Save cache
+      uses: ./.github/actions/bundle-save
+      with:
+        cache-key: ${{ steps.restore-cache.outputs.cache-primary-key }}

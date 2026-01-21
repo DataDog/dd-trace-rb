@@ -46,4 +46,19 @@ module AppraisalConversion
   def root_path
     Pathname.pwd
   end
+
+  def with_retry(retries: 3)
+    attempts = 0
+    begin
+      yield
+    rescue => e
+      attempts += 1
+      if attempts < retries
+        warn "Attempt #{attempts} failed: #{e.class.name}: #{e.message}"
+        sleep(2**attempts)
+        retry
+      end
+      raise
+    end
+  end
 end
