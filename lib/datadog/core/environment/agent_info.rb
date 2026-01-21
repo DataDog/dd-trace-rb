@@ -85,8 +85,7 @@ module Datadog
           # Can't use defined?(@propagation_hash) here because it will return true if @propagation_hash is nil
           return @propagation_hash if @propagation_hash
           fetch if @container_tags_checksum.nil?
-          container_tags_checksum = @container_tags_checksum
-          return nil unless container_tags_checksum
+          return unless @container_tags_checksum
 
           process_tags = Process.serialized
           data = process_tags + container_tags_checksum
