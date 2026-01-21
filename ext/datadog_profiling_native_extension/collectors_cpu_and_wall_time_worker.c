@@ -87,7 +87,7 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
   static rb_postponed_job_handle_t sample_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gvl_running_from_postponed_job_handle;
-  static rb_postponed_job_handle_t finalize_heap_allocation_from_postponed_job_handle;
+  static rb_postponed_job_handle_t after_allocation_from_postponed_job_handle;
 #endif
 
 // Contains state for a single CpuAndWallTimeWorker instance
@@ -247,7 +247,7 @@ static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instan
 static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
-static void finalize_heap_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused);
+static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -295,13 +295,13 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
     after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
     after_gvl_running_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gvl_running_from_postponed_job, NULL);
-    finalize_heap_allocation_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, finalize_heap_allocation_from_postponed_job, NULL);
+    after_allocation_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_allocation_from_postponed_job, NULL);
 
     if (
       sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
-      finalize_heap_allocation_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
+      after_allocation_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
     ) {
       raise_error(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
@@ -1267,23 +1267,6 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   state->stats.allocation_sampled++;
 
   during_sample_exit(state);
-
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-  // On Ruby 4+, we need to trigger a postponed job to finalize the heap allocation recording.
-  // During on_newobj_event, we can't safely call rb_obj_id(), so we defer it until the event completes.
-  // We batch triggers to reduce overhead that can bias the allocation sampler.
-  // Triggering after every sample causes the postponed job to run during subsequent allocations,
-  // which inflates measured sampling time and causes the dynamic sampler to skip more allocations.
-  // Batch postponed job triggers to reduce overhead that can bias the allocation sampler.
-  // Also trigger when buffer is getting full to avoid dropping recordings.
-  static uint64_t samples_since_last_trigger = 0;
-  samples_since_last_trigger++;
-  bool buffer_pressure = thread_context_collector_heap_pending_buffer_pressure(state->thread_context_collector_instance);
-  if (samples_since_last_trigger >= 128 || buffer_pressure) {
-    rb_postponed_job_trigger(finalize_heap_allocation_from_postponed_job_handle);
-    samples_since_last_trigger = 0;
-  }
-  #endif
 }
 
 static void disable_tracepoints(cpu_and_wall_time_worker_state *state) {
@@ -1333,11 +1316,15 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
   // To control bias from sampling, we clamp the maximum weight attributed to a single allocation sample. This avoids
   // assigning a very large number to a sample, if for instance the dynamic sampling mechanism chose a really big interval.
   unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
-  thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
+  bool needs_after_allocation = thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
   // ...but we still represent the skipped samples in the profile, thus the data will account for all allocations.
   if (weight < allocations_since_last_sample) {
     uint32_t skipped_samples = (uint32_t) uint64_min_of(allocations_since_last_sample - weight, UINT32_MAX);
     thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, skipped_samples);
+  }
+
+  if (needs_after_allocation) {
+    rb_postponed_job_trigger(after_allocation_from_postponed_job_handle);
   }
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
@@ -1499,7 +1486,7 @@ static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_jo
 // This postponed job callback is used to finalize heap allocation recordings on Ruby 4+.
 // During on_newobj_event, calling rb_obj_id() is unsafe because it mutates the object.
 // So we defer getting the object_id until after the event completes.
-static void finalize_heap_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
 
@@ -1517,9 +1504,8 @@ static void finalize_heap_allocation_from_postponed_job(DDTRACE_UNUSED void *_un
 
   // NOTE: We're not updating discrete_dynamic_sampler_before_sample/after_sample here.
   // This means work done in this function isn't accounted for as profiler overhead.
-  // This is acceptable because the amount of work done here is small (just iterating
-  // through pending recordings and calling rb_obj_id on each).
-  bool success = thread_context_collector_finalize_heap_recordings(state->thread_context_collector_instance);
+  // This is acceptable as the amount of work done here is expected to be small.
+  bool success = thread_context_collector_after_allocation(state->thread_context_collector_instance);
 
   if (!success) {
     // Fatal error (e.g., bignum object ID detected) - stop the profiler

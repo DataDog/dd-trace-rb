@@ -1340,7 +1340,11 @@ VALUE enforce_thread_context_collector_instance(VALUE object) {
 }
 
 #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-bool thread_context_collector_finalize_heap_recordings(VALUE self_instance) {
+// Finalize any pending heap allocation recordings.
+// On Ruby 4+, heap allocations are recorded in two phases: during on_newobj_event we capture
+// the object reference, then later we safely call rb_obj_id() to get the object ID.
+// Returns true on success, false if a fatal error occurred and heap profiling should be disabled.
+bool thread_context_collector_after_allocation(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
   heap_recorder *recorder = get_heap_recorder_from_stack_recorder(state->recorder_instance);
@@ -1503,7 +1507,12 @@ bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_in
   return prepare_sample_thread(current_thread, &thread_context->sampling_buffer);
 }
 
-void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object) {
+// This method gets called from inside the RUBY_INTERNAL_EVENT_NEWOBJ tracepoint so it should never allocate in the
+// Ruby heap.
+//
+// Returns true if the after_allocation needs to be called (to do work that can't be done from inside the
+// tracepoint, such as allocate new objects), and false if it doesn't
+bool thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -1590,6 +1599,25 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     /* is_gvl_waiting_state: */ false,
     /* is_safe_to_allocate_objects: */ false // Not safe to allocate further inside the NEWOBJ tracepoint
   );
+
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
+  // On Ruby 4+, we need to trigger a postponed job to finalize the heap allocation recording.
+  // During on_newobj_event, we can't safely call rb_obj_id(), so we defer it until the event completes.
+  // We batch triggers to reduce overhead that can bias the allocation sampler.
+  // Triggering after every sample causes the postponed job to run during subsequent allocations,
+  // which inflates measured sampling time and causes the dynamic sampler to skip more allocations.
+  // Batch postponed job triggers to reduce overhead that can bias the allocation sampler.
+  // Also trigger when buffer is getting full to avoid dropping recordings.
+  static uint64_t samples_since_last_trigger = 0;
+  samples_since_last_trigger++;
+  bool buffer_pressure = thread_context_collector_heap_pending_buffer_pressure(self_instance);
+  if (samples_since_last_trigger >= 128 || buffer_pressure) {
+    return true;
+    samples_since_last_trigger = 0;
+  }
+  #endif
+
+  return false;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
@@ -1597,7 +1625,10 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object) {
   debug_enter_unsafe_context();
 
-  thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight), new_object);
+  bool needs_after_allocation = thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight), new_object);
+  if (needs_after_allocation) {
+    // TODO
+  }
 
   debug_leave_unsafe_context();
 

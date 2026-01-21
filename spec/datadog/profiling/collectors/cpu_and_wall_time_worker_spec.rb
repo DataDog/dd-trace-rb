@@ -896,9 +896,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        # On Ruby 4.x, heap allocation recordings are deferred. Finalize them before serializing.
-        Datadog::Profiling::StackRecorder::Testing._native_finalize_pending_heap_recordings(recorder)
-
         current_method_name = caller_locations(0, 1).first.base_label
 
         # We can't just use find here because samples might have different gc age labels
@@ -940,9 +937,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           # Allocate multiple objects to ensure at least one gets sampled
           test_objects = Array.new(100) { CpuAndWallTimeWorkerSpec::TestStruct.new }
-
-          # On Ruby 4.x, heap allocation recordings are deferred. Finalize them before checking.
-          Datadog::Profiling::StackRecorder::Testing._native_finalize_pending_heap_recordings(recorder)
 
           # Find an object that was actually recorded
           test_object_id = test_objects.map(&:object_id).find do |id|
