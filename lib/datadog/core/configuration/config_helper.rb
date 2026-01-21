@@ -45,7 +45,13 @@ module Datadog
         alias_method :member?, :key?
 
         # This method will be used by datadog-ci-rb once it will bump its minimum dependancy of dd-trace-rb to 2.27.0.
-        # In the meantime, it uses ConfigHelper#instance_variable_get(:@source_env) to set environment variables.
+        # Currently, datadog-ci-rb is compatible with all version of dd-trace-rb > 2.4.0, and we introduced ConfigHelper in 2.21.0.
+        # For version of dd-trace-rb > 2.21.0 and < 2.27.0, we still monkey-patch DATADOG_ENV and use ConfigHelper
+        # (although checks that envs are registered will be ignored as we were not supporting datadog-ci-rb yet),
+        # but we have to use ConfigHelper#instance_variable_get(:@source_env) to set environment variables, as ConfigHelper#[]= was not defined.
+        # Once datadog-ci-rb will bump its minimum dependancy of dd-trace-rb to the one that implements ConfigHelper#[]= (2.27.0),
+        # we can stop using ConfigHelper#instance_variable_get(:@source_env) and use ConfigHelper#[]= instead.
+        # datadog-ci-rb do not plan to bump its minimum dependancy of dd-trace-rb to 2.27.0 in its next release, so we cannot use ConfigHelper#[]= for now.
         def []=(name, value)
           @source_env[name] = value
         end
@@ -59,7 +65,8 @@ module Datadog
         # @return [String, nil] The environment variable value
         # @raise [RuntimeError] if the configuration is not supported
         def get_environment_variable(name, default_value = nil, source_env: @source_env)
-          if (!defined?(::Datadog::CI) || Gem::Version.new(::Datadog::CI::VERSION::STRING) >= Gem::Version.new('1.27.0')) &&
+          # Skip if datadog-ci-rb is loaded but does not support config inversion yet
+          if (!defined?(::Datadog::CI) || defined?(::Datadog::CI::Configuration::SUPPORTED_CONFIGURATION_NAMES)) &&
               (name.start_with?('DD_', 'OTEL_') || @alias_to_canonical[name]) &&
               !@supported_configurations.include?(name)
             if defined?(@raise_on_unknown_env_var) && @raise_on_unknown_env_var # Only enabled for tests!

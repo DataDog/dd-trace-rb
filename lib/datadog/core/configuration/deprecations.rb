@@ -8,11 +8,11 @@ module Datadog
   module Core
     module Configuration
       module Deprecations
-        # Hash of OnlyOnce, as we may call log_deprecations_from_all_sources from datadog-ci-rb too with different deprecations set
-        # This way of initializing the `OnlyOnce` is not thread-safe but that's OK here
+        # Hash of OnlyOnce instances, as we may call log_deprecations_from_all_sources from datadog-ci-rb too with different deprecations set
         LOG_DEPRECATIONS_ONLY_ONCE = {}
 
         def self.log_deprecations_from_all_sources(logger, deprecations: DEPRECATIONS, alias_to_canonical: ALIAS_TO_CANONICAL)
+          # This way of initializing the `OnlyOnce` is not thread-safe but that's OK here
           LOG_DEPRECATIONS_ONLY_ONCE[deprecations] ||= Datadog::Core::Utils::OnlyOnce.new
           LOG_DEPRECATIONS_ONLY_ONCE[deprecations].run do
             log_deprecated_environment_variables(logger, ENV, 'environment', deprecations, alias_to_canonical)
