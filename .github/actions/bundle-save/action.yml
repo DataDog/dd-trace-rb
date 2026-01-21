@@ -13,5 +13,5 @@ runs:
     - name: Save cache
       uses: actions/cache/save@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       with:
-        key: ${{ inputs.cache-key }}
         path: "/usr/local/bundle"
+        key: ${{ inputs.cache-key }}

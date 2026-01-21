@@ -22,4 +22,5 @@ runs:
       with:
         path: "/usr/local/bundle"
         key: ${{ steps.cache-key.outputs.cache-primary-key }}
-        restore-keys: ${{ steps.cache-key.outputs.cache-secondary-key }}
+        restore-keys: |
+          ${{ steps.cache-key.outputs.cache-secondary-key }}
