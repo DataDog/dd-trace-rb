@@ -78,7 +78,7 @@ module Datadog
           other.is_a?(self.class) && other.agent_settings == agent_settings
         end
 
-        # Returns the propagation hash from the Agent if not previously cached
+        # Returns the propagation hash from the Agent.
         # Currently called/used by the DBM code to inject the propagation hash into the SQL comment
         # @return [Integer, nil] the FNV hash based on the container and process tags or nil
         def propagation_hash
