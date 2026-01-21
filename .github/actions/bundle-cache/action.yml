@@ -1,4 +1,4 @@
-name: 'Prepare bundle cache'
+name: 'Restore, install (if needed), and save gems to the bundle cache'
 
 description: 'Sets up bundle cache for GitHub Actions'
 
@@ -33,18 +33,8 @@ runs:
         name: ${{ steps.lockfile.outputs.lockfile }}
         path: "*.lock"
     - name: Restore cache
-      uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       id: restore-cache
-      with:
-        key: >-
-          bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles(
-            '.github/actions/bundle-cache/action.yml',
-            'Gemfile*.lock',
-            'gemfiles/*.gemfile.lock',
-            'tasks/github.rake',
-            'tasks/appraisal_conversion.rb'
-          ) }}
-        path: "/usr/local/bundle"
+      uses: ./.github/actions/bundle-restore
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Install the base Gemfile for this Ruby version
       shell: bash
@@ -59,7 +49,5 @@ runs:
       run: bundle exec rake dependency:clean_unused_gems
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Save cache
-      uses: actions/cache/save@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
-      with:
-        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
-        path: "/usr/local/bundle"
+      uses: ./.github/actions/bundle-save
+
