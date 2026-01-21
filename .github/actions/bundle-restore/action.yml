@@ -5,8 +5,7 @@ description: 'Restores bundle cache for GitHub Actions'
 inputs:
   namespace:
     description: 'Separate different cache gemsets'
-    required: false
-    default: 'full'
+    required: true
 
 outputs:
   cache-hit:

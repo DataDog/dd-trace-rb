@@ -31,6 +31,8 @@ jobs:
       - name: Restore cache
         id: restore-cache
         uses: ./.github/actions/bundle-restore
+        with:
+          namespace: full
 
       - name: Show cache status
         run: |
