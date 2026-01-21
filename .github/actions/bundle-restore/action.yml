@@ -2,34 +2,30 @@ name: 'Restore bundle cache'
 
 description: 'Restores bundle cache for GitHub Actions'
 
+inputs:
+  skip-restore:
+    description: 'Skip restoring the cache (only generate the key)'
+    required: false
+    default: 'false'
+
 outputs:
   cache-hit:
     description: 'Was the cache present?'
     value: ${{ steps.restore-cache.outputs.cache-hit }}
   cache-primary-key:
     description: 'Cache key for the bundle (use with bundle-save)'
-    value: ${{ steps.restore-cache.outputs.cache-primary-key }}
+    value: ${{ steps.cache-key.outputs.cache-key }}
 
 runs:
   using: composite
   steps:
-  - name: Generate unique Ruby environment key
-    id: ruby-env-id
-    shell: bash
-    run: |
-      id="$(ruby -e 'puts RUBY_DESCRIPTION')-$(bundle --version)" # Includes patchlevel, os, and arch
-      echo "id=$id" >> "$GITHUB_OUTPUT"
-  - name: Restore cache
-    uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
-    id: restore-cache
-    with:
-      key: >-
-        bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles(
-          '.github/actions/bundle-restore/action.yml',
-          'Gemfile*.lock',
-          'gemfiles/*.gemfile.lock',
-          'tasks/github.rake',
-          'tasks/dependency.rake',
-          'tasks/appraisal_conversion.rb'
-        ) }}
-      path: "/usr/local/bundle"
+    - name: Generate cache key
+      id: cache-key
+      uses: ./.github/actions/bundle-cache-key
+    - name: Restore cache
+      if: inputs.skip-restore != 'true'
+      uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
+      id: restore-cache
+      with:
+        key: ${{ steps.cache-key.outputs.cache-key }}
+        path: "/usr/local/bundle"
