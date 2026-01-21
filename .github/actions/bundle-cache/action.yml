@@ -7,25 +7,22 @@ outputs:
     description: 'Cache key for the bundle'
     value: ${{ steps.restore-cache.outputs.cache-primary-key }}
   lockfile:
-    description: 'Lockfile name'
-    value: ${{ steps.lockfile.outputs.lockfile }}
+    description: 'Lockfile artifact name'
+    value: lockfile-${{ steps.restore-cache.outputs.cache-primary-key }}
 
 runs:
   using: "composite"
   steps:
+    - name: Generate lockfile
+      shell: bash
+      run: bundle lock
     - name: Restore cache
       id: restore-cache
       uses: ./.github/actions/bundle-restore
-    - name: Generate lockfile
-      id: lockfile
-      shell: bash
-      run: |
-        bundle lock
-        echo "lockfile=lockfile-${{ steps.restore-cache.outputs.cache-primary-key }}" >> "$GITHUB_OUTPUT"
     - name: Upload lockfile
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
-        name: ${{ steps.lockfile.outputs.lockfile }}
+        name: lockfile-${{ steps.restore-cache.outputs.cache-primary-key }}
         path: "*.lock"
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Install the base Gemfile for this Ruby version
