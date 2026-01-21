@@ -14,7 +14,7 @@ outputs:
     value: ${{ steps.restore-cache.outputs.cache-hit }}
   cache-primary-key:
     description: 'Cache key for the bundle (use with bundle-save)'
-    value: ${{ steps.cache-key.outputs.cache-key }}
+    value: ${{ steps.cache-key.outputs.cache-primary-key }}
 
 runs:
   using: composite
