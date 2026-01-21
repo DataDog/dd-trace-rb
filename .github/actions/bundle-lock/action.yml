@@ -21,23 +21,50 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Install base Gemfile
+    - name: Restore partial cache (no Gemfile.lock)
+      id: restore-base-cache
+      uses: ./.github/actions/bundle-restore
+      with:
+        namespace: base
+    - if: steps.restore-base-cache.outputs.cache-hit == 'true'
+      name: Generate lockfile
+      shell: bash
+      run: bundle lock
+    - if: steps.restore-base-cache.outputs.cache-hit != 'true'
+      name: Generate lockfile and install missing gems
       shell: bash
       run: bundle install
-    - name: Generate gemfiles
+    - name: Restore full cache
+      id: restore-cache
+      uses: ./.github/actions/bundle-restore
+      with:
+        namespace: full
+    - name: Upload lockfile
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: lockfile-${{ steps.restore-cache.outputs.cache-primary-key }}
+        path: "*.lock"
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
+      name: Generate gemfiles
       shell: bash
       run: bundle exec rake dependency:generate
-    - name: Install all gemfiles
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
+      name: Install all gemfiles
       shell: bash
       run: bundle exec rake dependency:install
-    - name: Generate cache key
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
+      name: Generate cache key
       id: cache-key
       uses: ./.github/actions/bundle-cache-key
-    - name: Save cache
+      with:
+        namespace: full
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
+      name: Save cache
       uses: ./.github/actions/bundle-save
       with:
         cache-key: ${{ steps.cache-key.outputs.cache-primary-key }}
-    - name: Upload lockfiles
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
+      name: Upload full lockfiles
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}

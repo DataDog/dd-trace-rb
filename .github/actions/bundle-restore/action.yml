@@ -2,6 +2,11 @@ name: 'Restore bundle cache'
 
 description: 'Restores bundle cache for GitHub Actions'
 
+inputs:
+  namespace:
+    description: 'Separate different cache gemsets'
+    required: true
+
 outputs:
   cache-hit:
     description: 'Was the cache present?'
