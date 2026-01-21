@@ -132,10 +132,6 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
 // and heap profiling should be disabled.
 bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder);
 
-// Check if pending recordings buffer is under pressure (>50% full).
-// Used to trigger early finalization to avoid dropping recordings.
-bool heap_recorder_pending_buffer_pressure(heap_recorder *heap_recorder);
-
 // Mark pending recordings to prevent GC from collecting the objects
 // while they're waiting for the recordings to be finalized.
 void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder);

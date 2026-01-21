@@ -955,7 +955,10 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
 
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class) {
   ENFORCE_TYPE(weight, T_FIXNUM);
-  track_object(recorder_instance, new_obj, NUM2UINT(weight), char_slice_from_ruby_string(alloc_class));
+  bool needs_after_allocation = track_object(recorder_instance, new_obj, NUM2UINT(weight), char_slice_from_ruby_string(alloc_class));
+  if (needs_after_allocation) {
+    // TODO
+  }
   return Qtrue;
 }
 

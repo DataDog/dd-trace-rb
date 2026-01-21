@@ -1354,14 +1354,6 @@ void thread_context_collector_after_allocation(VALUE self_instance) {
     raise_error(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
   }
 }
-
-bool thread_context_collector_heap_pending_buffer_pressure(VALUE self_instance) {
-  thread_context_collector_state *state;
-  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-  heap_recorder *recorder = get_heap_recorder_from_stack_recorder(state->recorder_instance);
-  if (recorder == NULL) return false;
-  return heap_recorder_pending_buffer_pressure(recorder);
-}
 #endif
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
@@ -1603,24 +1595,7 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     /* is_safe_to_allocate_objects: */ false // Not safe to allocate further inside the NEWOBJ tracepoint
   );
 
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-  // On Ruby 4+, we need to trigger a postponed job to finalize the heap allocation recording.
-  // During on_newobj_event, we can't safely call rb_obj_id(), so we defer it until the event completes.
-  // We batch triggers to reduce overhead that can bias the allocation sampler.
-  // Triggering after every sample causes the postponed job to run during subsequent allocations,
-  // which inflates measured sampling time and causes the dynamic sampler to skip more allocations.
-  // Batch postponed job triggers to reduce overhead that can bias the allocation sampler.
-  // Also trigger when buffer is getting full to avoid dropping recordings.
-  static uint64_t samples_since_last_trigger = 0;
-  samples_since_last_trigger++;
-  bool buffer_pressure = thread_context_collector_heap_pending_buffer_pressure(self_instance);
-  if (samples_since_last_trigger >= 128 || buffer_pressure) {
-    return true;
-    samples_since_last_trigger = 0;
-  }
-  #endif
-
-  return false;
+  return needs_after_allocation;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.

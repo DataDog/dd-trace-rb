@@ -355,7 +355,7 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
     heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full++;
     heap_recorder->active_recording = &SKIPPED_RECORD;
-    return false;
+    return true; // If the buffer is full, we keep asking for a callback (see `needs_after_allocation` below)
   }
   #endif
 
@@ -371,8 +371,16 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
     .alloc_gen = rb_gc_count(),
   };
-  // TODO: Explain why == 0 and not always return true when using this mode
-  bool needs_after_allocation = heap_recorder->pending_recordings_count == 0;
+
+  // The intuition here is: Usually we ask for an `after_allocation` callback only when the buffer is about to go
+  // from empty -> non-empty, because this is going to be mapped onto a postponed job, so if the postponed job doesn't
+  // run it doesn't seem worth it to keep spamming requests.
+  // Yet, if for some reason the postponed job doesn't run (or if e.g. it ran with `during_sample == true ` and thus
+  // was skipped) we need to have some mechanism to recover -- and so if the buffer starts accumulating too much we
+  // keep asking for the callback to happen so that we eventually flush the buffer.
+  bool needs_after_allocation =
+    heap_recorder->pending_recordings_count == 0 || heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS / 2;
+
   return needs_after_allocation;
   #else
   VALUE ruby_obj_id = rb_obj_id(new_obj);
@@ -483,13 +491,6 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
 }
 
 #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-bool heap_recorder_pending_buffer_pressure(heap_recorder *heap_recorder) {
-  if (heap_recorder == NULL) {
-    return false;
-  }
-  return heap_recorder->pending_recordings_count > MAX_PENDING_RECORDINGS / 2;
-}
-
 bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     return true; // Nothing to do, no error
