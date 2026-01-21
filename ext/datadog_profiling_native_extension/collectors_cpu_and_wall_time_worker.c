@@ -1521,12 +1521,12 @@ static void finalize_heap_allocation_from_postponed_job(DDTRACE_UNUSED void *_un
   // through pending recordings and calling rb_obj_id on each).
   bool success = thread_context_collector_finalize_heap_recordings(state->thread_context_collector_instance);
 
-  during_sample_exit(state);
-
   if (!success) {
     // Fatal error (e.g., bignum object ID detected) - stop the profiler
     delayed_error(state, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
   }
+
+  during_sample_exit(state);
   #endif
 }
 
