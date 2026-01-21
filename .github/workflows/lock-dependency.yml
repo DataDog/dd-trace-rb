@@ -74,18 +74,29 @@ jobs:
           ruby -v
           gem -v
           bundler -v
-      - name: Restore cache
-        id: restore-cache
-        uses: ./.github/actions/bundle-restore
       - run: bundle install
       - run: bundle exec rake dependency:generate
       - run: bundle exec rake dependency:install
       - name: Check for stale gems (dry-run)
         run: bundle exec rake dependency:clean_unused_gems
+      - name: Generate cache key
+        id: cache-key
+        shell: bash
+        run: |
+          id="$(ruby -e 'puts RUBY_DESCRIPTION')-$(bundle --version)"
+          echo "ruby-env-id=$id" >> "$GITHUB_OUTPUT"
       - name: Save cache
         uses: ./.github/actions/bundle-save
         with:
-          cache-key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+          cache-key: >-
+            bundle-${{ steps.cache-key.outputs.ruby-env-id }}-${{ hashFiles(
+              '.github/actions/bundle-restore/action.yml',
+              'Gemfile*.lock',
+              'gemfiles/*.gemfile.lock',
+              'tasks/github.rake',
+              'tasks/dependency.rake',
+              'tasks/appraisal_conversion.rb'
+            ) }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: lock-dependency-${{ github.run_id }}-${{ matrix.engine.name }}-${{ matrix.engine.version }}
