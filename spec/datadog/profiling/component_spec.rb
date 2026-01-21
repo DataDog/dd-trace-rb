@@ -339,44 +339,6 @@ RSpec.describe Datadog::Profiling::Component do
             end
           end
 
-          context "on Ruby 4.0 or newer" do
-            let(:testing_version) { "4.0.0" }
-
-            before do
-              settings.profiling.allocation_enabled = true
-              allow(logger).to receive(:debug)
-              allow(logger).to receive(:warn)
-            end
-
-            context "when DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED_RUBY4 is not set" do
-              it "initializes StackRecorder without heap sampling support and warns" do
-                expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                  .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
-                  .and_call_original
-
-                expect(logger).to receive(:warn).with(/experimental/)
-
-                build_profiler_component
-              end
-            end
-
-            context "when DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED_RUBY4 is set to true" do
-              around do |example|
-                ClimateControl.modify("DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED_RUBY4" => "true") do
-                  example.run
-                end
-              end
-
-              it "initializes StackRecorder with heap sampling support" do
-                expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                  .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
-                  .and_call_original
-
-                build_profiler_component
-              end
-            end
-          end
-
           context "and allocation profiling disabled" do
             before do
               settings.profiling.allocation_enabled = false
@@ -408,6 +370,40 @@ RSpec.describe Datadog::Profiling::Component do
               expect(logger).to receive(:debug).with(/Enabled heap profiling/)
 
               build_profiler_component
+            end
+
+            context "on Ruby 4.0 or newer" do
+              let(:testing_version) { "4.0.0" }
+
+              before { allow(logger).to receive(:debug) }
+
+              context "when DD_PROFILING_EXPERIMENTAL_HEAP_RUBY4_ENABLED is not set" do
+                it "initializes StackRecorder without heap sampling support and warns" do
+                  expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                    .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
+                    .and_call_original
+
+                  expect(logger).to receive(:warn).with(/Datadog Ruby heap profiler is currently incompatible with Ruby 4/)
+
+                  build_profiler_component
+                end
+              end
+
+              context "when DD_PROFILING_EXPERIMENTAL_HEAP_RUBY4_ENABLED is set to true" do
+                around do |example|
+                  ClimateControl.modify("DD_PROFILING_EXPERIMENTAL_HEAP_RUBY4_ENABLED" => "true") do
+                    example.run
+                  end
+                end
+
+                it "initializes StackRecorder with heap sampling support" do
+                  expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                    .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
+                    .and_call_original
+
+                  build_profiler_component
+                end
+              end
             end
 
             context "but heap size profiling is disabled" do
