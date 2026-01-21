@@ -43,6 +43,18 @@ module Datadog
 
           attr_reader :type, :subtype, :parameters
 
+          def self.json?(media_type)
+            return false if media_type.nil? || media_type.empty?
+
+            match = MEDIA_TYPE_RE.match(media_type)
+            return false if match.nil?
+
+            subtype = match['subtype']
+            subtype.downcase!
+
+            subtype == 'json' || subtype.end_with?('+json')
+          end
+
           def initialize(media_type)
             media_type_match = MEDIA_TYPE_RE.match(media_type)
             raise ParseError, media_type.inspect if media_type_match.nil?

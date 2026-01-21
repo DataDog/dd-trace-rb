@@ -113,4 +113,31 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
       end
     end
   end
+
+  describe '.json?' do
+    context 'when is a valid JSON media type' do
+      it { expect(described_class.json?('application/json')).to be(true) }
+      it { expect(described_class.json?('APPLICATION/JSON')).to be(true) }
+      it { expect(described_class.json?('application/json; charset=utf-8')).to be(true) }
+      it { expect(described_class.json?('application/hal+json')).to be(true) }
+      it { expect(described_class.json?('application/vnd.api+json')).to be(true) }
+      it { expect(described_class.json?('application/vnd.datadog+json')).to be(true) }
+      it { expect(described_class.json?('text/json')).to be(true) }
+    end
+
+    context 'when is not a JSON media type' do
+      it { expect(described_class.json?('text/html')).to be(false) }
+      it { expect(described_class.json?('text/plain')).to be(false) }
+      it { expect(described_class.json?('application/xml')).to be(false) }
+      it { expect(described_class.json?('application/x-www-form-urlencoded')).to be(false) }
+      it { expect(described_class.json?('multipart/form-data')).to be(false) }
+    end
+
+    context 'when is invalid media type' do
+      it { expect(described_class.json?(nil)).to be(false) }
+      it { expect(described_class.json?('')).to be(false) }
+      it { expect(described_class.json?('invalid')).to be(false) }
+      it { expect(described_class.json?('/')).to be(false) }
+    end
+  end
 end
