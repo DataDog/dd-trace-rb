@@ -115,7 +115,7 @@ jobs:
     needs:
     - batch
     runs-on: ubuntu-24.04
-    name: build & test (standard) [${{ matrix.batch }}]
+    name: test (standard) [${{ matrix.batch }}]
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
@@ -174,7 +174,7 @@ jobs:
       with:
         lockfile: ${{ needs.batch.outputs.lockfile }}
         cache-key: ${{ needs.batch.outputs.cache-key }}
-    - name: Build & Test
+    - name: Test
       uses: ./.github/actions/build-test
       with:
         alias: ${{ inputs.alias }}
@@ -184,7 +184,7 @@ jobs:
     needs:
     - batch
     runs-on: ubuntu-24.04
-    name: build & test (misc) [${{ matrix.batch }}]
+    name: test (misc) [${{ matrix.batch }}]
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
@@ -254,7 +254,7 @@ jobs:
       with:
         lockfile: ${{ needs.batch.outputs.lockfile }}
         cache-key: ${{ needs.batch.outputs.cache-key }}
-    - name: Build & Test
+    - name: Test
       uses: ./.github/actions/build-test
       with:
         alias: ${{ inputs.alias }}
