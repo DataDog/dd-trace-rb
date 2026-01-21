@@ -14,7 +14,7 @@ on: # yamllint disable-line rule:truthy
       - master
   workflow_dispatch: {}
   schedule:
-    - cron: "00 04 * * 2-6"
+    - cron: "00 04 * * 0-6"
 
 # Default permissions for all jobs
 permissions: {}
