@@ -85,7 +85,8 @@ module Datadog
           # Can't use defined?(@propagation_hash) here because it will return true if @propagation_hash is nil
           return @propagation_hash if @propagation_hash
           fetch if @container_tags_checksum.nil?
-          return unless @container_tags_checksum
+          container_tags_checksum = @container_tags_checksum
+          return nil unless container_tags_checksum
 
           process_tags = Process.serialized
           data = process_tags + container_tags_checksum
@@ -95,6 +96,18 @@ module Datadog
         private
 
         # Trace Agent 7.69.0+ provides a SHA256 checksum in the response header DATADOG-CONTAINER-TAGS-HASH based on the container id computed in Datadog::Core::Environment::Container
+        # This is a short checksum that uniquely identifies this process, its container environment, and
+        # the Datadog agent it connects to.
+        #
+        # It is used to correlate multiple signals emitted by this process among themselves (e.g. traces to
+        # sql queries to pub/sub events).
+        # Because some of these signals have strict size restrictions, we cannot use complete propagation
+        # methods (e.g. a W3C Trace Context), so short checksum is calculated, then later correlated by the
+        # Datadog App.
+        #
+        # This checksum only has to be internally consistent: the same value must be used by every signal
+        # emitted by this process+container+agent combinations). It is not required that this checksum is
+        # consistent with other SDKs.
         # During calls to the Trace Agent, this checksum is cached but invalidated if a new value is returned
         # The resulting propagation_hash uses the container_tags_checksum
         # https://github.com/DataDog/datadog-agent/pull/38515
