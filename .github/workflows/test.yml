@@ -14,6 +14,7 @@ on: # yamllint disable-line rule:truthy
       - master
   schedule:
     - cron: 0 */4 * * 1-5
+    - cron: 0 3 * * 0,6
 
 # Default permissions for all jobs
 permissions: {}
