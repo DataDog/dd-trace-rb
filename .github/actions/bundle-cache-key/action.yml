@@ -1,0 +1,35 @@
+name: 'Generate bundle cache key'
+
+description: 'Create a gem cache key for all lockfiles for the current version of Ruby'
+
+inputs:
+  namespace:
+    description: 'Separate different cache gemsets'
+    required: true
+
+outputs:
+  cache-primary-key:
+    description: 'Cache key for the exact bundle'
+    value: ${{ steps.generate.outputs.cache-primary-key }}
+  cache-secondary-key:
+    description: 'Cache key for this version of Ruby+Bundler'
+    value: ${{ steps.generate.outputs.cache-secondary-key }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate cache key
+      id: generate
+      shell: bash
+      run: |
+        ruby_env="$(ruby -e 'puts RUBY_DESCRIPTION')-$(bundle --version)"
+        hash="${{ hashFiles(
+          '.github/actions/bundle-cache-key/action.yml',
+          'Gemfile*.lock',
+          'gemfiles/*.gemfile.lock',
+          'tasks/github.rake',
+          'tasks/dependency.rake',
+          'tasks/appraisal_conversion.rb'
+        ) }}"
+        echo "cache-primary-key=bundle-${{ inputs.namespace }}-${ruby_env}-${hash}" >> "$GITHUB_OUTPUT"
+        echo "cache-secondary-key=bundle-${{ inputs.namespace }}-${ruby_env}-" >> "$GITHUB_OUTPUT"

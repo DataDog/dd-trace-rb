@@ -1,30 +1,44 @@
 name: 'Restore bundle cache'
 
-# TODO: Improve description
 description: 'Restores bundle cache for GitHub Actions'
 
 inputs:
+  namespace:
+    description: 'Cache namespace (base or full) - used to generate cache key'
+    required: false
   lockfile:
-    description: 'Name of the lockfile artifact to download'
-    required: true
+    description: 'Lockfile artifact name to download'
+    required: false
   cache-key:
-    description: 'Cache key for bundle'
-    required: true
+    description: 'Cache key to restore (skips key generation)'
+    required: false
+
+outputs:
+  cache-hit:
+    description: 'Was the cache present?'
+    value: ${{ steps.restore-cache.outputs.cache-hit }}
+  cache-primary-key:
+    description: 'Cache key for the exact bundle'
+    value: ${{ inputs.cache-key || steps.cache-key.outputs.cache-primary-key }}
 
 runs:
   using: composite
   steps:
-  - name: Download lockfile
-    uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-    with:
-      name: ${{ inputs.lockfile }}
-
-  - name: Restore cache
-    uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
-    id: restore-cache
-    with:
-      key: "${{ inputs.cache-key }}"
-      path: "/usr/local/bundle"
-
-  - run: bundle check
-    shell: bash
+    - if: inputs.lockfile
+      name: Download lockfile artifact
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      with:
+        name: ${{ inputs.lockfile }}
+    - if: ${{ !inputs.cache-key }}
+      name: Generate cache key
+      id: cache-key
+      uses: ./.github/actions/bundle-cache-key
+      with:
+        namespace: ${{ inputs.namespace }}
+    - name: Restore cache
+      uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
+      id: restore-cache
+      with:
+        path: "/usr/local/bundle"
+        key: ${{ inputs.cache-key || steps.cache-key.outputs.cache-primary-key }}
+        restore-keys: ${{ steps.cache-key.outputs.cache-secondary-key }}

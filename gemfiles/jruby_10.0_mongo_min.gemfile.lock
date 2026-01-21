@@ -122,5 +122,8 @@ DEPENDENCIES
   webmock (>= 3.10.0)
   webrick (>= 1.7.0)
 
+RUBY VERSION
+   ruby 3.4.2p0 (jruby 10.0.2.0)
+
 BUNDLED WITH
    2.7.2

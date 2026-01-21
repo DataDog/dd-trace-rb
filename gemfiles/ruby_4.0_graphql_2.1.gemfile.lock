@@ -289,5 +289,8 @@ DEPENDENCIES
   webrick (>= 1.8.2)
   zstd-ruby
 
+RUBY VERSION
+   ruby 4.0.1p0
+
 BUNDLED WITH
   4.0.3

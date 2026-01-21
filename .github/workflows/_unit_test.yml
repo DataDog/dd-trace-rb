@@ -64,7 +64,10 @@ jobs:
 
     - name: Prepare bundle cache
       id: bundle-cache
-      uses: ./.github/actions/bundle-cache
+      uses: ./.github/actions/bundle-lock
+      with:
+        engine-name: ${{ inputs.engine }}
+        engine-version: ${{ inputs.version }}
 
     - id: set-batches
       name: Distribute tasks into batches

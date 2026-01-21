@@ -133,7 +133,8 @@ GEM
     method_source (1.1.0)
     mini_mime (1.1.5)
     mini_portile2 (2.8.9)
-    minitest (5.25.5)
+    minitest (6.0.1)
+      prism (~> 1.5)
     msgpack (1.8.0)
     mutex_m (0.3.0)
     net-imap (0.5.10)
@@ -152,6 +153,7 @@ GEM
     os (1.1.4)
     ostruct (0.6.3)
     pg (1.6.2)
+    prism (1.8.0)
     pry (0.15.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
@@ -285,6 +287,9 @@ DEPENDENCIES
   webmock (>= 3.10.0)
   webrick (>= 1.8.2)
   zstd-ruby
+
+RUBY VERSION
+   ruby 4.0.1p0
 
 BUNDLED WITH
    2.7.2

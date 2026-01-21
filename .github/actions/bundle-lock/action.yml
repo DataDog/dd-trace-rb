@@ -1,0 +1,71 @@
+name: 'Generate and cache lockfiles'
+
+description: 'Generates lockfiles for all gemfiles, saves to cache, and uploads artifacts'
+
+inputs:
+  engine-name:
+    description: 'Ruby engine name (ruby or jruby)'
+    required: true
+  engine-version:
+    description: 'Ruby engine version'
+    required: true
+
+outputs:
+  cache-key:
+    description: 'Cache key for the bundle'
+    value: ${{ steps.restore-full-cache.outputs.cache-primary-key }}
+  lockfile:
+    description: 'Name of the uploaded lockfile artifact'
+    value: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Restore base cache for Gemfile.lock generation
+      id: restore-base-cache
+      uses: ./.github/actions/bundle-restore
+      with:
+        namespace: base
+    - if: steps.restore-base-cache.outputs.cache-hit == 'true'
+      name: Generate lockfile
+      shell: bash
+      run: bundle lock
+    - if: steps.restore-base-cache.outputs.cache-hit != 'true'
+      name: Generate lockfile and install missing gems
+      shell: bash
+      run: bundle install
+    - if: steps.restore-base-cache.outputs.cache-hit != 'true'
+      name: Save Restore base cache for Gemfile.lock generation
+      uses: ./.github/actions/bundle-save
+      with:
+        cache-key: ${{ steps.restore-base-cache.outputs.cache-primary-key }}
+    - name: Restore full cache
+      id: restore-full-cache
+      uses: ./.github/actions/bundle-restore
+      with:
+        namespace: full
+    - name: Upload lockfile
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+        path: "*.lock"
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
+      name: Generate gemfiles
+      shell: bash
+      run: bundle exec rake dependency:generate
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
+      name: Install all gemfiles
+      shell: bash
+      run: bundle exec rake dependency:install
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
+      name: Save cache
+      uses: ./.github/actions/bundle-save
+      with:
+        cache-key: ${{ steps.restore-full-cache.outputs.cache-primary-key }}
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true'
+      name: Upload full lockfiles
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: lockfile-updates-${{ github.branch }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+        path: gemfiles/${{ inputs.engine-name }}_${{ inputs.engine-version }}*
+        retention-days: 1
