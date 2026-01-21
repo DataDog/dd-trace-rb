@@ -4,8 +4,14 @@ description: 'Restores bundle cache for GitHub Actions'
 
 inputs:
   namespace:
-    description: 'Separate different cache gemsets'
-    required: true
+    description: 'Cache namespace (base or full) - used to generate cache key'
+    required: false
+  lockfile:
+    description: 'Lockfile artifact name to download'
+    required: false
+  cache-key:
+    description: 'Cache key to restore (skips key generation)'
+    required: false
 
 outputs:
   cache-hit:
@@ -13,12 +19,18 @@ outputs:
     value: ${{ steps.restore-cache.outputs.cache-hit }}
   cache-primary-key:
     description: 'Cache key for the exact bundle'
-    value: ${{ steps.cache-key.outputs.cache-primary-key }}
+    value: ${{ inputs.cache-key || steps.cache-key.outputs.cache-primary-key }}
 
 runs:
   using: composite
   steps:
-    - name: Generate cache key
+    - if: inputs.lockfile
+      name: Download lockfile artifact
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      with:
+        name: ${{ inputs.lockfile }}
+    - if: ${{ !inputs.cache-key }}
+      name: Generate cache key
       id: cache-key
       uses: ./.github/actions/bundle-cache-key
       with:
@@ -28,6 +40,5 @@ runs:
       id: restore-cache
       with:
         path: "/usr/local/bundle"
-        key: ${{ steps.cache-key.outputs.cache-primary-key }}
-        restore-keys: |
-          ${{ steps.cache-key.outputs.cache-secondary-key }}
+        key: ${{ inputs.cache-key || steps.cache-key.outputs.cache-primary-key }}
+        restore-keys: ${{ steps.cache-key.outputs.cache-secondary-key }}
