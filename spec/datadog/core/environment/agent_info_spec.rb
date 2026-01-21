@@ -29,7 +29,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
       it 'does not compute the base hash' do
         agent_info.fetch
-        expect(agent_info.propagation_hash).to be nil
+        expect(agent_info.propagation_checksum).to be nil
       end
     end
 
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
         agent_info.fetch
 
-        generated_hash = agent_info.propagation_hash
+        generated_hash = agent_info.propagation_checksum
 
         container_tags_checksum = agent_info.send(:container_tags_checksum)
         data = process_tags + container_tags_checksum

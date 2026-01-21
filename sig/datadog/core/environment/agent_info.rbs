@@ -6,16 +6,18 @@ module Datadog
         attr_reader logger: Core::Logger
 
         @client: Datadog::Core::Remote::Transport::Negotiation::Transport
-        @propagation_hash: ::Integer?
+        @propagation_checksum: ::Integer?
         @container_tags_checksum: ::String?
 
         def initialize: (Configuration::AgentSettings agent_settings, ?logger: Core::Logger) -> void
 
         def fetch: -> Remote::Transport::HTTP::Negotiation::Response?
 
-        def propagation_hash: () -> ::Integer?
+        def propagation_checksum: () -> ::Integer?
 
         private
+
+        attr_reader container_tags_checksum: ::String?
 
         def update_container_tags: (Remote::Transport::HTTP::Negotiation::Response res) -> void
       end

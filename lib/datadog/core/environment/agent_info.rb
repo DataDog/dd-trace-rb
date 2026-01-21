@@ -78,18 +78,15 @@ module Datadog
           other.is_a?(self.class) && other.agent_settings == agent_settings
         end
 
-        # Returns the propagation hash from the Agent.
-        # Currently called/used by the DBM code to inject the propagation hash into the SQL comment
+        # Returns the propagation checksum from the Agent.
+        # Currently called/used by the DBM code to inject the propagation checksum into the SQL comment
         # @return [Integer, nil] the FNV hash based on the container and process tags or nil
-        def propagation_hash
-          return @propagation_hash if defined?(@propagation_hash) && @propagation_hash
-          fetch if @container_tags_checksum.nil?
-          container_tags_checksum = @container_tags_checksum
-          return nil unless container_tags_checksum
+        def propagation_checksum
+          # It is possible that we try to look for the output of propagation_check before an agent info has been called
+          # If this happens, then we need to trigger a fetch call
+          fetch unless defined?(@propagation_checksum)
 
-          process_tags = Process.serialized
-          data = process_tags + container_tags_checksum
-          @propagation_hash = Core::Utils::FNV.fnv1_64(data)
+          @propagation_checksum
         end
 
         private
@@ -108,7 +105,7 @@ module Datadog
         # emitted by this process+container+agent combinations). It is not required that this checksum is
         # consistent with other SDKs.
         # During calls to the Trace Agent, this checksum is cached but invalidated if a new value is returned
-        # The resulting propagation_hash uses the container_tags_checksum
+        # The resulting propagation_checksum uses the container_tags_checksum
         # https://github.com/DataDog/datadog-agent/pull/38515
         attr_reader :container_tags_checksum
 
@@ -123,10 +120,17 @@ module Datadog
           header_value = res.headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_TAGS_HASH]
           new_container_tags_value = header_value if header_value && !header_value.empty?
 
-          # if the Trace Agent returns a new value for the checksum, invalidate the cached propagation hash
+          # if the Trace Agent returns a new value for the checksum, calculate and cache the propagation checksum
           if new_container_tags_value && new_container_tags_value != @container_tags_checksum
             @container_tags_checksum = new_container_tags_value
-            @propagation_hash = nil
+
+            process_tags = Process.serialized
+            # new_container_tags_value (non nil) over @container_tags_checksum (string?) to avoid steep errors
+            data = process_tags + new_container_tags_value
+            @propagation_checksum = Core::Utils::FNV.fnv1_64(data)
+          elsif !defined?(@propagation_checksum)
+            # Cache nil to avoid repeated fetch attempts when agent doesn't provide the header
+            @propagation_checksum = nil
           end
         end
       end
