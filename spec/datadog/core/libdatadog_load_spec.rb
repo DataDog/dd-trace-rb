@@ -26,6 +26,16 @@ RSpec.describe 'libdatadog native extension' do
     end
 
     it 'loads successfully' do
+      puts "[libdatadog smoke test] Platform: #{RUBY_PLATFORM}"
+      puts "[libdatadog smoke test] Ruby version: #{RUBY_VERSION}"
+      puts "[libdatadog smoke test] Libdatadog pkgconfig folder: #{Libdatadog.pkgconfig_folder.inspect}"
+
+      if Datadog::Core::LIBDATADOG_API_FAILURE
+        puts "[libdatadog smoke test] FAILED: #{Datadog::Core::LIBDATADOG_API_FAILURE}"
+      else
+        puts "[libdatadog smoke test] SUCCESS: Native extension loaded"
+      end
+
       expect(Datadog::Core::LIBDATADOG_API_FAILURE).to be_nil,
         "libdatadog failed to load: #{Datadog::Core::LIBDATADOG_API_FAILURE}"
     end
