@@ -32,7 +32,9 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
-    ffi (1.17.2)
+    ffi (1.17.3)
+    ffi (1.17.3-aarch64-linux-gnu)
+    ffi (1.17.3-x86_64-linux-gnu)
     fiddle (1.1.8)
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
@@ -159,4 +161,4 @@ DEPENDENCIES
   zstd-ruby
 
 BUNDLED WITH
-   2.7.2
+  4.0.3
