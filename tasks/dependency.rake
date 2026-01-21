@@ -77,21 +77,24 @@ namespace :dependency do
 
     puts "Checking #{gemfiles.size} gemfiles for stale gems..."
 
-    threads = gemfiles.map do |gf|
-      Thread.new(gf) do |gemfile|
-        output, _ = Bundler.with_unbundled_env do
-          Open3.capture2({ 'BUNDLE_GEMFILE' => gemfile }, 'bundle', 'clean', '--dry-run')
+    # Run sequentially for JRuby to avoid thread issues
+    max_threads = RUBY_ENGINE == 'jruby' ? 1 : gemfiles.size
+
+    stale_per_gemfile = gemfiles.each_slice(max_threads).flat_map do |batch|
+      batch.map do |gf|
+        Thread.new(gf) do |gemfile|
+          output, _ = Bundler.with_unbundled_env do
+            Open3.capture2({ 'BUNDLE_GEMFILE' => gemfile }, 'bundle', 'clean', '--dry-run')
+          end
+
+          stale = output.lines
+            .grep(/^Would have removed/)
+            .map { |line| line.delete_prefix('Would have removed ').strip }
+
+          Set.new(stale)
         end
-
-        stale = output.lines
-          .grep(/^Would have removed/)
-          .map { |line| line.delete_prefix('Would have removed ').strip }
-
-        Set.new(stale)
-      end
+      end.map(&:value)
     end
-
-    stale_per_gemfile = threads.map(&:value)
     truly_stale = stale_per_gemfile.reduce(:&) || Set.new
 
     puts "\nGems not needed by ANY gemfile: #{truly_stale.size}"
