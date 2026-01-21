@@ -281,7 +281,7 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: gemfiles
-          pattern: lockfile-${{ github.run_id }}-*
+          pattern: lockfile-updates-${{ github.branch }}-*
           merge-multiple: true
       # FIXME: The ghcommit-action does not pick up untracked/unstaged files
       #        https://github.com/planetscale/ghcommit-action/issues/43
