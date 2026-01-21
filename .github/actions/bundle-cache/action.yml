@@ -44,10 +44,6 @@ runs:
       shell: bash
       run: bundle exec rake dependency:install[frozen]
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      name: Check for stale gems (dry-run)
-      shell: bash
-      run: bundle exec rake dependency:clean_unused_gems
-    - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Save cache
       uses: ./.github/actions/bundle-save
       with:
