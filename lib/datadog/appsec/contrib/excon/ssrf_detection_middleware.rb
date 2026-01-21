@@ -16,13 +16,19 @@ module Datadog
             context = AppSec.active_context
             return super unless context && AppSec.rasp_enabled?
 
-            timeout = Datadog.configuration.appsec.waf_timeout
+            headers = normalize_headers(data[:headers])
             ephemeral_data = {
               'server.io.net.url' => request_url(data),
               'server.io.net.request.method' => data[:method].to_s.upcase,
-              'server.io.net.request.headers' => normalize_headers(data[:headers])
+              'server.io.net.request.headers' => headers
             }
 
+            if Utils::HTTP::MediaType.json?(headers['content-type'])
+              body = parse_body(data[:body])
+              ephemeral_data['server.io.net.request.body'] = body if body
+            end
+
+            timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
             handle(result, context: context) if result.match?
 
@@ -33,12 +39,12 @@ module Datadog
             context = AppSec.active_context
             return super unless context && AppSec.rasp_enabled?
 
-            timeout = Datadog.configuration.appsec.waf_timeout
             ephemeral_data = {
               'server.io.net.response.status' => data.dig(:response, :status).to_s,
               'server.io.net.response.headers' => normalize_headers(data.dig(:response, :headers))
             }
 
+            timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
             handle(result, context: context) if result.match?
 
@@ -58,6 +64,20 @@ module Datadog
             headers.each_with_object({}) do |(key, value), memo|
               memo[key.downcase] = value.is_a?(Array) ? value.join(', ') : value
             end
+          end
+
+          def parse_body(body)
+            return if body.nil?
+
+            body.rewind if body.respond_to?(:rewind)
+            content = body.respond_to?(:read) ? body.read : body
+            body.rewind if body.respond_to?(:rewind)
+
+            JSON.parse(content)
+          rescue => e
+            AppSec.telemetry.report(e, description: 'AppSec: Failed to parse JSON body')
+
+            nil
           end
 
           def handle(result, context:)
