@@ -219,12 +219,13 @@ module Datadog
             "Please upgrade to Ruby >= 3.1 in order to use this feature. Heap profiling has been disabled."
           )
           return false
-        end
+        elsif RUBY_VERSION.start_with?("4.") &&
+          # This env var is temporary for testing; we'll later decide when to expose to customers
+          ENV["DD_PROFILING_EXPERIMENTAL_HEAP_RUBY4_ENABLED"] != "true" # rubocop:disable CustomCops/EnvUsageCop
 
-        if RUBY_VERSION.start_with?("4.") && DATADOG_ENV["DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED_RUBY4"] != "true"
           logger.warn(
-            "Datadog Ruby heap profiler support for Ruby 4 is currently experimental. " \
-            "Set DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED_RUBY4=true to enable it. Heap profiling has been disabled."
+            "Datadog Ruby heap profiler is currently incompatible with Ruby 4. " \
+            "Heap profiling has been disabled."
           )
           return false
         end
