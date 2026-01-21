@@ -50,16 +50,22 @@ namespace :dependency do
     gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern).sort
     total = gemfiles.size
 
+    # Add Linux platforms for CI compatibility (skip for JRuby and frozen mode)
+    add_platforms = !frozen && RUBY_ENGINE != 'jruby'
+
     gemfiles.each_with_index do |gemfile, index|
       puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}"
 
       env = {'BUNDLE_GEMFILE' => gemfile}
-      env['BUNDLE_FROZEN'] = 'true' if frozen
-      cmd = frozen ? 'bundle check || bundle install' : 'bundle install'
 
       start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       AppraisalConversion.with_retry do
-        Bundler.with_unbundled_env { sh(env, cmd) }
+        Bundler.with_unbundled_env do
+          sh(env, 'bundle lock --add-platform x86_64-linux aarch64-linux') if add_platforms
+          env['BUNDLE_FROZEN'] = 'true' if frozen
+          cmd = frozen ? 'bundle check || bundle install' : 'bundle install'
+          sh(env, cmd)
+        end
       end
       elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
 
