@@ -16,12 +16,12 @@ outputs:
     value: ${{ steps.restore-full-cache.outputs.cache-primary-key }}
   lockfile:
     description: 'Name of the uploaded lockfile artifact'
-    value: lockfile-${{ steps.restore-full-cache.outputs.cache-primary-key }}
+    value: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
 
 runs:
   using: composite
   steps:
-    - name: Restore partial cache (no Gemfile.lock)
+    - name: Restore base cache for Gemfile.lock generation
       id: restore-base-cache
       uses: ./.github/actions/bundle-restore
       with:
@@ -34,6 +34,11 @@ runs:
       name: Generate lockfile and install missing gems
       shell: bash
       run: bundle install
+    - if: steps.restore-base-cache.outputs.cache-hit != 'true'
+      name: Save Restore base cache for Gemfile.lock generation
+      uses: ./.github/actions/bundle-save
+      with:
+        cache-key: ${{ steps.restore-base-cache.outputs.cache-primary-key }}
     - name: Restore full cache
       id: restore-full-cache
       uses: ./.github/actions/bundle-restore
@@ -42,7 +47,7 @@ runs:
     - name: Upload lockfile
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
-        name: lockfile-${{ steps.restore-full-cache.outputs.cache-primary-key }}
+        name: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
         path: "*.lock"
     - if: steps.restore-full-cache.outputs.cache-hit != 'true'
       name: Generate gemfiles
