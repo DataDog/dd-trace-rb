@@ -47,7 +47,7 @@ namespace :dependency do
   desc "Install dependencies for #{AppraisalConversion.runtime_identifier}"
   task :install, [:frozen] do |t, args|
     frozen = args[:frozen] == 'frozen'
-    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern).sort
+    gemfiles = [''] + Dir.glob(AppraisalConversion.gemfile_pattern).sort
     total = gemfiles.size
 
     # Add Linux platforms for CI compatibility (skip for JRuby and frozen mode)
@@ -78,7 +78,7 @@ namespace :dependency do
     require 'set'
     require 'open3'
 
-    gemfiles = ['Gemfile'] + Dir.glob(AppraisalConversion.gemfile_pattern)
+    gemfiles = [''] + Dir.glob(AppraisalConversion.gemfile_pattern)
 
     puts "Checking #{gemfiles.size} gemfiles for stale gems..."
 
