@@ -8,7 +8,7 @@ outputs:
     value: ${{ steps.generate.outputs.cache-primary-key }}
   cache-secondary-key:
     description: 'Cache key for this version of Ruby+Bundler'
-    value: ${{ steps.cache-key.outputs.cache-secondary-key }}
+    value: ${{ steps.generate.outputs.cache-secondary-key }}
 
 runs:
   using: composite
