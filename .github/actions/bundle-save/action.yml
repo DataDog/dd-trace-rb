@@ -1,30 +1,17 @@
 name: 'Save installed gems to the bundle cache'
 
-description: 'Sets up bundle cache for GitHub Actions'
+description: 'Saves bundle cache for GitHub Actions'
 
-outputs:
+inputs:
   cache-key:
-    description: 'Cache key for the bundle'
-    value: ${{ steps.save-cache.outputs.cache-primary-key }}
+    description: 'Cache key from bundle-restore'
+    required: true
 
 runs:
   using: "composite"
   steps:
-    - name: Generate unique Ruby environment key
-      id: ruby-env-id
-      shell: bash
-      run: |
-        id="$(ruby -e 'puts RUBY_DESCRIPTION')-$(bundle --version)" # Includes patchlevel, os, and arch
-        echo "id=$id" >> "$GITHUB_OUTPUT"
     - name: Save cache
       uses: actions/cache/save@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       with:
-        key: >-
-          bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles(
-            '.github/actions/bundle-cache/action.yml',
-            'Gemfile*.lock',
-            'gemfiles/*.gemfile.lock',
-            'tasks/github.rake',
-            'tasks/appraisal_conversion.rb'
-          ) }}
+        key: ${{ inputs.cache-key }}
         path: "/usr/local/bundle"

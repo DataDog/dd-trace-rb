@@ -99,27 +99,6 @@ namespace :github do
     end
   end
 
-  # Install all gemfiles for this Ruby version so they can be cached in CI.
-  task :install_all_gemfiles do
-    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern).sort
-    total = gemfiles.size
-
-    gemfiles.each_with_index do |gemfile, index|
-      puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}"
-
-      env = {'BUNDLE_GEMFILE' => gemfile, 'BUNDLE_FROZEN' => 'true'}
-      cmd = 'bundle check || bundle install'
-
-      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      with_retry do
-        Bundler.with_unbundled_env { sh(env, cmd) }
-      end
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
-
-      puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}: Finished in #{elapsed.round(1)}s"
-    end
-  end
-
   task :run_batch_build do
     tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
 
@@ -136,7 +115,7 @@ namespace :github do
       #
       # https://github.com/jruby/jruby/issues/7508
       # https://github.com/jruby/jruby/issues/3656
-      with_retry do
+      AppraisalConversion.with_retry do
         Bundler.with_unbundled_env { sh(env, cmd) }
       end
     end
@@ -152,22 +131,6 @@ namespace :github do
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
       Bundler.with_unbundled_env { sh(env, cmd) }
-    end
-  end
-
-  def with_retry(&block)
-    retries = 0
-    begin
-      yield
-    rescue => e
-      rake_output_message(
-        "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
-        Source:\n#{Array(e.backtrace).join("\n")}"
-      )
-      sleep(2**retries)
-      retries += 1
-      retry if retries < 3
-      raise
     end
   end
 end

@@ -6,6 +6,9 @@ outputs:
   cache-hit:
     description: 'Was the cache present?'
     value: ${{ steps.restore-cache.outputs.cache-hit }}
+  cache-primary-key:
+    description: 'Cache key for the bundle (use with bundle-save)'
+    value: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
 runs:
   using: composite
@@ -22,10 +25,11 @@ runs:
     with:
       key: >-
         bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles(
-          '.github/actions/bundle-cache/action.yml',
+          '.github/actions/bundle-restore/action.yml',
           'Gemfile*.lock',
           'gemfiles/*.gemfile.lock',
           'tasks/github.rake',
+          'tasks/dependency.rake',
           'tasks/appraisal_conversion.rb'
         ) }}
       path: "/usr/local/bundle"

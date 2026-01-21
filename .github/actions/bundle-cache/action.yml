@@ -42,7 +42,7 @@ runs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Install all gemfiles/ for this Ruby version
       shell: bash
-      run: bundle exec rake github:install_all_gemfiles
+      run: bundle exec rake dependency:install[frozen]
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Check for stale gems (dry-run)
       shell: bash
@@ -50,4 +50,5 @@ runs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Save cache
       uses: ./.github/actions/bundle-save
-
+      with:
+        cache-key: ${{ steps.restore-cache.outputs.cache-primary-key }}

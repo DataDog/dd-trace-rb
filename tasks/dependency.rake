@@ -40,18 +40,33 @@ namespace :dependency do
   # Generates lockfiles and runs dependencies gemspecs.
   # `bundle install` is used instead of `bundle lock` because
   # it checks each gem's gemspec requirements (e.g. required_ruby_version, required_rubygems_version).
+  #
+  # Usage:
+  #   rake dependency:install          # Install all gemfiles
+  #   rake dependency:install[frozen]  # Install with BUNDLE_FROZEN=true (for CI cache)
   desc "Install dependencies for #{AppraisalConversion.runtime_identifier}"
-  task :install do |t, args|
-    pattern = args.extras.any? ? args.extras : AppraisalConversion.gemfile_pattern
+  task :install, [:frozen] do |t, args|
+    frozen = args[:frozen] == 'frozen'
+    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern).sort
+    total = gemfiles.size
 
-    gemfiles = Dir.glob(pattern)
+    gemfiles.each_with_index do |gemfile, index|
+      puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}"
 
-    gemfiles.each do |gemfile|
-      Bundler.with_unbundled_env do
-        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, 'bundle install')
+      env = {'BUNDLE_GEMFILE' => gemfile}
+      env['BUNDLE_FROZEN'] = 'true' if frozen
+      cmd = frozen ? 'bundle check || bundle install' : 'bundle install'
+
+      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      AppraisalConversion.with_retry do
+        Bundler.with_unbundled_env { sh(env, cmd) }
       end
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
+
+      puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}: Finished in #{elapsed.round(1)}s"
     end
   end
+
 
   desc "Show gems not needed by any Gemfile for this Ruby version (dry-run)"
   task :clean_unused_gems do
