@@ -273,7 +273,6 @@ static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE re
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
 static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
-static VALUE _native_has_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -311,7 +310,6 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_benchmark_intern", _native_benchmark_intern, 4);
   rb_define_singleton_method(testing_module, "_native_test_managed_string_storage_produces_valid_profiles", _native_test_managed_string_storage_produces_valid_profiles, 0);
   rb_define_singleton_method(testing_module, "_native_finalize_pending_heap_recordings", _native_finalize_pending_heap_recordings, 1);
-  rb_define_singleton_method(testing_module, "_native_has_pending_heap_recordings?", _native_has_pending_heap_recordings, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -1176,15 +1174,4 @@ static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self
   #endif
 
   return Qtrue;
-}
-
-static VALUE _native_has_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-  stack_recorder_state *state;
-  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
-  return heap_recorder_has_pending_recordings(state->heap_recorder) ? Qtrue : Qfalse;
-  #else
-  (void) recorder_instance;
-  return Qfalse;
-  #endif
 }

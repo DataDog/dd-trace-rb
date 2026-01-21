@@ -700,9 +700,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
-        describe "pending heap recordings cleanup" do
+        describe "pending heap recordings cleanup", ruby: ">= 4" do
           def has_pending_recordings?
-            described_class::Testing.send(:_native_has_pending_heap_recordings?, stack_recorder)
+            described_class::Testing._native_debug_heap_recorder(stack_recorder).to_h.dig(:state, :pending_recordings_count) > 0
           end
 
           def track_object_without_finalize(obj)
@@ -712,8 +712,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
 
           it "clears pending recordings after finalization" do
-            skip "Only applies to Ruby 4+ with deferred heap allocation recording" if RUBY_VERSION < "4"
-
             test_object = Object.new
 
             track_object_without_finalize(test_object)
@@ -725,9 +723,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(has_pending_recordings?).to be false
           end
 
-          it "clears pending recordings after multiple allocations" do
-            skip "Only applies to Ruby 4+ with deferred heap allocation recording" if RUBY_VERSION < "4"
-
+          it "clears all pending recordings after multiple allocations" do
             3.times do
               test_object = Object.new
               track_object_without_finalize(test_object)

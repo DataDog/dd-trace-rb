@@ -147,11 +147,11 @@ struct heap_recorder {
   // On Ruby 4+, we can't call rb_obj_id during the newobj event, so we store the
   // VALUE reference here and finalize it via a postponed job.
   pending_recording pending_recordings[MAX_PENDING_RECORDINGS];
-  uint pending_recordings_count;
   // Temporary storage for the recording in progress, used between start and end
   VALUE active_deferred_object;
   live_object_data active_deferred_object_data;
   #endif
+  uint16_t pending_recordings_count;
 
   // Reusable arrays, implementing a flyweight pattern for things like iteration
   #define REUSABLE_LOCATIONS_SIZE MAX_FRAMES_LIMIT
@@ -479,13 +479,6 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
 }
 
 #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-bool heap_recorder_has_pending_recordings(heap_recorder *heap_recorder) {
-  if (heap_recorder == NULL) {
-    return false;
-  }
-  return heap_recorder->pending_recordings_count > 0;
-}
-
 bool heap_recorder_pending_buffer_pressure(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     return false;
@@ -700,6 +693,7 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
   VALUE arguments[] = {
     ID2SYM(rb_intern("num_object_records")), /* => */ ULONG2NUM(heap_recorder->object_records->num_entries),
     ID2SYM(rb_intern("num_heap_records")),   /* => */ ULONG2NUM(heap_recorder->heap_records->num_entries),
+    ID2SYM(rb_intern("pending_recordings_count")), /* => */ ULONG2NUM(heap_recorder->pending_recordings_count),
 
     // Stats as of last update
     ID2SYM(rb_intern("last_update_objects_alive")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_alive),
@@ -744,8 +738,8 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
   st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) &context);
 
   return rb_ary_new_from_args(2,
-    rb_ary_new_from_args(2, rb_str_new2("object records"), debug_str),
-    rb_ary_new_from_args(2, rb_str_new2("state"), heap_recorder_state_snapshot(heap_recorder))
+    rb_ary_new_from_args(2, ID2SYM(rb_intern("records")), debug_str),
+    rb_ary_new_from_args(2, ID2SYM(rb_intern("state")), heap_recorder_state_snapshot(heap_recorder))
   );
 }
 
