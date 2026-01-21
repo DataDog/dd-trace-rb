@@ -698,20 +698,20 @@ bool heap_recorder_for_each_live_object(
 
 VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
   VALUE arguments[] = {
-    ID2SYM(rb_intern("num_object_records")), /* => */ LONG2NUM(heap_recorder->object_records->num_entries),
-    ID2SYM(rb_intern("num_heap_records")),   /* => */ LONG2NUM(heap_recorder->heap_records->num_entries),
+    ID2SYM(rb_intern("num_object_records")), /* => */ ULONG2NUM(heap_recorder->object_records->num_entries),
+    ID2SYM(rb_intern("num_heap_records")),   /* => */ ULONG2NUM(heap_recorder->heap_records->num_entries),
 
     // Stats as of last update
-    ID2SYM(rb_intern("last_update_objects_alive")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_alive),
-    ID2SYM(rb_intern("last_update_objects_dead")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_dead),
-    ID2SYM(rb_intern("last_update_objects_skipped")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_skipped),
-    ID2SYM(rb_intern("last_update_objects_frozen")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_frozen),
+    ID2SYM(rb_intern("last_update_objects_alive")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_alive),
+    ID2SYM(rb_intern("last_update_objects_dead")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_dead),
+    ID2SYM(rb_intern("last_update_objects_skipped")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_skipped),
+    ID2SYM(rb_intern("last_update_objects_frozen")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_frozen),
 
     // Lifetime stats
-    ID2SYM(rb_intern("lifetime_updates_successful")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_successful),
-    ID2SYM(rb_intern("lifetime_updates_skipped_concurrent")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_concurrent),
-    ID2SYM(rb_intern("lifetime_updates_skipped_gcgen")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_gcgen),
-    ID2SYM(rb_intern("lifetime_updates_skipped_time")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_time),
+    ID2SYM(rb_intern("lifetime_updates_successful")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_successful),
+    ID2SYM(rb_intern("lifetime_updates_skipped_concurrent")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_skipped_concurrent),
+    ID2SYM(rb_intern("lifetime_updates_skipped_gcgen")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_skipped_gcgen),
+    ID2SYM(rb_intern("lifetime_updates_skipped_time")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_skipped_time),
     ID2SYM(rb_intern("lifetime_ewma_young_objects_alive")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_young_objects_alive),
     ID2SYM(rb_intern("lifetime_ewma_young_objects_dead")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_young_objects_dead),
       // Note: Here "young" refers to the young update; objects skipped includes non-young objects
@@ -720,8 +720,8 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
     ID2SYM(rb_intern("lifetime_ewma_objects_dead")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_dead),
     ID2SYM(rb_intern("lifetime_ewma_objects_skipped")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_skipped),
 
-    ID2SYM(rb_intern("lifetime_deferred_recordings_skipped_buffer_full")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full),
-    ID2SYM(rb_intern("lifetime_deferred_recordings_finalized")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_finalized),
+    ID2SYM(rb_intern("lifetime_deferred_recordings_skipped_buffer_full")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full),
+    ID2SYM(rb_intern("lifetime_deferred_recordings_finalized")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_finalized),
   };
   VALUE hash = rb_hash_new();
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
