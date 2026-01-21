@@ -491,14 +491,14 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
 }
 
 #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
+void heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
-    return true; // Nothing to do, no error
+    return; // Nothing to do
   }
 
   uint count = heap_recorder->pending_recordings_count;
   if (count == 0) {
-    return true; // Nothing to do, no error
+    return; // Nothing to do
   }
 
   heap_recorder->stats_lifetime.deferred_recordings_finalized += count;
@@ -510,9 +510,9 @@ bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
     VALUE ruby_obj_id = rb_obj_id(obj);
     if (!FIXNUM_P(ruby_obj_id)) {
       // Bignum object ids indicate the fixnum range is exhausted - all future IDs will also be bignums.
-      // Heap profiling cannot continue. Clear pending recordings and signal fatal error.
+      // Heap profiling cannot continue. Clear pending recordings and raise a fatal error.
       heap_recorder->pending_recordings_count = 0;
-      return false; // Fatal error - caller should disable heap profiling
+      raise_error(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
     }
 
     long obj_id = FIX2LONG(ruby_obj_id);
@@ -530,7 +530,6 @@ bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
   }
 
   heap_recorder->pending_recordings_count = 0;
-  return true; // Success
 }
 
 // Mark pending recordings to prevent GC from collecting the objects

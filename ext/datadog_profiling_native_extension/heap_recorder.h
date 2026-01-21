@@ -128,9 +128,8 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
 #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
 // Finalize any pending heap allocation recordings by getting their object IDs.
 // This should be called via a postponed job, after the on_newobj_event has completed.
-// Returns true on success, false if a fatal error occurred (e.g., bignum object ID detected)
-// and heap profiling should be disabled.
-bool heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder);
+// Raises an exception if a fatal error occurs (e.g., bignum object ID detected).
+void heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder);
 
 // Mark pending recordings to prevent GC from collecting the objects
 // while they're waiting for the recordings to be finalized.

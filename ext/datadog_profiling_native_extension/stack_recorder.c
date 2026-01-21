@@ -710,9 +710,7 @@ void recorder_after_sample(VALUE recorder_instance) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
-  if (!heap_recorder_finalize_pending_recordings(state->heap_recorder)) {
-    raise_error(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
-  }
+  heap_recorder_finalize_pending_recordings(state->heap_recorder);
 }
 
 #define MAX_LEN_HEAP_ITERATION_ERROR_MSG 256
