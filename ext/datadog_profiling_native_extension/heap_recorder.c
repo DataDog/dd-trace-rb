@@ -739,13 +739,14 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
     raise_error(rb_eArgError, "heap_recorder is NULL");
   }
 
-  VALUE debug_str = rb_str_new2("object records:\n");
+  VALUE debug_str = rb_str_new2("");
   debug_context context = (debug_context) {.recorder = heap_recorder, .debug_str = debug_str};
   st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) &context);
 
-  rb_str_catf(debug_str, "state snapshot: %"PRIsVALUE"\n------\n", heap_recorder_state_snapshot(heap_recorder));
-
-  return debug_str;
+  return rb_ary_new_from_args(2,
+    rb_ary_new_from_args(2, rb_str_new2("object records"), debug_str),
+    rb_ary_new_from_args(2, rb_str_new2("state"), heap_recorder_state_snapshot(heap_recorder))
+  );
 }
 
 // ==========================

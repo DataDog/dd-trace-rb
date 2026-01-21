@@ -876,8 +876,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         if example.exception
           cpu_and_wall_time_worker.stop
 
-          puts("Heap recorder debugging info:")
-          puts(Datadog::Profiling::StackRecorder::Testing._native_debug_heap_recorder(recorder))
+          puts("Heap recorder debugging info: #{Datadog::Profiling::StackRecorder::Testing._native_debug_heap_recorder(recorder).inspect}")
         end
       end
 

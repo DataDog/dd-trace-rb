@@ -453,8 +453,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # This is here to facilitate troubleshooting when this test fails. Otherwise
         # it's very hard to understand what may be happening.
         if example.exception
-          puts("Heap recorder debugging info:")
-          puts(described_class::Testing._native_debug_heap_recorder(stack_recorder))
+          puts("Heap recorder debugging info: #{described_class::Testing._native_debug_heap_recorder(stack_recorder).inspect}")
         end
       end
 
@@ -1042,8 +1041,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # This is here to facilitate troubleshooting when this test fails. Otherwise
         # it's very hard to understand what may be happening.
         if example.exception
-          puts("Heap recorder debugging info:")
-          puts(described_class::Testing._native_debug_heap_recorder(stack_recorder))
+          puts("Heap recorder debugging info: #{described_class::Testing._native_debug_heap_recorder(stack_recorder).inspect}")
         end
       end
 
