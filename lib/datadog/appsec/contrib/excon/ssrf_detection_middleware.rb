@@ -39,10 +39,16 @@ module Datadog
             context = AppSec.active_context
             return super unless context && AppSec.rasp_enabled?
 
+            headers = normalize_headers(data.dig(:response, :headers))
             ephemeral_data = {
               'server.io.net.response.status' => data.dig(:response, :status).to_s,
-              'server.io.net.response.headers' => normalize_headers(data.dig(:response, :headers))
+              'server.io.net.response.headers' => headers
             }
+
+            if Utils::HTTP::MediaType.json?(headers['content-type'])
+              body = parse_body(data.dig(:response, :body))
+              ephemeral_data['server.io.net.response.body'] = body if body
+            end
 
             timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
