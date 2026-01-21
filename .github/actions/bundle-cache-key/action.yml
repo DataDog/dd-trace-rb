@@ -1,0 +1,32 @@
+name: 'Generate bundle cache key'
+
+description: 'Generates a cache key for bundle based on Ruby version and lockfiles'
+
+outputs:
+  cache-key:
+    description: 'Cache key for the bundle'
+    value: >-
+      bundle-${{ steps.ruby-env-id.outputs.id }}-${{ steps.hash.outputs.hash }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate Ruby environment ID
+      id: ruby-env-id
+      shell: bash
+      run: |
+        id="$(ruby -e 'puts RUBY_DESCRIPTION')-$(bundle --version)"
+        echo "id=$id" >> "$GITHUB_OUTPUT"
+    - name: Generate files hash
+      id: hash
+      shell: bash
+      run: |
+        hash="${{ hashFiles(
+          '.github/actions/bundle-cache-key/action.yml',
+          'Gemfile*.lock',
+          'gemfiles/*.gemfile.lock',
+          'tasks/github.rake',
+          'tasks/dependency.rake',
+          'tasks/appraisal_conversion.rb'
+        ) }}"
+        echo "hash=$hash" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,17 @@
+name: 'Save installed gems to the bundle cache'
+
+description: 'Saves bundle cache for GitHub Actions'
+
+inputs:
+  cache-key:
+    description: 'Cache key from bundle-restore'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Save cache
+      uses: actions/cache/save@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
+      with:
+        key: ${{ inputs.cache-key }}
+        path: "/usr/local/bundle"

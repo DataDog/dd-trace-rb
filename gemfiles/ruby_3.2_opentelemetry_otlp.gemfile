@@ -2,6 +2,8 @@
 
 source "https://rubygems.org"
 
+ruby "~> 3.2"
+
 gem "benchmark-ips", "~> 2.8"
 gem "benchmark-memory", "< 0.2"
 gem "climate_control", "~> 1.2.0"
