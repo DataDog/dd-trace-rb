@@ -35,9 +35,6 @@ target :datadog do
 
   # Excluded due to https://github.com/soutaro/steep/issues/1232
   ignore 'lib/datadog/appsec/configuration/settings.rb'
-  ignore 'lib/datadog/appsec/contrib/active_record/instrumentation.rb'
-  ignore 'lib/datadog/appsec/contrib/active_record/integration.rb'
-  ignore 'lib/datadog/appsec/contrib/active_record/patcher.rb'
   ignore 'lib/datadog/appsec/contrib/auto_instrument.rb'
   ignore 'lib/datadog/appsec/contrib/devise/configuration.rb'
   ignore 'lib/datadog/appsec/contrib/devise/data_extractor.rb'
