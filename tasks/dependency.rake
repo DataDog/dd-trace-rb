@@ -63,8 +63,7 @@ namespace :dependency do
         Bundler.with_unbundled_env do
           sh(env, 'bundle lock --add-platform x86_64-linux aarch64-linux') if add_platforms
           env['BUNDLE_FROZEN'] = 'true' if frozen
-          cmd = frozen ? 'bundle check || bundle install' : 'bundle install'
-          sh(env, cmd)
+          sh(env, 'bundle install')
         end
       end
       elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
