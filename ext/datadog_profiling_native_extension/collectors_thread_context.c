@@ -8,6 +8,7 @@
 #include "helpers.h"
 #include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
+#include "ruby/internal/special_consts.h"
 #include "ruby_helpers.h"
 #include "stack_recorder.h"
 #include "time_helpers.h"
@@ -1569,8 +1570,6 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
   }
 
   bool needs_after_allocation = track_object(state->recorder_instance, new_object, sample_weight, class_name);
-  // # TODO: wire up
-  (void) needs_after_allocation;
 
   per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
 
@@ -1597,13 +1596,12 @@ static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collecto
   debug_enter_unsafe_context();
 
   bool needs_after_allocation = thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight), new_object);
-  if (needs_after_allocation) {
-    // TODO
-  }
 
   debug_leave_unsafe_context();
 
-  return Qtrue;
+  // We could instead choose to automatically trigger the after allocation here; yet, it seems kinda nice to keep it manual for
+  // the tests so we can pull on each lever separately and observe "the sausage being made" in steps
+  return needs_after_allocation ? Qtrue : Qfalse;
 }
 
 static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) { return Qnil; }

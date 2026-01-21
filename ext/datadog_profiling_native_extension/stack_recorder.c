@@ -403,12 +403,9 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
 }
 
 static void stack_recorder_typed_data_mark(void *state_ptr) {
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
+
   heap_recorder_mark_pending_recordings(state->heap_recorder);
-  #else
-  (void) state_ptr;
-  #endif
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
