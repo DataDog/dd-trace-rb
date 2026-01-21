@@ -58,7 +58,7 @@ namespace :dependency do
     require 'set'
     require 'open3'
 
-    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern)
+    gemfiles = ['Gemfile'] + Dir.glob(AppraisalConversion.gemfile_pattern)
 
     puts "Checking #{gemfiles.size} gemfiles for stale gems..."
 
