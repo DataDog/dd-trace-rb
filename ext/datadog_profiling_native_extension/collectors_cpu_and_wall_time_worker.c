@@ -230,6 +230,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
 static void disable_tracepoints(cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
+static VALUE rescued_after_allocation(VALUE self_instance);
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error);
 static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
@@ -244,6 +245,7 @@ static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE 
 static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception);
+static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
@@ -1323,9 +1325,7 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
     thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, skipped_samples);
   }
 
-  if (needs_after_allocation) {
-    rb_postponed_job_trigger(after_allocation_from_postponed_job_handle);
-  }
+  if (needs_after_allocation) rb_postponed_job_trigger(after_allocation_from_postponed_job_handle);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
@@ -1478,8 +1478,23 @@ static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instan
   return Qnil;
 }
 
+static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "rescued_after_allocation");
+  return Qnil;
+}
+
 static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception) {
   stop(self_instance, exception, "rescued_after_gvl_running_from_postponed_job");
+  return Qnil;
+}
+
+static VALUE rescued_after_allocation(VALUE self_instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  thread_context_collector_after_allocation(state->thread_context_collector_instance);
+
+  // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
 }
 
@@ -1505,12 +1520,12 @@ static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   // NOTE: We're not updating discrete_dynamic_sampler_before_sample/after_sample here.
   // This means work done in this function isn't accounted for as profiler overhead.
   // This is acceptable as the amount of work done here is expected to be small.
-  bool success = thread_context_collector_after_allocation(state->thread_context_collector_instance);
-
-  if (!success) {
-    // Fatal error (e.g., bignum object ID detected) - stop the profiler
-    delayed_error(state, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
-  }
+  safely_call(
+    rescued_after_allocation,
+    state->self_instance,
+    state->self_instance,
+    handle_sampling_failure_rescued_after_allocation
+  );
 
   during_sample_exit(state);
   #endif

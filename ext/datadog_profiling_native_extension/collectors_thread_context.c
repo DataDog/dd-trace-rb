@@ -1343,15 +1343,16 @@ VALUE enforce_thread_context_collector_instance(VALUE object) {
 // Finalize any pending heap allocation recordings.
 // On Ruby 4+, heap allocations are recorded in two phases: during on_newobj_event we capture
 // the object reference, then later we safely call rb_obj_id() to get the object ID.
-// Returns true on success, false if a fatal error occurred and heap profiling should be disabled.
-bool thread_context_collector_after_allocation(VALUE self_instance) {
+void thread_context_collector_after_allocation(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
   heap_recorder *recorder = get_heap_recorder_from_stack_recorder(state->recorder_instance);
   if (recorder == NULL) {
-    return true; // Nothing to do, no error
+    return;
   }
-  return heap_recorder_finalize_pending_recordings(recorder);
+  if (!heap_recorder_finalize_pending_recordings(recorder)) {
+    rb_raise(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
+  }
 }
 
 bool thread_context_collector_heap_pending_buffer_pressure(VALUE self_instance) {
