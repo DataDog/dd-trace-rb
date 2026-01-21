@@ -327,7 +327,6 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   heap_recorder->stats_lifetime = (struct stats_lifetime) {0};
 }
 
-
 void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class) {
   if (heap_recorder == NULL) {
     return;
@@ -357,11 +356,6 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   // Skip if we've hit the pending recordings limit or if there's already a deferred object being recorded
   if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
     heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full++;
-    heap_recorder->active_recording = &SKIPPED_RECORD;
-    return;
-  }
-  if (heap_recorder->active_deferred_object != Qnil) {
-    // Nested allocation during recording - shouldn't happen but skip gracefully
     heap_recorder->active_recording = &SKIPPED_RECORD;
     return;
   }
