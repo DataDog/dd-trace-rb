@@ -3,11 +3,13 @@ module Datadog
     module Contrib
       module Faraday
         class SSRFDetectionMiddleware < ::Faraday::Middleware
-          def call: (untyped env) -> void
+          def call: (untyped env) -> untyped
 
           private
 
-          attr_reader app: untyped
+          def on_complete: (untyped env, context: Context) -> void
+
+          def handle: (SecurityEngine::result result, context: Context) -> void
         end
       end
     end

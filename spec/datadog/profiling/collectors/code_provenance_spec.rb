@@ -15,6 +15,11 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
     JSON.parse(code_provenance.generate_json, symbolize_names: true).fetch(:v1)
   end
 
+  let(:expected_platform_fragment) do
+    platform_fragment = RUBY_PLATFORM
+    platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
+  end
+
   describe "#refresh" do
     subject(:refresh) { code_provenance.refresh }
 
@@ -34,7 +39,9 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           version: Datadog::VERSION::STRING,
           paths: contain_exactly(
             start_with("/"),
-            include("extensions").and(include(RUBY_PLATFORM)),
+            satisfy do |path|
+              path.include?("extensions") && path.include?(expected_platform_fragment)
+            end,
             "#{Gem.bindir}/ddprofrb",
             "#{Bundler.bin_path}/ddprofrb",
           ),
@@ -58,7 +65,9 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           version: MessagePack::VERSION,
           paths: contain_exactly(
             satisfy { |it| it.start_with?(Gem.dir) && !it.include?("extensions") },
-            include("extensions").and(include(RUBY_PLATFORM)),
+            satisfy do |path|
+              path.include?("extensions") && path.include?(expected_platform_fragment)
+            end,
           ),
         }
       )

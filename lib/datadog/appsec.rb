@@ -22,8 +22,14 @@ module Datadog
         Datadog::AppSec::Context.active
       end
 
+      # NOTE:  This is a temporary workaround for type checking.
+      #
+      #        We want to move from possible nil-component to the disabled-component
+      #        on an initialization error. Technically, telemetry will be never
+      #        used if AppSec was not able to initialize, so it's safe to assume
+      #        that telemetry will never be used and will be nil at the same time.
       def telemetry
-        components.appsec&.telemetry
+        components.appsec&.telemetry || components.telemetry
       end
 
       def security_engine

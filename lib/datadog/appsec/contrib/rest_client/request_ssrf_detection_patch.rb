@@ -11,29 +11,65 @@ module Datadog
         # Module that adds SSRF detection to RestClient::Request#execute
         module RequestSSRFDetectionPatch
           def execute(&block)
-            return super unless AppSec.rasp_enabled? && AppSec.active_context
-
             context = AppSec.active_context
+            return super unless context && AppSec.rasp_enabled?
 
-            ephemeral_data = {'server.io.net.url' => url}
-            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, Datadog.configuration.appsec.waf_timeout)
+            timeout = Datadog.configuration.appsec.waf_timeout
+            ephemeral_data = {
+              'server.io.net.url' => url,
+              'server.io.net.request.method' => method.to_s.upcase,
+              'server.io.net.request.headers' => normalize_request_headers
+            }
 
-            if result.match?
-              AppSec::Event.tag(context, result)
-              TraceKeeper.keep!(context.trace) if result.keep?
+            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
+            handle(result, context: context) if result.match?
 
-              context.events.push(
-                AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-              )
+            response = super
 
-              AppSec::ActionsHandler.handle(result.actions)
-            end
+            ephemeral_data = {
+              'server.io.net.response.status' => response.code.to_s,
+              'server.io.net.response.headers' => normalize_response_headers(response)
+            }
 
-            super
+            result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
+            handle(result, context: context) if result.match?
+
+            response
+          end
+
+          private
+
+          # NOTE: Starting version 2.1.0 headers are already normalized via internal
+          #       variable `@processed_headers_lowercase`. In case it's available,
+          #       we use it to avoid unnecessary transformation.
+          def normalize_request_headers
+            return @processed_headers_lowercase if defined?(@processed_headers_lowercase)
+
+            processed_headers.transform_keys(&:downcase)
+          end
+
+          # NOTE: Headers values are always an `Array` in `Net::HTTPResponse`,
+          #       but we want to avoid accidents and will wrap them in no-op
+          #       `Array` call just in case of a breaking change in the future
+          #
+          # FIXME: Steep has issues with `transform_values!` modifying the original
+          #        type and it failed with "Cannot allow block body" error
+          def normalize_response_headers(response) # steep:ignore MethodBodyTypeMismatch
+            response.net_http_res.to_hash.transform_values! { |value| Array(value).join(', ') } # steep:ignore BlockBodyTypeMismatch
+          end
+
+          def handle(result, context:)
+            AppSec::Event.tag(context, result)
+            TraceKeeper.keep!(context.trace) if result.keep?
+
+            context.events.push(
+              AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+            )
+
+            AppSec::ActionsHandler.handle(result.actions)
           end
         end
       end
     end
   end
 end
-# rubocop:enable Naming/FileName

@@ -45,6 +45,7 @@ module Datadog
       def self.valid_overhead_target: (::Float overhead_target_percentage, Datadog::Core::Logger logger) -> ::Float
       def self.looks_like_mariadb?: ({ header_version: ::String?, version: ::String }, ::Gem::Version) -> bool
       def self.dir_interruption_workaround_enabled?: (untyped settings, bool no_signals_workaround_enabled) -> bool
+      def self.can_apply_exec_monkey_patch?: (untyped settings) -> bool
       def self.enable_gvl_profiling?: (untyped settings, Datadog::Core::Logger logger) -> bool
     end
   end

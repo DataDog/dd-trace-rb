@@ -71,7 +71,7 @@ static void install_sigprof_signal_handler_internal(
       );
     }
 
-    rb_raise(
+    raise_error(
       rb_eRuntimeError,
       "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler",
       handler_pretty_name
@@ -95,8 +95,14 @@ static inline void toggle_sigprof_signal_handler_for_current_thread(int action) 
   sigset_t signals_to_toggle;
   sigemptyset(&signals_to_toggle);
   sigaddset(&signals_to_toggle, SIGPROF);
+
   int error = pthread_sigmask(action, &signals_to_toggle, NULL);
-  if (error) rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action)));
+  if (error) {
+    const char *message = (action == SIG_BLOCK) ?
+      "Unexpected failure in pthread_sigmask: action SIG_BLOCK" :
+      "Unexpected failure in pthread_sigmask: action SIG_UNBLOCK";
+    private_raise_syserr(error, message, message);
+  }
 }
 
 void block_sigprof_signal_handler_from_running_in_current_thread(void) {

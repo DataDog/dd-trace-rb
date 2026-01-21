@@ -78,7 +78,7 @@ module Datadog
       end
 
       def reconfigure!
-        security_engine.reconfigure!
+        security_engine&.reconfigure!
       end
 
       def shutdown!

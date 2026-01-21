@@ -679,7 +679,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect do
               Datadog::Profiling::Collectors::Stack::Testing
                 ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
-            end.to raise_error(RuntimeError, /Ended a heap recording/)
+            end.to raise_error(::RuntimeError, include("Ended a heap recording"))
           end
 
           it "does not keep the active slot mutex locked" do

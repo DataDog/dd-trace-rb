@@ -11,7 +11,7 @@ end
 
 class Gem::BasicSpecification
   def platform: () -> Gem::Platform
-  def version: () -> String
+  def version: () -> Gem::Version
   def name: () -> String
   def gem_dir: () -> String
   def extension_dir: () -> String

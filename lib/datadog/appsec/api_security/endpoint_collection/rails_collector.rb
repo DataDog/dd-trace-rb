@@ -19,7 +19,14 @@ module Datadog
             Enumerator.new do |yielder|
               @routes.each do |route|
                 if route.dispatcher?
-                  yielder.yield RailsRouteSerializer.serialize(route)
+                  if route.verb.include?('|')
+                    # report separate route for each method for multi-method routes
+                    route.verb.split('|').each do |method|
+                      yielder.yield RailsRouteSerializer.serialize(route, method_override: method)
+                    end
+                  else
+                    yielder.yield RailsRouteSerializer.serialize(route)
+                  end
                 elsif mounted_grape_app?(route.app.rack_app)
                   route.app.rack_app.routes.each do |grape_route|
                     yielder.yield GrapeRouteSerializer.serialize(grape_route, path_prefix: route.path.spec.to_s)

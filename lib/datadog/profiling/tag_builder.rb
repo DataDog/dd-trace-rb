@@ -50,6 +50,7 @@ module Datadog
           FORM_FIELD_TAG_PROFILER_VERSION => profiler_version,
           'profile_seq' => profile_seq.to_s,
         )
+
         user_tag_keys = settings.tags.keys
         hash.keep_if { |tag| user_tag_keys.include?(tag) || ALLOWED_TAGS.include?(tag) }
         Core::Utils.encode_tags(hash)

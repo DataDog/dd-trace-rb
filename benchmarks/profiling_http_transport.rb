@@ -50,7 +50,7 @@ class ProfilerHttpTransportBenchmark
   end
 
   def flush
-    Datadog::Profiling::Flush.new(
+    params = {
       start: @flush_finish - 60,
       finish: @flush_finish,
       encoded_profile: @stack_recorder.serialize!,
@@ -59,7 +59,14 @@ class ProfilerHttpTransportBenchmark
       tags_as_array: [],
       internal_metadata: {no_signals_workaround_enabled: false},
       info_json: JSON.generate({profiler: {benchmarking: true}}),
-    )
+    }
+
+    # This was added as a workaround to allow https://github.com/DataDog/dd-trace-rb/pull/5072 to be merged
+    # Once that PR is merged, this can be cleaned up :)
+    flush_params = Datadog::Profiling::Flush.instance_method(:initialize).parameters
+    params[:process_tags] = '' if flush_params.any? { |_, name| name == :process_tags }
+
+    Datadog::Profiling::Flush.new(**params)
   end
 
   def start_fake_webserver

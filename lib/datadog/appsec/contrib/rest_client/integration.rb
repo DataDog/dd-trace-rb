@@ -28,7 +28,7 @@ module Datadog
           end
 
           def self.compatible?
-            super && version >= MINIMUM_VERSION
+            super && !!(version&.>= MINIMUM_VERSION)
           end
 
           def self.auto_instrument?

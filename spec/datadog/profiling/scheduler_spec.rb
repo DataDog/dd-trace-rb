@@ -254,7 +254,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     context "when the profiler was marked as failed" do
       before do
-        scheduler.mark_profiler_failed
+        scheduler.disable_reporting
         expect(exporter).to_not receive(:can_flush?)
       end
 
