@@ -12,6 +12,10 @@ inputs:
   cache-key:
     description: 'Cache key to restore (skips key generation)'
     required: false
+  lookup-only:
+    description: 'Only check if cache exists. Use for fast lookups.'
+    required: false
+    default: false
 
 outputs:
   cache-hit:
@@ -42,3 +46,4 @@ runs:
         path: "/usr/local/bundle"
         key: ${{ inputs.cache-key || steps.cache-key.outputs.cache-primary-key }}
         restore-keys: ${{ steps.cache-key.outputs.cache-secondary-key }}
+        lookup-only: ${{ inputs.lookup-only }}

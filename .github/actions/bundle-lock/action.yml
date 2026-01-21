@@ -39,16 +39,27 @@ runs:
       uses: ./.github/actions/bundle-save
       with:
         cache-key: ${{ steps.restore-base-cache.outputs.cache-primary-key }}
-    - name: Restore full cache
-      id: restore-full-cache
-      uses: ./.github/actions/bundle-restore
-      with:
-        namespace: full
     - name: Upload lockfile
       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
         path: "*.lock"
+    - name: Check if full cache exists, without downloading
+      id: restore-full-cache
+      uses: ./.github/actions/bundle-restore
+      with:
+        namespace: full
+        lookup-only: 'true'
+    # TODO: We really should restore previously cached gems right here, to speed up the
+    # TODO: full gem installation. Most of them are the same as the previous cache.
+    # TODO: But this requires cleaning up old versions of gems, otherwise
+    # TODO: the cache can grow indefinitely.
+    # TODO: We have a `dependency:clean_unused_gems` task to do that,
+    # TODO: but it's so slow for JRuby (7+ minutes) that it's faster to *not* restore a
+    # TODO: previous cache and install JRuby gems from scratch. CRuby cleans
+    # TODO: up old gems super fast (< 1 minute).
+    # TODO: And because CI won't go green unless the all tests pass,
+    # TODO: enabling this optimizations for the fast path won't help much.
     - if: steps.restore-full-cache.outputs.cache-hit != 'true'
       name: Generate gemfiles
       shell: bash
@@ -58,7 +69,7 @@ runs:
       shell: bash
       run: bundle exec rake dependency:install
     - if: steps.restore-full-cache.outputs.cache-hit != 'true'
-      name: Save cache
+      name: Save full cache
       uses: ./.github/actions/bundle-save
       with:
         cache-key: ${{ steps.restore-full-cache.outputs.cache-primary-key }}
