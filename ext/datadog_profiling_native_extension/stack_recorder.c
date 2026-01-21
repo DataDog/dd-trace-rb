@@ -706,13 +706,14 @@ void recorder_after_gc_step(VALUE recorder_instance) {
   if (state->heap_clean_after_gc_enabled) heap_recorder_update_young_objects(state->heap_recorder);
 }
 
-#ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-heap_recorder* get_heap_recorder_from_stack_recorder(VALUE recorder_instance) {
+void recorder_after_sample(VALUE recorder_instance) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
-  return state->heap_recorder;
+
+  if (!heap_recorder_finalize_pending_recordings(state->heap_recorder)) {
+    raise_error(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
+  }
 }
-#endif
 
 #define MAX_LEN_HEAP_ITERATION_ERROR_MSG 256
 

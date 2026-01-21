@@ -1339,22 +1339,15 @@ VALUE enforce_thread_context_collector_instance(VALUE object) {
   return object;
 }
 
-#ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
 // Finalize any pending heap allocation recordings.
 // On Ruby 4+, heap allocations are recorded in two phases: during on_newobj_event we capture
 // the object reference, then later we safely call rb_obj_id() to get the object ID.
 void thread_context_collector_after_allocation(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-  heap_recorder *recorder = get_heap_recorder_from_stack_recorder(state->recorder_instance);
-  if (recorder == NULL) {
-    return;
-  }
-  if (!heap_recorder_finalize_pending_recordings(recorder)) {
-    raise_error(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
-  }
+
+  recorder_after_sample(state->recorder_instance);
 }
-#endif
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
