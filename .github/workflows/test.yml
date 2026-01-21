@@ -250,7 +250,7 @@ jobs:
       - run: echo "DONE!"
 
   commit-gemfile-lock-updates:
-    name: Commit lockfile changes
+    name: Commit lockfile changes (if any)
     if: github.event_name == 'pull_request' && github.ref != 'refs/heads/master'
     needs:
       # ADD NEW RUBIES HERE
