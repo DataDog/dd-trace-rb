@@ -20,5 +20,5 @@ runs:
       uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
       id: restore-cache
       with:
-        key: ${{ steps.cache-key.outputs.cache-key }}
+        key: ${{ steps.cache-key.outputs.cache-primary-key }}
         path: "/usr/local/bundle"

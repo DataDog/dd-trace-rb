@@ -25,6 +25,9 @@ jobs:
           gem -v
           bundler -v
 
+      - name: Generate lockfile
+        run: bundle lock
+
       - name: Restore cache
         id: restore-cache
         uses: ./.github/actions/bundle-restore
