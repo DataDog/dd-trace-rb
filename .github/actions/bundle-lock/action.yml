@@ -1,0 +1,45 @@
+name: 'Generate and cache lockfiles'
+
+description: 'Generates lockfiles for all gemfiles, saves to cache, and uploads artifacts'
+
+inputs:
+  engine-name:
+    description: 'Ruby engine name (ruby or jruby)'
+    required: true
+  engine-version:
+    description: 'Ruby engine version'
+    required: true
+
+outputs:
+  cache-key:
+    description: 'Cache key for the bundle'
+    value: ${{ steps.cache-key.outputs.cache-primary-key }}
+  artifact-name:
+    description: 'Name of the uploaded lockfile artifact'
+    value: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install base Gemfile
+      shell: bash
+      run: bundle install
+    - name: Generate gemfiles
+      shell: bash
+      run: bundle exec rake dependency:generate
+    - name: Install all gemfiles
+      shell: bash
+      run: bundle exec rake dependency:install
+    - name: Generate cache key
+      id: cache-key
+      uses: ./.github/actions/bundle-cache-key
+    - name: Save cache
+      uses: ./.github/actions/bundle-save
+      with:
+        cache-key: ${{ steps.cache-key.outputs.cache-primary-key }}
+    - name: Upload lockfiles
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+        path: gemfiles/${{ inputs.engine-name }}_${{ inputs.engine-version }}*
+        retention-days: 1
