@@ -545,18 +545,10 @@ void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder) {
   }
 
   for (uint i = 0; i < heap_recorder->pending_recordings_count; i++) {
-    VALUE obj = heap_recorder->pending_recordings[i].object_ref;
-    // object_ref comes from an allocation tracepoint
-    if (obj == Qnil) {
-      rb_bug("heap_recorder: pending recording has Qnil object_ref - invariant violated");
-    }
-    rb_gc_mark(obj);
+    rb_gc_mark(heap_recorder->pending_recordings[i].object_ref);
   }
 
-  // Also mark the active deferred object if it's set
-  if (heap_recorder->active_deferred_object != Qnil) {
-    rb_gc_mark(heap_recorder->active_deferred_object);
-  }
+  rb_gc_mark(heap_recorder->active_deferred_object);
 }
 #endif
 
