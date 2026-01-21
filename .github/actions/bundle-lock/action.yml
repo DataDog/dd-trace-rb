@@ -60,7 +60,7 @@ runs:
     # TODO: up old gems super fast (< 1 minute).
     # TODO: And because CI won't go green unless the all tests pass,
     # TODO: enabling this optimizations for the fast path won't help much.
-    - if: steps.restore-base-cache.outputs.cache-hit == 'true'
+    - if: steps.restore-full-cache.outputs.cache-hit != 'true' && steps.restore-base-cache.outputs.cache-hit == 'true'
       name: Ensure there are no missing base gems (when loaded from cache)
       shell: bash
       run: bundle install
