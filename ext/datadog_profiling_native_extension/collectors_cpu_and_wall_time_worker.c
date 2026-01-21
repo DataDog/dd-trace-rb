@@ -1502,22 +1502,16 @@ static VALUE rescued_after_allocation(VALUE self_instance) {
 // During on_newobj_event, calling rb_obj_id() is unsafe because it mutates the object.
 // So we defer getting the object_id until after the event completes.
 static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
 
-  if (state == NULL) return;
+  if (state == NULL || !ddtrace_rb_ractor_main_p()) return;
 
-  if (!ddtrace_rb_ractor_main_p()) {
-    return;
-  }
-
-  // Protect against nested operations (e.g., if this function triggers an allocation or
-  // the VM decides to check for interrupts and calls back into us)
+  // Protect against nested operations
   if (state->during_sample) return;
 
   during_sample_enter(state);
 
-  // NOTE: We're not updating discrete_dynamic_sampler_before_sample/after_sample here.
+  // NOTE: We're not updating the allocation_sampler here.
   // This means work done in this function isn't accounted for as profiler overhead.
   // This is acceptable as the amount of work done here is expected to be small.
   safely_call(
@@ -1528,7 +1522,6 @@ static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   );
 
   during_sample_exit(state);
-  #endif
 }
 
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {
