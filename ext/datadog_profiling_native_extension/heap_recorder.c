@@ -187,10 +187,8 @@ struct heap_recorder {
     double ewma_objects_dead;
     double ewma_objects_skipped;
 
-    #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
     unsigned long deferred_recordings_skipped_buffer_full;
     unsigned long deferred_recordings_finalized;
-    #endif
   } stats_lifetime;
 };
 
@@ -721,17 +719,12 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
     ID2SYM(rb_intern("lifetime_ewma_objects_alive")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_alive),
     ID2SYM(rb_intern("lifetime_ewma_objects_dead")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_dead),
     ID2SYM(rb_intern("lifetime_ewma_objects_skipped")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_skipped),
+
+    ID2SYM(rb_intern("lifetime_deferred_recordings_skipped_buffer_full")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full),
+    ID2SYM(rb_intern("lifetime_deferred_recordings_finalized")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_finalized),
   };
   VALUE hash = rb_hash_new();
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
-
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-  // Deferred recording stats (Ruby 4.x only)
-  rb_hash_aset(hash, ID2SYM(rb_intern("lifetime_deferred_recordings_skipped_buffer_full")),
-    LONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full));
-  rb_hash_aset(hash, ID2SYM(rb_intern("lifetime_deferred_recordings_finalized")),
-    LONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_finalized));
-  #endif
 
   return hash;
 }
