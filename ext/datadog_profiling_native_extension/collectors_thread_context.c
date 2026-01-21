@@ -1351,7 +1351,7 @@ void thread_context_collector_after_allocation(VALUE self_instance) {
     return;
   }
   if (!heap_recorder_finalize_pending_recordings(recorder)) {
-    rb_raise(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
+    raise_error(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
   }
 }
 

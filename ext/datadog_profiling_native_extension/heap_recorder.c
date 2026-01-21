@@ -431,7 +431,7 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
     heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
     // Overflow check before pre-incrementing
     if (heap_record->num_tracked_objects == UINT32_MAX) {
-      rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
+      raise_error(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
     }
     heap_record->num_tracked_objects++; // Pre-increment since we're going to commit this later
 
@@ -911,7 +911,7 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
   if (!try_commit_object_record(heap_recorder, heap_record, active_recording, true)) {
     // This path handles both overflow and duplicate cases
     if (heap_record->num_tracked_objects == UINT32_MAX) {
-      rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
+      raise_error(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
     }
     // Duplicate object_id - shouldn't happen, raise with details
     object_record *existing_record = NULL;
