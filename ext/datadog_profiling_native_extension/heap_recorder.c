@@ -325,9 +325,9 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   heap_recorder->stats_lifetime = (struct stats_lifetime) {0};
 }
 
-void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class) {
+bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class) {
   if (heap_recorder == NULL) {
-    return;
+    return false;
   }
 
   if (heap_recorder->active_recording != NULL) {
@@ -347,7 +347,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
       || heap_recorder->updating
     ) {
     heap_recorder->active_recording = &SKIPPED_RECORD;
-    return;
+    return false;
   }
 
   #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
@@ -355,7 +355,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
     heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full++;
     heap_recorder->active_recording = &SKIPPED_RECORD;
-    return;
+    return false;
   }
   #endif
 
@@ -371,6 +371,9 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
     .alloc_gen = rb_gc_count(),
   };
+  // TODO: Explain why == 0 and not always return true when using this mode
+  bool needs_after_allocation = heap_recorder->pending_recordings_count == 0;
+  return needs_after_allocation;
   #else
   VALUE ruby_obj_id = rb_obj_id(new_obj);
   if (!FIXNUM_P(ruby_obj_id)) {
@@ -386,6 +389,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
       .alloc_gen = rb_gc_count(),
     }
   );
+  return false;
   #endif
 }
 

@@ -674,13 +674,14 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   }
 }
 
-void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice alloc_class) {
+// Returns needs_after_allocation: true whenever an after_sample callback is required
+bool track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice alloc_class) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
   // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
   //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
   //        be fixed with some refactoring but for now this leads to a less impactful change.
-  start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight, alloc_class);
+  return start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight, alloc_class);
 }
 
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {

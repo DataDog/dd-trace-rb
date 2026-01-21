@@ -1583,7 +1583,9 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     class_name = ruby_vm_type; // For other weird internal things we just use the VM type
   }
 
-  track_object(state->recorder_instance, new_object, sample_weight, class_name);
+  bool needs_after_allocation = track_object(state->recorder_instance, new_object, sample_weight, class_name);
+  // # TODO: wire up
+  (void) needs_after_allocation;
 
   per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
 
