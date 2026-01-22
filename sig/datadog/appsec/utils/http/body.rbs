@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Utils
+      module HTTP
+        module Body
+          type body = ::String | ::StringIO | ::IO | nil
+
+          def self.parse: (body, media_type: MediaType) -> any?
+        end
+      end
+    end
+  end
+end
