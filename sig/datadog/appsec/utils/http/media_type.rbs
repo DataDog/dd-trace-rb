@@ -24,8 +24,6 @@ module Datadog
 
           def self.form_urlencoded?: (::String?) -> bool
 
-          def self.multipart_form_data?: (::String?) -> bool
-
           def initialize: (::String?) -> void
 
           def to_s: () -> ::String

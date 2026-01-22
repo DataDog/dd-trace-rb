@@ -207,6 +207,22 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
     end
   end
 
+  context 'when request content-type is application/x-www-form-urlencoded' do
+    before do
+      client.post(
+        path: '/application-json',
+        headers: {'Content-Type' => 'application/x-www-form-urlencoded'},
+        body: 'key=value&foo=bar'
+      )
+    end
+
+    it 'includes parsed body in ephemeral data' do
+      expect(context).to have_received(:run_rasp).with(
+        'ssrf', {}, hash_including('server.io.net.request.body' => {'key' => 'value', 'foo' => 'bar'}), anything, phase: 'request'
+      )
+    end
+  end
+
   context 'when response body is valid JSON' do
     before { client.post(path: '/application-json') }
 

@@ -60,13 +60,6 @@ module Datadog
               subtype == 'x-www-form-urlencoded'
             end
 
-            def multipart_form_data?(media)
-              type, subtype = parse(media)
-              return false if type.nil? || subtype.nil?
-
-              type == 'multipart' && subtype == 'form-data'
-            end
-
             private
 
             def parse(media)
