@@ -952,10 +952,10 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class) {
   ENFORCE_TYPE(weight, T_FIXNUM);
   bool needs_after_allocation = track_object(recorder_instance, new_obj, NUM2UINT(weight), char_slice_from_ruby_string(alloc_class));
-  if (needs_after_allocation) {
-    // TODO
-  }
-  return Qtrue;
+
+  // We could instead choose to automatically trigger the after allocation here; yet, it seems kinda nice to keep it manual for
+  // the tests so we can pull on each lever separately and observe "the sausage being made" in steps
+  return needs_after_allocation ? Qtrue : Qfalse;
 }
 
 static void reset_profile_slot(profile_slot *slot, ddog_Timespec start_timestamp) {
