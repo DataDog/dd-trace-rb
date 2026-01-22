@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.27.0)
+    datadog (2.28.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.1)
       libdatadog (~> 25.0.0.1.0)
@@ -36,7 +36,9 @@ GEM
       multipart-post (>= 1.2, < 3)
     faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
-    ffi (1.17.2)
+    ffi (1.17.3)
+    ffi (1.17.3-aarch64-linux-gnu)
+    ffi (1.17.3-x86_64-linux-gnu)
     fiddle (1.1.8)
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
@@ -142,4 +144,4 @@ DEPENDENCIES
   zstd-ruby
 
 BUNDLED WITH
-   2.7.2
+  4.0.3
