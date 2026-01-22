@@ -7,7 +7,7 @@ module Datadog
         # module that gets prepended to RubyLLM::Chat
         module ChatInstrumentation
           class << self
-            def evaluate(messages)
+            def evaluate!(messages)
               ai_guard_messages = messages.flat_map do |message|
                 if message.tool_call?
                   message.tool_calls.map do |tool_call_id, tool_call|
@@ -20,18 +20,18 @@ module Datadog
                 end
               end
 
-              evaluation_result = AIGuard.evaluate(*ai_guard_messages, allow_raise: true)
+              AIGuard.evaluate(*ai_guard_messages, allow_raise: true)
             end
           end
 
           def complete(&block)
-            evaluation_result = Datadog::AIGuard::Contrib::RubyLLM::ChatInstrumentation.evaluate(messages)
+            Datadog::AIGuard::Contrib::RubyLLM::ChatInstrumentation.evaluate!(messages)
 
             super
           end
 
           def handle_tool_calls(response, &block)
-            evaluation_result = Datadog::AIGuard::Contrib::RubyLLM::ChatInstrumentation.evaluate(messages)
+            Datadog::AIGuard::Contrib::RubyLLM::ChatInstrumentation.evaluate!(messages)
 
             super
           end

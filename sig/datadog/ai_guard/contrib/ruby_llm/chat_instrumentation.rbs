@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module RubyLLM
         module ChatInstrumentation
-          def self.evaluate: (::Array[::RubyLLM::Message] messages) -> (AIGuard::Evaluation::Result | AIGuard::Evaluation::NoOpResult)
+          def self.evaluate!: (::Array[::RubyLLM::Message] messages) -> (AIGuard::Evaluation::Result | AIGuard::Evaluation::NoOpResult)
 
           def complete: () ?{ () -> untyped } -> untyped
 
