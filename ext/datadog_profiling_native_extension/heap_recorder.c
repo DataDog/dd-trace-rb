@@ -79,7 +79,6 @@ static void object_record_free(heap_recorder*, object_record*);
 static VALUE object_record_inspect(heap_recorder*, object_record*);
 static object_record SKIPPED_RECORD = {0};
 
-#ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
 // A pending recording is used to defer the object_id call on Ruby 4+
 // where calling rb_obj_id during on_newobj_event is unsafe.
 typedef struct {
@@ -89,7 +88,6 @@ typedef struct {
 } pending_recording;
 
 #define MAX_PENDING_RECORDINGS 256
-#endif
 
 struct heap_recorder {
   // Config
@@ -142,7 +140,6 @@ struct heap_recorder {
   // Data for a heap recording that was started but not yet ended
   object_record *active_recording;
 
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   // Pending recordings that need to be finalized after on_newobj_event completes.
   // On Ruby 4+, we can't call rb_obj_id during the newobj event, so we store the
   // VALUE reference here and finalize it via a postponed job.
@@ -150,7 +147,6 @@ struct heap_recorder {
   // Temporary storage for the recording in progress, used between start and end
   VALUE active_deferred_object;
   live_object_data active_deferred_object_data;
-  #endif
   uint16_t pending_recordings_count;
 
   // Reusable arrays, implementing a flyweight pattern for things like iteration
@@ -225,7 +221,6 @@ static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId)
 //
 // ==========================
 heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) {
-
   heap_recorder *recorder = ruby_xcalloc(1, sizeof(heap_recorder));
 
   recorder->heap_records = st_init_table(&st_hash_type_heap_record);
@@ -238,9 +233,7 @@ heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) 
   recorder->size_enabled = true;
   recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
   recorder->string_storage = string_storage;
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   recorder->active_deferred_object = Qnil;
-  #endif
 
   return recorder;
 }
@@ -490,7 +483,6 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
   heap_recorder_update(heap_recorder, /* full_update: */ false);
 }
 
-#ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
 void heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     return; // Nothing to do
@@ -545,7 +537,6 @@ void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder) {
 
   rb_gc_mark(heap_recorder->active_deferred_object);
 }
-#endif
 
 // NOTE: This function needs and assumes it gets called with the GVL being held.
 //       But importantly **some of the operations inside `st_object_record_update` may cause a thread switch**,

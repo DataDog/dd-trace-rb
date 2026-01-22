@@ -1165,13 +1165,10 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
 }
 
 static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
   heap_recorder_finalize_pending_recordings(state->heap_recorder);
-  #else
-  (void) recorder_instance;
-  #endif
 
   return Qtrue;
 }
