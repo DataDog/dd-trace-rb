@@ -45,22 +45,49 @@ module Datadog
 
           attr_reader :type, :subtype, :parameters
 
-          def self.json?(media_type)
-            return false if media_type.nil? || media_type.empty?
+          class << self
+            def json?(media)
+              _, subtype = parse(media)
+              return false if subtype.nil?
 
-            match = MEDIA_TYPE_RE.match(media_type)
-            return false if match.nil?
+              subtype == 'json' || subtype.end_with?('+json')
+            end
 
-            subtype = match['subtype']
-            return false if subtype.nil? || subtype.empty?
+            def form_urlencoded?(media)
+              _, subtype = parse(media)
+              return false if subtype.nil?
 
-            subtype.downcase!
-            subtype == 'json' || subtype.end_with?('+json')
+              subtype == 'x-www-form-urlencoded'
+            end
+
+            def multipart_form_data?(media)
+              type, subtype = parse(media)
+              return false if type.nil? || subtype.nil?
+
+              type == 'multipart' && subtype == 'form-data'
+            end
+
+            private
+
+            def parse(media)
+              return if media.nil? || media.empty?
+
+              match = MEDIA_TYPE_RE.match(media)
+              return if match.nil?
+
+              type = match['type']
+              type&.downcase!
+
+              subtype = match['subtype']
+              subtype&.downcase!
+
+              [type, subtype]
+            end
           end
 
-          def initialize(media_type)
-            match = MEDIA_TYPE_RE.match(media_type)
-            raise ParseError, media_type.inspect if match.nil?
+          def initialize(media)
+            match = MEDIA_TYPE_RE.match(media)
+            raise ParseError, media.inspect if match.nil?
 
             @type = match['type'] || WILDCARD
             @type.downcase!

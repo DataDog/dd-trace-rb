@@ -22,9 +22,17 @@ module Datadog
 
           def self.json?: (::String?) -> bool
 
+          def self.form_urlencoded?: (::String?) -> bool
+
+          def self.multipart_form_data?: (::String?) -> bool
+
           def initialize: (::String?) -> void
 
           def to_s: () -> ::String
+
+          private
+
+          def self.parse: (::String?) -> [::String?, ::String?]?
         end
       end
     end

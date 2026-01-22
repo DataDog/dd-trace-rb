@@ -101,15 +101,17 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
     expectations = {
       'text/html' => 'text/html',
       'application/json' => 'application/json',
+      'application/x-www-form-urlencoded' => 'application/x-www-form-urlencoded',
+      'multipart/form-data;boundary=WebKitFormBoundary' => 'multipart/form-data;boundary=webkitformboundary',
       'text/plain;format=flowed' => 'text/plain;format=flowed',
       'Text/HTML' => 'text/html',
       'text/html;charset=utf-8;boundary=foo' => 'text/html;charset=utf-8;boundary=foo',
       'application/vnd.api+json' => 'application/vnd.api+json',
     }
 
-    expectations.each do |str, expected|
-      it "converts #{str.inspect} to #{expected.inspect}" do
-        expect(described_class.new(str).to_s).to eq(expected)
+    expectations.each do |media, expected|
+      it "converts #{media.inspect} to #{expected.inspect}" do
+        expect(described_class.new(media).to_s).to eq(expected)
       end
     end
   end
@@ -138,6 +140,46 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
       it { expect(described_class.json?('')).to be(false) }
       it { expect(described_class.json?('invalid')).to be(false) }
       it { expect(described_class.json?('/')).to be(false) }
+    end
+  end
+
+  describe '.form_urlencoded?' do
+    context 'when is a valid form-urlencoded media type' do
+      it { expect(described_class.form_urlencoded?('application/x-www-form-urlencoded')).to be(true) }
+      it { expect(described_class.form_urlencoded?('APPLICATION/X-WWW-FORM-URLENCODED')).to be(true) }
+      it { expect(described_class.form_urlencoded?('application/x-www-form-urlencoded; charset=utf-8')).to be(true) }
+    end
+
+    context 'when is not a form-urlencoded media type' do
+      it { expect(described_class.form_urlencoded?('application/json')).to be(false) }
+      it { expect(described_class.form_urlencoded?('text/plain')).to be(false) }
+      it { expect(described_class.form_urlencoded?('multipart/form-data')).to be(false) }
+    end
+
+    context 'when is invalid media type' do
+      it { expect(described_class.form_urlencoded?(nil)).to be(false) }
+      it { expect(described_class.form_urlencoded?('')).to be(false) }
+      it { expect(described_class.form_urlencoded?('invalid')).to be(false) }
+    end
+  end
+
+  describe '.multipart_form_data?' do
+    context 'when is a valid multipart/form-data media type' do
+      it { expect(described_class.multipart_form_data?('multipart/form-data')).to be(true) }
+      it { expect(described_class.multipart_form_data?('MULTIPART/FORM-DATA')).to be(true) }
+      it { expect(described_class.multipart_form_data?('multipart/form-data; boundary=----WebKitFormBoundary')).to be(true) }
+    end
+
+    context 'when is not a multipart/form-data media type' do
+      it { expect(described_class.multipart_form_data?('multipart/mixed')).to be(false) }
+      it { expect(described_class.multipart_form_data?('application/json')).to be(false) }
+      it { expect(described_class.multipart_form_data?('application/x-www-form-urlencoded')).to be(false) }
+    end
+
+    context 'when is invalid media type' do
+      it { expect(described_class.multipart_form_data?(nil)).to be(false) }
+      it { expect(described_class.multipart_form_data?('')).to be(false) }
+      it { expect(described_class.multipart_form_data?('invalid')).to be(false) }
     end
   end
 end
