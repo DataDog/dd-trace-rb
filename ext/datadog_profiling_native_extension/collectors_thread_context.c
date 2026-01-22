@@ -8,7 +8,6 @@
 #include "helpers.h"
 #include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
-#include "ruby/internal/special_consts.h"
 #include "ruby_helpers.h"
 #include "stack_recorder.h"
 #include "time_helpers.h"
