@@ -14,7 +14,7 @@ on: # yamllint disable-line rule:truthy
       - master
   workflow_dispatch: {}
   schedule:
-    - cron: "00 04 * * 2-6"
+    - cron: "00 04 * * 0-6"
 
 # Default permissions for all jobs
 permissions: {}
@@ -77,7 +77,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@06f955271aeb5d560b251952bdd7c6d56960c7b1  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@cf7f646e5138122d3a586f0d0b70fbd7c3f0ff43  # Automated: This reference is automatically updated.
     secrets:
       TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}  # key used to pushed test results to test optim
       DD_API_KEY: ${{ secrets.DD_API_KEY }}  # key used in tests runs
@@ -91,7 +91,7 @@ jobs:
       desired_execution_time: 300  # 5 minutes
       scenarios_groups: tracer_release
       skip_empty_scenarios: true
-      ref: ae3a0d3df5326ebfe69950f7ea75c4764cb9fa6c  # Automated: This reference is automatically updated.
+      ref: cf7f646e5138122d3a586f0d0b70fbd7c3f0ff43  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
       push_to_test_optimization: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
