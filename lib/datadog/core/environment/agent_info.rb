@@ -78,7 +78,7 @@ module Datadog
           other.is_a?(self.class) && other.agent_settings == agent_settings
         end
 
-        # Returns the propagation checksum from the Agent.
+        # Returns the propagation checksum, with part of the datafrom the Agent.
         # Currently called/used by the DBM code to inject the propagation checksum into the SQL comment
         # @return [Integer, nil] the FNV hash based on the container and process tags or nil
         def propagation_checksum
@@ -109,13 +109,17 @@ module Datadog
         # https://github.com/DataDog/datadog-agent/pull/38515
         attr_reader :container_tags_checksum
 
-        # Datadog::Core::Environment::Container extracts the container id if possible and sends them to the Trace Agent via the header Datadog-Container-ID
+        # Datadog::Core::Environment::Container extracts the container id from the cgroup folder if possible
+        # (note: not currently available in cgroupv2) and sends it to the Trace Agent via the header Datadog-Container-ID.
         # The Trace Agent takes the container id and looks for matching container tags to compute a SHA256 checksum via the response header DATADOG-CONTAINER-TAGS-HASH
         # https://github.com/DataDog/datadog-agent/blob/c923da011c8e51c35c0d05b6b10d016521915e7d/pkg/trace/api/info.go#L203-L227
-        # When deciding whether the propagation checksum should be updated, we need to be aware of some concerns
+        #
+        # When deciding whether the propagation checksum should be updated, we need to be aware of some concerns:
+        #     - The tracer fails to send the container id in the first place
         #     - It is possible that older Trace Agents may not have this specific header
         #     - It is possible that we don't have access to the value if the Trace Agent is temporarily down. In these cases, we need to check for the value again on the next call to the info endpoint
         #     - If we have access to the value, we need to check if it changed from the previous value.
+        #     - The Trace Agent runs into a permissions/setup issue.
         def update_container_tags(res)
           header_value = res.headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_TAGS_HASH]
           new_container_tags_value = header_value if header_value && !header_value.empty?
