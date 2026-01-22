@@ -398,7 +398,6 @@ int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, 
     return 0;
   }
 
-
   int exception_state;
   end_heap_allocation_args args = {
     .heap_recorder = heap_recorder,
@@ -415,15 +414,13 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
   ddog_prof_Slice_Location locations = args->locations;
 
   #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-  // On Ruby 4+, active_deferred_object != Qnil indicates deferred mode
-  if (heap_recorder->active_deferred_object != Qnil) {
-    // Invariant: active_deferred_object is only set when pending_recordings_count < MAX_PENDING_RECORDINGS
-    // (checked in start_heap_allocation_recording). If this fails, there's a bug in our logic.
-    if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
-      rb_bug("heap_recorder: pending_recordings buffer overflow - invariant violated");
+    if (heap_recorder->active_deferred_object == Qnil) {
+      // Recording ended without having been started?
+      raise_error(rb_eRuntimeError, "Ended a heap recording that was not started");
     }
 
     heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
+
     // Overflow check before pre-incrementing
     if (heap_record->num_tracked_objects == UINT32_MAX) {
       raise_error(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
@@ -437,30 +434,28 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
 
     heap_recorder->active_deferred_object = Qnil;
     heap_recorder->active_deferred_object_data = (live_object_data) {0};
-    return Qnil;
-  }
+  #else
+    object_record *active_recording = heap_recorder->active_recording;
+
+    if (active_recording == NULL) {
+      // Recording ended without having been started?
+      raise_error(rb_eRuntimeError, "Ended a heap recording that was not started");
+    }
+    // From now on, mark the global active recording as invalid so we can short-circuit at any point
+    // and not end up with a still active recording. the local active_recording still holds the
+    // data required for committing though.
+    heap_recorder->active_recording = NULL;
+
+    if (active_recording == &SKIPPED_RECORD) { // special marker when we decided to skip due to sampling
+      // Note: Remember to update the short circuit in end_heap_allocation_recording_with_rb_protect if this logic changes
+      return Qnil;
+    }
+
+    heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
+
+    // And then commit the new allocation.
+    commit_recording(heap_recorder, heap_record, active_recording);
   #endif
-
-  object_record *active_recording = heap_recorder->active_recording;
-
-  if (active_recording == NULL) {
-    // Recording ended without having been started?
-    raise_error(rb_eRuntimeError, "Ended a heap recording that was not started");
-  }
-  // From now on, mark the global active recording as invalid so we can short-circuit at any point
-  // and not end up with a still active recording. the local active_recording still holds the
-  // data required for committing though.
-  heap_recorder->active_recording = NULL;
-
-  if (active_recording == &SKIPPED_RECORD) { // special marker when we decided to skip due to sampling
-    // Note: Remember to update the short circuit in end_heap_allocation_recording_with_rb_protect if this logic changes
-    return Qnil;
-  }
-
-  heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
-
-  // And then commit the new allocation.
-  commit_recording(heap_recorder, heap_record, active_recording);
 
   return Qnil;
 }
