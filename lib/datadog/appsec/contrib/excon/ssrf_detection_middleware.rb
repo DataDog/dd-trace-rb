@@ -79,6 +79,8 @@ module Datadog
             content = body.respond_to?(:read) ? body.read : body
             body.rewind if body.respond_to?(:rewind)
 
+            return if content.empty?
+
             JSON.parse(content)
           rescue => e
             AppSec.telemetry.report(e, description: 'AppSec: Failed to parse JSON body')
