@@ -210,6 +210,7 @@ static inline double ewma_stat(double previous, double current);
 static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
 static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids);
 static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId);
+static long obj_id_or_fail(VALUE obj);
 
 // ==========================
 // Heap Recorder External API
@@ -354,43 +355,32 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 
   heap_recorder->num_recordings_skipped = 0;
 
-  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
-  // On Ruby 4+, we can't call rb_obj_id during on_newobj_event as it mutates the object.
-  // Instead, we store the VALUE reference and will get the object_id later via a postponed job.
-  // active_deferred_object != Qnil indicates we're in deferred mode.
-  heap_recorder->active_deferred_object = new_obj;
-  heap_recorder->active_deferred_object_data = (live_object_data) {
+  live_object_data object_data = (live_object_data) {
     .weight = weight * heap_recorder->sample_rate,
     .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
     .alloc_gen = rb_gc_count(),
   };
 
-  // The intuition here is: Usually we ask for an `after_allocation` callback only when the buffer is about to go
-  // from empty -> non-empty, because this is going to be mapped onto a postponed job, so if the postponed job doesn't
-  // run it doesn't seem worth it to keep spamming requests.
-  // Yet, if for some reason the postponed job doesn't run (or if e.g. it ran with `during_sample == true ` and thus
-  // was skipped) we need to have some mechanism to recover -- and so if the buffer starts accumulating too much we
-  // keep asking for the callback to happen so that we eventually flush the buffer.
-  bool needs_after_allocation =
-    heap_recorder->pending_recordings_count == 0 || heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS / 2;
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
+    // On Ruby 4+, we can't call rb_obj_id during on_newobj_event as it mutates the object.
+    // Instead, we store the VALUE reference and will get the object_id later via a postponed job.
+    // active_deferred_object != Qnil indicates we're in deferred mode.
+    heap_recorder->active_deferred_object = new_obj;
+    heap_recorder->active_deferred_object_data = object_data;
 
-  return needs_after_allocation;
+    // The intuition here is: Usually we ask for an `after_allocation` callback only when the buffer is about to go
+    // from empty -> non-empty, because this is going to be mapped onto a postponed job, so after it gets queued once
+    // it doesn't seem worth it to keep spamming requests.
+    // Yet, if for some reason the postponed job doesn't flush the pending list (or if e.g. it ran with `during_sample == true ` and thus
+    // was skipped) we need to have some mechanism to recover -- and so if the buffer starts accumulating too much we
+    // start always requesting the callback to happen so that we eventually flush the buffer.
+    bool needs_after_allocation =
+      heap_recorder->pending_recordings_count == 0 || heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS / 2;
+
+    return needs_after_allocation;
   #else
-  VALUE ruby_obj_id = rb_obj_id(new_obj);
-  if (!FIXNUM_P(ruby_obj_id)) {
-    raise_error(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
-  }
-
-  heap_recorder->active_recording = object_record_new(
-    FIX2LONG(ruby_obj_id),
-    NULL,
-    (live_object_data) {
-      .weight = weight * heap_recorder->sample_rate,
-      .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
-      .alloc_gen = rb_gc_count(),
-    }
-  );
-  return false;
+    heap_recorder->active_recording = object_record_new(obj_id_or_fail(new_obj), NULL, object_data);
+    return false;
   #endif
 }
 
@@ -499,15 +489,7 @@ void heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
     pending_recording *pending = &heap_recorder->pending_recordings[i];
 
     VALUE obj = pending->object_ref;
-    VALUE ruby_obj_id = rb_obj_id(obj);
-    if (!FIXNUM_P(ruby_obj_id)) {
-      // Bignum object ids indicate the fixnum range is exhausted - all future IDs will also be bignums.
-      // Heap profiling cannot continue. Clear pending recordings and raise a fatal error.
-      heap_recorder->pending_recordings_count = 0;
-      raise_error(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
-    }
-
-    long obj_id = FIX2LONG(ruby_obj_id);
+    long obj_id = obj_id_or_fail(obj);
 
     // Create the object record now that we have the object_id
     object_record *record = object_record_new(obj_id, pending->heap_record, pending->object_data);
@@ -1123,6 +1105,17 @@ static VALUE get_ruby_string_or_raise(heap_recorder *recorder, ddog_prof_Managed
   ddog_StringWrapper_drop((ddog_StringWrapper *) &get_string_result.ok);
 
   return ruby_string;
+}
+
+static long obj_id_or_fail(VALUE obj) {
+  VALUE ruby_obj_id = rb_obj_id(obj);
+  if (!FIXNUM_P(ruby_obj_id)) {
+    // Bignum object ids indicate the fixnum range is exhausted - all future IDs will also be bignums.
+    // Heap profiling cannot continue.
+    raise_error(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
+  }
+
+  return FIX2LONG(ruby_obj_id);
 }
 
 static inline double ewma_stat(double previous, double current) {

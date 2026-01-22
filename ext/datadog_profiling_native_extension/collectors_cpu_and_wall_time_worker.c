@@ -1325,7 +1325,13 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
     thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, skipped_samples);
   }
 
-  if (needs_after_allocation) rb_postponed_job_trigger(after_allocation_from_postponed_job_handle);
+  if (needs_after_allocation) {
+    #ifndef NO_POSTPONED_TRIGGER
+      rb_postponed_job_trigger(after_allocation_from_postponed_job_handle);
+    #else
+      // Not needed on legacy rubies
+    #endif
+  }
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
