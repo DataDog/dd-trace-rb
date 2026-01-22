@@ -375,7 +375,7 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     // was skipped) we need to have some mechanism to recover -- and so if the buffer starts accumulating too much we
     // start always requesting the callback to happen so that we eventually flush the buffer.
     bool needs_after_allocation =
-      heap_recorder->pending_recordings_count == 0 || heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS / 2;
+      heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS / 2;
 
     return needs_after_allocation;
   #else
