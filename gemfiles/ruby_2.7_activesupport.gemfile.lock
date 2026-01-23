@@ -75,6 +75,7 @@ GEM
       zeitwerk (~> 2.6)
     erubi (1.12.0)
     ffi (1.17.3)
+    google-protobuf (3.24.3-aarch64-linux)
     google-protobuf (3.24.3-x86_64-linux)
     grape (1.8.0)
       activesupport (>= 5)
@@ -90,7 +91,10 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
+    libdatadog (26.0.0.1.0-aarch64-linux)
     libdatadog (26.0.0.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
@@ -111,6 +115,8 @@ GEM
       ruby2_keywords (~> 0.0.1)
     mustermann-grape (1.0.2)
       mustermann (>= 1.0.0)
+    nokogiri (1.15.4-aarch64-linux)
+      racc (~> 1.4)
     nokogiri (1.15.4-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
@@ -191,6 +197,7 @@ GEM
     zstd-ruby (2.0.3)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES

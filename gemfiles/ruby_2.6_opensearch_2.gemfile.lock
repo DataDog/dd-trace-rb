@@ -35,11 +35,15 @@ GEM
       ruby2_keywords (>= 0.0.4)
     faraday-net_http (3.0.2)
     ffi (1.17.3)
+    google-protobuf (3.19.1)
     google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (26.0.0.1.0-aarch64-linux)
     libdatadog (26.0.0.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
@@ -100,6 +104,7 @@ GEM
     zstd-ruby (2.0.3)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES

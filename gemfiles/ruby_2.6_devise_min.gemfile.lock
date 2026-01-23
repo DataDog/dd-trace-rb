@@ -61,13 +61,17 @@ GEM
     dogstatsd-ruby (5.6.6)
     erubis (2.7.0)
     ffi (1.17.3)
+    google-protobuf (3.19.1)
     google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.1.2)
     i18n (0.9.5)
       concurrent-ruby (~> 1.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (26.0.0.1.0-aarch64-linux)
     libdatadog (26.0.0.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
@@ -78,6 +82,8 @@ GEM
     method_source (1.1.0)
     minitest (5.25.4)
     msgpack (1.8.0)
+    nokogiri (1.13.10-aarch64-linux)
+      racc (~> 1.4)
     nokogiri (1.13.10-x86_64-linux)
       racc (~> 1.4)
     orm_adapter (0.5.0)
@@ -146,6 +152,7 @@ GEM
     zstd-ruby (2.0.3)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES

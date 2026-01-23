@@ -75,6 +75,7 @@ GEM
     drb (2.2.1)
     erubi (1.13.1)
     ffi (1.17.3)
+    google-protobuf (3.25.6-aarch64-linux)
     google-protobuf (3.25.6-x86_64-linux)
     hashdiff (1.1.2)
     i18n (1.14.7)
@@ -86,7 +87,10 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (26.0.0.1.0-aarch64-linux)
     libdatadog (26.0.0.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
@@ -98,6 +102,8 @@ GEM
     minitest (5.25.5)
     msgpack (1.8.0)
     mutex_m (0.3.0)
+    nokogiri (1.15.7-aarch64-linux)
+      racc (~> 1.4)
     nokogiri (1.15.7-x86_64-linux)
       racc (~> 1.4)
     orm_adapter (0.5.0)
@@ -188,6 +194,7 @@ GEM
     zstd-ruby (2.0.3)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
