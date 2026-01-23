@@ -5,6 +5,8 @@ require 'excon'
 require_relative '../../event'
 require_relative '../../trace_keeper'
 require_relative '../../security_event'
+require_relative '../../utils/http/url_encoded'
+require_relative '../../utils/http/body'
 
 module Datadog
   module AppSec
@@ -23,8 +25,8 @@ module Datadog
               'server.io.net.request.headers' => headers
             }
 
-            if Utils::HTTP::MediaType.json?(headers['content-type'])
-              body = parse_body(data[:body])
+            if (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+              body = Utils::HTTP::Body.parse(data[:body], media_type: media_type)
               ephemeral_data['server.io.net.request.body'] = body if body
             end
 
@@ -45,8 +47,8 @@ module Datadog
               'server.io.net.response.headers' => headers
             }
 
-            if Utils::HTTP::MediaType.json?(headers['content-type'])
-              body = parse_body(data.dig(:response, :body))
+            if (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+              body = Utils::HTTP::Body.parse(data.dig(:response, :body), media_type: media_type)
               ephemeral_data['server.io.net.response.body'] = body if body
             end
 
@@ -60,7 +62,7 @@ module Datadog
           private
 
           def request_url(data)
-            klass = (data[:scheme] == 'https') ? URI::HTTPS : URI::HTTP
+            klass = data[:scheme] == 'https' ? URI::HTTPS : URI::HTTP
             klass.build(host: data[:host], path: data[:path], query: data[:query]).to_s
           end
 
@@ -70,22 +72,6 @@ module Datadog
             headers.each_with_object({}) do |(key, value), memo|
               memo[key.downcase] = value.is_a?(Array) ? value.join(', ') : value
             end
-          end
-
-          def parse_body(body)
-            return if body.nil?
-
-            body.rewind if body.respond_to?(:rewind)
-            content = body.respond_to?(:read) ? body.read : body
-            body.rewind if body.respond_to?(:rewind)
-
-            return if content.empty?
-
-            JSON.parse(content)
-          rescue => e
-            AppSec.telemetry.report(e, description: 'AppSec: Failed to parse JSON body')
-
-            nil
           end
 
           def handle(result, context:)
