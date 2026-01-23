@@ -160,7 +160,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
           .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
 
         expect(Datadog::AppSec.telemetry).to have_received(:report)
-          .with(an_instance_of(JSON::ParserError), description: 'AppSec: Failed to parse JSON body')
+          .with(an_instance_of(JSON::ParserError), description: 'AppSec: Failed to parse body')
       end
     end
   end
@@ -246,7 +246,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
         .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
 
       expect(Datadog::AppSec.telemetry).to have_received(:report)
-        .with(an_instance_of(JSON::ParserError), description: 'AppSec: Failed to parse JSON body')
+        .with(an_instance_of(JSON::ParserError), description: 'AppSec: Failed to parse body')
     end
   end
 
