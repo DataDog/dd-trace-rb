@@ -12,26 +12,78 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
   describe "grab_gvl_and_raise" do
     it "raises the requested exception with the passed in message" do
-      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "this is a test", nil, true) }
-        .to raise_exception(ZeroDivisionError, "this is a test")
+      expect { described_class::Testing._native_grab_gvl_and_raise(::RuntimeError, "this is a test", nil, true) }
+        .to raise_error(::RuntimeError) do |error|
+          expect(error.message).to eq("this is a test")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("this is a test")
+        end
     end
 
-    it "accepts printf-style string formatting" do
-      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "divided zero by ", 42, true) }
-        .to raise_exception(ZeroDivisionError, "divided zero by 42")
+    it "on printf-style, only report the fixed string for telemetry" do
+      expect { described_class::Testing._native_grab_gvl_and_raise(::RuntimeError, "message %s", "oops", true) }
+        .to raise_error(::RuntimeError) do |error|
+          expect(error.message).to eq("message oops")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("message %s")
+        end
     end
 
     it "limits the exception message to 255 characters" do
       big_message = "a" * 500
 
-      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, big_message, nil, true) }
-        .to raise_exception(ZeroDivisionError, /a{255}\z/)
+      expect { described_class::Testing._native_grab_gvl_and_raise(::RuntimeError, big_message, nil, true) }
+        .to raise_error(::RuntimeError) do |error|
+          expect(error.message).to match(/a{255}\z/)
+          expect(error.instance_variable_get(:@telemetry_message)).to match(/a{255}\z/)
+        end
     end
 
     context "when called without releasing the gvl" do
+      it "raises a RuntimeError with appropriate error handling when called without GVL" do
+        expect do
+          described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "message %s", 'oops', false)
+        end.to raise_error(::RuntimeError) do |error|
+          expect(error.message).to include('grab_gvl_and_raise called by thread holding the global VM lock: message oops')
+          expect(error.instance_variable_get(:@telemetry_message)).to include('grab_gvl_and_raise called by thread holding the global VM lock: message %s')
+        end
+      end
+    end
+
+    context "when raising RuntimeError" do
+      subject(:raise_native_runtime_error) do
+        described_class::Testing._native_grab_gvl_and_raise(::RuntimeError, "runtime error test", nil, true)
+      end
+
       it "raises a RuntimeError" do
-        expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "this is a test", nil, false) }
-          .to raise_exception(RuntimeError, /called by thread holding the global VM lock/)
+        expect { raise_native_runtime_error }.to raise_error(::RuntimeError) do |error|
+          expect(error.message).to eq("runtime error test")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("runtime error test")
+        end
+      end
+    end
+
+    context "when raising ArgumentError" do
+      subject(:raise_native_argument_error) do
+        described_class::Testing._native_grab_gvl_and_raise(::ArgumentError, "argument error test", nil, true)
+      end
+
+      it "raises an ArgumentError" do
+        expect { raise_native_argument_error }.to raise_error(::ArgumentError) do |error|
+          expect(error.message).to eq("argument error test")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("argument error test")
+        end
+      end
+    end
+
+    context "when raising TypeError" do
+      subject(:raise_native_type_error) do
+        described_class::Testing._native_grab_gvl_and_raise(::TypeError, "type error test", nil, true)
+      end
+
+      it "raises a TypeError" do
+        expect { raise_native_type_error }.to raise_error(::TypeError) do |error|
+          expect(error.message).to eq("type error test")
+          expect(error.instance_variable_get(:@telemetry_message)).to eq("type error test")
+        end
       end
     end
   end
@@ -45,8 +97,17 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     it "accepts printf-style string formatting" do
       expect do
-        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "divided zero by ", 42, true)
-      end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - divided zero by 42")
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "message %s", "oops", true)
+      end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - message oops")
+    end
+
+    it "keeps telemetry-safe message unformatted" do
+      expect do
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "message %s", "oops", true)
+      end.to raise_error(Errno::EINTR) do |error|
+        expect(error.message).to include("message oops")
+        expect(error.instance_variable_get(:@telemetry_message)).to eq("message %s")
+      end
     end
 
     it "limits the caller-provided exception message to 255 characters" do
@@ -58,10 +119,13 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "when called without releasing the gvl" do
-      it "raises a RuntimeError" do
+      it "raises a RuntimeError with appropriate error handling" do
         expect do
-          described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "this is a test", nil, false)
-        end.to raise_exception(RuntimeError, /called by thread holding the global VM lock/)
+          described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "message %s", "oops", false)
+        end.to raise_error(::RuntimeError) do |error|
+          expect(error.message).to include("grab_gvl_and_raise called by thread holding the global VM lock: message oops")
+          expect(error.instance_variable_get(:@telemetry_message)).to include("grab_gvl_and_raise called by thread holding the global VM lock: message %s")
+        end
       end
     end
   end
@@ -94,12 +158,6 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
           # coverage on 3.1+ anyway.
           skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.")
-
-          # We also saw weird segfaults inside regular Ruby code **after** this spec ran in 4.0.0preview2. For now
-          # let's skip for this Ruby, and we can re-examine it if the issue shows up on a later 4.0.0 release.
-          #
-          # If you see this skip being around after the stable Ruby 4.0 was released and added to CI, do get rid of it ;)
-          skip "Ruby 4.0.0-preview2 Ractors are too buggy to run this spec" if RUBY_DESCRIPTION.include?("4.0.0preview2")
         end
 
         subject(:ddtrace_rb_ractor_main_p) do

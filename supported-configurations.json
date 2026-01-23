@@ -513,6 +513,13 @@
         "default": "false"
       }
     ],
+    "DD_PROFILING_SHUTDOWN_ON_EXEC_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED": [
       {
         "__comment": "Default is true on Ruby 3.2.5+ / Ruby 3.3.4+, false on older Rubies",

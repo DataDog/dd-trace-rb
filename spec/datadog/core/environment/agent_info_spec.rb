@@ -18,18 +18,18 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
     allow(response).to receive(:respond_to?).with(:headers).and_return(true)
   end
 
-  describe '#container_tags_hash' do
+  describe '#container_tags_checksum' do
     context 'when the header is missing' do
       before { allow(response).to receive(:headers).and_return({}) }
 
       it 'returns nil' do
         agent_info.fetch
-        expect(agent_info.container_tags_hash).to be nil
+        expect(agent_info.send(:container_tags_checksum)).to be nil
       end
 
       it 'does not compute the base hash' do
         agent_info.fetch
-        expect(agent_info.propagation_hash).to be nil
+        expect(agent_info.propagation_checksum).to be nil
       end
     end
 
@@ -38,9 +38,9 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'testhash'})
       end
 
-      it 'grabs the containers tags hash' do
+      it 'grabs the containers tags' do
         agent_info.fetch
-        expect(agent_info.container_tags_hash).to eq('testhash')
+        expect(agent_info.send(:container_tags_checksum)).to eq('testhash')
       end
 
       it 'computes the correct propagation hash' do
@@ -49,14 +49,14 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
         agent_info.fetch
 
-        generated_hash = agent_info.propagation_hash
+        generated_hash = agent_info.propagation_checksum
 
-        container_tags_hash = agent_info.container_tags_hash
-        data = process_tags + container_tags_hash
-        expected_hash = Datadog::Core::Utils::FNV.fnv1_64(data)
+        container_tags_checksum = agent_info.send(:container_tags_checksum)
+        data = process_tags + container_tags_checksum
+        expected_checksum = Datadog::Core::Utils::FNV.fnv1_64(data)
 
         expect(generated_hash).to be_a(Integer)
-        expect(generated_hash).to eq(expected_hash)
+        expect(generated_hash).to eq(expected_checksum)
       end
     end
   end

@@ -2,8 +2,18 @@ module Datadog
   module AppSec
     module Contrib
       module RestClient
-        module RequestSSRFDetectionPatch
-          def self?.execute: () -> void
+        module RequestSSRFDetectionPatch : ::RestClient::Request
+          type headers = ::Hash[::String, ::String]
+
+          def execute: () ?{ (*untyped) -> untyped } -> ::RestClient::Response
+
+          private
+
+          def normalize_request_headers: () -> headers
+
+          def normalize_response_headers: (::RestClient::Response response) -> headers
+
+          def handle: (SecurityEngine::result result, context: Context) -> void
         end
       end
     end

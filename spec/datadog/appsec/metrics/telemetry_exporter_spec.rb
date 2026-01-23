@@ -20,7 +20,8 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
 
     let(:waf_metrics) do
       Datadog::AppSec::Metrics::Collector::Store.new(
-        evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0, inputs_truncated: 0
+        evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0,
+        inputs_truncated: 0, downstream_requests: 0
       )
     end
 

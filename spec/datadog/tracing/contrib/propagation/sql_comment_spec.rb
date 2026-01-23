@@ -4,7 +4,7 @@ require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
   let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append) }
   let(:append) { false }
-  let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_hash: nil) }
+  let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
   let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
   before do
@@ -49,12 +49,18 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
       before do
         allow(Datadog.send(:components)).to receive(:agent_info).and_return(agent_info)
-        allow(agent_info).to receive(:propagation_hash).and_return(1234567890)
+        allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
       end
 
-      it 'sets the propagated hash on the span metric' do
+      it 'sets the propagated hash on the span tag as string' do
         described_class.annotate!(span_op, propagation_mode)
-        expect(span_op.get_metric('_dd.propagated_hash')).to eq(1234567890)
+        expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
+      end
+
+      it 'sets as tag (meta) not as metric' do
+        described_class.annotate!(span_op, propagation_mode)
+
+        expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
       end
     end
 
@@ -62,12 +68,12 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       let(:mode) { 'service' }
 
       before do
-        allow(agent_info).to receive(:propagation_hash).and_return(nil)
+        allow(agent_info).to receive(:propagation_checksum).and_return(nil)
       end
 
-      it 'does not set the propagated hash on the span metric' do
+      it 'does not set the propagated hash on the span tag' do
         described_class.annotate!(span_op, propagation_mode)
-        expect(span_op.get_metric('_dd.propagated_hash')).to be_nil
+        expect(span_op.get_tag('_dd.propagated_hash')).to be_nil
       end
     end
   end
@@ -141,17 +147,25 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
           context 'when the base hash is present' do
             before do
-              allow(agent_info).to receive(:propagation_hash).and_return(1234567890)
+              allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
             end
 
             it 'includes the base hash in the comment' do
               is_expected.to include("ddsh='1234567890'")
             end
+
+            context 'when annotate! is called by db integrations' do
+              it 'sets the propagated hash span tag' do
+                described_class.annotate!(span_op, propagation_mode)
+                subject
+                expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
+              end
+            end
           end
 
           context 'when the base hash is not present' do
             before do
-              allow(agent_info).to receive(:propagation_hash).and_return(nil)
+              allow(agent_info).to receive(:propagation_checksum).and_return(nil)
             end
 
             it 'does not have the base hash in the comment' do

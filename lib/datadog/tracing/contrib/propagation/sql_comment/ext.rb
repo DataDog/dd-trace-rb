@@ -20,8 +20,8 @@ module Datadog
             # The value should be `true` when `full` mode
             TAG_DBM_TRACE_INJECTED = '_dd.dbm_trace_injected'
 
-            # Hash of the agent's container tags and this process' tags
-            METRIC_PROPAGATED_HASH = '_dd.propagated_hash'
+            # Checksum of the agent's container tags and this process' tags
+            TAG_PROPAGATED_HASH = '_dd.propagated_hash'
 
             # Database service/sql span service (i.e. the service executing the actual query)
             #

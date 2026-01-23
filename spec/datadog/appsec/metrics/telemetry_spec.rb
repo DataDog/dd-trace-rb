@@ -8,6 +8,7 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
     stub_const('Datadog::AppSec::WAF::VERSION::BASE_STRING', '1.42.99')
 
     allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+    allow(Datadog::AppSec).to receive(:active_context).and_return(nil)
   end
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
@@ -80,6 +81,25 @@ RSpec.describe Datadog::AppSec::Metrics::Telemetry do
           .with('specsec', 'rasp.rule.eval', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
         expect(telemetry).to receive(:inc)
           .with('specsec', 'rasp.timeout', 1, tags: {rule_type: 'my-type', waf_version: '1.42.99'})
+
+        described_class.report_rasp('my-type', run_result)
+      end
+    end
+
+    context 'when reporting a ok run result with active context' do
+      before { allow(Datadog::AppSec).to receive(:active_context).and_return(context) }
+
+      let(:context) { instance_double(Datadog::AppSec::Context, waf_runner_ruleset_version: '1.2.3') }
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Ok.new(
+          events: [], actions: {}, attributes: {}, keep: false, timeout: false,
+          duration_ns: 0, duration_ext_ns: 0, input_truncated: false
+        )
+      end
+
+      it 'does not set WAF metrics on the span' do
+        tags = {rule_type: 'my-type', waf_version: '1.42.99', event_rules_version: '1.2.3'}
+        expect(telemetry).to receive(:inc).with('specsec', 'rasp.rule.eval', 1, tags: tags)
 
         described_class.report_rasp('my-type', run_result)
       end

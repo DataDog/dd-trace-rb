@@ -21,33 +21,77 @@ void ruby_helpers_init(void) {
   to_s_id = rb_intern("to_s");
 }
 
-#define MAX_RAISE_MESSAGE_SIZE 256
+// Internal helper for raising pre-formatted syserr exceptions
+static NORETURN(void private_raise_syserr_formatted(int syserr_errno, const char *detailed_message, const char *static_message)) {
+  VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
+  private_raise_exception(exception, static_message);
+}
+
+// Use `raise_syserr` the macro instead, as it provides additional argument checks.
+void private_raise_syserr(int syserr_errno, const char *fmt, ...) {
+  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
+  private_raise_syserr_formatted(syserr_errno, detailed_message, fmt);
+}
 
 typedef struct {
   VALUE exception_class;
+  int syserr_errno;
   char exception_message[MAX_RAISE_MESSAGE_SIZE];
+  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
 } raise_args;
 
 static void *trigger_raise(void *raise_arguments) {
   raise_args *args = (raise_args *) raise_arguments;
-  rb_raise(args->exception_class, "%s", args->exception_message);
+
+  if (args->syserr_errno) {
+    private_raise_syserr_formatted(
+      args->syserr_errno,
+      args->exception_message,
+      args->telemetry_message
+    );
+  } else {
+    private_raise_error_formatted(
+      args->exception_class,
+      args->exception_message,
+      args->telemetry_message
+    );
+  }
+
+  return NULL;
 }
 
-void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
+void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const char *format_string, ...) {
   raise_args args;
 
-  args.exception_class = exception_class;
+  if (syserr_errno != 0) {
+    args.exception_class = Qnil;
+    args.syserr_errno = syserr_errno;
+  } else {
+    args.exception_class = exception_class;
+    args.syserr_errno = 0;
+  }
 
-  va_list format_string_arguments;
-  va_start(format_string_arguments, format_string);
-  vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
+  FORMAT_VA_ERROR_MESSAGE(formatted_exception_message, format_string);
+  snprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, "%s", formatted_exception_message);
+  snprintf(args.telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", format_string);
 
   if (is_current_thread_holding_the_gvl()) {
-    rb_raise(
-      rb_eRuntimeError,
-      "grab_gvl_and_raise called by thread holding the global VM lock. exception_message: '%s'",
+    char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
+    snprintf(
+      telemetry_message,
+      MAX_RAISE_MESSAGE_SIZE,
+      "grab_gvl_and_raise called by thread holding the global VM lock: %s",
+      format_string
+    );
+    char exception_message[MAX_RAISE_MESSAGE_SIZE];
+    snprintf(
+      exception_message,
+      MAX_RAISE_MESSAGE_SIZE,
+      "grab_gvl_and_raise called by thread holding the global VM lock: %s",
       args.exception_message
     );
+    VALUE exception = rb_exc_new_cstr(rb_eRuntimeError, exception_message);
+    private_raise_exception(exception, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
@@ -55,40 +99,7 @@ void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
   rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
 }
 
-typedef struct {
-  int syserr_errno;
-  char exception_message[MAX_RAISE_MESSAGE_SIZE];
-} syserr_raise_args;
-
-static void *trigger_syserr_raise(void *syserr_raise_arguments) {
-  syserr_raise_args *args = (syserr_raise_args *) syserr_raise_arguments;
-  rb_syserr_fail(args->syserr_errno, args->exception_message);
-}
-
-void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...) {
-  syserr_raise_args args;
-
-  args.syserr_errno = syserr_errno;
-
-  va_list format_string_arguments;
-  va_start(format_string_arguments, format_string);
-  vsnprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, format_string, format_string_arguments);
-
-  if (is_current_thread_holding_the_gvl()) {
-    rb_raise(
-      rb_eRuntimeError,
-      "grab_gvl_and_raise_syserr called by thread holding the global VM lock. syserr_errno: %d, exception_message: '%s'",
-      syserr_errno,
-      args.exception_message
-    );
-  }
-
-  rb_thread_call_with_gvl(trigger_syserr_raise, &args);
-
-  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise_syserr while raising '%s'\n", args.exception_message);
-}
-
-void raise_syserr(
+void private_raise_enforce_syserr(
   int syserr_errno,
   bool have_gvl,
   const char *expression,
@@ -99,7 +110,7 @@ void raise_syserr(
   if (have_gvl) {
     rb_exc_raise(rb_syserr_new_str(syserr_errno, rb_sprintf("Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name)));
   } else {
-    grab_gvl_and_raise_syserr(syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
+    private_grab_gvl_and_raise(Qnil, syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
   }
 }
 

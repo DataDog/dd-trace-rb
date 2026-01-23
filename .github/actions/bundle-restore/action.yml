@@ -15,12 +15,12 @@ runs:
   using: composite
   steps:
   - name: Download lockfile
-    uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+    uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
     with:
       name: ${{ inputs.lockfile }}
 
   - name: Restore cache
-    uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+    uses: actions/cache/restore@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
     id: restore-cache
     with:
       key: "${{ inputs.cache-key }}"
