@@ -3,6 +3,8 @@
 require_relative '../../event'
 require_relative '../../trace_keeper'
 require_relative '../../security_event'
+require_relative '../../utils/http/media_type'
+require_relative '../../utils/http/body'
 
 module Datadog
   module AppSec
@@ -14,13 +16,19 @@ module Datadog
             context = AppSec.active_context
             return @app.call(env) unless context && AppSec.rasp_enabled?
 
-            timeout = Datadog.configuration.appsec.waf_timeout
+            headers = normalize_headers(env.request_headers)
             ephemeral_data = {
               'server.io.net.url' => env.url.to_s,
               'server.io.net.request.method' => env.method.to_s.upcase,
-              'server.io.net.request.headers' => env.request_headers.transform_keys(&:downcase)
+              'server.io.net.request.headers' => headers
             }
 
+            if (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+              body = Utils::HTTP::Body.parse(env.body, media_type: media_type)
+              ephemeral_data['server.io.net.request.body'] = body if body
+            end
+
+            timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
             handle(result, context: context) if result.match?
 
@@ -30,16 +38,26 @@ module Datadog
           private
 
           def on_complete(env, context:)
-            timeout = Datadog.configuration.appsec.waf_timeout
-
-            response_headers = env.response_headers || {}
+            headers = normalize_headers(env.response_headers)
             ephemeral_data = {
               'server.io.net.response.status' => env.status.to_s,
-              'server.io.net.response.headers' => response_headers.transform_keys(&:downcase)
+              'server.io.net.response.headers' => headers
             }
 
+            if (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+              body = Utils::HTTP::Body.parse(env.body, media_type: media_type)
+              ephemeral_data['server.io.net.response.body'] = body if body
+            end
+
+            timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
             handle(result, context: context) if result.match?
+          end
+
+          def normalize_headers(headers)
+            return {} if headers.nil? || headers.empty?
+
+            headers.transform_keys(&:downcase)
           end
 
           def handle(result, context:)
