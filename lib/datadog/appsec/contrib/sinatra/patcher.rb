@@ -71,7 +71,7 @@ module Datadog
         # path params are returned by pattern.params in process_route, then
         # merged with normal params, so we get both
         module RoutePatch
-          def process_route(*)
+          def process_route(*args)
             env = @request.env
 
             context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
@@ -123,7 +123,7 @@ module Datadog
           end
 
           def patch_json?
-            defined?(::Sinatra::JSON) && ::Sinatra::Base < ::Sinatra::JSON
+            !!(defined?(::Sinatra::JSON) && ::Sinatra::Base < ::Sinatra::JSON)
           end
         end
       end

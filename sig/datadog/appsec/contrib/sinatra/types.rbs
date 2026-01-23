@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Sinatra
+        type rack_env = ::Hash[::String, top]
+        type rack_response = [::Integer, ::Hash[::String, ::String], ::Array[::String]]
+        type rack_app = ^(rack_env) -> rack_response
+      end
+    end
+  end
+end

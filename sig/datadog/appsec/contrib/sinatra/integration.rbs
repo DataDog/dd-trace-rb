@@ -4,20 +4,19 @@ module Datadog
       module Sinatra
         class Integration
           include Datadog::AppSec::Contrib::Integration
+          extend Datadog::AppSec::Contrib::Integration::ClassMethods
 
-          MINIMUM_VERSION: untyped
+          MINIMUM_VERSION: Gem::Version
 
-          def self.version: () -> untyped
+          def self.version: () -> Gem::Version?
 
-          def self.loaded?: () -> untyped
+          def self.loaded?: () -> bool
 
-          def self.compatible?: () -> untyped
+          def self.compatible?: () -> bool
 
           def self.auto_instrument?: () -> true
 
-          def default_configuration: () -> untyped
-
-          def patcher: () -> untyped
+          def patcher: () -> singleton(Patcher)
         end
       end
     end

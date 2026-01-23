@@ -2,6 +2,10 @@ module Datadog
   module AppSec
     module Contrib
       module Sinatra
+        interface _SinatraRequest
+          def env: () -> rack_env
+        end
+
         module AppSecSetupPatch
           def setup_middleware: (*untyped args) ?{ () -> untyped } -> untyped
         end
@@ -11,19 +15,25 @@ module Datadog
         end
 
         module DispatchPatch
+          @request: _SinatraRequest
+
           def dispatch!: () -> untyped
         end
 
         module RoutePatch
-          def process_route: () { (untyped) -> untyped } -> untyped
+          @request: _SinatraRequest
+
+          def process_route: (*untyped args) { (*untyped) -> untyped } -> untyped
+
+          def params: () -> ::Hash[::String, top]
         end
 
         module Patcher
-          def self?.patched?: () -> untyped
+          def self?.patched?: () -> bool
 
-          def self?.target_version: () -> untyped
+          def self?.target_version: () -> Gem::Version?
 
-          def self?.patch: () -> untyped
+          def self?.patch: () -> void
 
           def self?.patch_json?: () -> bool
         end

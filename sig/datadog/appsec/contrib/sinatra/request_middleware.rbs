@@ -3,9 +3,11 @@ module Datadog
     module Contrib
       module Sinatra
         class RequestMiddleware
-          def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> void
+          @app: rack_app
 
-          def call: (untyped env) -> untyped
+          def initialize: (rack_app app, ?::Hash[::Symbol, top] opt) -> void
+
+          def call: (rack_env env) -> rack_response
         end
       end
     end

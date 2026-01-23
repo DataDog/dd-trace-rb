@@ -5,4 +5,7 @@ module Sinatra
 
   class Base
   end
+
+  module JSON
+  end
 end
