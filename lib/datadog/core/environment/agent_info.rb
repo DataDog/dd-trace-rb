@@ -79,15 +79,11 @@ module Datadog
         end
 
         # Returns the propagation checksum, with part of the datafrom the Agent.
-        # Currently called/used by the DBM code to inject the propagation checksum into the SQL comment
+        # Currently called/used by the DBM code to inject the propagation checksum into the SQL comment.
+        #
+        # The checksum is populated by the trace transport's periodic fetch calls.
         # @return [Integer, nil] the FNV hash based on the container and process tags or nil
-        def propagation_checksum
-          # It is possible that we try to look for the output of propagation_check before an agent info has been called
-          # If this happens, then we need to trigger a fetch call
-          fetch unless defined?(@propagation_checksum)
-
-          @propagation_checksum
-        end
+        attr_reader :propagation_checksum
 
         private
 

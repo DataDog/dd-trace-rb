@@ -51,29 +51,25 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
   describe '#propagation_checksum' do
     context 'when called before any fetch' do
-      before { allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'test'}) }
-
-      it 'triggers a fetch automatically' do
-        expect(client).to receive(:send_info).once
-        agent_info.propagation_checksum
+      it 'returns nil' do
+        expect(agent_info.propagation_checksum).to be_nil
       end
     end
 
-    context 'when fetch returns response with propagation info' do
+    context 'when fetch has populated the value' do
       before do
         allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'test'})
         allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return('process:tags')
+        agent_info.fetch
       end
 
-      it 'only calls fetch once when called multiple times' do
-        expect(client).to receive(:send_info).once
-
-        agent_info.propagation_checksum
-        agent_info.propagation_checksum
-        agent_info.propagation_checksum
+      it 'returns the cached value' do
+        result = agent_info.propagation_checksum
+        expect(result).to be_a(Integer)
+        expect(result).to eq(Datadog::Core::Utils::FNV.fnv1_64('process:tagstest'))
       end
 
-      it 'returns the cached value on subsequent calls' do
+      it 'returns the same cached value on subsequent calls' do
         first_result = agent_info.propagation_checksum
         second_result = agent_info.propagation_checksum
 
@@ -83,31 +79,26 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
     end
 
     context 'when fetch returns response without propagation info' do
-      before { allow(response).to receive(:headers).and_return({}) }
-
-      it 'caches nil and does not retry fetch' do
-        expect(client).to receive(:send_info).once
-
-        first_result = agent_info.propagation_checksum
-        second_result = agent_info.propagation_checksum
-
-        expect(first_result).to be_nil
-        expect(second_result).to be_nil
+      before do
+        allow(response).to receive(:headers).and_return({})
+        agent_info.fetch
       end
-    end
-
-    context 'when fetch returns an invalid response' do
-      before { allow(response).to receive(:ok?).and_return(false) }
 
       it 'returns nil' do
         expect(agent_info.propagation_checksum).to be_nil
       end
+    end
 
-      it 'does not cache the result and calls fetch again on next call' do
-        expect(client).to receive(:send_info).twice
+    context 'when fetch fails to get a response' do
+      before { allow(response).to receive(:ok?).and_return(false) }
 
-        agent_info.propagation_checksum
-        agent_info.propagation_checksum
+      it 'returns nil before fetch' do
+        expect(agent_info.propagation_checksum).to be_nil
+      end
+
+      it 'returns nil after failed fetch' do
+        agent_info.fetch
+        expect(agent_info.propagation_checksum).to be_nil
       end
     end
   end
